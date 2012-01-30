@@ -23,12 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+
 
 public class RGSemiAbstracted implements RGEnvTransition{
 
   @Override
   public RGEnvTransitionType getRGType() {
     return RGEnvTransitionType.SemiAbstracted;
+  }
+
+  @Override
+  public ARTElement getSourceARTElement() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public int getTid() {
+    // TODO Auto-generated method stub
+    return 0;
   }
 
 }

@@ -60,9 +60,10 @@ import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGApplicationInfo;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCFAEdge2;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdgeTemplate;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGFullyAbstracted;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -327,19 +328,19 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
 
       // retrieve info about env. edges applied
-      Map<Integer, RGCFAEdgeTemplate> envMap = null;
+      Map<Integer, RGEnvTransition> envMap = null;
       if (rgElement.getBlockAppInfo() != null){
         envMap = rgElement.getBlockAppInfo().getEnvMap();
       } else {
-        envMap = new HashMap<Integer, RGCFAEdgeTemplate>(0);
+        envMap = new HashMap<Integer, RGEnvTransition>(0);
       }
 
 
       // rename env. transitions to their source thread numbers
       for(Integer id : envMap.keySet()){
-        RGCFAEdgeTemplate rgEdge = envMap.get(id);
-        ARTElement targetARTElement = rgEdge.getTargetARTElement();
-        Integer sourceTid           = rgEdge.getSourceTid();
+        RGEnvTransition rgEdge = envMap.get(id);
+        ARTElement targetARTElement = rgEdge.getSourceARTElement();
+        Integer sourceTid           = rgEdge.getTid();
         assert sourceTid != tid;
 
         // construct missing nodes for the source element
@@ -391,11 +392,11 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
 
   // TODO For testing
-  private void printEnvEdgesApplied(ARTElement artElement, Collection<RGCFAEdge2>  set) {
+  private void printEnvEdgesApplied(ARTElement artElement, Collection<RGCFAEdge>  set) {
 
     if (!set.isEmpty()){
       System.out.println("Env edges applied at id:"+artElement.getElementId());
-      for (RGCFAEdge2 edge : set){
+      for (RGCFAEdge edge : set){
         System.out.println("- edge "+edge );
       }
     }
@@ -688,22 +689,12 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
       if (appInfo != null){
         for (Integer id : appInfo.getEnvMap().keySet()){
-          RGCFAEdgeTemplate rgEdge = appInfo.getEnvMap().get(id);
+          RGEnvTransition rgEdge = appInfo.getEnvMap().get(id);
 
           // create a sub-tree for the the element that generated the transition
-          ARTElement sARTElement = null;
-          if (abstractEnvTransitions == 2){
-            // operations was abstracted, so use the element after it
-            sARTElement = rgEdge.getTargetARTElement();
-          } else if(abstractEnvTransitions == 1){
-            // the element before the operation was abstracted, so use it
-            sARTElement = rgEdge.getSourceARTElement();
-          } else {
-            // env. transitions were unabstracted, so use the last abstraction point
-            sARTElement = rgEdge.getLastARTAbstractionElement();
-          }
+          ARTElement sARTElement = rgEdge.getSourceARTElement();
 
-          int sTid = rgEdge.getSourceTid();
+          int sTid = rgEdge.getTid();
           Pair<InterpolationTree, Integer> pair = unwindDag(dag, sARTElement, appUniqueId);
           InterpolationTree appTree = pair.getFirst();
           InterpolationTreeNode appNode = appTree.getNode(sTid, sARTElement.getElementId(), appUniqueId);
@@ -711,9 +702,10 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
           if (abstractEnvTransitions == 2){
             // TODO make more elegant
+            RGFullyAbstracted fa = (RGFullyAbstracted) rgEdge;
             PathFormula newPf = appNode.getPathFormula();
             // rename filter SSAMap
-            SSAMap fSsa = rgEdge.getFilter().getSsa();
+            SSAMap fSsa = fa.getHighSSA();
             HashMap<Integer, Integer> rMap2 = new HashMap<Integer, Integer>(1);
             rMap2.put(-1, appUniqueId);
             SSAMap rfSsa = ssaManager.changePrimeNo(fSsa, rMap2);

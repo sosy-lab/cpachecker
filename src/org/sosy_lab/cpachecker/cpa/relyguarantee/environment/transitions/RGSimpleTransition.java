@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
@@ -42,6 +43,18 @@ public class RGSimpleTransition implements RGEnvTransition{
   @Override
   public RGEnvTransitionType getRGType() {
     return RGEnvTransitionType.SimpleTransition;
+  }
+
+  @Override
+  public ARTElement getSourceARTElement() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public int getTid() {
+    // TODO Auto-generated method stub
+    return 0;
   }
 
 

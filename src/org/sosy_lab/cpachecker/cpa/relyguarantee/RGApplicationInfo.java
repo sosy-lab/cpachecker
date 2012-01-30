@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdgeTemplate;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 /**
@@ -38,7 +38,7 @@ public class RGApplicationInfo {
   /**
    * Env. edges that have been applied.
    */
-  public final Map<Integer, RGCFAEdgeTemplate> envMap;
+  public final Map<Integer, RGEnvTransition> envMap;
 
   /** Path formula for refinement */
   private PathFormula refinementPf;
@@ -46,12 +46,12 @@ public class RGApplicationInfo {
 
 
   public RGApplicationInfo(){
-    this.envMap = new HashMap<Integer, RGCFAEdgeTemplate>();
+    this.envMap = new HashMap<Integer, RGEnvTransition>();
   }
 
   /** Makes a copy of another application info. */
   public RGApplicationInfo(RGApplicationInfo other){
-    this.envMap = new HashMap<Integer, RGCFAEdgeTemplate>(other.envMap);
+    this.envMap = new HashMap<Integer, RGEnvTransition>(other.envMap);
   }
 
   /**
@@ -63,18 +63,18 @@ public class RGApplicationInfo {
     envMap.putAll(other.envMap);
   }
 
-  public Map<Integer, RGCFAEdgeTemplate> getEnvMap() {
+  public Map<Integer, RGEnvTransition> getEnvMap() {
     return envMap;
   }
 
   /**
    * Shorthand for getEnvMap().put(i, rgEdge).
-   * @param rgEdge
+   * @param pRgEnvTransition
    * @param pf
    * @return
    */
-  public RGCFAEdgeTemplate putEnvApplication(Integer i, RGCFAEdgeTemplate rgEdge){
-    return envMap.put(i, rgEdge);
+  public RGEnvTransition putEnvApplication(Integer i, RGEnvTransition pRgEnvTransition){
+    return envMap.put(i, pRgEnvTransition);
   }
 
   @Override

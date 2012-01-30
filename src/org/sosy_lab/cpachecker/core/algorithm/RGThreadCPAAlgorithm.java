@@ -64,15 +64,14 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCFAEdge2;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGTransferRelation;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdgeTemplate;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCombinedCFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -164,7 +163,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
     final StopOperator stopOperator = cpa.getStopOperator();
     final PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
 
-    List<RGCFAEdgeTemplate> envEdges = environment.getUnappliedEnvEdgesForThread(tid);
+    List<RGEnvTransition> envEdges = environment.getUnappliedEnvEdgesForThread(tid);
 
     while (reachedSet.hasWaitingElement()) {
       CPAchecker.stopIfNecessary();
@@ -199,6 +198,10 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc);
       }
 
+      if (aElement.getElementId() == 313){
+        System.out.println();
+      }
+
       stats.transferTimer.start();
       runStats.transferTimer.start();
       // if local child was not expanded, then do it, otherwise only apply new env. transitions
@@ -217,14 +220,14 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
 
       if (nodeForEnvApp.contains(loc)){
-        for (RGCFAEdgeTemplate template : envEdges){
+        for (RGEnvTransition template : envEdges){
           // find the edge matching the template
-          RGCFAEdge2 rgEdge = null;
+          RGCFAEdge rgEdge = null;
           for (int i=0; i<loc.getNumLeavingEdges(); i++){
             CFAEdge edge = loc.getLeavingEdge(i);
             if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
-              rgEdge = (RGCFAEdge2) edge;
-              if (rgEdge.getTemplate() == template){
+              rgEdge = (RGCFAEdge) edge;
+              if (rgEdge.getRgEnvTransition() == template){
                 break;
               }
             }
@@ -452,12 +455,12 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       System.out.println("- by local edge UNKNOWN");
     }
     else if (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
-      RGCFAEdge2 rgEdge = (RGCFAEdge2) rgElement.getParentEdge();
+      RGCFAEdge rgEdge = (RGCFAEdge) rgElement.getParentEdge();
       System.out.println("- by env. edge '"+rgEdge);
     }
     else if (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
-      RGCombinedCFAEdge rgEdge = (RGCombinedCFAEdge) rgElement.getParentEdge();
-      System.out.println("- by combined env. edge '"+rgEdge);
+      //RGCombinedCFAEdge rgEdge = (RGCombinedCFAEdge) rgElement.getParentEdge();
+      //System.out.println("- by combined env. edge '"+rgEdge);
     }
     else {
       System.out.println("- by local edge "+rgElement.getParentEdge().getRawStatement());

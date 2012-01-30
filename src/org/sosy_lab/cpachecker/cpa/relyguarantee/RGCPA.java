@@ -45,6 +45,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManagerFactory;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.RGRefinementManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -91,6 +93,13 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
       description="try second interpolating solver if the first takes too long")
       private boolean changeItpSolveOTF = false;
 
+  @Option(description="Abstract environmental transitions using their own predicates:"
+      + "0 - don't abstract, 1 - abstract filter, 2 - abstract filter and operation.")
+  private int abstractEnvTransitions = 2;
+
+  private int tid;
+  public RGVariables variables;
+
   protected final Configuration config;
   protected final LogManager logger;
   protected final RGAbstractDomain domain;
@@ -99,31 +108,23 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
   protected final RGPrecisionAdjustment prec;
   protected final StopOperator stop;
   protected RGPrecision initialPrecision;
-  protected final RegionManager rManager;
-  protected final FormulaManager formulaManager;
-  protected final PathFormulaManager pathFormulaManager;
-  protected final TheoremProver theoremProver;
-  protected final PredicateAbstractionManager predicateManager;
-  protected final AbstractionManager abstractionManager;
-  protected final SSAMapManager ssaManager;
   protected AbstractElement topElement;
-  protected final  RGRefinementManager<?, ?> refinerManager;
+
+  // managers
+  protected final RegionManager rManager;
+  protected final FormulaManager fManager;
+  protected final PathFormulaManager pfManager;
+  protected final TheoremProver thmProver;
+  protected final PredicateAbstractionManager paManager;
+  protected final AbstractionManager aManager;
+  protected final SSAMapManager ssaManager;
+  protected final RGEnvTransitionManager etManager;
+  protected final  RGRefinementManager<?, ?> refManager;
 
   @Option(name="blk.useCache", description="use caching of path formulas")
   private boolean useCache = true;
 
-  private static TheoremProver  tProver;
   private RGCPAStatistics stats;
-  private int tid;
-  public RGVariables variables;
-
-
-  public static TheoremProver getTheoremProver(Configuration config, LogManager logger,String type) throws InvalidConfigurationException{
-    if (tProver == null){
-      MathsatFormulaManager msatFormulaManager =  MathsatFormulaManager.getInstance(config, logger);
-    }
-    return tProver;
-  }
 
   public RGCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     this.config = config;
@@ -132,13 +133,13 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
     this.rManager = BDDRegionManager.getInstance();
     MathsatFormulaManager mathsatFormulaManager = MathsatFormulaManager.getInstance(config, logger);
-    this.formulaManager = mathsatFormulaManager;
+    this.fManager = mathsatFormulaManager;
 
     PathFormulaManager pfMgr  = PathFormulaManagerImpl.getInstance(mathsatFormulaManager, config, logger);
     if (useCache) {
       pfMgr = CachingPathFormulaManager.getInstance(pfMgr);
     }
-    this.pathFormulaManager = pfMgr;
+    this.pfManager = pfMgr;
 
     /*if (whichProver.equals("MATHSAT")) {
       this.theoremProver = new MathsatTheoremProver(mathsatFormulaManager);
@@ -149,9 +150,9 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
     }*/
 
     if (whichProver.equals("MATHSAT")) {
-      theoremProver =  MathsatTheoremProver.getInstance(mathsatFormulaManager);
+      thmProver =  MathsatTheoremProver.getInstance(mathsatFormulaManager);
     } else if (whichProver.equals("YICES")) {
-      theoremProver =  YicesTheoremProver.getInstance(mathsatFormulaManager);
+      thmProver =  YicesTheoremProver.getInstance(mathsatFormulaManager);
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
@@ -172,16 +173,20 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
       throw new InternalError("Update list of allowed solvers!");
     }
 
-    this.predicateManager = PredicateAbstractionManager.getInstance(rManager, formulaManager, pathFormulaManager, theoremProver, config, logger);
-    this.abstractionManager = AbstractionManagerImpl.getInstance(rManager, mathsatFormulaManager, pathFormulaManager, config, logger);
-    this.ssaManager = SSAMapManagerImpl.getInstance(formulaManager, config, logger);
-    this.refinerManager = RGRefinementManager.getInstance(rManager, formulaManager,  ssaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
+    this.paManager = PredicateAbstractionManager.getInstance(rManager, fManager, pfManager, thmProver, config, logger);
+    this.aManager = AbstractionManagerImpl.getInstance(rManager, mathsatFormulaManager, pfManager, config, logger);
+    this.ssaManager = SSAMapManagerImpl.getInstance(fManager, config, logger);
+    this.refManager = RGRefinementManager.getInstance(rManager, fManager,  ssaManager, pfManager, thmProver, itpProver, alternativeItpProver, config, logger);
+    this.etManager  = RGEnvTransitionManagerFactory.getInstance(abstractEnvTransitions, fManager, pfManager, paManager, ssaManager, thmProver, rManager, variables, config, logger);
+
     this.transfer = new RGTransferRelation(this);
     this.domain = new RGAbstractDomain(this);
     this.merge = new RGMergeOperator(this);
     this.prec = new RGPrecisionAdjustment(this);
     this.stop = new StopSepOperator(domain);
     this.stats = new RGCPAStatistics(this);
+
+
 
   }
 
@@ -190,11 +195,11 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
     Collection<AbstractionPredicate> predicates = null;
 
     if (checkBlockFeasibility) {
-      AbstractionPredicate p = predicateManager.makeFalsePredicate();
+      AbstractionPredicate p = paManager.makeFalsePredicate();
       predicates = ImmutableSet.of(p);
     }
     // TODO make-shift solution
-    this.topElement = new RGAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null),  tid, pathFormulaManager.makeEmptyPathFormula(), null);
+    this.topElement = new RGAbstractElement.AbstractionElement(pfManager.makeEmptyPathFormula(), paManager.makeTrueAbstractionFormula(null),  tid, pfManager.makeEmptyPathFormula(), null);
 
     this.initialPrecision= new RGPrecision(predicates);
 
@@ -206,6 +211,7 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
   public void setVariables(RGVariables pVariables) {
     variables = pVariables;
+
   }
 
 
@@ -224,7 +230,7 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
   }
 
   public RGRefinementManager<?, ?> getRelyGuaranteeManager() {
-    return this.refinerManager;
+    return this.refManager;
   }
 
   @Override
@@ -274,22 +280,23 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
   }
 
   public FormulaManager getFormulaManager() {
-    return formulaManager;
+    return fManager;
   }
 
   public PathFormulaManager getPathFormulaManager() {
-    return pathFormulaManager;
+    return pfManager;
   }
 
   public PredicateAbstractionManager getPredicateManager() {
-    return predicateManager;
+    return paManager;
   }
 
   public SSAMapManager getSsaManager() {
     return ssaManager;
   }
 
-
-
+  public RGEnvTransitionManager getEtManager() {
+    return etManager;
+  }
 
 }

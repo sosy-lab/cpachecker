@@ -55,19 +55,17 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCFAEdge2;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdgeTemplate;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCombinedCFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
-import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
@@ -108,7 +106,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
   public RGVariables variables;
 
 
-  public RGAlgorithm(RelyGuaranteeCFA[] cfas, CFAFunctionDefinitionNode[] pMainFunctions, ConfigurableProgramAnalysis[] pCpas, RGVariables vars, Configuration config, LogManager logger) {
+  public RGAlgorithm(RelyGuaranteeCFA[] cfas, CFAFunctionDefinitionNode[] pMainFunctions, ConfigurableProgramAnalysis[] pCpas, RGEnvironmentManager environment, RGVariables vars, Configuration config, LogManager logger) {
     this.cfas = cfas;
     this.threadNo = cfas.length;
     this.mainFunctions = pMainFunctions;
@@ -119,8 +117,9 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
     threadCPA = new RGThreadCPAAlgorithm[threadNo];
 
+    this.environment = environment;
     try {
-      environment = new RGEnvironmentManager(threadNo, vars, config, logger);
+      //environment = new RGEnvironmentManager(threadNo, vars, config, logger);
       config.inject(this, RGAlgorithm.class);
     } catch (InvalidConfigurationException e) {
       e.printStackTrace();
@@ -362,7 +361,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     }
 
     // sum up all valid edges from other threads
-    List<RGCFAEdgeTemplate> valid = new Vector<RGCFAEdgeTemplate>();
+    List<RGEnvTransition> valid = new Vector<RGEnvTransition>();
     for (int j=0; j<threadNo; j++){
       if (j!=i){
         valid.addAll(environment.getValidEnvEdgesFromThread(j));
@@ -398,11 +397,12 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     }
 
     // list of env. edges that haven't been applied before
-    List<RGCFAEdgeTemplate> unapplied = environment.getUnappliedEnvEdgesForThread(i);
+    List<RGEnvTransition> unapplied = environment.getUnappliedEnvEdgesForThread(i);
 
     if(combineEnvEdges){
       // valid env. edges are merged into one edge
-      envEdgesMap = addCombinedEnvTransitionsToCFA(i, toApply, valid, unapplied);
+      envEdgesMap = null;
+          //addCombinedEnvTransitionsToCFA(i, toApply, valid, unapplied);
     } else {
       // valid env. edges are applied separately
       envEdgesMap = addSeparateEnvTransitionsToCFA(i, toApply, valid, unapplied);
@@ -422,17 +422,17 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
    *
    * @param i
    * @param toApply
-   * @param valid
-   * @param unapplied
+   * @param pValid
+   * @param pUnapplied
    * @return
    */
-  private ListMultimap<CFANode, CFAEdge> addCombinedEnvTransitionsToCFA(int i, Set<CFANode> toApply, List<RGCFAEdgeTemplate> valid, List<RGCFAEdgeTemplate> unapplied) {
-
+ /* private ListMultimap<CFANode, CFAEdge> addCombinedEnvTransitionsToCFA(int i, Set<CFANode> toApply, List<RGEnvTransition> pValid, List<RGEnvTransition> pUnapplied) {
+    // TODO finish
     RelyGuaranteeCFA cfa = cfas[i];
     ListMultimap<CFANode, CFAEdge> envEdgesMap = ArrayListMultimap.create();
 
     // someUnapplied  iff some env. edges hasn't been applied before
-    boolean someUnapplied = !unapplied.isEmpty();
+    boolean someUnapplied = !pUnapplied.isEmpty();
 
     if (debug){
       System.out.println();
@@ -445,7 +445,8 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
       if (toApply.contains(node)){
         // combine all valid edges into one
-        RGCombinedCFAEdge combined = new RGCombinedCFAEdge(valid, node, node);
+        RGCombinedCFAEdge combined = null;
+            //new RGCFAEdge(pValid, node, node);
         addEnvTransitionToNode(combined);
 
         if (debug){
@@ -459,7 +460,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     }
 
     return envEdgesMap;
-  }
+  }*/
 
 
   /**
@@ -468,17 +469,17 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
    *
    * @param i
    * @param toApply
-   * @param valid
-   * @param unapplied
+   * @param pValid
+   * @param pUnapplied
    * @return
    */
-  private ListMultimap<CFANode, CFAEdge> addSeparateEnvTransitionsToCFA(int i, Set<CFANode> toApply, List<RGCFAEdgeTemplate> valid, List<RGCFAEdgeTemplate> unapplied) {
+  private ListMultimap<CFANode, CFAEdge> addSeparateEnvTransitionsToCFA(int i, Set<CFANode> toApply, List<RGEnvTransition> pValid, List<RGEnvTransition> pUnapplied) {
 
     RelyGuaranteeCFA cfa = cfas[i];
     ListMultimap<CFANode, CFAEdge> envEdgesMap = ArrayListMultimap.create();
 
     // change unapplied to set, so its easier to decided membership
-    Set<RGCFAEdgeTemplate> unappliedSet = new HashSet<RGCFAEdgeTemplate>(unapplied);
+    Set<RGEnvTransition> unappliedSet = new HashSet<RGEnvTransition>(pUnapplied);
 
     if (debug){
       System.out.println();
@@ -492,8 +493,8 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
       if (toApply.contains(node)){
         // apply edges
 
-        for (RGCFAEdgeTemplate edge : valid){
-          RGCFAEdge2 rgEdge = edge.instantiate(node, node);
+        for (RGEnvTransition edge : pValid){
+          RGCFAEdge rgEdge = new RGCFAEdge(edge, node, node);
           addEnvTransitionToNode(rgEdge);
 
           if (debug){
@@ -567,27 +568,35 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
       threadCPA[t].collectStatistics(scoll);
     }
 
+    // RGEnvTransitionManager
+    RGEnvTransitionManager etManager = rgCPA.getEtManager();
+    if (etManager instanceof StatisticsProvider){
+      StatisticsProvider sp = (StatisticsProvider) etManager;
+      sp.collectStatistics(scoll);
+    }
+
     // PredicateAbstractionManager
     PredicateAbstractionManager paManager = rgCPA.getPredicateManager();
     paManager.collectStatistics(scoll);
 
     // CachingPathFormulaManager
     PathFormulaManager pfManager = rgCPA.getPathFormulaManager();
-    if (pfManager instanceof CachingPathFormulaManager){
-      CachingPathFormulaManager cpfManager = (CachingPathFormulaManager) pfManager;
-      cpfManager.collectStatistics(scoll);
+    if (pfManager instanceof StatisticsProvider){
+      StatisticsProvider sp = (StatisticsProvider) pfManager;
+      sp.collectStatistics(scoll);
     }
 
     // MathsatFormulaManager
     FormulaManager fManager = rgCPA.getFormulaManager();
-    if (fManager instanceof MathsatFormulaManager){
-      MathsatFormulaManager msfManager = (MathsatFormulaManager) fManager;
-      msfManager.collectStatistics(scoll);
+    if (fManager instanceof StatisticsProvider){
+      StatisticsProvider sp = (StatisticsProvider) fManager;
+      sp.collectStatistics(scoll);
     }
 
     // SSAMapManager
     SSAMapManager ssaManager = rgCPA.getSsaManager();
     ssaManager.collectStatistics(scoll);
+
 
     // RGAlgorithm
     scoll.add(stats);

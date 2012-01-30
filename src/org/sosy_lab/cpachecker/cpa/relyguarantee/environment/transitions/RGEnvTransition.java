@@ -23,12 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+
 /**
  * Interface for rely-guarantee environmental transitions.
  */
 public interface RGEnvTransition {
 
-  public RGEnvTransitionType getRGType();
+  RGEnvTransitionType getRGType();
+
+  /**
+   * The point where the element was abstracted.
+   * @return
+   */
+  ARTElement getSourceARTElement();
+
+  /**
+   * Source thread's id.
+   * @return
+   */
+  int getTid();
 
 }
 

@@ -34,12 +34,12 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
  */
 public class RGEnvCandidate {
 
-  public final ARTElement element;
-  public final ARTElement successor;
-  public final CFAEdge operation;
-  public final RGAbstractElement rgElement;
-  public final RGAbstractElement rgSuccessor;
-  public final int tid;
+  private final ARTElement element;
+  private final ARTElement successor;
+  private final CFAEdge operation;
+  private final RGAbstractElement rgElement;
+  private final RGAbstractElement rgSuccessor;
+  private final int tid;
 
   public RGEnvCandidate(ARTElement element, ARTElement successor, CFAEdge operation, int tid){
     this.element     = element;

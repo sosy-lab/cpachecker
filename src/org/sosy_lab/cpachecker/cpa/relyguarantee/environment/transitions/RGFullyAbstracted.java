@@ -43,13 +43,16 @@ public class RGFullyAbstracted implements RGEnvTransition {
   private final SSAMap  highSSA;
   /** ART element created by the concrete transition */
   private final ARTElement sourceARTElement;
+  /** Source thred's id */
+  private final int tid;
 
-  public RGFullyAbstracted(Formula abstractTransition, Region abstractTransitionRegion, SSAMap lowSSA, SSAMap highSSA, ARTElement sourceARTElement){
+  public RGFullyAbstracted(Formula abstractTransition, Region abstractTransitionRegion, SSAMap lowSSA, SSAMap highSSA, ARTElement sourceARTElement, int tid){
     this.abstractTransition = abstractTransition;
     this.abstractTransitionRegion = abstractTransitionRegion;
     this.lowSSA  = lowSSA;
     this.highSSA = highSSA;
     this.sourceARTElement = sourceARTElement;
+    this.tid = tid;
   }
 
   @Override
@@ -73,8 +76,19 @@ public class RGFullyAbstracted implements RGEnvTransition {
     return highSSA;
   }
 
+  @Override
   public ARTElement getSourceARTElement() {
     return sourceARTElement;
+  }
+
+  @Override
+  public String toString(){
+    return "fa: "+abstractTransition;
+  }
+
+  @Override
+  public int getTid() {
+    return tid;
   }
 
 }

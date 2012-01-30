@@ -66,7 +66,7 @@ public class  RGCPAStatistics implements Statistics {
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      RGRefinementManager<?, ?> amgr = cpa.refinerManager;
+      RGRefinementManager<?, ?> amgr = cpa.refManager;
 
       Multimap<CFANode, AbstractionPredicate> predicates = HashMultimap.create();
 
@@ -94,8 +94,8 @@ public class  RGCPAStatistics implements Statistics {
       RGPrecisionAdjustment prec = cpa.prec;
 
       CachingPathFormulaManager pfMgr = null;
-      if (cpa.pathFormulaManager instanceof CachingPathFormulaManager) {
-        pfMgr = (CachingPathFormulaManager)cpa.pathFormulaManager;
+      if (cpa.pfManager instanceof CachingPathFormulaManager) {
+        pfMgr = (CachingPathFormulaManager)cpa.pfManager;
       }
 
 

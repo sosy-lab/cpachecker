@@ -28,20 +28,23 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
+/**
+ * Environmental transitions wrapped in a CFA edge.
+ */
 public class RGCFAEdge implements CFAEdge {
 
-  private final RGEnvTransition rgEnvTransition;
+  private final RGEnvTransition et;
   private final CFANode predecessor;
   private final CFANode successor;
 
   public RGCFAEdge(RGEnvTransition rgEnvTransition, CFANode predecessor, CFANode successor){
-    this.rgEnvTransition  = rgEnvTransition;
+    this.et  = rgEnvTransition;
     this.predecessor      = predecessor;
     this.successor        = successor;
   }
 
   public RGEnvTransition getRgEnvTransition() {
-    return rgEnvTransition;
+    return et;
   }
 
   @Override
@@ -61,7 +64,7 @@ public class RGCFAEdge implements CFAEdge {
 
   @Override
   public String getRawStatement() {
-    return null;
+    return et.toString();
   }
 
   @Override
@@ -77,6 +80,10 @@ public class RGCFAEdge implements CFAEdge {
   @Override
   public boolean isJumpEdge() {
     return false;
+  }
+
+  public String toString() {
+    return et.toString();
   }
 
 }

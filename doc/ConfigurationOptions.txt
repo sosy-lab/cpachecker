@@ -274,7 +274,6 @@ cpa.predicate.abm.auxiliaryPredicateComputer = true
 # use caching of region to formula conversions
 # use caching of abstractions
 cpa.predicate.abs.useCache = true
-cpa.predicate.abs.useCache = false
 
 # whether to use Boolean (false) or Cartesian (true) abstraction
 cpa.predicate.abstraction.cartesian = true
@@ -464,7 +463,7 @@ cpa.relyguarantee.blk.threshold = 0
 cpa.relyguarantee.blk.useCache = true
 
 # If true, then change treads after successors for a state were computed.
-cpa.relyguarantee.changeThreadAfterState = false
+cpa.relyguarantee.changeThread = false
 
 # always check satisfiability at end of block, even if precision is empty
 cpa.relyguarantee.checkBlockFeasibility = true
@@ -473,7 +472,6 @@ cpa.relyguarantee.checkBlockFeasibility = true
 cpa.relyguarantee.combineEnvEdges = false
 
 # Print debugging info?
-cpa.relyguarantee.debug = true
 cpa.relyguarantee.debug = true
 cpa.relyguarantee.debug = false
 cpa.relyguarantee.debug = true
@@ -494,10 +492,6 @@ cpa.relyguarantee.interpolation.changesolverontimeout = false
 
 # Limit of nodes in an interpolation tree (0 - no limit).
 cpa.relyguarantee.itpTreeNodeLimit = 0
-
-# export final predicate map, if the error location is not reached
-cpa.relyguarantee.predmap.export = true
-cpa.relyguarantee.predmap.file = "predmap.txt"
 
 # refinement will add all discovered predicates to all the locations in the
 # abstract trace
@@ -522,9 +516,6 @@ cpa.relyguarantee.refinement.msatCexFile = "counterexample.msat"
 # env. edges
 cpa.relyguarantee.refinement.refinementMethod = 1
 
-# restart analysis after refinement
-cpa.relyguarantee.refinement.restartAnalysis = false
-
 # split arithmetic equalities when extracting predicates from interpolants
 cpa.relyguarantee.refinement.splitItpAtoms = false
 
@@ -533,11 +524,8 @@ cpa.relyguarantee.refinement.splitItpAtoms = false
 # blocksize)
 cpa.relyguarantee.satCheck = 0
 
-# Use a theorem prover to remove covered environemtal transitions if false
-# perform only a syntatic check for equivalence
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks
-cpa.relyguarantee.symbolicCoverageCheck = true
 cpa.relyguarantee.symbolicCoverageCheck = false
 
 # check satisfiability when a target state has been found (should be true)

@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -212,6 +213,8 @@ public class CPAchecker {
       // extract variables
       RGVariables vars = new RGVariables(cfas);
 
+      RGEnvironmentManager environment = new RGEnvironmentManager(threadNo, vars, config, logger);
+
       // create a cpa for each thread
       for(int i=0; i<threadNo; i++){
         ConfigurableProgramAnalysis cpa = createCPA(stats);
@@ -230,7 +233,7 @@ public class CPAchecker {
       }
 
       // TODO handle only with ConcurrentAlgorithm
-      RGAlgorithm rgAlgorithm = new RGAlgorithm(cfas, mainFunctions, cpas, vars, config, logger);
+      RGAlgorithm rgAlgorithm = new RGAlgorithm(cfas, mainFunctions, cpas, environment, vars, config, logger);
       ConcurrentAlgorithm algorithm;
 
       if (options.useRelyGuaranteeRefinement) {

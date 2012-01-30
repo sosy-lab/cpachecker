@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.environment;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -36,14 +39,19 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 /**
  *  Creates {@link RGEnvTransitionManager} appropriate for the abstraction level.
  */
-public abstract class RGEnvTransitionManagerFactory implements RGEnvTransitionManager {
+public abstract class RGEnvTransitionManagerFactory implements RGEnvTransitionManager, StatisticsProvider {
 
-  private static RGFullyAbstractedManager singleton;
+  private static RGEnvTransitionManagerFactory singleton;
 
-  public static RGFullyAbstractedManager getInstance(int abstractionLevel, FormulaManager fManager, PathFormulaManager pfManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, Configuration config, LogManager logger){
+  public static RGEnvTransitionManagerFactory getInstance(int abstractionLevel, FormulaManager fManager, PathFormulaManager pfManager, PredicateAbstractionManager paManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, RGVariables variables, Configuration config, LogManager logger){
     if (singleton == null){
+      // instantiate to appriorate manager
       switch (abstractionLevel){
-      case 2 :  singleton = new RGFullyAbstractedManager(fManager, pfManager, ssaManager, thmProver, rManager, config, logger);
+      case 0 :  singleton = new RGSimpleTransitionManager(fManager, pfManager, paManager, ssaManager, thmProver, rManager, variables, config, logger);
+                break;
+      case 1 :  singleton = new RGSemiAbstractedManager(fManager, pfManager, paManager, ssaManager, thmProver, rManager, variables, config, logger);
+                break;
+      case 2 :  singleton = new RGFullyAbstractedManager(fManager, pfManager, paManager, ssaManager, thmProver, rManager, variables, config, logger);
                 break;
       default: throw new UnsupportedOperationException("Unknown abstraction level "+abstractionLevel);
       }

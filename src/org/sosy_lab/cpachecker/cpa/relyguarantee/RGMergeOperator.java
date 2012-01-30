@@ -69,7 +69,7 @@ public class RGMergeOperator implements MergeOperator {
   public RGMergeOperator(RGCPA pCpa) {
     cpa = pCpa;
     logger = pCpa.logger;
-    formulaManager = pCpa.pathFormulaManager;
+    formulaManager = pCpa.pfManager;
     try {
       pCpa.getConfiguration().inject(this, RGMergeOperator.class);
     } catch (InvalidConfigurationException e) {

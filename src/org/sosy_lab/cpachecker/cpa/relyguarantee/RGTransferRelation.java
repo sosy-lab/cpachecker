@@ -26,10 +26,8 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -48,20 +46,18 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.ComputeAbstractionElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGAbstractCFAEdgeTemplate;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCombinedCFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
@@ -137,25 +133,27 @@ public class RGTransferRelation  implements TransferRelation {
   private final RegionManager rManager;
   private final AbstractionManager aManager;
   private final SSAMapManager ssaManager;
+  private final RGEnvTransitionManager etManager;
 
   //private final MathsatFormulaManager manager;
   private final RGCPA cpa;
 
 
   // unique number for env. applications in this thread
-  private Integer uniqueId;
+  private int uniqueId;
 
   public RGTransferRelation(RGCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this, RGTransferRelation.class);
 
     logger = pCpa.logger;
     cpa = pCpa;
-    paManager = pCpa.predicateManager;
-    pfManager = pCpa.pathFormulaManager;
-    fManager = (MathsatFormulaManager)pCpa.formulaManager;
+    paManager = pCpa.paManager;
+    pfManager = pCpa.pfManager;
+    fManager = (MathsatFormulaManager)pCpa.fManager;
     rManager = BDDRegionManager.getInstance();
     aManager = AbstractionManagerImpl.getInstance(rManager, fManager, pfManager, cpa.getConfiguration(), logger);
     ssaManager = pCpa.ssaManager;
+    etManager = pCpa.etManager;
     uniqueId = 1;
   }
 
@@ -209,24 +207,24 @@ public class RGTransferRelation  implements TransferRelation {
    * @throws UnrecognizedCFAEdgeException
    */
   public Pair<PathFormula, RGApplicationInfo> convertEdgeToPathFormula(RGAbstractElement element, CFAEdge edge) throws CPATransferException {
-    PathFormula oldPathFormula = element.getPathFormula();
 
     pfConstructionTimer.start();
 
     Pair<PathFormula, RGApplicationInfo> pair = null;
     if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
       // single edge
-      RGCFAEdge2 rgEdge = (RGCFAEdge2) edge;
-      pair = handleEnvFormula(oldPathFormula, rgEdge, element);
+      RGCFAEdge rgEdge = (RGCFAEdge) edge;
+      pair = handleEnvFormula(element, rgEdge);
     }
     else if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
       // combined edges
-      RGCombinedCFAEdge rgEdge = (RGCombinedCFAEdge) edge;
-      pair = handleCombinedEnvFormula(oldPathFormula, rgEdge, element);
+     // RGCombinedCFAEdge rgEdge = (RGCombinedCFAEdge) edge;
+     // pair = handleCombinedEnvFormula(oldPathFormula, rgEdge, element);
     }
     else {
       // local application
-      PathFormula newPf = pfManager.makeAnd(oldPathFormula, edge);
+      PathFormula oldPf = element.getPathFormula();
+      PathFormula newPf = pfManager.makeAnd(oldPf, edge);
       pair = Pair.of(newPf, null);
     }
 
@@ -242,7 +240,7 @@ public class RGTransferRelation  implements TransferRelation {
    * @return
    * @throws CPATransferException
    */
-  private Pair<PathFormula, RGApplicationInfo>  handleEnvFormula(PathFormula localPf, RGCFAEdge2 rgEdge, RGAbstractElement element) throws CPATransferException {
+  private Pair<PathFormula, RGApplicationInfo>  handleEnvFormula(RGAbstractElement element, RGCFAEdge rgEdge) throws CPATransferException {
 
     RGApplicationInfo appInfo = element.getAppInfo();
     if (appInfo == null){
@@ -250,42 +248,25 @@ public class RGTransferRelation  implements TransferRelation {
     }
 
     // check if the transition has been applied before
-    if (appInfo.envMap.containsValue(rgEdge.getTemplate())){
+    if (appInfo.envMap.containsValue(rgEdge.getRgEnvTransition())){
       assert false;
     }
 
-    // TODO test, works for SBE only!
-    if (abstractEnvTransitions == 2 && localPf.getFormula().isTrue()){
-      RGAbstractCFAEdgeTemplate rgAbsEdge = (RGAbstractCFAEdgeTemplate) rgEdge.getTemplate();
-
-      Region rElem = element.getAbstractionFormula().asRegion();
-      Region rFltr = rgAbsEdge.getAbstractFilter().asRegion();
-
-      Region rAnd = this.rManager.makeAnd(rElem, rFltr);
-      if (rManager.isFalse(rAnd)){
-        // remember the application
-        appInfo.putEnvApplication(uniqueId, rgEdge.getTemplate());
-        // increment unique number
-        uniqueId++;
-
-        envFalseByBDD++;
-
-        return Pair.of(this.pfManager.makeFalsePathFormula(), appInfo);
-      }
-    }
-
     // renamed & apply env transition
-    Pair<PathFormula, PathFormula> pair = renamedEnvApplication(localPf, rgEdge, appInfo, cpa.getTid());
+    Pair<PathFormula, PathFormula> pair = renamedEnvApplication(element, rgEdge, appInfo);
     PathFormula appPf = pair.getFirst();
     PathFormula refPf = pair.getSecond();
 
-
-
     // add local formula
-    appPf = pfManager.makeAnd(appPf, localPf);
-    refPf = pfManager.makeAnd(refPf, localPf);
+    PathFormula localPf = element.getPathFormula();
+    if (!appPf.getFormula().isFalse()){
+      appPf = pfManager.makeAnd(appPf, localPf);
+      refPf = pfManager.makeAnd(refPf, localPf);
+      appInfo.setRefinementFormula(refPf);
+    }
 
-    appInfo.setRefinementFormula(refPf);
+
+
 
     if (debug){
       System.out.println("\tby pf '"+appPf+"'");
@@ -302,7 +283,7 @@ public class RGTransferRelation  implements TransferRelation {
    * @return
    * @throws CPATransferException
    */
-  private Pair<PathFormula, RGApplicationInfo> handleCombinedEnvFormula(PathFormula localPf, RGCombinedCFAEdge rgCombEdge, RGAbstractElement element) throws CPATransferException {
+  /*private Pair<PathFormula, RGApplicationInfo> handleCombinedEnvFormula(PathFormula localPf, RGCombinedCFAEdge rgCombEdge, RGAbstractElement element) throws CPATransferException {
     RGApplicationInfo appInfo = element.getAppInfo();
     assert false;
     if (appInfo == null){
@@ -330,7 +311,7 @@ public class RGTransferRelation  implements TransferRelation {
         /*
         combinedAbstractionPf = pfManager.makeRelyGuaranteeOr(appPf, combinedAbstractionPf, cpa.getTid());
         combinedRefinementPf  = pfManager.makeRelyGuaranteeOr(refPf, combinedRefinementPf, cpa.getTid());*/
-      }
+ /*     }
 
     }
 
@@ -348,7 +329,7 @@ public class RGTransferRelation  implements TransferRelation {
     }
 
     return Pair.of(combinedAbstractionPf, appInfo);
-  }
+  }*/
 
 
   /**
@@ -356,26 +337,30 @@ public class RGTransferRelation  implements TransferRelation {
    * The first one is meant for abstraction and the second one for refinement.
    * @param localPf
    * @param rgEdge
+   * @param pAppInfo
    * @param appInfo
    * @param tid
    * @return
    * @throws CPATransferException
    */
-  private Pair<PathFormula, PathFormula> renamedEnvApplication(PathFormula localPf, RGCFAEdge2 rgEdge, RGApplicationInfo appInfo, int tid) throws CPATransferException {
+  private Pair<PathFormula, PathFormula> renamedEnvApplication(RGAbstractElement element, RGCFAEdge rgEdge, RGApplicationInfo appInfo) throws CPATransferException {
     assert appInfo != null;
 
     // get abstraction & refinement formulas
-    PathFormula appPf = envAbstractionPf(localPf, rgEdge, tid);
-    PathFormula refPf = envRefinementPf(localPf, rgEdge, tid);
+    PathFormula appPf = etManager.formulaForAbstraction(element, rgEdge.getRgEnvTransition());
 
-    // rename
-    Map<Integer, Integer> aMap = new HashMap<Integer, Integer>();
-    aMap.put(1, uniqueId);
-    appPf = pfManager.changePrimedNo(appPf, aMap);
-    refPf = pfManager.changePrimedNo(refPf, aMap);
+    PathFormula refPf = null;
+    if (appPf.getFormula().isFalse()){
+      refPf = pfManager.makeFalsePathFormula();
+    } else {
+      refPf = etManager.formulaForRefinement(element, rgEdge.getRgEnvTransition(), 1);
+      Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(1);
+      rMap.put(1, uniqueId);
+      refPf = pfManager.changePrimedNo(refPf, rMap);
+    }
 
     // remember the application
-    appInfo.putEnvApplication(uniqueId, rgEdge.getTemplate());
+    appInfo.putEnvApplication(uniqueId, rgEdge.getRgEnvTransition());
 
     // increment unique number
     uniqueId++;
@@ -392,7 +377,7 @@ public class RGTransferRelation  implements TransferRelation {
    * @return
    * @throws CPATransferException
    */
-  public PathFormula envAbstractionPf(PathFormula localPf, RGCFAEdge2 rgEdge, int tid) throws CPATransferException{
+  /*public PathFormula envAbstractionPf(PathFormula localPf, RGCFAEdge rgEdge, int tid) throws CPATransferException{
 
     PathFormula appPf = null;
     if (abstractEnvTransitions == 0 || abstractEnvTransitions == 1){
@@ -424,7 +409,7 @@ public class RGTransferRelation  implements TransferRelation {
     }
 
     return appPf;
-  }
+  }*/
 
   /**
    * Returns a path formula representing the effect of applying env. edge on a path formula.
@@ -435,7 +420,7 @@ public class RGTransferRelation  implements TransferRelation {
    * @return
    * @throws CPATransferException
    */
-  public PathFormula envRefinementPf(PathFormula localPf, RGCFAEdge2 rgEdge, int tid) throws CPATransferException{
+  /*public PathFormula envRefinementPf(PathFormula localPf, RGCFAEdge2 rgEdge, int tid) throws CPATransferException{
 
     PathFormula appPf = null;
     if (abstractEnvTransitions == 0 || abstractEnvTransitions == 1){
@@ -476,7 +461,7 @@ public class RGTransferRelation  implements TransferRelation {
     }
 
     return appPf;
-  }
+  }*/
 
   /**
    * Check whether an abstraction should be computed.

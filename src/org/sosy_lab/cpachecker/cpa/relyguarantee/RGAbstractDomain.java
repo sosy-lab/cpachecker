@@ -51,7 +51,7 @@ public class RGAbstractDomain implements AbstractDomain {
   public RGAbstractDomain(RGCPA pCpa)  throws InvalidConfigurationException {
     pCpa.config.inject(this, RGAbstractDomain.class);
     mRegionManager = pCpa.rManager;
-    mgr = pCpa.predicateManager;
+    mgr = pCpa.paManager;
   }
 
   @Override

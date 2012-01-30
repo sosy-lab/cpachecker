@@ -67,9 +67,9 @@ public class RGPrecisionAdjustment implements PrecisionAdjustment {
 
   public RGPrecisionAdjustment(RGCPA pCpa) {
     logger = pCpa.logger;
-    formulaManager = pCpa.predicateManager;
-    pathFormulaManager = pCpa.pathFormulaManager;
-    fManager = pCpa.formulaManager;
+    formulaManager = pCpa.paManager;
+    pathFormulaManager = pCpa.pfManager;
+    fManager = pCpa.fManager;
     try {
       pCpa.getConfiguration().inject(this, RGPrecisionAdjustment.class);
     } catch (InvalidConfigurationException e) {
