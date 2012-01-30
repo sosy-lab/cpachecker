@@ -75,6 +75,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
+import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.AllAssignmentsInPathConditionElement;
+import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.AssignmentsInPathConditionElement;
+import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionElement;
 import org.sosy_lab.cpachecker.cpa.pointer.Memory;
 import org.sosy_lab.cpachecker.cpa.pointer.Pointer;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerElement;
@@ -219,7 +222,7 @@ public class ExplicitTransferRelation implements TransferRelation
         newElement.forget(formalParamName);
 
       else
-        newElement.assignConstant(formalParamName, value, this.threshold);
+        newElement.assignConstant(formalParamName, value);
     }
 
     return newElement;
@@ -277,7 +280,7 @@ public class ExplicitTransferRelation implements TransferRelation
         String assignedVarName = getScopedVariableName(op1.toASTString(), callerFunctionName);
 
         if(element.contains(returnVarName))
-          newElement.assignConstant(assignedVarName, element.getValueFor(returnVarName), this.threshold);
+          newElement.assignConstant(assignedVarName, element.getValueFor(returnVarName));
 
         else
           newElement.forget(assignedVarName);
@@ -366,7 +369,7 @@ public class ExplicitTransferRelation implements TransferRelation
     String scopedVarName = getScopedVariableName(varName, functionName);
 
     if(initialValue != null && precision.isTracking(scopedVarName))
-      newElement.assignConstant(scopedVarName, initialValue, this.threshold);
+      newElement.assignConstant(scopedVarName, initialValue);
 
     else
       newElement.forget(scopedVarName);
@@ -479,7 +482,7 @@ public class ExplicitTransferRelation implements TransferRelation
     else
     {
       if(currentPrecision.isTracking(assignedVar) || assignedVar.endsWith("___cpa_temp_result_var_"))
-        newElement.assignConstant(assignedVar, value, this.threshold);
+        newElement.assignConstant(assignedVar, value);
       else
         newElement.forget(assignedVar);
     }
@@ -806,20 +809,16 @@ public class ExplicitTransferRelation implements TransferRelation
         if(leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp))
         {
           String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
-          if(currentPrecision.isTracking(leftVariableName))
-          {
-            //System.out.println("assigning " + leftVariableName + " value of " + rightValue);
-            element.assignConstant(leftVariableName, rightValue, 2000);
+          if(currentPrecision.isTracking(leftVariableName)) {
+            element.assignConstant(leftVariableName, rightValue);
           }
         }
 
         else if(rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp))
         {
           String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName);
-          if(currentPrecision.isTracking(rightVariableName))
-          {
-            //System.out.println("assigning " + rightVariableName + " value of " + leftValue);
-            element.assignConstant(rightVariableName, leftValue, 2000);
+          if(currentPrecision.isTracking(rightVariableName)) {
+            element.assignConstant(rightVariableName, leftValue);
           }
         }
       }
@@ -903,6 +902,12 @@ public class ExplicitTransferRelation implements TransferRelation
 
       else if(ae instanceof AssumptionStorageElement)
         return strengthen(explicitElement, (AssumptionStorageElement)ae, cfaEdge, precision);
+
+      else if(ae instanceof AllAssignmentsInPathConditionElement)
+        return strengthen(explicitElement, (AllAssignmentsInPathConditionElement)ae, cfaEdge, precision);
+
+      else if(ae instanceof UniqueAssignmentsInPathConditionElement)
+        return strengthen(explicitElement, (UniqueAssignmentsInPathConditionElement)ae, cfaEdge, precision);
     }
 
     return null;
@@ -950,6 +955,56 @@ public class ExplicitTransferRelation implements TransferRelation
       missingInformationLeftPointer = null;
       missingInformationRightExpression = null;
     }
+  }
+
+  /**
+   * This method enforces the threshold on the given ExplicitElement by querying assignment information from the AllAssignmentsInPathConditionElement.
+   */
+  private Collection<? extends AbstractElement> strengthen(ExplicitElement pExplicitElement, AllAssignmentsInPathConditionElement assignsInPathElement, CFAEdge pCfaEdge, Precision pPrecision) {
+    return enforceThreshold(pExplicitElement, assignsInPathElement, pCfaEdge, pPrecision);
+  }
+
+  /**
+   * This method enforces the threshold on the given ExplicitElement by querying assignment information from the UniqueAssignmentsInPathConditionElement.
+   */
+  private Collection<? extends AbstractElement> strengthen(ExplicitElement pExplicitElement, UniqueAssignmentsInPathConditionElement assignsInPathElement, CFAEdge pCfaEdge, Precision pPrecision) {
+    // on basis of the current ExplicitElement, add a new assignment, if it is unique
+    assignsInPathElement.addAssignment(pExplicitElement);
+
+    return enforceThreshold(pExplicitElement, assignsInPathElement, pCfaEdge, pPrecision);
+  }
+
+  /**
+   * This method enforces the threshold on the given ExplicitElement by querying information from an AssignmentsInPathConditionElement.
+   *
+   * @param pExplicitElement the ExplicitElement to enforce the threshold upon
+   * @param assignsInPathElement the element holding the information how many assignments in total were made to each and any variable
+   * @param pCfaEdge the current CFAedge
+   * @param pPrecision the current precision
+   * @return
+   */
+  private Collection<? extends AbstractElement> enforceThreshold(ExplicitElement pExplicitElement, AssignmentsInPathConditionElement assignsInPathElement, CFAEdge pCfaEdge, Precision pPrecision) {
+    // determine which variables exceed the given threshold, ...
+    Set<String> toBeForgotten = new HashSet<String>();
+    if(assignsInPathElement.getMaximum() > threshold) {
+      for(String variableName : pExplicitElement.getTrackedVariableNames()) {
+        if(assignsInPathElement.variableExceedsGivenLimit(variableName, threshold)) {
+          toBeForgotten.add(variableName);
+        }
+      }
+    }
+
+    // ... then "forget" them
+    if(toBeForgotten.size() > 0) {
+      ExplicitElement newElement = pExplicitElement.clone();
+      for(String variableName : toBeForgotten) {
+        newElement.forget(variableName);
+      }
+
+      return Collections.singleton(newElement);
+    }
+
+    return null;
   }
 
   private String derefPointerToVariable(PointerElement pointerElement, String pointer)

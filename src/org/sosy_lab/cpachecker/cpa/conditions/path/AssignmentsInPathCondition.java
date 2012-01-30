@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.conditions.path;
 
 import java.io.PrintStream;
 import java.util.HashMap;
-import java.util.Map;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -49,10 +48,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitElement;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 /**
  * A {@link PathCondition} where the condition is based on the number of assignments (per identifier)
@@ -61,10 +64,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 @Options(prefix="cpa.conditions.path.assignments")
 public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
-  @Option(description="maximum number of assignments (-1 for infinite)",
-      name="limit")
+  @Option(description="maximum number of assignments (-1 for infinite)")
   @IntegerOption(min=-1)
   private int threshold = -1;
+
+  @Option(description="whether or not to track unique assignments only")
+  private boolean demandUniqueness = true;
 
   public AssignmentsInPathCondition(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
@@ -72,7 +77,10 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
   @Override
   public AvoidanceReportingElement getInitialElement(CFANode node) {
-    return new AssignmentsInPathConditionElement();
+
+    AvoidanceReportingElement element = demandUniqueness ? new UniqueAssignmentsInPathConditionElement() : new AllAssignmentsInPathConditionElement();
+
+    return element;
   }
 
   @Override
@@ -144,7 +152,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
   @Override
   public String getName() {
-    return "Assignments in path condition";
+    return (demandUniqueness ? "unique" : "all") + " assignments in path condition";
   }
 
   @Override
@@ -152,18 +160,11 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     out.println("Threshold value: " + threshold);
   }
 
-
-  public class AssignmentsInPathConditionElement implements AbstractElement, AvoidanceReportingElement {
-
-    /**
-     * the mapping from variable name to the number of assignments to this variable
-     */
-    private HashMap<String, Integer> mapping = new HashMap<String, Integer>();
-
+  abstract public class AssignmentsInPathConditionElement implements AbstractElement, AvoidanceReportingElement {
     /**
      * the maximal number of assignments over all variables
      */
-    private Integer maximum = 0;
+    protected Integer maximum = 0;
 
     /**
      * This method creates the successor of the current element, based on the given assigned variable.
@@ -171,8 +172,51 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
      * @param assignedVariable the name of the assigned variable
      * @return the successor of the current element, based on the given assigned variable
      */
-    public AssignmentsInPathConditionElement getSuccessor(String assignedVariable) {
-      AssignmentsInPathConditionElement successor = new AssignmentsInPathConditionElement();
+    abstract public AssignmentsInPathConditionElement getSuccessor(String assignedVariable);
+
+    /**
+     * This method returns the maximal number of assignments over all variables.
+     *
+     * @return the maximal amount of assignments over all variables
+     */
+    public Integer getMaximum() {
+      return maximum;
+    }
+
+    @Override
+    public Formula getReasonFormula(FormulaManager formuaManager) {
+      String formula = HeuristicToFormula.getFormulaStringForHeuristic(PreventingHeuristicType.ASSIGNMENTSINPATH, maximum);
+
+      return formuaManager.parse(formula);
+    }
+
+    @Override
+    public boolean mustDumpAssumptionForAvoidance() {
+      return threshold != -1 && maximum > AssignmentsInPathCondition.this.threshold;
+    }
+
+    /**
+    * This method decides if the number of assignments for the given variable exceeds the given limit.
+    *
+    * Note, this method maybe used to check against an arbitrary limit, and must not be associated to the threshold in any form.
+    *
+    * @param variableName the variable to check
+    * @param limit the limit to check
+    * @return true, if the number of assignments for the given variable exceeds the given threshold, else false
+    */
+    abstract public boolean variableExceedsGivenLimit(String variableName, Integer limit);
+  }
+
+  public class AllAssignmentsInPathConditionElement extends AssignmentsInPathConditionElement {
+
+    /**
+     * the mapping from variable name to the number of assignments to this variable
+     */
+    private HashMap<String, Integer> mapping = new HashMap<String, Integer>();
+
+    @Override
+    public AllAssignmentsInPathConditionElement getSuccessor(String assignedVariable) {
+      AllAssignmentsInPathConditionElement successor = new AllAssignmentsInPathConditionElement();
 
       Integer currentValue = mapping.containsKey(assignedVariable) ? mapping.get(assignedVariable) + 1 : 1;
       successor.mapping = new HashMap<String, Integer>(mapping);
@@ -183,13 +227,63 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
       return successor;
     }
 
+    @Override
+    public boolean variableExceedsGivenLimit(String variableName, Integer limit) {
+      return mapping.containsKey(variableName) && mapping.get(variableName) >= limit;
+    }
+
+    @Override
+    public String toString() {
+      return mapping.toString();
+    }
+  }
+
+  public class UniqueAssignmentsInPathConditionElement extends AssignmentsInPathConditionElement {
+
     /**
-     * This method returns the maximal number of assignments over all variables.
-     *
-     * @return the maximal amount of assignments over all variables
+     * the mapping from variable name to the set of assigned values to this variable
      */
-    public Integer getMaximum() {
-      return maximum;
+    private Multimap<String, Long> mapping = HashMultimap.create();
+
+    /**
+     * the name of the variable that is being assigned
+     */
+    private String assignedVariable = null;
+
+    @Override
+    public UniqueAssignmentsInPathConditionElement getSuccessor(String assignedVariable) {
+      UniqueAssignmentsInPathConditionElement successor = new UniqueAssignmentsInPathConditionElement();
+
+      if(mapping == null) {
+        successor.mapping = HashMultimap.create();
+      }
+      else {
+        successor.mapping = HashMultimap.create(mapping);
+      }
+
+      successor.assignedVariable = assignedVariable;
+
+      return successor;
+    }
+
+    /**
+     * This method adds an assignment for the last assigned variable, if the current value of this assigned variable in the ExplicitElement was not assigned before, i.e. if it is unique.
+     *
+     * @param element the ExplicitElement from which to query assignment information
+     */
+    public void addAssignment(ExplicitElement element) {
+      if(assignedVariable == null) {
+        return;
+      }
+
+      if(element.contains(assignedVariable)) {
+        Long value = element.getValueFor(assignedVariable);
+        if(value != null) {
+          mapping.put(assignedVariable, value);
+
+          maximum = Math.max(maximum, mapping.size());
+        }
+      }
     }
 
     /**
@@ -201,34 +295,14 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
      * @param limit the limit to check
      * @return true, if the number of assignments for the given variable exceeds the given threshold, else false
      */
+    @Override
     public boolean variableExceedsGivenLimit(String variableName, Integer limit) {
-      return mapping.containsKey(variableName) && mapping.get(variableName) >= limit;
-    }
-
-    @Override
-    public boolean mustDumpAssumptionForAvoidance() {
-      return threshold != -1 && maximum > AssignmentsInPathCondition.this.threshold;
-    }
-
-    @Override
-    public Formula getReasonFormula(FormulaManager formuaManager) {
-      String formula = HeuristicToFormula.getFormulaStringForHeuristic(PreventingHeuristicType.ASSIGNMENTSINPATH, maximum);
-
-      return formuaManager.parse(formula);
+      return mapping.containsKey(variableName) && mapping.get(variableName).size() >= limit;
     }
 
     @Override
     public String toString() {
-      StringBuilder builder = new StringBuilder();
-
-      for(Map.Entry<String, Integer> entry : mapping.entrySet()) {
-        builder.append(entry.getKey());
-        builder.append(" => ");
-        builder.append(entry.getValue());
-        builder.append("\n");
-      }
-
-      return builder.toString();
+      return mapping.toString();
     }
   }
 }

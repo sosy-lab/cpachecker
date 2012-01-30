@@ -42,8 +42,6 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   // map that keeps the name of variables and their constant values
   private final Map<String, Long> constantsMap;
 
-  private final Map<String, Integer> referenceCount;
-
   // element from the previous context
   // used for return edges
   private final ExplicitElement previousElement;
@@ -51,21 +49,18 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   public ExplicitElement()
   {
     constantsMap    = new HashMap<String, Long>();
-    referenceCount  = new HashMap<String, Integer>();
     previousElement = null;
   }
 
   public ExplicitElement(ExplicitElement previousElement)
   {
     constantsMap          = new HashMap<String, Long>();
-    referenceCount        = new HashMap<String, Integer>();
     this.previousElement  = previousElement;
   }
 
-  public ExplicitElement(Map<String, Long> constantsMap, Map<String, Integer> referencesMap, ExplicitElement previousElement)
+  public ExplicitElement(Map<String, Long> constantsMap, ExplicitElement previousElement)
   {
     this.constantsMap     = constantsMap;
-    this.referenceCount   = referencesMap;
     this.previousElement  = previousElement;
   }
 
@@ -73,31 +68,11 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
    * Assigns a value to the variable and puts it in the map
    * @param variableName name of the variable.
    * @param value value to be assigned.
-   * @param pThreshold threshold from property explicitAnalysis.threshold
    */
-  void assignConstant(String variableName, Long value, int pThreshold)
+  void assignConstant(String variableName, Long value)
   {
     if(constantsMap.containsKey(variableName) && constantsMap.get(variableName).equals(value))
       return;
-
-    if(pThreshold == 0)
-      return;
-
-    if(referenceCount.containsKey(variableName))
-    {
-      int currentVal = referenceCount.get(variableName).intValue();
-
-      if(currentVal >= pThreshold)
-      {
-        forget(variableName);
-        return;
-      }
-
-      referenceCount.put(variableName, currentVal + 1);
-    }
-
-    else
-      referenceCount.put(variableName, 1);
 
     constantsMap.put(variableName, value);
   }
@@ -105,14 +80,13 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   void copyConstant(ExplicitElement other, String variableName)
   {
     constantsMap.put(variableName, other.constantsMap.get(variableName));
-
-    referenceCount.put(variableName, other.referenceCount.get(variableName));
   }
 
   void forget(String variableName)
   {
-    if(constantsMap.containsKey(variableName))
+    if(constantsMap.containsKey(variableName)) {
       constantsMap.remove(variableName);
+    }
   }
 
   public Long getValueFor(String variableName)
@@ -146,9 +120,6 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     int size = Math.min(constantsMap.size(), other.constantsMap.size());
 
     Map<String, Long> newConstantsMap     = new HashMap<String, Long>(size);
-    Map<String, Integer> newReferencesMap = new HashMap<String, Integer>(size);
-
-    newReferencesMap.putAll(this.referenceCount);
 
     for(Map.Entry<String, Long> otherEntry : other.constantsMap.entrySet())
     {
@@ -161,17 +132,10 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
         // ... having identical values
         if(otherValue.equals(otherEntry.getValue()))
           newConstantsMap.put(otherKey, otherValue);
-
-        // update references map
-        newReferencesMap.put(otherKey, Math.max(this.referenceCount.get(otherKey), other.referenceCount.get(otherKey)));
       }
-
-      // if the first map does not contain the variable
-      else
-        newReferencesMap.put(otherKey, other.referenceCount.get(otherKey));
     }
 
-    return new ExplicitElement(newConstantsMap, newReferencesMap, this.getPreviousElement());
+    return new ExplicitElement(newConstantsMap, this.getPreviousElement());
   }
 
   /**
@@ -208,9 +172,6 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
 
     for(String variableName: constantsMap.keySet())
       newElement.constantsMap.put(variableName, constantsMap.get(variableName));
-
-    for(String variableName: referenceCount.keySet())
-      newElement.referenceCount.put(variableName, referenceCount.get(variableName));
 
     return newElement;
   }
@@ -264,8 +225,6 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
       sb.append(key);
       sb.append(" = ");
       sb.append(entry.getValue());
-      sb.append(" :: ");
-      sb.append(referenceCount.get(key));
       sb.append(">\n");
     }
 
@@ -350,9 +309,8 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
         String varName = statement.substring("deletevalues(".length(), statement.length() - 1);
 
         Object x = this.constantsMap.remove(varName);
-        Object y = this.referenceCount.remove(varName);
 
-        if(x == null || y == null)
+        if(x == null)
         {
           // varname was not present in one of the maps
           // i would like to log an error here, but no logger is available
@@ -376,7 +334,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
           try
           {
             long newValue = Long.parseLong(assignmentParts[1].trim());
-            this.assignConstant(varName, newValue, 1); // threshold is passed as 1! This will only succeed if no other value for this variable is present
+            this.assignConstant(varName, newValue);
           }
           catch (NumberFormatException e)
           {
@@ -410,7 +368,6 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
 
   void deleteValue(String varName) {
     this.constantsMap.remove(varName);
-    this.referenceCount.remove(varName);
   }
 
   Set<String> getTrackedVariableNames() {
