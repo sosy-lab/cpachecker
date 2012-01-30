@@ -1,9 +1,9 @@
-unsigned get_init_state() {
+unsigned get_initial_state() {
 	return 0;
 }
 
-unsigned compute_successor(unsigned state, const char* ident) {
-	if(strcmp(ident, "t1_started") == 0) {
+unsigned compute_successor(unsigned state, std::string op) {
+	if(op == "t1_started") {
 		if(state == 0) {
 			state = 1;
 		}			
@@ -15,7 +15,7 @@ unsigned compute_successor(unsigned state, const char* ident) {
 			state = 0;
 		}
 	}
-	else if(strcmp(ident, "t2_started") == 0) {
+	else if(op == "t2_started") {
 		if(state == 0) {
 			state = 2;
 		}			
