@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
-@Options(prefix="cpa.relyguarantee")
+@Options(prefix="cpa.rg")
 public class RGMergeOperator implements MergeOperator {
   @Option(name="blk.threshold",
       description="maximum blocksize before abstraction is forced\n"

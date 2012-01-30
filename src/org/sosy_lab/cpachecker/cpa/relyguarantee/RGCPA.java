@@ -71,7 +71,7 @@ import com.google.common.collect.ImmutableSet;
 
 
 
-@Options(prefix="cpa.relyguarantee")
+@Options(prefix="cpa.rg")
 public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
   public static CPAFactory factory() {
@@ -93,9 +93,10 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
       description="try second interpolating solver if the first takes too long")
       private boolean changeItpSolveOTF = false;
 
-  @Option(description="Abstract environmental transitions using their own predicates:"
-      + "0 - don't abstract, 1 - abstract filter, 2 - abstract filter and operation.")
-  private int abstractEnvTransitions = 2;
+  @Option(toUppercase=true, values={"FA", "SA", "ST"},
+      description="How to abstract environmental transitions:"
+      + "ST - no abstraction, SA - precondition abstracted only, FA - precondition and operation abstracted")
+  private String abstractEnvTransitions = "FA";
 
   private int tid;
   public RGVariables variables;

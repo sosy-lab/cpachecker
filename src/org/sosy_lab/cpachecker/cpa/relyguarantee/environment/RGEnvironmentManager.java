@@ -74,16 +74,16 @@ import com.google.common.collect.SetMultimap;
 /**
  * Stores information about environmental edges.
  */
-@Options(prefix="cpa.relyguarantee")
+@Options(prefix="cpa.rg")
 public class RGEnvironmentManager implements StatisticsProvider{
 
   @Option(description="Print debugging info?")
   private boolean debug=true;
 
-  @Option(description="Abstract environmental transitions using their own predicates:"
-      + "0 - don't abstract, 1 - abstract filter, 2 - abstract filter and operation.")
-  private int abstractEnvTransitions = 2;
-
+  @Option(toUppercase=true, values={"FA", "SA", "ST"},
+          description="How to abstract environmental transitions:"
+          + "ST - no abstraction, SA - precondition abstracted only, FA - precondition and operation abstracted")
+  private String abstractEnvTransitions = "FA";
 
 
   // Statitics about processing env. transitions

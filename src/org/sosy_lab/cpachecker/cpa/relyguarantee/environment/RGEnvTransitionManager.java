@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.InterpolationTreeNode;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -58,7 +59,7 @@ public interface RGEnvTransitionManager {
    * @param et
    * @return
    */
-  PathFormula formulaForAbstraction(RGAbstractElement elem, RGEnvTransition et);
+  PathFormula formulaForAbstraction(RGAbstractElement elem, RGEnvTransition et) throws CPATransferException;
 
 
   /**
@@ -69,7 +70,7 @@ public interface RGEnvTransitionManager {
    * @param et
    * @return
    */
-  PathFormula formulaForRefinement(RGAbstractElement elem, RGEnvTransition et, int unique);
+  PathFormula formulaForRefinement(RGAbstractElement elem, RGEnvTransition et, int unique) throws CPATransferException;
 
   /**
    * Extracts predicates from the iterpolated node.

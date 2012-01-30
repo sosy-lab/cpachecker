@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
-@Options(prefix="cpa.relyguarantee")
+@Options(prefix="cpa.rg")
 public class RGPrecisionAdjustment implements PrecisionAdjustment {
 
   private RGCPA cpa;

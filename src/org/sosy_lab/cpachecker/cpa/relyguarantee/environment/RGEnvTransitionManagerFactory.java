@@ -43,17 +43,18 @@ public abstract class RGEnvTransitionManagerFactory implements RGEnvTransitionMa
 
   private static RGEnvTransitionManagerFactory singleton;
 
-  public static RGEnvTransitionManagerFactory getInstance(int abstractionLevel, FormulaManager fManager, PathFormulaManager pfManager, PredicateAbstractionManager paManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, RGVariables variables, Configuration config, LogManager logger){
+  public static RGEnvTransitionManagerFactory getInstance(String abstractionLevel, FormulaManager fManager, PathFormulaManager pfManager, PredicateAbstractionManager paManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, RGVariables variables, Configuration config, LogManager logger){
     if (singleton == null){
-      // instantiate to appriorate manager
-      switch (abstractionLevel){
-      case 0 :  singleton = new RGSimpleTransitionManager(fManager, pfManager, paManager, ssaManager, thmProver, rManager, variables, config, logger);
-                break;
-      case 1 :  singleton = new RGSemiAbstractedManager(fManager, pfManager, paManager, ssaManager, thmProver, rManager, variables, config, logger);
-                break;
-      case 2 :  singleton = new RGFullyAbstractedManager(fManager, pfManager, paManager, ssaManager, thmProver, rManager, variables, config, logger);
-                break;
-      default: throw new UnsupportedOperationException("Unknown abstraction level "+abstractionLevel);
+
+      // instantiate to the appriorate manager
+      if (abstractionLevel.equals("ST")){
+        singleton = new RGSimpleTransitionManager(fManager, pfManager, paManager, ssaManager, thmProver, rManager, variables, config, logger);
+      } else if (abstractionLevel.equals("SA")){
+        singleton = new RGSemiAbstractedManager(fManager, pfManager, paManager, ssaManager, thmProver, rManager, variables, config, logger);
+      } else if (abstractionLevel.equals("FA")){
+        singleton = new RGFullyAbstractedManager(fManager, pfManager, paManager, ssaManager, thmProver, rManager, variables, config, logger);
+      } else {
+        throw new UnsupportedOperationException("Unknown abstraction level: "+abstractionLevel);
       }
     }
 

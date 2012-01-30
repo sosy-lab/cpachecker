@@ -23,20 +23,33 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment;
 
+import java.io.PrintStream;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGSemiAbstracted;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.InterpolationTreeNode;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -53,65 +66,140 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
 
   private final FormulaManager fManager;
   private final PathFormulaManager pfManager;
+  private final PredicateAbstractionManager paManager;
   private final SSAMapManager ssaManager;
   private final TheoremProver thmProver;
   private final RegionManager rManager;
+  private final RGVariables variables;
+
   private final LogManager logger;
+  private final Stats stats;
 
-  protected RGSemiAbstractedManager(FormulaManager pFManager, PathFormulaManager pPfManager, PredicateAbstractionManager pPaManager, SSAMapManager pSsaManager, TheoremProver pThmProver, RegionManager pRManager, RGVariables variables, Configuration pConfig,  LogManager pLogger) {
-    this.fManager = pFManager;
-    this.pfManager = pPfManager;
-    this.ssaManager = pSsaManager;
-    this.thmProver = pThmProver;
-    this.rManager = pRManager;
-    this.logger  = pLogger;
+  protected RGSemiAbstractedManager(FormulaManager fManager, PathFormulaManager pfManager, PredicateAbstractionManager paManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, RGVariables variables, Configuration config,  LogManager logger) {
+    this.fManager = fManager;
+    this.pfManager = pfManager;
+    this.paManager  = paManager;
+    this.ssaManager = ssaManager;
+    this.thmProver = thmProver;
+    this.rManager  = rManager;
+    this.variables = variables;
+    this.logger = logger;
+    this.stats = new Stats();
+  }
+
+
+
+  @Override
+  public RGSemiAbstracted generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> globalPreds, Multimap<CFANode, AbstractionPredicate> localPreds) {
+    ARTElement sourceART = cand.getSuccessor();
+    CFANode loc = sourceART.retrieveLocationElement().getLocationNode();
+
+    // get predicates for abstraction
+    Set<AbstractionPredicate> preds = new LinkedHashSet<AbstractionPredicate>(globalPreds);
+    preds.addAll(localPreds.get(loc));
+
+    // abstract
+    AbstractionFormula abs = cand.getRgElement().getAbstractionFormula();
+    PathFormula pf = cand.getRgElement().getPathFormula();
+    AbstractionFormula aFilter = paManager.buildAbstraction(abs, pf, preds);
+    Formula aPred = fManager.uninstantiate(aFilter.asFormula());
+
+    SSAMap ssa = cand.getRgElement().getPathFormula().getSsa();
+    CFAEdge operation = cand.getOperation();
+    RGSemiAbstracted sa = new RGSemiAbstracted(aPred, ssa, operation, cand.getElement(), cand.getTid());
+    return sa;
   }
 
   @Override
-  public RGEnvTransition generateEnvTransition(RGEnvCandidate pCand,
-      Collection<AbstractionPredicate> pGlobalPreds,
-      Multimap<CFANode, AbstractionPredicate> pLocalPreds) {
-    // TODO Auto-generated method stub
+  public PathFormula formulaForAbstraction(RGAbstractElement elem ,RGEnvTransition et) throws CPATransferException {
+    RGSemiAbstracted sa = (RGSemiAbstracted) et;
+    PathFormula pf = elem.getPathFormula();
+
+    // instantiate the precondition to the ssa map of the
+    Formula prec = sa.getAbstractPrecondition();
+    prec = fManager.instantiate(prec, pf.getSsa());
+    PathFormula precPf = new PathFormula(prec, pf.getSsa(), 0);
+
+    // apply the operation
+    PathFormula appPf = pfManager.makeAnd(precPf, sa.getOperation());
+    return appPf;
+  }
+
+  @Override
+  public PathFormula formulaForRefinement(RGAbstractElement elem, RGEnvTransition et, int unique) throws CPATransferException {
+    RGSemiAbstracted sa = (RGSemiAbstracted) et;
+    PathFormula pf = elem.getPathFormula();
+    SSAMap lSSA = pf.getSsa();
+    SSAMap etSSA = sa.getSsa();
+
+    // rename the transition's SSA to unique
+    Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(1);
+    rMap.put(-1, unique);
+    etSSA = ssaManager.changePrimeNo(etSSA, rMap);
+
+    // build equalities over the local path formula and the precondition
+    PathFormula eqPf = pfManager.makePrimedEqualities(lSSA, -1, etSSA, unique);
+
+    // apply the operation
+    PathFormula appPf = pfManager.makeAnd(eqPf, sa.getOperation());
+
+    return appPf;
+  }
+
+  @Override
+  public Collection<AbstractionPredicate> getPredicates(Formula itp, InterpolationTreeNode node) {
     return null;
   }
 
   @Override
-  public PathFormula formulaForAbstraction(RGAbstractElement pElem,
-      RGEnvTransition pEt) {
-    // TODO Auto-generated method stub
-    return null;
+  public boolean isLessOrEqual(RGEnvTransition et1, RGEnvTransition et2) {
+    RGSemiAbstracted sa1 = (RGSemiAbstracted) et1;
+    RGSemiAbstracted sa2 = (RGSemiAbstracted) et2;
+
+    CFAEdge op1 = sa1.getOperation();
+    CFAEdge op2 = sa2.getOperation();
+
+    if (!op1.equals(op2)){
+      return false;
+    }
+
+    Formula prec1 = sa1.getAbstractPrecondition();
+    Formula prec2 = sa2.getAbstractPrecondition();
+
+    if (prec1.isFalse() || prec2.isTrue()){
+      return true;
+    }
+
+    Formula fimpl = fManager.makeAnd(prec1, fManager.makeNot(prec2));
+    thmProver.init();
+    boolean valid = thmProver.isUnsat(fimpl);
+    thmProver.reset();
+
+    return valid;
   }
 
   @Override
-  public PathFormula formulaForRefinement(RGAbstractElement pElem,
-      RGEnvTransition pEt, int pUnique) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public Collection<AbstractionPredicate> getPredicates(Formula pItp,
-      InterpolationTreeNode pNode) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public boolean isLessOrEqual(RGEnvTransition pEt1, RGEnvTransition pEt2) {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    // TODO Auto-generated method stub
-
+  public void collectStatistics(Collection<Statistics> scoll) {
+    scoll.add(stats);
   }
 
 
 
 
+  public static class Stats implements Statistics {
 
+    @Override
+    public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached) {
+      out.println("no stats");
+    }
 
+    private String formatInt(int val){
+      return String.format("  %7d", val);
+    }
 
+    @Override
+    public String getName() {
+      return "RGFullyAbstractedManager";
+    }
+  }
 }

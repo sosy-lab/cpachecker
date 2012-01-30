@@ -74,7 +74,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
 
-@Options(prefix="cpa.relyguarantee")
+@Options(prefix="cpa.rg")
 public class RGRefiner implements StatisticsProvider{
 
   @Option(description="Print debugging info?")

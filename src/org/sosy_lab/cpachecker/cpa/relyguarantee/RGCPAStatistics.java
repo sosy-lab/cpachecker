@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.relyguarantee.predmap")
+@Options(prefix="cpa.rg.predmap")
 public class  RGCPAStatistics implements Statistics {
 
     private final RGCPA cpa;

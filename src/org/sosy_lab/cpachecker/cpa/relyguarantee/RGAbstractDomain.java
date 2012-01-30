@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
-@Options(prefix="cpa.relyguarantee")
+@Options(prefix="cpa.rg")
 
 public class RGAbstractDomain implements AbstractDomain {
 

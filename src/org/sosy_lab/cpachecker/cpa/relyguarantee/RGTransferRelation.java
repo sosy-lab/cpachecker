@@ -67,7 +67,7 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
  * the strongest post for the given CFA edge. Afterwards it optionally
  * computes an abstraction.
  */
-@Options(prefix="cpa.relyguarantee")
+@Options(prefix="cpa.rg")
 public class RGTransferRelation  implements TransferRelation {
 
   @Option(name="blk.threshold",
@@ -105,9 +105,6 @@ public class RGTransferRelation  implements TransferRelation {
   @Option(description="check satisfiability when a target state has been found (should be true)")
   private boolean targetStateSatCheck = true;
 
-  @Option(description="Abstract environmental transitions using their own predicates:"
-      + "0 - don't abstract, 1 - abstract filter, 2 - abstract filter and operation.")
-  private int abstractEnvTransitions = 2;
 
 
   // statistics
@@ -353,6 +350,7 @@ public class RGTransferRelation  implements TransferRelation {
     if (appPf.getFormula().isFalse()){
       refPf = pfManager.makeFalsePathFormula();
     } else {
+      // TODO somehow using unique instead of 1 makes bakery.simple not stop
       refPf = etManager.formulaForRefinement(element, rgEdge.getRgEnvTransition(), 1);
       Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(1);
       rMap.put(1, uniqueId);

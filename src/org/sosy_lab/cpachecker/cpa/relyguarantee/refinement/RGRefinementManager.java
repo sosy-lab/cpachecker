@@ -84,7 +84,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import com.google.common.collect.Lists;
 
 
-@Options(prefix="cpa.relyguarantee")
+@Options(prefix="cpa.rg")
 public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
@@ -114,9 +114,10 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
   @Option(description="Print debugging info?")
   private boolean debug=false;
 
-  @Option(description="Abstract environmental transitions using their own predicates:"
-      + "0 - don't abstract, 1 - abstract filter, 2 - abstract filter and operation.")
-  private int abstractEnvTransitions = 2;
+  @Option(toUppercase=true, values={"FA", "SA", "ST"},
+      description="How to abstract environmental transitions:"
+      + "ST - no abstraction, SA - precondition abstracted only, FA - precondition and operation abstracted")
+  private String abstractEnvTransitions = "FA";
 
   @Option(description="Limit of nodes in an interpolation tree (0 - no limit).")
   private int itpTreeNodeLimit = 0;
@@ -557,13 +558,13 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
        info.addPredicatesForRefinement(node.artElement, preds);
      }
      if (node.isEnvAbstraction){
-       assert abstractEnvTransitions == 1 || abstractEnvTransitions == 2;
+       assert abstractEnvTransitions.equals("SA") || abstractEnvTransitions.equals("FA");
 
-       if (this.abstractEnvTransitions == 1){
+       if (this.abstractEnvTransitions.equals("SA")){
          itp = fmgr.changePrimedNo(itp, rMap);
          preds = getPredicates(itp);
          info.addEnvPredicatesForRefinement(node.artElement, preds);
-       } else if (this.abstractEnvTransitions == 2){
+       } else if (this.abstractEnvTransitions.equals("FA")){
          // TODO trick to get an adjusted SSA map
          preds = getNextValPredicates(itp, node.getPathFormula().getSsa(), rMap);
          info.addEnvPredicatesForRefinement(node.artElement, preds);
@@ -645,7 +646,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
     } else {
       // it's NOT an abstraction element, so only its last abstraction element is in the DAG
-      assert abstractEnvTransitions == 1 || abstractEnvTransitions == 2;
+      assert abstractEnvTransitions.equals("SA") || abstractEnvTransitions.equals("FA");
       ARTElement aARTElement = RGEnvironmentManager.findLastAbstractionARTElement(target);
       assert aARTElement != null;
       InterpolationDagNode aNode = dag.getNode(tid, aARTElement.getElementId());
@@ -700,7 +701,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
           InterpolationTreeNode appNode = appTree.getNode(sTid, sARTElement.getElementId(), appUniqueId);
           assert appNode != null && appNode.parent == null;
 
-          if (abstractEnvTransitions == 2){
+          if (abstractEnvTransitions.equals("FA")){
             // TODO make more elegant
             RGFullyAbstracted fa = (RGFullyAbstracted) rgEdge;
             PathFormula newPf = appNode.getPathFormula();

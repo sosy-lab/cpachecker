@@ -23,10 +23,34 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
-
+/**
+ * Environmental transitions with an abstracted precondition only.
+ */
 public class RGSemiAbstracted implements RGEnvTransition{
+
+  /** Abstracted precondition - valuation at the source element */
+  private final Formula abstractPrecondition;
+  /** SSA at the source element */
+  private final SSAMap ssa;
+  /** The operation */
+  private final CFAEdge operation;
+  /** ART element where the operation was applied */
+  private final ARTElement sourceARTElement;
+  /** Source thred's id */
+  private final int tid;
+
+  public RGSemiAbstracted(Formula precondition, SSAMap ssa, CFAEdge operation, ARTElement sourceElem, int tid){
+    this.abstractPrecondition = precondition;
+    this.ssa = ssa;
+    this.operation = operation;
+    this.sourceARTElement = sourceElem;
+    this.tid = tid;
+  }
 
   @Override
   public RGEnvTransitionType getRGType() {
@@ -35,14 +59,28 @@ public class RGSemiAbstracted implements RGEnvTransition{
 
   @Override
   public ARTElement getSourceARTElement() {
-    // TODO Auto-generated method stub
-    return null;
+    return sourceARTElement;
   }
 
   @Override
   public int getTid() {
-    // TODO Auto-generated method stub
-    return 0;
+    return tid;
+  }
+
+  public Formula getAbstractPrecondition() {
+    return abstractPrecondition;
+  }
+
+  public SSAMap getSsa() {
+    return ssa;
+  }
+
+  public CFAEdge getOperation() {
+    return operation;
+  }
+
+  public String toString(){
+    return "sa: "+operation.getRawStatement()+", "+abstractPrecondition;
   }
 
 }

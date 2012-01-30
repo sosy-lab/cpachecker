@@ -93,13 +93,15 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
 
 
 
-  public RGEnvTransition generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> globalPreds, Multimap<CFANode, AbstractionPredicate> localPreds)  {
+  @Override
+  public RGFullyAbstracted generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> globalPreds, Multimap<CFANode, AbstractionPredicate> localPreds)  {
     ARTElement sourceART = cand.getSuccessor();
     CFANode loc = sourceART.retrieveLocationElement().getLocationNode();
 
     // get predicates for abstraction
     Set<AbstractionPredicate> preds = new LinkedHashSet<AbstractionPredicate>(globalPreds);
     preds.addAll(localPreds.get(loc));
+
     // get the predicates for the transition
     int sourceTid = cand.getTid();
     PathFormula oldPf = cand.getRgElement().getPathFormula();
@@ -129,7 +131,6 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
     SSAMap highSSA = newAbs.asPathFormula().getSsa();
     return new RGFullyAbstracted(newAbs.asFormula(), newAbs.asRegion(), oldSsa, highSSA, cand.getSuccessor(), sourceTid);
   }
-
 
 
   @Override
