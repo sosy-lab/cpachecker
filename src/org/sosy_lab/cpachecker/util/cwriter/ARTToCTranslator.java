@@ -222,6 +222,8 @@ public class ARTToCTranslator {
       if(currentElement.isCovered()) {
         //it was indeed covered; jump to element it was covered by
         currentBlock.addStatement(new SimpleStatement("goto label_" + currentElement.getCoveringElement().getElementId() + ";"));
+      } else {
+        currentBlock.addStatement(new SimpleStatement("return 1;"));
       }
     } else if (childrenOfElement.size() == 1) {
       // get the next ART element, create a new edge using the same stack and add it to the waitlist
@@ -246,17 +248,20 @@ public class ARTToCTranslator {
         if (ind == 0) {
           cond = "if ";
         } else if (ind == 1) {
-          cond = "else if ";
+          cond = "else ";
         } else {
           assert false;
         }
-        ind++;
 
-        if (truthAssumption) {
-          cond += "(" + assumeEdge.getExpression().getRawSignature() + ")";
-        } else {
-          cond += "(!(" + assumeEdge.getExpression().getRawSignature() + "))";
+        if(ind == 0) {
+          if (truthAssumption) {
+            cond += "(" + assumeEdge.getExpression().getRawSignature() + ")";
+          } else {
+            cond += "(!(" + assumeEdge.getExpression().getRawSignature() + "))";
+          }
         }
+
+        ind++;
 
         // create a new block starting with this condition
         CompoundStatement newBlock = addIfStatement(currentBlock, cond);
@@ -384,7 +389,6 @@ public class ARTToCTranslator {
 
     case StatementEdge: {
       StatementEdge lStatementEdge = (StatementEdge)pCFAEdge;
-
       return lStatementEdge.getStatement().getRawSignature() + ";";
     }
 
