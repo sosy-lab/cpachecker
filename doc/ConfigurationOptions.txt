@@ -129,6 +129,23 @@ assumptions.automatonFile = "AssumptionAutomaton.txt"
 assumptions.export = true
 assumptions.file = "assumptions.txt"
 
+# Allow reduction of function entries; calculate abstractions alwasy at
+# function entries?
+blockreducer.allowReduceFunctionEntries = true
+
+# Allow reduction of function exits; calculate abstractions alwasy at
+# function exits?
+blockreducer.allowReduceFunctionExits = true
+
+# Allow reduction of loop heads; calculate abstractions alwasy at loop heads?
+blockreducer.allowReduceLoopHeads = false
+
+# write the reduced cfa to the specified file.
+blockreducer.reducedCfaFile = "ReducedCfa.rsf"
+
+# Do at most n summarizations on a node.
+blockreducer.reductionThreshold = 100
+
 # If BMC did not find a bug, check whether the bounding did actually remove
 # parts of the state space (this is similar to CBMC's unwinding assertions).
 bmc.boundingAssertions = true
@@ -286,6 +303,9 @@ cpa.conditions.global.time.wall = -1
 # When using adjustable conditions, analysis will end after this threshold
 cpa.conditions.global.time.wall.hardlimit = -1
 
+# maximum number of assignments (-1 for infinite)
+cpa.conditions.path.assignments.limit = -1
+
 # maximum number of assume edges length (-1 for infinite)
 cpa.conditions.path.assumeedges.limit = -1
 
@@ -387,6 +407,9 @@ cpa.predicate.abstraction.solver = "MATHSAT"
 # threshold = 0)
 cpa.predicate.blk.alwaysAfterThreshold = true
 
+# abstraction always and only on explicitly computed abstraction nodes.
+cpa.predicate.blk.alwaysAndOnlyAtExplicitNodes = false
+
 # force abstractions at each function calls/returns, regardless of threshold
 cpa.predicate.blk.alwaysAtFunctions = true
 
@@ -413,6 +436,9 @@ cpa.predicate.blk.useCache = true
 
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
+
+# Enable the possibility to precompute explicit abstraction locations.
+cpa.predicate.enableBlockreducer = false
 
 # where to dump interpolation and abstraction problems (format string)
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.msat"

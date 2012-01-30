@@ -328,11 +328,13 @@ public class BlockedCFAReducer implements BlockComputer {
       Map<ReducedNode, Set<ReducedEdge>> uTarget = pInlinedCfa.get(u);
       for (ReducedNode v: uTarget.keySet()) {
         for (int i=0; i<uTarget.get(v).size(); i++) {
-          pOut.println(String.format("REL\t%s_%d_%d\t%s_%d_%d",
+          pOut.println(String.format("REL\t%s_%s_%d_%d\t%s_%s_%d_%d",
                 u.getWrapped().getFunctionName(),
+                u.getNodeKindText(),
                 u.getWrapped().getLineNumber(),
                 u.getUniqueNodeId(),
                 v.getWrapped().getFunctionName(),
+                u.getNodeKindText(),
                 v.getWrapped().getLineNumber(),
                 v.getUniqueNodeId()));
         }
@@ -362,6 +364,8 @@ public class BlockedCFAReducer implements BlockComputer {
         e.printStackTrace();
       }
     }
+
+    //assert(verifyComputation(pCfa, reducedProgram));
 
     Set<ReducedNode> abstractionNodes = reducedProgram.getAllActiveNodes();
     Set<CFANode> result = new HashSet<CFANode>(abstractionNodes.size());

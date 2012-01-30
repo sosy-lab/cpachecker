@@ -77,4 +77,16 @@ public class ReducedNode {
   public boolean isLoopHead() {
     return getWrapped().isLoopStart();
   }
+
+  public String getNodeKindText() {
+    if (isLoopHead()) {
+      return "LoopHead";
+    } else if (isFunctionEntry()) {
+      return "FunctEntry";
+    } else if (isFunctionExit()) {
+      return "FunctExit";
+    } else {
+      return "Generic";
+    }
+  }
 }
