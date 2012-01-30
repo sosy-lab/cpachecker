@@ -39,6 +39,7 @@ import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.IASTASMDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTBreakStatement;
 import org.eclipse.cdt.core.dom.ast.IASTCaseStatement;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
@@ -63,11 +64,11 @@ import org.eclipse.cdt.core.dom.ast.IASTReturnStatement;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
+import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
@@ -551,43 +552,97 @@ class CFAFunctionBuilder extends ASTVisitor {
       break;
 
     case NORMAL:
-      final org.sosy_lab.cpachecker.cfa.ast.IASTExpression exp =
-        astCreator.convertBooleanExpression(condition);
-
-          while (astCreator.existsSideAssignment()) {
-            IASTNode middle = astCreator.getSideAssignment();
-            CFANode between = new CFANode(middle.getFileLocation().getStartingLineNumber(), cfa.getFunctionName());
-            StatementEdge previous;
-            DeclarationEdge previousdec;
-            if (middle instanceof IASTFunctionCallAssignmentStatement) {
-              previous = new StatementEdge(rawSignature, (IASTFunctionCallAssignmentStatement)middle, middle.getFileLocation().getStartingLineNumber(), rootNode, between);
-              addToCFA(previous);
-            } else if (middle instanceof IASTAssignment) {
-              previous = new StatementEdge(rawSignature, (org.sosy_lab.cpachecker.cfa.ast.IASTStatement)middle, middle.getFileLocation().getStartingLineNumber(), rootNode, between);
-              addToCFA(previous);
-            } else {
-              previousdec = new DeclarationEdge(rawSignature, middle.getFileLocation().getStartingLineNumber(), rootNode, between, (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration) middle);
-              addToCFA(previousdec);
-            }
-            rootNode = between;
-            cfaNodes.add(between);
-          }
-
-      // edge connecting rootNode with elseNode
-      final AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + condition.getRawSignature() + ")",
-          filelocStart, rootNode, elseNode, exp, false);
-      addToCFA(assumeEdgeFalse);
-
-      // edge connecting rootNode with thenNode
-      final AssumeEdge assumeEdgeTrue = new AssumeEdge(condition.getRawSignature(),
-          filelocStart, rootNode, thenNode, exp, true);
-      addToCFA(assumeEdgeTrue);
-
+        buildConditionTree(condition, filelocStart, rootNode, thenNode, elseNode, thenNode, elseNode);
       break;
 
     default:
       throw new InternalError("Missing switch clause");
     }
+  }
+
+  private void buildConditionTree(IASTExpression condition, final int filelocStart,
+                                  CFANode rootNode, CFANode thenNode, final CFANode elseNode,
+                                  final CFANode thenNodeForLastThen, final CFANode elseNodeForLastElse) {
+
+    while(condition instanceof IASTUnaryExpression
+          && ((IASTUnaryExpression)condition).getOperator() == IASTUnaryExpression.op_bracketedPrimary){
+      condition = ((IASTUnaryExpression)condition).getOperand();
+    }
+
+    if (condition instanceof IASTBinaryExpression
+        && ((IASTBinaryExpression) condition).getOperator() == IASTBinaryExpression.op_logicalAnd) {
+      CFANode innerNode = new CFANode(filelocStart, cfa.getFunctionName());
+      cfaNodes.add(innerNode);
+      buildConditionTree(((IASTBinaryExpression) condition).getOperand1(), filelocStart, rootNode, innerNode, elseNode, thenNodeForLastThen, elseNodeForLastElse);
+      buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), filelocStart, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse);
+
+    } else if (condition instanceof IASTBinaryExpression
+        && ((IASTBinaryExpression) condition).getOperator() == IASTBinaryExpression.op_logicalOr) {
+      CFANode innerNode = new CFANode(filelocStart, cfa.getFunctionName());
+      cfaNodes.add(innerNode);
+      buildConditionTree(((IASTBinaryExpression) condition).getOperand1(), filelocStart, rootNode, thenNode, innerNode, thenNodeForLastThen, elseNodeForLastElse);
+      buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), filelocStart, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse);
+
+    } else {
+      org.sosy_lab.cpachecker.cfa.ast.IASTExpression exp = handleSideAssignmentsInConditions(condition, rootNode);
+
+      // edge connecting last condition with elseNode
+      final AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + condition.getRawSignature() + ")",
+                                                        filelocStart,
+                                                        rootNode,
+                                                        elseNodeForLastElse,
+                                                        exp,
+                                                        false);
+      addToCFA(assumeEdgeFalse);
+
+      // edge connecting last condition with thenNode
+      final AssumeEdge assumeEdgeTrue = new AssumeEdge(condition.getRawSignature(),
+                                                       filelocStart,
+                                                       rootNode,
+                                                       thenNodeForLastThen,
+                                                       exp,
+                                                       true);
+      addToCFA(assumeEdgeTrue);
+    }
+  }
+
+  private org.sosy_lab.cpachecker.cfa.ast.IASTExpression handleSideAssignmentsInConditions(IASTExpression condition,
+                                                                                           CFANode rootNode) {
+    final org.sosy_lab.cpachecker.cfa.ast.IASTExpression exp =
+        astCreator.convertBooleanExpression(condition);
+    String rawSignature = condition.getRawSignature();
+
+    while (astCreator.existsSideAssignment()) {
+      IASTNode middle = astCreator.getSideAssignment();
+      CFANode between = new CFANode(middle.getFileLocation().getStartingLineNumber(), cfa.getFunctionName());
+      StatementEdge previous;
+      DeclarationEdge previousdec;
+      if (middle instanceof IASTFunctionCallAssignmentStatement) {
+        previous = new StatementEdge(rawSignature,
+                                     (IASTFunctionCallAssignmentStatement) middle,
+                                     middle.getFileLocation().getStartingLineNumber(),
+                                     rootNode,
+                                     between);
+        addToCFA(previous);
+      } else if (middle instanceof IASTAssignment) {
+        previous = new StatementEdge(rawSignature,
+                                     (org.sosy_lab.cpachecker.cfa.ast.IASTStatement) middle,
+                                     middle.getFileLocation().getStartingLineNumber(),
+                                     rootNode,
+                                     between);
+        addToCFA(previous);
+      } else {
+        previousdec = new DeclarationEdge(rawSignature,
+                                          middle.getFileLocation().getStartingLineNumber(),
+                                          rootNode,
+                                          between,
+                                          (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration) middle);
+        addToCFA(previousdec);
+      }
+      rootNode = between;
+      cfaNodes.add(between);
+    }
+    return exp;
   }
 
   private int visitForStatement(final IASTForStatement forStatement,
@@ -1024,10 +1079,10 @@ class CFAFunctionBuilder extends ASTVisitor {
             .getExpression());
 
     // build condition, "a==2", TODO correct type?
-    final IASTBinaryExpression binExp =
-        new IASTBinaryExpression(astCreator.convert(fileloc),
+    final org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression binExp =
+        new org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression(astCreator.convert(fileloc),
             switchExpr.getExpressionType(), switchExpr, caseExpr,
-            IASTBinaryExpression.BinaryOperator.EQUALS);
+            org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator.EQUALS);
 
     // build condition edges, to caseNode with "a==2", to notCaseNode with "!(a==2)"
     final CFANode rootNode = switchCaseStack.pop();
