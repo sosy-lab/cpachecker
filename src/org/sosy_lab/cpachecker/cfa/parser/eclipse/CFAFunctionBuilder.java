@@ -552,7 +552,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       break;
 
     case NORMAL:
-        buildConditionTree(condition, filelocStart, rootNode, thenNode, elseNode, thenNode, elseNode);
+        buildConditionTree(condition, filelocStart, rootNode, thenNode, elseNode, thenNode, elseNode, true, true);
       break;
 
     default:
@@ -562,7 +562,8 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private void buildConditionTree(IASTExpression condition, final int filelocStart,
                                   CFANode rootNode, CFANode thenNode, final CFANode elseNode,
-                                  final CFANode thenNodeForLastThen, final CFANode elseNodeForLastElse) {
+                                  CFANode thenNodeForLastThen, CFANode elseNodeForLastElse,
+                                  boolean furtherThenComputation, boolean furtherElseComputation) {
 
     while(condition instanceof IASTUnaryExpression
           && ((IASTUnaryExpression)condition).getOperator() == IASTUnaryExpression.op_bracketedPrimary){
@@ -573,18 +574,25 @@ class CFAFunctionBuilder extends ASTVisitor {
         && ((IASTBinaryExpression) condition).getOperator() == IASTBinaryExpression.op_logicalAnd) {
       CFANode innerNode = new CFANode(filelocStart, cfa.getFunctionName());
       cfaNodes.add(innerNode);
-      buildConditionTree(((IASTBinaryExpression) condition).getOperand1(), filelocStart, rootNode, innerNode, elseNode, thenNodeForLastThen, elseNodeForLastElse);
-      buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), filelocStart, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse);
+      buildConditionTree(((IASTBinaryExpression) condition).getOperand1(), filelocStart, rootNode, innerNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, false);
+      buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), filelocStart, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, true);
 
     } else if (condition instanceof IASTBinaryExpression
         && ((IASTBinaryExpression) condition).getOperator() == IASTBinaryExpression.op_logicalOr) {
       CFANode innerNode = new CFANode(filelocStart, cfa.getFunctionName());
       cfaNodes.add(innerNode);
-      buildConditionTree(((IASTBinaryExpression) condition).getOperand1(), filelocStart, rootNode, thenNode, innerNode, thenNodeForLastThen, elseNodeForLastElse);
-      buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), filelocStart, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse);
+      buildConditionTree(((IASTBinaryExpression) condition).getOperand1(), filelocStart, rootNode, thenNode, innerNode, thenNodeForLastThen, elseNodeForLastElse, false, true);
+      buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), filelocStart, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, true);
 
     } else {
       org.sosy_lab.cpachecker.cfa.ast.IASTExpression exp = handleSideAssignmentsInConditions(condition, rootNode);
+
+      if (furtherThenComputation) {
+        thenNodeForLastThen = thenNode;
+      }
+      if (furtherElseComputation) {
+        elseNodeForLastElse = elseNode;
+      }
 
       // edge connecting last condition with elseNode
       final AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + condition.getRawSignature() + ")",
