@@ -493,18 +493,6 @@ return(NULLNODEPTR);
 }/* Mkexpression_opt */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkjump_statement (POSITION *_coordref, NODEPTR _currn)
-#else
-NODEPTR Mkjump_statement (_coordref, _currn)
-	POSITION *_coordref; NODEPTR _currn;
-#endif
-{
-if (_currn == NULLNODEPTR) return NULLNODEPTR;
-if (IsSymb (_currn, SYMBjump_statement)) return (_currn);
-return(NULLNODEPTR);
-}/* Mkjump_statement */
-
-#if defined(__STDC__) || defined(__cplusplus)
 NODEPTR Mkselection_statement (POSITION *_coordref, NODEPTR _currn)
 #else
 NODEPTR Mkselection_statement (_coordref, _currn)
@@ -618,6 +606,18 @@ if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBcompound_statement)) return (_currn);
 return(NULLNODEPTR);
 }/* Mkcompound_statement */
+
+#if defined(__STDC__) || defined(__cplusplus)
+NODEPTR Mkjump_statement (POSITION *_coordref, NODEPTR _currn)
+#else
+NODEPTR Mkjump_statement (_coordref, _currn)
+	POSITION *_coordref; NODEPTR _currn;
+#endif
+{
+if (_currn == NULLNODEPTR) return NULLNODEPTR;
+if (IsSymb (_currn, SYMBjump_statement)) return (_currn);
+return(NULLNODEPTR);
+}/* Mkjump_statement */
 
 #if defined(__STDC__) || defined(__cplusplus)
 NODEPTR Mkcompound_statement_opt (POSITION *_coordref, NODEPTR _currn)

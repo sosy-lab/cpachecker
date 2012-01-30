@@ -1,7 +1,7 @@
-unsigned get_init_state() {
+unsigned get_initial_state() {
 	return 0;
 }
 
-unsigned compute_successor(unsigned state, const char* ident) {
+unsigned compute_successor(unsigned state, std::string op) {
 	return state;
 }

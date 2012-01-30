@@ -47,7 +47,6 @@ typedef struct _TSassignment_operator* _TSPassignment_operator;
 typedef struct _TSIdUse* _TSPIdUse;
 typedef struct _TSassignment_expression* _TSPassignment_expression;
 typedef struct _TSexpression_opt* _TSPexpression_opt;
-typedef struct _TSjump_statement* _TSPjump_statement;
 typedef struct _TSselection_statement* _TSPselection_statement;
 typedef struct _TSexpression_statement* _TSPexpression_statement;
 typedef struct _TSlabeled_statement* _TSPlabeled_statement;
@@ -56,6 +55,7 @@ typedef struct _TSstatement_list* _TSPstatement_list;
 typedef struct _TSstatement_list_opt* _TSPstatement_list_opt;
 typedef struct _TSdeclaration_list* _TSPdeclaration_list;
 typedef struct _TScompound_statement* _TSPcompound_statement;
+typedef struct _TSjump_statement* _TSPjump_statement;
 typedef struct _TScompound_statement_opt* _TSPcompound_statement_opt;
 typedef struct _TSparameter_list_opt* _TSPparameter_list_opt;
 typedef struct _TStype_specifier* _TSPtype_specifier;
@@ -413,15 +413,6 @@ _NODECOMMON
 #endif
 };
 
-struct _TSjump_statement
-#ifdef __cplusplus
-	: public NODEPTR_struct {
-#else
-{
-_NODECOMMON
-#endif
-};
-
 struct _TSselection_statement
 #ifdef __cplusplus
 	: public NODEPTR_struct {
@@ -494,6 +485,16 @@ _NODECOMMON
 #endif
 };
 
+struct _TSjump_statement
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
+UINT _ATinput;
+};
+
 struct _TScompound_statement_opt
 #ifdef __cplusplus
 	: public NODEPTR_struct {
@@ -558,6 +559,7 @@ struct _TPrule_3
 {
 _NODECOMMON
 #endif
+UINT _ATinput;
 _TSPexpression_opt _desc1;
 };
 
@@ -568,6 +570,7 @@ struct _TPrule_4
 {
 _NODECOMMON
 #endif
+UINT _ATinput;
 int _ATTERM_1;
 };
 
@@ -796,6 +799,7 @@ _NODECOMMON
 _TSPtype_specifier _desc1;
 _TSPparameter_list_opt _desc2;
 _TSPcompound_statement_opt _desc3;
+int _ATTERM_1;
 };
 
 struct _TPrule_100

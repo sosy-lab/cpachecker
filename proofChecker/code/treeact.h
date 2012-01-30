@@ -53,7 +53,8 @@
 
 #define _TERMACT_rule_25
 
-#define _TERMACT_rule_26
+#define _TERMACT_rule_26 \
+	_currn->_ATTERM_1=_TERM1;
 
 #define _TERMACT_rule_100
 

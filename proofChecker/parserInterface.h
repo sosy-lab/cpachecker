@@ -1,13 +1,12 @@
-#define UNREACHABLE -1
-
 #ifndef parserInterface_h
 #define parserInterface_h
 
 typedef unsigned UINT;
 
-unsigned get_init_state(); 
-void assert_equal(unsigned, unsigned);
-unsigned compute_successor(unsigned, const char*);
-unsigned propagate_value(const char*, unsigned);
+unsigned new_node(); 
+void create_edge(unsigned source, unsigned target, const char* op);
+void register_node(const char*, unsigned);
+unsigned resolve_label(const char*);
+void traverse_cfa(unsigned root, const char* function);
 
 #endif

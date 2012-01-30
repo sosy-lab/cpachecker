@@ -44,7 +44,6 @@ extern NODEPTR Mkassignment_operator ELI_ARG((POSITION *_coordref, NODEPTR _curr
 extern NODEPTR MkIdUse ELI_ARG((POSITION *_coordref, NODEPTR _currn));
 extern NODEPTR Mkassignment_expression ELI_ARG((POSITION *_coordref, NODEPTR _currn));
 extern NODEPTR Mkexpression_opt ELI_ARG((POSITION *_coordref, NODEPTR _currn));
-extern NODEPTR Mkjump_statement ELI_ARG((POSITION *_coordref, NODEPTR _currn));
 extern NODEPTR Mkselection_statement ELI_ARG((POSITION *_coordref, NODEPTR _currn));
 extern NODEPTR Mkexpression_statement ELI_ARG((POSITION *_coordref, NODEPTR _currn));
 extern NODEPTR Mklabeled_statement ELI_ARG((POSITION *_coordref, NODEPTR _currn));
@@ -53,6 +52,7 @@ extern NODEPTR Mkstatement_list ELI_ARG((POSITION *_coordref, NODEPTR _currn));
 extern NODEPTR Mkstatement_list_opt ELI_ARG((POSITION *_coordref, NODEPTR _currn));
 extern NODEPTR Mkdeclaration_list ELI_ARG((POSITION *_coordref, NODEPTR _currn));
 extern NODEPTR Mkcompound_statement ELI_ARG((POSITION *_coordref, NODEPTR _currn));
+extern NODEPTR Mkjump_statement ELI_ARG((POSITION *_coordref, NODEPTR _currn));
 extern NODEPTR Mkcompound_statement_opt ELI_ARG((POSITION *_coordref, NODEPTR _currn));
 extern NODEPTR Mkparameter_list_opt ELI_ARG((POSITION *_coordref, NODEPTR _currn));
 extern NODEPTR Mktype_specifier ELI_ARG((POSITION *_coordref, NODEPTR _currn));

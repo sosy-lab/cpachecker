@@ -274,9 +274,19 @@ jump_statement:
 ~O~<convert.lido~>~{
 ATTR input: UINT;
 ATTR result: UINT;
+ATTR jumpsResolved: VOID;
+ATTR labelsDefined: VOID;
+
+ATTR mark1 : UINT;
+ATTR mark2 : UINT;
+ATTR mark3 : UINT;
 
 RULE: function_definition ::= type_specifier ident '(' parameter_list_opt ')' compound_statement_opt COMPUTE
-	compound_statement_opt.input = get_init_state();
+	.mark1 = new_node(); #root of function CFA
+	compound_statement_opt.input = .mark1;
+	function_definition.labelsDefined = compound_statement_opt.result;
+	.s1 = CONSTITUENTS jump_statement.jumpsResolved <- function_definition.labelsDefined;
+	traverse_cfa(.mark1, StringTable(ident)) <- .s1;
 END;
 
 RULE: compound_statement_opt ::= ';' COMPUTE
@@ -344,7 +354,8 @@ RULE: statement ::= jump_statement COMPUTE
 END;
 
 RULE: labeled_statement ::= ident ':' statement COMPUTE
-	statement.input = propagate_value(StringTable(ident), labeled_statement.input);
+	register_node(StringTable(ident), labeled_statement.input);
+	statement.input = labeled_statement.input;
 	labeled_statement.result = statement.result;
 END;
 
@@ -373,25 +384,42 @@ RULE: assignment_expression ::= function_call_expression COMPUTE
 END;
 
 RULE: selection_statement ::= 'if' '(' Expression ')' statement COMPUTE
-	statement.input = selection_statement.input;
-	selection_statement.result = statement.result;
+	.mark1 = new_node(); # state for first branch
+	.mark2 = new_node(); # merge state
+
+	statement.input = .mark1;
+	.s1 = create_edge(selection_statement.input, .mark1, "if branch start");
+	.s2 = create_edge(statement.result, .mark2, "if branch merge") <- .s1;	
+	.s3 = create_edge(selection_statement.input, .mark2, "if branch skip") <- .s2;	
+	
+	selection_statement.result = .mark2 <- (statement.result, .s3);
 END;
 
 RULE: selection_statement ::= 'if' '(' Expression ')' statement 'else' statement COMPUTE
-	statement[1].input = selection_statement.input;
-	statement[2].input = selection_statement.input;
-	assert_equal(statement[1].result, statement[2].result);
-	selection_statement.result = statement[1].result;
+	.mark1 = new_node(); # state for first branch
+	.mark2 = new_node(); # state for second branch
+	.mark3 = new_node(); # merge state
+
+	statement[1].input = .mark1;
+	.s1 = create_edge(selection_statement.input, .mark1, "if branch 1 start");
+	.s2 = create_edge(statement[1].result, .mark3, "if branch 1 merge") <- .s1;		
+	
+	statement[2].input = .mark2;
+	.s3 = create_edge(selection_statement.input, .mark2, "if branch 2 start") <- .s2;
+	.s4 = create_edge(statement[2].result, .mark3, "if branch 2 merge") <- .s3;		
+	
+	selection_statement.result = .mark3 <- (statement[1].result, statement[2].result, .s4);
 END;
 
 RULE: jump_statement ::= 'goto' ident ';' COMPUTE	
-	propagate_value(StringTable(ident), jump_statement.input);
-	jump_statement.result = UNREACHABLE;
+	jump_statement.jumpsResolved = create_edge(jump_statement.input, resolve_label(StringTable(ident)), StringTable(ident))  <- INCLUDING function_definition.labelsDefined;
+	jump_statement.result = new_node() <- jump_statement.input;
 END;
 
-RULE: jump_statement ::= 'return' expression_opt ';' COMPUTE
+RULE: jump_statement ::= 'return' expression_opt ';' COMPUTE	
 	expression_opt.input = jump_statement.input;
-	jump_statement.result = expression_opt.result;
+	jump_statement.result = new_node() <- expression_opt.result; 
+	jump_statement.jumpsResolved = jump_statement.result;
 END;
 
 RULE: function_call_expression ::= Expression COMPUTE
@@ -399,7 +427,9 @@ RULE: function_call_expression ::= Expression COMPUTE
 END;
 
 RULE: function_call_expression ::= ident '(' argument_expression_list_opt ')' COMPUTE
-	function_call_expression.result = compute_successor(function_call_expression.input, StringTable(ident));
+	.mark1 = new_node();
+	.s1 = create_edge(function_call_expression.input, .mark1, StringTable(ident));
+	function_call_expression.result = .mark1 <- .s1;
 END;
 
 

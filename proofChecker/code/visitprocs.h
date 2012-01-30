@@ -14,28 +14,51 @@ extern void _VS0Empty ELI_ARG((NODEPTR _currn));
 extern void _VS1rule_1 ELI_ARG((_TPPrule_1 _currn));
 extern void _VS1rule_2 ELI_ARG((_TPPrule_2 _currn));
 extern void _VS1rule_3 ELI_ARG((_TPPrule_3 _currn));
+#define _VS2rule_3 _VS0Empty
+
 extern void _VS1rule_4 ELI_ARG((_TPPrule_4 _currn));
-extern void _VS1rule_5 ELI_ARG((_TPPrule_5 _currn,UINT* _AS0input));
-extern void _VS1rule_6 ELI_ARG((_TPPrule_6 _currn,UINT* _AS0input));
+extern void _VS2rule_4 ELI_ARG((_TPPrule_4 _currn));
+extern void _VS1rule_5 ELI_ARG((_TPPrule_5 _currn,UINT* _AS0input,UINT* _AS0mark2_RuleAttr_61,UINT* _AS0mark1_RuleAttr_61,UINT* _AS0mark1_RuleAttr_62));
+extern void _VS2rule_5 ELI_ARG((_TPPrule_5 _currn,UINT* _AS0input,UINT* _AS0mark2_RuleAttr_61,UINT* _AS0mark1_RuleAttr_61,UINT* _AS0mark1_RuleAttr_62));
+extern void _VS1rule_6 ELI_ARG((_TPPrule_6 _currn,UINT* _AS0input,UINT* _AS0mark2_RuleAttr_61,UINT* _AS0mark1_RuleAttr_61,UINT* _AS0mark1_RuleAttr_62));
+extern void _VS2rule_6 ELI_ARG((_TPPrule_6 _currn,UINT* _AS0input,UINT* _AS0mark2_RuleAttr_61,UINT* _AS0mark1_RuleAttr_61,UINT* _AS0mark1_RuleAttr_62));
 extern void _VS1rule_7 ELI_ARG((_TPPrule_7 _currn));
 extern void _VS1rule_8 ELI_ARG((_TPPrule_8 _currn));
 extern void _VS1rule_9 ELI_ARG((_TPPrule_9 _currn));
 extern void _VS1rule_10 ELI_ARG((_TPPrule_10 _currn));
 extern void _VS1rule_11 ELI_ARG((_TPPrule_11 _currn));
 extern void _VS1rule_12 ELI_ARG((_TPPrule_12 _currn));
+extern void _VS2rule_12 ELI_ARG((_TPPrule_12 _currn));
 extern void _VS1rule_13 ELI_ARG((_TPPrule_13 _currn,UINT* _AS0result));
+extern void _VS2rule_13 ELI_ARG((_TPPrule_13 _currn,UINT* _AS0result));
 extern void _VS1rule_14 ELI_ARG((_TPPrule_14 _currn,UINT* _AS0result));
+extern void _VS2rule_14 ELI_ARG((_TPPrule_14 _currn,UINT* _AS0result));
 extern void _VS1rule_15 ELI_ARG((_TPPrule_15 _currn,UINT* _AS0result));
+extern void _VS2rule_15 ELI_ARG((_TPPrule_15 _currn,UINT* _AS0result));
 extern void _VS1rule_16 ELI_ARG((_TPPrule_16 _currn,UINT* _AS0result));
+extern void _VS2rule_16 ELI_ARG((_TPPrule_16 _currn,UINT* _AS0result));
 extern void _VS1rule_17 ELI_ARG((_TPPrule_17 _currn,UINT* _AS0result));
+extern void _VS2rule_17 ELI_ARG((_TPPrule_17 _currn,UINT* _AS0result));
 extern void _VS1rule_18 ELI_ARG((_TPPrule_18 _currn));
+extern void _VS2rule_18 ELI_ARG((_TPPrule_18 _currn));
 extern void _VS1rule_19 ELI_ARG((_TPPrule_19 _currn));
+extern void _VS2rule_19 ELI_ARG((_TPPrule_19 _currn));
 extern void _VS1rule_20 ELI_ARG((_TPPrule_20 _currn));
+extern void _VS2rule_20 ELI_ARG((_TPPrule_20 _currn));
 extern void _VS1rule_21 ELI_ARG((_TPPrule_21 _currn));
+#define _VS2rule_21 _VS0Empty
+
 extern void _VS1rule_22 ELI_ARG((_TPPrule_22 _currn));
+#define _VS2rule_22 _VS2rule_20
+
 extern void _VS1rule_23 ELI_ARG((_TPPrule_23 _currn));
+extern void _VS2rule_23 ELI_ARG((_TPPrule_23 _currn));
 extern void _VS1rule_24 ELI_ARG((_TPPrule_24 _currn));
+#define _VS2rule_24 _VS2rule_20
+
 extern void _VS1rule_25 ELI_ARG((_TPPrule_25 _currn));
+#define _VS2rule_25 _VS0Empty
+
 extern void _VS1rule_26 ELI_ARG((_TPPrule_26 _currn));
 #define _VS1rule_100 _VS0Empty
 

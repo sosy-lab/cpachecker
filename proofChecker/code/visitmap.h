@@ -9,6 +9,7 @@ typedef void (* _VPROCPTR) (NODEPTR);
 typedef void (* _VPROCPTR) ();
 #endif
 
+extern _VPROCPTR VS2MAP[];
 extern _VPROCPTR VS1MAP[];
 
 #endif
