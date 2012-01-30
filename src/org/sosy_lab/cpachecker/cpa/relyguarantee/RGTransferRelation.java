@@ -97,10 +97,6 @@ public class RGTransferRelation  implements TransferRelation {
         + "have to be fulfilled to compute an abstraction")
         private boolean absOnlyIfBoth = false;
 
-  @Option(name="satCheck",
-      description="maximum blocksize before a satisfiability check is done\n"
-        + "(non-negative number, 0 means never, if positive should be smaller than blocksize)")
-        private int satCheckBlockSize = 0;
 
   @Option(description="check satisfiability when a target state has been found (should be true)")
   private boolean targetStateSatCheck = true;
@@ -135,7 +131,7 @@ public class RGTransferRelation  implements TransferRelation {
   private final RGCPA cpa;
 
 
-  // unique number for env. applications in this thread
+  /** Unique number for env. applications in this thread */
   private int uniqueId;
 
   public RGTransferRelation(RGCPA pCpa) throws InvalidConfigurationException {
@@ -343,7 +339,7 @@ public class RGTransferRelation  implements TransferRelation {
     assert appInfo != null;
 
     // get abstraction & refinement formulas
-    PathFormula appPf = etManager.formulaForAbstraction(element, rgEdge.getRgEnvTransition());
+    PathFormula appPf = etManager.formulaForAbstraction(element, rgEdge.getRgEnvTransition(), uniqueId);
 
     PathFormula refPf = null;
     if (appPf.getFormula().isFalse()){

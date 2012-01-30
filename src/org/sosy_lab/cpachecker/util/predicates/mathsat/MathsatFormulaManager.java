@@ -586,6 +586,7 @@ public class MathsatFormulaManager implements FormulaManager, StatisticsProvider
         toProcess.pop();
         String name = msat_term_repr(t);
         int idx = ssa.getIndex(name);
+        idx = Math.max(idx, 1);
         if (idx > 0) {
           // ok, the variable has an instance in the SSA, replace it
           long newt = buildMsatVariable(makeName(name, idx), msat_term_get_type(t));

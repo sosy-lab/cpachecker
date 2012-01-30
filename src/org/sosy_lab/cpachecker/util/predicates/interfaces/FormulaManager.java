@@ -271,7 +271,7 @@ public interface FormulaManager {
    * @param map
    * @return change path formula
    */
-  Formula changePrimedNo(Formula pathFormula, Map<Integer, Integer> map);
+  Formula changePrimedNo(Formula formula, Map<Integer, Integer> map);
 
   /**
    * Instantiates plain variables of f to the low SSA map and hashed variables to the high map.

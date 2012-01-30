@@ -23,23 +23,41 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment;
 
+import java.io.PrintStream;
 import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGSimpleTransition;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.InterpolationTreeNode;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
@@ -55,6 +73,7 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
   private final TheoremProver thmProver;
   private final RegionManager rManager;
   private final LogManager logger;
+  private final Stats stats;
 
   public RGSimpleTransitionManager(FormulaManager pFManager, PathFormulaManager pPfManager, PredicateAbstractionManager paManager, SSAMapManager pSsaManager,TheoremProver pThmProver, RegionManager pRManager, RGVariables variables, Configuration pConfig, LogManager pLogger) {
     this.fManager = pFManager;
@@ -64,28 +83,101 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
     this.thmProver = pThmProver;
     this.rManager = pRManager;
     this.logger  = pLogger;
+
+    this.stats = new Stats();
   }
 
   @Override
-  public RGEnvTransition generateEnvTransition(RGEnvCandidate pCand,
-      Collection<AbstractionPredicate> pGlobalPreds,
-      Multimap<CFANode, AbstractionPredicate> pLocalPreds) {
+  public RGSimpleTransition generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> pGlobalPreds, Multimap<CFANode, AbstractionPredicate> pLocalPreds) {
     // TODO Auto-generated method stub
-    return null;
+    AbstractionFormula abs = cand.getRgElement().getAbstractionFormula();
+    Formula absF = abs.asFormula();
+    Region absReg = abs.asRegion();
+    PathFormula pf = cand.getRgElement().getPathFormula();
+
+    // find the last abstraction ART element
+    ARTElement lARTElem = findLastAbstractionARTElement(cand.getElement());
+
+    return new RGSimpleTransition(absF, absReg, pf, cand.getOperation(), lARTElem, cand.getTid());
   }
 
   @Override
-  public PathFormula formulaForAbstraction(RGAbstractElement pElem,
-      RGEnvTransition pEt) {
-    // TODO Auto-generated method stub
-    return null;
+  public PathFormula formulaForAbstraction(RGAbstractElement elem, RGEnvTransition et, int unique) throws CPATransferException {
+    RGSimpleTransition st = (RGSimpleTransition) et;
+
+    AbstractionFormula lAbs = elem.getAbstractionFormula();
+    PathFormula lPf = elem.getPathFormula();
+    Formula eAbs = st.getAbstraction();
+    PathFormula ePf = st.getPathFormula();
+
+    /* if path formulas are true, then BDDs can detect unsatisfiable result */
+    if (lPf.getFormula().isTrue() || ePf.getFormula().isTrue()){
+      boolean isFalse = checkByBDD(st, lAbs);
+      if (isFalse){
+        stats.falseByBDD++;
+        return pfManager.makeFalsePathFormula();
+      }
+    }
+
+    // rename env. part to unique
+    Formula eValF = fManager.makeAnd(ePf.getFormula(), eAbs);
+    PathFormula eVal = new PathFormula(eValF, ePf.getSsa(), ePf.getLength());
+    Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(1);
+    rMap.put(-1, unique);
+    eVal = pfManager.changePrimedNo(eVal, rMap);
+
+    // build equalities over the valuations of the env. transition and the element
+    SSAMap lSSA = lPf.getSsa();
+    SSAMap eSSA = eVal.getSsa();
+    Formula eq = fManager.makePrimedEqualities(eSSA, unique, lSSA, -1);
+    Formula appF = fManager.makeAnd(eq, eVal.getFormula());
+    PathFormula appPf = new PathFormula(appF, eVal.getSsa(), eVal.getLength());
+
+    // use the ssa of the local path formula
+    appPf = new PathFormula(appPf.getFormula(), lSSA, 0);
+
+    // apply the operation
+    appPf = pfManager.makeAnd(appPf, st.getOperation());
+
+    return appPf;
   }
 
   @Override
-  public PathFormula formulaForRefinement(RGAbstractElement pElem,
-      RGEnvTransition pEt, int pUnique) {
-    // TODO Auto-generated method stub
-    return null;
+  public PathFormula formulaForRefinement(RGAbstractElement elem, RGEnvTransition et, int unique) throws CPATransferException {
+    RGSimpleTransition st = (RGSimpleTransition) et;
+
+    AbstractionFormula lAbs = elem.getAbstractionFormula();
+    PathFormula lPf = elem.getPathFormula();
+    PathFormula ePf = st.getPathFormula();
+
+    /* if path formulas are true, then BDDs can detect unsatisfiable result */
+    if (lPf.getFormula().isTrue() || ePf.getFormula().isTrue()){
+      boolean isFalse = checkByBDD(st, lAbs);
+      if (isFalse){
+        // no stats here, they were counted at formulaForAbstraction
+        return pfManager.makeFalsePathFormula();
+      }
+    }
+
+    // rename env. part to unique
+    Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(1);
+    rMap.put(-1, unique);
+    ePf = pfManager.changePrimedNo(ePf, rMap);
+
+    // build equalities over the valuations of the env. transition and the element
+    SSAMap lSSA = lPf.getSsa();
+    SSAMap eSSA = ePf.getSsa();
+    Formula eq = fManager.makePrimedEqualities(eSSA, unique, lSSA, -1);
+    Formula refF = fManager.makeAnd(ePf.getFormula(), eq);
+    PathFormula refPf = new PathFormula(refF, ePf.getSsa(), 0);
+
+    // use the ssa of the local path formula
+    refPf = new PathFormula(refPf.getFormula(), lSSA, 0);
+
+    // apply the operation
+    refPf = pfManager.makeAnd(refPf, st.getOperation());
+
+    return refPf;
   }
 
   @Override
@@ -96,22 +188,92 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
   }
 
   @Override
-  public boolean isLessOrEqual(RGEnvTransition pEt1, RGEnvTransition pEt2) {
-    // TODO Auto-generated method stub
+  public boolean isLessOrEqual(RGEnvTransition et1, RGEnvTransition et2) {
+    RGSimpleTransition st1 = (RGSimpleTransition) et1;
+    RGSimpleTransition st2 = (RGSimpleTransition) et2;
+
+    CFAEdge op1 = st1.getOperation();
+    CFAEdge op2 = st2.getOperation();
+
+    if (!op1.equals(op2)){
+      return false;
+    }
+
+    Formula abs1 = st1.getAbstraction();
+    Formula f1 = st1.getPathFormula().getFormula();
+    Formula abs2 = st1.getAbstraction();
+    Formula f2 = st2.getPathFormula().getFormula();
+
+    if (abs1.isFalse() || f1.isFalse() || (abs2.isTrue() && f2.isTrue())){
+      return true;
+    }
+
+    // TODO add checking by thmProver
     return false;
+
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    // TODO Auto-generated method stub
-
+  public void collectStatistics(Collection<Statistics> scoll) {
+    scoll.add(stats);
   }
 
 
+  private boolean checkByBDD(RGSimpleTransition st, AbstractionFormula abs) {
+    Region rEt = st.getAbstractionRegion();
+    Region rElem = abs.asRegion();
+    Region rAnd = rManager.makeAnd(rElem, rEt);
+    return rManager.isFalse(rAnd);
+  }
+
+  /**
+   * Finds the last rely-guarantee abstraction element that is an ancestor of the argument.
+   * @param pElement
+   * @return
+   */
+  private ARTElement findLastAbstractionARTElement(ARTElement pElement) {
+    ARTElement laARTElement = null;
+    Deque<ARTElement> toProcess = new LinkedList<ARTElement>();
+    Set<ARTElement> visisted = new HashSet<ARTElement>();
+    toProcess.add(pElement);
+
+    while (!toProcess.isEmpty()){
+      ARTElement element = toProcess.poll();
+      visisted.add(element);
+
+      AbstractionElement aElement = AbstractElements.extractElementByType(element, AbstractionElement.class);
+      if (aElement != null){
+        laARTElement = element;
+        break;
+      }
+
+      for (ARTElement parent : element.getParents()){
+        if (!visisted.contains(parent)){
+          toProcess.addLast(parent);
+        }
+      }
+    }
+
+    return laARTElement;
+  }
 
 
+  public static class Stats implements Statistics {
 
+    private int falseByBDD = 0;
 
+    @Override
+    public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached) {
+      out.println("env. app. falsified by BDD:      " + formatInt(falseByBDD));
+    }
 
+    private String formatInt(int val){
+      return String.format("  %7d", val);
+    }
 
+    @Override
+    public String getName() {
+      return "RGFullyAbstractedManager";
+    }
+  }
 }

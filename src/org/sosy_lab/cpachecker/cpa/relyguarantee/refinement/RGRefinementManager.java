@@ -720,7 +720,10 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
           }
 
           // mark the root of the sub-tree as an env. abstraction
-          appNode.setEnvAbstraction(true);
+          if (abstractEnvTransitions.equals("SA") || abstractEnvTransitions.equals("FA")){
+            appNode.setEnvAbstraction(true);
+          }
+
 
           // add the sub tree to the main tree
           treeNode.children.add(appNode);
@@ -731,8 +734,6 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
           // get the next free unique id
           appUniqueId = pair.getSecond();
-
-
         }
       }
 

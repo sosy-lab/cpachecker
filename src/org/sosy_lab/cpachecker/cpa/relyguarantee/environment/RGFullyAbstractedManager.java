@@ -134,7 +134,7 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
 
 
   @Override
-  public PathFormula formulaForAbstraction(RGAbstractElement elem, RGEnvTransition et) {
+  public PathFormula formulaForAbstraction(RGAbstractElement elem, RGEnvTransition et, int unique) {
 
     RGFullyAbstracted fa = (RGFullyAbstracted) et;
     AbstractionFormula abs = elem.getAbstractionFormula();
@@ -202,7 +202,8 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
       // build equalities between the highest indexes of the instantiated filter
       PathFormula hiPf = pfManager.makePrimedEqualities(highSSA, -1, fSsa, unique);
 
-      PathFormula appPf = pfManager.makeAnd(hiPf, lowPf.getFormula());
+      Formula appF = fManager.makeAnd(hiPf.getFormula(), lowPf.getFormula());
+      PathFormula appPf = new PathFormula(appF, hiPf.getSsa(), 0);
 
 
     return appPf;

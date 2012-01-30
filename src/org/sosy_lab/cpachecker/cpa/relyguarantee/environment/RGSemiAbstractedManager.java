@@ -113,7 +113,7 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
   }
 
   @Override
-  public PathFormula formulaForAbstraction(RGAbstractElement elem ,RGEnvTransition et) throws CPATransferException {
+  public PathFormula formulaForAbstraction(RGAbstractElement elem ,RGEnvTransition et, int unique) throws CPATransferException {
     RGSemiAbstracted sa = (RGSemiAbstracted) et;
     PathFormula pf = elem.getPathFormula();
     AbstractionFormula abs = elem.getAbstractionFormula();
@@ -211,8 +211,6 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
   public void collectStatistics(Collection<Statistics> scoll) {
     scoll.add(stats);
   }
-
-
 
 
   public static class Stats implements Statistics {

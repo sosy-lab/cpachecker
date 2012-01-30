@@ -293,8 +293,6 @@ class PredicateAbstractionManager implements StatisticsProvider {
 
     Formula f = pf.getFormula();
 
-
-
     thmProver.init();
     try {
 

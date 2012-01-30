@@ -17,7 +17,9 @@ fi
 cd $CPAchecker_mt
 
 if [ $# -lt 1 ]; then
-    echo "Usage: $0 config"
+    echo "usage: $0 CONFIG"
+    echo ""
+    echo "CONFIG - config file name in $CPAchecker_mt/$configDir"
     exit 1
 fi
 

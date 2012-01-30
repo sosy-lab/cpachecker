@@ -54,12 +54,13 @@ public interface RGEnvTransitionManager {
 
   /**
    * Returns a path formula representing the effect of applying the transition on the element.
+   * The environmental part of the result is primed unique number of times.
    * The formula is meant for abstraction.
    * @param pf
    * @param et
    * @return
    */
-  PathFormula formulaForAbstraction(RGAbstractElement elem, RGEnvTransition et) throws CPATransferException;
+  PathFormula formulaForAbstraction(RGAbstractElement elem, RGEnvTransition et, int unique) throws CPATransferException;
 
 
   /**

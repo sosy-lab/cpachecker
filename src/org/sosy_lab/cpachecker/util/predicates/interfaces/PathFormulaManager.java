@@ -50,6 +50,10 @@ public interface PathFormulaManager {
    */
   PathFormula makeOr(PathFormula pF1, PathFormula pF2);
 
+
+
+  /** Note this function may cause many errors, since it implicitly instantiates the formula*/
+  @Deprecated
   PathFormula makeAnd(PathFormula pPathFormula, Formula pOtherFormula);
 
   PathFormula makeAnd(PathFormula pPathFormula, PathFormula pOtherFormula);
