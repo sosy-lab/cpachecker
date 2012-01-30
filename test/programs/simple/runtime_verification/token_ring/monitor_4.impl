@@ -1,0 +1,127 @@
+unsigned get_initial_state() {
+	return 0;
+}
+
+unsigned compute_successor(unsigned state, std::string op) {
+	if(op == "t1_started") {
+		if(state == 1 || state == 12 || state == 13 || state == 14 || state == 123 || state == 124 || state == 134) {
+			printf("ERROR: error location is reachable\n");
+			exit(EXIT_FAILURE);
+		} 
+		else if(state == 0) {
+			state = 1; 
+		}
+		else if(state == 2) {
+			state = 12; 
+		}
+		else if(state == 3) {
+			state = 13; 
+		}
+		else if(state == 4) {
+			state = 14; 
+		}
+		else if(state == 23) {
+			state = 123; 
+		}
+		else if(state == 24) {
+			state = 124; 
+		}
+		else if(state == 34) {
+			state = 134; 
+		}
+		else if(state == 234) {
+			state = 0; 
+		}
+	}
+	else if(op == "t2_started") {
+		if(state == 2 || state == 12 || state == 23 || state == 24 || state == 123 || state == 124 || state == 234) {
+			printf("ERROR: error location is reachable\n");
+			exit(EXIT_FAILURE);
+		} 
+		else if(state == 0) {
+			state = 2; 
+		}
+		else if(state == 1) {
+			state = 12; 
+		}
+		else if(state == 3) {
+			state = 23; 
+		}
+		else if(state == 4) {
+			state = 24; 
+		}
+		else if(state == 13) {
+			state = 123; 
+		}
+		else if(state == 14) {
+			state = 124; 
+		}
+		else if(state == 34) {
+			state = 234; 
+		}
+		else if(state == 134) {
+			state = 0; 
+		}
+	}
+	else if(op == "t3_started") {
+		if(state == 3 || state == 13 || state == 23 || state == 34 || state == 123 || state == 134 || state == 234) {
+			printf("ERROR: error location is reachable\n");
+			exit(EXIT_FAILURE);
+		} 
+		else if(state == 0) {
+			state = 3; 
+		}
+		else if(state == 1) {
+			state = 13; 
+		}
+		else if(state == 2) {
+			state = 23; 
+		}
+		else if(state == 4) {
+			state = 34; 
+		}
+		else if(state == 12) {
+			state = 123; 
+		}
+		else if(state == 14) {
+			state = 134; 
+		}
+		else if(state == 24) {
+			state = 234; 
+		}
+		else if(state == 124) {
+			state = 0; 
+		}
+	}
+	else if(op == "t4_started") {
+		if(state == 4 || state == 14 || state == 24 || state == 34 || state == 124 || state == 134 || state == 234) {
+			printf("ERROR: error location is reachable\n");
+			exit(EXIT_FAILURE);
+		} 
+		else if(state == 0) {
+			state = 4; 
+		}
+		else if(state == 1) {
+			state = 14; 
+		}
+		else if(state == 2) {
+			state = 24; 
+		}
+		else if(state == 3) {
+			state = 34; 
+		}
+		else if(state == 12) {
+			state = 124; 
+		}
+		else if(state == 13) {
+			state = 134; 
+		}
+		else if(state == 23) {
+			state = 234; 
+		}
+		else if(state == 123) {
+			state = 0; 
+		}
+	}
+	return state;
+}
