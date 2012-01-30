@@ -121,7 +121,6 @@ public class RGTransferRelation  implements TransferRelation {
   public int numAtomThreshold = 0;
   public int numSatChecksFalse = 0;
   public int numStrengthenChecksFalse = 0;
-  public int envFalseByBDD = 0;
 
   private final LogManager logger;
   private final PredicateAbstractionManager paManager;

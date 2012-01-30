@@ -595,7 +595,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       out.println();
       out.println("no of environmental successors:  " + formatInt(countEnvSuccessors));
       out.println("no of all successors:            " + formatInt(countSuccessors));
-      out.println("env. transition false by BDD:    " + formatInt(tr.envFalseByBDD));
       out.println("max successors for one element:  " + formatInt(maxSuccessors));
       out.println("number of environmetal merges:   " + formatInt(countEnvMerge));
       out.println("number of all merges:            " + formatInt(countMerge));

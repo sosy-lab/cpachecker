@@ -1,0 +1,8 @@
+#!/bin/bash
+if [ -z "$CPAchecker_mt" ]; then
+    echo 'Error: $CPAChecker_mt is not set'
+    exit 1
+fi  
+cd $CPAchecker_mt
+scripts/cpa.sh -concurrent -config test/config/rg-global-sbe-cartesian-sa.properties test/programs/multi-threaded/benchmarks/bakery.simple.cil.c
+
