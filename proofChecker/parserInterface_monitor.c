@@ -53,8 +53,8 @@ void traverse_cfa(unsigned root, const char* function) {
 	std::transform(begin(node_to_state), end(node_to_state), begin(node_to_state), [](unsigned){return -1;});
 
 	std::stack<unsigned> unhandled_nodes;
-	unhandled_nodes.push(0); //root is 0
-	node_to_state[0] = get_initial_state();
+	unhandled_nodes.push(root);
+	node_to_state[root] = get_initial_state();
 	while(!unhandled_nodes.empty()) {
 		unsigned unhandled_node = unhandled_nodes.top();
 		unhandled_nodes.pop();
