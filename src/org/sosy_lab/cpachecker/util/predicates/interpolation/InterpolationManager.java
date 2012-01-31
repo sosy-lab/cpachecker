@@ -66,6 +66,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatInterpolatingProver;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolInterpolatingProver;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -94,7 +96,7 @@ public abstract class InterpolationManager<I> {
   private final InterpolatingTheoremProver<?> firstItpProver;
   private final InterpolatingTheoremProver<?> secondItpProver;
 
-  @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"},
+  @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT", "SMTINTERPOL"},
       description="which interpolating solver to use for interpolant generation?")
   private String whichItpProver = "MATHSAT";
 
@@ -172,6 +174,9 @@ public abstract class InterpolationManager<I> {
     } else if (whichItpProver.equals("CSISAT")) {
       firstItpProver = new CSIsatInterpolatingProver(pFmgr, logger);
 
+    } else if (whichItpProver.equals("SMTINTERPOL")) {
+      firstItpProver = new SmtInterpolInterpolatingProver((SmtInterpolFormulaManager) realFormulaManager, false);
+
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
@@ -179,6 +184,10 @@ public abstract class InterpolationManager<I> {
     if (changeItpSolveOTF) {
       if (whichItpProver.equals("MATHSAT")) {
         secondItpProver = new CSIsatInterpolatingProver(pFmgr, logger);
+
+      } else if (whichItpProver.equals("SMTINTERPOL")) {
+        secondItpProver = new SmtInterpolInterpolatingProver((SmtInterpolFormulaManager) realFormulaManager, false);
+
       } else {
         if (!(realFormulaManager instanceof MathsatFormulaManager)) {
           throw new InvalidConfigurationException("Need to use Mathsat as solver if Mathsat should be used for interpolation");

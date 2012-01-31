@@ -38,6 +38,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
@@ -78,6 +79,7 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
@@ -86,6 +88,9 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFactory;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolTheoremProver;
 
 import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
@@ -96,6 +101,10 @@ import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.predicate")
 public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARTElement, CFAEdge>> {
+
+  @Option(name="satsolver", toUppercase=true, values={"MATHSAT", "SMTINTERPOL"},
+      description="which satsolver to use?")
+  private static String satsolver = "MATHSAT";
 
   final Timer precisionUpdate = new Timer();
   final Timer artUpdate = new Timer();
@@ -135,7 +144,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   }
 
   private static ExplicitRefiner initialiseExplicitRefiner(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws CPAException, InvalidConfigurationException {
-    MathsatFormulaManager mathsatFormulaManager = null;
+    FormulaManager simpleFormulaManager         = null;
     RegionManager regionManager                 = null;
     ExtendedFormulaManager formulaManager       = null;
     PathFormulaManager pathFormulaManager       = null;
@@ -153,11 +162,18 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       theoremProver         = predicateCpa.getTheoremProver();
       absManager            = predicateCpa.getPredicateManager();
     } else {
-      mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
+
+      if (satsolver.equals("MATHSAT")) {
+        simpleFormulaManager = MathsatFactory.createFormulaManager(config, logger);
+        theoremProver         = new MathsatTheoremProver((MathsatFormulaManager) simpleFormulaManager);
+      } else { // if (satsolver.equals("SMTINTERPOL")) {
+        simpleFormulaManager = SmtInterpolFactory.createFormulaManager(config, logger);
+        theoremProver         = new SmtInterpolTheoremProver((SmtInterpolFormulaManager) simpleFormulaManager);
+      }
+
       regionManager         = BDDRegionManager.getInstance();
-      formulaManager        = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
+      formulaManager        = new ExtendedFormulaManager(simpleFormulaManager, config, logger);
       pathFormulaManager    = new PathFormulaManagerImpl(formulaManager, config, logger);
-      theoremProver         = new MathsatTheoremProver(mathsatFormulaManager);
       absManager            = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
     }
 

@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
@@ -64,6 +65,9 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.YicesTheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFactory;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolTheoremProver;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
@@ -78,9 +82,13 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
   }
 
-  @Option(name="abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"},
+  @Option(name="abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES", "SMTINTERPOL"},
       description="which solver to use?")
   private String whichProver = "MATHSAT";
+
+  @Option(name="satsolver", toUppercase=true, values={"MATHSAT", "SMTINTERPOL"},
+      description="which satsolver to use?")
+  private String satsolver = "MATHSAT";
 
   @Option(name="abstraction.initialPredicates",
       description="get an initial set of predicates from a file in MSAT format")
@@ -129,8 +137,16 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
 
     regionManager = BDDRegionManager.getInstance();
-    MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
-    formulaManager = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
+
+    FormulaManager solverFormulaManager = null;
+    if (satsolver.equals("MATHSAT")) {
+      solverFormulaManager = MathsatFactory.createFormulaManager(config, logger);
+    } else if (satsolver.equals("SMTINTERPOL")) {
+      solverFormulaManager = SmtInterpolFactory.createFormulaManager(config, logger);
+    } else {
+      throw new InternalError("Update list of allowed satsolvers!");
+    }
+    formulaManager = new ExtendedFormulaManager(solverFormulaManager, config, logger);
 
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger);
     if (useCache) {
@@ -139,7 +155,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     pathFormulaManager = pfMgr;
 
     if (whichProver.equals("MATHSAT")) {
-      theoremProver = new MathsatTheoremProver(mathsatFormulaManager);
+      theoremProver = new MathsatTheoremProver((MathsatFormulaManager) solverFormulaManager);
+    } else if (whichProver.equals("SMTINTERPOL")) {
+      theoremProver = new SmtInterpolTheoremProver((SmtInterpolFormulaManager) solverFormulaManager);
     } else if (whichProver.equals("YICES")) {
       theoremProver = new YicesTheoremProver(formulaManager, logger);
     } else {

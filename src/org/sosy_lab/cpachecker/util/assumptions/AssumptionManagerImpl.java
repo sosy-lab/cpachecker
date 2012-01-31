@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.assumptions;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFactory;
 
 
 /**
@@ -44,6 +46,10 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
  */
 public class AssumptionManagerImpl extends CtoFormulaConverter implements AssumptionManager
 {
+
+  @Option(name="cpa.predicate.satsolver", toUppercase=true, values={"MATHSAT", "SMTINTERPOL"},
+      description="which satsolver to use?")
+  private static String satsolver = "MATHSAT"; // TODO injection needed??
 
   /**
    * Dummy SSA map that always return 1 as index. Only used here
@@ -71,7 +77,13 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
   public static ExtendedFormulaManager createFormulaManager(Configuration pConfig, LogManager pLogger)
   throws InvalidConfigurationException {
     if (fmgr == null) {
-      fmgr = new ExtendedFormulaManager(MathsatFactory.createFormulaManager(pConfig, pLogger), pConfig, pLogger);
+      if (satsolver.equals("MATHSAT")) {
+        fmgr = new ExtendedFormulaManager(MathsatFactory.createFormulaManager(pConfig, pLogger), pConfig, pLogger);
+      } else if (satsolver.equals("SMTINTERPOL")) {
+        fmgr = new ExtendedFormulaManager(SmtInterpolFactory.createFormulaManager(pConfig, pLogger), pConfig, pLogger);
+      } else {
+        throw new InternalError("Update list of allowed satsolvers!");
+      }
     }
     return fmgr;
   }
