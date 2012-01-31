@@ -23,7 +23,6 @@ void throwException(JNIEnv *env, const char *name, const char *msg) {
   if (cls != NULL) {
     (*env)->ThrowNew(env, cls, msg);
   }
-  (*env)->DeleteLocalRef(env, cls);
 }
 
 // Macros for defining JNI functions which call Mathsat
@@ -295,6 +294,7 @@ typedef jint jjfailureCode;
 
 struct msat_all_sat_helper {
    JNIEnv *jenv;
+   jmethodID callback_method;
    jobject obj;
 };
 
@@ -302,21 +302,34 @@ static void call_java_callback(msat_term *model, int size, void *user_data) {
   struct msat_all_sat_helper *helper =
       (struct msat_all_sat_helper *)user_data;
   JNIEnv *jenv = helper->jenv;
-
-  jclass cls = (*jenv)->FindClass(jenv,
-    "org/sosy_lab/cpachecker/util/predicates/mathsat/NativeApi$AllSatModelCallback");
-  jmethodID mid = (*jenv)->GetMethodID(jenv, cls, "callback", "([J)V");
+  if ((*jenv)->ExceptionCheck(jenv)) {
+    return; // exit JNI code as soon as possible
+  }
 
   jlongArray jmodel = (*jenv)->NewLongArray(jenv, (size_t)size);
+  if (jmodel == NULL) {
+    goto out_jmodel;
+  }
   jlong *jarr = malloc(sizeof(jlong) * size);
+  if (jarr == NULL) {
+    throwException(jenv, "java.lang.OutOfMemoryError", "Cannot allocate memory for allsat result");
+    goto out_jarr;
+  }
+
   int i;
   for (i = 0; i < size; ++i) {
       jarr[i] = (jlong)((size_t)model[i].repr);
   }
   (*jenv)->SetLongArrayRegion(jenv, jmodel, 0, (size_t)size, (jlong *)jarr);
 
-  (*jenv)->CallVoidMethod(jenv, helper->obj, mid, jmodel);
+  (*jenv)->CallVoidMethod(jenv, helper->obj, helper->callback_method, jmodel);
+
+  out_jarr:
   free(jarr);
+
+  out_jmodel:
+  // explicitly delete local reference because this is a long running computation
+  (*jenv)->DeleteLocalRef(jenv, jmodel);
 }
 
 
@@ -654,8 +667,20 @@ DEFINE_FUNC(int, 1all_1sat) WITH_FIVE_ARGS(jenv, jtermArray, int, object, int)
 ENV_ARG(1)
 TERM_ARRAY_ARG(2)
 SIMPLE_ARG(int, 3)
-    struct msat_all_sat_helper helper = {jenv, arg4};
-    int retval = msat_all_sat(m_arg1, m_arg2, m_arg3, &call_java_callback, &helper);
+
+  jclass cls = (*jenv)->FindClass(jenv,
+    "org/sosy_lab/cpachecker/util/predicates/mathsat/NativeApi$AllSatModelCallback");
+  if (cls == NULL) {
+    goto out;
+  }
+  jmethodID mid = (*jenv)->GetMethodID(jenv, cls, "callback", "([J)V");
+  if (mid == NULL) {
+    goto out;
+  }
+  struct msat_all_sat_helper helper = {jenv, mid, arg4};
+  int retval = msat_all_sat(m_arg1, m_arg2, m_arg3, &call_java_callback, &helper);
+
+  out:
 FREE_TERM_ARRAY_ARG(2)
 INT_RETURN
 
