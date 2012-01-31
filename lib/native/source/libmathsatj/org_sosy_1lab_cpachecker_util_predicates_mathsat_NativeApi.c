@@ -169,6 +169,11 @@ typedef jint jjtype;
 #define TYPE_ARG(num) SIMPLE_ARG(msat_type, num)
 #define TYPE_RETURN INT_RETURN
 
+typedef jint jjboolean;
+#define BOOLEAN_RETURN INT_RETURN;
+
+typedef jint jjfailureCode;
+#define FAILURE_CODE_RETURN INT_RETURN;
 
 // Abbreviations for common combinations of return and argument types
 //
@@ -179,6 +184,18 @@ typedef jint jjtype;
 // mreturn: return type of Mathsat C function
 // margX: Java type of argument X
 // jargX: Mathsat type of argument X
+
+#define b_func1t(func, func_escaped) \
+  DEFINE_FUNC(jboolean, func_escaped) WITH_ONE_ARG(jterm) \
+  STRUCT_ARG(msat_term, 1) \
+  CALL1(int, func) \
+  BOOLEAN_RETURN
+
+#define f_func1s(func, func_escaped, marg1) \
+  DEFINE_FUNC(jfailureCode, func_escaped) WITH_ONE_ARG(long) \
+  STRUCT_ARG(marg1, 1) \
+  CALL1(int, func) \
+  FAILURE_CODE_RETURN
 
 #define i_func1s(func, func_escaped, mreturn, marg1) \
   DEFINE_FUNC(int, func_escaped) WITH_ONE_ARG(long) \
@@ -192,18 +209,13 @@ typedef jint jjtype;
   CALL1(mreturn, func) \
   STRUCT_RETURN
 
-#define i_func1t(func, func_escaped) \
-	i_func1s(func, func_escaped, \
-		int, \
-		msat_term)
 
-
-#define i_func2si(func, func_escaped, mreturn, marg1, marg2) \
-  DEFINE_FUNC(int, func_escaped) WITH_TWO_ARGS(long, int) \
+#define f_func2si(func, func_escaped, marg1, marg2) \
+  DEFINE_FUNC(jfailureCode, func_escaped) WITH_TWO_ARGS(long, int) \
   STRUCT_ARG(marg1, 1) \
   SIMPLE_ARG(marg2, 2) \
-  CALL2(mreturn, func) \
-  INT_RETURN
+  CALL2(int, func) \
+  FAILURE_CODE_RETURN
 
 #define s_func2ss(func, func_escaped, mreturn, marg1, marg2) \
   DEFINE_FUNC(long, func_escaped) WITH_TWO_ARGS(long, long) \
@@ -287,14 +299,14 @@ ENV_ARG(1) \
 VOID_CALL1(destroy_env)
 
 
-DEFINE_FUNC(int, 1set_1option) WITH_THREE_ARGS(jenv, string, string)
+DEFINE_FUNC(jfailureCode, 1set_1option) WITH_THREE_ARGS(jenv, string, string)
 ENV_ARG(1)
 STRING_ARG(2)
 STRING_ARG(3)
 CALL3(int, set_option)
 FREE_STRING_ARG(3)
 FREE_STRING_ARG(2)
-INT_RETURN
+FAILURE_CODE_RETURN
 
 
 DEFINE_FUNC(jdecl, 1declare_1variable) WITH_THREE_ARGS(jenv, string, jtype)
@@ -455,8 +467,8 @@ make_term_from_string(from_foci, 1from_1foci)
 term_to_string(to_msat, 1to_1msat)
 term_to_string(to_smtlib, 1to_1smtlib)
 
-i_func1t(term_id, 1term_1id)
-i_func1t(term_arity, 1term_1arity)
+i_func1s(term_id, 1term_1id, int, msat_term)
+i_func1s(term_arity, 1term_1arity, int, msat_term)
 
 
 DEFINE_FUNC(jterm, 1term_1get_1arg) WITH_TWO_ARGS(jterm, int) \
@@ -466,12 +478,16 @@ CALL2(msat_term, term_get_arg) \
 TERM_RETURN
 
 
-i_func1t(term_get_type, 1term_1get_1type)
+DEFINE_FUNC(jtype, 1term_1get_1type) WITH_ONE_ARG(jterm) \
+TERM_ARG(1) \
+CALL1(msat_type, term_get_type) \
+TYPE_RETURN
 
-#define func_term_is(name) i_func1t(term_is_##name, 1term_1is_1##name)
+
+#define func_term_is(name) b_func1t(term_is_##name, 1term_1is_1##name)
 func_term_is(true)
 func_term_is(false)
-i_func1t(term_is_boolean_var, 1term_1is_1boolean_1var)
+b_func1t(term_is_boolean_var, 1term_1is_1boolean_1var)
 func_term_is(atom)
 func_term_is(number)
 func_term_is(and)
@@ -480,8 +496,8 @@ func_term_is(not)
 func_term_is(iff)
 func_term_is(implies)
 func_term_is(xor)
-i_func1t(term_is_bool_ite, 1term_1is_1bool_1ite)
-i_func1t(term_is_term_ite, 1term_1is_1term_1ite)
+b_func1t(term_is_bool_ite, 1term_1is_1bool_1ite)
+b_func1t(term_is_term_ite, 1term_1is_1term_1ite)
 func_term_is(variable)
 func_term_is(uif)
 func_term_is(equal)
@@ -494,7 +510,7 @@ func_term_is(minus)
 func_term_is(times)
 func_term_is(negate)
 
-#define func_term_is_bv(name) i_func1t(term_is_bv_##name, 1term_1is_1bv_1##name)
+#define func_term_is_bv(name) b_func1t(term_is_bv_##name, 1term_1is_1bv_1##name)
 func_term_is_bv(concat)
 func_term_is_bv(select)
 func_term_is_bv(or)
@@ -561,30 +577,26 @@ CALL1(char *, term_repr) \
 STRING_RETURN
 
 
-i_func2si(add_theory, 1add_1theory, \
-	int, \
+f_func2si(add_theory, 1add_1theory, \
 	msat_env, \
 	msat_theory)
 
-i_func2si(set_theory_combination, 1set_1theory_1combination, \
-	int, \
+f_func2si(set_theory_combination, 1set_1theory_1combination, \
 	msat_env, \
 	msat_theory_combination)
 
-i_func1s(push_backtrack_point, 1push_1backtrack_1point, \
-	int, \
+f_func1s(push_backtrack_point, 1push_1backtrack_1point, \
 	msat_env)
 
-i_func1s(pop_backtrack_point, 1pop_1backtrack_1point, \
-	int, \
+f_func1s(pop_backtrack_point, 1pop_1backtrack_1point, \
 	msat_env)
 
 
-DEFINE_FUNC(int, 1assert_1formula) WITH_TWO_ARGS(jenv, jterm) \
+DEFINE_FUNC(jfailureCode, 1assert_1formula) WITH_TWO_ARGS(jenv, jterm) \
 ENV_ARG(1) \
 TERM_ARG(2)
 CALL2(int, assert_formula) \
-INT_RETURN
+FAILURE_CODE_RETURN
 
 
 i_func1s(solve, 1solve, \
@@ -611,19 +623,21 @@ s_func1s(create_model_iterator, 1create_1model_1iterator, \
 	msat_model_iterator, \
 	msat_env)
 
-i_func1s(model_iterator_has_next, 1model_1iterator_1has_1next, \
-	int, \
-	msat_model_iterator)
+
+DEFINE_FUNC(jboolean, 1model_1iterator_1has_1next) WITH_ONE_ARG(jmodel_iterator) \
+MODEL_ITERATOR_ARG(1) \
+CALL1(int, model_iterator_has_next) \
+BOOLEAN_RETURN
 
 
-DEFINE_FUNC(int, 1model_1iterator_1next) WITH_THREE_ARGS(jmodel_iterator, jtermArray, jtermArray)
+DEFINE_FUNC(jboolean, 1model_1iterator_1next) WITH_THREE_ARGS(jmodel_iterator, jtermArray, jtermArray)
 MODEL_ITERATOR_ARG(1)
 TERM_POINTER_ARG(2)
 TERM_POINTER_ARG(3)
 CALL3(int, model_iterator_next)
 PUT_TERM_POINTER_ARG(3)
 PUT_TERM_POINTER_ARG(2)
-INT_RETURN
+BOOLEAN_RETURN
 
 
 DEFINE_FUNC(void, 1destroy_1model_1iterator) WITH_ONE_ARG(jmodel_iterator)
@@ -641,16 +655,14 @@ s_func1s(get_unsat_core, 1get_1unsat_1core, \
 	msat_term, \
 	msat_env)
 
-i_func1s(init_interpolation, 1init_1interpolation, \
-	int,
+f_func1s(init_interpolation, 1init_1interpolation, \
 	msat_env)
 
 i_func1s(create_itp_group, 1create_1itp_1group, \
 	int,
 	msat_env)
 
-i_func2si(set_itp_group, 1set_1itp_1group, \
-	int, \
+f_func2si(set_itp_group, 1set_1itp_1group, \
 	msat_env, \
 	int)
 
