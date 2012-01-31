@@ -23,50 +23,32 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
+import java.util.List;
+import java.util.Vector;
 
-public class Variable implements Comparable<Variable> {
 
-  private final String name;
+public class MatrixList {
 
-  public Variable(String x) {
-    name = x;
+  private final List<Matrix> matrices;
+  @SuppressWarnings("unused")
+  private int pointer;
+
+  public MatrixList() {
+    matrices = new Vector<Matrix>();
+    pointer = 0;
   }
 
-  public String getName() {
-    return name;
-  }
-
-  public Variable copy() {
-    return new Variable( new String(name) );
-  }
-
-  @Override
-  public int compareTo(Variable v) {
-    return name.compareTo(v.name);
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    boolean ans = false;
-    if (o instanceof Variable) {
-      Variable v = (Variable) o;
-      ans = this.name.equals(v.name);
-    }
-    return ans;
-  }
-
-  /**
-   * HashSet only looks to the equals method if the hashCodes of the
-   * two objects are the same.
+  /*
+   * Make a COPY of the passed matrices.
    */
-  @Override
-  public int hashCode() {
-    return 0;
+  public MatrixList(List<Matrix> l) {
+    matrices = new Vector<Matrix>(l.size());
+    for (Matrix m : l) {
+      matrices.add( m.copy() );
+    }
+    pointer = 0;
   }
 
-  @Override
-  public String toString() {
-    return name;
-  }
+
 
 }

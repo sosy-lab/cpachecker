@@ -24,49 +24,10 @@
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
 
-public class Variable implements Comparable<Variable> {
+public class BadAssumptionsException extends Exception {
 
-  private final String name;
+  private static final long serialVersionUID = -2848361318100508626L;
 
-  public Variable(String x) {
-    name = x;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public Variable copy() {
-    return new Variable( new String(name) );
-  }
-
-  @Override
-  public int compareTo(Variable v) {
-    return name.compareTo(v.name);
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    boolean ans = false;
-    if (o instanceof Variable) {
-      Variable v = (Variable) o;
-      ans = this.name.equals(v.name);
-    }
-    return ans;
-  }
-
-  /**
-   * HashSet only looks to the equals method if the hashCodes of the
-   * two objects are the same.
-   */
-  @Override
-  public int hashCode() {
-    return 0;
-  }
-
-  @Override
-  public String toString() {
-    return name;
-  }
+  public BadAssumptionsException() {}
 
 }

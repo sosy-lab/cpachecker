@@ -23,50 +23,54 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
-public class Variable implements Comparable<Variable> {
 
-  private final String name;
+public class AugmentationColumn extends UsableColumn {
 
-  public Variable(String x) {
-    name = x;
-  }
+  private final int colNum = -1;
+  private Map<Integer,AssumptionSet> asets;
+  private Set<Integer> requests;
 
-  public String getName() {
-    return name;
-  }
-
-  public Variable copy() {
-    return new Variable( new String(name) );
-  }
-
-  @Override
-  public int compareTo(Variable v) {
-    return name.compareTo(v.name);
+  public AugmentationColumn() {
+    asets = new HashMap<Integer,AssumptionSet>();
+    requests = new HashSet<Integer>();
   }
 
   @Override
-  public boolean equals(Object o) {
-    boolean ans = false;
-    if (o instanceof Variable) {
-      Variable v = (Variable) o;
-      ans = this.name.equals(v.name);
+  public int getColNum() {
+    return colNum;
+  }
+
+  @Override
+  public void clearRequests() {
+    requests = new HashSet<Integer>();
+  }
+
+  public void addSet(Integer r, AssumptionSet a) {
+    asets.put(r, a);
+  }
+
+  public boolean rowHasAugColOption(Integer r) {
+    return asets.keySet().contains(r);
+  }
+
+  @Override
+  public void makeRequest(Integer r) {
+    requests.add(r);
+  }
+
+  @Override
+  public AssumptionSet getRequestedAssumptions() {
+    AssumptionSet aset = new AssumptionSet();
+    for (Integer r : requests) {
+      aset.addAll( asets.get(r) );
     }
-    return ans;
+    return aset;
   }
 
-  /**
-   * HashSet only looks to the equals method if the hashCodes of the
-   * two objects are the same.
-   */
-  @Override
-  public int hashCode() {
-    return 0;
-  }
-
-  @Override
-  public String toString() {
-    return name;
-  }
 
 }

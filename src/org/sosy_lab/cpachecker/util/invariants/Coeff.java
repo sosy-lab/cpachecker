@@ -51,7 +51,9 @@ public class Coeff {
   public RationalFunction makeRationalFunction(Map<String,Variable> paramVars) {
     Polynomial num = value.makePolynomial(paramVars);
     Polynomial denom = new Polynomial(1);
-    return new RationalFunction(num,denom);
+    RationalFunction f = new RationalFunction(num,denom);
+    f.simplify();
+    return f;
   }
 
   /*

@@ -53,6 +53,14 @@ public class Assumption {
   }
 
   /*
+   * Return the logical negation of this assumption.
+   */
+  public Assumption not() {
+    AssumptionType b = atype.not();
+    return new Assumption(func,b);
+  }
+
+  /*
    * Checks whether this can strengthen b to a stronger assumption c.
    * If so, returns c; else returns null.
    */
@@ -75,6 +83,60 @@ public class Assumption {
     }
   }
 
+  /*
+   * What the returned AssumptionRelation says will be true with this Assumption as subject,
+   * and the other Assumption as direct object. E.g. if you get WEAKENS, then that means that
+   * this Assumption weakens the other, i.e. is implied by the other.
+   *
+   * We call this method 'matchAgainst' instead of 'compareTo', because the latter is used
+   * by the 'Comparable' interface (which we might want to implement later???).
+   */
+  public AssumptionRelation matchAgainst(Assumption other) {
+    // this and other are comparable iff their rational functions are the same or additive inverses.
+    // TODO: Really they should be comparable iff one is a constant multiple of the other.
+    AssumptionType ot = null;
+    if (RationalFunction.subtract(func, other.func).isZero()) {
+      ot = other.atype;
+    } else if (RationalFunction.add(func, other.func).isZero()) {
+      ot = other.atype.flip();
+    }
+    if (ot == null) {
+      // Then they are not comparable.
+      return AssumptionRelation.DOESNOTCOMPARETO;
+    }
+    AssumptionType tt = this.atype;
+    // Are they the same?
+    if (tt == ot) {
+      return AssumptionRelation.ISSAMEAS;
+    }
+    // Compute the conjunction of tt and ot.
+    AssumptionType ct = AssumptionType.conjoin(tt,ot);
+    // If the conjunction is of type 'false', then this and other contradict each other.
+    if (ct == AssumptionType.FALSE) {
+      return AssumptionRelation.CONTRADICTS;
+    }
+    // If it is equal to one of the conjuncts, then that one implies the other.
+    if (ct == tt) {
+      // Then tt ^ ot <--> tt, so in particular tt --> ot, i.e. this stengthens other.
+      return AssumptionRelation.STRENGTHENS;
+    }
+    if (ct == ot) {
+      // Then tt ^ ot <--> ot, so in particular ot --> tt, i.e. this weakens other.
+      return AssumptionRelation.WEAKENS;
+    }
+    // Otherwise, we don't know the relation.
+    return AssumptionRelation.UNKNOWN;
+  }
+
+
+  /*
+   * This simplification function will, for example, turn the assumption
+   *   -2*p1 + -4*p2 <= 0
+   * into
+   *   p1 + 2*p2 >= 0.
+   * In general, it looks for integer content in the polynomial, as well as
+   * "sign content" which is -1 if every coefficient in the polynomial is negative.
+   */
   private Pair<RationalFunction,AssumptionType> simplify(Polynomial f, AssumptionType a) {
     int u = f.getUnitContent();
     // If u = 0, then f is 0. Otherwise, we try to simplify.
@@ -155,6 +217,25 @@ public class Assumption {
     }
   }
 
+  public enum AssumptionRelation {
+    CONTRADICTS       (5),
+    ISSAMEAS          (4),
+    STRENGTHENS       (3),
+    WEAKENS           (2),
+    UNKNOWN           (1),
+    DOESNOTCOMPARETO  (0);
+
+    private final int num;
+    private AssumptionRelation(int n) {
+      num = n;
+    }
+
+    public int getNum() {
+      return num;
+    }
+
+  }
+
   public enum AssumptionType {
     TRUE          ("0 = 0"),
     NONZERO       (" <> 0"),
@@ -168,6 +249,12 @@ public class Assumption {
     private final String text;
     private static final Vector<AssumptionType> codes = new Vector<AssumptionType>(8);
 
+    // static block to initialize the static field 'codes'
+    // Here, we use the position in the vector to represent the code assigned to
+    // each AssumptionType. The one lying at position n in the vector has code equal
+    // to the binary representation abc of n.
+    // Respectively, a, b, and c are set to 1 when the assumption says of the quantity
+    // in question that it could be negative (a), positive (b), or zero (c).
     static {
       codes.add(AssumptionType.FALSE);       // 000
       codes.add(AssumptionType.ZERO);        // 001
@@ -181,6 +268,14 @@ public class Assumption {
 
     private AssumptionType(String t) {
       text = t;
+    }
+
+    /*
+     * Return the logical negation of this assumption type.
+     */
+    public AssumptionType not() {
+      int n = codes.indexOf(this);
+      return codes.get(7-n);
     }
 
     public static AssumptionType conjoin(AssumptionType a, AssumptionType b) {

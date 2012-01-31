@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Vector;
 
+import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionRelation;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 
 
@@ -42,6 +43,14 @@ public class AssumptionSet implements Iterable<Assumption> {
     aset = new Vector<Assumption>();
     for (Assumption a : ca) {
       add(a);
+    }
+  }
+
+  public AssumptionSet(AssumptionSet as) {
+    aset = new Vector<Assumption>();
+    for (Assumption a : as) {
+      // We can use the vector method, since 'as' should already contain no obvious logical redundancies.
+      aset.add(a);
     }
   }
 
@@ -113,14 +122,70 @@ public class AssumptionSet implements Iterable<Assumption> {
     return a.getAssumptionType() != AssumptionType.FALSE;
   }
 
-  public void addAll(Collection<Assumption> ca) {
-    for (Assumption a : ca) {
-      add(a);
+  /*
+   * Diagnostic purposes.
+   */
+  public boolean add(Assumption a, boolean writeArgs) {
+    System.out.println("Set was:"+this.toString());
+    System.out.println("Adding:"+a.toString());
+    Assumption b,c;
+    for (int i = 0; i < aset.size(); i++) {
+      b = aset.get(i);
+      System.out.println("Strengthening"+b+"by"+a);
+      c = a.strengthen(b);
+      if (c != null) {
+        System.out.println("Got"+c);
+      } else {
+        System.out.println("Got null");
+      }
     }
+    boolean bl = add(a);
+    System.out.println("Set is now:"+this.toString());
+    return bl;
   }
 
-  public void addAll(AssumptionSet a) {
-    addAll(a.aset);
+  /*
+   * Return value is the conjunction of the return values of the individual add commands.
+   * Thus, if /any/ add resulted in 'false' (meaning the set became contradictory), then
+   * we will return false.
+   */
+  public boolean addAll(Collection<Assumption> ca) {
+    boolean result = true;
+    for (Assumption a : ca) {
+      result = result & add(a);
+    }
+    return result;
+  }
+
+  public boolean addAll(AssumptionSet a) {
+    return addAll(a.aset);
+  }
+
+  /*
+   * We match the passed assumption a against all those in the set,
+   * returning the /strongest/ relation we find.
+   *
+   * We can find: C, I, S, W, U, D.
+   *
+   * If there's a C, we return that.
+   * If there's no C, but there is an I, then we return that.
+   * If there's neither C nor I, but there is an S or a W, then we return that.
+   * (We should never get both an S and a W. For if the set contains b and c such
+   *  that b --> a --> c, then b --> c, but AssumptionSets are never supposed to
+   *  contain one element that is implied by another, since it's redundant.)
+   * If there are no C, I, S, or W, but there is a U, then we return U.
+   * Else, there were only D, and we return D.
+   *
+   */
+  public AssumptionRelation matchAgainst(Assumption a) {
+    AssumptionRelation max = AssumptionRelation.DOESNOTCOMPARETO;
+    for (Assumption b : aset) {
+      AssumptionRelation rel = a.matchAgainst(b);
+      if (rel.getNum() > max.getNum()) {
+        max = rel;
+      }
+    }
+    return max;
   }
 
 }

@@ -43,6 +43,10 @@ public class EliminationAnswer {
     return truthValue;
   }
 
+  void setTruthValue(boolean b) {
+    truthValue = b;
+  }
+
   public void addPair(EAPair pair) {
     pairs.add(pair);
   }
