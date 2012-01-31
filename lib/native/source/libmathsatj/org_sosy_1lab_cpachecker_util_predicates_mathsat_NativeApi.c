@@ -53,8 +53,7 @@ typedef void jvoid; // for symmetry to jint, jlong etc.
   m_arg##num.repr = (void *)((size_t)arg##num);
 
 #define STRING_ARG(num) \
-  char * m_arg##num; \
-  m_arg##num = (char *)(*jenv)->GetStringUTFChars(jenv, arg##num, NULL); \
+  char * m_arg##num = (char *)(*jenv)->GetStringUTFChars(jenv, arg##num, NULL); \
   CHECK_FOR_NULL(m_arg##num)
 
 #define STRUCT_ARRAY_ARG(mtype, num) \
