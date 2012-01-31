@@ -74,7 +74,7 @@ void throwException(JNIEnv *env, const char *name, const char *msg) {
     size_t sz = (size_t)((*jenv)->GetArrayLength(jenv, arg##num)); \
     m_arg##num = (mtype *)malloc(sizeof(mtype) * sz); \
     if (m_arg##num == NULL) { \
-      throwException(jenv, "java.lang.OutOfMemoryError", "Cannot allocate native memory for calling Mathsat"); \
+      throwException(jenv, "java/lang/OutOfMemoryError", "Cannot allocate native memory for calling Mathsat"); \
       goto out##num##a; \
     } \
     \
@@ -160,7 +160,7 @@ void throwException(JNIEnv *env, const char *name, const char *msg) {
     goto out; \
   } \
   if (retval < 0) { \
-    throwException(jenv, "java.lang.RuntimeException", "Mathsat returned error code"); \
+    throwException(jenv, "java/lang/RuntimeException", "Mathsat returned error code"); \
     goto out; \
   } \
   if (retval == 0) { \
@@ -170,7 +170,7 @@ void throwException(JNIEnv *env, const char *name, const char *msg) {
   \
   jlong *jarr = malloc(sizeof(jlong) * (size_t)retval); \
   if (jarr == NULL) { \
-    throwException(jenv, "java.lang.OutOfMemoryError", "Cannot allocate native memory for passing return value from Mathsat"); \
+    throwException(jenv, "java/lang/OutOfMemoryError", "Cannot allocate native memory for passing return value from Mathsat"); \
     goto out; \
   } \
   int i; \
@@ -312,7 +312,7 @@ static void call_java_callback(msat_term *model, int size, void *user_data) {
   }
   jlong *jarr = malloc(sizeof(jlong) * size);
   if (jarr == NULL) {
-    throwException(jenv, "java.lang.OutOfMemoryError", "Cannot allocate memory for allsat result");
+    throwException(jenv, "java/lang/OutOfMemoryError", "Cannot allocate memory for allsat result");
     goto out_jarr;
   }
 
