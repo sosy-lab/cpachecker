@@ -293,34 +293,30 @@ typedef jint jjfailureCode;
 
 // Now really define the functions.
 
-struct j_msat_all_sat_helper {
+struct msat_all_sat_helper {
    JNIEnv *jenv;
    jobject obj;
 };
 
-static void call_java_callback(msat_term *model, int size, void *user_data)
-{
-    struct j_msat_all_sat_helper *helper =
-        (struct j_msat_all_sat_helper *)user_data;
+static void call_java_callback(msat_term *model, int size, void *user_data) {
+  struct msat_all_sat_helper *helper =
+      (struct msat_all_sat_helper *)user_data;
+  JNIEnv *jenv = helper->jenv;
 
-    const char *signature = "([J)V";
-    jclass cls = (*(helper->jenv))->FindClass(helper->jenv,
-                                              "org/sosy_lab/cpachecker/util/predicates/mathsat/NativeApi$AllSatModelCallback");
-    jmethodID mid = (*(helper->jenv))->GetMethodID(helper->jenv, cls,
-                                                   "callback", signature);    
-        
-    jlongArray jmodel = (*(helper->jenv))->NewLongArray(helper->jenv,
-                                                        (size_t)size);
-    jlong *jarr = malloc(sizeof(jlong) * size);
-    int i;
-    for (i = 0; i < size; ++i) {
-        jarr[i] = (jlong)((size_t)model[i].repr);
-    }
-    (*(helper->jenv))->SetLongArrayRegion(helper->jenv, jmodel, 0, (size_t)size,
-                                          (jlong *)jarr);
+  jclass cls = (*jenv)->FindClass(jenv,
+    "org/sosy_lab/cpachecker/util/predicates/mathsat/NativeApi$AllSatModelCallback");
+  jmethodID mid = (*jenv)->GetMethodID(jenv, cls, "callback", "([J)V");
 
-    (*(helper->jenv))->CallVoidMethod(helper->jenv, helper->obj, mid, jmodel);
-    free(jarr);
+  jlongArray jmodel = (*jenv)->NewLongArray(jenv, (size_t)size);
+  jlong *jarr = malloc(sizeof(jlong) * size);
+  int i;
+  for (i = 0; i < size; ++i) {
+      jarr[i] = (jlong)((size_t)model[i].repr);
+  }
+  (*jenv)->SetLongArrayRegion(jenv, jmodel, 0, (size_t)size, (jlong *)jarr);
+
+  (*jenv)->CallVoidMethod(jenv, helper->obj, mid, jmodel);
+  free(jarr);
 }
 
 
@@ -658,8 +654,8 @@ DEFINE_FUNC(int, 1all_1sat) WITH_FIVE_ARGS(jenv, jtermArray, int, object, int)
 ENV_ARG(1)
 TERM_ARRAY_ARG(2)
 SIMPLE_ARG(int, 3)
-    struct j_msat_all_sat_helper helper = {jenv, arg4};
-    int retval = msat_all_sat(m_arg1, m_arg2, m_arg3, call_java_callback, &helper);
+    struct msat_all_sat_helper helper = {jenv, arg4};
+    int retval = msat_all_sat(m_arg1, m_arg2, m_arg3, &call_java_callback, &helper);
 FREE_TERM_ARRAY_ARG(2)
 INT_RETURN
 
