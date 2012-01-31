@@ -23,7 +23,7 @@ typedef void jvoid; // for symmetry to jint, jlong etc.
 // CALLX(msat_return_type, function_name_without_msat)
 // return definition like STRUCT_RETURN depending on the return type
 
-#define DEFINE_FUNC(jreturn,func_escaped) \
+#define DEFINE_FUNC(jreturn, func_escaped) \
   JNIEXPORT j##jreturn JNICALL Java_org_sosy_1lab_cpachecker_util_predicates_mathsat_NativeApi_msat_##func_escaped
 
 #define WITHOUT_ARGS \
@@ -109,8 +109,8 @@ typedef void jvoid; // for symmetry to jint, jlong etc.
   return (jlong)((size_t)(retval.repr)); \
 }
 
-#define SIMPLE_RETURN(jtype) \
-  return (j##jtype)retval; \
+#define INT_RETURN \
+  return (jint)retval; \
 }
 
 #define STRING_RETURN \
@@ -142,6 +142,35 @@ typedef void jvoid; // for symmetry to jint, jlong etc.
 }
 
 
+// Define aliases for Mathsats types
+typedef jlong jjenv;
+#define ENV_ARG(num) STRUCT_ARG(msat_env, num)
+#define ENV_RETURN STRUCT_RETURN
+
+typedef jlong jjterm;
+#define TERM_ARG(num) STRUCT_ARG(msat_term, num)
+#define TERM_RETURN STRUCT_RETURN
+typedef jlongArray jjtermArray;
+#define TERM_ARRAY_ARG(num) STRUCT_ARRAY_ARG(msat_term, num)
+#define FREE_TERM_ARRAY_ARG(num) FREE_STRUCT_ARRAY_ARG(num)
+#define TERM_ARRAY_OUTPUT_ARG(num) STRUCT_ARRAY_OUTPUT_ARG(msat_term, num)
+#define RETURN_TERM_ARRAY(arg_num) RETURN_STRUCT_ARRAY(arg_num)
+#define TERM_POINTER_ARG(num) STRUCT_POINTER_ARG(msat_term, num)
+#define PUT_TERM_POINTER_ARG(num) PUT_STRUCT_POINTER_ARG(num)
+
+typedef jlong jjdecl;
+#define DECL_ARG(num) STRUCT_ARG(msat_decl, num)
+#define DECL_RETURN STRUCT_RETURN
+
+typedef jlong jjmodel_iterator;
+#define MODEL_ITERATOR_ARG(num) STRUCT_ARG(msat_model_iterator, num)
+#define MODEL_ITERATOR_RETURN STRUCT_RETURN
+
+typedef jint jjtype;
+#define TYPE_ARG(num) SIMPLE_ARG(msat_type, num)
+#define TYPE_RETURN INT_RETURN
+
+
 // Abbreviations for common combinations of return and argument types
 //
 // Parameter explanation:
@@ -152,72 +181,54 @@ typedef void jvoid; // for symmetry to jint, jlong etc.
 // margX: Java type of argument X
 // jargX: Mathsat type of argument X
 
-#define v_func1s(func,func_escaped,marg1) \
-  DEFINE_FUNC(void,func_escaped) WITH_ONE_ARG(long) \
-  STRUCT_ARG(marg1, 1) \
-  VOID_CALL1(func)
-
-#define func1s(func,func_escaped,jreturn,mreturn,marg1) \
-  DEFINE_FUNC(jreturn,func_escaped) WITH_ONE_ARG(long) \
+#define i_func1s(func, func_escaped, mreturn, marg1) \
+  DEFINE_FUNC(int, func_escaped) WITH_ONE_ARG(long) \
   STRUCT_ARG(marg1, 1) \
   CALL1(mreturn, func) \
-  SIMPLE_RETURN(jreturn)
+  INT_RETURN
 
-#define s_func1s(func,func_escaped,mreturn,marg1) \
-  DEFINE_FUNC(long,func_escaped) WITH_ONE_ARG(long) \
+#define s_func1s(func, func_escaped, mreturn, marg1) \
+  DEFINE_FUNC(long, func_escaped) WITH_ONE_ARG(long) \
   STRUCT_ARG(marg1, 1) \
   CALL1(mreturn, func) \
   STRUCT_RETURN
 
-#define string_func1s(func,func_escaped,marg1) \
-  DEFINE_FUNC(string,func_escaped) WITH_ONE_ARG(long) \
-  STRUCT_ARG(marg1, 1) \
-  CALL1(char *, func) \
-  STRING_RETURN
-
-#define int_func_term(func,func_escaped) \
-	func1s(func, func_escaped, \
-		int, int, \
+#define i_func1t(func, func_escaped) \
+	i_func1s(func, func_escaped, \
+		int, \
 		msat_term)
 
 
-#define func2s(func,func_escaped,jreturn,mreturn,marg1,jarg2,marg2) \
-  DEFINE_FUNC(jreturn,func_escaped) WITH_TWO_ARGS(long, jarg2) \
+#define i_func2si(func, func_escaped, mreturn, marg1, marg2) \
+  DEFINE_FUNC(int, func_escaped) WITH_TWO_ARGS(long, int) \
   STRUCT_ARG(marg1, 1) \
   SIMPLE_ARG(marg2, 2) \
   CALL2(mreturn, func) \
-  SIMPLE_RETURN(jreturn)
+  INT_RETURN
 
-#define s_func2ss(func,func_escaped,mreturn,marg1,marg2) \
-  DEFINE_FUNC(long,func_escaped) WITH_TWO_ARGS(long, long) \
+#define s_func2ss(func, func_escaped, mreturn, marg1, marg2) \
+  DEFINE_FUNC(long, func_escaped) WITH_TWO_ARGS(long, long) \
   STRUCT_ARG(marg1, 1) \
   STRUCT_ARG(marg2, 2) \
   CALL2(mreturn, func) \
   STRUCT_RETURN
 
-#define string_func2ss(func,func_escaped,marg1,marg2) \
-  DEFINE_FUNC(string,func_escaped) WITH_TWO_ARGS(long, long) \
-  STRUCT_ARG(marg1, 1) \
-  STRUCT_ARG(marg2, 2) \
+
+#define term_to_string(func, func_escaped) \
+  DEFINE_FUNC(string, func_escaped) WITH_TWO_ARGS(jenv, jterm) \
+  ENV_ARG(1) \
+  TERM_ARG(2) \
   CALL2(char *, func) \
   STRING_RETURN
 
-#define s_func2sString(func,func_escaped,mreturn,marg1) \
-  DEFINE_FUNC(long,func_escaped) WITH_TWO_ARGS(long, string) \
-  STRUCT_ARG(marg1, 1) \
+#define make_term_from_string(func, func_escaped) \
+  DEFINE_FUNC(jterm, func_escaped) WITH_TWO_ARGS(jenv, string) \
+  ENV_ARG(1) \
   STRING_ARG(2) \
-  CALL2(mreturn, func) \
+  CALL2(msat_term, func) \
   FREE_STRING_ARG(2) \
-  STRUCT_RETURN
+  TERM_RETURN
 
-
-#define s_func3sss(func,func_escaped,mreturn,marg1,marg2,marg3) \
-  DEFINE_FUNC(long,func_escaped) WITH_THREE_ARGS(long, long, long) \
-  STRUCT_ARG(marg1, 1) \
-  STRUCT_ARG(marg2, 2) \
-  STRUCT_ARG(marg3, 3) \
-  CALL3(mreturn, func) \
-  STRUCT_RETURN
 
 // Now really define the functions.
 
@@ -257,51 +268,55 @@ SIMPLE_ARG(int, 1)
 VOID_CALL1(set_verbosity)
 
 
-DEFINE_FUNC(long, 1create_1env) WITHOUT_ARGS
+DEFINE_FUNC(jenv, 1create_1env) WITHOUT_ARGS
 CALL0(msat_env, create_env)
-STRUCT_RETURN
+ENV_RETURN
 
 
 s_func1s(create_shared_env, 1create_1shared_1env, \
 	msat_env, \
 	msat_env)
 
-v_func1s(reset_env, 1reset_1env, \
-	msat_env)
 
-v_func1s(destroy_env, 1destroy_1env, \
-	msat_env)
+DEFINE_FUNC(void, 1reset_1env) WITH_ONE_ARG(jenv) \
+ENV_ARG(1) \
+VOID_CALL1(reset_env)
 
 
-DEFINE_FUNC(int, 1set_1option) WITH_THREE_ARGS(long, string, string)
-STRUCT_ARG(msat_env, 1)
+DEFINE_FUNC(void, 1destroy_1env) WITH_ONE_ARG(jenv) \
+ENV_ARG(1) \
+VOID_CALL1(destroy_env)
+
+
+DEFINE_FUNC(int, 1set_1option) WITH_THREE_ARGS(jenv, string, string)
+ENV_ARG(1)
 STRING_ARG(2)
 STRING_ARG(3)
 CALL3(int, set_option)
 FREE_STRING_ARG(3)
 FREE_STRING_ARG(2)
-SIMPLE_RETURN(int)
+INT_RETURN
 
 
-DEFINE_FUNC(long, 1declare_1variable) WITH_THREE_ARGS(long, string, int)
-STRUCT_ARG(msat_env, 1)
+DEFINE_FUNC(jdecl, 1declare_1variable) WITH_THREE_ARGS(jenv, string, jtype)
+ENV_ARG(1)
 STRING_ARG(2)
-SIMPLE_ARG(msat_type, 3)
+TYPE_ARG(3)
 CALL3(msat_decl, declare_variable)
 FREE_STRING_ARG(2)
-STRUCT_RETURN
+DECL_RETURN
 
 
-DEFINE_FUNC(long, 1declare_1uif) WITH_FIVE_ARGS(long, string, int, int, intArray)
-STRUCT_ARG(msat_env, 1)
+DEFINE_FUNC(jdecl, 1declare_1uif) WITH_FIVE_ARGS(jenv, string, jtype, int, intArray)
+ENV_ARG(1)
 STRING_ARG(2)
-SIMPLE_ARG(msat_type, 3)
+TYPE_ARG(3)
 SIMPLE_ARG(int, 4)
 INT_ARRAY_ARG(5)
 CALL5(msat_decl, declare_uif)
 FREE_INT_ARRAY_ARG(5)
 FREE_STRING_ARG(2)
-STRUCT_RETURN
+DECL_RETURN
 
 
 s_func1s(make_true, 1make_1true, \
@@ -313,11 +328,12 @@ s_func1s(make_false, 1make_1false, \
 	msat_env)
 
 #define make_term_binary(name) \
-	s_func3sss(make_##name, 1make_1##name, \
-		msat_term, \
-		msat_env, \
-		msat_term, \
-		msat_term)
+  DEFINE_FUNC(jterm, 1make_1##name) WITH_THREE_ARGS(jenv, jterm, jterm) \
+  ENV_ARG(1) \
+  TERM_ARG(2) \
+  TERM_ARG(3) \
+  CALL3(msat_term, make_##name) \
+  TERM_RETURN
 
 make_term_binary(iff)
 make_term_binary(implies)
@@ -344,18 +360,16 @@ s_func2ss(make_negate, 1make_1negate, \
 	msat_env, \
 	msat_term)
 
-s_func2sString(make_number, 1make_1number, \
-	msat_term,
-	msat_env)
+make_term_from_string(make_number, 1make_1number)
 
 
-DEFINE_FUNC(long, 1make_1ite) WITH_FOUR_ARGS(long, long, long, long)
-STRUCT_ARG(msat_env, 1)
-STRUCT_ARG(msat_term, 2)
-STRUCT_ARG(msat_term, 3)
-STRUCT_ARG(msat_term, 4)
+DEFINE_FUNC(jterm, 1make_1ite) WITH_FOUR_ARGS(jenv, jterm, jterm, jterm)
+ENV_ARG(1)
+TERM_ARG(2)
+TERM_ARG(3)
+TERM_ARG(4)
 CALL4(msat_term, make_ite)
-STRUCT_RETURN
+TERM_RETURN
 
 
 s_func2ss(make_variable, 1make_1variable, \
@@ -364,21 +378,22 @@ s_func2ss(make_variable, 1make_1variable, \
 	msat_decl)
 
 
-DEFINE_FUNC(long, 1make_1uif) WITH_THREE_ARGS(long, long, longArray)
-STRUCT_ARG(msat_env, 1)
-STRUCT_ARG(msat_decl, 2)
-STRUCT_ARRAY_ARG(msat_term, 3)
+DEFINE_FUNC(jterm, 1make_1uif) WITH_THREE_ARGS(jenv, jdecl, jtermArray)
+ENV_ARG(1)
+DECL_ARG(2)
+TERM_ARRAY_ARG(3)
 CALL3(msat_term, make_uif)
-FREE_STRUCT_ARRAY_ARG(3)
-STRUCT_RETURN
+FREE_TERM_ARRAY_ARG(3)
+TERM_RETURN
 
 
 #define make_term_bv_binary(name) \
-	s_func3sss(make_bv_##name, 1make_1bv_1##name, \
-		msat_term, \
-		msat_env, \
-		msat_term, \
-		msat_term)
+  DEFINE_FUNC(jterm, 1make_1bv_1##name) WITH_THREE_ARGS(jenv, jterm, jterm) \
+  ENV_ARG(1) \
+  TERM_ARG(2) \
+  TERM_ARG(3) \
+  CALL3(msat_term, make_bv_##name) \
+  TERM_RETURN
 
 make_term_bv_binary(concat)
 make_term_bv_binary(or)
@@ -404,74 +419,60 @@ make_term_bv_binary(sleq)
 make_term_bv_binary(sgt)
 make_term_bv_binary(sgeq)
 
-s_func2sString(from_string, 1from_1string, \
-	msat_term,
-	msat_env)
+make_term_from_string(from_string, 1from_1string)
 
 
-DEFINE_FUNC(long, 1from_1string_1and_1name) WITH_THREE_ARGS(long, string, string)
-STRUCT_ARG(msat_env, 1)
+DEFINE_FUNC(jterm, 1from_1string_1and_1name) WITH_THREE_ARGS(jenv, string, string)
+ENV_ARG(1)
 STRING_ARG(2)
 STRING_ARG(3)
 CALL3(msat_term, from_string_and_name)
 FREE_STRING_ARG(3)
 FREE_STRING_ARG(2)
-STRUCT_RETURN
+TERM_RETURN
 
 
-s_func3sss(make_copy_from, 1make_1copy_1from, \
-	msat_term, \
-	msat_env, \
-	msat_term, \
-	msat_env)
+DEFINE_FUNC(jterm, 1make_1copy_1from) WITH_THREE_ARGS(jenv, jterm, jenv) \
+ENV_ARG(1) \
+TERM_ARG(2) \
+ENV_ARG(3) \
+CALL3(msat_term, make_copy_from) \
+TERM_RETURN
 
 
-DEFINE_FUNC(long, 1replace_1args) WITH_THREE_ARGS(long, long, longArray)
-STRUCT_ARG(msat_env, 1)
-STRUCT_ARG(msat_term, 2)
-STRUCT_ARRAY_ARG(msat_term, 3)
+DEFINE_FUNC(jterm, 1replace_1args) WITH_THREE_ARGS(jenv, jterm, jtermArray)
+ENV_ARG(1)
+TERM_ARG(2)
+TERM_ARRAY_ARG(3)
 CALL3(msat_term, replace_args)
-FREE_STRUCT_ARRAY_ARG(3)
-STRUCT_RETURN
+FREE_TERM_ARRAY_ARG(3)
+TERM_RETURN
 
 
-s_func2sString(from_msat, 1from_1msat, \
-	msat_term,
-	msat_env)
+make_term_from_string(from_msat, 1from_1msat)
+make_term_from_string(from_smt, 1from_1smt)
+make_term_from_string(from_foci, 1from_1foci)
 
-s_func2sString(from_smt, 1from_1smt, \
-	msat_term,
-	msat_env)
+term_to_string(to_msat, 1to_1msat)
+term_to_string(to_smtlib, 1to_1smtlib)
 
-s_func2sString(from_foci, 1from_1foci, \
-	msat_term,
-	msat_env)
-
-string_func2ss(to_msat, 1to_1msat, \
-	msat_env, \
-	msat_term)
-
-string_func2ss(to_smtlib, 1to_1smtlib, \
-	msat_env, \
-	msat_term)
-
-int_func_term(term_id, 1term_1id)
-int_func_term(term_arity, 1term_1arity)
+i_func1t(term_id, 1term_1id)
+i_func1t(term_arity, 1term_1arity)
 
 
-DEFINE_FUNC(long, 1term_1get_1arg) WITH_TWO_ARGS(long, int) \
-STRUCT_ARG(msat_term, 1) \
+DEFINE_FUNC(jterm, 1term_1get_1arg) WITH_TWO_ARGS(jterm, int) \
+TERM_ARG(1) \
 SIMPLE_ARG(int, 2) \
 CALL2(msat_term, term_get_arg) \
-STRUCT_RETURN
+TERM_RETURN
 
 
-int_func_term(term_get_type, 1term_1get_1type)
+i_func1t(term_get_type, 1term_1get_1type)
 
-#define func_term_is(name) int_func_term(term_is_##name, 1term_1is_1##name)
+#define func_term_is(name) i_func1t(term_is_##name, 1term_1is_1##name)
 func_term_is(true)
 func_term_is(false)
-int_func_term(term_is_boolean_var, 1term_1is_1boolean_1var)
+i_func1t(term_is_boolean_var, 1term_1is_1boolean_1var)
 func_term_is(atom)
 func_term_is(number)
 func_term_is(and)
@@ -480,8 +481,8 @@ func_term_is(not)
 func_term_is(iff)
 func_term_is(implies)
 func_term_is(xor)
-int_func_term(term_is_bool_ite, 1term_1is_1bool_1ite)
-int_func_term(term_is_term_ite, 1term_1is_1term_1ite)
+i_func1t(term_is_bool_ite, 1term_1is_1bool_1ite)
+i_func1t(term_is_term_ite, 1term_1is_1term_1ite)
 func_term_is(variable)
 func_term_is(uif)
 func_term_is(equal)
@@ -494,7 +495,7 @@ func_term_is(minus)
 func_term_is(times)
 func_term_is(negate)
 
-#define func_term_is_bv(name) int_func_term(term_is_bv_##name, 1term_1is_1bv_1##name)
+#define func_term_is_bv(name) i_func1t(term_is_bv_##name, 1term_1is_1bv_1##name)
 func_term_is_bv(concat)
 func_term_is_bv(select)
 func_term_is_bv(or)
@@ -527,68 +528,79 @@ s_func1s(term_get_decl, 1term_1get_1decl, \
 	msat_decl, \
 	msat_term)
 
-func1s(decl_get_return_type, 1decl_1get_1return_1type, \
-	int, msat_type, \
+
+DEFINE_FUNC(jtype, 1decl_1get_1return_1type) WITH_ONE_ARG(jdecl) \
+DECL_ARG(1) \
+CALL1(msat_type, decl_get_return_type) \
+TYPE_RETURN
+
+
+i_func1s(decl_get_arity, 1decl_1get_1arity, \
+	int,
 	msat_decl)
 
-func1s(decl_get_arity, 1decl_1get_1arity, \
-	int, int,
-	msat_decl)
 
-func2s(decl_get_arg_type, 1decl_1get_1arg_1type, \
-	int, msat_type, \
-	msat_decl, \
-	int, int)
+DEFINE_FUNC(jtype, 1decl_1get_1arg_1type) WITH_TWO_ARGS(jdecl, int) \
+DECL_ARG(1) \
+SIMPLE_ARG(int, 2) \
+CALL2(msat_type, decl_get_arg_type) \
+TYPE_RETURN
 
-string_func1s(decl_get_name, 1decl_1get_1name, \
-	msat_decl)
 
-string_func2ss(term_get_name, 1term_1get_1name, \
+DEFINE_FUNC(string, 1decl_1get_1name) WITH_ONE_ARG(jdecl) \
+DECL_ARG(1) \
+CALL1(char *, decl_get_name) \
+STRING_RETURN
+
+
+term_to_string(term_get_name, 1term_1get_1name)
+
+
+DEFINE_FUNC(string, 1term_1repr) WITH_ONE_ARG(jterm) \
+TERM_ARG(1) \
+CALL1(char *, term_repr) \
+STRING_RETURN
+
+
+i_func2si(add_theory, 1add_1theory, \
+	int, \
 	msat_env, \
-	msat_term)
+	msat_theory)
 
-string_func1s(term_repr, 1term_1repr, \
-	msat_term)
-
-func2s(add_theory, 1add_1theory, \
-	int, int, \
+i_func2si(set_theory_combination, 1set_1theory_1combination, \
+	int, \
 	msat_env, \
-	int, msat_theory)
+	msat_theory_combination)
 
-func2s(set_theory_combination, 1set_1theory_1combination, \
-	int, int, \
-	msat_env, \
-	int, msat_theory_combination)
-
-func1s(push_backtrack_point, 1push_1backtrack_1point, \
-	int, int, \
+i_func1s(push_backtrack_point, 1push_1backtrack_1point, \
+	int, \
 	msat_env)
 
-func1s(pop_backtrack_point, 1pop_1backtrack_1point, \
-	int, int, \
+i_func1s(pop_backtrack_point, 1pop_1backtrack_1point, \
+	int, \
 	msat_env)
 
 
-DEFINE_FUNC(int, 1assert_1formula) WITH_TWO_ARGS(long, long) \
-STRUCT_ARG(msat_env, 1) \
-STRUCT_ARG(msat_term, 2)
+DEFINE_FUNC(int, 1assert_1formula) WITH_TWO_ARGS(jenv, jterm) \
+ENV_ARG(1) \
+TERM_ARG(2)
 CALL2(int, assert_formula) \
-SIMPLE_RETURN(int)
+INT_RETURN
 
 
-func1s(solve, 1solve, \
-	int, msat_result, \
+i_func1s(solve, 1solve, \
+	msat_result, \
 	msat_env)
 
 
-DEFINE_FUNC(int, 1all_1sat) WITH_FIVE_ARGS(long, longArray, int, object, int)
-STRUCT_ARG(msat_env, 1)
-STRUCT_ARRAY_ARG(msat_term, 2)
+DEFINE_FUNC(int, 1all_1sat) WITH_FIVE_ARGS(jenv, jtermArray, int, object, int)
+ENV_ARG(1)
+TERM_ARRAY_ARG(2)
 SIMPLE_ARG(int, 3)
     struct j_msat_all_sat_helper helper = {jenv, arg4};
     int retval = msat_all_sat(m_arg1, m_arg2, m_arg3, call_java_callback, &helper);
-FREE_STRUCT_ARRAY_ARG(2)
-SIMPLE_RETURN(int)
+FREE_TERM_ARRAY_ARG(2)
+INT_RETURN
 
 
 s_func2ss(get_model_value, 1get_1model_1value, \
@@ -600,53 +612,53 @@ s_func1s(create_model_iterator, 1create_1model_1iterator, \
 	msat_model_iterator, \
 	msat_env)
 
-func1s(model_iterator_has_next, 1model_1iterator_1has_1next, \
-	int, int, \
+i_func1s(model_iterator_has_next, 1model_1iterator_1has_1next, \
+	int, \
 	msat_model_iterator)
 
 
-DEFINE_FUNC(int, 1model_1iterator_1next) WITH_THREE_ARGS(long, longArray, longArray)
-STRUCT_ARG(msat_model_iterator, 1)
-STRUCT_POINTER_ARG(msat_term, 2)
-STRUCT_POINTER_ARG(msat_term, 3)
+DEFINE_FUNC(int, 1model_1iterator_1next) WITH_THREE_ARGS(jmodel_iterator, jtermArray, jtermArray)
+MODEL_ITERATOR_ARG(1)
+TERM_POINTER_ARG(2)
+TERM_POINTER_ARG(3)
 CALL3(int, model_iterator_next)
-PUT_STRUCT_POINTER_ARG(3)
-PUT_STRUCT_POINTER_ARG(2)
-SIMPLE_RETURN(int)
+PUT_TERM_POINTER_ARG(3)
+PUT_TERM_POINTER_ARG(2)
+INT_RETURN
 
 
+DEFINE_FUNC(void, 1destroy_1model_1iterator) WITH_ONE_ARG(jmodel_iterator)
+MODEL_ITERATOR_ARG(1)
+VOID_CALL1(destroy_model_iterator)
 
-v_func1s(destroy_model_iterator, 1destroy_1model_1iterator, \
-	msat_model_iterator)
 
-
-DEFINE_FUNC(longArray, 1get_1theory_1lemmas) WITH_TWO_ARGS(long, int)
-STRUCT_ARG(msat_env, 1)
-STRUCT_ARRAY_OUTPUT_ARG(msat_term, 2)
+DEFINE_FUNC(jtermArray, 1get_1theory_1lemmas) WITH_TWO_ARGS(jenv, int)
+ENV_ARG(1)
+TERM_ARRAY_OUTPUT_ARG(2)
 CALL2(int, get_theory_lemmas)
-RETURN_STRUCT_ARRAY(2)
+RETURN_TERM_ARRAY(2)
 
 s_func1s(get_unsat_core, 1get_1unsat_1core, \
 	msat_term, \
 	msat_env)
 
-func1s(init_interpolation, 1init_1interpolation, \
-	int, int,
+i_func1s(init_interpolation, 1init_1interpolation, \
+	int,
 	msat_env)
 
-func1s(create_itp_group, 1create_1itp_1group, \
-	int, int,
+i_func1s(create_itp_group, 1create_1itp_1group, \
+	int,
 	msat_env)
 
-func2s(set_itp_group, 1set_1itp_1group, \
-	int, int, \
+i_func2si(set_itp_group, 1set_1itp_1group, \
+	int, \
 	msat_env, \
-	int, int)
+	int)
 
-DEFINE_FUNC(long, 1get_1interpolant) WITH_THREE_ARGS(long, intArray, int)
-STRUCT_ARG(msat_env, 1)
+DEFINE_FUNC(jterm, 1get_1interpolant) WITH_THREE_ARGS(jenv, intArray, int)
+ENV_ARG(1)
 INT_ARRAY_ARG(2)
 SIMPLE_ARG(size_t, 3)
 CALL3(msat_term, get_interpolant)
 FREE_INT_ARRAY_ARG(2)
-STRUCT_RETURN
+TERM_RETURN
