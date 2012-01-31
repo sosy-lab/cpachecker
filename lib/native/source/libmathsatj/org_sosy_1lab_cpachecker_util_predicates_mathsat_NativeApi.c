@@ -15,6 +15,17 @@
 
 typedef void jvoid; // for symmetry to jint, jlong etc.
 
+/*
+ * Copied from the Sun JNI Programmer's Guide and Specification
+ */
+void throwException(JNIEnv *env, const char *name, const char *msg) {
+  jclass cls = (*env)->FindClass(env, name);
+  if (cls != NULL) {
+    (*env)->ThrowNew(env, cls, msg);
+  }
+  (*env)->DeleteLocalRef(env, cls);
+}
+
 // Macros for defining JNI functions which call Mathsat
 // Use them as follows:
 //
@@ -54,15 +65,25 @@ typedef void jvoid; // for symmetry to jint, jlong etc.
 
 #define STRING_ARG(num) \
   char * m_arg##num = (char *)(*jenv)->GetStringUTFChars(jenv, arg##num, NULL); \
-  CHECK_FOR_NULL(m_arg##num)
+  if (m_arg##num == NULL) { \
+    goto out##num; \
+  }
 
 #define STRUCT_ARRAY_ARG(mtype, num) \
   mtype * m_arg##num; \
   { \
-    jlong *tmp = (jlong *)((*jenv)->GetLongArrayElements(jenv, arg##num, NULL)); \
-    CHECK_FOR_NULL(tmp) \
     size_t sz = (size_t)((*jenv)->GetArrayLength(jenv, arg##num)); \
     m_arg##num = (mtype *)malloc(sizeof(mtype) * sz); \
+    if (m_arg##num == NULL) { \
+      throwException(jenv, "java.lang.OutOfMemoryError", "Cannot allocate native memory for calling Mathsat"); \
+      goto out##num##a; \
+    } \
+    \
+    jlong *tmp = (jlong *)((*jenv)->GetLongArrayElements(jenv, arg##num, NULL)); \
+    if (tmp == NULL) { \
+      goto out##num##b; \
+    } \
+    \
     size_t i; \
     for (i = 0; i < sz; ++i) { \
        m_arg##num[i].repr = (void *)((size_t)tmp[i]); \
@@ -76,7 +97,9 @@ typedef void jvoid; // for symmetry to jint, jlong etc.
 
 #define INT_ARRAY_ARG(num) \
   int * m_arg##num = (int *)((*jenv)->GetIntArrayElements(jenv, arg##num, NULL)); \
-  CHECK_FOR_NULL(m_arg##num)
+  if (m_arg##num == NULL) { \
+    goto out##num; \
+  }
 
 #define STRUCT_ARRAY_OUTPUT_ARG(mtype, num) \
   mtype *p_arg##num = NULL; \
@@ -93,16 +116,22 @@ typedef void jvoid; // for symmetry to jint, jlong etc.
 
 
 #define FREE_STRING_ARG(num) \
-  (*jenv)->ReleaseStringUTFChars(jenv, arg##num, m_arg##num);
+  (*jenv)->ReleaseStringUTFChars(jenv, arg##num, m_arg##num); \
+  out##num:
 
 #define FREE_STRUCT_ARRAY_ARG(num) \
-  free(m_arg##num);
+  out##num##b: \
+  free(m_arg##num); \
+  out##num##a:
 
 #define FREE_INT_ARRAY_ARG(num) \
-  (*jenv)->ReleaseIntArrayElements(jenv, arg##num, m_arg##num, 0);
+  (*jenv)->ReleaseIntArrayElements(jenv, arg##num, m_arg##num, 0); \
+  out##num:
 
 #define PUT_STRUCT_POINTER_ARG(num) \
-  (*jenv)->SetLongArrayRegion(jenv, arg##num, 0, 1, (jlong *)&(s_arg##num.repr));
+  if (!(*jenv)->ExceptionCheck(jenv)) { \
+    (*jenv)->SetLongArrayRegion(jenv, arg##num, 0, 1, (jlong *)&(s_arg##num.repr)); \
+  }
 
 #define STRUCT_RETURN \
   return (jlong)((size_t)(retval.repr)); \
@@ -113,29 +142,50 @@ typedef void jvoid; // for symmetry to jint, jlong etc.
 }
 
 #define STRING_RETURN \
-  jstring jretval = (*jenv)->NewStringUTF(jenv, retval); \
+  jstring jretval = NULL; \
+  if (!(*jenv)->ExceptionCheck(jenv)) { \
+    jretval = (*jenv)->NewStringUTF(jenv, retval); \
+  } \
   free(retval); \
   return jretval; \
 }
 
+/**
+ * This assumes that mathsat allocated an array,
+ * put the address of it in p_arg##arg_num and
+ * returned the length of it.
+ */
 #define RETURN_STRUCT_ARRAY(arg_num) \
-  jlongArray jretval; \
-  if (retval > 0) { \
-    jlong *jarr = malloc(sizeof(jlong) * (size_t)retval); \
-    int i; \
-    for (i = 0; i < (size_t)retval; ++i) { \
-        jarr[i] = (jlong)((size_t)p_arg##arg_num[i].repr); \
-    } \
-    jretval = (*jenv)->NewLongArray(jenv, (size_t)retval); \
-    (*jenv)->SetLongArrayRegion(jenv, jretval, 0, (size_t)retval, jarr); \
-    free(jarr); \
-  } else { \
+  jlongArray jretval = NULL; \
+  if ((*jenv)->ExceptionCheck(jenv)) { \
+    goto out; \
+  } \
+  if (retval < 0) { \
+    throwException(jenv, "java.lang.RuntimeException", "Mathsat returned error code"); \
+    goto out; \
+  } \
+  if (retval == 0) { \
     jretval = (*jenv)->NewLongArray(jenv, 0); \
+    goto out; \
   } \
   \
-  if (p_arg##arg_num) { \
-    free(p_arg##arg_num); \
+  jlong *jarr = malloc(sizeof(jlong) * (size_t)retval); \
+  if (jarr == NULL) { \
+    throwException(jenv, "java.lang.OutOfMemoryError", "Cannot allocate native memory for passing return value from Mathsat"); \
+    goto out; \
   } \
+  int i; \
+  for (i = 0; i < (size_t)retval; ++i) { \
+      jarr[i] = (jlong)((size_t)p_arg##arg_num[i].repr); \
+  } \
+  jretval = (*jenv)->NewLongArray(jenv, (size_t)retval); \
+  if (jretval != NULL) { \
+    (*jenv)->SetLongArrayRegion(jenv, jretval, 0, (size_t)retval, jarr); \
+  } \
+  free(jarr); \
+  \
+  out: \
+  free(p_arg##arg_num); \
   \
   return jretval; \
 }
