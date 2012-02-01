@@ -50,8 +50,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
@@ -62,7 +62,9 @@ import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.SSAMapManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
@@ -78,7 +80,7 @@ import com.google.common.collect.SetMultimap;
 public class RGEnvironmentManager implements StatisticsProvider{
 
   @Option(description="Print debugging info?")
-  private boolean debug=true;
+  private boolean debug=false;
 
   @Option(toUppercase=true, values={"FA", "SA", "ST"},
           description="How to abstract environmental transitions:"
@@ -115,7 +117,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
   private final PathFormulaManager pfManager;
   private final MathsatFormulaManager fManager;
   private final MathsatTheoremProver tProver;
-  private final PredicateAbstractionManager paManager;
+  private final RGAbstractionManager paManager;
   private final RegionManager rManager;
   private final AbstractionManagerImpl absManager;
   private final SSAMapManager ssaManager;
@@ -144,7 +146,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
     pfMgr = CachingPathFormulaManager.getInstance(pfMgr);
     this.pfManager = pfMgr;
     RegionManager rManager = BDDRegionManager.getInstance();
-    this.paManager = PredicateAbstractionManager.getInstance(rManager, fManager, pfMgr, tProver, config, logger);
+    this.paManager = RGAbstractionManager.getInstance(rManager, fManager, pfMgr, tProver, config, logger);
     this.absManager = AbstractionManagerImpl.getInstance(rManager, msatFormulaManager, pfManager, config, logger);
     this.ssaManager = SSAMapManagerImpl.getInstance(fManager, config, logger);
     this.etManager  = RGEnvTransitionManagerFactory.getInstance(abstractEnvTransitions, fManager, pfManager, paManager, ssaManager, tProver, rManager, variables, config, logger);
@@ -186,9 +188,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
     return tProver;
   }
 
-  public PredicateAbstractionManager getPaManager() {
-    return paManager;
-  }
 
 
   public RegionManager getrManager() {
@@ -399,7 +398,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
       if (!cndCovered.contains(cnd1)){
         for (RGEnvCandidate cnd2 : cndToProcess){
           if (cnd1 !=cnd2 && !cndCovered.contains(cnd2)){
-            if (etManager.isLessOrEqual(cnd1, cnd2)){
+            if (isLessOrEqual(cnd1, cnd2)){
               // edge1 => edge2
               if (debug){
                 System.out.println("\t-covered: "+cnd1+" => "+cnd2);
@@ -416,20 +415,73 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
     /* sanity check on request */
     if (debug){
-      for (RGEnvCandidate edge1 : candidates){
-        for (RGEnvCandidate edge2 : cndToProcess){
-          assert edge1 == edge2 || !etManager.isLessOrEqual(edge2,edge1)  ||  etManager.isLessOrEqual(edge2,edge1);
+      // for every input candidate there exist an candidate in cndToProcess that is greater or equal
+      for (RGEnvCandidate cand1 : candidates){
+        boolean existsGeq = false;
+        for (RGEnvCandidate cand2 : cndToProcess){
+          if (isLessOrEqual(cand1, cand2)){
+            existsGeq = true;
+            break;
+          }
         }
+        assert existsGeq;
       }
-      for (RGEnvCandidate edge1 : cndToProcess){
-        for (RGEnvCandidate edge2 : cndToProcess){
-          assert edge1 == edge2 || !etManager.isLessOrEqual(edge2,edge1);
+
+      // among the candidates in cndToProcess none is less or equal than other
+      for (RGEnvCandidate cand1 : cndToProcess){
+        for (RGEnvCandidate cand2 : cndToProcess){
+          assert cand1 == cand2 || !isLessOrEqual(cand1, cand2);
         }
       }
     }
 
     return  cndToProcess;
   }
+
+  /**
+   * Return true only if c1 is less or equal than c2.
+   * @param c1
+   * @param c2
+   * @return
+   */
+  private boolean isLessOrEqual(RGEnvCandidate c1, RGEnvCandidate c2) {
+    /*
+     * c1 less or equal than c2 only if
+     * (abs1 & pf1) -> (abs2 & pf2) and
+     * op1 = op2
+     */
+
+    if (c1.equals(c2)){
+      return true;
+    }
+
+    CFAEdge op1 = c1.getOperation();
+    CFAEdge op2 = c2.getOperation();
+
+    if (!op1.equals(op2)){
+      return false;
+    }
+
+    Formula f1 = c1.getRgElement().getPathFormula().getFormula();
+    Formula f2 = c1.getRgElement().getPathFormula().getFormula();
+
+    if (f1.isTrue() && f2.isTrue()){
+      // can compare BDDs
+      Region r1 = c1.getRgElement().getAbstractionFormula().asRegion();
+      Region r2 = c2.getRgElement().getAbstractionFormula().asRegion();
+
+
+      if (!rManager.entails(r1, r2)){
+        // (abs1 & pf1) does not imply (abs2 & pf2)
+        return false;
+      } else {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
 
   /**
    * Find the most general elements from the set of candidates using the comparator.
@@ -540,52 +592,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
   }
 
 
-  /**
-   * Returns true if env1 => env2 is valid, sound but not complete if operation is not abstracted.
-   */
-  /*public boolean isCovered(RGCFAEdgeTemplate env1, RGCFAEdgeTemplate env2) {
-    if (env1.equals(env2)){
-      return true;
-    }
-
-    // if operation was unabstracted, then they must match
-    if (this.abstractEnvTransitions == 0 || this.abstractEnvTransitions == 1){
-      if (!env1.getLocalEdge().equals(env2.getLocalEdge())){
-        return false;
-      }
-    }
-
-    Formula f1= env1.getFilter().getFormula();
-    Formula f2 = env2.getFilter().getFormula();
-
-    if (f1.isFalse() || f2.isTrue()) {
-      return true;
-    }
-
-    if (this.abstractEnvTransitions == 0){
-      // check coverage by thm. prover
-
-
-      Formula nImpl = fManager.makeAnd(f1, fManager.makeNot(f2));
-      tProver.init();
-      try {
-        return tProver.isUnsat(nImpl);
-      } finally {
-        tProver.reset();
-      }
-    } else {
-      // check coverage by BDDs
-      assert env1.getType() == RGCFAEdgeTemplate.RelyGuaranteeAbstractCFAEdgeTemplate;
-      assert env2.getType() == RGCFAEdgeTemplate.RelyGuaranteeAbstractCFAEdgeTemplate;
-      RGAbstractCFAEdgeTemplate aEnv1 = (RGAbstractCFAEdgeTemplate) env1;
-      RGAbstractCFAEdgeTemplate aEnv2 = (RGAbstractCFAEdgeTemplate) env2;
-      Region r1 = aEnv1.getAbstractFilter().asRegion();
-      Region r2 = aEnv2.getAbstractFilter().asRegion();
-
-      return rManager.entails(r1, r2);
-    }
-  }
-*/
   /**
    * Returns true iff edge is an assignment to a non-global variable
    */

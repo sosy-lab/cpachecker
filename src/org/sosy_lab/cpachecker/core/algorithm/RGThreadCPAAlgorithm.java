@@ -80,15 +80,14 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.relyguarantee")
+@Options(prefix="cpa.rg")
 public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(description="Print debugging info?")
-  private boolean debug = true;
+  private boolean debug = false;
 
   @Option(description="If true, then change treads after successors for a state were computed.")
   private boolean changeThread = false;
-
 
 
   public final Stats stats;

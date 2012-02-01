@@ -26,10 +26,8 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.environment;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
@@ -43,16 +41,16 @@ public abstract class RGEnvTransitionManagerFactory implements RGEnvTransitionMa
 
   private static RGEnvTransitionManagerFactory singleton;
 
-  public static RGEnvTransitionManagerFactory getInstance(String abstractionLevel, FormulaManager fManager, PathFormulaManager pfManager, PredicateAbstractionManager paManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, RGVariables variables, Configuration config, LogManager logger){
+  public static RGEnvTransitionManagerFactory getInstance(String abstractionLevel, FormulaManager fManager, PathFormulaManager pfManager, RGAbstractionManager absManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, RGVariables variables, Configuration config, LogManager logger){
     if (singleton == null){
 
       // instantiate to the appriorate manager
       if (abstractionLevel.equals("ST")){
-        singleton = new RGSimpleTransitionManager(fManager, pfManager, paManager, ssaManager, thmProver, rManager, variables, config, logger);
+        singleton = new RGSimpleTransitionManager(fManager, pfManager, absManager, ssaManager, thmProver, rManager, variables, config, logger);
       } else if (abstractionLevel.equals("SA")){
-        singleton = new RGSemiAbstractedManager(fManager, pfManager, paManager, ssaManager, thmProver, rManager, variables, config, logger);
+        singleton = new RGSemiAbstractedManager(fManager, pfManager, absManager, ssaManager, thmProver, rManager, variables, config, logger);
       } else if (abstractionLevel.equals("FA")){
-        singleton = new RGFullyAbstractedManager(fManager, pfManager, paManager, ssaManager, thmProver, rManager, variables, config, logger);
+        singleton = new RGFullyAbstractedManager(fManager, pfManager, absManager, ssaManager, thmProver, rManager, variables, config, logger);
       } else {
         throw new UnsupportedOperationException("Unknown abstraction level: "+abstractionLevel);
       }
@@ -60,22 +58,4 @@ public abstract class RGEnvTransitionManagerFactory implements RGEnvTransitionMa
 
     return singleton;
   }
-
-
-  @Override
-  public boolean isLessOrEqual(RGEnvCandidate c1, RGEnvCandidate c2) {
-    Formula f1 = c1.getRgSuccessor().getAbstractionFormula().asFormula();
-    Formula pf1 = c1.getRgSuccessor().getPathFormula().getFormula();
-    Formula f2 = c2.getRgSuccessor().getAbstractionFormula().asFormula();
-    Formula pf2 = c2.getRgSuccessor().getPathFormula().getFormula();
-
-    if (f1.isFalse() || pf1.isFalse() || (f2.isTrue() && pf2.isTrue())){
-      return true;
-    }
-
-    return false;
-  }
-
-
-
 }

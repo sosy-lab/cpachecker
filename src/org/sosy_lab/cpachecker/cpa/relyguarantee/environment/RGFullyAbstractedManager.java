@@ -39,14 +39,13 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransitionType;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGFullyAbstracted;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.InterpolationTreeNode;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -69,7 +68,7 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
 
   private final FormulaManager fManager;
   private final PathFormulaManager pfManager;
-  private final PredicateAbstractionManager paManager;
+  private final RGAbstractionManager absManager;
   private final SSAMapManager ssaManager;
   private final TheoremProver thmProver;
   private final RegionManager rManager;
@@ -79,10 +78,10 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
   private final Stats stats;
 
 
-  protected RGFullyAbstractedManager(FormulaManager fManager, PathFormulaManager pfManager, PredicateAbstractionManager paManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, RGVariables variables, Configuration config, LogManager logger){
+  protected RGFullyAbstractedManager(FormulaManager fManager, PathFormulaManager pfManager, RGAbstractionManager absManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, RGVariables variables, Configuration config, LogManager logger){
     this.fManager = fManager;
     this.pfManager = pfManager;
-    this.paManager  = paManager;
+    this.absManager  = absManager;
     this.ssaManager = ssaManager;
     this.thmProver = thmProver;
     this.rManager  = rManager;
@@ -127,7 +126,7 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
     newPf = new PathFormula(newF, newSsa, newPf.getLength());
 
     // abstract
-    AbstractionFormula newAbs = paManager.buildNextValAbstraction(oldAbs, oldPf, newPf, preds, sourceTid);
+    AbstractionFormula newAbs = absManager.buildNextValAbstraction(oldAbs, oldPf, newPf, preds, sourceTid);
     SSAMap highSSA = newAbs.asPathFormula().getSsa();
     return new RGFullyAbstracted(newAbs.asFormula(), newAbs.asRegion(), oldSsa, highSSA, cand.getSuccessor(), sourceTid);
   }
@@ -161,7 +160,7 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
 
     // instantiate the filter
     Formula iFilter = fManager.instantiateNextValue(filter, lowSSA, highSSA);
-    PathFormula appPf = new PathFormula(iFilter, highSSA, 0);
+    PathFormula appPf = new PathFormula(iFilter, highSSA, 1);
 
     return appPf;
   }
@@ -216,11 +215,6 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
     return rManager.isFalse(rAnd);
   }
 
-  @Override
-  public Collection<AbstractionPredicate> getPredicates(Formula itp, InterpolationTreeNode node) {
-    // TODO Auto-generated method stub
-    return null;
-  }
 
   @Override
   public boolean isLessOrEqual(RGEnvTransition et1, RGEnvTransition et2) {

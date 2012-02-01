@@ -29,8 +29,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 @Options(prefix="cpa.rg")
@@ -46,12 +46,12 @@ public class RGAbstractDomain implements AbstractDomain {
   public final Timer symbolicCoverageCheckTimer = new Timer();
 
   protected final RegionManager mRegionManager;
-  protected final PredicateAbstractionManager mgr;
+  protected final RGAbstractionManager mgr;
 
   public RGAbstractDomain(RGCPA pCpa)  throws InvalidConfigurationException {
     pCpa.config.inject(this, RGAbstractDomain.class);
     mRegionManager = pCpa.rManager;
-    mgr = pCpa.paManager;
+    mgr = pCpa.absManager;
   }
 
   @Override
@@ -62,9 +62,10 @@ public class RGAbstractDomain implements AbstractDomain {
 
       RGAbstractElement e1 = (RGAbstractElement)element1;
       RGAbstractElement e2 = (RGAbstractElement)element2;
+      Formula f1 = e1.getPathFormula().getFormula();
+      Formula f2 = e2.getPathFormula().getFormula();
 
-
-      if (e1 instanceof RGAbstractElement.AbstractionElement && e2 instanceof RGAbstractElement.AbstractionElement) {
+      if (f1.isTrue() && f2.isTrue()) {
         bddCoverageCheckTimer.start();
 
         // if e1's predicate abstraction entails e2's pred. abst.
@@ -73,7 +74,7 @@ public class RGAbstractDomain implements AbstractDomain {
         bddCoverageCheckTimer.stop();
         return result;
 
-      } else if (e2 instanceof RGAbstractElement.AbstractionElement) {
+      } else if (f2.isTrue()) {
         if (symbolicCoverageCheck) {
           symbolicCoverageCheckTimer.start();
 

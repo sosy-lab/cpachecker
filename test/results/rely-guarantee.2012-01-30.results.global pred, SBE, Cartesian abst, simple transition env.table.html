@@ -1,0 +1,58 @@
+
+<!DOCTYPE HTML>
+<html>
+
+<head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<style type="text/css"> 
+    <!--
+    table { outline:3px solid black; border-spacing:0px; font-family:arial, sans serif}
+    thead { text-align:center}
+    tbody { text-align:right}
+    td { border:1px solid black}
+    td:first-child { text-align:left; white-space:nowrap}
+    tbody td:first-child { font-family: monospace; }
+    #options td:not(:first-child) {  text-align:left; font-size: x-small; 
+                                     font-family: monospace; }
+    #columnTitles td { border-bottom:3px solid black}
+    .correctStatus { text-align:center; color:green}
+    .wrongStatus { text-align:center; color:red; font-weight: bold; }
+    -->
+</style> 
+
+<title>table of tests</title>
+
+</head>
+
+<body>
+
+<table>
+    <thead>
+        <tr><td>tool</td><td colspan="20">CPAchecker r5388</td></tr>
+        <tr><td>limits</td><td colspan="20">timelimit: 1800 s, memlimit: None</td></tr>
+        <tr><td>system</td><td colspan="20">os: Linux 3.0.0-15-generic x86_64<br>cpu: Genuine Intel(R) CPU           U7300  @ 1.30GHz<br>cores: 2,             frequency: 1300 MHz, ram: 4023676 kB</td></tr>
+        <tr><td>date of test</td><td colspan="20">2012-01-30</td></tr>
+        <tr><td>test</td><td colspan="20">global pred, SBE, Cartesian abst, simple transition env.</td></tr>
+        <tr id="options"><td>options</td><td colspan="20">-concurrent<br>-config test/config/rg-global-sbe-cartesian-st.properties</td></tr>
+        <tr id="columnTitles"><td> </td><td>status</td><td>cputime</td><td>walltime</td><td>total</td><td>total analysis</td><td>no of refinements</td><td>rely-guarantee analysis</td><td>predicate analy. thread 0</td><td>predicate analy. thread 1</td><td>env. tr. generation</td><td>total refinement</td><td>interpolation</td><td>abstraction</td><td>abstr. cache hits</td><td>"next value" abstraction</td><td>"next value" abstr. cache hits</td><td>max. valid env. tr.</td><td>env. successors thread 0</td><td>env. successors thread 1</td><td>env app. falsified by BDD</td></tr>
+    </thead>
+    <tbody>
+        <tr><td>test/programs/multi-threaded/benchmarks/lu-fig2.fixed.cil.c</td><td class="correctStatus">safe</td><td>6.86</td><td>4.31</td><td>3.818s</td><td>2.203s</td><td>6</td><td>1.877s</td><td>0.356s</td><td>1.417s</td><td>0.004s</td><td>0.324s</td><td>0.195s</td><td>0.773s</td><td>527/1034</td><td>0.000s</td><td>0/0</td><td>6</td><td>40</td><td>432</td><td>299</td></tr>
+        <tr><td>test/programs/multi-threaded/benchmarks/lu-fig4-complete.fixed.cil.c</td><td class="correctStatus">safe</td><td>5.94</td><td>3.59</td><td>3.108s</td><td>1.150s</td><td>4</td><td>0.990s</td><td>0.481s</td><td>0.442s</td><td>0.002s</td><td>0.158s</td><td>0.076s</td><td>0.325s</td><td>403/703</td><td>0.000s</td><td>0/0</td><td>2</td><td>2</td><td>34</td><td>6</td></tr>
+        <tr><td>test/programs/multi-threaded/benchmarks/read_write_lock.cil.c</td><td class="correctStatus">safe</td><td>4.22</td><td>2.45</td><td>1.976s</td><td>0.237s</td><td>1</td><td>0.206s</td><td>0.105s</td><td>0.064s</td><td>0.001s</td><td>0.030s</td><td>0.004s</td><td>0.037s</td><td>63/108</td><td>0.000s</td><td>0/0</td><td>2</td><td>6</td><td>2</td><td>0</td></tr>
+        <tr><td>test/programs/multi-threaded/various/mutex-safe.cil.c</td><td class="correctStatus">safe</td><td>5.92</td><td>3.79</td><td>3.314s</td><td>1.479s</td><td>6</td><td>1.256s</td><td>0.361s</td><td>0.774s</td><td>0.001s</td><td>0.222s</td><td>0.109s</td><td>0.359s</td><td>402/686</td><td>0.000s</td><td>0/0</td><td>4</td><td>52</td><td>188</td><td>146</td></tr>
+        <tr><td>test/programs/multi-threaded/various/simple-safe-modular.cil.c</td><td class="correctStatus">safe</td><td>5.78</td><td>3.84</td><td>3.380s</td><td>1.446s</td><td>6</td><td>1.246s</td><td>0.233s</td><td>0.920s</td><td>0.003s</td><td>0.197s</td><td>0.090s</td><td>0.445s</td><td>230/535</td><td>0.000s</td><td>0/0</td><td>8</td><td>36</td><td>204</td><td>130</td></tr>
+        <tr><td>test/programs/multi-threaded/benchmarks/bakery.simple.cil.c</td><td class="correctStatus">safe</td><td>12.20</td><td>9.20</td><td>8.551s</td><td>6.439s</td><td>9</td><td>5.921s</td><td>3.469s</td><td>2.185s</td><td>0.004s</td><td>0.507s</td><td>0.315s</td><td>2.661s</td><td>2159/3651</td><td>0.000s</td><td>0/0</td><td>12</td><td>1414</td><td>979</td><td>1528</td></tr>
+        <tr><td>test/programs/multi-threaded/benchmarks/lu-fig2.cil.c</td><td class="wrongStatus">unsafe</td><td>3.75</td><td>3.06</td><td>2.593s</td><td>0.351s</td><td>3</td><td>0.307s</td><td>0.095s</td><td>0.184s</td><td>0.001s</td><td>0.043s</td><td>0.009s</td><td>0.079s</td><td>50/139</td><td>0.000s</td><td>0/0</td><td>3</td><td>0</td><td>27</td><td>0</td></tr>
+        <tr><td>test/programs/multi-threaded/benchmarks/lu-fig4-complete.cil.c</td><td class="wrongStatus">unsafe</td><td>5.10</td><td>3.10</td><td>2.634s</td><td>0.629s</td><td>3</td><td>0.555s</td><td>0.312s</td><td>0.204s</td><td>0.002s</td><td>0.072s</td><td>0.018s</td><td>0.142s</td><td>218/380</td><td>0.000s</td><td>0/0</td><td>2</td><td>0</td><td>14</td><td>0</td></tr>
+        <tr><td>test/programs/multi-threaded/various/mutex-unsafe.cil.c</td><td class="wrongStatus">unsafe</td><td>4.30</td><td>2.78</td><td>2.324s</td><td>0.612s</td><td>4</td><td>0.533s</td><td>0.115s</td><td>0.377s</td><td>0.002s</td><td>0.076s</td><td>0.025s</td><td>0.147s</td><td>133/291</td><td>0.000s</td><td>0/0</td><td>4</td><td>0</td><td>96</td><td>12</td></tr>
+        <tr><td>test/programs/multi-threaded/various/real-unsafe.cil.c</td><td class="wrongStatus">unsafe</td><td>4.92</td><td>3.07</td><td>2.628s</td><td>0.803s</td><td>7</td><td>0.665s</td><td>0.136s</td><td>0.470s</td><td>0.002s</td><td>0.136s</td><td>0.058s</td><td>0.220s</td><td>146/359</td><td>0.000s</td><td>0/0</td><td>3</td><td>0</td><td>114</td><td>41</td></tr>
+        <tr><td>test/programs/multi-threaded/various/simple-unsafe.cil.c</td><td class="wrongStatus">unsafe</td><td>4.79</td><td>3.03</td><td>2.579s</td><td>0.825s</td><td>7</td><td>0.684s</td><td>0.125s</td><td>0.482s</td><td>0.004s</td><td>0.141s</td><td>0.062s</td><td>0.228s</td><td>146/359</td><td>0.000s</td><td>0/0</td><td>3</td><td>0</td><td>114</td><td>41</td></tr>
+    </tbody>
+</table>
+
+</body>
+
+</html>

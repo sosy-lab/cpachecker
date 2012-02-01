@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.ComputeAbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
@@ -76,13 +75,7 @@ public class RGTransferRelation  implements TransferRelation {
         private int absBlockSize = 0;
 
   @Option(description="Print debugging info?")
-  private boolean debug=true;
-
-
-  @Option(name="blk.atomThreshold",
-      description="maximum number of atoms in a path formula before abstraction is forced\n"
-        + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
-        private int atomThreshold = 0;
+  private boolean debug=false;
 
   @Option(name="blk.functions",
       description="force abstractions on function call/return")
@@ -91,6 +84,10 @@ public class RGTransferRelation  implements TransferRelation {
   @Option(name="blk.loops",
       description="force abstractions for each loop iteration")
       private boolean absOnLoop = true;
+
+  @Option(name="blk.envEdge",
+      description="abstract after applying an enviornmental edge")
+    private boolean absOnEnvEdge = true;
 
   @Option(name="blk.requireThresholdAndLBE",
       description="require that both the threshold and (functions or loops) "
@@ -119,7 +116,7 @@ public class RGTransferRelation  implements TransferRelation {
   public int numStrengthenChecksFalse = 0;
 
   private final LogManager logger;
-  private final PredicateAbstractionManager paManager;
+  private final RGAbstractionManager absManager;
   private final PathFormulaManager pfManager;
   private final MathsatFormulaManager fManager;
   private final RegionManager rManager;
@@ -139,7 +136,7 @@ public class RGTransferRelation  implements TransferRelation {
 
     logger = pCpa.logger;
     cpa = pCpa;
-    paManager = pCpa.paManager;
+    absManager = pCpa.absManager;
     pfManager = pCpa.pfManager;
     fManager = (MathsatFormulaManager)pCpa.fManager;
     rManager = BDDRegionManager.getInstance();
@@ -169,11 +166,7 @@ public class RGTransferRelation  implements TransferRelation {
     logger.log(Level.ALL, "New path formula is", newPF);
 
     // check whether to do abstraction
-    boolean doAbstraction = isBlockEnd(loc, newPF);
-    boolean isEnvEdge = (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge);
-
-    doAbstraction = doAbstraction || isEnvEdge;
-    doAbstraction = true;
+    boolean doAbstraction = isBlockEnd(loc, newPF, edge);
 
     RGAbstractElement succ;
     if (doAbstraction) {
@@ -256,9 +249,6 @@ public class RGTransferRelation  implements TransferRelation {
       refPf = pfManager.makeAnd(refPf, localPf);
       appInfo.setRefinementFormula(refPf);
     }
-
-
-
 
     if (debug){
       System.out.println("\tby pf '"+appPf+"'");
@@ -361,100 +351,6 @@ public class RGTransferRelation  implements TransferRelation {
     return Pair.of(appPf, refPf);
   }
 
-  /**
-   * Returns a path formula representing the effect of applying env. edge on a path formula.
-   * This formula is ment for abstraction.
-   * @param localPf path formula of the destination element
-   * @param edge environmental edge
-   * @param tid destination thread
-   * @return
-   * @throws CPATransferException
-   */
-  /*public PathFormula envAbstractionPf(PathFormula localPf, RGCFAEdge rgEdge, int tid) throws CPATransferException{
-
-    PathFormula appPf = null;
-    if (abstractEnvTransitions == 0 || abstractEnvTransitions == 1){
-      // TODO finish
-      // take the filter of the env transition
-      appPf = rgEdge.getFilter();
-
-      // build equalities over last values in the filter and local pf
-      // TODO shorter equalities for abstraction
-      PathFormula eqPf    = pfManager.makePrimedEqualities(localPf.getSsa(), tid, appPf.getSsa(), rgEdge.getSourceTid());
-     // appPf = pfManager.makeAnd(appPf, eqPf);
-
-      // apply the env. operation in thread tid
-      appPf = pfManager.makeAnd(appPf, rgEdge.getLocalEdge());
-    } else if (abstractEnvTransitions == 2){
-      // rename filter to tid
-      Formula filter = rgEdge.getFilter().getFormula();
-
-      // increment all indexes that the transition can change by 1
-      Set<String> nlVars = new HashSet<String>(cpa.variables.globalVars);
-      int sourceTid = rgEdge.getSourceTid();
-      nlVars.addAll(cpa.variables.localVars.get(sourceTid));
-      SSAMap lowSSA = localPf.getSsa();
-      SSAMap highSSA = ssaManager.incrementMap(lowSSA, nlVars, 1);
-
-      // instantiate the filter
-      Formula iFilter = fManager.instantiateNextValue(filter, lowSSA, highSSA);
-      appPf = new PathFormula(iFilter, highSSA, rgEdge.getFilter().getLength());
-    }
-
-    return appPf;
-  }*/
-
-  /**
-   * Returns a path formula representing the effect of applying env. edge on a path formula.
-   * This formula is ment for refinement.
-   * @param localPf path formula of the destination element
-   * @param edge environmental edge
-   * @param tid destination thread
-   * @return
-   * @throws CPATransferException
-   */
-  /*public PathFormula envRefinementPf(PathFormula localPf, RGCFAEdge2 rgEdge, int tid) throws CPATransferException{
-
-    PathFormula appPf = null;
-    if (abstractEnvTransitions == 0 || abstractEnvTransitions == 1){
-      // take the filter of the env transition
-      appPf = rgEdge.getFilter();
-
-      // build equalities over last values in the filter and local pf
-      PathFormula eqPf    = pfManager.makePrimedEqualities(localPf.getSsa(), tid, appPf.getSsa(), rgEdge.getSourceTid());
-      appPf = pfManager.makeAnd(eqPf,appPf);
-
-      // apply the env. operation in thread tid
-      appPf = pfManager.makeAnd(appPf, rgEdge.getLocalEdge());
-    } else if (abstractEnvTransitions == 2){
-      PathFormula filter = rgEdge.getFilter();
-      PathFormula oldPf = rgEdge.getSourceEnvTransition().getRgElement().getPathFormula();
-      SSAMap lowSSA = localPf.getSsa();
-
-      Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(1);
-      rMap.put(-1, 1);
-      SSAMap gSsa = ssaManager.changePrimeNo(oldPf.getSsa(), rMap);
-
-      // build equalities between the local variables and the variables that generated the transition
-      PathFormula lowPf = pfManager.makePrimedEqualities(lowSSA, -1, gSsa, 1);
-
-      // increment all indexes that the transition can change by 1
-      Set<String> nlVars = new HashSet<String>(cpa.variables.globalVars);
-      int sourceTid = rgEdge.getSourceTid();
-      nlVars.addAll(cpa.variables.localVars.get(sourceTid));
-
-      SSAMap highSSA = ssaManager.incrementMap(lowSSA, nlVars, 1);
-
-      SSAMap fSsa = ssaManager.changePrimeNo(filter.getSsa(), rMap);
-
-      // build equalities between the highest indexes of the instantiated filter
-      PathFormula hiPf = pfManager.makePrimedEqualities(highSSA, -1, fSsa, 1);
-
-      appPf = pfManager.makeAnd(hiPf, lowPf.getFormula());
-    }
-
-    return appPf;
-  }*/
 
   /**
    * Check whether an abstraction should be computed.
@@ -463,17 +359,14 @@ public class RGTransferRelation  implements TransferRelation {
    * "Adjustable Block-Encoding" [Beyer/Keremoglu/Wendler FMCAD'10].
    *
    * @param succLoc successor CFA location.
+   * @param edge
    * @param thresholdReached if the maximum block size has been reached
    * @return true if succLoc is an abstraction location. For now a location is
    * an abstraction location if it has an incoming loop-back edge, if it is
    * the start node of a function or if it is the call site from a function call.
    */
-  protected boolean isBlockEnd(CFANode succLoc, PathFormula pf) {
+  protected boolean isBlockEnd(CFANode succLoc, PathFormula pf, CFAEdge edge) {
     boolean result = false;
-
-   /* if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
-      return true;
-    }*/
 
     if (absOnLoop) {
       result = succLoc.isLoopStart();
@@ -504,6 +397,12 @@ public class RGTransferRelation  implements TransferRelation {
         result = result || threshold;
       }
     }
+
+    if (this.absOnEnvEdge){
+      boolean isEnvEdge = (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge);
+      result = result || isEnvEdge;
+    }
+
 
     return result;
   }
@@ -625,7 +524,7 @@ public class RGTransferRelation  implements TransferRelation {
 
     //strengthenCheckTimer.start();
     PathFormula pathFormula = pElement.getPathFormula();
-    boolean unsat = paManager.unsat(pElement.getAbstractionFormula(), pathFormula);
+    boolean unsat = absManager.unsat(pElement.getAbstractionFormula(), pathFormula);
     //strengthenCheckTimer.stop();
 
     if (unsat) {
@@ -638,7 +537,7 @@ public class RGTransferRelation  implements TransferRelation {
       logger.log(Level.FINEST, "Last part of the path is not infeasible.");
 
       // set abstraction to true (we don't know better)
-      AbstractionFormula abs = paManager.makeTrueAbstractionFormula(pathFormula);
+      AbstractionFormula abs = absManager.makeTrueAbstractionFormula(pathFormula);
 
       PathFormula newPathFormula = pfManager.makeEmptyPathFormula(pathFormula);
 

@@ -60,9 +60,6 @@ analysis.useGlobalVars = true
 # Currently all refiner require the use of the ARTCPA.
 analysis.useRefinement = false
 
-# use experimental rely-guarantee CEGAR loop
-analysis.useRelyGuaranteeRefinement = false
-
 # write collected assumptions as automaton to file
 assumptions.automatonFile = "AssumptionAutomaton.txt"
 
@@ -429,107 +426,95 @@ cpa.predicate.useBitwiseAxioms = false
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
 
-# Abstract environmental transitions using their own predicates:0 - don't
-# abstract, 1 - abstract filter, 2 - abstract filter and operation.
-cpa.relyguarantee.abstractEnvTransitions = 2
+# How to abstract environmental transitions:ST - no abstraction, SA -
+# precondition abstracted only, FA - precondition and operation abstracted
+cpa.rg.abstractEnvTransitions = "FA"
+  allowed values: [FA, SA, ST]
+
+# whether to use Boolean (false) or Cartesian (true) abstraction
+cpa.rg.abstraction.cartesian = true
+
+# whether to use Boolean (false) or Cartesian (true) abstraction for
+# enviromental transitions.
+cpa.rg.abstraction.cartesianNextValue = true
 
 # which solver to use?
-cpa.relyguarantee.abstraction.solver = "MATHSAT"
+cpa.rg.abstraction.solver = "MATHSAT"
   allowed values: [MATHSAT, YICES]
 
-# only use the atoms from the interpolants as predicates, and not the whole
-# interpolant
-cpa.relyguarantee.atomicPredicates = true
+# use caching of abstractions
+cpa.rg.abstraction.useCache = true
 
 # maximum number of atoms in a path formula before abstraction is forced
 # (non-negative number, special values: 0 = don't check threshold, 1 = SBE)
-cpa.relyguarantee.blk.atomThreshold = 0
+cpa.rg.blk.atomThreshold = 0
+
+# abstract after applying an enviornmental edge
+cpa.rg.blk.envEdge = true
 
 # force abstractions on function call/return
-cpa.relyguarantee.blk.functions = true
+cpa.rg.blk.functions = true
 
 # force abstractions for each loop iteration
-cpa.relyguarantee.blk.loops = true
+cpa.rg.blk.loops = true
 
 # require that both the threshold and (functions or loops) have to be
 # fulfilled to compute an abstraction
-cpa.relyguarantee.blk.requireThresholdAndLBE = false
+cpa.rg.blk.requireThresholdAndLBE = false
 
 # maximum blocksize before abstraction is forced
 # (non-negative number, special values: 0 = don't check threshold, 1 = SBE)
-cpa.relyguarantee.blk.threshold = 0
+cpa.rg.blk.threshold = 0
 
 # use caching of path formulas
-cpa.relyguarantee.blk.useCache = true
+cpa.rg.blk.useCache = true
 
 # If true, then change treads after successors for a state were computed.
-cpa.relyguarantee.changeThread = false
+cpa.rg.changeThread = false
 
 # always check satisfiability at end of block, even if precision is empty
-cpa.relyguarantee.checkBlockFeasibility = true
+cpa.rg.checkBlockFeasibility = true
 
 # Combine all valid environmental edges for thread in two one edge?
-cpa.relyguarantee.combineEnvEdges = false
+cpa.rg.combineEnvEdges = false
 
 # Print debugging info?
-cpa.relyguarantee.debug = true
-cpa.relyguarantee.debug = false
-cpa.relyguarantee.debug = true
-
-# export one satisfying assignment for the error path
-cpa.relyguarantee.errorPath.export = true
-cpa.relyguarantee.errorPath.file = "ErrorPathAssignment.txt"
-
-# List of variables global to multiple threads
-cpa.relyguarantee.globalVariables = {}
+cpa.rg.debug = false
 
 # which interpolating solver to use for interpolant generation?
-cpa.relyguarantee.interpolatingProver = "MATHSAT"
+cpa.rg.interpolatingProver = "MATHSAT"
   allowed values: [MATHSAT, CSISAT]
 
 # try second interpolating solver if the first takes too long
-cpa.relyguarantee.interpolation.changesolverontimeout = false
+cpa.rg.interpolation.changesolverontimeout = false
 
 # Limit of nodes in an interpolation tree (0 - no limit).
-cpa.relyguarantee.itpTreeNodeLimit = 0
+cpa.rg.itpTreeNodeLimit = 0
 
 # refinement will add all discovered predicates to all the locations in the
 # abstract trace
-cpa.relyguarantee.refinement.addPredicatesGlobally = true
+cpa.rg.refinement.addPredicatesGlobally = true
 
 # If true, the analysis continues in the previous thread. If false, the first
 # thread is analysed first.
-cpa.relyguarantee.refinement.continueThread = false
+cpa.rg.refinement.continueThread = false
 
 # Dump a DAG representation of interpolation formulas to the choosen file.
-cpa.relyguarantee.refinement.dumpDAGfile = "test/output/itpDAG"
+cpa.rg.refinement.dumpDAGfile = "test/output/itpDAG"
 
 # which interpolating solver to use for interpolant generation?
-cpa.relyguarantee.refinement.interpolatingProver = "MATHSAT"
+cpa.rg.refinement.interpolatingProver = "MATHSAT"
   allowed values: [MATHSAT, CSISAT]
 
-# where to dump the counterexample formula in case the error location is
-# reached
-cpa.relyguarantee.refinement.msatCexFile = "counterexample.msat"
-
-# How to refine the counterexample DAG: 0 - unfoald to a tree, 1 - insert
-# env. edges
-cpa.relyguarantee.refinement.refinementMethod = 1
-
 # split arithmetic equalities when extracting predicates from interpolants
-cpa.relyguarantee.refinement.splitItpAtoms = false
-
-# maximum blocksize before a satisfiability check is done
-# (non-negative number, 0 means never, if positive should be smaller than
-# blocksize)
-cpa.relyguarantee.satCheck = 0
+cpa.rg.refinement.splitItpAtoms = false
 
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks
-cpa.relyguarantee.symbolicCoverageCheck = false
+cpa.rg.symbolicCoverageCheck = false
 
 # check satisfiability when a target state has been found (should be true)
-cpa.relyguarantee.targetStateSatCheck = true
+cpa.rg.targetStateSatCheck = true
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"

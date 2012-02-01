@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -59,16 +58,16 @@ public class RGPrecisionAdjustment implements PrecisionAdjustment {
   public int maxPredsPerAbstraction = 0;
 
   protected final LogManager logger;
-  protected final PredicateAbstractionManager formulaManager;
+  protected final RGAbstractionManager absManager;
   protected final FormulaManager fManager;
-  protected final PathFormulaManager pathFormulaManager;
+  protected final PathFormulaManager pfManager;
 
 
 
   public RGPrecisionAdjustment(RGCPA pCpa) {
     logger = pCpa.logger;
-    formulaManager = pCpa.paManager;
-    pathFormulaManager = pCpa.pfManager;
+    absManager = pCpa.absManager;
+    pfManager = pCpa.pfManager;
     fManager = pCpa.fManager;
     try {
       pCpa.getConfiguration().inject(this, RGPrecisionAdjustment.class);
@@ -134,14 +133,14 @@ public class RGPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     // create new empty path formula
-    PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
+    PathFormula newPathFormula = pfManager.makeEmptyPathFormula(pathFormula);
 
     return new RGAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(),this.cpa.getTid(), element.getPathFormula(), element.getAppInfo());
   }
 
 
   protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {
-    return formulaManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);
+    return absManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);
   }
 
   protected LogManager getLogger() {

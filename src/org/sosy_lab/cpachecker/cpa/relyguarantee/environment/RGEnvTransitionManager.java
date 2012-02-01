@@ -29,11 +29,9 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.InterpolationTreeNode;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.collect.Multimap;
 
@@ -74,28 +72,11 @@ public interface RGEnvTransitionManager {
   PathFormula formulaForRefinement(RGAbstractElement elem, RGEnvTransition et, int unique) throws CPATransferException;
 
   /**
-   * Extracts predicates from the iterpolated node.
-   * @param itp
-   * @param node
-   * @return
-   */
-  Collection<AbstractionPredicate> getPredicates(Formula itp, InterpolationTreeNode node);
-
-
-  /**
-   * Returns true  if et1 is less or equal to et2.
+   * Returns true only if et1 is less or equal to et2.
    * @param c1
    * @param c2
    * @return
    */
   boolean isLessOrEqual(RGEnvTransition et1, RGEnvTransition et2);
-
-  /**
-   * Returns true  if c1 is less or equal to c2.
-   * @param c1
-   * @param c2
-   * @return
-   */
-  boolean isLessOrEqual(RGEnvCandidate c1, RGEnvCandidate c2);
 
 }

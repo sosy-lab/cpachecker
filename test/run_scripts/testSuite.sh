@@ -36,7 +36,7 @@ do
     grep  "$positiveMsg" out >/dev/null
     if [ $? -ne 0 ]; then
 	echo ""
-	echo "Error: test $test failed"
+	echo "Error: scripts/cpa.sh -concurrent -config $configDir/$1 $testDir/$test > out 2>/dev/null"
 	exit 1
     fi
 done;
@@ -50,7 +50,7 @@ do
 
     if [ $? -ne 0 ]; then
 	echo ""
-	echo "Error: test $test failed"
+	echo "Error: scripts/cpa.sh -concurrent -config $configDir/$1 $testDir/$test > out 2>/dev/null"
 	exit 1
     fi
 done;

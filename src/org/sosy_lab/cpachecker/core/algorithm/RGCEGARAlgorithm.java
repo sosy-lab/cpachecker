@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.RGRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
-@Options(prefix="cpa.relyguarantee.refinement")
+@Options(prefix="cpa.rg.refinement")
 public class RGCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvider {
 
   @Option(description="If true, the analysis continues in the previous thread. If false, the first thread is analysed first.")

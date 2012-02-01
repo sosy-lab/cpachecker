@@ -91,17 +91,9 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
 
-  @Option(description="only use the atoms from the interpolants as predicates, "
-      + "and not the whole interpolant")
-    private boolean atomicPredicates = true;
-
   @Option(name="refinement.interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"},
       description="which interpolating solver to use for interpolant generation?")
       private String whichItpProver = "MATHSAT";
-
-  @Option(name="refinement.refinementMethod",
-      description="How to refine the counterexample DAG: 0 - unfoald to a tree, 1 - insert env. edges")
-      private int refinementMethod = 1;
 
   @Option(name="refinement.dumpDAGfile",
       description="Dump a DAG representation of interpolation formulas to the choosen file.")
@@ -190,7 +182,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
     //return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, elementsOnPath, firstItpProver);
 
     if (this.whichItpProver.equals("MATHSAT")){
-      return interpolateInsertMathsat(targetElement,  reachedSets, tid, firstItpProver);
+      return interpolateTree(targetElement,  reachedSets, tid, firstItpProver);
     } else {
       throw new InterruptedException("Unknown iterpolating prover "+whichItpProver);
     }
@@ -405,12 +397,6 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
 
 
- /*
-  *
-  *              Interpolate by Insertion
-  *
-  */
-
   /**
    * Interpolate counterexample DAG by inserting edges in place of env. applications.
    * @param targetElement
@@ -422,7 +408,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
    * @throws InterruptedException
    * @throws CPAException
    */
-  private <T> CounterexampleTraceInfo interpolateInsertMathsat(ARTElement targetElement, ReachedSet[] reachedSets, int tid, InterpolatingTheoremProver<T> itpProver) throws InterruptedException, CPAException {
+  private <T> CounterexampleTraceInfo interpolateTree(ARTElement targetElement, ReachedSet[] reachedSets, int tid, InterpolatingTheoremProver<T> itpProver) throws InterruptedException, CPAException {
     stats.formulaTimer.start();
 
     /*
@@ -489,7 +475,6 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
         *  New branch taken
         */
 
-
        // reconstruct formulas
        if (prevNode != null){
          itpProver.reset();
@@ -549,28 +534,20 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
        }
      }
 
-     Set<AbstractionPredicate> preds = null;
-     // add predicates to ART precision or to env. precision
-     assert node.isARTAbstraction || node.isEnvAbstraction;
+     Set<AbstractionPredicate> preds = getPredicates(itp, node, rMap);
+
      if (node.isARTAbstraction){
-       Formula rItp = fmgr.changePrimedNo(itp, rMap);
-       preds = getPredicates(rItp);
        info.addPredicatesForRefinement(node.artElement, preds);
      }
      if (node.isEnvAbstraction){
-       assert abstractEnvTransitions.equals("SA") || abstractEnvTransitions.equals("FA");
-
-       if (this.abstractEnvTransitions.equals("SA")){
-         itp = fmgr.changePrimedNo(itp, rMap);
-         preds = getPredicates(itp);
-         info.addEnvPredicatesForRefinement(node.artElement, preds);
-       } else if (this.abstractEnvTransitions.equals("FA")){
-         // TODO trick to get an adjusted SSA map
-         preds = getNextValPredicates(itp, node.getPathFormula().getSsa(), rMap);
-         info.addEnvPredicatesForRefinement(node.artElement, preds);
-       }
+       info.addEnvPredicatesForRefinement(node.artElement, preds);
      }
 
+
+
+
+
+     // add predicates to ART precision or to env. precision
      if (itp.isFalse()){
        break;
      }
@@ -724,7 +701,6 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
             appNode.setEnvAbstraction(true);
           }
 
-
           // add the sub tree to the main tree
           treeNode.children.add(appNode);
           appNode.parent = treeNode;
@@ -846,7 +822,38 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
     }
   }
 
+  /**
+   * Extract interpolants for the node. The map describes how the interpolants should be renamed.
+   * @param itp
+   * @param node
+   * @param rMap
+   * @return
+   */
+  private Set<AbstractionPredicate> getPredicates(Formula itp, InterpolationTreeNode node, Map<Integer, Integer> rMap) {
 
+    assert node.isARTAbstraction || node.isEnvAbstraction;
+
+    Formula rItp = fmgr.changePrimedNo(itp, rMap);
+
+    Set<AbstractionPredicate> preds = null;
+
+    if (node.isARTAbstraction){
+      preds = getPredicates(rItp);
+    }
+
+    if (node.isEnvAbstraction){
+      assert abstractEnvTransitions.equals("SA") || abstractEnvTransitions.equals("FA");
+
+      if (this.abstractEnvTransitions.equals("SA")){
+        preds = getPredicates(rItp);
+      } else if (this.abstractEnvTransitions.equals("FA")){
+        SSAMap rSSA = ssaManager.changePrimeNo(node.getPathFormula().getSsa(), rMap);
+        preds = getNextValPredicates(rItp, rSSA);
+      }
+    }
+
+    return preds;
+  }
 
 
   /**
@@ -858,14 +865,12 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
   private Set<AbstractionPredicate> getPredicates(Formula itp) {
 
     Set <AbstractionPredicate> result = new HashSet<AbstractionPredicate>();
-    // TODO maybe handling of non-atomic predicates
     if (!itp.isTrue() && !itp.isFalse()){
 
       Collection<Formula> atoms = null;
       atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
 
       for (Formula atom : atoms){
-        //Formula unprimedAtom = fmgr.unprimeFormula(atom);
         AbstractionPredicate atomPredicate = amgr.makePredicate(atom);
         result.add(atomPredicate);
       }
@@ -879,21 +884,17 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
    * are given '#' suffix.
    * @param itp
    * @param ssa
-   * @param rMap
    * @return
    */
-  private Set<AbstractionPredicate> getNextValPredicates(Formula itp, SSAMap ssa, Map<Integer, Integer> rMap) {
+  private Set<AbstractionPredicate> getNextValPredicates(Formula itp, SSAMap ssa) {
 
     Set <AbstractionPredicate> result = new HashSet<AbstractionPredicate>();
-    // TODO maybe handling of non-atomic predicates
     if (!itp.isTrue() && !itp.isFalse()){
       Collection<Formula> atoms = null;
       atoms = fmgr.extractNextValueAtoms(itp, ssa);
 
       for (Formula atom : atoms){
-        Formula rAtom = fmgr.changePrimedNo(atom, rMap);
-        //Formula unprimedAtom = fmgr.unprimeFormula(atom);
-        AbstractionPredicate atomPredicate = amgr.makePredicate(rAtom);
+        AbstractionPredicate atomPredicate = amgr.makePredicate(atom);
         result.add(atomPredicate);
       }
 

@@ -36,13 +36,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 
-// TODO use a method instead of instanceof
 public class RGAbstractElement implements AbstractElement, Partitionable, FormulaReportingElement {
 
   public int tid;
   private CFAEdge parentEdge = null;
-
-
 
 
   /** The path formula for the path from the last abstraction node to this node.
@@ -265,9 +262,6 @@ public class RGAbstractElement implements AbstractElement, Partitionable, Formul
     public CFANode getLocation() {
       return location;
     }
-
-
-
   }
 
 

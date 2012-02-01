@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.predicate;
+package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 import java.io.File;
 import java.io.IOException;
@@ -67,13 +67,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatRe
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 
-
-@Options(prefix="cpa.predicate")
-public
-class PredicateAbstractionManager implements StatisticsProvider {
+@Options(prefix="cpa.rg")
+public class RGAbstractionManager implements StatisticsProvider {
 
   // singleton instance of the manager
-  private static PredicateAbstractionManager instance;
+  private static RGAbstractionManager instance;
 
   public final Stats stats;
 
@@ -87,25 +85,11 @@ class PredicateAbstractionManager implements StatisticsProvider {
       description="whether to use Boolean (false) or Cartesian (true) abstraction")
   private boolean cartesianAbstraction = true;
 
-  @Option(description="whether to use Boolean (false) or Cartesian (true) abstraction for enviromental transitions.")
+  @Option(name="abstraction.cartesianNextValue",
+      description="whether to use Boolean (false) or Cartesian (true) abstraction for enviromental transitions.")
   private boolean cartesianNextValAbstraction = true;
 
-  @Option(name="abstraction.dumpHardQueries",
-      description="dump the abstraction formulas if they took to long")
-  private boolean dumpHardAbstractions = false;
-
-  @Option(name="formulaDumpFilePattern", type=Option.Type.OUTPUT_FILE,
-      description="where to dump interpolation and abstraction problems (format string)")
-  private File formulaDumpFile = new File("%s%04d-%s%03d.msat");
-  protected final String formulaDumpFilePattern; // = formulaDumpFile.getAbsolutePath()
-
-  @Option(description="try to add some useful static-learning-like axioms for "
-    + "bitwise operations (which are encoded as UFs): essentially, "
-    + "we simply collect all the numbers used in bitwise operations, "
-    + "and add axioms like (0 & n = 0)")
-  protected boolean useBitwiseAxioms = false;
-
-  @Option(name="abs.useCache", description="use caching of abstractions")
+  @Option(name="abstraction.useCache", description="use caching of abstractions")
   private boolean useCache = true;
 
   private final Map<Pair<PathFormula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
@@ -117,29 +101,16 @@ class PredicateAbstractionManager implements StatisticsProvider {
 
   private Map<Triple<PathFormula, PathFormula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionNextValueCache;
 
-  public static PredicateAbstractionManager getInstance( RegionManager pRmgr, FormulaManager pFmgr,PathFormulaManager pPmgr, TheoremProver pThmProver, Configuration config, LogManager pLogger) throws InvalidConfigurationException{
+  public static RGAbstractionManager getInstance( RegionManager pRmgr, FormulaManager pFmgr,PathFormulaManager pPmgr, TheoremProver pThmProver, Configuration config, LogManager pLogger) throws InvalidConfigurationException{
     if (instance == null){
-      instance = new PredicateAbstractionManager(pRmgr, pFmgr, pPmgr, pThmProver, config, pLogger);
+      instance = new RGAbstractionManager(pRmgr, pFmgr, pPmgr, pThmProver, config, pLogger);
     }
 
     return instance;
   }
 
-  protected PredicateAbstractionManager(
-      RegionManager pRmgr,
-      FormulaManager pFmgr,
-      PathFormulaManager pPmgr,
-      TheoremProver pThmProver,
-      Configuration config,
-      LogManager pLogger) throws InvalidConfigurationException {
-    config.inject(this, PredicateAbstractionManager.class);
-
-    if (formulaDumpFile != null) {
-      formulaDumpFilePattern = formulaDumpFile.getAbsolutePath();
-    } else {
-      dumpHardAbstractions = false;
-      formulaDumpFilePattern = null;
-    }
+  protected RGAbstractionManager(RegionManager pRmgr, FormulaManager pFmgr, PathFormulaManager pPmgr, TheoremProver pThmProver, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+    config.inject(this, RGAbstractionManager.class);
 
     stats = new Stats();
     logger = pLogger;
@@ -183,7 +154,7 @@ class PredicateAbstractionManager implements StatisticsProvider {
 
 
     Formula absFormula = abstractionFormula.asFormula();
-    Formula symbFormula = buildFormula(pathFormula.getFormula());
+    Formula symbFormula = pathFormula.getFormula();
     Formula f = fmgr.makeAnd(absFormula, symbFormula);
     PathFormula pf = new PathFormula(f, pathFormula.getSsa(), pathFormula.getLength());
 
@@ -454,15 +425,6 @@ class PredicateAbstractionManager implements StatisticsProvider {
 
   private Formula buildFormula(Formula symbFormula) {
 
-    if (useBitwiseAxioms) {
-      Formula bitwiseAxioms = fmgr.getBitwiseAxioms(symbFormula);
-      if (!bitwiseAxioms.isTrue()) {
-        symbFormula = fmgr.makeAnd(symbFormula, bitwiseAxioms);
-
-        logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
-      }
-    }
-
     return symbFormula;
   }
 
@@ -580,7 +542,7 @@ class PredicateAbstractionManager implements StatisticsProvider {
    */
   public boolean checkCoverage(AbstractionFormula a1, PathFormula p1, AbstractionFormula a2) {
     Formula absFormula = a1.asFormula();
-    Formula symbFormula = buildFormula(p1.getFormula());
+    Formula symbFormula = p1.getFormula();
     Formula a = fmgr.makeAnd(absFormula, symbFormula);
 
     Formula b = fmgr.instantiate(a2.asFormula(), p1.getSsa());
@@ -603,7 +565,7 @@ class PredicateAbstractionManager implements StatisticsProvider {
    */
   public boolean unsat(AbstractionFormula abstractionFormula, PathFormula pathFormula) {
     Formula absFormula = abstractionFormula.asFormula();
-    Formula symbFormula = buildFormula(pathFormula.getFormula());
+    Formula symbFormula = pathFormula.getFormula();
     Formula f = fmgr.makeAnd(absFormula, symbFormula);
     logger.log(Level.ALL, "Checking satisfiability of formula", f);
 

@@ -40,14 +40,13 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGSimpleTransition;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.InterpolationTreeNode;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
@@ -68,17 +67,17 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
 
   private final FormulaManager fManager;
   private final PathFormulaManager pfManager;
-  private final PredicateAbstractionManager paManager;
+  private final RGAbstractionManager absManager;
   private final SSAMapManager ssaManager;
   private final TheoremProver thmProver;
   private final RegionManager rManager;
   private final LogManager logger;
   private final Stats stats;
 
-  public RGSimpleTransitionManager(FormulaManager pFManager, PathFormulaManager pPfManager, PredicateAbstractionManager paManager, SSAMapManager pSsaManager,TheoremProver pThmProver, RegionManager pRManager, RGVariables variables, Configuration pConfig, LogManager pLogger) {
+  public RGSimpleTransitionManager(FormulaManager pFManager, PathFormulaManager pPfManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver, RegionManager pRManager, RGVariables variables, Configuration pConfig, LogManager pLogger) {
     this.fManager = pFManager;
     this.pfManager = pPfManager;
-    this.paManager = paManager;
+    this.absManager = absManager;
     this.ssaManager = pSsaManager;
     this.thmProver = pThmProver;
     this.rManager = pRManager;
@@ -180,12 +179,6 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
     return refPf;
   }
 
-  @Override
-  public Collection<AbstractionPredicate> getPredicates(Formula pItp,
-      InterpolationTreeNode pNode) {
-    // TODO Auto-generated method stub
-    return null;
-  }
 
   @Override
   public boolean isLessOrEqual(RGEnvTransition et1, RGEnvTransition et2) {

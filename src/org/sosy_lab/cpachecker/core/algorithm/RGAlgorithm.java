@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManager;
@@ -72,19 +72,14 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.relyguarantee")
+@Options(prefix="cpa.rg")
 public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
   @Option(description="Print debugging info?")
-  private boolean debug=true;
-
-  @Option(description="List of variables global to multiple threads")
-  protected String[] globalVariables = {};
+  private boolean debug=false;
 
   @Option(description="Combine all valid environmental edges for thread in two one edge?")
   boolean combineEnvEdges = false;
-
-
 
   public final Stats stats;
 
@@ -579,8 +574,8 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     }
 
     // PredicateAbstractionManager
-    PredicateAbstractionManager paManager = rgCPA.getPredicateManager();
-    paManager.collectStatistics(scoll);
+    RGAbstractionManager absManager = rgCPA.getAbstractionManager();
+    absManager.collectStatistics(scoll);
 
     // CachingPathFormulaManager
     PathFormulaManager pfManager = rgCPA.getPathFormulaManager();

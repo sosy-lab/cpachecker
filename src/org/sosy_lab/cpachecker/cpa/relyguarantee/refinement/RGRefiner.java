@@ -27,7 +27,6 @@ import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
-import java.io.File;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
@@ -78,7 +77,7 @@ import com.google.common.collect.SetMultimap;
 public class RGRefiner implements StatisticsProvider{
 
   @Option(description="Print debugging info?")
-  private boolean debug=true;
+  private boolean debug=false;
 
   @Option(name="refinement.addPredicatesGlobally",
       description="refinement will add all discovered predicates "
@@ -89,19 +88,6 @@ public class RGRefiner implements StatisticsProvider{
       description="refinement will add all discovered predicates "
         + "to all the locations in the abstract trace")
         private boolean addEnvPredicatesGlobally = true;
-
-  @Option(name="errorPath.export",
-      description="export one satisfying assignment for the error path")
-      private boolean exportErrorPath = true;
-
-  @Option(name="errorPath.file", type=Option.Type.OUTPUT_FILE,
-      description="export one satisfying assignment for the error path")
-      private File exportFile = new File("ErrorPathAssignment.txt");
-
-  @Option(name="refinement.msatCexFile", type=Option.Type.OUTPUT_FILE,
-      description="where to dump the counterexample formula in case the error location is reached")
-      private File dumpCexFile = new File("counterexample.msat");
-
 
 
   private final Stats stats;

@@ -113,10 +113,6 @@ public class CPAchecker {
         description="use assumption collecting algorithm")
         boolean useAssumptionCollector = false;
 
-    @Option(name = "analysis.useRelyGuaranteeRefinement",
-        description = "use experimental rely-guarantee CEGAR loop")
-        boolean useRelyGuaranteeRefinement = false;
-
     @Option(name = "analysis.useRefinement",
         description = "use CEGAR algorithm for lazy counter-example guided analysis"
           + "\nYou need to specify a refiner with the cegar.refiner option."
@@ -236,7 +232,7 @@ public class CPAchecker {
       RGAlgorithm rgAlgorithm = new RGAlgorithm(cfas, mainFunctions, cpas, environment, vars, config, logger);
       ConcurrentAlgorithm algorithm;
 
-      if (options.useRelyGuaranteeRefinement) {
+      if (options.useRefinement) {
         algorithm = new RGCEGARAlgorithm(rgAlgorithm, config, logger);
 
       } else {
