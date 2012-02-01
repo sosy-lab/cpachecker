@@ -67,6 +67,7 @@ import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
@@ -585,7 +586,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), filelocStart, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, true);
 
     } else {
-      org.sosy_lab.cpachecker.cfa.ast.IASTExpression exp = handleSideAssignmentsInConditions(condition, rootNode);
+      Pair<org.sosy_lab.cpachecker.cfa.ast.IASTExpression, CFANode> pair = handleSideAssignmentsInConditions(condition, rootNode);
 
       if (furtherThenComputation) {
         thenNodeForLastThen = thenNode;
@@ -597,32 +598,33 @@ class CFAFunctionBuilder extends ASTVisitor {
       // edge connecting last condition with elseNode
       final AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + condition.getRawSignature() + ")",
                                                         filelocStart,
-                                                        rootNode,
+                                                        pair.getSecond(),
                                                         elseNodeForLastElse,
-                                                        exp,
+                                                        pair.getFirst(),
                                                         false);
       addToCFA(assumeEdgeFalse);
 
       // edge connecting last condition with thenNode
       final AssumeEdge assumeEdgeTrue = new AssumeEdge(condition.getRawSignature(),
                                                        filelocStart,
-                                                       rootNode,
+                                                       pair.getSecond(),
                                                        thenNodeForLastThen,
-                                                       exp,
+                                                       pair.getFirst(),
                                                        true);
       addToCFA(assumeEdgeTrue);
     }
   }
 
-  private org.sosy_lab.cpachecker.cfa.ast.IASTExpression handleSideAssignmentsInConditions(IASTExpression condition,
+  private Pair<org.sosy_lab.cpachecker.cfa.ast.IASTExpression, CFANode> handleSideAssignmentsInConditions(IASTExpression condition,
                                                                                            CFANode rootNode) {
     final org.sosy_lab.cpachecker.cfa.ast.IASTExpression exp =
         astCreator.convertBooleanExpression(condition);
     String rawSignature = condition.getRawSignature();
 
+    CFANode between = null;
     while (astCreator.existsSideAssignment()) {
       IASTNode middle = astCreator.getSideAssignment();
-      CFANode between = new CFANode(middle.getFileLocation().getStartingLineNumber(), cfa.getFunctionName());
+      between = new CFANode(middle.getFileLocation().getStartingLineNumber(), cfa.getFunctionName());
       StatementEdge previous;
       DeclarationEdge previousdec;
       if (middle instanceof IASTFunctionCallAssignmentStatement) {
@@ -650,7 +652,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       rootNode = between;
       cfaNodes.add(between);
     }
-    return exp;
+
+    return Pair.of(exp, rootNode);
   }
 
   private int visitForStatement(final IASTForStatement forStatement,
