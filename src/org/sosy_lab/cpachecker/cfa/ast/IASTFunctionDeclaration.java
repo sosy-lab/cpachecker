@@ -42,9 +42,4 @@ public final class IASTFunctionDeclaration extends IASTDeclaration {
   public IASTFunctionTypeSpecifier getDeclSpecifier() {
     return (IASTFunctionTypeSpecifier) super.getDeclSpecifier();
   }
-
-  @Override
-  public String toASTString() {
-    return getDeclSpecifier().toASTString() + ";";
-  }
 }

@@ -44,7 +44,7 @@ public final class IASTElaboratedTypeSpecifier extends IType {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(String pDeclarator) {
     StringBuilder lASTString = new StringBuilder();
 
     if (isConst()) {
@@ -57,6 +57,7 @@ public final class IASTElaboratedTypeSpecifier extends IType {
     lASTString.append(kind.toASTString());
     lASTString.append(name);
     lASTString.append(" ");
+    lASTString.append(pDeclarator);
 
     return lASTString.toString();
   }

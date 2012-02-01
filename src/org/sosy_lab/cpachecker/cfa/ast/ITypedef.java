@@ -37,9 +37,7 @@ public final class ITypedef extends IComplexType {
   }
 
   @Override
-  public String toASTString() {
-    return type.toASTString()
-        + ((getName() != null) ? (" " + getName()) : "")
-        + " ";
+  public String toASTString(String pDeclarator) {
+    return type.toASTString(pDeclarator);
   }
 }

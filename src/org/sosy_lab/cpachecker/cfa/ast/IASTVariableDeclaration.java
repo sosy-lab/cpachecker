@@ -70,13 +70,7 @@ public final class IASTVariableDeclaration extends IASTDeclaration {
     StringBuilder lASTString = new StringBuilder();
 
     lASTString.append(storageClass.toASTString());
-    lASTString.append(getDeclSpecifier().toASTString());
-
-    if (!(getDeclSpecifier() instanceof IASTFunctionTypeSpecifier)
-        && !(getDeclSpecifier() instanceof IASTPointerTypeSpecifier
-        && ((IASTPointerTypeSpecifier)getDeclSpecifier()).getType() instanceof IASTFunctionTypeSpecifier)) {
-      lASTString.append(getName());
-    }
+    lASTString.append(getDeclSpecifier().toASTString(getName()));
 
     if (initializer != null) {
       lASTString.append(" = ");

@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
-import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -167,10 +166,7 @@ public class PathToCTranslator {
     FunctionDefinitionNode functionStartNode = (FunctionDefinitionNode)extractLocation(firstFunctionElement);
     String freshFunctionName = getFreshFunctionName(functionStartNode);
 
-    String lFunctionHeader = functionStartNode.getFunctionDefinition().getDeclSpecifier().toASTString();
-    lFunctionHeader = lFunctionHeader.replaceFirst(
-          Pattern.quote(functionStartNode.getFunctionName() + "("),
-          freshFunctionName + "(");
+    String lFunctionHeader = functionStartNode.getFunctionDefinition().getDeclSpecifier().toASTString(freshFunctionName);
     // lFunctionHeader is for example "void foo_99(int a)"
 
     // create a new function

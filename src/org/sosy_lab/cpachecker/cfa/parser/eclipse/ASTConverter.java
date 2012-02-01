@@ -878,7 +878,7 @@ class ASTConverter {
         return new IASTComplexTypeDeclaration(fileLoc, isGlobal, type);
       }
 
-      throw new CFAGenerationRuntimeException("Declaration without declarator, but type is unknown: " + type.toASTString());
+      throw new CFAGenerationRuntimeException("Declaration without declarator, but type is unknown: " + type.toASTString(""));
     }
 
   }
