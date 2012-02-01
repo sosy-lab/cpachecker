@@ -78,7 +78,11 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     Preconditions.checkArgument(pPrecision instanceof FeatureVarsPrecision, "precision is no FeatureVarsPrecision");
     FeatureVarsPrecision precision = (FeatureVarsPrecision) pPrecision;
     FeatureVarsElement fvElement = (FeatureVarsElement) element;
-    assert !fvElement.getRegion().isFalse();
+    if (fvElement.getRegion().isFalse()) {
+      return Collections.emptyList();
+    }
+
+    //assert !fvElement.getRegion().isFalse();
 
     if (precision.isDisabled()) {
       // this means that no variables should be tracked (whitelist is empty)

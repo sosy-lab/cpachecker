@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.FeatureVarsRestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -116,6 +117,10 @@ public class CPAchecker {
     @Option(name="analysis.useCBMC",
         description="use CBMC to double-check counter-examples")
         boolean useCBMC = false;
+
+    @Option(name="analysis.useFeatureVarsRestriction",
+        description="use CBMC and the FeatureVars Restriction option")
+    public boolean useFeatureVarsRestriction;
 
     @Option(name="analysis.useBMC",
         description="use a BMC like algorithm that checks for satisfiability "
@@ -386,6 +391,9 @@ public class CPAchecker {
       if (options.useCBMC) {
         algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, cfa);
       }
+      if (options.useFeatureVarsRestriction) {
+        algorithm = new FeatureVarsRestrictionAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, cfa);
+      }
 
       if (options.useAssumptionCollector) {
         algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger);
@@ -394,7 +402,7 @@ public class CPAchecker {
       if (options.useAdjustableConditions) {
         algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
       }
-
+      
     }
 
     if (algorithm instanceof StatisticsProvider) {
