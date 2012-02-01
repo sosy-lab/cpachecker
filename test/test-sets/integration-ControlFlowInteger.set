@@ -30,7 +30,6 @@
 ../../test/programs/benchmarks/ssh/s3_clnt.blast.03.i.cil.c
 ../../test/programs/benchmarks/ssh/s3_clnt.blast.04.i.cil.c
 ../../test/programs/benchmarks/ssh/s3_srvr.blast.01.i.cil.c
-../../test/programs/benchmarks/ssh/s3_srvr.blast.02.i.cil.c
 ../../test/programs/benchmarks/ssh/s3_srvr.blast.06.i.cil.c
 ../../test/programs/benchmarks/ssh/s3_srvr.blast.07.i.cil.c
 ../../test/programs/benchmarks/ssh/s3_srvr.blast.08.i.cil.c
