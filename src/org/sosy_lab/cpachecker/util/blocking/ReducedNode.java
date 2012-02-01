@@ -34,11 +34,13 @@ public class ReducedNode {
   private final int uniqueNodeId;
   private int summarizations;
   private boolean isAbstractioNode;
+  private int functionCallId;
 
   public ReducedNode(CFANode pWrappedNode) {
     this.wrappedNode = pWrappedNode;
     this.uniqueNodeId = ReducedNode.uniqueNodeIdSequence++;
     this.summarizations = 0;
+    this.functionCallId = 0;
     this.isAbstractioNode = false;
   }
 
@@ -88,5 +90,13 @@ public class ReducedNode {
     } else {
       return "Generic";
     }
+  }
+
+  public void setFunctionCallId(int pCallId) {
+    this.functionCallId = pCallId;
+  }
+
+  public int getFunctionCallId() {
+    return this.functionCallId;
   }
 }

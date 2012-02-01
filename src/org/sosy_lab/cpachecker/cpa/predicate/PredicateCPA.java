@@ -125,7 +125,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     if (enableBlockreducer) {
       BlockComputer blockComputer = new BlockedCFAReducer(config);
-      blk.setExplicitAbstracitonNodes(blockComputer.computeAbstractionNodes(cfa));
+      blk.setExplicitAbstractionNodes(blockComputer.computeAbstractionNodes(cfa));
     }
 
     regionManager = BDDRegionManager.getInstance();

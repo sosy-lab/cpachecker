@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import java.util.Set;
-
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * This class implements the blk operator from the paper
@@ -69,7 +69,7 @@ public class BlockOperator {
   private boolean alwaysAndOnlyAtExplicitNodes = false;
 
 
-  private Set<CFANode> explicitAbstractionNodes = null;
+  private ImmutableSet<CFANode> explicitAbstractionNodes = null;
 
 
   int numBlkFunctions = 0;
@@ -91,8 +91,7 @@ public class BlockOperator {
 
     if (alwaysAndOnlyAtExplicitNodes) {
       assert(explicitAbstractionNodes != null);
-      boolean shouldAbstract = explicitAbstractionNodes.contains(predLoc);
-      return shouldAbstract;
+      return explicitAbstractionNodes.contains(predLoc);
     }
 
     if (alwaysAtFunctions && isFunctionCall(succLoc)) {
@@ -158,7 +157,7 @@ public class BlockOperator {
         || (succLoc.getEnteringSummaryEdge() != null); // function return edge
   }
 
-  public void setExplicitAbstracitonNodes(Set<CFANode> pNodes) {
+  public void setExplicitAbstractionNodes(ImmutableSet<CFANode> pNodes) {
     this.explicitAbstractionNodes = pNodes;
   }
 
