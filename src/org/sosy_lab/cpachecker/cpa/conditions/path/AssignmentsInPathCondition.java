@@ -71,6 +71,8 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   @Option(description="whether or not to track unique assignments only")
   private boolean demandUniqueness = true;
 
+  private int max = 0;
+
   public AssignmentsInPathCondition(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
   }
@@ -100,6 +102,8 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
         }
       }
     }
+
+    max = Math.max(max, currentElement.maximum);
 
     return currentElement;
   }
@@ -158,6 +162,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reachedSet) {
     out.println("Threshold value: " + threshold);
+    out.println("max. number of assignments: " + max);
   }
 
   abstract public class AssignmentsInPathConditionElement implements AbstractElement, AvoidanceReportingElement {
@@ -186,7 +191,6 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     @Override
     public Formula getReasonFormula(FormulaManager formuaManager) {
       String formula = HeuristicToFormula.getFormulaStringForHeuristic(PreventingHeuristicType.ASSIGNMENTSINPATH, maximum);
-
       return formuaManager.parse(formula);
     }
 
@@ -214,15 +218,31 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
      */
     private HashMap<String, Integer> mapping = new HashMap<String, Integer>();
 
+    /**
+     * default constructor for creating the initial element
+     */
+    public AllAssignmentsInPathConditionElement() {}
+
+    /**
+     * copy constructor for successor computation
+     *
+     * @param original the original element to be copied
+     */
+    private AllAssignmentsInPathConditionElement(AllAssignmentsInPathConditionElement original) {
+      mapping = new HashMap<String, Integer>(original.mapping);
+      maximum = original.maximum;
+    }
+
     @Override
     public AllAssignmentsInPathConditionElement getSuccessor(String assignedVariable) {
-      AllAssignmentsInPathConditionElement successor = new AllAssignmentsInPathConditionElement();
+      // create a copy ...
+      AllAssignmentsInPathConditionElement successor = new AllAssignmentsInPathConditionElement(this);
 
-      Integer currentValue = mapping.containsKey(assignedVariable) ? mapping.get(assignedVariable) + 1 : 1;
-      successor.mapping = new HashMap<String, Integer>(mapping);
-      successor.mapping.put(assignedVariable, currentValue);
+      // ... and update the mapping at the maximum
+      Integer numberOfAssignments = mapping.containsKey(assignedVariable) ? mapping.get(assignedVariable) + 1 : 1;
+      successor.mapping.put(assignedVariable, numberOfAssignments);
 
-      maximum = Math.max(maximum, currentValue);
+      successor.maximum = Math.max(successor.maximum, numberOfAssignments);
 
       return successor;
     }
@@ -250,18 +270,28 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
      */
     private String assignedVariable = null;
 
+    /**
+     * default constructor for creating the initial element
+     */
+    public UniqueAssignmentsInPathConditionElement() {}
+
+    /**
+     * copy constructor for successor computation
+     *
+     * @param original the original element to be copied
+     */
+    private UniqueAssignmentsInPathConditionElement(UniqueAssignmentsInPathConditionElement original) {
+      mapping = HashMultimap.create(original.mapping);
+      maximum = original.maximum;
+    }
+
     @Override
     public UniqueAssignmentsInPathConditionElement getSuccessor(String assignedVariable) {
-      UniqueAssignmentsInPathConditionElement successor = new UniqueAssignmentsInPathConditionElement();
+      // create a copy ...
+      UniqueAssignmentsInPathConditionElement successor = new UniqueAssignmentsInPathConditionElement(this);
 
-      if(mapping == null) {
-        successor.mapping = HashMultimap.create();
-      }
-      else {
-        successor.mapping = HashMultimap.create(mapping);
-      }
-
-      successor.assignedVariable = assignedVariable;
+      // ... and set the later to be assigned variable
+      successor.assignedVariable  = assignedVariable;
 
       return successor;
     }
@@ -281,7 +311,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
         if(value != null) {
           mapping.put(assignedVariable, value);
 
-          maximum = Math.max(maximum, mapping.size());
+          maximum = Math.max(maximum, mapping.get(assignedVariable).size());
         }
       }
     }
