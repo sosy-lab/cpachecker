@@ -83,7 +83,9 @@ class CoreComponentsFactory {
 
   private final Configuration config;
   private final LogManager logger;
+
   private final ReachedSetFactory reachedSetFactory;
+  private final CPABuilder cpaFactory;
 
   public CoreComponentsFactory(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     config = pConfig;
@@ -92,6 +94,7 @@ class CoreComponentsFactory {
     config.inject(this);
 
     reachedSetFactory = new ReachedSetFactory(config, logger);
+    cpaFactory = new CPABuilder(config, logger, reachedSetFactory);
   }
 
   public Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
@@ -161,8 +164,7 @@ class CoreComponentsFactory {
         return LocationCPA.factory().set(cfa, CFA.class).createInstance();
       }
 
-      CPABuilder builder = new CPABuilder(config, logger, reachedSetFactory, cfa);
-      ConfigurableProgramAnalysis cpa = builder.buildCPAs();
+      ConfigurableProgramAnalysis cpa = cpaFactory.buildCPAs(cfa);
 
       if (cpa instanceof StatisticsProvider) {
         ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());

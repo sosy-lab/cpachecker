@@ -94,8 +94,8 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
               .setOption("specification", automatonFile.getAbsolutePath())
               .build();
 
-      CPABuilder lBuilder = new CPABuilder(lConfig, logger, reachedSetFactory, cfa);
-      ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs();
+      CPABuilder lBuilder = new CPABuilder(lConfig, logger, reachedSetFactory);
+      ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs(cfa);
       Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger);
       PartitionedReachedSet lReached = new PartitionedReachedSet(TraversalMethod.DFS);
       lReached.add(lCpas.getInitialElement(entryNode), lCpas.getInitialPrecision(entryNode));
