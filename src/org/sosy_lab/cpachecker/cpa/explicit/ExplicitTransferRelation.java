@@ -434,9 +434,6 @@ public class ExplicitTransferRelation implements TransferRelation
         missingInformationRightExpression = op2;
       }
 
-      else
-        throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
-
       return element.clone();
 
     }
