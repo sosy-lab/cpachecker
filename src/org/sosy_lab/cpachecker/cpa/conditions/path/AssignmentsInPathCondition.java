@@ -23,11 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.conditions.path;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -73,8 +80,21 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
   private int max = 0;
 
+  private AssignmentsInPathConditionElement currentElement = null;
+
+  private Map<String, Integer> assignmentsPerIdentifier = new HashMap<String, Integer>();
+
+  LogManager logger;
+
+  @Option(name = "extendedStatsFile",
+      description = "file name where to put the extended stats file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private File extendedStatsFile;
+
   public AssignmentsInPathCondition(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
+
+    this.logger = logger;
   }
 
   @Override
@@ -87,7 +107,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
   @Override
   public AvoidanceReportingElement getAbstractSuccessor(AbstractElement element, CFAEdge edge) {
-    AssignmentsInPathConditionElement currentElement = (AssignmentsInPathConditionElement)element;
+    currentElement = (AssignmentsInPathConditionElement)element;
 
     if(edge.getEdgeType() == CFAEdgeType.StatementEdge) {
       StatementEdge statementEdge = (StatementEdge)edge;
@@ -98,12 +118,21 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
         String assignedVariable = getScopedVariableName(leftHandSide, edge);
         if(assignedVariable != null) {
-          return currentElement.getSuccessor(assignedVariable);
+          currentElement = currentElement.getSuccessor(assignedVariable);
         }
       }
     }
 
     max = Math.max(max, currentElement.maximum);
+
+    for(Map.Entry<String, Integer> assignment : currentElement.getAssignmentCounts().entrySet()) {
+      String variableName     = assignment.getKey();
+      Integer currentCounter  = assignmentsPerIdentifier.containsKey(variableName) ? assignmentsPerIdentifier.get(variableName) : 0;
+
+      currentCounter          = Math.max(currentCounter, assignment.getValue());
+
+      assignmentsPerIdentifier.put(variableName, currentCounter);
+    }
 
     return currentElement;
   }
@@ -163,6 +192,31 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   public void printStatistics(PrintStream out, Result result, ReachedSet reachedSet) {
     out.println("Threshold value: " + threshold);
     out.println("max. number of assignments: " + max);
+
+    if(extendedStatsFile != null) {
+      try {
+          StringBuilder builder = new StringBuilder();
+          String newline        = System.getProperty("line.separator");
+
+          builder.append("total numer of variable assignments of last element:");
+          builder.append(newline);
+          builder.append(currentElement);
+
+          builder.append(newline);
+          builder.append("max. total numer of variable assignments over all elements:");
+          for(Map.Entry<String, Integer> assignment : assignmentsPerIdentifier.entrySet()) {
+            builder.append(newline);
+            builder.append(assignment.getKey());
+            builder.append(" -> ");
+            builder.append("#");
+            builder.append(assignment.getValue());
+        }
+        Files.writeFile(extendedStatsFile, builder.toString());
+
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write extended statistics to file");
+      }
+    }
   }
 
   abstract public class AssignmentsInPathConditionElement implements AbstractElement, AvoidanceReportingElement {
@@ -209,6 +263,24 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     * @return true, if the number of assignments for the given variable exceeds the given threshold, else false
     */
     abstract public boolean variableExceedsGivenLimit(String variableName, Integer limit);
+
+    abstract public Map<String, Integer> getAssignmentCounts();
+
+    @Override
+    public String toString() {
+      String newline = System.getProperty("line.separator");
+      StringBuilder builder = new StringBuilder();
+
+      for(Map.Entry<String, Integer> assignment : getAssignmentCounts().entrySet()) {
+        builder.append(assignment.getKey());
+        builder.append(" -> ");
+        builder.append("#");
+        builder.append(assignment.getValue());
+        builder.append(newline);
+      }
+
+      return builder.toString();
+    }
   }
 
   public class AllAssignmentsInPathConditionElement extends AssignmentsInPathConditionElement {
@@ -253,8 +325,8 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     }
 
     @Override
-    public String toString() {
-      return mapping.toString();
+    public Map<String, Integer> getAssignmentCounts() {
+      return Collections.unmodifiableMap(mapping);
     }
   }
 
@@ -331,8 +403,14 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     }
 
     @Override
-    public String toString() {
-      return mapping.toString();
+    public Map<String, Integer> getAssignmentCounts() {
+      Map<String, Integer> map = new HashMap<String, Integer>();
+
+      for(String variableName : mapping.keys()) {
+        map.put(variableName, mapping.get(variableName).size());
+      }
+
+      return Collections.unmodifiableMap(map);
     }
   }
 }
