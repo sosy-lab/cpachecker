@@ -4,6 +4,6 @@
 
 <!-- a list of testfiles, a file is created automatically by benchmark.py for each test-->
 
-  <test filename="test/results/rely-guarantee.2012-01-30.results.global pred, SBE, Cartesian abst, simple transition env..xml"></test>
+  <test filename="test/results/rely-guarantee.2012-02-02.results.global pred, SBE, Cartesian abst, simple transition env..xml"></test>
 
 </table>

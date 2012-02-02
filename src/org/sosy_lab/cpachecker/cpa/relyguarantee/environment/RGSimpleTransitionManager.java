@@ -201,7 +201,22 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
 
     // TODO add checking by thmProver
     return false;
+  }
 
+  @Override
+  public boolean isBottom(RGEnvTransition et) {
+    RGSimpleTransition st = (RGSimpleTransition) et;
+
+    Formula fAbs = st.getAbstraction();
+    Formula f = st.getPathFormula().getFormula();
+
+    f = fManager.makeAnd(f, fAbs);
+
+    thmProver.init();
+    boolean unsat = thmProver.isUnsat(fAbs);
+    thmProver.reset();
+
+    return unsat;
   }
 
   @Override

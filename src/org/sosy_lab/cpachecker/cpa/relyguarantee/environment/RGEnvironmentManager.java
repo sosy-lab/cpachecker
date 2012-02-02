@@ -40,10 +40,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -62,9 +58,7 @@ import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.SSAMapManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
@@ -117,11 +111,12 @@ public class RGEnvironmentManager implements StatisticsProvider{
   private final PathFormulaManager pfManager;
   private final MathsatFormulaManager fManager;
   private final MathsatTheoremProver tProver;
-  private final RGAbstractionManager paManager;
+  private final RGAbstractionManager absManager;
   private final RegionManager rManager;
-  private final AbstractionManagerImpl absManager;
+  private final AbstractionManagerImpl amManager;
   private final SSAMapManager ssaManager;
   private final RGEnvTransitionManager etManager;
+  private final RGEnvCandidateManager candManager;
 
   public RGEnvironmentManager(int threadNo, RGVariables vars, Configuration config, LogManager logger) throws InvalidConfigurationException{
     // TODO add option for caching
@@ -146,10 +141,11 @@ public class RGEnvironmentManager implements StatisticsProvider{
     pfMgr = CachingPathFormulaManager.getInstance(pfMgr);
     this.pfManager = pfMgr;
     RegionManager rManager = BDDRegionManager.getInstance();
-    this.paManager = RGAbstractionManager.getInstance(rManager, fManager, pfMgr, tProver, config, logger);
-    this.absManager = AbstractionManagerImpl.getInstance(rManager, msatFormulaManager, pfManager, config, logger);
+    this.absManager = RGAbstractionManager.getInstance(rManager, fManager, pfMgr, tProver, config, logger);
+    this.amManager = AbstractionManagerImpl.getInstance(rManager, msatFormulaManager, pfManager, config, logger);
     this.ssaManager = SSAMapManagerImpl.getInstance(fManager, config, logger);
-    this.etManager  = RGEnvTransitionManagerFactory.getInstance(abstractEnvTransitions, fManager, pfManager, paManager, ssaManager, tProver, rManager, variables, config, logger);
+    this.etManager  = RGEnvTransitionManagerFactory.getInstance(abstractEnvTransitions, fManager, pfManager, absManager, ssaManager, tProver, rManager, variables, config, logger);
+    this.candManager = new RGEnvCandidateManager(fManager, pfManager, absManager, ssaManager, tProver, rManager, variables, config, logger);
 
     for (int i=0; i< threadNo; i++){
       //envTransProcessedBeforeFromThread[i] = HashMultimap.<ARTElement, RelyGuaranteeEnvironmentalTransition>create();
@@ -197,7 +193,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
 
   public AbstractionManagerImpl getAbsManager() {
-    return absManager;
+    return amManager;
   }
 
   /**
@@ -387,18 +383,10 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
     /* find the most general candidates by comparing them */
     for (RGEnvCandidate cnd1 : cndToProcess){
-      if (this.isLocalAssigment(cnd1.getOperation())){
-        cndCovered.add(cnd1);
-        if (debug){
-          System.out.println("\t-local assigm: "+cnd1);
-        }
-        continue;
-      }
-
       if (!cndCovered.contains(cnd1)){
         for (RGEnvCandidate cnd2 : cndToProcess){
           if (cnd1 !=cnd2 && !cndCovered.contains(cnd2)){
-            if (isLessOrEqual(cnd1, cnd2)){
+            if (candManager.isLessOrEqual(cnd1, cnd2)){
               // edge1 => edge2
               if (debug){
                 System.out.println("\t-covered: "+cnd1+" => "+cnd2);
@@ -413,13 +401,21 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
     cndToProcess.removeAll(cndCovered);
 
+    /* if there is only one element, the check if its not bottom */
+    if (cndToProcess.size() == 1){
+      RGEnvCandidate cnd = cndToProcess.get(0);
+      if (candManager.isBottom(cnd)){
+        cndToProcess.clear();
+      }
+    }
+
     /* sanity check on request */
     if (debug){
       // for every input candidate there exist an candidate in cndToProcess that is greater or equal
       for (RGEnvCandidate cand1 : candidates){
         boolean existsGeq = false;
         for (RGEnvCandidate cand2 : cndToProcess){
-          if (isLessOrEqual(cand1, cand2)){
+          if (candManager.isLessOrEqual(cand1, cand2)){
             existsGeq = true;
             break;
           }
@@ -430,7 +426,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
       // among the candidates in cndToProcess none is less or equal than other
       for (RGEnvCandidate cand1 : cndToProcess){
         for (RGEnvCandidate cand2 : cndToProcess){
-          assert cand1 == cand2 || !isLessOrEqual(cand1, cand2);
+          assert cand1 == cand2 || !candManager.isLessOrEqual(cand1, cand2);
         }
       }
     }
@@ -438,49 +434,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
     return  cndToProcess;
   }
 
-  /**
-   * Return true only if c1 is less or equal than c2.
-   * @param c1
-   * @param c2
-   * @return
-   */
-  private boolean isLessOrEqual(RGEnvCandidate c1, RGEnvCandidate c2) {
-    /*
-     * c1 less or equal than c2 only if
-     * (abs1 & pf1) -> (abs2 & pf2) and
-     * op1 = op2
-     */
 
-    if (c1.equals(c2)){
-      return true;
-    }
-
-    CFAEdge op1 = c1.getOperation();
-    CFAEdge op2 = c2.getOperation();
-
-    if (!op1.equals(op2)){
-      return false;
-    }
-
-    Formula f1 = c1.getRgElement().getPathFormula().getFormula();
-    Formula f2 = c1.getRgElement().getPathFormula().getFormula();
-
-    if (f1.isTrue() && f2.isTrue()){
-      // can compare BDDs
-      Region r1 = c1.getRgElement().getAbstractionFormula().asRegion();
-      Region r2 = c2.getRgElement().getAbstractionFormula().asRegion();
-
-
-      if (!rManager.entails(r1, r2)){
-        // (abs1 & pf1) does not imply (abs2 & pf2)
-        return false;
-      } else {
-        return true;
-      }
-    }
-
-    return false;
-  }
 
 
   /**
@@ -557,14 +511,14 @@ public class RGEnvironmentManager implements StatisticsProvider{
         if (etManager.isLessOrEqual(newEdge, oldEdge)){
           // newEdge => oldEdge
           if (debug){
-            System.out.println("Covered 1:\t"+newEdge+" => "+oldEdge);
+            System.out.println("Covered :\t"+newEdge+" => "+oldEdge);
           }
           newValid.remove(newEdge);
           break;
         } else if (etManager.isLessOrEqual(oldEdge, newEdge)){
           // oldEdge => newEdge, but not oldEdge <= newEdge
           if (debug){
-            System.out.println("Covered 2:\t"+oldEdge+" => "+newEdge);
+            System.out.println("Covered :\t"+oldEdge+" => "+newEdge);
           }
           oldCovered.add(oldEdge);
         }
@@ -572,7 +526,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
     }
 
     // sanity check on request
-    // TODO remove
     if (debug){
       for (RGEnvTransition edge1  : newValid){
         for (RGEnvTransition edge2  : validEnvEdgesFromThread[i]){
@@ -592,31 +545,9 @@ public class RGEnvironmentManager implements StatisticsProvider{
   }
 
 
-  /**
-   * Returns true iff edge is an assignment to a non-global variable
-   */
-  private boolean isLocalAssigment(CFAEdge edge) {
-    String var = getLhsVariable(edge);
-    if (var == null || !variables.globalVars.contains(var)){
-      return true;
-    }
-    return false;
-  }
 
-  /**
-   * Get the variable in the lhs of an expression or return null
-   */
-  private String getLhsVariable(CFAEdge edge){
-    IASTNode node = edge.getRawAST();
-    if (node instanceof IASTExpressionAssignmentStatement) {
-      IASTExpressionAssignmentStatement stmNode = (IASTExpressionAssignmentStatement) node;
-      if (stmNode.getLeftHandSide() instanceof IASTIdExpression) {
-        IASTIdExpression idExp = (IASTIdExpression) stmNode.getLeftHandSide();
-        return new String(idExp.getName());
-      }
-    }
-    return null;
-  }
+
+
 
   /**
    * reachedElement elements has been merged into mergedElement, therefore adjust the source elements.

@@ -202,6 +202,13 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
   }
 
   @Override
+  public boolean isBottom(RGEnvTransition et) {
+    RGSemiAbstracted sa = (RGSemiAbstracted) et;
+
+    return sa.getAbstractPrecondition().isFalse();
+  }
+
+  @Override
   public void collectStatistics(Collection<Statistics> scoll) {
     scoll.add(stats);
   }
@@ -225,4 +232,5 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
       return "RGFullyAbstractedManager";
     }
   }
+
 }

@@ -229,6 +229,12 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
     return rManager.entails(r1, r2);
   }
 
+  @Override
+  public boolean isBottom(RGEnvTransition et) {
+    RGFullyAbstracted fa = (RGFullyAbstracted) et;
+
+    return fa.getAbstractTransition().isFalse();
+  }
 
 
   @Override
@@ -254,8 +260,8 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
       return "RGFullyAbstractedManager";
     }
 
-
   }
+
 
 
 

@@ -79,4 +79,11 @@ public interface RGEnvTransitionManager {
    */
   boolean isLessOrEqual(RGEnvTransition et1, RGEnvTransition et2);
 
+  /**
+   * Return true if the transition is less or equal to every other transition.
+   * @param et
+   * @return
+   */
+  boolean isBottom(RGEnvTransition et);
+
 }
