@@ -316,7 +316,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         assert action == Action.CONTINUE : "Enum Action has unhandled values!";
 
         stats.envGenTimer.start();
-
         if (this.createsEnvTransition(edge)){
           RGEnvCandidate candidate = new RGEnvCandidate((ARTElement)element, (ARTElement)successor, edge, tid);
           environment.addEnvTransition(candidate);

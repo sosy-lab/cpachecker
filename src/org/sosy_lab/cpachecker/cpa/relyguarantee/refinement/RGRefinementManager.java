@@ -39,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
-import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -86,10 +85,6 @@ import com.google.common.collect.Lists;
 
 @Options(prefix="cpa.rg")
 public class RGRefinementManager<T1, T2> implements StatisticsProvider {
-
-  private static final String BRANCHING_PREDICATE_NAME = "__ART__";
-  private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
-      "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
 
   @Option(name="refinement.interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"},
       description="which interpolating solver to use for interpolant generation?")
@@ -623,7 +618,6 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
     } else {
       // it's NOT an abstraction element, so only its last abstraction element is in the DAG
-      assert abstractEnvTransitions.equals("SA") || abstractEnvTransitions.equals("FA");
       ARTElement aARTElement = RGEnvironmentManager.findLastAbstractionARTElement(target);
       assert aARTElement != null;
       InterpolationDagNode aNode = dag.getNode(tid, aARTElement.getElementId());
@@ -696,9 +690,10 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
             appNode.setPathFormula(newPf);
           }
 
-          // mark the root of the sub-tree as an env. abstraction
+          // the root of the subtree is an environmental abstraction only
           if (abstractEnvTransitions.equals("SA") || abstractEnvTransitions.equals("FA")){
             appNode.setEnvAbstraction(true);
+            appNode.setARTAbstraction(false);
           }
 
           // add the sub tree to the main tree
@@ -832,6 +827,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
   private Set<AbstractionPredicate> getPredicates(Formula itp, InterpolationTreeNode node, Map<Integer, Integer> rMap) {
 
     assert node.isARTAbstraction || node.isEnvAbstraction;
+    assert !node.isARTAbstraction || !node.isEnvAbstraction;
 
     Formula rItp = fmgr.changePrimedNo(itp, rMap);
 

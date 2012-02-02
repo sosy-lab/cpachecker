@@ -57,11 +57,7 @@ public class InterpolationTreeNode  {
   protected final Integer uniqueId;
 
   /** Does it represent an ART abstraction element */
-  protected final boolean isARTAbstraction;
-
-  public void setEnvAbstraction(boolean pIsEnvAbstraction) {
-    isEnvAbstraction = pIsEnvAbstraction;
-  }
+  protected boolean isARTAbstraction;
 
   /** Does it represent an env. abstraction */
   protected  boolean isEnvAbstraction;
@@ -156,8 +152,16 @@ public class InterpolationTreeNode  {
     return isARTAbstraction;
   }
 
+  public void setARTAbstraction(boolean pIsARTAbstraction) {
+    isARTAbstraction = pIsARTAbstraction;
+  }
+
   public boolean isEnvAbstraction() {
     return isEnvAbstraction;
+  }
+
+  public void setEnvAbstraction(boolean pIsEnvAbstraction) {
+    isEnvAbstraction = pIsEnvAbstraction;
   }
 
   @Override

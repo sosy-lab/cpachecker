@@ -94,10 +94,8 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
     Region absReg = abs.asRegion();
     PathFormula pf = cand.getRgElement().getPathFormula();
 
-    // find the last abstraction ART element
-    ARTElement lARTElem = findLastAbstractionARTElement(cand.getElement());
 
-    return new RGSimpleTransition(absF, absReg, pf, cand.getOperation(), lARTElem, cand.getTid());
+    return new RGSimpleTransition(absF, absReg, pf, cand.getOperation(), cand.getSuccessor(), cand.getTid());
   }
 
   @Override
