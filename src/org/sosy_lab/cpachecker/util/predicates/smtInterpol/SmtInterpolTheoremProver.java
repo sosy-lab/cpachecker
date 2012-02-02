@@ -133,7 +133,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   }
 
   @Override
-  public AllSatResult allSat(Formula f, Collection<Formula> important,
+  public AllSatResult allSat(Formula f, Collection<Formula> formulas,
                              AbstractionManager amgr, Timer timer) {
     checkNotNull(amgr);
     checkNotNull(timer);
@@ -146,10 +146,10 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     allsatEnv.push(1);
 
     // unpack formulas to terms
-    Term[] imp = new Term[important.size()];
+    Term[] importantTerms = new Term[formulas.size()];
     int i = 0;
-    for (Formula impF : important) {
-      imp[i++] = mgr.getTerm(impF);
+    for (Formula impF : formulas) {
+      importantTerms[i++] = mgr.getTerm(impF);
     }
 
     // create new allSatResult
@@ -160,45 +160,44 @@ public class SmtInterpolTheoremProver implements TheoremProver {
       int numModels = 0;
       while(allsatEnv.checkSat() == LBool.SAT) {
         numModels++;
-        if (numModels > 20) { // TODO remove limit
+        if (numModels > 20) { // TODO remove limit, TODO handle infinity
           System.out.println("i have found some models, making break in allsat()");
           break;
         }
 
-        Valuation val = allsatEnv.getValue(imp);
-        Term[] model = new Term[imp.length];
-        for (int j=0; j<imp.length; j++) {
-          Term valueOfT = val.get(imp[j]);
-          Term termForModel;
-          if (allsatEnv.term("false") == valueOfT) {
-            termForModel = imp[j];
+        Valuation val = allsatEnv.getValue(importantTerms);
+        Term[] model = new Term[importantTerms.length];
+        for (int j=0; j<importantTerms.length; j++) {
+          Term valueOfT = val.get(importantTerms[j]);
+          if (SmtInterpolUtil.isFalse(allsatEnv, valueOfT)) {
+            model[j] = allsatEnv.term("not", importantTerms[j]);
           } else {
-            termForModel = allsatEnv.term("not", imp[j]);
+            model[j] = importantTerms[j];
           }
-          model[j] = termForModel;
-          allsatEnv.assertTerm(termForModel);
-
-       //   Term[] assertions = allsatEnv.getAssertions();
-          System.out.println(j + "termForModel: " + termForModel);
-       //   System.out.println("Assertions: " + Arrays.toString(assertions).replace(", ", ",\n            "));
-
         }
-
         // add model to BDD
         result.callback(model, allsatEnv);
+
+        // assert current model to get next model
+        assert model.length != 0 : "satCheck is SAT, but there is no model!";
+        Term notTerm;
+        if (model.length == 1) { // AND needs 2 or more terms
+          notTerm = allsatEnv.term("not", model[0]);
+        } else {
+          notTerm = allsatEnv.term("not", allsatEnv.term("and", model));
+        }
+        System.out.println(numModels + ", term to assert for next model: " + notTerm.toString());
+        allsatEnv.push(1);
+        allsatEnv.assertTerm(notTerm);
       }
 
-      allsatEnv.pop(1);
+      allsatEnv.pop(numModels); // we pushed some levels on assertionStack, remove them
     } catch (UnsupportedOperationException e) {
       e.printStackTrace();
     } catch (SMTLIBException e) {
       e.printStackTrace();
     }
 
-    //allSat(allsatEnv, imp, null);
-    // TODO implement something for handling "numModels"
-
- //   if (true) return null;
     return result;
   }
 
@@ -258,11 +257,6 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     public void callback(Term[] model, Script script) { // TODO function needed for smtInterpol???
       totalTime.start();
 
-      System.out.println("MODEL: " + count);
-      for (Term t : model){
-        System.out.println("    " + t.toString());
-      }
-      System.out.println("END");
       // the abstraction is created simply by taking the disjunction
       // of all the models found by msat_all_sat, and storing them in a BDD
       // first, let's create the BDD corresponding to the model
