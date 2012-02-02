@@ -98,8 +98,8 @@ class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManager {
   }
 
   @Override
-  Script createEnvironment() {
-    Script script = super.createEnvironment();
+  Script getEnvironment() {
+    Script script = super.getEnvironment();
 
     if (useIntegers) {
       if (script.getTheory().getLogic() != Logics.QF_UFLIA) // TODO other logic?

@@ -69,7 +69,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   String sort; // sort is the type (i.e. INT, REAL), depends on logic
 
   // the character for separating name and index of a value
-  private final String INDEX_SEPARATOR = "@";
+  private final static String INDEX_SEPARATOR = "@";
 
   // various caches for speeding up expensive tasks
   //
@@ -79,6 +79,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   // cache for uninstantiating terms (see uninstantiate() below)
   private final Map<Formula, Formula> uninstantiateCache = new HashMap<Formula, Formula>();
 
+  private int logCounter = 0;
 
   SmtInterpolFormulaManager(Configuration config, LogManager logger, String sort)
       throws InvalidConfigurationException {
@@ -86,21 +87,22 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
     script = createEnvironment();
   }
 
-  Script createEnvironment() {
-    if (script != null) {
-      return script; // TODO working?? correct??
-    }
+  Script getEnvironment() {
+    assert script != null;
+    return script; // TODO working?? correct??
+  }
 
+  private Script createEnvironment() {
     Logger logger = Logger.getRootLogger(); // TODO use SosyLAb-Logger
     SimpleLayout layout = new SimpleLayout();
     try {
-      FileAppender fileAppender = new FileAppender(layout, "output/smtinterpol.log", false);
+      FileAppender fileAppender = new FileAppender(layout, "output/smtinterpol" + (logCounter++) + ".log", false);
       logger.addAppender(fileAppender);
     } catch (IOException e) {
       e.printStackTrace();
     }
     // levels: ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF:
-    logger.setLevel( Level.WARN );
+    logger.setLevel( Level.ALL );
     Script env = null;
     try {
       // create a thin wrapper around Benchmark,
@@ -130,7 +132,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
     return name + INDEX_SEPARATOR + idx;
   }
 
-  Pair<String, Integer> parseName(String var) {
+  static Pair<String, Integer> parseName(String var) {
     String[] s = var.split(INDEX_SEPARATOR);
     if (s.length != 2) { throw new IllegalArgumentException(
         "Not an instantiated variable: " + var); }

@@ -61,7 +61,14 @@ public class SmtInterpolUtil {
         && ((ConstantTerm) t).getValue() instanceof Number; // TODO hex or binary data, string?
     if (log) System.out.println("   isNumber (" + is +"): " + t);
     return is;
-    }
+  }
+
+  public static boolean isBoolean(Script script, Term t) {
+    boolean is = (t instanceof ApplicationTerm)
+        && script.getTheory().getBooleanSort() == ((ApplicationTerm) t).getSort();
+    if (log) System.out.println("   isBoolean (" + is +"): " + t);
+    return is;
+  }
 
   /** t1 and t2
    * @param theory */

@@ -26,9 +26,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUtil.*;
 
 import java.util.ArrayDeque;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.List;
 
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -50,7 +51,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
 
   private final SmtInterpolFormulaManager mgr;
   private Script script;
-
+  private List<Term> assertedTerms;
   public SmtInterpolTheoremProver(SmtInterpolFormulaManager pMgr) {
     mgr = pMgr;
     script = null;
@@ -76,12 +77,18 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   @Override
   public Model getModel() {
     Preconditions.checkNotNull(script);
-    return SmtInterpolModel.createSmtInterpolModel(script, mgr);
+    try {
+      return SmtInterpolModel.createSmtInterpolModel(script, assertedTerms.toArray(new Term[0]));
+    } catch (SMTLIBException e) {
+      e.printStackTrace();
+      return null;
+    }
   }
 
   @Override
   public void pop() {
     Preconditions.checkNotNull(script);
+    assertedTerms.remove(assertedTerms.size()-1);
     try {
       script.pop(1);
     } catch (SMTLIBException e) {
@@ -93,8 +100,10 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   public void push(Formula f) {
     Preconditions.checkNotNull(script);
     script.push(1);
+    final Term t = mgr.getTerm(f);
+    assertedTerms.add(t);
     try {
-      script.assertTerm(mgr.getTerm(f));
+      script.assertTerm(t);
     } catch (SMTLIBException e) {
       e.printStackTrace();
     }
@@ -103,8 +112,10 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   @Override
   public void init() {
     Preconditions.checkNotNull(mgr);
+    assert (assertedTerms == null);
     assert (script == null);
-    script = mgr.createEnvironment();
+    assertedTerms = new ArrayList<Term>();
+    script = mgr.getEnvironment();
     script.push(1); // TODO necessary?
   }
 
@@ -117,7 +128,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     } catch (SMTLIBException e) {
       e.printStackTrace();
     }
-
+    assertedTerms = null;
     script = null;
   }
 
@@ -127,9 +138,12 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     checkNotNull(amgr);
     checkNotNull(timer);
     Term t = mgr.getTerm(f);
+    System.out.println("FROMULA: " + t.toString());
 
-    Script allsatEnv = mgr.createEnvironment(); //TODO do we need a new environment?
+    Script allsatEnv = mgr.getEnvironment(); //TODO do we need a new environment?
     checkNotNull(allsatEnv);
+
+    allsatEnv.push(1);
 
     // unpack formulas to terms
     Term[] imp = new Term[important.size()];
@@ -146,15 +160,15 @@ public class SmtInterpolTheoremProver implements TheoremProver {
       int numModels = 0;
       while(allsatEnv.checkSat() == LBool.SAT) {
         numModels++;
+        if (numModels > 20) { // TODO remove limit
+          System.out.println("i have found some models, making break in allsat()");
+          break;
+        }
+
         Valuation val = allsatEnv.getValue(imp);
-
-        System.out.println(numModels);
-        System.out.println("Val: " + val);
-
         Term[] model = new Term[imp.length];
         for (int j=0; j<imp.length; j++) {
           Term valueOfT = val.get(imp[j]);
-
           Term termForModel;
           if (allsatEnv.term("false") == valueOfT) {
             termForModel = imp[j];
@@ -164,22 +178,17 @@ public class SmtInterpolTheoremProver implements TheoremProver {
           model[j] = termForModel;
           allsatEnv.assertTerm(termForModel);
 
-          Term[] assertions = allsatEnv.getAssertions();
-          System.out.println("termForModel: " + termForModel);
-          System.out.println("Assertions: " + Arrays.toString(assertions)
-              .replace(", ", ",\n            "));
+       //   Term[] assertions = allsatEnv.getAssertions();
+          System.out.println(j + "termForModel: " + termForModel);
+       //   System.out.println("Assertions: " + Arrays.toString(assertions).replace(", ", ",\n            "));
 
         }
 
         // add model to BDD
         result.callback(model, allsatEnv);
-
-        if (numModels > 100 || val == null) { // TODO remove limit 100
-          System.out.println("i have fount 100 models, break");
-          break;
-        }
       }
 
+      allsatEnv.pop(1);
     } catch (UnsupportedOperationException e) {
       e.printStackTrace();
     } catch (SMTLIBException e) {
@@ -188,8 +197,8 @@ public class SmtInterpolTheoremProver implements TheoremProver {
 
     //allSat(allsatEnv, imp, null);
     // TODO implement something for handling "numModels"
-    // ?? allsatEnv.reset();
 
+ //   if (true) return null;
     return result;
   }
 
@@ -249,15 +258,17 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     public void callback(Term[] model, Script script) { // TODO function needed for smtInterpol???
       totalTime.start();
 
+      System.out.println("MODEL: " + count);
+      for (Term t : model){
+        System.out.println("    " + t.toString());
+      }
+      System.out.println("END");
       // the abstraction is created simply by taking the disjunction
       // of all the models found by msat_all_sat, and storing them in a BDD
       // first, let's create the BDD corresponding to the model
       Deque<Region> curCube = new ArrayDeque<Region>(model.length + 1);
       Region m = rmgr.makeTrue();
-      int i =0; System.out.println();
       for (Term t : model) {
-        System.out.println("model " + (i++) + "  " + t.toString());
-
         Region region;
         if (isNot(script, t)) {
           t = getArg(t, 0);
@@ -268,7 +279,6 @@ public class SmtInterpolTheoremProver implements TheoremProver {
         }
         curCube.add(region);
       }
-
       // now, add the model to the bdd
       curCube.add(m);
       while (curCube.size() > 1) {
@@ -285,6 +295,4 @@ public class SmtInterpolTheoremProver implements TheoremProver {
       totalTime.stop();
     }
   }
-
-
 }

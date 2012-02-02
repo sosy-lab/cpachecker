@@ -57,7 +57,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
 
     @Override
     public void init() {
-      script = mgr.createEnvironment();
+      script = mgr.getEnvironment();
       assertedFormulas = new ArrayList<String>();
       script.push(1); // TODO correct??
     }
@@ -161,7 +161,12 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
     @Override
     public Model getModel() {
       Preconditions.checkNotNull(script);
-      return SmtInterpolModel.createSmtInterpolModel(script, mgr);
+      try {
+        return SmtInterpolModel.createSmtInterpolModel(script, assertedFormulas.toArray(new Term[0]));
+      } catch (SMTLIBException e) {
+        e.printStackTrace();
+        return null;
+      }
     }
 
 }
