@@ -67,7 +67,9 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
    * @param value value to be assigned.
    */
   void assignConstant(String variableName, Long value) {
-    if (constantsMap.containsKey(variableName) && constantsMap.get(variableName).equals(value)) { return; }
+    if (constantsMap.containsKey(variableName) && constantsMap.get(variableName).equals(value)) {
+      return;
+    }
 
     constantsMap.put(variableName, value);
   }
@@ -133,15 +135,21 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
    */
   public boolean isLessOrEqual(ExplicitElement other) {
     // this element is not less or equal than the other element, if the previous elements differ
-    if (previousElement != other.previousElement) { return false; }
+    if (previousElement != other.previousElement) {
+      return false;
+    }
 
     // also, this element is not less or equal than the other element, if it contains less elements
-    if (constantsMap.size() < other.constantsMap.size()) { return false; }
+    if (constantsMap.size() < other.constantsMap.size()) {
+      return false;
+    }
 
     // also, this element is not less or equal than the other element,
     // if any one constant's value of the other element differs from the constant's value in this element
     for (Map.Entry<String, Long> entry : other.constantsMap.entrySet()) {
-      if (!entry.getValue().equals(constantsMap.get(entry.getKey()))) { return false; }
+      if (!entry.getValue().equals(constantsMap.get(entry.getKey()))) {
+        return false;
+      }
     }
 
     return true;
@@ -160,21 +168,35 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
 
   @Override
   public boolean equals(Object other) {
-    if (this == other) { return true; }
+    if (this == other) {
+      return true;
+    }
 
-    if (other == null) { return false; }
+    if (other == null) {
+      return false;
+    }
 
-    if (!getClass().equals(other.getClass())) { return false; }
+    if (!getClass().equals(other.getClass())) {
+      return false;
+    }
 
     ExplicitElement otherElement = (ExplicitElement) other;
-    if (otherElement.previousElement != previousElement) { return false; }
+    if (otherElement.previousElement != previousElement) {
+      return false;
+    }
 
-    if (otherElement.constantsMap.size() != constantsMap.size()) { return false; }
+    if (otherElement.constantsMap.size() != constantsMap.size()) {
+      return false;
+    }
 
     for (String s : constantsMap.keySet()) {
-      if (!otherElement.constantsMap.containsKey(s)) { return false; }
+      if (!otherElement.constantsMap.containsKey(s)) {
+        return false;
+      }
 
-      if (otherElement.constantsMap.get(s).longValue() != constantsMap.get(s)) { return false; }
+      if (otherElement.constantsMap.get(s).longValue() != constantsMap.get(s)) {
+        return false;
+      }
     }
 
     return true;
@@ -262,7 +284,9 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     for (int i = 0; i < statements.length; i++) {
       String statement = statements[i].trim().toLowerCase();
       if (statement.startsWith("deletevalues(")) {
-        if (!statement.endsWith(")")) { throw new InvalidQueryException(statement + " should end with \")\""); }
+        if (!statement.endsWith(")")) {
+          throw new InvalidQueryException(statement + " should end with \")\"");
+        }
 
         String varName = statement.substring("deletevalues(".length(), statement.length() - 1);
 
@@ -275,7 +299,9 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
       }
 
       else if (statement.startsWith("setvalue(")) {
-        if (!statement.endsWith(")")) { throw new InvalidQueryException(statement + " should end with \")\""); }
+        if (!statement.endsWith(")")) {
+          throw new InvalidQueryException(statement + " should end with \")\"");
+        }
 
         String assignment = statement.substring("setvalue(".length(), statement.length() - 1);
         String[] assignmentParts = assignment.split(":=");
