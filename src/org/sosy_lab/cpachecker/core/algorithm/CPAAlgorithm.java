@@ -33,6 +33,10 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -48,7 +52,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
+@Options(prefix="cpa")
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CPAStatistics implements Statistics {
@@ -98,9 +104,20 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private final CPAStatistics               stats = new CPAStatistics();
 
+
+  @Option(description="Whether to call the stop operator always or only at loop head locations")
+  private boolean stopOnlyAtLoopHeads = false;
+
+
   private final ConfigurableProgramAnalysis cpa;
 
   private final LogManager                  logger;
+
+  public CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger, Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
+    this.cpa = cpa;
+    this.logger = logger;
+  }
 
   public CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger) {
     this.cpa = cpa;
@@ -176,44 +193,55 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         }
         assert action == Action.CONTINUE : "Enum Action has unhandled values!";
 
-        Collection<AbstractElement> reached = reachedSet.getReached(successor);
+        Collection<AbstractElement> reached = null;
 
-        // An optimization, we don't bother merging if we know that the
-        // merge operator won't do anything (i.e., it is merge-sep).
-        if (mergeOperator != MergeSepOperator.getInstance() && !reached.isEmpty()) {
+        if (mergeOperator != MergeSepOperator.getInstance()) {
+          reached = reachedSet.getReached(successor);
+
           stats.mergeTimer.start();
+          // An optimization, we don't bother merging if we know that the
+          // merge operator won't do anything (i.e., it is merge-sep).
+          if (!reached.isEmpty()) {
 
-          List<AbstractElement> toRemove = new ArrayList<AbstractElement>();
-          List<Pair<AbstractElement, Precision>> toAdd =
-              new ArrayList<Pair<AbstractElement, Precision>>();
+            List<AbstractElement> toRemove = new ArrayList<AbstractElement>();
+            List<Pair<AbstractElement, Precision>> toAdd =
+                new ArrayList<Pair<AbstractElement, Precision>>();
 
-          logger.log(Level.FINER, "Considering", reached.size(),
-              "elements from reached set for merge");
-          for (AbstractElement reachedElement : reached) {
-            AbstractElement mergedElement =
-                mergeOperator.merge(successor, reachedElement,
-                    successorPrecision);
+            logger.log(Level.FINER, "Considering", reached.size(),
+                "elements from reached set for merge");
+            for (AbstractElement reachedElement : reached) {
+              AbstractElement mergedElement =
+                  mergeOperator.merge(successor, reachedElement,
+                      successorPrecision);
 
-            if (!mergedElement.equals(reachedElement)) {
-              logger.log(Level.FINER,
-                  "Successor was merged with element from reached set");
-              logger.log(Level.ALL, "Merged", successor, "\nand",
-                  reachedElement, "\n-->", mergedElement);
-              stats.countMerge++;
+              if (!mergedElement.equals(reachedElement)) {
+                logger.log(Level.FINER,
+                    "Successor was merged with element from reached set");
+                logger.log(Level.ALL, "Merged", successor, "\nand",
+                    reachedElement, "\n-->", mergedElement);
+                stats.countMerge++;
 
-              toRemove.add(reachedElement);
-              toAdd.add(Pair.of(mergedElement, successorPrecision));
+                toRemove.add(reachedElement);
+                toAdd.add(Pair.of(mergedElement, successorPrecision));
+              }
             }
+            reachedSet.removeAll(toRemove);
+            reachedSet.addAll(toAdd);
           }
-          reachedSet.removeAll(toRemove);
-          reachedSet.addAll(toAdd);
 
           stats.mergeTimer.stop();
         }
 
         stats.stopTimer.start();
-        boolean stop =
-            stopOperator.stop(successor, reached, successorPrecision);
+        boolean stop;
+        if (stopOnlyAtLoopHeads && !AbstractElements.extractLocation(successor).isLoopStart()) {
+          stop = false;
+        } else {
+          if (reached == null) {
+            reached = reachedSet.getReached(successor);
+          }
+          stop = stopOperator.stop(successor, reached, successorPrecision);
+        }
         stats.stopTimer.stop();
 
         if (stop) {

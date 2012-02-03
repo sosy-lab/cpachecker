@@ -54,7 +54,10 @@ rootDirectory = "."
 adjustableconditions.adjustmentLimit = -1
 
 # stop CPAchecker after startup (internal option, not intended for users)
-analysis.disable = false
+analysis.analysis.disable = false
+
+# use CBMC and the FeatureVars Restriction option
+analysis.analysis.useFeatureVarsRestriction = no default value
 
 # entry function
 analysis.entryFunction = "main"
@@ -303,8 +306,14 @@ cpa.conditions.global.time.wall = -1
 # When using adjustable conditions, analysis will end after this threshold
 cpa.conditions.global.time.wall.hardlimit = -1
 
+# whether or not to track unique assignments only
+cpa.conditions.path.assignments.demandUniqueness = true
+
+# file name where to put the extended stats file
+cpa.conditions.path.assignments.extendedStatsFile = no default value
+
 # maximum number of assignments (-1 for infinite)
-cpa.conditions.path.assignments.limit = -1
+cpa.conditions.path.assignments.threshold = -1
 
 # maximum number of assume edges length (-1 for infinite)
 cpa.conditions.path.assumeedges.limit = -1
@@ -583,6 +592,9 @@ cpa.predicate.useBitwiseAxioms = false
 
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
+
+# Whether to call the stop operator always or only at loop head locations
+cpa.stopOnlyAtLoopHeads = false
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"

@@ -109,7 +109,7 @@ class CoreComponentsFactory {
       algorithm = new RestartAlgorithm(config, logger, filename, cfa);
 
     } else {
-      algorithm = new CPAAlgorithm(cpa, logger);
+      algorithm = new CPAAlgorithm(cpa, logger, config);
 
       if (useRefinement) {
         algorithm = new CEGARAlgorithm(algorithm, cpa, config, logger);
