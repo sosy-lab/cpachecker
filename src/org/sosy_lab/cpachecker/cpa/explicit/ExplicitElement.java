@@ -68,15 +68,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
    * @param value value to be assigned.
    */
   void assignConstant(String variableName, Long value) {
-    if (constantsMap.containsKey(variableName) && constantsMap.get(variableName).equals(value)) {
-      return;
-    }
-
-    constantsMap.put(variableName, value);
-  }
-
-  void copyConstant(ExplicitElement other, String variableName) {
-    constantsMap.put(variableName, other.constantsMap.get(variableName));
+    constantsMap.put(checkNotNull(variableName), checkNotNull(value));
   }
 
   void forget(String variableName) {
@@ -85,6 +77,10 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
 
   public Long getValueFor(String variableName) {
     return checkNotNull(constantsMap.get(variableName));
+  }
+
+  Long getValueOrNull(String variableName) {
+    return constantsMap.get(variableName);
   }
 
   public boolean contains(String variableName) {

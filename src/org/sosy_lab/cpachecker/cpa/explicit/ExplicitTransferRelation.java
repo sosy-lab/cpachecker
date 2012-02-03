@@ -190,11 +190,12 @@ public class ExplicitTransferRelation implements TransferRelation
     ExplicitElement newElement = new ExplicitElement(element);
 
     // copy global variables into the new element, to make them available in body of called function
-    // assignConstant() won't do it here, as the current referenceCount of the variable also has to be copied
     for(String globalVar : globalVariables)
     {
-      if(element.contains(globalVar))
-        newElement.copyConstant(element, globalVar);
+      Long value = element.getValueOrNull(globalVar);
+      if (value != null) {
+        newElement.assignConstant(globalVar, value);
+      }
     }
 
     FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
@@ -255,14 +256,14 @@ public class ExplicitTransferRelation implements TransferRelation
     String calledFunctionName       = functionReturnEdge.getPredecessor().getFunctionName();
 
     // copy global variables back to the new element, to make them available in body of calling function
-    // assignConstant() won't do it here, as the current referenceCount of the variable also has to be copied back
-    for(String variableName : globalVariables)
+    for(String globalVar : globalVariables)
     {
-      if(element.contains(variableName))
-        newElement.copyConstant(element, variableName);
-
-      else
-        newElement.forget(variableName);
+      Long value = element.getValueOrNull(globalVar);
+      if (value != null) {
+        newElement.assignConstant(globalVar, value);
+      } else {
+        newElement.forget(globalVar);
+      }
     }
 
     // expression is an assignment operation, e.g. a = g(b);
