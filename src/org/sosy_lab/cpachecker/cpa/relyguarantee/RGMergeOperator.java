@@ -103,18 +103,6 @@ public class RGMergeOperator implements MergeOperator {
 
         logger.log(Level.FINEST, "Merging two non-abstraction nodes.");
 
-        /*int offset = elem1.getPathFormula().getPrimedNo()+1;
-        Map<Integer, RelyGuaranteeCFAEdge> mergedPrimedMap = new HashMap<Integer,RelyGuaranteeCFAEdge>(elem2.getPrimedMap().size()+elem1.getPrimedMap().size());
-        Map<Integer, Integer> adjustedMap = new HashMap<Integer, Integer>(elem2.getPrimedMap().size());
-        for (Integer primeNo : elem2.getPrimedMap().keySet()){
-          mergedPrimedMap.put(primeNo+offset, elem2.getPrimedMap().get(primeNo));
-          adjustedMap.put(primeNo, primeNo+offset);
-        }
-        mergedPrimedMap.putAll(elem1.getPrimedMap());
-
-        PathFormula adjustedPF = formulaManager.adjustPrimedNo(elem2.getPathFormula(), adjustedMap);*/
-
-
         PathFormula pathFormula = formulaManager.makeOr(elem1.getPathFormula(), elem2.getPathFormula());
 
         logger.log(Level.ALL, "New path formula is", pathFormula);

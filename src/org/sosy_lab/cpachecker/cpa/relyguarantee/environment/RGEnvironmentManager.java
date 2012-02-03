@@ -545,45 +545,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
   }
 
 
-
-
-
-
-  /**
-   * reachedElement elements has been merged into mergedElement, therefore adjust the source elements.
-   * @param mergedElement
-   * @param reachedElement
-   */
-  public void mergeSourceElements(ARTElement mergedElement, ARTElement reachedElement, int i) {
-    assert reachedElement.isDestroyed();
-    assert !mergedElement.isDestroyed();
-
-    // TODO!
-    // valid
-    /*for(RGEnvTransition rgEdge : validEnvEdgesFromThread[i]){
-      ARTElement sourceARTElement = rgEdge.getSourceARTElement();
-      if (sourceARTElement == reachedElement){
-       // rgEdge.setSourceARTElement(mergedElement);
-        System.out.println("! Replaced id:"+reachedElement.getElementId()+" by id:"+mergedElement.getElementId()+" in a valid edge: "+rgEdge);
-      }
-    }*/
-
-
-    // TODO
-    /*
-    for (RGEnvironmentalTransition et :  unprocessedTransitions){
-      if (et.getSourceARTElement() == reachedElement){
-        et.setSourceARTElement(mergedElement);
-        System.out.println("! Replaced id:"+reachedElement.getElementId()+" by id:"+mergedElement.getElementId()+" in unprocesseds transition: "+et);
-      }
-    }*/
-
-
-  }
-
-
-
-
   public void cleanEnvironment(int tid) {
     // TODO works only for two threads
     int other = tid==0 ? 1 : 0;
@@ -635,17 +596,23 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
   /**
    * Finds the last rely-guarantee abstraction element that is an ancestor of the argument.
-   * @param pElement
+   * @param target
    * @return
    */
-  public static ARTElement findLastAbstractionARTElement(ARTElement pElement) {
+  public static ARTElement findLastAbstractionARTElement(ARTElement target) {
     ARTElement laARTElement = null;
     Deque<ARTElement> toProcess = new LinkedList<ARTElement>();
     Set<ARTElement> visisted = new HashSet<ARTElement>();
-    toProcess.add(pElement);
+
+    if (target.isDestroyed()){
+      target = target.getMergedWith();
+    }
+
+    toProcess.add(target);
 
     while (!toProcess.isEmpty()){
       ARTElement element = toProcess.poll();
+      assert !element.isDestroyed();
       visisted.add(element);
 
       AbstractionElement aElement = AbstractElements.extractElementByType(element, AbstractionElement.class);

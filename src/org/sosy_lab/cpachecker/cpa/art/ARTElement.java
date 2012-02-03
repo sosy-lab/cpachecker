@@ -137,7 +137,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
   protected void setMergedWith(ARTElement pMergedWith) {
-    assert !destroyed;
+    //assert !destroyed;
     assert mergedWith == null;
 
     mergedWith = pMergedWith;

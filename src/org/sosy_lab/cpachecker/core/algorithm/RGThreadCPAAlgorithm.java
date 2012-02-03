@@ -315,14 +315,13 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         }
         assert action == Action.CONTINUE : "Enum Action has unhandled values!";
 
+        /* Remember the transition element--edge-->successor as candidate for an env. transition. */
         stats.envGenTimer.start();
         if (this.createsEnvTransition(edge)){
           RGEnvCandidate candidate = new RGEnvCandidate((ARTElement)element, (ARTElement)successor, edge, tid);
           environment.addEnvTransition(candidate);
         }
         stats.envGenTimer.stop();
-
-
 
         Collection<AbstractElement> reached = reachedSet.getReached(successor);
 
@@ -348,7 +347,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
             AbstractElement  mergedElement = mergeOperator.merge(successor, reachedElement,successorPrecision);
 
             if (!mergedElement.equals(reachedElement)) {
-              environment.mergeSourceElements((ARTElement)mergedElement, (ARTElement)reachedElement, tid);
 
               logger.log(Level.FINER,
               "Successor was merged with element from reached set");

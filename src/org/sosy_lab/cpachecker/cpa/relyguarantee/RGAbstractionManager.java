@@ -206,7 +206,7 @@ public class RGAbstractionManager implements StatisticsProvider {
    * @param tid
    * @return
    */
-  public AbstractionFormula buildNextValAbstraction(AbstractionFormula aFormula, PathFormula lowPf,PathFormula highPf, Collection<AbstractionPredicate> predicates, int tid) {
+  public AbstractionFormula buildNextValueAbstraction(AbstractionFormula aFormula, PathFormula lowPf,PathFormula highPf, Collection<AbstractionPredicate> predicates, int tid) {
     stats.buildAbstractionNVCalls++;
     stats.buildAbstractionNVTimer.start();
 
@@ -236,9 +236,9 @@ public class RGAbstractionManager implements StatisticsProvider {
 
      Region abs = null;
      if (cartesianNextValAbstraction) {
-       abs = buildNextValCartesianAbstraction(lowAPf, highAPf, predicates, tid);
+       abs = buildNextValueCartesianAbstraction(lowAPf, highAPf, predicates, tid);
      } else {
-       abs = buildNextValBooleanAbstraction(lowAPf, highAPf, predicates);
+       abs = buildNextValueBooleanAbstraction(lowAPf, highAPf, predicates);
      }
 
      // a little work-around : symbolicPathAbs is a path formula without indexes
@@ -356,7 +356,7 @@ public class RGAbstractionManager implements StatisticsProvider {
   }
 
 
-  private Region buildNextValCartesianAbstraction(PathFormula lowPf, PathFormula hiPf, Collection<AbstractionPredicate> predicates, int tid) {
+  private Region buildNextValueCartesianAbstraction(PathFormula lowPf, PathFormula hiPf, Collection<AbstractionPredicate> predicates, int tid) {
 
     final RegionManager rmgr = amgr.getRegionManager();
 
@@ -490,7 +490,7 @@ public class RGAbstractionManager implements StatisticsProvider {
    * @param predicates
    * @return
    */
-  private Region buildNextValBooleanAbstraction(PathFormula oldAbsPf, PathFormula newAbsPf, Collection<AbstractionPredicate> predicates) {
+  private Region buildNextValueBooleanAbstraction(PathFormula oldAbsPf, PathFormula newAbsPf, Collection<AbstractionPredicate> predicates) {
 
     Formula predDef = fmgr.makeTrue();
     List<Formula> predVars = new ArrayList<Formula>(predicates.size());

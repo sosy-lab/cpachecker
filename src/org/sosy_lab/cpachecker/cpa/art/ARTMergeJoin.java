@@ -84,6 +84,10 @@ public class ARTMergeJoin implements MergeOperator {
     artElement2.removeFromART();
 
     artElement1.setMergedWith(mergedElement);
+
+    // in rely-guarantee analysis, we need this info
+    artElement2.setMergedWith(mergedElement);
+
     return mergedElement;
   }
 }

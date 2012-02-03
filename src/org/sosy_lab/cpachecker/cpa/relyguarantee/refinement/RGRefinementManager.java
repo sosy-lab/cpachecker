@@ -254,9 +254,14 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
    * @throws CPAException
    */
   public void constructDagForElement(ReachedSet[] reachedSets, ARTElement target, int tid, InterpolationDag dag) throws InterruptedException, CPAException {
-    // Note: in case of abstracted operations, the target may be cover, ergo not in the reached set.
-    if (target.isDestroyed()){
+
+    // Is element is destroyed, it means that it has been merged into another one.
+    // Use that one instead.
+    if (target == null){
       System.out.println();
+    }
+    if (target.isDestroyed()){
+      target = target.getMergedWith();
     }
     assert !target.isDestroyed();
 
@@ -275,7 +280,6 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
     if (dag.getNodeMap().containsKey(Pair.of(tid, lastARTElem.getElementId()))){
       return;
     }
-
 
     // the previous DAG node
     InterpolationDagNode lastNode = null;
@@ -328,6 +332,11 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
       for(Integer id : envMap.keySet()){
         RGEnvTransition rgEdge = envMap.get(id);
         ARTElement targetARTElement = rgEdge.getSourceARTElement();
+
+        if (targetARTElement.isDestroyed()){
+          targetARTElement = targetARTElement.getMergedWith();
+        }
+
         Integer sourceTid           = rgEdge.getTid();
         assert sourceTid != tid;
 
@@ -337,6 +346,10 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
         // get nodes for the last abstraction for the source element.
         Path envCfaPath = computePath(targetARTElement);
         List<Triple<ARTElement, CFANode, RGAbstractElement>> envPath = transformFullPath(envCfaPath);
+        if (envPath.size() == 0){
+          System.out.println();
+        }
+        assert envPath.size() > 0;
         ARTElement sourceAbstrElement = envPath.get(envPath.size()-1).getFirst();
 
         InterpolationDagNode envNode = dag.getNode(sourceTid, sourceAbstrElement.getElementId());
@@ -826,7 +839,8 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
    */
   private Set<AbstractionPredicate> getPredicates(Formula itp, InterpolationTreeNode node, Map<Integer, Integer> rMap) {
 
-    assert node.isARTAbstraction || node.isEnvAbstraction;
+    assert !abstractEnvTransitions.equals("ST") || !node.isEnvAbstraction;
+    assert abstractEnvTransitions.equals("ST") || node.isARTAbstraction || node.isEnvAbstraction;
     assert !node.isARTAbstraction || !node.isEnvAbstraction;
 
     Formula rItp = fmgr.changePrimedNo(itp, rMap);
