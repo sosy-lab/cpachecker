@@ -65,6 +65,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private Timer transferTimer      = new Timer();
     private Timer mergeTimer         = new Timer();
     private Timer stopTimer          = new Timer();
+    private Timer addTimer           = new Timer();
 
     private int   countIterations   = 0;
     private int   maxWaitlistSize   = 0;
@@ -93,12 +94,15 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Number of times stopped:         " + countStop);
       out.println("Number of times breaked:         " + countBreak);
       out.println();
-      out.println("Total time for CPA algorithm:   " + totalTimer + " (Max: " + totalTimer.printMaxTime() + ")");
-      out.println("Time for choose from waitlist:  " + chooseTimer);
-      out.println("Time for precision adjustment:  " + precisionTimer);
-      out.println("Time for transfer relation:     " + transferTimer);
-      out.println("Time for merge operator:        " + mergeTimer);
-      out.println("Time for stop operator:         " + stopTimer);
+      out.println("Total time for CPA algorithm:     " + totalTimer + " (Max: " + totalTimer.printMaxTime() + ")");
+      out.println("  Time for choose from waitlist:  " + chooseTimer);
+      out.println("  Time for precision adjustment:  " + precisionTimer);
+      out.println("  Time for transfer relation:     " + transferTimer);
+      if (mergeTimer.getNumberOfIntervals() > 0) {
+        out.println("  Time for merge operator:        " + mergeTimer);
+      }
+      out.println("  Time for stop operator:         " + stopTimer);
+      out.println("  Time for adding to reached set: " + addTimer);
     }
   }
 
@@ -253,7 +257,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           logger.log(Level.FINER,
               "No need to stop, adding successor to waitlist");
 
+          stats.addTimer.start();
           reachedSet.add(successor, successorPrecision);
+          stats.addTimer.stop();
         }
       }
     }
