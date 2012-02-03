@@ -46,17 +46,17 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   // used for return edges
   private final ExplicitElement previousElement;
 
-  public ExplicitElement() {
+  ExplicitElement() {
     constantsMap = new HashMap<String, Long>();
     previousElement = null;
   }
 
-  public ExplicitElement(ExplicitElement previousElement) {
+  ExplicitElement(ExplicitElement previousElement) {
     constantsMap = new HashMap<String, Long>();
     this.previousElement = previousElement;
   }
 
-  public ExplicitElement(Map<String, Long> constantsMap, ExplicitElement previousElement) {
+  private ExplicitElement(Map<String, Long> constantsMap, ExplicitElement previousElement) {
     this.constantsMap = constantsMap;
     this.previousElement = previousElement;
   }
@@ -106,7 +106,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
    * @param other the other element to join with this element
    * @return a new element representing the join of this element and the other element
    */
-  public ExplicitElement join(ExplicitElement other) {
+  ExplicitElement join(ExplicitElement other) {
     int size = Math.min(constantsMap.size(), other.constantsMap.size());
 
     Map<String, Long> newConstantsMap = new HashMap<String, Long>(size);
@@ -133,7 +133,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
    * @param other the other element
    * @return true, if this element is less or equal than the other element, based on the order imposed by the lattice
    */
-  public boolean isLessOrEqual(ExplicitElement other) {
+  boolean isLessOrEqual(ExplicitElement other) {
     // this element is not less or equal than the other element, if the previous elements differ
     if (previousElement != other.previousElement) {
       return false;
