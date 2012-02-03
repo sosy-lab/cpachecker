@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
@@ -32,7 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Multimap;
 
 /**
  * Special implementation of the reached set that partitions the set by keys that
@@ -51,7 +52,7 @@ import com.google.common.collect.SetMultimap;
  */
 public class PartitionedReachedSet extends DefaultReachedSet {
 
-  private final SetMultimap<Object, AbstractElement> partitionedReached = LinkedHashMultimap.create();
+  private final Multimap<Object, AbstractElement> partitionedReached = LinkedHashMultimap.create();
 
   public PartitionedReachedSet(WaitlistFactory waitlistFactory) {
     super(waitlistFactory);
@@ -79,7 +80,7 @@ public class PartitionedReachedSet extends DefaultReachedSet {
   }
 
   @Override
-  public Set<AbstractElement> getReached(AbstractElement pElement) {
+  public Collection<AbstractElement> getReached(AbstractElement pElement) {
     return getReachedForKey(getPartitionKey(pElement));
   }
 
@@ -92,8 +93,8 @@ public class PartitionedReachedSet extends DefaultReachedSet {
     return ((Partitionable)pElement).getPartitionKey();
   }
 
-  protected Set<AbstractElement> getReachedForKey(Object key) {
-    return Collections.unmodifiableSet(partitionedReached.get(key));
+  protected Collection<AbstractElement> getReachedForKey(Object key) {
+    return Collections.unmodifiableCollection(partitionedReached.get(key));
   }
 
   protected Set<?> getKeySet() {

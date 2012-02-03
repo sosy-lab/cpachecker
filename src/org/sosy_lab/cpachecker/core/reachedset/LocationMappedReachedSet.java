@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import java.util.Collection;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -42,7 +43,7 @@ public class LocationMappedReachedSet extends PartitionedReachedSet {
   }
 
   @Override
-  public Set<AbstractElement> getReached(CFANode location) {
+  public Collection<AbstractElement> getReached(CFANode location) {
     return getReachedForKey(location);
   }
 
