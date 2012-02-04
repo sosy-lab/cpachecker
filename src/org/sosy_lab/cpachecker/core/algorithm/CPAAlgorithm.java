@@ -186,14 +186,20 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         Action action = precAdjustmentResult.getThird();
 
         if (action == Action.BREAK) {
-          stats.countBreak++;
-          // re-add the old element to the waitlist, there may be unhandled
-          // successors left that otherwise would be forgotten
-          reachedSet.reAddToWaitlist(element);
-          reachedSet.add(successor, successorPrecision);
+          if (stopOperator.stop(successor, reachedSet.getReached(successor), successorPrecision)) {
+            // don't signal BREAK for covered elements
+            action = Action.CONTINUE;
 
-          stats.totalTimer.stop();
-          return true;
+          } else {
+            stats.countBreak++;
+            // re-add the old element to the waitlist, there may be unhandled
+            // successors left that otherwise would be forgotten
+            reachedSet.reAddToWaitlist(element);
+            reachedSet.add(successor, successorPrecision);
+
+            stats.totalTimer.stop();
+            return true;
+          }
         }
         assert action == Action.CONTINUE : "Enum Action has unhandled values!";
 

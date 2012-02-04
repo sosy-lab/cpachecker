@@ -114,7 +114,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       CompositeDomain compositeDomain = new CompositeDomain(domains.build());
       CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build());
       CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
-      CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build(), compositeStop);
+      CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build());
 
       return new CompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
           compositePrecisionAdjustment, cpas);
