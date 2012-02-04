@@ -30,6 +30,8 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 
+import com.google.common.primitives.Ints;
+
 public class CFANode implements Comparable<CFANode> {
 
   private static int nextNodeNumber = 0;
@@ -184,30 +186,12 @@ public class CFANode implements Comparable<CFANode> {
   }
 
   @Override
-  public boolean equals(Object pOther) {
-    if (pOther == this) {
-      return true;
-    }
-
-    if (pOther == null || !(pOther instanceof CFANode)) {
-      return false;
-    }
-
-    return getNodeNumber() == ((CFANode) pOther).getNodeNumber();
-  }
-
-  @Override
-  public int hashCode() {
-    return getNodeNumber();
-  }
-
-  @Override
   public String toString() {
-    return "N" + getNodeNumber();
+    return "N" + nodeNumber;
   }
 
   @Override
   public int compareTo(CFANode pOther) {
-    return getNodeNumber() - pOther.getNodeNumber();
+    return Ints.compare(this.nodeNumber, pOther.nodeNumber);
   }
 }
