@@ -80,7 +80,6 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     } else {
       precisionAdjustment = new ARTPrecisionAdjustment(cpa.getPrecisionAdjustment());
     }
-    System.out.println(precisionAdjustment.getClass());
 
     if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
       Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM)cpa).getReducer();
