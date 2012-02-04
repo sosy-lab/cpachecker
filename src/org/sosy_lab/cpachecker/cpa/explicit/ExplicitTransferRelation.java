@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
@@ -110,20 +111,27 @@ public class ExplicitTransferRelation implements TransferRelation
   }
 
   @Override
-  public Collection<AbstractElement> getAbstractSuccessors(AbstractElement element, Precision pPrecision, CFAEdge cfaEdge)
-    throws CPATransferException
-  {
-    if(!(pPrecision instanceof ExplicitPrecision))
-      throw new IllegalArgumentException("precision is no ExplicitPrecision");
+  public Collection<ExplicitElement> getAbstractSuccessors(AbstractElement element, Precision pPrecision, CFAEdge cfaEdge)
+    throws CPATransferException {
 
-    ExplicitPrecision precision = (ExplicitPrecision) pPrecision;
+    ExplicitElement successor = getAbstractSuccessor((ExplicitElement)element, (ExplicitPrecision)pPrecision, cfaEdge);
+
+    if (successor == null) {
+      return Collections.emptySet();
+    } else {
+      return Collections.singleton(successor);
+    }
+  }
+
+
+  private ExplicitElement getAbstractSuccessor(ExplicitElement explicitElement, ExplicitPrecision precision, CFAEdge cfaEdge)
+        throws CPATransferException {
 
     currentPrecision = precision;
 
     precision.setLocation(cfaEdge.getSuccessor());
 
-    AbstractElement successor;
-    ExplicitElement explicitElement = (ExplicitElement)element;
+    ExplicitElement successor;
 
     // check the type of the edge
     switch(cfaEdge.getEdgeType())
@@ -173,15 +181,19 @@ public class ExplicitTransferRelation implements TransferRelation
       successor = handleFunctionReturn(explicitElement, functionReturnEdge);
       break;
 
+    case MultiEdge:
+      successor = explicitElement;
+      for (CFAEdge edge : (MultiEdge)cfaEdge) {
+        successor = this.getAbstractSuccessor(successor, precision, edge);
+        assert successor != null : "MultiEdge contained AssumeEdge or ExplicitTransferRelation returned null where it shouldn't";
+      }
+      break;
+
     default:
       throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
 
-    if(successor == null)
-      return Collections.emptySet();
-
-    else
-      return Collections.singleton(successor);
+    return successor;
   }
 
   private ExplicitElement handleFunctionCall(ExplicitElement element, FunctionCallEdge callEdge)
@@ -297,7 +309,7 @@ public class ExplicitTransferRelation implements TransferRelation
     return newElement;
   }
 
-  private AbstractElement handleAssumption(ExplicitElement element, IASTExpression expression, CFAEdge cfaEdge, boolean truthValue, ExplicitPrecision precision)
+  private ExplicitElement handleAssumption(ExplicitElement element, IASTExpression expression, CFAEdge cfaEdge, boolean truthValue, ExplicitPrecision precision)
     throws UnrecognizedCCodeException
   {
     // convert a simple expression like [a] to [a != 0]
