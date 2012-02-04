@@ -147,6 +147,11 @@ public final class DOTBuilder {
 			{
 				CFAEdge edge = node.getLeavingEdge (edgeIdx);
 
+				// don't consider edges that go beyond our functions
+				if (!subGraphWriters.keySet().contains(edge.getSuccessor().getFunctionName())){
+				  continue;
+				}
+
 				if(edge instanceof AssumeEdge){
 					nodeWriter.add(node.getNodeNumber(), "diamond");
 				}
@@ -154,7 +159,7 @@ public final class DOTBuilder {
 				CFANode successor = edge.getSuccessor ();
 				String line = "";
 
-				if ((!visitedNodes.contains (successor)) && (!waitingNodeSet.contains (successor)))
+				if ((!visitedNodes.contains (successor)) && (!waitingNodeSet.contains(successor)))
 				{
 					waitingNodeList.add (successor);
 					waitingNodeSet.add (successor);
@@ -179,6 +184,9 @@ public final class DOTBuilder {
 				}
 				else{
 					dw = subGraphWriters.get(node.getFunctionName());
+				}
+				if (dw == null){
+				  System.out.println();
 				}
 				dw.add(line);
 			}

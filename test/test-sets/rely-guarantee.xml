@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="1800">
+<benchmark tool="cpachecker" timelimit="300">
 
   <test name="global pred, SBE, Cartesian abst, fully abstracted env.">
     <sourcefiles>
@@ -15,6 +15,13 @@
       <include>test/programs/multi-threaded/various/mutex-unsafe.cil.c</include>
       <include>test/programs/multi-threaded/various/real-unsafe.cil.c</include>
       <include>test/programs/multi-threaded/various/simple-unsafe.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/bluetooth.cav09.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/dekker.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/peterson.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/time_var_mutex.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/szymanski.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/bakery.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lamport.cil.c</include>
     </sourcefiles>
 
       <option name="-concurrent"/>
@@ -34,6 +41,13 @@
       <include>test/programs/multi-threaded/various/mutex-unsafe.cil.c</include>
       <include>test/programs/multi-threaded/various/real-unsafe.cil.c</include>
       <include>test/programs/multi-threaded/various/simple-unsafe.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/bluetooth.cav09.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/dekker.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/peterson.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/time_var_mutex.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/szymanski.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/bakery.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lamport.cil.c</include>
     </sourcefiles>
 
       <option name="-concurrent"/>
@@ -53,6 +67,13 @@
       <include>test/programs/multi-threaded/various/mutex-unsafe.cil.c</include>
       <include>test/programs/multi-threaded/various/real-unsafe.cil.c</include>
       <include>test/programs/multi-threaded/various/simple-unsafe.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/bluetooth.cav09.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/dekker.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/peterson.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/time_var_mutex.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/szymanski.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/bakery.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lamport.cil.c</include>
     </sourcefiles>
 
       <option name="-concurrent"/>
