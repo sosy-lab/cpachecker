@@ -21,25 +21,36 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.automaton;
+package org.sosy_lab.cpachecker.core.defaults;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
-public class AutomatonPrecisionAdjustment implements PrecisionAdjustment {
+/**
+ * Implementation of prec operator which does not change the precision or
+ * the element, but checks for target states and signals a break in this case.
+ */
+public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
+
+  private BreakOnTargetsPrecisionAdjustment() { }
 
   @Override
   public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement,
       Precision pPrecision, UnmodifiableReachedSet pElements) {
 
-    Action action = ((AutomatonState)pElement).isTarget()
+    Action action = ((Targetable)pElement).isTarget()
                     ? Action.BREAK : Action.CONTINUE;
-    return new Triple<AbstractElement, Precision, Action>(
-        pElement, SingletonPrecision.getInstance(), action);
+
+    return new Triple<AbstractElement, Precision, Action>(pElement, pPrecision, action);
   }
 
+  private static final PrecisionAdjustment instance = new BreakOnTargetsPrecisionAdjustment();
+
+  public static PrecisionAdjustment getInstance() {
+    return instance;
+  }
 }

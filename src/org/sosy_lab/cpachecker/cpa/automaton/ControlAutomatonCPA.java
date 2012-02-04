@@ -39,6 +39,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.Optional;
+import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
@@ -99,7 +100,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     config.inject(this, ControlAutomatonCPA.class);
 
     transferRelation = new AutomatonTransferRelation(this, logger);
-    precisionAdjustment = breakOnTargetState ? new AutomatonPrecisionAdjustment() : StaticPrecisionAdjustment.getInstance();
+    precisionAdjustment = breakOnTargetState ? BreakOnTargetsPrecisionAdjustment.getInstance() : StaticPrecisionAdjustment.getInstance();
 
     if (pAutomaton != null) {
       this.automaton = pAutomaton;

@@ -37,6 +37,8 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
  */
 public class StaticPrecisionAdjustment implements PrecisionAdjustment {
 
+  private StaticPrecisionAdjustment() { }
+
   @Override
   public Triple<AbstractElement, Precision, Action> prec(AbstractElement element,
         Precision precision, UnmodifiableReachedSet elements) {
