@@ -114,62 +114,20 @@ public class ExplicitTransferRelation implements TransferRelation
   public Collection<ExplicitElement> getAbstractSuccessors(AbstractElement element, Precision pPrecision, CFAEdge cfaEdge)
     throws CPATransferException {
 
-    ExplicitElement successor = getAbstractSuccessor((ExplicitElement)element, (ExplicitPrecision)pPrecision, cfaEdge);
+    ExplicitElement explicitElement = (ExplicitElement)element;
+    ExplicitPrecision explicitPrecision = (ExplicitPrecision)pPrecision;
 
-    if (successor == null) {
-      return Collections.emptySet();
-    } else {
-      return Collections.singleton(successor);
-    }
-  }
+    currentPrecision = explicitPrecision;
 
-
-  private ExplicitElement getAbstractSuccessor(ExplicitElement explicitElement, ExplicitPrecision precision, CFAEdge cfaEdge)
-        throws CPATransferException {
-
-    currentPrecision = precision;
-
-    precision.setLocation(cfaEdge.getSuccessor());
+    explicitPrecision.setLocation(cfaEdge.getSuccessor());
 
     ExplicitElement successor;
 
-    // check the type of the edge
-    switch(cfaEdge.getEdgeType())
-    {
-    // if edge is a statement edge, e.g. a = b + c
-    case StatementEdge:
-      StatementEdge statementEdge = (StatementEdge) cfaEdge;
-      successor = explicitElement.clone();
-      handleStatement(successor, statementEdge.getStatement(), cfaEdge, precision);
-      break;
-
-
-    case ReturnStatementEdge:
-      ReturnStatementEdge returnEdge = (ReturnStatementEdge)cfaEdge;
-      // this statement is a function return, e.g. return (a);
-      // note that this is different from return edge
-      // this is a statement edge which leads the function to the
-      // last node of its CFA, where return edge is from that last node
-      // to the return site of the caller function
-      successor = explicitElement.clone();
-      handleExitFromFunction(successor, returnEdge.getExpression(), returnEdge);
-      break;
-
-    // edge is a declaration edge, e.g. int a;
-    case DeclarationEdge:
-      DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
-      successor = explicitElement.clone();
-      handleDeclaration(successor, declarationEdge, precision);
-      break;
-
+    switch (cfaEdge.getEdgeType()) {
     // this is an assumption, e.g. if(a == b)
     case AssumeEdge:
       AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
-      successor = handleAssumption(explicitElement.clone(), assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption(), precision);
-      break;
-
-    case BlankEdge:
-      successor = explicitElement.clone();
+      successor = handleAssumption(explicitElement.clone(), assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption(), explicitPrecision);
       break;
 
     case FunctionCallEdge:
@@ -184,19 +142,58 @@ public class ExplicitTransferRelation implements TransferRelation
       successor = handleFunctionReturn(explicitElement, functionReturnEdge);
       break;
 
+    default:
+      successor = explicitElement.clone();
+      handleSimpleEdge(successor, explicitPrecision, cfaEdge);
+    }
+
+    if (successor == null) {
+      return Collections.emptySet();
+    } else {
+      return Collections.singleton(successor);
+    }
+  }
+
+  private void handleSimpleEdge(ExplicitElement element, ExplicitPrecision precision, CFAEdge cfaEdge)
+        throws CPATransferException {
+
+    // check the type of the edge
+    switch(cfaEdge.getEdgeType()) {
+
+    // if edge is a statement edge, e.g. a = b + c
+    case StatementEdge:
+      StatementEdge statementEdge = (StatementEdge) cfaEdge;
+      handleStatement(element, statementEdge.getStatement(), cfaEdge, precision);
+      break;
+
+    case ReturnStatementEdge:
+      ReturnStatementEdge returnEdge = (ReturnStatementEdge)cfaEdge;
+      // this statement is a function return, e.g. return (a);
+      // note that this is different from return edge
+      // this is a statement edge which leads the function to the
+      // last node of its CFA, where return edge is from that last node
+      // to the return site of the caller function
+      handleExitFromFunction(element, returnEdge.getExpression(), returnEdge);
+      break;
+
+    // edge is a declaration edge, e.g. int a;
+    case DeclarationEdge:
+      DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
+      handleDeclaration(element, declarationEdge, precision);
+      break;
+
+    case BlankEdge:
+      break;
+
     case MultiEdge:
-      successor = explicitElement;
       for (CFAEdge edge : (MultiEdge)cfaEdge) {
-        successor = this.getAbstractSuccessor(successor, precision, edge);
-        assert successor != null : "MultiEdge contained AssumeEdge or ExplicitTransferRelation returned null where it shouldn't";
+        handleSimpleEdge(element, precision, edge);
       }
       break;
 
     default:
       throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
-
-    return successor;
   }
 
   private ExplicitElement handleFunctionCall(ExplicitElement element, FunctionCallEdge callEdge)
