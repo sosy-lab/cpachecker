@@ -42,7 +42,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -63,7 +62,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -182,7 +180,7 @@ public class RGRefiner implements StatisticsProvider{
     }
     System.out.println();
     System.out.println("\t\t\t ----- Interpolation -----");
-    CounterexampleTraceInfo mCounterexampleTraceInfo = refManager.buildRgCounterexampleTrace(targetElement, reachedSets, errorThr);
+    InterpolationTreeResult mCounterexampleTraceInfo = refManager.buildRgCounterexampleTrace(targetElement, reachedSets, errorThr);
 
     // if error is spurious refine
     if (mCounterexampleTraceInfo.isSpurious()) {
@@ -193,16 +191,6 @@ public class RGRefiner implements StatisticsProvider{
       stats.restartingTimer.start();
       refinementResult = restartingRefinement(reachedSets, mCounterexampleTraceInfo);
 
-
-
-      /*System.out.println("Wait lists before refinement");
-      for (int i=0; i<reachedSets.length; i++){
-        System.out.println("For thread "+i);
-        for (AbstractElement element : reachedSets[i].getWaitlist()){
-          ARTElement artElement = (ARTElement) element;
-          System.out.println("\t - id:"+artElement.getElementId());
-        }
-      }*/
 
       // drop subtrees and change precision
       for(int tid : refinementResult.keySet()){
@@ -258,7 +246,7 @@ public class RGRefiner implements StatisticsProvider{
    * @param errorThr
    * @return
    */
-  private Multimap<Integer, Pair<ARTElement, RGPrecision>> restartingRefinement(ReachedSet[] reachedSets, CounterexampleTraceInfo info) {
+  private Multimap<Integer, Pair<ARTElement, RGPrecision>> restartingRefinement(ReachedSet[] reachedSets, InterpolationTreeResult info) {
     // TODO rewrite - a bit sloopy
     Multimap<Integer, Pair<ARTElement, RGPrecision>> refinementMap = HashMultimap.create();
     // multimap : thread no -> (ART element)
@@ -271,9 +259,8 @@ public class RGRefiner implements StatisticsProvider{
     }
 
     // add env. predicates to precision
-    for (AbstractElement aElement : info.getEnvPredicatesForRefinmentKeys()){
-      assert aElement instanceof ARTElement;
-      ARTElement artElement = (ARTElement) aElement;
+    for (ARTElement aElement : info.getEnvPredicatesForRefinmentKeys()){
+      ARTElement artElement = aElement;
       RGAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RGAbstractElement.class);
       int tid = rgElement.getTid();
       CFANode loc = AbstractElements.extractLocation(artElement);
@@ -305,14 +292,12 @@ public class RGRefiner implements StatisticsProvider{
     }
 
     // group interpolation elements  by threads
-    for (AbstractElement aElement : info.getPredicatesForRefinmentKeys()){
+    for (ARTElement aElement : info.getPredicatesForRefinmentKeys()){
       //Collection<AbstractionPredicate> newpreds = info.getPredicatesForRefinement(aElement);
-      assert aElement instanceof ARTElement;
-      ARTElement artElement = (ARTElement) aElement;
-      RGAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RGAbstractElement.class);
+      RGAbstractElement rgElement = AbstractElements.extractElementByType(aElement, RGAbstractElement.class);
       int tid = rgElement.getTid();
       if (!info.getPredicatesForRefinement(aElement).isEmpty()){
-        artMap.put(tid, artElement);
+        artMap.put(tid, aElement);
       }
     }
 

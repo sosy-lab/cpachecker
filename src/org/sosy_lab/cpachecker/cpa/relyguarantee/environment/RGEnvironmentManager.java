@@ -154,8 +154,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
       this.envPrecision[i] = HashMultimap.create();
       this.envGlobalPrecision[i] = new HashSet<AbstractionPredicate>();
     }
-
-
   }
 
 

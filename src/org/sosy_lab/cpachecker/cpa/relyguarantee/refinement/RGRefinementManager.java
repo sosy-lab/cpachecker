@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
@@ -172,7 +171,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public CounterexampleTraceInfo buildRgCounterexampleTrace(final ARTElement targetElement, final ReachedSet[] reachedSets, int tid) throws CPAException, InterruptedException {
+  public InterpolationTreeResult buildRgCounterexampleTrace(final ARTElement targetElement, final ReachedSet[] reachedSets, int tid) throws CPAException, InterruptedException {
     // if we don't want to limit the time given to the solver
     //return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, elementsOnPath, firstItpProver);
 
@@ -416,7 +415,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
    * @throws InterruptedException
    * @throws CPAException
    */
-  private <T> CounterexampleTraceInfo interpolateTree(ARTElement targetElement, ReachedSet[] reachedSets, int tid, InterpolatingTheoremProver<T> itpProver) throws InterruptedException, CPAException {
+  private <T> InterpolationTreeResult interpolateTree(ARTElement targetElement, ReachedSet[] reachedSets, int tid, InterpolatingTheoremProver<T> itpProver) throws InterruptedException, CPAException {
     stats.formulaTimer.start();
 
     /*
@@ -443,136 +442,155 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
      tree.writeToDOT(dagFilePredix+"_trimmed.dot");
    }
 
-   List<InterpolationTreeNode> topList = tree.topSort();
-
    stats.formulaTimer.stop();
-   stats.formulaNo = topList.size();
 
-
-
-   if (debug){
-     System.out.println();
-     System.out.println("Interpolation formulas - element: formula\t\t size:"+tree.size());
-     for (InterpolationTreeNode node : topList){
-       System.out.println("\t-"+node+": "+node.getPathFormula());
-     }
-   }
-
-   /*
-    * Interpolate formulas.
-    */
-
-   CounterexampleTraceInfo info  = new CounterexampleTraceInfo();
-
-   if (debug){
-     System.out.println();
-     System.out.println("Interpolants:");
-   }
-
-   stats.interpolationTimer.start();
-
-
-   InterpolationTreeNode prevNode = null;
-
-   Map<InterpolationTreeNode, T> idMap = new HashMap<InterpolationTreeNode, T>(tree.size());
-
-   for (InterpolationTreeNode node : topList) {
-
-     if (prevNode == null || !node.uniqueId.equals(prevNode.uniqueId)){
-       /*
-        *  New branch taken
-        */
-
-       // reconstruct formulas
-       if (prevNode != null){
-         itpProver.reset();
-         tree.removeAncestorsOf(prevNode);
-       }
-       itpProver.init();
-       idMap.clear();
-       List<InterpolationTreeNode> nodeTopList = tree.topSort();
-       for (InterpolationTreeNode n : nodeTopList){
-         T id = itpProver.addFormula(n.getPathFormula().getFormula());
-         idMap.put(n, id);
-       }
-
-       // run the prover
-       boolean spurious = itpProver.isUnsat();
-       stats.unsatChecks++;
-
-       if (!spurious){
-         // if trace is feasible, then it should be detected in the first iteration
-         assert prevNode == null;
-         info = new CounterexampleTraceInfo(false);
-
-         if (debug){
-           System.out.println("\tFeasbile error trace.");
-         }
-
-         break;
-       }
-     }
-
-     // find the list of id that correspond to A-part of interpolation formulas
-     List<InterpolationTreeNode> ancList = tree.getAncestorsOf(node);
-     ancList.add(0, node);
-     List<T> idList = new Vector<T>(ancList.size());
-     for (InterpolationTreeNode ancNode : ancList){
-       T id = idMap.get(ancNode);
-       idList.add(id);
-     }
-
-     Formula itp = itpProver.getInterpolant(idList);
-
-     // replace the node with the interpolant and drop all children
-     PathFormula oldPF = node.getPathFormula();
-     PathFormula newPF = new PathFormula(itp, oldPF.getSsa(), oldPF.getLength());
-     node.setPathFormula(newPF);
-
-     if (debug){
-       System.out.print("\t-"+node+": "+itp);
-     }
-
-     // rename the interpolant to its source and divide into atoms
-     Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(node.children.size()+1);
-     if (!itp.isTrue()){
-       rMap.put(node.uniqueId, -1);
-       for (InterpolationTreeNode child : node.children){
-         rMap.put(child.uniqueId, -1);
-       }
-     }
-
-     Set<AbstractionPredicate> preds = getPredicates(itp, node, rMap);
-
-     if (node.isARTAbstraction){
-       info.addPredicatesForRefinement(node.artElement, preds);
-     }
-     if (node.isEnvAbstraction){
-       info.addEnvPredicatesForRefinement(node.artElement, preds);
-     }
-
-
-
-
-
-     // add predicates to ART precision or to env. precision
-     if (itp.isFalse()){
-       break;
-     }
-
-     if (debug){
-       System.out.println("\t"+preds);
-     }
-
-     prevNode = node;
-   }
-
-   itpProver.reset();
-   stats.interpolationTimer.stop();
+   InterpolationTreeResult info = interpolateTreeData(tree, itpProver);
 
    return info;
   }
 
+
+
+
+  /**
+   *
+   * @param tree
+   * @param itpProver
+   * @return
+   * @throws InterruptedException
+   */
+  private <T> InterpolationTreeResult interpolateTreeData(InterpolationTree tree, InterpolatingTheoremProver<T> itpProver) throws InterruptedException {
+
+    List<InterpolationTreeNode> topList = tree.topSort();
+    stats.formulaNo = topList.size();
+
+    if (debug){
+      System.out.println();
+      System.out.println("Interpolation formulas - element: formula\t\t size:"+tree.size());
+      for (InterpolationTreeNode node : topList){
+        System.out.println("\t-"+node+": "+node.getPathFormula());
+      }
+    }
+
+    /*
+     * Interpolate formulas.
+     */
+
+    // assume that the trace is spurious
+    InterpolationTreeResult info  = new InterpolationTreeResult(true);
+
+    if (debug){
+      System.out.println();
+      System.out.println("Interpolants:");
+    }
+
+    stats.interpolationTimer.start();
+
+
+    InterpolationTreeNode prevNode = null;
+
+    Map<InterpolationTreeNode, T> idMap = new HashMap<InterpolationTreeNode, T>(tree.size());
+
+    for (InterpolationTreeNode node : topList) {
+
+      if (prevNode == null || !node.uniqueId.equals(prevNode.uniqueId)){
+        /*
+         *  New branch taken
+         */
+
+        // reconstruct formulas
+        if (prevNode != null){
+          itpProver.reset();
+          tree.removeAncestorsOf(prevNode);
+        }
+        itpProver.init();
+        idMap.clear();
+        List<InterpolationTreeNode> nodeTopList = tree.topSort();
+        for (InterpolationTreeNode n : nodeTopList){
+          T id = itpProver.addFormula(n.getPathFormula().getFormula());
+          idMap.put(n, id);
+        }
+
+        // run the prover
+        boolean spurious = itpProver.isUnsat();
+        stats.unsatChecks++;
+
+        if (!spurious){
+          // if trace is feasible, then it should be detected in the first iteration
+          assert prevNode == null;
+          info = new InterpolationTreeResult(false);
+
+          getErrorTraces(tree);
+
+
+          if (debug){
+            System.out.println("\tFeasbile error trace.");
+          }
+
+          break;
+        }
+      }
+
+      // find the list of id that correspond to A-part of interpolation formulas
+      List<InterpolationTreeNode> ancList = tree.getAncestorsOf(node);
+      ancList.add(0, node);
+      List<T> idList = new Vector<T>(ancList.size());
+      for (InterpolationTreeNode ancNode : ancList){
+        T id = idMap.get(ancNode);
+        idList.add(id);
+      }
+
+      Formula itp = itpProver.getInterpolant(idList);
+
+      // replace the node with the interpolant and drop all children
+      PathFormula oldPF = node.getPathFormula();
+      PathFormula newPF = new PathFormula(itp, oldPF.getSsa(), oldPF.getLength());
+      node.setPathFormula(newPF);
+
+      if (debug){
+        System.out.print("\t-"+node+": "+itp);
+      }
+
+      // rename the interpolant to its source and divide into atoms
+      Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(node.children.size()+1);
+      if (!itp.isTrue()){
+        rMap.put(node.uniqueId, -1);
+        for (InterpolationTreeNode child : node.children){
+          rMap.put(child.uniqueId, -1);
+        }
+      }
+
+      Set<AbstractionPredicate> preds = getPredicates(itp, node, rMap);
+
+      if (node.isARTAbstraction){
+        info.addPredicatesForRefinement(node.artElement, preds);
+      }
+      if (node.isEnvAbstraction){
+        info.addEnvPredicatesForRefinement(node.artElement, preds);
+      }
+
+      // add predicates to ART precision or to env. precision
+      if (itp.isFalse()){
+        break;
+      }
+
+      if (debug){
+        System.out.println("\t"+preds);
+      }
+
+      prevNode = node;
+    }
+
+    itpProver.reset();
+    stats.interpolationTimer.stop();
+
+    return info;
+  }
+
+  private void getErrorTraces(InterpolationTree pTree) {
+    // TODO Auto-generated method stub
+
+  }
 
   /**
    * Unwinds env. applications in the DAG into separate branches.

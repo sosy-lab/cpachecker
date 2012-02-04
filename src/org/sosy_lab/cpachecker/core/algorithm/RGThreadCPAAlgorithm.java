@@ -197,10 +197,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc);
       }
 
-      if (aElement.getElementId() == 313){
-        System.out.println();
-      }
-
       stats.transferTimer.start();
       runStats.transferTimer.start();
       // if local child was not expanded, then do it, otherwise only apply new env. transitions
@@ -317,7 +313,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
         /* Remember the transition element--edge-->successor as candidate for an env. transition. */
         stats.envGenTimer.start();
-        if (this.createsEnvTransition(edge)){
+        if (createsEnvTransition(edge)){
           RGEnvCandidate candidate = new RGEnvCandidate((ARTElement)element, (ARTElement)successor, edge, tid);
           environment.addEnvTransition(candidate);
         }
