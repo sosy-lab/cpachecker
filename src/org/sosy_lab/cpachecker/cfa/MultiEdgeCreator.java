@@ -56,50 +56,57 @@ class MultiEdgeCreator extends DefaultCFAVisitor {
   @Override
   public TraversalProcess visitNode(final CFANode pNode) {
 
-    List<CFAEdge> edges = new ArrayList<CFAEdge>();
-    Set<CFANode> nodes = new HashSet<CFANode>();
+    if (nodeQualifiesAsStartNode(pNode)) {
+      List<CFAEdge> edges = new ArrayList<CFAEdge>();
+      Set<CFANode> nodes = new HashSet<CFANode>();
 
-    CFANode node = pNode;
-    while (nodeQualifies(node)) {
-      CFAEdge edge = node.getLeavingEdge(0);
+      CFANode node = pNode;
+      do {
+        CFAEdge edge = node.getLeavingEdge(0);
 
-      if (!edgeQualifies(edge)) {
-        break;
-      }
+        if (!edgeQualifies(edge)) {
+          break;
+        }
 
-      edges.add(edge);
-      nodes.add(edge.getPredecessor());
-      nodes.add(edge.getSuccessor());
+        edges.add(edge);
+        nodes.add(edge.getPredecessor());
+        nodes.add(edge.getSuccessor());
 
-      node = edge.getSuccessor();
-    }
+        node = edge.getSuccessor();
+      } while (nodeQualifies(node));
 
-    if (edges.size() > 1) {
-      CFAEdge firstEdge = edges.get(0);
-      CFANode firstNode = firstEdge.getPredecessor();
-      assert firstNode == pNode;
-      CFAEdge lastEdge = edges.get(edges.size()-1);
-      CFANode lastNode = lastEdge.getSuccessor();
+      if (edges.size() > 1) {
+        CFAEdge firstEdge = edges.get(0);
+        CFANode firstNode = firstEdge.getPredecessor();
+        assert firstNode == pNode;
+        CFAEdge lastEdge = edges.get(edges.size()-1);
+        CFANode lastNode = lastEdge.getSuccessor();
 
-      // remove old edges
-      firstNode.removeLeavingEdge(firstEdge);
-      lastNode.removeEnteringEdge(lastEdge);
+        // remove old edges
+        firstNode.removeLeavingEdge(firstEdge);
+        lastNode.removeEnteringEdge(lastEdge);
 
-      // add new edges
-      MultiEdge newEdge = new MultiEdge(firstNode, lastNode, edges);
-      firstNode.addLeavingEdge(newEdge);
-      lastNode.addEnteringEdge(newEdge);
+        // add new edges
+        MultiEdge newEdge = new MultiEdge(firstNode, lastNode, edges);
+        firstNode.addLeavingEdge(newEdge);
+        lastNode.addEnteringEdge(newEdge);
 
-      // remove now unreachable nodes
-      nodes.remove(firstNode);
-      nodes.remove(lastNode);
-      assert !nodes.isEmpty();
-      for (CFANode middleNode : nodes) {
-        cfa.removeNode(middleNode);
+        // remove now unreachable nodes
+        nodes.remove(firstNode);
+        nodes.remove(lastNode);
+        assert !nodes.isEmpty();
+        for (CFANode middleNode : nodes) {
+          cfa.removeNode(middleNode);
+        }
       }
     }
 
     return TraversalProcess.CONTINUE;
+  }
+
+  private boolean nodeQualifiesAsStartNode(CFANode node) {
+    return node.getNumLeavingEdges() == 1
+        && node.getLeavingSummaryEdge() == null;
   }
 
   private boolean nodeQualifies(CFANode node) {

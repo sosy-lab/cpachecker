@@ -85,6 +85,17 @@ public class MultiEdge extends AbstractCFAEdge implements Iterable<CFAEdge> {
   }
 
   @Override
+  public String getDescription() {
+    return Joiner.on('\n').join(Lists.transform(edges, new Function<CFAEdge, String>() {
+
+        @Override
+        public String apply(CFAEdge pInput) {
+          return pInput.getDescription();
+        }
+      }));
+  }
+
+  @Override
   public String toString() {
     return Joiner.on('\n').join(edges);
   }
