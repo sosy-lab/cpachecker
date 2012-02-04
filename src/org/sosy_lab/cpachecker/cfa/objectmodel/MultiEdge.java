@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel;
 
+import java.util.Iterator;
 import java.util.List;
 
 import com.google.common.base.Function;
@@ -38,13 +39,22 @@ import com.google.common.collect.Lists;
  * StatementEdge
  * ReturnStatementEdge
  */
-public class MultiEdge extends AbstractCFAEdge {
+public class MultiEdge extends AbstractCFAEdge implements Iterable<CFAEdge> {
 
   private final ImmutableList<CFAEdge> edges;
 
   public MultiEdge(CFANode pPredecessor, CFANode pSuccessor, List<CFAEdge> pEdges) {
     super("", pEdges.get(0).getLineNumber(), pPredecessor, pSuccessor);
     edges = ImmutableList.copyOf(pEdges);
+  }
+
+  public ImmutableList<CFAEdge> getEdges() {
+    return edges;
+  }
+
+  @Override
+  public Iterator<CFAEdge> iterator() {
+    return edges.iterator();
   }
 
   @Override
