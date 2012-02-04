@@ -88,6 +88,14 @@ public class PartitionedReachedSet extends DefaultReachedSet {
     return partitionedReached.keySet().size();
   }
 
+  public int getSizeOfMaxPartition() {
+    int max = 0;
+    for (Collection<AbstractElement> partition : partitionedReached.asMap().values()) {
+      max = Math.max(max, partition.size());
+    }
+    return max;
+  }
+
   protected Object getPartitionKey(AbstractElement pElement) {
     assert pElement instanceof Partitionable : "Partitionable elements necessary for PartitionedReachedSet";
     return ((Partitionable)pElement).getPartitionKey();
