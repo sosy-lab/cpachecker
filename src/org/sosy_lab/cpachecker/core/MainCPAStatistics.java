@@ -63,7 +63,7 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multiset;
 
@@ -297,16 +297,15 @@ class MainCPAStatistics implements Statistics {
         } else if (reached instanceof PartitionedReachedSet) {
           PartitionedReachedSet p = (PartitionedReachedSet)reached;
 
-          Multiset<CFANode> allLocations = ImmutableMultiset.copyOf(AbstractElements.extractLocations(reached));
-          int locs = allLocations.elementSet().size();
+          HashMultiset<CFANode> allLocations = HashMultiset.create(AbstractElements.extractLocations(reached));
+          int locs = allLocations.entrySet().size();
+          out.println("  Number of locations:        " + locs);
+          out.println("    Avg states per loc.:      " + reachedSize / locs);
 
           int max = 0;
           for (Multiset.Entry<CFANode> location : allLocations.entrySet()) {
             max = Math.max(max, location.getCount());
           }
-
-          out.println("  Number of locations:        " + locs);
-          out.println("    Avg states per loc.:      " + reachedSize / locs);
           out.println("    Max states per loc.:      " + max);
 
           int partitions = p.getNumberOfPartitions();
