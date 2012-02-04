@@ -74,6 +74,10 @@ public class CFACreator {
       description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
 
+  @Option(name="cfa.useMultiEdges",
+      description="combine sequences of simple edges into a single edge")
+  private boolean useMultiEdges = false;
+
   @Option(name="cfa.removeIrrelevantForErrorLocations",
       description="remove paths from CFA that cannot lead to a error location")
   private boolean removeIrrelevantForErrorLocations = false;
@@ -201,6 +205,9 @@ public class CFACreator {
         }
       }
 
+      if (useMultiEdges) {
+        MultiEdgeCreator.createMultiEdges(cfa);
+      }
 
       final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure);
 
