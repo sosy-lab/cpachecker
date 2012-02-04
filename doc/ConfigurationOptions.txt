@@ -54,7 +54,7 @@ rootDirectory = "."
 adjustableconditions.adjustmentLimit = -1
 
 # stop CPAchecker after startup (internal option, not intended for users)
-analysis.analysis.disable = false
+analysis.disable = false
 
 # use CBMC and the FeatureVars Restriction option
 analysis.analysis.useFeatureVarsRestriction = no default value
