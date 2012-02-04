@@ -21,31 +21,25 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.defaults;
+package org.sosy_lab.cpachecker.cpa.art;
 
+import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-/**
- * Implementation of prec operator which does not change the precision or
- * the element, but checks for target states and signals a break in this case.
- */
-public class BreakOnTargetsPrecisionAdjustment extends SimplePrecisionAdjustment {
+public class ARTSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
 
-  private BreakOnTargetsPrecisionAdjustment() { }
+  private final SimplePrecisionAdjustment wrappedPrecAdjustment;
+
+  public ARTSimplePrecisionAdjustment(SimplePrecisionAdjustment pWrappedPrecAdjustment) {
+    wrappedPrecAdjustment = pWrappedPrecAdjustment;
+  }
 
   @Override
   public Action prec(AbstractElement pElement, Precision pPrecision) throws CPAException {
-    return ((Targetable)pElement).isTarget()
-           ? Action.BREAK : Action.CONTINUE;
-  }
+    ARTElement element = (ARTElement)pElement;
 
-  private static final PrecisionAdjustment instance = new BreakOnTargetsPrecisionAdjustment();
-
-  public static PrecisionAdjustment getInstance() {
-    return instance;
+    return wrappedPrecAdjustment.prec(element.getWrappedElement(), pPrecision);
   }
 }

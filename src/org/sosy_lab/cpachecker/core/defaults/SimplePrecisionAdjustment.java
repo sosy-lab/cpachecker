@@ -23,29 +23,33 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Implementation of prec operator which does not change the precision or
- * the element, but checks for target states and signals a break in this case.
+ * Base implementation for precision adjustment implementations which fulfill
+ * these three requirements:
+ * - prec does not change the element
+ * - prec does not change the precision
+ * - prec does not need access to the reached set
+ *
+ * By inheriting from this class, implementations give callers the opportunity
+ * to directly call {@link #prec(AbstractElement, Precision)}, which is faster.
  */
-public class BreakOnTargetsPrecisionAdjustment extends SimplePrecisionAdjustment {
-
-  private BreakOnTargetsPrecisionAdjustment() { }
+public abstract class SimplePrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
-  public Action prec(AbstractElement pElement, Precision pPrecision) throws CPAException {
-    return ((Targetable)pElement).isTarget()
-           ? Action.BREAK : Action.CONTINUE;
+  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement, Precision pPrecision,
+      UnmodifiableReachedSet pElements) throws CPAException {
+
+    Action action = prec(pElement, pPrecision);
+
+    return Triple.of(pElement, pPrecision, action);
   }
 
-  private static final PrecisionAdjustment instance = new BreakOnTargetsPrecisionAdjustment();
-
-  public static PrecisionAdjustment getInstance() {
-    return instance;
-  }
+  public abstract Action prec(AbstractElement pElement, Precision pPrecision) throws CPAException;
 }
