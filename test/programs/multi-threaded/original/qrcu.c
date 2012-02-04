@@ -1,5 +1,4 @@
 // #include <assert.h> //CP: gcc preprocessor inlines the assert
-#include <assert.h>
 // #include <pthread.h>
 
 int idx; // bit idx = 0; controls which of the two elements ctr1 or ctr2 will be used by readers
@@ -24,7 +23,7 @@ void* qrcu_reader1() {
     } else {
       if (NONDET) {
 	{ __blockattribute__((atomic))
-n	  assume(myidx > 0);
+	  assume(myidx > 0);
 	  assume(ctr2>0);
 	  ctr2++;
 	}
@@ -170,4 +169,3 @@ int main() {
   pthread_create(&t3, NULL, qrcu_writer, NULL);
 } 
 */
-,

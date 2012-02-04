@@ -36,4 +36,3 @@ void thr2() { //nsThread::Main (mozilla/xpcom/threads/nsThread.cpp 1.31)
 }
 
 
-o

@@ -1,5 +1,5 @@
-#include <assert.h>
-
+// #include <assert.h>
+#include <pthread.h>
 
 int stopped = 0, driverStoppingFlag = 0, stoppingEvent = 0; // boolean flags
 int pendingIo = 1;
@@ -10,8 +10,24 @@ inline void IoDec() {
   if (PIo == 0) { stoppingEvent = 1; }
 }
 
+void* adder() {
+  int status; // boolean flag
+  /* Begin: IoInc() */
+  pendingIo = pendingIo+1;
+  if (driverStoppingFlag >= 1) {
+    IoDec();
+    status = 0;
+  } else {
+    status = 1;
+  }
+  /* End: IoInc() */
+  if (status >= 1) {
+    assert(stopped <= 0);
+  }
+  IoDec();
+}
 
-void main() {
+void* stopper() {
   driverStoppingFlag = 1;
   IoDec();
   while (stoppingEvent <= 0);
