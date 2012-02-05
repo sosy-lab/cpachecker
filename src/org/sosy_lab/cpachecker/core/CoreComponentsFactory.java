@@ -69,7 +69,7 @@ class CoreComponentsFactory {
   @Option(description="use CBMC to double-check counter-examples")
   private boolean useCBMC = false;
 
-  @Option(name="analysis.useFeatureVarsRestriction",
+  @Option(name="useFeatureVarsRestriction",
       description="use CBMC and the FeatureVars Restriction option")
   private boolean useFeatureVarsRestriction;
 

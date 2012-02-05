@@ -95,6 +95,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
     if (!(pCpa instanceof ARTCPA)) {
       throw new InvalidConfigurationException("ART CPA needed for counterexample check");
     }
+    logger.log(Level.INFO, "using the FeatureVars Restriction Algorithm");
 
     if (checkerName.equals("CBMC")) {
       checker = new CBMCChecker(config, logger, cfa);
