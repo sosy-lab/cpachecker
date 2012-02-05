@@ -51,10 +51,10 @@ public class InterpolationTreeNode  {
   protected final Vector<InterpolationTreeNode> children;
 
   /** Thread id. */
-  protected final Integer tid;
+  protected final int tid;
 
   /** Identifies the branch */
-  protected final Integer uniqueId;
+  protected final int uniqueId;
 
   /** Does it represent an ART abstraction element */
   protected boolean isARTAbstraction;
@@ -92,7 +92,7 @@ public class InterpolationTreeNode  {
     this.isEnvAbstraction = isEnvAbstraction;
   }
 
-  public InterpolationTreeNode(ARTElement artElement, PathFormula pathFormula, RGApplicationInfo appInfo, int tid, Integer uniqueId, boolean isARTAbstraction, boolean isEnvAbstraction){
+  public InterpolationTreeNode(ARTElement artElement, PathFormula pathFormula, RGApplicationInfo appInfo, int tid, int uniqueId, boolean isARTAbstraction, boolean isEnvAbstraction){
     assert artElement   != null;
     assert pathFormula  != null;
 
@@ -108,7 +108,7 @@ public class InterpolationTreeNode  {
     this.isEnvAbstraction = isEnvAbstraction;
   }
 
-  public Integer getUniqueId() {
+  public int getUniqueId() {
     return uniqueId;
   }
 
@@ -140,7 +140,7 @@ public class InterpolationTreeNode  {
     return children;
   }
 
-  public Integer getTid() {
+  public int getTid() {
     return tid;
   }
 

@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
+import java.util.Collection;
+
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -34,25 +37,28 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
  */
 public class RGSimpleTransition implements RGEnvTransition{
 
-  /** Abstraction formula at the point where the transition was generated.  */
+  /** Abstraction formula at the point where the operation was generated.  */
   private final Formula abstraction;
   /** Last abstraction formula unprimed and as a region. */
   private final Region abstractionRegion;
-  /** Path formula at the point where the transition was generated. */
+  /** Path formula at the point where the operation was generated. */
   private final PathFormula pf;
   /** The operation */
   private final CFAEdge operation;
-  /** Last ART element that was an abstraction point before the operatino was applied.  */
-  private final ARTElement sourceARTElement;
+  /** Last ART element that was an abstraction point before the operation was applied.  */
+  private final ARTElement lastAbstractionARTElement;
+  /** ART element created by the concrete operation */
+  private final ARTElement targetARTElement;
   /** Source thread's id */
   private final int tid;
 
-  public RGSimpleTransition(Formula abstraction, Region abstractionReg, PathFormula pf, CFAEdge operation, ARTElement abstractionARTElem, int tid){
+  public RGSimpleTransition(Formula abstraction, Region abstractionReg, PathFormula pf, CFAEdge operation, ARTElement abstractionARTElem, ARTElement targetARTElem, int tid){
     this.abstraction = abstraction;
     this.abstractionRegion = abstractionReg;
     this.pf = pf;
     this.operation = operation;
-    this.sourceARTElement = abstractionARTElem;
+    this.lastAbstractionARTElement = abstractionARTElem;
+    this.targetARTElement  = targetARTElem;
     this.tid = tid;
   }
 
@@ -62,8 +68,8 @@ public class RGSimpleTransition implements RGEnvTransition{
   }
 
   @Override
-  public ARTElement getSourceARTElement() {
-    return sourceARTElement;
+  public ARTElement getAbstractionElement() {
+    return lastAbstractionARTElement;
   }
 
   @Override
@@ -90,6 +96,11 @@ public class RGSimpleTransition implements RGEnvTransition{
 
   public String toString() {
     return "st: "+operation.getRawStatement()+", "+abstraction+", "+pf;
+  }
+
+  @Override
+  public Collection<? extends ARTElement> getGeneratingARTElements() {
+    return ARTUtils.getAllElementsBetween(lastAbstractionARTElement, targetARTElement);
   }
 
 

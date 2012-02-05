@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -69,10 +70,21 @@ public class InterpolationTree {
     this.nodeMap.put(node.getKey(), node);
   }
 
-  public InterpolationTreeNode getNode(Integer tid, Integer ARTElementId, Integer uniqueId) {
+  public InterpolationTreeNode getNode(int tid, int ARTElementId, int uniqueId) {
     InterpolationTreeNodeKey key = new InterpolationTreeNodeKey(tid, ARTElementId, uniqueId);
     return this.nodeMap.get(key);
   }
+
+
+  /**
+   * Get node by key.
+   * @param key
+   * @return
+   */
+  public InterpolationTreeNode getNode(InterpolationTreeNodeKey key) {
+    return this.nodeMap.get(key);
+  }
+
 
   /**
    * Removes node from the tree.
@@ -162,7 +174,7 @@ public class InterpolationTree {
         // find the leaf for the missing child
         InterpolationTreeNode mLeaf = null;
         for (InterpolationTreeNode leaf : this.leafs){
-          if (leaf.uniqueId.equals(mChild.uniqueId)){
+          if (leaf.uniqueId == mChild.uniqueId){
             mLeaf = leaf;
             break;
           }
@@ -199,14 +211,7 @@ public class InterpolationTree {
     return cList;
   }
 
-  /**
-   * Get node by key.
-   * @param key
-   * @return
-   */
-  public InterpolationTreeNode getNode(InterpolationTreeNodeKey key) {
-    return this.nodeMap.get(key);
-  }
+
 
 
   /**
@@ -221,7 +226,7 @@ public class InterpolationTree {
 
       boolean hasSucc = false;
       for (InterpolationTreeNode child : node.parent.children){
-        if (child.uniqueId.equals(node.parent.uniqueId)){
+        if (child.uniqueId == node.parent.uniqueId){
           hasSucc = true;
           break;
         }
@@ -279,12 +284,12 @@ public class InterpolationTree {
     }
 
     InterpolationTreeNode node = root;
-    Integer uid = root.uniqueId;
+    int uid = root.uniqueId;
     int length = 0;
     while (node != null){
       InterpolationTreeNode newNode = null;
       for (InterpolationTreeNode child : node.children){
-        if (child.uniqueId.equals(uid)){
+        if (child.uniqueId == uid){
           length++;
           newNode = child;
           break;
@@ -309,7 +314,7 @@ public class InterpolationTree {
       trunk.add(toProcess);
       InterpolationTreeNode newNode = null;
       for (InterpolationTreeNode child : toProcess.children){
-        if (child.uniqueId.equals(toProcess.uniqueId)){
+        if (child.uniqueId == toProcess.uniqueId){
           newNode = child;
           break;
         }
@@ -349,7 +354,7 @@ public class InterpolationTree {
   }
 
 
-  public Integer size() {
+  public int size() {
     return nodeMap.size();
   }
 
@@ -366,14 +371,8 @@ public class InterpolationTree {
   }
 
   public Map<InterpolationTreeNodeKey, InterpolationTreeNode> getNodeMap() {
-    return nodeMap;
+    return Collections.unmodifiableMap(nodeMap);
   }
-
-
-
-
-
-
 
 
 }

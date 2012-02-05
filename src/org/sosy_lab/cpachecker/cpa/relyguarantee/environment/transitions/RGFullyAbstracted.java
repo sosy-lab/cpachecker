@@ -23,35 +23,42 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
+import java.util.Collection;
+
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Environmental transitions with a fully abstracted precondition and operation.
  */
 public class RGFullyAbstracted implements RGEnvTransition {
 
-  /** Formula over plain and hashed values that abstracts the transition */
+  /** Formula over plain and hashed values that abstracts the operation */
   private final Formula abstractTransition;
   /** BDD representation of abstractTransition */
   private final Region  abstractTransitionRegion;
-  /** SSA map at the point where the concrete transition was applied */
+  /** SSA map at the point where the concrete operation was applied */
   private final SSAMap  lowSSA;
-  /** SSA map after applying the concrete transition */
+  /** SSA map after applying the concrete operation */
   private final SSAMap  highSSA;
-  /** ART element created by the concrete transition */
+  /** ART element created by the concrete operation */
+  private final ARTElement targetARTElement;
+  /** ART element where the concrete operation was applied */
   private final ARTElement sourceARTElement;
   /** Source thred's id */
   private final int tid;
 
-  public RGFullyAbstracted(Formula abstractTransition, Region abstractTransitionRegion, SSAMap lowSSA, SSAMap highSSA, ARTElement sourceARTElement, int tid){
+  public RGFullyAbstracted(Formula abstractTransition, Region abstractTransitionRegion, SSAMap lowSSA, SSAMap highSSA, ARTElement sourceARTElement, ARTElement targetARTElement,  int tid){
     this.abstractTransition = abstractTransition;
     this.abstractTransitionRegion = abstractTransitionRegion;
     this.lowSSA  = lowSSA;
     this.highSSA = highSSA;
     this.sourceARTElement = sourceARTElement;
+    this.targetARTElement = targetARTElement;
     this.tid = tid;
   }
 
@@ -77,8 +84,8 @@ public class RGFullyAbstracted implements RGEnvTransition {
   }
 
   @Override
-  public ARTElement getSourceARTElement() {
-    return sourceARTElement;
+  public ARTElement getAbstractionElement() {
+    return targetARTElement;
   }
 
   @Override
@@ -89,6 +96,11 @@ public class RGFullyAbstracted implements RGEnvTransition {
   @Override
   public int getTid() {
     return tid;
+  }
+
+  @Override
+  public Collection<? extends ARTElement> getGeneratingARTElements() {
+    return ImmutableSet.of(targetARTElement, sourceARTElement);
   }
 
 }

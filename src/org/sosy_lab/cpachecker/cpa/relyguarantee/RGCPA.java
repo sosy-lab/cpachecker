@@ -176,8 +176,8 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
     this.absManager = RGAbstractionManager.getInstance(rManager, fManager, pfManager, thmProver, config, logger);
     this.aManager = AbstractionManagerImpl.getInstance(rManager, mathsatFormulaManager, pfManager, config, logger);
     this.ssaManager = SSAMapManagerImpl.getInstance(fManager, config, logger);
-    this.refManager = RGRefinementManager.getInstance(rManager, fManager,  ssaManager, pfManager, thmProver, itpProver, alternativeItpProver, config, logger);
     this.etManager  = RGEnvTransitionManagerFactory.getInstance(abstractEnvTransitions, fManager, pfManager, absManager, ssaManager, thmProver, rManager, variables, config, logger);
+    this.refManager = RGRefinementManager.getInstance(rManager, fManager,  ssaManager, pfManager, etManager, thmProver, itpProver, alternativeItpProver, config, logger);
 
     this.transfer = new RGTransferRelation(this);
     this.domain = new RGAbstractDomain(this);

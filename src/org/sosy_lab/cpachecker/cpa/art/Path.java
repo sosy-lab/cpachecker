@@ -85,6 +85,11 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
     return Lists.transform(this, projectionToSecond);
   }
 
+  public List<ARTElement> asARTList() {
+    Function<Pair<? extends ARTElement, ?>, ARTElement> projectionToFirst = Pair.getProjectionToFirst();
+    return Lists.transform(this, projectionToFirst);
+  }
+
   /**
    * This method returns the path as C source code, intended to be used with CBMC.
    *

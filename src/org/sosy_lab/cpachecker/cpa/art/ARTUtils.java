@@ -72,19 +72,47 @@ public class ARTUtils {
     return result;
   }
 
-  public static Collection<Path> getAllPathsBetweem(ARTElement pFirst, ARTElement pSecond) {
+  /**
+   * Get all elements on all paths between the source and target elemenents.
+   * @param source
+   * @param target
+   * @return
+   */
+
+  public static Set<ARTElement> getAllElementsBetween(ARTElement source, ARTElement target){
+    Collection<Path> paths = getAllPathsBetween(source, target);
+
+    Set<ARTElement> elems = new HashSet<ARTElement>();
+
+    for (Path pi : paths){
+      elems.addAll(pi.asARTList());
+    }
+
+    // add the missing target
+    elems.add(target);
+
+    return elems;
+  }
+
+  /**
+   * Get all paths in ART from the source to the target.
+   * @param source
+   * @param target
+   * @return
+   */
+  public static Collection<Path> getAllPathsBetween(ARTElement source, ARTElement target) {
     Multimap<ARTElement, Path> pathMap = HashMultimap.create();
     Deque<ARTElement> waitList = new ArrayDeque<ARTElement>();
     Set<ARTElement> explored = new HashSet<ARTElement>();
 
     Set<Path> toAdd = new HashSet<Path>();
 
-    waitList.add(pSecond);
-    explored.add(pSecond);
-    pathMap.put(pSecond, new Path());
+    waitList.add(target);
+    explored.add(target);
+    pathMap.put(target, new Path());
     while(!waitList.isEmpty()){
       ARTElement currentElement = waitList.poll();
-      if (currentElement == pFirst) {
+      if (currentElement == source) {
         continue;
       }
 
@@ -92,9 +120,8 @@ public class ARTUtils {
         if (currentElement == parent){
           continue;
         }
-        if (parent.getElementId() == 33){
-          System.out.println();
-        }
+
+
         waitList.add(parent);
         // extend the path for every parent
         CFAEdge edge = parent.getEdgeToChild(currentElement);
@@ -107,7 +134,7 @@ public class ARTUtils {
         }
       }
     }
-    return pathMap.get(pFirst);
+    return pathMap.get(source);
   }
 
 

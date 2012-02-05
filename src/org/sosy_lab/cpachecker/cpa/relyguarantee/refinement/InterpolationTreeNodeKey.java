@@ -25,17 +25,17 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement;
 
 public class InterpolationTreeNodeKey  {
 
-  protected final Integer tid;
-  protected final Integer artElementId;
-  protected final Integer uniqueId;
+  protected final int tid;
+  protected final int artElementId;
+  protected final int uniqueId;
 
-  InterpolationTreeNodeKey(Integer tid, Integer  artElementId,  Integer uniqueId){
+  InterpolationTreeNodeKey(int tid, int  artElementId,  int uniqueId){
     this.tid = tid;
     this.artElementId = artElementId;
     this.uniqueId = uniqueId;
   }
 
-  InterpolationTreeNodeKey(InterpolationDagNodeKey key,  Integer uniqueId){
+  InterpolationTreeNodeKey(InterpolationDagNodeKey key,  int uniqueId){
     this.tid = key.tid;
     this.artElementId = key.artElementId;
     this.uniqueId = uniqueId;
@@ -69,7 +69,7 @@ public class InterpolationTreeNodeKey  {
 
     InterpolationTreeNodeKey otherKey = (InterpolationTreeNodeKey) other;
 
-    if (otherKey.uniqueId.equals(uniqueId) && otherKey.artElementId.equals(artElementId) && otherKey.tid.equals(tid)){
+    if (otherKey.uniqueId == uniqueId && otherKey.artElementId == artElementId && otherKey.tid == tid){
       return true;
     } else {
       return false;

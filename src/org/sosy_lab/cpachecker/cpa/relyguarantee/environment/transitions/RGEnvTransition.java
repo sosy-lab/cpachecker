@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
+import java.util.Collection;
+
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 
 /**
@@ -36,13 +38,22 @@ public interface RGEnvTransition {
    * The point where the element was abstracted.
    * @return
    */
-  ARTElement getSourceARTElement();
+  ARTElement getAbstractionElement();
+
 
   /**
    * Source thread's id.
    * @return
    */
   int getTid();
+
+  /**
+   * Returns ART elements that generated this transitions.
+   * @return
+   */
+  Collection<? extends ARTElement> getGeneratingARTElements();
+
+
 
 }
 

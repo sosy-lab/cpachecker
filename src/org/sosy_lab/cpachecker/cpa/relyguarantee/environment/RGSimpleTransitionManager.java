@@ -94,8 +94,13 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
     Region absReg = abs.asRegion();
     PathFormula pf = cand.getRgElement().getPathFormula();
 
+    ARTElement laElement = findLastAbstractionARTElement(cand.getElement());
+    if (laElement == null){
+      System.out.println(this.getClass());
+    }
+    assert laElement != null;
 
-    return new RGSimpleTransition(absF, absReg, pf, cand.getOperation(), cand.getSuccessor(), cand.getTid());
+    return new RGSimpleTransition(absF, absReg, pf, cand.getOperation(), laElement, cand.getSuccessor(), cand.getTid());
   }
 
   @Override
@@ -247,6 +252,11 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
       ARTElement element = toProcess.poll();
       visisted.add(element);
 
+      if (element.isDestroyed()){
+        element = element.getMergedWith();
+        assert !element.isDestroyed();
+      }
+
       AbstractionElement aElement = AbstractElements.extractElementByType(element, AbstractionElement.class);
       if (aElement != null){
         laARTElement = element;
@@ -255,7 +265,7 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
 
       for (ARTElement parent : element.getParents()){
         if (!visisted.contains(parent)){
-          toProcess.addLast(parent);
+          toProcess.addFirst(parent);
         }
       }
     }

@@ -101,7 +101,8 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
   public Set<ARTElement> getChildren() {
-    assert !destroyed;
+    // note for rely-guarantee analysis we may need the children of a destroyed element
+    //assert !destroyed;
     return children;
   }
 

@@ -23,11 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
+import java.util.Collection;
+
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Environmental transitions with an abstracted precondition only.
@@ -42,17 +46,20 @@ public class RGSemiAbstracted implements RGEnvTransition{
   private final SSAMap ssa;
   /** The operation */
   private final CFAEdge operation;
-  /** ART element where the operation was applied */
+  /** ART element created by the concrete ooperation */
+  private final ARTElement targetARTElement;
+  /** ART element where the concrete operation was applied */
   private final ARTElement sourceARTElement;
   /** Source thred's id */
   private final int tid;
 
-  public RGSemiAbstracted(Formula precondition, Region preconditionRegion, SSAMap ssa, CFAEdge operation, ARTElement sourceElem, int tid){
+  public RGSemiAbstracted(Formula precondition, Region preconditionRegion, SSAMap ssa, CFAEdge operation, ARTElement sourceElem, ARTElement targetElem, int tid){
     this.abstractPrecondition = precondition;
     this.abstractPreconditionRegion = preconditionRegion;
     this.ssa = ssa;
     this.operation = operation;
     this.sourceARTElement = sourceElem;
+    this.targetARTElement = targetElem;
     this.tid = tid;
   }
 
@@ -62,8 +69,8 @@ public class RGSemiAbstracted implements RGEnvTransition{
   }
 
   @Override
-  public ARTElement getSourceARTElement() {
-    return sourceARTElement;
+  public ARTElement getAbstractionElement() {
+    return targetARTElement;
   }
 
   @Override
@@ -89,6 +96,11 @@ public class RGSemiAbstracted implements RGEnvTransition{
 
   public String toString(){
     return "sa: "+operation.getRawStatement()+", "+abstractPrecondition;
+  }
+
+  @Override
+  public Collection<? extends ARTElement> getGeneratingARTElements() {
+   return ImmutableSet.of(sourceARTElement, targetARTElement);
   }
 
 }

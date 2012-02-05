@@ -35,10 +35,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -48,7 +50,10 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -59,6 +64,7 @@ import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGApplicationInfo;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
@@ -68,6 +74,10 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
+import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
@@ -80,6 +90,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 
 @Options(prefix="cpa.rg")
@@ -108,16 +119,22 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
   @Option(description="Limit of nodes in an interpolation tree (0 - no limit).")
   private int itpTreeNodeLimit = 0;
 
+  private static final String BRANCHING_PREDICATE_NAME = "__ART__";
+  private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
+      "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
+
   public final Stats stats;
   protected final InterpolatingTheoremProver<T1> firstItpProver;
   private final InterpolatingTheoremProver<T2> secondItpProver;
   private final LogManager logger;
   private final FormulaManager fmgr;
+  private final RGEnvTransitionManager etManager;
   private final PathFormulaManager pmgr;
   private final AbstractionManager amgr;
   private final SSAMapManager ssaManager;
   private final TheoremProver thmProver;
-  private static int  uniqueNumber = 90;
+
+  private static int  uniqueNumber = 10;
 
 
 
@@ -128,6 +145,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
    * @param pRmgr
    * @param pFmgr
    * @param pPmgr
+   * @param etManager
    * @param pThmProver
    * @param pItpProver
    * @param pAltItpProver
@@ -137,16 +155,16 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
    * @return
    * @throws InvalidConfigurationException
    */
-  public static RGRefinementManager<?, ?> getInstance(RegionManager pRmgr, FormulaManager pFmgr, SSAMapManager pSsaManager, PathFormulaManager pPmgr, TheoremProver pThmProver,
+  public static RGRefinementManager<?, ?> getInstance(RegionManager pRmgr, FormulaManager pFmgr, SSAMapManager pSsaManager, PathFormulaManager pPmgr, RGEnvTransitionManager etManager, TheoremProver pThmProver,
       InterpolatingTheoremProver<?> pItpProver, InterpolatingTheoremProver<?> pAltItpProver, Configuration pConfig,
       LogManager pLogger) throws InvalidConfigurationException {
     if (rgRefManager == null){
-      rgRefManager = new RGRefinementManager(pRmgr, pFmgr, pSsaManager, pPmgr, pThmProver, pItpProver, pAltItpProver, pConfig, pLogger);
+      rgRefManager = new RGRefinementManager(pRmgr, pFmgr, pSsaManager, pPmgr, etManager, pThmProver, pItpProver, pAltItpProver, pConfig, pLogger);
     }
     return rgRefManager;
   }
 
-  public RGRefinementManager(RegionManager pRmgr, FormulaManager pFmgr, SSAMapManager pSsaManager, PathFormulaManager pPmgr, TheoremProver pThmProver,
+  public RGRefinementManager(RegionManager pRmgr, FormulaManager pFmgr, SSAMapManager pSsaManager, PathFormulaManager pPmgr, RGEnvTransitionManager etManager, TheoremProver pThmProver,
       InterpolatingTheoremProver<T1> pItpProver, InterpolatingTheoremProver<T2> pAltItpProver, Configuration pConfig,
       LogManager pLogger) throws InvalidConfigurationException {
     pConfig.inject(this, RGRefinementManager.class);
@@ -155,6 +173,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
     this.fmgr = pFmgr;
     this.ssaManager = pSsaManager;
     this.pmgr = pPmgr;
+    this.etManager = etManager;
     this.thmProver = pThmProver;
     this.firstItpProver = pItpProver;
     this.secondItpProver = pAltItpProver;
@@ -176,7 +195,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
     //return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, elementsOnPath, firstItpProver);
 
     if (this.whichItpProver.equals("MATHSAT")){
-      return interpolateTree(targetElement,  reachedSets, tid, firstItpProver);
+      return refineDag(targetElement,  reachedSets, tid, firstItpProver);
     } else {
       throw new InterruptedException("Unknown iterpolating prover "+whichItpProver);
     }
@@ -330,7 +349,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
       // rename env. transitions to their source thread numbers
       for(Integer id : envMap.keySet()){
         RGEnvTransition rgEdge = envMap.get(id);
-        ARTElement targetARTElement = rgEdge.getSourceARTElement();
+        ARTElement targetARTElement = rgEdge.getAbstractionElement();
 
         if (targetARTElement.isDestroyed()){
           targetARTElement = targetARTElement.getMergedWith();
@@ -345,9 +364,6 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
         // get nodes for the last abstraction for the source element.
         Path envCfaPath = computePath(targetARTElement);
         List<Triple<ARTElement, CFANode, RGAbstractElement>> envPath = transformFullPath(envCfaPath);
-        if (envPath.size() == 0){
-          System.out.println();
-        }
         assert envPath.size() > 0;
         ARTElement sourceAbstrElement = envPath.get(envPath.size()-1).getFirst();
 
@@ -405,7 +421,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
 
   /**
-   * Interpolate counterexample DAG by inserting edges in place of env. applications.
+   * Refine counterexample DAG by unwinding to a tree.
    * @param targetElement
    * @param reachedSets
    * @param tid
@@ -415,7 +431,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
    * @throws InterruptedException
    * @throws CPAException
    */
-  private <T> InterpolationTreeResult interpolateTree(ARTElement targetElement, ReachedSet[] reachedSets, int tid, InterpolatingTheoremProver<T> itpProver) throws InterruptedException, CPAException {
+  private <T> InterpolationTreeResult refineDag(ARTElement targetElement, ReachedSet[] reachedSets, int tid, InterpolatingTheoremProver<T> itpProver) throws InterruptedException, CPAException {
     stats.formulaTimer.start();
 
     /*
@@ -444,7 +460,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
    stats.formulaTimer.stop();
 
-   InterpolationTreeResult info = interpolateTreeData(tree, itpProver);
+   InterpolationTreeResult info = interpolateTree(tree, itpProver);
 
    return info;
   }
@@ -453,13 +469,14 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
 
   /**
-   *
+   * Interpolates counterexample tree.
    * @param tree
    * @param itpProver
    * @return
    * @throws InterruptedException
+   * @throws CPATransferException
    */
-  private <T> InterpolationTreeResult interpolateTreeData(InterpolationTree tree, InterpolatingTheoremProver<T> itpProver) throws InterruptedException {
+  private <T> InterpolationTreeResult interpolateTree(InterpolationTree tree, InterpolatingTheoremProver<T> itpProver) throws InterruptedException, CPATransferException {
 
     List<InterpolationTreeNode> topList = tree.topSort();
     stats.formulaNo = topList.size();
@@ -493,7 +510,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
     for (InterpolationTreeNode node : topList) {
 
-      if (prevNode == null || !node.uniqueId.equals(prevNode.uniqueId)){
+      if (prevNode == null || node.uniqueId != prevNode.uniqueId){
         /*
          *  New branch taken
          */
@@ -518,10 +535,12 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
         if (!spurious){
           // if trace is feasible, then it should be detected in the first iteration
           assert prevNode == null;
+
+          getErrorPaths(tree, itpProver);
+
+
+
           info = new InterpolationTreeResult(false);
-
-          getErrorTraces(tree);
-
 
           if (debug){
             System.out.println("\tFeasbile error trace.");
@@ -587,10 +606,10 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
     return info;
   }
 
-  private void getErrorTraces(InterpolationTree pTree) {
-    // TODO Auto-generated method stub
 
-  }
+
+
+
 
   /**
    * Unwinds env. applications in the DAG into separate branches.
@@ -600,7 +619,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
    * @throws CPATransferException
    */
   private InterpolationTree unwindDag(InterpolationDag dag, ARTElement target) throws CPATransferException{
-    Pair<InterpolationTree, Integer> pair = unwindDag(dag, target, new Integer(10));
+    Pair<InterpolationTree, Integer> pair = unwindDag(dag, target, new Integer(uniqueNumber));
     return pair.getFirst();
   }
 
@@ -695,7 +714,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
           RGEnvTransition rgEdge = appInfo.getEnvMap().get(id);
 
           // create a sub-tree for the the element that generated the transition
-          ARTElement sARTElement = rgEdge.getSourceARTElement();
+          ARTElement sARTElement = rgEdge.getAbstractionElement();
 
           int sTid = rgEdge.getTid();
           Pair<InterpolationTree, Integer> pair = unwindDag(dag, sARTElement, appUniqueId);
@@ -789,7 +808,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
     // trim env. applicaions
     for (InterpolationTreeNode node : trunk){
       for (InterpolationTreeNode child : node.children){
-        if (!child.uniqueId.equals(node.uniqueId)){
+        if (child.uniqueId != node.uniqueId){
           trimBranch(tree, child, nodePerApp);
         }
       }
@@ -930,6 +949,174 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
     return result;
   }
 
+
+  private <T> void getErrorPaths(InterpolationTree tree, InterpolatingTheoremProver<T> itpProver) throws CPATransferException {
+
+    Collection<ARTElement> allElems = getAllElementsOnTrunk(tree);
+    Map<Pair<ARTElement, CFAEdge>, Formula> bMap = getBranchingPredicates(allElems);
+    Formula bf = buildBranchingFormula(bMap, tree);
+
+
+
+  }
+
+  /**
+   * Find all ART elements, local and environmental, on the trunk of the tree.
+   * @param tree
+   * @return
+   */
+  private Collection<ARTElement> getAllElementsOnTrunk(InterpolationTree tree) {
+    ARTElement target = tree.getRoot().getArtElement();
+    assert target.isTarget();
+    Set<ARTElement> allElems = ARTUtils.getAllElementsOnPathsTo(target );
+    List<InterpolationTreeNode> trunk = tree.getTrunk();
+
+    for (InterpolationTreeNode node : trunk){
+      RGApplicationInfo appInfo = node.getAppInfo();
+
+      if (appInfo != null){
+        Map<Integer, RGEnvTransition> envMap = node.getAppInfo().envMap;
+
+        for (RGEnvTransition et: envMap.values()){
+          allElems.addAll(et.getGeneratingARTElements());
+        }
+      }
+    }
+
+    return allElems;
+  }
+
+  /**
+   * Returns a map from branching CFA edges, both local and environmental, to their predicates.
+   * @param elementsOnPath
+   * @return
+   * @throws CPATransferException
+   */
+  private Map<Pair<ARTElement, CFAEdge>, Formula> getBranchingPredicates(Collection<ARTElement> elementsOnPath) throws CPATransferException {
+
+    Map<Pair<ARTElement, CFAEdge>, Formula> bMap = new HashMap<Pair<ARTElement, CFAEdge>, Formula>();
+
+    for (final ARTElement pathElement : elementsOnPath) {
+
+
+      CFANode pLoc = pathElement.retrieveLocationElement().getLocationNode();
+      Set<ARTElement> children = new LinkedHashSet<ARTElement>(pathElement.getChildren().size());
+      int localChildren = 0;
+
+      // consider only the children that are on the path
+      for (ARTElement child : pathElement.getChildren()){
+        if (elementsOnPath.contains(child)){
+          children.add(child);
+        }
+      }
+
+      if (children.size() > 1) {
+
+        for (ARTElement child : children){
+          RGAbstractElement rgElem = AbstractElements.extractElementByType(child, RGAbstractElement.class);
+          CFAEdge edge = rgElem.getParentEdge();
+
+          Pair<ARTElement, CFAEdge> key = Pair.of(pathElement, edge);
+
+          if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+            String name = BRANCHING_PREDICATE_NAME+pathElement.getElementId()+"_"+child.getElementId();
+            Formula pred = fmgr.makePredicateVariable(name, 0);
+            bMap.put(key, pred);
+          }
+          else if (edge instanceof AssumeEdge){
+            localChildren++;
+            if (localChildren > 2){
+              throw new UnsupportedOperationException("Can't handle more than two local edges");
+            }
+
+            String name = BRANCHING_PREDICATE_NAME+pathElement.getElementId()+"_"+child.getElementId();
+            Formula pred = fmgr.makePredicateVariable(name, 0);
+            bMap.put(key, pred);
+          }
+        }
+      }
+    }
+    return bMap;
+  }
+
+  /**
+   * Build a branching formula from the map.
+   * @param tree
+   * @param pBMap
+   * @return
+   * @throws CPATransferException
+   */
+  private Formula buildBranchingFormula(Map<Pair<ARTElement, CFAEdge>, Formula> bMap, InterpolationTree tree) throws CPATransferException {
+    Formula bf = fmgr.makeTrue();
+
+
+    int trunkId = tree.getRoot().getUniqueId();
+    Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(1);
+    rMap.put(-1, trunkId);
+
+    for (Pair<ARTElement, CFAEdge> key : bMap.keySet()){
+      ARTElement elem = key.getFirst();
+      Formula pred = bMap.get(key);
+      RGAbstractElement rgElem = AbstractElements.extractElementByType(elem, RGAbstractElement.class);
+      CFAEdge edge = key.getSecond();
+
+      Formula edgeF = null;
+
+      if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+        RGCFAEdge rgEdge = (RGCFAEdge) edge;
+        RGEnvTransition et = rgEdge.getRgEnvTransition();
+
+
+        /* Find the unique id of the first tree node
+         * matching the abstraction point */
+        int tid = et.getTid();
+        int elemId = et.getAbstractionElement().getElementId();
+
+        Integer uniqueId = null;
+        Set<InterpolationTreeNodeKey> nodeKeys = tree.getNodeMap().keySet();
+        for (InterpolationTreeNodeKey nodeKey : nodeKeys){
+          if (nodeKey.tid == tid && nodeKey.artElementId == elemId){
+            uniqueId = nodeKey.getUniqueId();
+            break;
+          }
+        }
+
+        assert uniqueId != null;
+
+        // debuging test - see it is the only matching node
+        if (debug){
+          for (InterpolationTreeNodeKey nodeKey : nodeKeys){
+            if (nodeKey.tid == tid && nodeKey.artElementId == elemId){
+              assert uniqueId.equals(nodeKey.uniqueId);
+            }
+          }
+        }
+
+        // get the refinement formula with the unique id
+        edgeF = etManager.formulaForRefinement(rgElem, rgEdge.getRgEnvTransition(), uniqueId).getFormula();
+
+        // rename the local part to the trunk
+        edgeF = fmgr.changePrimedNo(edgeF, rMap);
+      }
+      else if (edge.getEdgeType() == CFAEdgeType.AssumeEdge){
+        PathFormula pf = rgElem.getPathFormula();
+        pf = pmgr.makeEmptyPathFormula(pf);
+        edgeF = pmgr.makeAnd(pf, edge).getFormula();
+
+        // rename the local part to the trunk
+        edgeF = fmgr.changePrimedNo(edgeF, rMap);
+      }
+      else {
+        throw new UnsupportedOperationException("An edge for branching must be either Assume or RelyGuarantee");
+      }
+
+      Formula equiv = fmgr.makeEquivalence(pred, edgeF);
+      bf = fmgr.makeAnd(bf, equiv);
+    }
+
+    return bf;
+  }
+
   @Override
   public void collectStatistics(Collection<Statistics> scoll) {
     scoll.add(stats);
@@ -958,6 +1145,100 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
     private String formatInt(int val){
       return String.format("  %7d", val);
     }
+  }
+
+
+
+  /*
+   *   private Pair<Formula, Set<Formula>> buildBranchingFormula(Set<ARTElement> elementsOnPath) throws CPATransferException {
+    // build the branching formula that will help us find the real error path
+    Set<Formula> preds = new HashSet<Formula>();
+
+    Formula branchingFormula = fmgr.makeTrue();
+    for (final ARTElement pathElement : elementsOnPath) {
+
+      CFANode pLoc = pathElement.retrieveLocationElement().getLocationNode();
+      Collection<ARTElement> lChildren = new HashSet<ARTElement>();
+
+      for (ARTElement child : pathElement.getChildren()){
+        CFANode cLoc = child.retrieveLocationElement().getLocationNode();
+        if (!pLoc.equals(cLoc)){
+          lChildren.add(child);
+        }
+      }
+
+      if (lChildren.size() > 1) {
+        // count only children by local operations, i.e. those that change the location
+
+
+        if (lChildren.size() > 2) {
+          // can't create branching formula
+          logger.log(Level.WARNING, "ART branching with more than two outgoing edges");
+          return Pair.of(fmgr.makeTrue(), preds);
+        }
+
+        Iterable<CFAEdge> outgoingEdges = Iterables.transform(lChildren,
+            new Function<ARTElement, CFAEdge>() {
+              @Override
+              public CFAEdge apply(ARTElement child) {
+                return pathElement.getEdgeToChild(child);
+              }
+        });
+        if (!Iterables.all(outgoingEdges, Predicates.instanceOf(AssumeEdge.class))) {
+          logger.log(Level.WARNING, "ART branching without AssumeEdge");
+          return Pair.of(fmgr.makeTrue(), preds);
+        }
+
+        AssumeEdge edge = null;
+        for (CFAEdge currentEdge : outgoingEdges) {
+          if (((AssumeEdge)currentEdge).getTruthAssumption()) {
+            edge = (AssumeEdge)currentEdge;
+            break;
+          }
+        }
+        assert edge != null;
+
+        Formula pred = fmgr.makePredicateVariable(BRANCHING_PREDICATE_NAME + pathElement.getElementId(), 0);
+
+        preds.add(pred);
+        // create formula by edge, be sure to use the correct SSA indices!
+        RGAbstractElement pe = AbstractElements.extractElementByType(pathElement, RGAbstractElement.class);
+        PathFormula pf = pe.getPathFormula();
+        pf = pmgr.makeEmptyPathFormula(pf); // reset everything except SSAMap
+        pf = pmgr.makeAnd(pf, edge);        // conjunct with edge
+
+        Formula equiv = fmgr.makeEquivalence(pred, pf.getFormula());
+        branchingFormula = fmgr.makeAnd(branchingFormula, equiv);
+      }
+    }
+    return Pair.of(branchingFormula, preds);
+  }
+   */
+
+
+
+  protected Map<Integer, Boolean> getPredicateValuesFromModel(Model model) {
+
+    Map<Integer, Boolean> preds = Maps.newTreeMap();
+    for (AssignableTerm a : model.keySet()) {
+      if (a instanceof Variable && a.getType() == TermType.Boolean) {
+
+        String name = BRANCHING_PREDICATE_NAME_PATTERN.matcher(a.getName()).replaceFirst("");
+        if (!name.equals(a.getName())) {
+          // pattern matched, so it's a variable with __ART__ in it
+
+          // no NumberFormatException because of RegExp match earlier
+          Integer nodeId = Integer.parseInt(name);
+
+          assert !preds.containsKey(nodeId);
+
+
+          Boolean value = (Boolean)model.get(a);
+          preds.put(nodeId, value);
+        }
+      }
+    }
+    return preds;
   }
 
 
