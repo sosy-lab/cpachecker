@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterElement;
 public class DataMemoryCell implements MemoryCell{
   private HashMap<InterpreterElement,Byte> data;
   private DataMemoryCell clone = null;
-
+  public static int DMCcnt=0;
 
   public DataMemoryCell( InterpreterElement el){
     data = new HashMap<InterpreterElement, Byte>();
@@ -46,8 +46,12 @@ public class DataMemoryCell implements MemoryCell{
   }
 
   public byte getData(InterpreterElement pel){
-    while(data.containsKey(pel)==false && pel.getprev()!= null){
+    while( pel!=null&&data.containsKey(pel)==false ){
+      DMCcnt++;
       pel = pel.getprev();
+    }
+    if(pel==null){
+      throw new RuntimeException("there exists no byte for InterpreterElement");
     }
     return data.get(pel);
   }

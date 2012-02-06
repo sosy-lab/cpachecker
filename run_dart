@@ -1,5 +1,5 @@
 ln -s /usr/lib/libgmp.so.10 /tmp/libgmp.so.3 
-export LD_LIBRARY_PATH=/tmp:usr/local/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/home/krall/tmp:usr/local/lib:$LD_LIBRARY_PATH
 i=1
 while [ $i -le 1000 ]
 do

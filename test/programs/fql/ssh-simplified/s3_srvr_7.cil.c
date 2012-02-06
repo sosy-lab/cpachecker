@@ -44,7 +44,7 @@ int ssl3_accept(int initial_state )
   int state ;
   int skip ;
   int got_new_session ;
-  int tmp___1 ;
+  signed int tmp___1 ;
   int tmp___2 ;
   int tmp___3 ;
   int tmp___4 ;

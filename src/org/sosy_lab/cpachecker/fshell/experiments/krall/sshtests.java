@@ -30,7 +30,7 @@ public class sshtests extends ExperimentalSeries  {
 
 
     TestCase pTestCase;
-     pTestCase= TestCase.fromString("p,-3,0,95,4,123,4,4,4,4,4,8,8,8,8,8,8,8,8,8,8,8,4,4,4,4,4,4,4,4,-1,5,5,5,5,5,4");
+     pTestCase= TestCase.fromString("p,-3,0,95,4,123,4,4,4,4,4,8,8,8,8,8,8,8,8,8,8,8,4,4,4,4,4,4,4,4,-1,5,5,5,5,5,4,3,0,95,4,123,4,4,4,4,4,8,8,8,8,8,8,8,8,8,8,8,4,4,4,4,4,4,4,4,-1,5,5,5,5,5,4,3,0,95,4,123,4,4,4,4,4,8,8,8,8,8,8,8,8,8,8,8,4,4,4,4,4,4,4,4,-1,5,5,5,5,5,4");
     Main.run(lArguments, pTestCase,out);
 
 
@@ -71,7 +71,7 @@ public class sshtests extends ExperimentalSeries  {
                                         true);
 
     TestCase pTestCase;
-    pTestCase= TestCase.fromString("p,-3,0,95,4,123,4,4,4,4,4,8,8,8,8,8,8,8,8,8,8,8,4,4,4,4,4,4,4,4,-1,5,5,5,5,5,4");
+    pTestCase= TestCase.fromString("p,-3,0,95,4,123,4,4,4,4,4,8,8,8,8,8,8,8,8,8,8,8,4,4,4,4,4,4,4,4,-1,5,5,5,5,5,4,3,0,95,4,123,4,4,4,4,4,8,8,8,8,8,8,8,8,8,8,8,4,4,4,4,4,4,4,4,-1,5,5,5,5,5,4");
     Main.run(lArguments, pTestCase,out);
   }
 

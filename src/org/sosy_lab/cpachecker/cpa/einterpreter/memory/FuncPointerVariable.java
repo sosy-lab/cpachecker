@@ -132,7 +132,6 @@ public class FuncPointerVariable implements Variable {
 
   @Override
   public void copyVar(String pname, InterpreterElement el) throws Exception {
-    // TODO Auto-generated method stub
     MemoryBlock b =el.getFactory().allocateMemoryBlock(this.getSize(),el);
     Address naddr = new Address(b, 0);
 
@@ -153,16 +152,20 @@ public class FuncPointerVariable implements Variable {
 
 
 
-  public boolean isNullPointer(){
-       return isNULLPointer;
+  public boolean isNullPointer(InterpreterElement pel){
+    if(addr.getMemoryBlock().getFunctionPointer(addr.getOffset(), pel)==null)
+       return  true;
+    else
+      return false;
   }
 
   public void setNullPointer(boolean isnull, InterpreterElement pel){
     if(isnull){
       try {
-        addr.getMemoryBlock().setAddress(addr.getOffset(), new Address(null,0),pel);
+        //addr.getMemoryBlock().setAddress(addr.getOffset(), new Address(null,0),pel);
+        addr.getMemoryBlock().setFunctionPointer(addr.getOffset(), null, pel);
       } catch (RuntimeException e) {
-        // TODO Auto-generated catch block
+
         e.printStackTrace();
       }
       isNULLPointer = true;

@@ -391,7 +391,7 @@ int main(void)
   int tmp_001;
 
   // initialization added by ah
-  tmp_001 = __BLAST_NONDET;
+  tmp_001 =__BLAST_NONDET;
   irp = __BLAST_NONDET;
   irp_choice = __BLAST_NONDET;
 

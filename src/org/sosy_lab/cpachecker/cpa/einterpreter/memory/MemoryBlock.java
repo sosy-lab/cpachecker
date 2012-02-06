@@ -38,6 +38,7 @@ public class MemoryBlock {
     FUNC
   }
   HashMap<InterpreterElement,  MemoryCell[]> blocks;
+  public static int MBCcnt=0;
   MemoryBlock clone = null;
   boolean free = false;
   int size;
@@ -98,12 +99,17 @@ public class MemoryBlock {
       blocks.put(pEl, tmp);
       return tmp;
     }
-    while(blocks.containsKey(pEl)==false && pEl.getprev()!=null){
-
+    InterpreterElement cur = pEl;
+    while(pEl !=null && blocks.containsKey(pEl)==false){
+      MBCcnt++;
       pEl = pEl.getprev();
 
     }
-
+    if(pEl==null){
+      MemoryCell tmp[] = new MemoryCell[size];
+      blocks.put(cur, tmp);
+      return tmp;
+    }
 
     return blocks.get(pEl);
   }
@@ -221,7 +227,7 @@ public class MemoryBlock {
           throw new RuntimeException("can not access DMC for FuncPnt");
 
         case AMC:
-          throw new RuntimeException("can not access DMC for FuncPnt");
+          throw new RuntimeException("can not access AMC for FuncPnt");
         case FMC:
           ((FuncMemoryCell)c).setFunctionPoint(func,el);
           return;

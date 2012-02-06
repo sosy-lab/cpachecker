@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.DummyType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
@@ -79,14 +80,18 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
 import org.sosy_lab.cpachecker.cpa.einterpreter.ExprResult.RType;
+import org.sosy_lab.cpachecker.cpa.einterpreter.memory.AddrMemoryCell;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Address;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.ArrayVariable;
+import org.sosy_lab.cpachecker.cpa.einterpreter.memory.DataMemoryCell;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.DynVariable;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.DynVariable.dyntypes;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.EnumVariable;
+import org.sosy_lab.cpachecker.cpa.einterpreter.memory.FuncMemoryCell;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.FuncPointerVariable;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.MemoryBlock;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.MemoryBlock.CellType;
+import org.sosy_lab.cpachecker.cpa.einterpreter.memory.PersMemory;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.PointerVariable;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.PrimitiveVariable;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Scope;
@@ -120,6 +125,14 @@ import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 public class InterpreterTransferRelation implements TransferRelation {
   public static int TRCOUNT=0;
   public final static ArrayList<String> TRLIST = new ArrayList<String>();
+  public final static ArrayList<Long> TRLISTTIME = new ArrayList<Long>();
+  public final static ArrayList<Integer> PMSlist = new ArrayList<Integer>();
+  public final static ArrayList<Integer> SVlist = new ArrayList<Integer>();
+  public final static ArrayList<Integer> MBClist = new ArrayList<Integer>();
+  public final static ArrayList<Integer> AMClist = new ArrayList<Integer>();
+  public final static ArrayList<Integer> DMClist = new ArrayList<Integer>();
+  public final static ArrayList<Integer> FMClist = new ArrayList<Integer>();
+  private long t1,t2=0;
   private final Set<String> globalVars = new HashSet<String>();
 
   private String missingInformationLeftVariable = null;
@@ -127,6 +140,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   private String missingInformationLeftPointer  = null;
   private IASTExpression missingInformationRightExpression = null;
   private Map<String, CFAFunctionDefinitionNode>  map= null;
+  Timer k = new Timer();
 
   InterpreterTransferRelation(Map<String, CFAFunctionDefinitionNode> pmap){
     map = pmap;
@@ -180,26 +194,40 @@ public class InterpreterTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
+
+
     TRCOUNT++;
-    TRLIST.add(cfaEdge.getRawStatement());
+    TRLIST.add(String.valueOf(cfaEdge.getLineNumber()));
+    PersMemory.PMScnt=0;
+    Scope.SVcnt=0;
+    MemoryBlock.MBCcnt=0;
+    AddrMemoryCell.AMCcnt=0;
+    DataMemoryCell.DMCcnt=0;
+    FuncMemoryCell.FMCcnt=0;
+
+
+    t1 = System.nanoTime();
     InterpreterElement successor ;
     AbstractElement check = null;
     InterpreterElement explicitElement = (InterpreterElement)element;
 
     //successor = explicitElement;
-    successor = explicitElement.copy();
+
 
     // check the type of the edge
-     //System.out.println(cfaEdge.getRawStatement());
+    System.out.println(cfaEdge.getLineNumber()+": "+ cfaEdge.getRawStatement());
     /*System.out.println(cfaEdge.getEdgeType());
     System.out.println(cfaEdge.getPredecessor());
     System.out.println(cfaEdge.getPredecessor().getNumLeavingEdges());
     System.out.println(cfaEdge.getSuccessor().getLeavingEdge(0));*/
+  /*  if(cfaEdge.getLineNumber()==3){
+      System.out.println("here");
+    }*/
     switch (cfaEdge.getEdgeType ()) {
 
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge: {
-
+      successor = explicitElement.copy();
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
       try {
         handleStatement(statementEdge,successor);
@@ -217,6 +245,7 @@ public class InterpreterTransferRelation implements TransferRelation {
     // here the return value of a function is passed to the left hand side variable if there is one
     // e.g. a= test(b);
     case ReturnStatementEdge: {
+      successor = explicitElement.copy();
       ReturnStatementEdge returnEdge = (ReturnStatementEdge)cfaEdge;
       IASTExpression exp = successor.getCurrentScope().getReturnExpression();
       if(exp!=null){
@@ -241,7 +270,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
     // edge is a declaration edge, e.g. int a;
     case DeclarationEdge: {
-
+      successor = explicitElement.copy();
       DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
       try {
         handleDeclaration(declarationEdge,successor);
@@ -255,7 +284,9 @@ public class InterpreterTransferRelation implements TransferRelation {
 
     // this is an assumption, e.g. if(a == b)
     case AssumeEdge: {
+      successor = explicitElement;
       AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
+
       try {
         check = handleAssume(assumeEdge, successor);
       } catch (Exception e) {
@@ -268,11 +299,12 @@ public class InterpreterTransferRelation implements TransferRelation {
     }
 
     case BlankEdge: {
-
+      successor = explicitElement;
       break;
     }
     // handles FunctionCalls like a=test(b);
     case FunctionCallEdge: {
+      successor = explicitElement.copy();
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
      try {
       handleFunctionCall(functionCallEdge.getRawAST(),functionCallEdge.getSuccessor(),functionCallEdge.getArguments(),successor);
@@ -289,6 +321,7 @@ public class InterpreterTransferRelation implements TransferRelation {
     // this is a return edge from function, this is different from return statement
     // of the function. See case for statement edge for details
     case FunctionReturnEdge: {
+      successor = explicitElement.copy();
       FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) cfaEdge;
 
       successor.redScope();
@@ -297,6 +330,7 @@ public class InterpreterTransferRelation implements TransferRelation {
     }
     //handles the return
     case FunctionPntReturnEdge:
+      successor = explicitElement.copy();
       check = InterpreterBottomElement.INSTANCE;
       FunctionPntReturnEdge fpredge = (FunctionPntReturnEdge) cfaEdge;
       CallToReturnEdge abbr = fpredge.getSuccessor().getEnteringSummaryEdge();
@@ -308,6 +342,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       break;
     // handles function calls thru a function pointer like a=(*test)(b);
     case FunctionPntCallEdge:
+      successor = explicitElement.copy();
       check = InterpreterBottomElement.INSTANCE;
       ExprResult res;
       FunctionPntCallEdge fpcedge = (FunctionPntCallEdge)cfaEdge;
@@ -360,11 +395,22 @@ public class InterpreterTransferRelation implements TransferRelation {
     System.out.println(successor.toString());
     System.out.println("--------------");*/
 
+    PMSlist.add(PersMemory.PMScnt);
+    SVlist.add(Scope.SVcnt);
+    MBClist.add(MemoryBlock.MBCcnt);
+    AMClist.add(AddrMemoryCell.AMCcnt);
+    DMClist.add(DataMemoryCell.DMCcnt);
+    FMClist.add(FuncMemoryCell.FMCcnt);
+
+
     if (InterpreterBottomElement.INSTANCE.equals(check)) {
+      TRLISTTIME.add(System.nanoTime()-t1);
       return Collections.emptySet();
     } else {
+      TRLISTTIME.add(System.nanoTime()-t1);
       return Collections.singleton(successor);
     }
+
   }
 
 
@@ -728,6 +774,7 @@ private void handleAssignment(ExprResult res1, ExprResult res2, InterpreterEleme
     else if(typ instanceof PrimitiveType  && level ==0)
       writePrimVar((PrimitiveType)typ,addr,res2.getnumber(),pelement);
     else if(typ instanceof PointerType &&res2.getnumber().compareTo(BigInteger.valueOf(0)) ==0){ //set NULL POINTER
+
       if(res1.getResultType()==RType.Var){
         if(((PointerType)typ).getTargetType()instanceof FunctionType)
           ((FuncPointerVariable)res1.getVariable()).setNullPointer(true, pelement);
@@ -789,6 +836,7 @@ private void handleAssignment(ExprResult res1, ExprResult res2, InterpreterEleme
            throw new Exception("only int can be used in pointer calcs");
          }
        }
+
        copyVar(addr,res2.getVariable().getAddress(), res2.getVariable().getSize(),pelement );
 
     }
@@ -839,6 +887,9 @@ private ExprResult handleRightSide(IASTExpression pRight,
   }
   if(pRight instanceof IASTIdExpression){// if right side is a variable or funcpointer
     String var =((IASTIdExpression) pRight).getName();
+    if(var.compareTo("__BLAST_NONDET")==0){
+      return new ExprResult(pel.getNonDetNumber());
+    }
     CFAFunctionDefinitionNode func = map.get(var);
     if(func != null){
       return new ExprResult(func);
@@ -1123,6 +1174,9 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
       switch(res.getVariable().getTypeClass(pel)){
       case ENUM:
       case PRIMITIVE:
+        if(res.getVariable().getName().compareTo("__BLAST_NONDET")==0){
+          return new ExprResult(pel.getNonDetNumber());
+        }
         //create tmp variable with new size and copy value of variable res to tmp
         MemoryBlock block = pel.getFactory().allocateMemoryBlock(k.sizeOf(),pel);
         Address naddr = new Address(block,0);
@@ -1137,10 +1191,18 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
         PrimitiveVariable tmp = new PrimitiveVariable("tmpx", naddr, k, k.isSigned(), k.isConst());
 
         return new ExprResult(tmp);
+
       case POINTER:
         //(int) pnt;
         return res;
-      case FUNCPOINTER:
+
+      case FUNCPOINTER: //changed
+        FuncPointerVariable v = (FuncPointerVariable) res.getVariable();
+        if(v.isNullPointer(pel)){
+          return new ExprResult(BigInteger.ZERO);
+        }else{
+
+        }
       case ARRAY:
         //write the address of the array or funcpointer in a new block and create an temporary primitivevariable used for pntcalc
         tmp = null;
@@ -1957,12 +2019,15 @@ private BigInteger decodeVar(PrimitiveVariable pVar, InterpreterElement pel) thr
   BigInteger var;
   if(pVar.isSigned()){
     if((data[data.length-1]&-128)==-128){
-      var = BigInteger.valueOf(-1);
+      var = BigInteger.valueOf(0);
       for(int x = data.length-1; x>=0;x--){
-        var= var.and(BigInteger.valueOf(data[x]).mod(BigInteger.valueOf(255)));
-        if(x!=0)
+        var= var.or(BigInteger.valueOf(data[x]).not().mod(BigInteger.valueOf(256)));
+
+        if(x!=0){
           var = var.shiftLeft(8);
+        }
       }
+      var =var.not();
     }else{
       var = BigInteger.valueOf(0);
       for(int x = data.length-1; x>=0;x--){
@@ -1991,7 +2056,10 @@ private BigInteger decodeVar(PrimitiveVariable pVar, InterpreterElement pel) thr
  */
 public void handleDeclaration(DeclarationEdge pDeclarationEdge,
     InterpreterElement pElement) throws Exception{
+ if(pDeclarationEdge.getName().startsWith("__BLAST_NONDET")){
+    return;
 
+  }
   //typedef declaration is handled here
   if(pDeclarationEdge.getStorageClass().name().compareTo("TYPEDEF")==0){
     String tmp = pDeclarationEdge.getName();
@@ -2517,6 +2585,9 @@ public PrimitiveType getPrimitiveType(IASTSimpleDeclSpecifier pTyp){
   boolean isSigned;
   boolean isConst;
   isSigned = pTyp.isSigned();
+  pTyp.isUnsigned();
+
+
   isConst = pTyp.isConst();
   Primitive typ = null;
 
@@ -2560,7 +2631,9 @@ public PrimitiveType getPrimitiveType(IASTSimpleDeclSpecifier pTyp){
 
 
   }
-  return new PrimitiveType(typ,isSigned,isConst);
+  PrimitiveType k;
+  k= new PrimitiveType(typ,isSigned,isConst);
+  return k;
 }
 
 

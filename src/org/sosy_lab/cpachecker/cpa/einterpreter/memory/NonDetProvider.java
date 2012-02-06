@@ -33,10 +33,11 @@ public class NonDetProvider {
   private ArrayList<BigInteger> values;
   private HashMap<InterpreterElement, Integer>indexs=null;
   private Random rnd;
+  private long t1;
   public NonDetProvider(BigInteger pvalues[],InterpreterElement el){
     indexs = new HashMap<InterpreterElement, Integer>();
     indexs.put(el, 0);
-    values = new ArrayList<BigInteger>();
+    values = new ArrayList<BigInteger>(pvalues.length);
     for(int x=0;x<pvalues.length;x++){
       values.add(pvalues[x]);
     }
@@ -44,6 +45,7 @@ public class NonDetProvider {
   }
 
   public BigInteger getValue(InterpreterElement el) throws Exception{
+    t1= System.nanoTime();
     BigInteger numb;
     InterpreterElement pel = el;
     Integer index = null;
@@ -51,8 +53,6 @@ public class NonDetProvider {
       index = indexs.get(pel);
       pel = pel.getprev();
     }
-
-
 
     if(index < values.size()){
        numb = values.get(index);
@@ -65,7 +65,8 @@ public class NonDetProvider {
       index++;
       indexs.put(el,index);*/
     }
-    //System.out.println("__BLAST_NONDET returns " + numb);
+    System.out.println(System.nanoTime()-t1);
+   // System.out.println("__BLAST_NONDET returns " + numb);
     return numb;
   }
 

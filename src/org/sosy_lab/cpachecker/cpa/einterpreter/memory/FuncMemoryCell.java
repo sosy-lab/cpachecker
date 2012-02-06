@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterElement;
 public class FuncMemoryCell implements MemoryCell {
 
  private HashMap<InterpreterElement,CFAFunctionDefinitionNode> func;
-
+ public static int FMCcnt=0;
 
 
   public FuncMemoryCell(CFAFunctionDefinitionNode paddr,InterpreterElement pel){
@@ -48,8 +48,12 @@ public class FuncMemoryCell implements MemoryCell {
     func.put(pel,paddr);
   }
   CFAFunctionDefinitionNode getFunctionPoint(InterpreterElement pel){
-    while(func.containsKey(pel)== false && pel.getprev()!=null){
+    while(pel!=null && func.containsKey(pel)== false ){
+      FMCcnt++;
       pel =pel.getprev();
+    }
+    if(pel==null){
+      throw new RuntimeException("there exists no functiondefinitionnode for the given InterpreterElement");
     }
     return func.get(pel);
   }

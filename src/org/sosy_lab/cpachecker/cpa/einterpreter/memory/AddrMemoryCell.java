@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterElement;
 
 public class AddrMemoryCell implements MemoryCell {
  private HashMap<InterpreterElement, Address> addr;
+ public static int AMCcnt=0;
  private AddrMemoryCell clone = null;
 
 
@@ -46,8 +47,12 @@ public class AddrMemoryCell implements MemoryCell {
     addr.put(pel, paddr);
   }
   Address getAddress(InterpreterElement pel){
-    while(addr.containsKey(pel)== false && pel.getprev()!=null){
+    while( pel!=null&&addr.containsKey(pel)== false ){
+      AMCcnt++;
       pel = pel.getprev();
+    }
+    if(pel==null){
+      throw new RuntimeException("No Address for given InterpreterElement");
     }
     return addr.get(pel);
   }

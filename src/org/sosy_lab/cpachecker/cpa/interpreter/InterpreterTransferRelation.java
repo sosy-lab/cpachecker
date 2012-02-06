@@ -79,6 +79,8 @@ import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 public class InterpreterTransferRelation implements TransferRelation {
   public static int TRCOUNT=0;
   public final static ArrayList<String> TRLIST = new ArrayList<String>();
+  public final static ArrayList<Long> TRLISTTIME = new ArrayList<Long>();
+  private static long t1;
   private final Set<String> globalVars = new HashSet<String>();
 
   private String missingInformationLeftVariable = null;
@@ -89,6 +91,8 @@ public class InterpreterTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
+    t1= System.nanoTime();
+
     AbstractElement successor;
     InterpreterElement explicitElement = (InterpreterElement)element;
     TRCOUNT++;
@@ -208,8 +212,10 @@ public class InterpreterTransferRelation implements TransferRelation {
     System.out.println("--------------");*/
 
     if (InterpreterBottomElement.INSTANCE.equals(successor)) {
+      TRLISTTIME.add(System.nanoTime()-t1);
       return Collections.emptySet();
     } else {
+      TRLISTTIME.add(System.nanoTime()-t1);
       return Collections.singleton(successor);
     }
   }

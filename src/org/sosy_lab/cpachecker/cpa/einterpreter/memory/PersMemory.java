@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.einterpreter.memory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterElement;
@@ -30,9 +31,12 @@ import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterElement;
 
 public class PersMemory {
   private MemoryFactory factory;
-
+  private InterpreterElement tmp=null;
+  private Scope tmps=null;
   private HashMap<InterpreterElement,Scope> curscopes;
+  public static int PMScnt=0;
 
+  public static ArrayList <Integer>PMdpt= new ArrayList<Integer>();
   public PersMemory(InterpreterElement el){
     factory = new MemoryFactory();
     curscopes = new HashMap<InterpreterElement,Scope>();
@@ -49,29 +53,42 @@ public class PersMemory {
   }
 
   public Scope getCurrentScope(InterpreterElement el){
+
+    if( tmp !=null && tmp.equals(el)){
+      return  tmps;
+    }
+    tmp = el;
     Scope s;
     s = curscopes.get(el);
-    while(s == null && el.getprev() != null){
-      el = el.getprev();
+    PMScnt++;
+    el = el.getprev();
+    while(s == null && el != null){
+      PMScnt++;
       s = curscopes.get(el);
+      el = el.getprev();
     }
 
     if(s==null){
+      throw new RuntimeException("not possible");
       //TODO: not possible
     }
-
+    tmps = s;
     return s;
   }
 
   public void setCurrentScope(String name, InterpreterElement el){
+
     Scope s = new Scope(name,getCurrentScope(el),el);
 
     curscopes.put(el, s);
+    tmp = null;
   }
 
   public void redScope(InterpreterElement el){
+
     Scope s  = getCurrentScope(el);
     curscopes.put(el,s.getParentScope());
+    tmp = null;
   }
 
 

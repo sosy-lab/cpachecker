@@ -180,7 +180,7 @@ public final class DOTBuilder {
 				else{
 					dw = subGraphWriters.get(node.getFunctionName());
 				}
-				dw.add(line);
+ 				dw.add(line);
 			}
 
 			CFAEdge edge = node.getLeavingSummaryEdge();

@@ -466,7 +466,7 @@ public static final class ArrayType extends AbstractType {
     public int sizeOf() {
       int result = 0;
       for (Type member : members.values()) {
-        System.out.println(member + " " +member.getPaddingSize());
+        //System.out.println(member + " " +member.getPaddingSize());
 
         result = (int)Math.ceil((double)(result)/(double)member.getPaddingSize())*member.getPaddingSize();
         //System.out.println(result + "\t" +member.getPaddingSize());
@@ -474,7 +474,7 @@ public static final class ArrayType extends AbstractType {
         //System.out.println(result);
 
       }
-      System.out.println("SIZE "+result);
+      //System.out.println("SIZE "+result);
       return result;
     }
 

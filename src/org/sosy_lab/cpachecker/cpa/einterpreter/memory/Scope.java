@@ -10,6 +10,7 @@ import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterElement;
 
 public class Scope {
   private Map<InterpreterElement,HashMap<String,Variable>> variables; //versions
+  public static int SVcnt=0;
   private  String   name;
   private Scope parent;
 
@@ -65,6 +66,7 @@ public class Scope {
       HashMap<String, Variable> vtmp = variables.get(tmp);
       InterpreterElement itmp= tmp;
       while(vtmp == null && itmp != null){
+        SVcnt++;
         itmp = itmp.getprev();
         vtmp = variables.get(itmp);
       }
@@ -91,10 +93,10 @@ public class Scope {
 
       }
 
-      //k = vtmp.get(pname);
+      /*k = vtmp.get(pname);
       if(k==null){
 
-      }
+      }*/
       return k;
 
   }
@@ -106,6 +108,7 @@ public class Scope {
     while(variable == null){
 
       variable = variables.get(tmp);
+      SVcnt++;
       tmp = tmp.getprev();
 
     }

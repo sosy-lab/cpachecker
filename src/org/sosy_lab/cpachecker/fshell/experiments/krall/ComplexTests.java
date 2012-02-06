@@ -94,4 +94,32 @@ public class ComplexTests extends ExperimentalSeries  {
 
 
   }
+  @Test
+  public void test004() throws Exception {
+
+    Main.OINTPR=1;
+
+
+    String[] lArguments;
+    lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+                                        "test/programs/fql/data-structures/primitive/drecursive.cil.c",
+                                        "main",
+                                        true);
+
+    fil = new FileWriter("test/programs/fql/result/drecursive.cil.c.data",true);
+    out = new PrintWriter(fil);
+
+
+
+    TestCase pTestCase;
+     pTestCase= TestCase.fromString("p,-3,-4,-7,3,6,8,9,9,9");
+    Main.run(lArguments, pTestCase,out);
+
+
+
+
+
+  }
+
+
 }

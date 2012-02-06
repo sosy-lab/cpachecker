@@ -98,15 +98,30 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       e.printStackTrace();
     }
     time = k.stop();
-    out.print(Long.toString(time));
-    out.print(", " + InterpreterTransferRelation.TRCOUNT);
-    out.println();
-    out.println();
-    for(String s: InterpreterTransferRelation.TRLIST){
-      out.println(s);
-    }
+   //out.print(Long.toString(time));
 
 
+   int x =0,y=0;
+   long t=0;
+   /*for(x=0;x<InterpreterTransferRelation.TRLIST.size();x++){
+      out.println(InterpreterTransferRelation.TRLIST.get(x)+","+InterpreterTransferRelation.TRLISTTIME.get(x));
+      /*out.print(/*","+InterpreterTransferRelation.PMSlist.get(x)+ ","+InterpreterTransferRelation.SVlist.get(x));
+      out.print(","+ InterpreterTransferRelation.MBClist.get(x)+ ","+InterpreterTransferRelation.AMClist.get(x));
+      out.println(","+ InterpreterTransferRelation.DMClist.get(x)+ ","+InterpreterTransferRelation.FMClist.get(x));
+
+
+   }
+
+   for(x=0;x<InterpreterTransferRelation.TRLIST.size();x++){
+     t+=InterpreterTransferRelation.TRLISTTIME.get(x).longValue();
+     if(InterpreterTransferRelation.TRLISTTIME.get(x).longValue()==0){
+       y++;
+     }
+  }
+     out.println("\n"+t+"\t"+y);
+     out.println(InterpreterElement.count);
+
+*/
     if(Main.OINTPR==0){
       k.start();
 
@@ -120,16 +135,21 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       }
       time = k.stop();
 
-      out.print(", "+Long.toString(time));
-      out.print(", " + org.sosy_lab.cpachecker.cpa.interpreter.InterpreterTransferRelation.TRCOUNT);
-      out.println();
-      out.println();
-      for(String s: org.sosy_lab.cpachecker.cpa.interpreter.InterpreterTransferRelation.TRLIST){
-        out.println(s);
+      //out.println("," +Long.toString(time));
+      //out.print(", " + InterpreterTransferRelation.TRCOUNT);
+
+     // out.println(", " + org.sosy_lab.cpachecker.cpa.interpreter.InterpreterTransferRelation.TRCOUNT);
+
+      for(x=0;x<InterpreterTransferRelation.TRLIST.size();x++){
+        out.print(InterpreterTransferRelation.TRLIST.get(x)+", ");
+        out.print(InterpreterTransferRelation.TRLISTTIME.get(x)+", ");
+        out.println(org.sosy_lab.cpachecker.cpa.interpreter.InterpreterTransferRelation.TRLISTTIME.get(x));
+
       }
+      out.println();
+
 
     }
-    out.println();
     out.close();
     return null;
   }

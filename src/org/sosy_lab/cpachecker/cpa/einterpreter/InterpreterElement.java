@@ -36,6 +36,7 @@ public class InterpreterElement implements AbstractElement {
     private InterpreterElement prev;
     private PersMemory mem;
     private NonDetProvider provider;
+    public static int count=0;
 
     InterpreterElement(int [] mInitialValuesForNondeterministicAssignments){
       BigInteger data[];
@@ -85,6 +86,7 @@ public class InterpreterElement implements AbstractElement {
     }
 
     public InterpreterElement getprev(){
+      count++;
       return prev;
     }
 
