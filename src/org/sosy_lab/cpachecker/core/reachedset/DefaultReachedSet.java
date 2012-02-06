@@ -195,12 +195,12 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
-  public Set<AbstractElement> getReached(AbstractElement element) {
+  public Collection<AbstractElement> getReached(AbstractElement element) {
     return getReached();
   }
 
   @Override
-  public Set<AbstractElement> getReached(CFANode location) {
+  public Collection<AbstractElement> getReached(CFANode location) {
     return getReached();
   }
 

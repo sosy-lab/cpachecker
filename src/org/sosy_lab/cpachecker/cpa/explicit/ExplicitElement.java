@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.HashMap;
@@ -69,17 +70,11 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
    * @param value value to be assigned.
    */
   void assignConstant(String variableName, Long value) {
-    if (constantsMap.containsKey(variableName) && constantsMap.get(variableName).equals(value)) {
-      return;
-    }
-
-    constantsMap.put(variableName, value);
+    constantsMap.put(checkNotNull(variableName), checkNotNull(value));
   }
 
   void forget(String variableName) {
-    if (constantsMap.containsKey(variableName)) {
-      constantsMap.remove(variableName);
-    }
+    constantsMap.remove(variableName);
   }
 
   public Long getValueFor(String variableName) {
@@ -110,19 +105,14 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     Map<String, Long> newConstantsMap = new HashMap<String, Long>(size);
 
     for (Map.Entry<String, Long> otherEntry : other.constantsMap.entrySet()) {
-      String otherKey = otherEntry.getKey();
-      Long otherValue = constantsMap.get(otherKey);
+      String key = otherEntry.getKey();
 
-      // both constant maps contain a value for the same constant ...
-      if(otherValue != null) {
-        // ... having identical values
-        if (otherValue.equals(otherEntry.getValue())) {
-          newConstantsMap.put(otherKey, otherValue);
-        }
+      if (equal(otherEntry.getValue(), constantsMap.get(key))) {
+        newConstantsMap.put(key, otherEntry.getValue());
       }
     }
 
-    return new ExplicitElement(newConstantsMap, this.getPreviousElement());
+    return new ExplicitElement(newConstantsMap, previousElement);
   }
 
   /**
@@ -144,8 +134,10 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
 
     // also, this element is not less or equal than the other element,
     // if any one constant's value of the other element differs from the constant's value in this element
-    for (Map.Entry<String, Long> entry : other.constantsMap.entrySet()) {
-      if (!entry.getValue().equals(constantsMap.get(entry.getKey()))) {
+    for (Map.Entry<String, Long> otherEntry : other.constantsMap.entrySet()) {
+      String key = otherEntry.getKey();
+
+      if (!otherEntry.getValue().equals(constantsMap.get(key))) {
         return false;
       }
     }
@@ -155,13 +147,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
 
   @Override
   public ExplicitElement clone() {
-    ExplicitElement newElement = new ExplicitElement(previousElement);
-
-    for (String variableName : constantsMap.keySet()) {
-      newElement.constantsMap.put(variableName, constantsMap.get(variableName));
-    }
-
-    return newElement;
+    return new ExplicitElement(new HashMap<String, Long>(constantsMap), previousElement);
   }
 
   @Override
@@ -179,25 +165,9 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     }
 
     ExplicitElement otherElement = (ExplicitElement) other;
-    if (otherElement.previousElement != previousElement) {
-      return false;
-    }
 
-    if (otherElement.constantsMap.size() != constantsMap.size()) {
-      return false;
-    }
-
-    for (String s : constantsMap.keySet()) {
-      if (!otherElement.constantsMap.containsKey(s)) {
-        return false;
-      }
-
-      if (otherElement.constantsMap.get(s).longValue() != constantsMap.get(s)) {
-        return false;
-      }
-    }
-
-    return true;
+    return (otherElement.previousElement == previousElement)
+        && otherElement.constantsMap.equals(constantsMap);
   }
 
   @Override
