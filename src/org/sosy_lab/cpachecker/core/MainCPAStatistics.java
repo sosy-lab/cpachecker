@@ -318,7 +318,8 @@ class MainCPAStatistics implements Statistics {
           int partitions = p.getNumberOfPartitions();
           out.println("  Number of partitions:       " + partitions);
           out.println("    Avg size of partitions:   " + reachedSize / partitions);
-          out.println("    Max size of partitions:   " + p.getMaxPartition().getValue().size());
+          Map.Entry<Object, Collection<AbstractElement>> maxPartition = p.getMaxPartition();
+          out.println("    Max size of partitions:   " + maxPartition.getValue().size() + " (with key " + maxPartition.getKey() + ")");
         }
 
         out.println("  Number of target elements:  " + Iterables.size(allTargetElements));
