@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -87,14 +88,23 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       ImmutableList.Builder<MergeOperator> mergeOperators = ImmutableList.builder();
       ImmutableList.Builder<StopOperator> stopOperators = ImmutableList.builder();
       ImmutableList.Builder<PrecisionAdjustment> precisionAdjustments = ImmutableList.builder();
+      ImmutableList.Builder<SimplePrecisionAdjustment> simplePrecisionAdjustments = ImmutableList.builder();
 
       boolean mergeSep = true;
+      boolean simplePrec = true;
 
       for (ConfigurableProgramAnalysis sp : cpas) {
         domains.add(sp.getAbstractDomain());
         transferRelations.add(sp.getTransferRelation());
         stopOperators.add(sp.getStopOperator());
-        precisionAdjustments.add(sp.getPrecisionAdjustment());
+
+        PrecisionAdjustment prec = sp.getPrecisionAdjustment();
+        if (prec instanceof SimplePrecisionAdjustment) {
+          simplePrecisionAdjustments.add((SimplePrecisionAdjustment) prec);
+        } else {
+          simplePrec = false;
+        }
+        precisionAdjustments.add(prec);
 
         MergeOperator merge = sp.getMergeOperator();
         if (merge != MergeSepOperator.getInstance()) {
@@ -125,7 +135,11 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
       PrecisionAdjustment compositePrecisionAdjustment;
       if(options.precAdjust.equals("IGNORANT")) {
-        compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build(), compositeStop);
+        if (simplePrec) {
+          compositePrecisionAdjustment = new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
+        } else {
+          compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build());
+        }
       } else {
         compositePrecisionAdjustment = new OmniscientCompositePrecisionAdjustment();
       }

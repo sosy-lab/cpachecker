@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -55,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -62,8 +64,9 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multiset;
 
 @Options
 class MainCPAStatistics implements Statistics {
@@ -278,16 +281,45 @@ class MainCPAStatistics implements Statistics {
             }
         }
 
-        Set<CFANode> allLocations = ImmutableSet.copyOf(AbstractElements.extractLocations(reached));
         Iterable<AbstractElement> allTargetElements = AbstractElements.filterTargetElements(reached);
+        int reachedSize = reached.size();
 
         out.println("CPAchecker general statistics");
         out.println("-----------------------------");
-        out.println("Size of reached set:          " + reached.size());
-        out.println("  Number of locations:        " + allLocations.size());
-        if (reached instanceof PartitionedReachedSet) {
+        out.println("Size of reached set:          " + reachedSize);
+
+        if (reached instanceof LocationMappedReachedSet) {
+          LocationMappedReachedSet l = (LocationMappedReachedSet)reached;
+          int locs = l.getNumberOfPartitions();
+          out.println("  Number of locations:        " + locs);
+          out.println("    Avg states per loc.:      " + reachedSize / locs);
+          Map.Entry<Object, Collection<AbstractElement>> maxPartition = l.getMaxPartition();
+          out.println("    Max states per loc.:      " + maxPartition.getValue().size() + " (at node " + maxPartition.getKey() + ")");
+
+        } else if (reached instanceof PartitionedReachedSet) {
           PartitionedReachedSet p = (PartitionedReachedSet)reached;
-          out.println("  Number of partitions:       " + p.getNumberOfPartitions());
+
+          HashMultiset<CFANode> allLocations = HashMultiset.create(AbstractElements.extractLocations(reached));
+          int locs = allLocations.entrySet().size();
+          out.println("  Number of locations:        " + locs);
+          out.println("    Avg states per loc.:      " + reachedSize / locs);
+
+          int max = 0;
+          CFANode maxLoc = null;
+          for (Multiset.Entry<CFANode> location : allLocations.entrySet()) {
+            int size = location.getCount();
+            if (size > max) {
+              max = size;
+              maxLoc = location.getElement();
+            }
+          }
+          out.println("    Max states per loc.:      " + max + " (at node " + maxLoc + ")");
+
+          int partitions = p.getNumberOfPartitions();
+          out.println("  Number of partitions:       " + partitions);
+          out.println("    Avg size of partitions:   " + reachedSize / partitions);
+          Map.Entry<Object, Collection<AbstractElement>> maxPartition = p.getMaxPartition();
+          out.println("    Max size of partitions:   " + maxPartition.getValue().size() + " (with key " + maxPartition.getKey() + ")");
         }
         out.println("  Number of target elements:  " + Iterables.size(allTargetElements));
         out.println("Time for analysis setup:      " + creationTime);

@@ -31,14 +31,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-public class CallstackElement implements AbstractElement, Partitionable, AbstractQueryableElement {
+public final class CallstackElement implements AbstractElement, Partitionable, AbstractQueryableElement {
 
   private final CallstackElement previousElement;
   private final String currentFunction;
   private final CFANode callerNode;
   private final int depth;
 
-  public CallstackElement(CallstackElement previousElement, String function, CFANode callerNode) {
+  CallstackElement(CallstackElement previousElement, String function, CFANode callerNode) {
     this.previousElement = previousElement;
     this.currentFunction = checkNotNull(function);
     this.callerNode = checkNotNull(callerNode);
@@ -83,7 +83,7 @@ public class CallstackElement implements AbstractElement, Partitionable, Abstrac
     if (obj == this) {
       return true;
     }
-    if (!(obj instanceof CallstackElement)) {
+    if (CallstackElement.class != obj.getClass()) {
       return false;
     }
 
@@ -95,7 +95,9 @@ public class CallstackElement implements AbstractElement, Partitionable, Abstrac
 
   @Override
   public int hashCode() {
-    return callerNode.hashCode();
+    return (((callerNode.hashCode() * 31)
+        + System.identityHashCode(previousElement)) * 17)
+        + currentFunction.hashCode();
   }
 
   @Override

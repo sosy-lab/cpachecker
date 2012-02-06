@@ -21,31 +21,25 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.defaults;
+package org.sosy_lab.cpachecker.cpa.art;
 
-
+import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-/**
- * This class implements the PrecisionAdjustment operator for a CPA, where the
- * precision never changes. It does not make any assumptions about the precision,
- * even not that the precision is non-null.
- */
-public class StaticPrecisionAdjustment extends SimplePrecisionAdjustment {
+public class ARTSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
 
-  private StaticPrecisionAdjustment() { }
+  private final SimplePrecisionAdjustment wrappedPrecAdjustment;
+
+  public ARTSimplePrecisionAdjustment(SimplePrecisionAdjustment pWrappedPrecAdjustment) {
+    wrappedPrecAdjustment = pWrappedPrecAdjustment;
+  }
 
   @Override
   public Action prec(AbstractElement pElement, Precision pPrecision) throws CPAException {
-    return Action.CONTINUE;
-  }
+    ARTElement element = (ARTElement)pElement;
 
-  private static final PrecisionAdjustment instance = new StaticPrecisionAdjustment();
-
-  public static PrecisionAdjustment getInstance() {
-    return instance;
+    return wrappedPrecAdjustment.prec(element.getWrappedElement(), pPrecision);
   }
 }

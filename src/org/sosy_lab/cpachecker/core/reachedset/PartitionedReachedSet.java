@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.reachedset;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -86,6 +87,20 @@ public class PartitionedReachedSet extends DefaultReachedSet {
 
   public int getNumberOfPartitions() {
     return partitionedReached.keySet().size();
+  }
+
+  public Map.Entry<Object, Collection<AbstractElement>> getMaxPartition() {
+    int max = 0;
+    Map.Entry<Object, Collection<AbstractElement>> maxPartition = null;
+
+    for (Map.Entry<Object, Collection<AbstractElement>> partition : partitionedReached.asMap().entrySet()) {
+      int size = partition.getValue().size();
+      if (size > max) {
+        max = partition.getValue().size();
+        maxPartition = partition;
+      }
+    }
+    return maxPartition;
   }
 
   protected Object getPartitionKey(AbstractElement pElement) {

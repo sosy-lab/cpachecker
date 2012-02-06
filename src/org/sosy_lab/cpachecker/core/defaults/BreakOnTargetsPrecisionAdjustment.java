@@ -23,27 +23,27 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * This class implements the PrecisionAdjustment operator for a CPA, where the
- * precision never changes. It does not make any assumptions about the precision,
- * even not that the precision is non-null.
+ * Implementation of prec operator which does not change the precision or
+ * the element, but checks for target states and signals a break in this case.
  */
-public class StaticPrecisionAdjustment extends SimplePrecisionAdjustment {
+public class BreakOnTargetsPrecisionAdjustment extends SimplePrecisionAdjustment {
 
-  private StaticPrecisionAdjustment() { }
+  private BreakOnTargetsPrecisionAdjustment() { }
 
   @Override
   public Action prec(AbstractElement pElement, Precision pPrecision) throws CPAException {
-    return Action.CONTINUE;
+    return ((Targetable)pElement).isTarget()
+           ? Action.BREAK : Action.CONTINUE;
   }
 
-  private static final PrecisionAdjustment instance = new StaticPrecisionAdjustment();
+  private static final PrecisionAdjustment instance = new BreakOnTargetsPrecisionAdjustment();
 
   public static PrecisionAdjustment getInstance() {
     return instance;

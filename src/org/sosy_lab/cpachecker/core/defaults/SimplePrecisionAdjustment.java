@@ -21,25 +21,35 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.automaton;
+package org.sosy_lab.cpachecker.core.defaults;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class AutomatonPrecisionAdjustment implements PrecisionAdjustment {
+/**
+ * Base implementation for precision adjustment implementations which fulfill
+ * these three requirements:
+ * - prec does not change the element
+ * - prec does not change the precision
+ * - prec does not need access to the reached set
+ *
+ * By inheriting from this class, implementations give callers the opportunity
+ * to directly call {@link #prec(AbstractElement, Precision)}, which is faster.
+ */
+public abstract class SimplePrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
-  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement,
-      Precision pPrecision, UnmodifiableReachedSet pElements) {
+  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement, Precision pPrecision,
+      UnmodifiableReachedSet pElements) throws CPAException {
 
-    Action action = ((AutomatonState)pElement).isTarget()
-                    ? Action.BREAK : Action.CONTINUE;
-    return new Triple<AbstractElement, Precision, Action>(
-        pElement, SingletonPrecision.getInstance(), action);
+    Action action = prec(pElement, pPrecision);
+
+    return Triple.of(pElement, pPrecision, action);
   }
 
+  public abstract Action prec(AbstractElement pElement, Precision pPrecision) throws CPAException;
 }
