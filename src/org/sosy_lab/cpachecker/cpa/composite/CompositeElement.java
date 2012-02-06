@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 public class CompositeElement implements AbstractWrapperElement, Targetable, Partitionable {
@@ -59,26 +60,6 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
       }
     }
     return false;
-  }
-
-  @Override
-  public Object getPartitionKey() {
-    if (partitionKey == null) {
-      List<Object> keys = new ArrayList<Object>(elements.size());
-
-      for (int i = 0; i < elements.size(); i++) {
-        AbstractElement element = elements.get(i);
-        if (element instanceof Partitionable) {
-          keys.add(((Partitionable)element).getPartitionKey());
-        } else {
-          keys.add(null);
-        }
-      }
-
-      partitionKey = keys;
-    }
-
-    return partitionKey;
   }
 
   @Override
@@ -124,5 +105,58 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
   @Override
   public List<AbstractElement> getWrappedElements() {
     return elements;
+  }
+
+
+  @Override
+  public Object getPartitionKey() {
+    if (partitionKey == null) {
+      Object[] keys = new Object[elements.size()];
+
+      int i = 0;
+      for (AbstractElement element : elements) {
+        if (element instanceof Partitionable) {
+          keys[i] = ((Partitionable)element).getPartitionKey();
+        }
+        i++;
+      }
+
+      // wrap array of keys in object to enable overriding of equals and hashCode
+      partitionKey = new CompositePartitionKey(keys);
+    }
+
+    return partitionKey;
+  }
+
+  private static final class CompositePartitionKey {
+
+    private final Object[] keys;
+
+    private CompositePartitionKey(Object[] pElements) {
+      keys = pElements;
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (this == pObj) {
+        return true;
+      }
+
+      if (CompositePartitionKey.class != pObj.getClass()) {
+        return false;
+      }
+
+      return Arrays.equals(this.keys, ((CompositePartitionKey)pObj).keys);
+    }
+
+    @Override
+    public int hashCode() {
+      return Arrays.hashCode(keys);
+    }
+
+    @Override
+    public String toString() {
+      return "[" + Joiner.on(", ").skipNulls().join(keys) + "]";
+    }
   }
 }
