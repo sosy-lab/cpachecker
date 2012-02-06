@@ -61,7 +61,7 @@ public class OmniscientCompositePrecisionAdjustment implements PrecisionAdjustme
 
     CompositeElement composite    = (CompositeElement)pElement;
     CompositePrecision precision  = (CompositePrecision)pPrecision;
-    assert (composite.getElements().size() == precision.getPrecisions().size());
+    assert (composite.getWrappedElements().size() == precision.getPrecisions().size());
 
     int indexOfExplicitState = getIndexOfExplicitState(composite);
     if(indexOfExplicitState == -1) {
@@ -71,7 +71,7 @@ public class OmniscientCompositePrecisionAdjustment implements PrecisionAdjustme
     ImmutableList.Builder<AbstractElement> outElements  = ImmutableList.builder();
     ImmutableList.Builder<Precision> outPrecisions      = ImmutableList.builder();
 
-    for (int i = 0, size = composite.getElements().size(); i < size; ++i) {
+    for (int i = 0, size = composite.getWrappedElements().size(); i < size; ++i) {
       if(i == indexOfExplicitState) {
         ExplicitElement explicit                  = AbstractElements.extractElementByType(composite, ExplicitElement.class);
         LocationElement location                  = AbstractElements.extractElementByType(composite, LocationElement.class);
@@ -140,7 +140,7 @@ public class OmniscientCompositePrecisionAdjustment implements PrecisionAdjustme
   }
 
   private int getIndexOfExplicitState(CompositeElement composite) {
-    for (int i = 0; i < composite.getElements().size(); ++i) {
+    for (int i = 0; i < composite.getWrappedElements().size(); ++i) {
       if(composite.get(i) instanceof ExplicitElement) {
         return i;
       }

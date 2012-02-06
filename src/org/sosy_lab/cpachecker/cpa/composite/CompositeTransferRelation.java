@@ -97,7 +97,7 @@ public class CompositeTransferRelation implements TransferRelation{
 
     // first, call all the post operators
     int resultCount = 1;
-    List<AbstractElement> componentElements = compositeElement.getElements();
+    List<AbstractElement> componentElements = compositeElement.getWrappedElements();
     List<Collection<? extends AbstractElement>> allComponentsSuccessors = new ArrayList<Collection<? extends AbstractElement>>(size);
 
     for (int i = 0; i < size; i++) {

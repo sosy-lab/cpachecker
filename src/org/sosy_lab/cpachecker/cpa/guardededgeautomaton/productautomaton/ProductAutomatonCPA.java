@@ -79,7 +79,7 @@ public class ProductAutomatonCPA extends CompositeCPA {
   public AbstractElement getInitialElement (CFANode node) {
     CompositeElement lInitialElement = (CompositeElement)super.getInitialElement(node);
 
-    return ProductAutomatonElement.createElement(lInitialElement.getElements());
+    return ProductAutomatonElement.createElement(lInitialElement.getWrappedElements());
   }
 
 }

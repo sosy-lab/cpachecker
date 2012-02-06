@@ -167,7 +167,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
           for (AbstractElement x : reached.getWaitlist()) {
             ARTElement xart = (ARTElement)x;
             FeatureVarsElement fvelem = null;
-            for (AbstractElement y : ((CompositeElement)xart.getWrappedElement()).getElements()) {
+            for (AbstractElement y : ((CompositeElement)xart.getWrappedElement()).getWrappedElements()) {
               if (y instanceof FeatureVarsElement)
                 fvelem = (FeatureVarsElement)y;
             }

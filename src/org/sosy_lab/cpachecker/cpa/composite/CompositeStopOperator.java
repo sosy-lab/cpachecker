@@ -57,8 +57,8 @@ public class CompositeStopOperator implements StopOperator{
   }
 
   private boolean stop(CompositeElement compositeElement, CompositeElement compositeReachedElement, CompositePrecision compositePrecision) throws CPAException {
-    List<AbstractElement> compositeElements = compositeElement.getElements();
-    List<AbstractElement> compositeReachedElements = compositeReachedElement.getElements();
+    List<AbstractElement> compositeElements = compositeElement.getWrappedElements();
+    List<AbstractElement> compositeReachedElements = compositeReachedElement.getWrappedElements();
 
     List<Precision> compositePrecisions = compositePrecision.getPrecisions();
 

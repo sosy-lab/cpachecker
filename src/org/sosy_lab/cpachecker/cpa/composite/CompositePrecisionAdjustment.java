@@ -93,8 +93,8 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
                                                UnmodifiableReachedSet pElements) throws CPAException {
     CompositeElement comp = (CompositeElement) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
-    assert (comp.getElements().size() == prec.getPrecisions().size());
-    int dim = comp.getElements().size();
+    assert (comp.getWrappedElements().size() == prec.getPrecisions().size());
+    int dim = comp.getWrappedElements().size();
 
     ImmutableList.Builder<AbstractElement> outElements = ImmutableList.builder();
     ImmutableList.Builder<Precision> outPrecisions = ImmutableList.builder();

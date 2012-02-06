@@ -43,11 +43,6 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
     this.elements = ImmutableList.copyOf(elements);
   }
 
-  public List<AbstractElement> getElements()
-  {
-    return elements;
-  }
-
   public int getNumberofElements(){
     return elements.size();
   }

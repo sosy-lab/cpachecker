@@ -58,8 +58,8 @@ public class CompositeMergePlainOperator implements MergeOperator{
     assert(comp1.getNumberofElements() == comp2.getNumberofElements());
 
     ImmutableList.Builder<AbstractElement> mergedElements = ImmutableList.builder();
-    Iterator<AbstractElement> iter1 = comp1.getElements().iterator();
-    Iterator<AbstractElement> iter2 = comp2.getElements().iterator();
+    Iterator<AbstractElement> iter1 = comp1.getWrappedElements().iterator();
+    Iterator<AbstractElement> iter2 = comp2.getWrappedElements().iterator();
     Iterator<Precision> precIter = prec.getPrecisions().iterator();
 
     boolean identicElements = true;

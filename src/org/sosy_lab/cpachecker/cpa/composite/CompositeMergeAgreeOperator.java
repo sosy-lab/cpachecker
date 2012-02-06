@@ -71,8 +71,8 @@ public class CompositeMergeAgreeOperator implements MergeOperator {
 
     ImmutableList.Builder<AbstractElement> mergedElements = ImmutableList.builder();
     Iterator<StopOperator> stopIter = stopOperators.iterator();
-    Iterator<AbstractElement> iter1 = comp1.getElements().iterator();
-    Iterator<AbstractElement> iter2 = comp2.getElements().iterator();
+    Iterator<AbstractElement> iter1 = comp1.getWrappedElements().iterator();
+    Iterator<AbstractElement> iter2 = comp2.getWrappedElements().iterator();
     Iterator<Precision> precIter = compositePrec.getPrecisions().iterator();
 
     boolean identicElements = true;
