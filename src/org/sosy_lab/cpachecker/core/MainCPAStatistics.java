@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -292,7 +293,8 @@ class MainCPAStatistics implements Statistics {
           int locs = l.getNumberOfPartitions();
           out.println("  Number of locations:        " + locs);
           out.println("    Avg states per loc.:      " + reachedSize / locs);
-          out.println("    Max states per loc.:      " + l.getSizeOfMaxPartition());
+          Map.Entry<Object, Collection<AbstractElement>> maxPartition = l.getMaxPartition();
+          out.println("    Max states per loc.:      " + maxPartition.getValue().size() + " (at node " + maxPartition.getKey() + ")");
 
         } else if (reached instanceof PartitionedReachedSet) {
           PartitionedReachedSet p = (PartitionedReachedSet)reached;
@@ -303,15 +305,20 @@ class MainCPAStatistics implements Statistics {
           out.println("    Avg states per loc.:      " + reachedSize / locs);
 
           int max = 0;
+          CFANode maxLoc = null;
           for (Multiset.Entry<CFANode> location : allLocations.entrySet()) {
-            max = Math.max(max, location.getCount());
+            int size = location.getCount();
+            if (size > max) {
+              max = size;
+              maxLoc = location.getElement();
+            }
           }
-          out.println("    Max states per loc.:      " + max);
+          out.println("    Max states per loc.:      " + max + " (at node " + maxLoc + ")");
 
           int partitions = p.getNumberOfPartitions();
           out.println("  Number of partitions:       " + partitions);
           out.println("    Avg size of partitions:   " + reachedSize / partitions);
-          out.println("    Max size of partitions:   " + p.getSizeOfMaxPartition());
+          out.println("    Max size of partitions:   " + p.getMaxPartition().getValue().size());
         }
 
         out.println("  Number of target elements:  " + Iterables.size(allTargetElements));
