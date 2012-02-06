@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.cpa.explicit.OmniscientCompositePrecisionAdjustment;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -61,6 +62,13 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
           + "Both delegate to the component cpas, but agree only allows "
           + "merging if all cpas agree on this. This is probably what you want.")
     private String merge = "AGREE";
+
+    @Option(toUppercase=true, values={"IGNORANT", "OMNISCIENT"},
+    description="which precision adjustment strategy to use (ignorant or omniscient)\n"
+      + "While an ignorant strategy keeps the domain knowledge seperated, "
+      + "and delegates to the component precision adjustment operators, "
+      + "the omniscient strategy may operate on global knowledge.")
+    private String precAdjust = "IGNORANT";
   }
 
   private static class CompositeCPAFactory extends AbstractCPAFactory {
@@ -114,7 +122,13 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       CompositeDomain compositeDomain = new CompositeDomain(domains.build());
       CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build());
       CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
-      CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build(), compositeStop);
+
+      PrecisionAdjustment compositePrecisionAdjustment;
+      if(options.precAdjust.equals("IGNORANT")) {
+        compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build(), compositeStop);
+      } else {
+        compositePrecisionAdjustment = new OmniscientCompositePrecisionAdjustment();
+      }
 
       return new CompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
           compositePrecisionAdjustment, cpas);

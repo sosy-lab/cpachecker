@@ -78,18 +78,30 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   @Option(description="whether or not to track unique assignments only")
   private boolean demandUniqueness = true;
 
-  private int max = 0;
-
-  private AssignmentsInPathConditionElement currentElement = null;
-
-  private Map<String, Integer> assignmentsPerIdentifier = new HashMap<String, Integer>();
-
-  LogManager logger;
-
   @Option(name = "extendedStatsFile",
       description = "file name where to put the extended stats file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File extendedStatsFile;
+
+  /**
+   * the reference to the current element
+   */
+  private AssignmentsInPathConditionElement currentElement = null;
+
+  /**
+   * the maximal number of assignments over all variables for all elements seen to far
+   */
+  private int maxNumberOfAssignments = 0;
+
+  /**
+   * the maximal number of assignments for each variables over all elements seen to far
+   */
+  private Map<String, Integer> maxNumberOfAssignmentsPerIdentifier = new HashMap<String, Integer>();
+
+  /**
+   * a reference to the logger
+   */
+  LogManager logger;
 
   public AssignmentsInPathCondition(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
@@ -123,15 +135,15 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
       }
     }
 
-    max = Math.max(max, currentElement.maximum);
+    maxNumberOfAssignments = Math.max(maxNumberOfAssignments, currentElement.maximum);
 
     for(Map.Entry<String, Integer> assignment : currentElement.getAssignmentCounts().entrySet()) {
       String variableName     = assignment.getKey();
-      Integer currentCounter  = assignmentsPerIdentifier.containsKey(variableName) ? assignmentsPerIdentifier.get(variableName) : 0;
+      Integer currentCounter  = maxNumberOfAssignmentsPerIdentifier.containsKey(variableName) ? maxNumberOfAssignmentsPerIdentifier.get(variableName) : 0;
 
       currentCounter          = Math.max(currentCounter, assignment.getValue());
 
-      assignmentsPerIdentifier.put(variableName, currentCounter);
+      maxNumberOfAssignmentsPerIdentifier.put(variableName, currentCounter);
     }
 
     return currentElement;
@@ -191,32 +203,52 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reachedSet) {
     out.println("Threshold value: " + threshold);
-    out.println("max. number of assignments: " + max);
+    out.println("max. number of assignments: " + maxNumberOfAssignments);
 
     if(extendedStatsFile != null) {
-      try {
-          StringBuilder builder = new StringBuilder();
-          String newline        = System.getProperty("line.separator");
-
-          builder.append("total numer of variable assignments of last element:");
-          builder.append(newline);
-          builder.append(currentElement);
-
-          builder.append(newline);
-          builder.append("max. total numer of variable assignments over all elements:");
-          for(Map.Entry<String, Integer> assignment : assignmentsPerIdentifier.entrySet()) {
-            builder.append(newline);
-            builder.append(assignment.getKey());
-            builder.append(" -> ");
-            builder.append("#");
-            builder.append(assignment.getValue());
-        }
-        Files.writeFile(extendedStatsFile, builder.toString());
-
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write extended statistics to file");
-      }
+      writeLogFile();
     }
+  }
+
+  private void writeLogFile() {
+    try {
+      StringBuilder builder = new StringBuilder();
+
+      // log the last element found
+      builder.append("total number of variable assignments of last element:");
+      builder.append("\n");
+      builder.append(currentElement);
+
+      // log the max-aggregation
+      builder.append("\n");
+      builder.append("\n");
+      builder.append("max. total number of variable assignments over all elements:");
+      builder.append("\n");
+      builder.append(assignmentsAsString(maxNumberOfAssignmentsPerIdentifier));
+
+      Files.writeFile(extendedStatsFile, builder.toString());
+    } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write extended statistics to file");
+    }
+  }
+
+  /**
+   * This method returns a human-readable representation of an assignment map.
+   *
+   * @param assignments the assignment map to represent
+   * @return a human-readable representation of an assignment map
+   */
+  private static String assignmentsAsString(Map<String, Integer> assignments) {
+    StringBuilder builder = new StringBuilder();
+
+    for(Map.Entry<String, Integer> assignment : assignments.entrySet()) {
+      builder.append(assignment.getKey());
+      builder.append(" -> ");
+      builder.append(assignment.getValue());
+      builder.append("\n");
+    }
+
+    return builder.toString();
   }
 
   abstract public class AssignmentsInPathConditionElement implements AbstractElement, AvoidanceReportingElement {
@@ -264,22 +296,26 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     */
     abstract public boolean variableExceedsGivenLimit(String variableName, Integer limit);
 
+    /**
+    * This method returns the current number of assignments for the given variable.
+    *
+    * @param varaibleName the variable for which to get the assignment count
+    * @return the current number of assignments per variable
+    */
+    abstract public Integer getAssignmentCount(String varaibleName);
+
+    /**
+     * This method returns the current number of assignments per variable.
+     *
+     * @return the current number of assignments per variable
+     */
     abstract public Map<String, Integer> getAssignmentCounts();
 
     @Override
     public String toString() {
-      String newline = System.getProperty("line.separator");
       StringBuilder builder = new StringBuilder();
 
-      for(Map.Entry<String, Integer> assignment : getAssignmentCounts().entrySet()) {
-        builder.append(assignment.getKey());
-        builder.append(" -> ");
-        builder.append("#");
-        builder.append(assignment.getValue());
-        builder.append(newline);
-      }
-
-      return builder.toString();
+      return builder.append(assignmentsAsString(getAssignmentCounts())).toString();
     }
   }
 
@@ -322,6 +358,11 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     @Override
     public boolean variableExceedsGivenLimit(String variableName, Integer limit) {
       return mapping.containsKey(variableName) && mapping.get(variableName) >= limit;
+    }
+
+    @Override
+    public Integer getAssignmentCount(String variableName) {
+      return mapping.get(variableName);
     }
 
     @Override
@@ -383,7 +424,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
         if(value != null) {
           mapping.put(assignedVariable, value);
 
-          maximum = Math.max(maximum, mapping.get(assignedVariable).size());
+          maximum = Math.max(maximum, getAssignmentCount(assignedVariable));
         }
       }
     }
@@ -399,7 +440,12 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
      */
     @Override
     public boolean variableExceedsGivenLimit(String variableName, Integer limit) {
-      return mapping.containsKey(variableName) && mapping.get(variableName).size() >= limit;
+      return mapping.containsKey(variableName) && getAssignmentCount(variableName) >= limit;
+    }
+
+    @Override
+    public Integer getAssignmentCount(String variableName) {
+      return mapping.get(variableName).size();
     }
 
     @Override
@@ -407,7 +453,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
       Map<String, Integer> map = new HashMap<String, Integer>();
 
       for(String variableName : mapping.keys()) {
-        map.put(variableName, mapping.get(variableName).size());
+        map.put(variableName, getAssignmentCount(variableName));
       }
 
       return Collections.unmodifiableMap(map);

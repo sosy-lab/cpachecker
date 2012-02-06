@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -300,10 +299,7 @@ public class ExplicitTransferRelation implements TransferRelation
   private AbstractElement handleAssumption(ExplicitElement element, IASTExpression expression, CFAEdge cfaEdge, boolean truthValue, ExplicitPrecision precision)
     throws UnrecognizedCCodeException
   {
-    // convert a simple expression like [a] to [a != 0]
-    expression = convertToNotEqualToZeroAssume(expression);
-
-    // convert an expression like [a + 753 != 951] to [a != 951 + 753]
+    // convert an expression like [a + 753 != 951] to [a != 951 - 753]
     expression = optimizeAssumeForEvaluation(expression);
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -900,11 +896,11 @@ public class ExplicitTransferRelation implements TransferRelation
       else if(ae instanceof AssumptionStorageElement)
         return strengthen(explicitElement, (AssumptionStorageElement)ae, cfaEdge, precision);
 
-      else if(ae instanceof AllAssignmentsInPathConditionElement)
+      /*else if(ae instanceof AllAssignmentsInPathConditionElement)
         return strengthen(explicitElement, (AllAssignmentsInPathConditionElement)ae, cfaEdge, precision);
 
       else if(ae instanceof UniqueAssignmentsInPathConditionElement)
-        return strengthen(explicitElement, (UniqueAssignmentsInPathConditionElement)ae, cfaEdge, precision);
+        return strengthen(explicitElement, (UniqueAssignmentsInPathConditionElement)ae, cfaEdge, precision);*/
     }
 
     return null;
@@ -958,7 +954,7 @@ public class ExplicitTransferRelation implements TransferRelation
    * This method enforces the threshold on the given ExplicitElement by querying assignment information from the AllAssignmentsInPathConditionElement.
    */
   private Collection<? extends AbstractElement> strengthen(ExplicitElement pExplicitElement, AllAssignmentsInPathConditionElement assignsInPathElement, CFAEdge pCfaEdge, Precision pPrecision) {
-    return enforceThreshold(pExplicitElement, assignsInPathElement, pCfaEdge, pPrecision);
+    return enforceThreshold(pExplicitElement, assignsInPathElement, pPrecision);
   }
 
   /**
@@ -968,7 +964,7 @@ public class ExplicitTransferRelation implements TransferRelation
     // on basis of the current ExplicitElement, add a new assignment, if it is unique
     assignsInPathElement.addAssignment(pExplicitElement);
 
-    return enforceThreshold(pExplicitElement, assignsInPathElement, pCfaEdge, pPrecision);
+    return enforceThreshold(pExplicitElement, assignsInPathElement, pPrecision);
   }
 
   /**
@@ -976,11 +972,10 @@ public class ExplicitTransferRelation implements TransferRelation
    *
    * @param pExplicitElement the ExplicitElement to enforce the threshold upon
    * @param assignsInPathElement the element holding the information how many assignments in total were made to each and any variable
-   * @param pCfaEdge the current CFAedge
    * @param pPrecision the current precision
    * @return
    */
-  private Collection<? extends AbstractElement> enforceThreshold(ExplicitElement pExplicitElement, AssignmentsInPathConditionElement assignsInPathElement, CFAEdge pCfaEdge, Precision pPrecision) {
+  private Collection<? extends AbstractElement> enforceThreshold(ExplicitElement pExplicitElement, AssignmentsInPathConditionElement assignsInPathElement, Precision pPrecision) {
     // determine which variables exceed the given threshold, ...
     Set<String> toBeForgotten = new HashSet<String>();
     if(assignsInPathElement.getMaximum() > threshold) {
@@ -1021,34 +1016,7 @@ public class ExplicitTransferRelation implements TransferRelation
   }
 
   /**
-   * This method converts a simple expression like [a] to [a != 0], to handle these expression just like the more general one
-   *
-   * @param expression the expression to generalize
-   * @return the generalized expression
-   */
-  private IASTBinaryExpression convertToNotEqualToZeroAssume(IASTExpression expression)
-  {
-    if(expression instanceof IASTBinaryExpression)
-    {
-      IASTBinaryExpression binaryExpression = (IASTBinaryExpression)expression;
-
-      if(binaryExpression.getOperator() == BinaryOperator.EQUALS || binaryExpression.getOperator() == BinaryOperator.NOT_EQUALS)
-        return binaryExpression;
-    }
-
-    IASTIntegerLiteralExpression zero = new IASTIntegerLiteralExpression(expression.getFileLocation(),
-                                                                         expression.getExpressionType(),
-                                                                         BigInteger.ZERO);
-
-    return new IASTBinaryExpression(expression.getFileLocation(),
-                                    expression.getExpressionType(),
-                                    expression,
-                                    zero,
-                                    BinaryOperator.NOT_EQUALS);
-  }
-
-  /**
-   * This method converts an expression like [a + 753 != 951] to [a != 951 + 753], to be able to derive addition information easier with the current expression evaluation visitor.
+   * This method converts an expression like [a + 753 != 951] to [a != 951 - 753], to be able to derive addition information easier with the current expression evaluation visitor.
    *
    * @param expression the expression to generalize
    * @return the generalized expression

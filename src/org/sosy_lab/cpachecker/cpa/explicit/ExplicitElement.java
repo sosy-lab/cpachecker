@@ -75,6 +75,8 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
       return;
 
     constantsMap.put(variableName, value);
+
+    //System.out.println(constantsMap.size());
   }
 
   void copyConstant(ExplicitElement other, String variableName)
@@ -87,6 +89,8 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     if(constantsMap.containsKey(variableName)) {
       constantsMap.remove(variableName);
     }
+
+    //System.out.println(constantsMap.size());
   }
 
   public Long getValueFor(String variableName)
