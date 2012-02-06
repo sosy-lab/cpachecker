@@ -5,7 +5,7 @@ CC	= gcc
 OBJS	= driver.o clpintf.o clp.o csm.o obsave.o deftbl.o err.o \
 	source.o pdl_gen.o VoidPtrList.o clplib.o CScope.o envmod.o \
 	BitSet.o treecon.o nodecode.o parser.o glahead.o auxNUL.o \
-	auxEOF.o dflteot.o tabsize.o idn.o str.o Ccomment.o \
+	auxEOF.o dflteot.o tabsize.o idn.o Ccomment.o str.o \
 	pgs_gen.o treestack.o dfltrepar.o attrmain.o visitprocs.o \
 	visitmap.o parserInterface.o obstack.o
 
@@ -89,10 +89,10 @@ tabsize.o:	tabsize.c
 idn.o:	idn.c err.h idn.h csm.h obstack.h obsave.h idntbl.h \
 		eliproto.h
 
-str.o:	str.c csm.h obstack.h eliproto.h
-
 Ccomment.o:	Ccomment.c err.h gla.h source.h tabsize.h ScanProc.h \
 		eliproto.h
+
+str.o:	str.c csm.h obstack.h eliproto.h
 
 pgs_gen.o:	pgs_gen.c gsdescr.h treestack.h HEAD.h err.h parsops.h \
 		eliproto.h nodeptr.h clp.h envmod.h deftbl.h BitSet.h \

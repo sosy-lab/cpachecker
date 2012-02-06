@@ -11,7 +11,7 @@ parserInterface.c
 ~}
 ~O~<convert.gla~>~{
 ident: C_IDENTIFIER [mkidn]
-integer: C_INTEGER [mkstr]
+integer: C_INT_DENOTATION [mkidn]
 include_string: $\<[a-zA-Z\.]*\> [mkstr]
 C_COMMENT 
 ~}
@@ -36,12 +36,17 @@ pre_include:
   '#' 'include' include_string .
 
 function_definition:
+  type_specifier ident '(' parameter_list_opt ')' compound_statement_opt /
   type_specifier ident '(' parameter_list_opt ')' compound_statement_opt .
 
-type_specifier: 
+type_specifier:
+  'long' /
+  'unsigned' 'long' / 
   'int' / 
+  'unsigned' 'int' /
   'bool' / 
   'void' /
+  'extern' 'long' /
   'extern' 'int' / 
   'extern' 'bool' / 
   'extern' 'void' . 
@@ -114,6 +119,7 @@ assignment_expression:
   IdUse assignment_operator function_call_expression . 
 
 function_call_expression: 
+  '(' type_specifier ')' ident '(' argument_expression_list_opt ')' / 
   ident '(' argument_expression_list_opt ')' / 
   conditional_expression .
 
@@ -214,12 +220,15 @@ multiplicative_expression:
   multiplicative_expression multiplicative_operator cast_expression .
 
 cast_expression: 
+  '(' type_specifier ')' cast_expression / 
   unary_expression .
 
 unary_expression: 
   postfix_expression / 
   '++' unary_expression / 
   '--' unary_expression / 
+  '&' unary_expression /
+  '*' unary_expression /  
   unary_operator cast_expression . 
 
 unary_operator:  
@@ -282,6 +291,14 @@ ATTR mark2 : UINT;
 ATTR mark3 : UINT;
 
 RULE: function_definition ::= type_specifier ident '(' parameter_list_opt ')' compound_statement_opt COMPUTE
+	.mark1 = new_node(); #root of function CFA
+	compound_statement_opt.input = .mark1;
+	function_definition.labelsDefined = compound_statement_opt.result;
+	.s1 = CONSTITUENTS jump_statement.jumpsResolved <- function_definition.labelsDefined;
+	traverse_cfa(.mark1, StringTable(ident)) <- .s1;
+END;
+
+RULE: function_definition ::= type_specifier '(' ident ')' '(' parameter_list_opt ')' compound_statement_opt COMPUTE
 	.mark1 = new_node(); #root of function CFA
 	compound_statement_opt.input = .mark1;
 	function_definition.labelsDefined = compound_statement_opt.result;
@@ -427,6 +444,12 @@ RULE: function_call_expression ::= Expression COMPUTE
 END;
 
 RULE: function_call_expression ::= ident '(' argument_expression_list_opt ')' COMPUTE
+	.mark1 = new_node();
+	.s1 = create_edge(function_call_expression.input, .mark1, StringTable(ident));
+	function_call_expression.result = .mark1 <- .s1;
+END;
+
+RULE: function_call_expression ::= '(' type_specifier ')' ident '(' argument_expression_list_opt ')' COMPUTE
 	.mark1 = new_node();
 	.s1 = create_edge(function_call_expression.input, .mark1, StringTable(ident));
 	function_call_expression.result = .mark1 <- .s1;

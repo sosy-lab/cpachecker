@@ -3,14 +3,15 @@
 #define _TERMACT_rule_1 \
 	_currn->_ATTERM_1=_TERM1;
 
-#define _TERMACT_rule_2
+#define _TERMACT_rule_2 \
+	_currn->_ATTERM_1=_TERM1;
 
 #define _TERMACT_rule_3
 
-#define _TERMACT_rule_4 \
-	_currn->_ATTERM_1=_TERM1;
+#define _TERMACT_rule_4
 
-#define _TERMACT_rule_5
+#define _TERMACT_rule_5 \
+	_currn->_ATTERM_1=_TERM1;
 
 #define _TERMACT_rule_6
 
@@ -24,10 +25,10 @@
 
 #define _TERMACT_rule_11
 
-#define _TERMACT_rule_12 \
-	_currn->_ATTERM_1=_TERM1;
+#define _TERMACT_rule_12
 
-#define _TERMACT_rule_13
+#define _TERMACT_rule_13 \
+	_currn->_ATTERM_1=_TERM1;
 
 #define _TERMACT_rule_14
 
@@ -53,8 +54,27 @@
 
 #define _TERMACT_rule_25
 
-#define _TERMACT_rule_26 \
+#define _TERMACT_rule_26
+
+#define _TERMACT_rule_27 \
 	_currn->_ATTERM_1=_TERM1;
+
+#define _TERMACT_rule_28 \
+	_currn->_ATTERM_1=_TERM1;
+
+#define _TERMACT_rule_107
+
+#define _TERMACT_rule_106
+
+#define _TERMACT_rule_105
+
+#define _TERMACT_rule_104
+
+#define _TERMACT_rule_103
+
+#define _TERMACT_rule_102
+
+#define _TERMACT_rule_101
 
 #define _TERMACT_rule_100
 
@@ -199,7 +219,3 @@
 #define _TERMACT_rule_30
 
 #define _TERMACT_rule_29
-
-#define _TERMACT_rule_28
-
-#define _TERMACT_rule_27

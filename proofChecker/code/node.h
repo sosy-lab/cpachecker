@@ -86,6 +86,15 @@ typedef struct _TPrule_23* _TPPrule_23;
 typedef struct _TPrule_24* _TPPrule_24;
 typedef struct _TPrule_25* _TPPrule_25;
 typedef struct _TPrule_26* _TPPrule_26;
+typedef struct _TPrule_27* _TPPrule_27;
+typedef struct _TPrule_28* _TPPrule_28;
+typedef struct _TPrule_107* _TPPrule_107;
+typedef struct _TPrule_106* _TPPrule_106;
+typedef struct _TPrule_105* _TPPrule_105;
+typedef struct _TPrule_104* _TPPrule_104;
+typedef struct _TPrule_103* _TPPrule_103;
+typedef struct _TPrule_102* _TPPrule_102;
+typedef struct _TPrule_101* _TPPrule_101;
 typedef struct _TPrule_100* _TPPrule_100;
 typedef struct _TPrule_99* _TPPrule_99;
 typedef struct _TPrule_98* _TPPrule_98;
@@ -158,8 +167,6 @@ typedef struct _TPrule_32* _TPPrule_32;
 typedef struct _TPrule_31* _TPPrule_31;
 typedef struct _TPrule_30* _TPPrule_30;
 typedef struct _TPrule_29* _TPPrule_29;
-typedef struct _TPrule_28* _TPPrule_28;
-typedef struct _TPrule_27* _TPPrule_27;
 
 struct _TSunary_operator
 #ifdef __cplusplus
@@ -538,7 +545,8 @@ struct _TPrule_1
 {
 _NODECOMMON
 #endif
-_TSPargument_expression_list_opt _desc1;
+_TSPtype_specifier _desc1;
+_TSPargument_expression_list_opt _desc2;
 int _ATTERM_1;
 };
 
@@ -549,7 +557,8 @@ struct _TPrule_2
 {
 _NODECOMMON
 #endif
-_TSPExpression _desc1;
+_TSPargument_expression_list_opt _desc1;
+int _ATTERM_1;
 };
 
 struct _TPrule_3
@@ -559,8 +568,7 @@ struct _TPrule_3
 {
 _NODECOMMON
 #endif
-UINT _ATinput;
-_TSPexpression_opt _desc1;
+_TSPExpression _desc1;
 };
 
 struct _TPrule_4
@@ -571,7 +579,7 @@ struct _TPrule_4
 _NODECOMMON
 #endif
 UINT _ATinput;
-int _ATTERM_1;
+_TSPexpression_opt _desc1;
 };
 
 struct _TPrule_5
@@ -581,9 +589,8 @@ struct _TPrule_5
 {
 _NODECOMMON
 #endif
-_TSPExpression _desc1;
-_TSPstatement _desc2;
-_TSPstatement _desc3;
+UINT _ATinput;
+int _ATTERM_1;
 };
 
 struct _TPrule_6
@@ -595,6 +602,7 @@ _NODECOMMON
 #endif
 _TSPExpression _desc1;
 _TSPstatement _desc2;
+_TSPstatement _desc3;
 };
 
 struct _TPrule_7
@@ -604,10 +612,21 @@ struct _TPrule_7
 {
 _NODECOMMON
 #endif
-_TSPfunction_call_expression _desc1;
+_TSPExpression _desc1;
+_TSPstatement _desc2;
 };
 
 struct _TPrule_8
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
+_TSPfunction_call_expression _desc1;
+};
+
+struct _TPrule_9
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -619,7 +638,7 @@ _TSPassignment_operator _desc2;
 _TSPfunction_call_expression _desc3;
 };
 
-struct _TPrule_9
+struct _TPrule_10
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -629,7 +648,7 @@ _NODECOMMON
 _TSPassignment_expression _desc1;
 };
 
-struct _TPrule_10
+struct _TPrule_11
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -638,7 +657,7 @@ _NODECOMMON
 #endif
 };
 
-struct _TPrule_11
+struct _TPrule_12
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -648,7 +667,7 @@ _NODECOMMON
 _TSPexpression_opt _desc1;
 };
 
-struct _TPrule_12
+struct _TPrule_13
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -659,7 +678,7 @@ _TSPstatement _desc1;
 int _ATTERM_1;
 };
 
-struct _TPrule_13
+struct _TPrule_14
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -669,7 +688,7 @@ _NODECOMMON
 _TSPjump_statement _desc1;
 };
 
-struct _TPrule_14
+struct _TPrule_15
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -679,7 +698,7 @@ _NODECOMMON
 _TSPselection_statement _desc1;
 };
 
-struct _TPrule_15
+struct _TPrule_16
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -689,7 +708,7 @@ _NODECOMMON
 _TSPexpression_statement _desc1;
 };
 
-struct _TPrule_16
+struct _TPrule_17
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -699,7 +718,7 @@ _NODECOMMON
 _TSPcompound_statement _desc1;
 };
 
-struct _TPrule_17
+struct _TPrule_18
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -709,7 +728,7 @@ _NODECOMMON
 _TSPlabeled_statement _desc1;
 };
 
-struct _TPrule_18
+struct _TPrule_19
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -720,7 +739,7 @@ _TSPstatement_list _desc1;
 _TSPstatement _desc2;
 };
 
-struct _TPrule_19
+struct _TPrule_20
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -730,7 +749,7 @@ _NODECOMMON
 _TSPstatement _desc1;
 };
 
-struct _TPrule_20
+struct _TPrule_21
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -740,7 +759,7 @@ _NODECOMMON
 _TSPstatement_list _desc1;
 };
 
-struct _TPrule_21
+struct _TPrule_22
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -749,7 +768,7 @@ _NODECOMMON
 #endif
 };
 
-struct _TPrule_22
+struct _TPrule_23
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -759,7 +778,7 @@ _NODECOMMON
 _TSPstatement_list_opt _desc1;
 };
 
-struct _TPrule_23
+struct _TPrule_24
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -770,7 +789,7 @@ _TSPdeclaration_list _desc1;
 _TSPstatement_list_opt _desc2;
 };
 
-struct _TPrule_24
+struct _TPrule_25
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -780,7 +799,7 @@ _NODECOMMON
 _TSPcompound_statement _desc1;
 };
 
-struct _TPrule_25
+struct _TPrule_26
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -789,7 +808,7 @@ _NODECOMMON
 #endif
 };
 
-struct _TPrule_26
+struct _TPrule_27
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -800,6 +819,84 @@ _TSPtype_specifier _desc1;
 _TSPparameter_list_opt _desc2;
 _TSPcompound_statement_opt _desc3;
 int _ATTERM_1;
+};
+
+struct _TPrule_28
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
+_TSPtype_specifier _desc1;
+_TSPparameter_list_opt _desc2;
+_TSPcompound_statement_opt _desc3;
+int _ATTERM_1;
+};
+
+struct _TPrule_107
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
+};
+
+struct _TPrule_106
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
+};
+
+struct _TPrule_105
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
+_TSPunary_operator _desc1;
+_TSPExpression _desc2;
+};
+
+struct _TPrule_104
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
+};
+
+struct _TPrule_103
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
+};
+
+struct _TPrule_102
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
+};
+
+struct _TPrule_101
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
 };
 
 struct _TPrule_100
@@ -827,8 +924,6 @@ struct _TPrule_98
 {
 _NODECOMMON
 #endif
-_TSPunary_operator _desc1;
-_TSPExpression _desc2;
 };
 
 struct _TPrule_97
@@ -865,6 +960,8 @@ struct _TPrule_94
 {
 _NODECOMMON
 #endif
+_TSPtranslation_unit _desc1;
+_TSPexternal_declaration _desc2;
 };
 
 struct _TPrule_93
@@ -874,6 +971,7 @@ struct _TPrule_93
 {
 _NODECOMMON
 #endif
+_TSPexternal_declaration _desc1;
 };
 
 struct _TPrule_92
@@ -883,6 +981,7 @@ struct _TPrule_92
 {
 _NODECOMMON
 #endif
+_TSPfile _desc1;
 };
 
 struct _TPrule_91
@@ -892,8 +991,6 @@ struct _TPrule_91
 {
 _NODECOMMON
 #endif
-_TSPtranslation_unit _desc1;
-_TSPexternal_declaration _desc2;
 };
 
 struct _TPrule_90
@@ -903,7 +1000,6 @@ struct _TPrule_90
 {
 _NODECOMMON
 #endif
-_TSPexternal_declaration _desc1;
 };
 
 struct _TPrule_89
@@ -913,7 +1009,9 @@ struct _TPrule_89
 {
 _NODECOMMON
 #endif
-_TSPfile _desc1;
+_TSPExpression _desc1;
+_TSPshift_operator _desc2;
+_TSPExpression _desc3;
 };
 
 struct _TPrule_88
@@ -923,6 +1021,7 @@ struct _TPrule_88
 {
 _NODECOMMON
 #endif
+_TSPsource _desc1;
 };
 
 struct _TPrule_87
@@ -941,9 +1040,6 @@ struct _TPrule_86
 {
 _NODECOMMON
 #endif
-_TSPExpression _desc1;
-_TSPshift_operator _desc2;
-_TSPExpression _desc3;
 };
 
 struct _TPrule_85
@@ -953,7 +1049,6 @@ struct _TPrule_85
 {
 _NODECOMMON
 #endif
-_TSPsource _desc1;
 };
 
 struct _TPrule_84
@@ -972,6 +1067,7 @@ struct _TPrule_83
 {
 _NODECOMMON
 #endif
+_TSPIdUse _desc1;
 };
 
 struct _TPrule_82
@@ -981,6 +1077,7 @@ struct _TPrule_82
 {
 _NODECOMMON
 #endif
+_TSPconstant _desc1;
 };
 
 struct _TPrule_81
@@ -999,39 +1096,10 @@ struct _TPrule_80
 {
 _NODECOMMON
 #endif
-_TSPIdUse _desc1;
-};
-
-struct _TPrule_79
-#ifdef __cplusplus
-	: public NODEPTR_struct {
-#else
-{
-_NODECOMMON
-#endif
-_TSPconstant _desc1;
-};
-
-struct _TPrule_78
-#ifdef __cplusplus
-	: public NODEPTR_struct {
-#else
-{
-_NODECOMMON
-#endif
-};
-
-struct _TPrule_77
-#ifdef __cplusplus
-	: public NODEPTR_struct {
-#else
-{
-_NODECOMMON
-#endif
 _TSPtype_specifier _desc1;
 };
 
-struct _TPrule_76
+struct _TPrule_79
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -1042,7 +1110,7 @@ _TSPparameter_list _desc1;
 _TSPparameter _desc2;
 };
 
-struct _TPrule_75
+struct _TPrule_78
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -1050,6 +1118,34 @@ struct _TPrule_75
 _NODECOMMON
 #endif
 _TSPparameter _desc1;
+};
+
+struct _TPrule_77
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
+};
+
+struct _TPrule_76
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
+_TSPparameter_list _desc1;
+};
+
+struct _TPrule_75
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
 };
 
 struct _TPrule_74
@@ -1068,7 +1164,6 @@ struct _TPrule_73
 {
 _NODECOMMON
 #endif
-_TSPparameter_list _desc1;
 };
 
 struct _TPrule_72
@@ -1123,37 +1218,10 @@ struct _TPrule_67
 {
 _NODECOMMON
 #endif
-};
-
-struct _TPrule_66
-#ifdef __cplusplus
-	: public NODEPTR_struct {
-#else
-{
-_NODECOMMON
-#endif
-};
-
-struct _TPrule_65
-#ifdef __cplusplus
-	: public NODEPTR_struct {
-#else
-{
-_NODECOMMON
-#endif
-};
-
-struct _TPrule_64
-#ifdef __cplusplus
-	: public NODEPTR_struct {
-#else
-{
-_NODECOMMON
-#endif
 _TSPExpression _desc1;
 };
 
-struct _TPrule_63
+struct _TPrule_66
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -1164,7 +1232,7 @@ _TSPinit_declarator_list _desc1;
 _TSPinit_declarator _desc2;
 };
 
-struct _TPrule_62
+struct _TPrule_65
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -1174,7 +1242,7 @@ _NODECOMMON
 _TSPinit_declarator _desc1;
 };
 
-struct _TPrule_61
+struct _TPrule_64
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -1185,7 +1253,7 @@ _TSPinteger_constant _desc1;
 _TSPtype_specifier _desc2;
 };
 
-struct _TPrule_60
+struct _TPrule_63
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -1193,6 +1261,36 @@ struct _TPrule_60
 _NODECOMMON
 #endif
 _TSPinitializer _desc1;
+};
+
+struct _TPrule_62
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
+};
+
+struct _TPrule_61
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
+};
+
+struct _TPrule_60
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
+_TSPExpression _desc1;
+_TSPinclusive_OR_operator _desc2;
+_TSPExpression _desc3;
 };
 
 struct _TPrule_59
@@ -1211,6 +1309,7 @@ struct _TPrule_58
 {
 _NODECOMMON
 #endif
+_TSPtranslation_unit _desc1;
 };
 
 struct _TPrule_57
@@ -1220,9 +1319,7 @@ struct _TPrule_57
 {
 _NODECOMMON
 #endif
-_TSPExpression _desc1;
-_TSPinclusive_OR_operator _desc2;
-_TSPExpression _desc3;
+_TSPpre_include _desc1;
 };
 
 struct _TPrule_56
@@ -1232,6 +1329,7 @@ struct _TPrule_56
 {
 _NODECOMMON
 #endif
+_TSPfunction_definition _desc1;
 };
 
 struct _TPrule_55
@@ -1241,7 +1339,7 @@ struct _TPrule_55
 {
 _NODECOMMON
 #endif
-_TSPtranslation_unit _desc1;
+_TSPdeclaration _desc1;
 };
 
 struct _TPrule_54
@@ -1251,7 +1349,6 @@ struct _TPrule_54
 {
 _NODECOMMON
 #endif
-_TSPpre_include _desc1;
 };
 
 struct _TPrule_53
@@ -1261,7 +1358,9 @@ struct _TPrule_53
 {
 _NODECOMMON
 #endif
-_TSPfunction_definition _desc1;
+_TSPExpression _desc1;
+_TSPexclusive_OR_operator _desc2;
+_TSPExpression _desc3;
 };
 
 struct _TPrule_52
@@ -1271,7 +1370,6 @@ struct _TPrule_52
 {
 _NODECOMMON
 #endif
-_TSPdeclaration _desc1;
 };
 
 struct _TPrule_51
@@ -1290,41 +1388,11 @@ struct _TPrule_50
 {
 _NODECOMMON
 #endif
-_TSPExpression _desc1;
-_TSPexclusive_OR_operator _desc2;
-_TSPExpression _desc3;
-};
-
-struct _TPrule_49
-#ifdef __cplusplus
-	: public NODEPTR_struct {
-#else
-{
-_NODECOMMON
-#endif
-};
-
-struct _TPrule_48
-#ifdef __cplusplus
-	: public NODEPTR_struct {
-#else
-{
-_NODECOMMON
-#endif
-};
-
-struct _TPrule_47
-#ifdef __cplusplus
-	: public NODEPTR_struct {
-#else
-{
-_NODECOMMON
-#endif
 _TSPtype_specifier _desc1;
 _TSPinit_declarator_list _desc2;
 };
 
-struct _TPrule_46
+struct _TPrule_49
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -1335,7 +1403,7 @@ _TSPdeclaration_list _desc1;
 _TSPdeclaration _desc2;
 };
 
-struct _TPrule_45
+struct _TPrule_48
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else
@@ -1345,6 +1413,34 @@ _NODECOMMON
 _TSPdeclaration _desc1;
 };
 
+struct _TPrule_47
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
+};
+
+struct _TPrule_46
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
+_TSPinteger_constant _desc1;
+};
+
+struct _TPrule_45
+#ifdef __cplusplus
+	: public NODEPTR_struct {
+#else
+{
+_NODECOMMON
+#endif
+};
+
 struct _TPrule_44
 #ifdef __cplusplus
 	: public NODEPTR_struct {
@@ -1352,6 +1448,8 @@ struct _TPrule_44
 {
 _NODECOMMON
 #endif
+_TSPtype_specifier _desc1;
+_TSPExpression _desc2;
 };
 
 struct _TPrule_43
@@ -1361,7 +1459,6 @@ struct _TPrule_43
 {
 _NODECOMMON
 #endif
-_TSPinteger_constant _desc1;
 };
 
 struct _TPrule_42
@@ -1416,6 +1513,7 @@ struct _TPrule_37
 {
 _NODECOMMON
 #endif
+_TSPargument_expression_list _desc1;
 };
 
 struct _TPrule_36
@@ -1434,7 +1532,7 @@ struct _TPrule_35
 {
 _NODECOMMON
 #endif
-_TSPargument_expression_list _desc1;
+_TSPExpression _desc1;
 };
 
 struct _TPrule_34
@@ -1444,6 +1542,8 @@ struct _TPrule_34
 {
 _NODECOMMON
 #endif
+_TSPargument_expression_list _desc1;
+_TSPExpression _desc2;
 };
 
 struct _TPrule_33
@@ -1453,7 +1553,6 @@ struct _TPrule_33
 {
 _NODECOMMON
 #endif
-_TSPExpression _desc1;
 };
 
 struct _TPrule_32
@@ -1463,8 +1562,9 @@ struct _TPrule_32
 {
 _NODECOMMON
 #endif
-_TSPargument_expression_list _desc1;
-_TSPExpression _desc2;
+_TSPExpression _desc1;
+_TSPand_operator _desc2;
+_TSPExpression _desc3;
 };
 
 struct _TPrule_31
@@ -1483,30 +1583,9 @@ struct _TPrule_30
 {
 _NODECOMMON
 #endif
-_TSPExpression _desc1;
-_TSPand_operator _desc2;
-_TSPExpression _desc3;
 };
 
 struct _TPrule_29
-#ifdef __cplusplus
-	: public NODEPTR_struct {
-#else
-{
-_NODECOMMON
-#endif
-};
-
-struct _TPrule_28
-#ifdef __cplusplus
-	: public NODEPTR_struct {
-#else
-{
-_NODECOMMON
-#endif
-};
-
-struct _TPrule_27
 #ifdef __cplusplus
 	: public NODEPTR_struct {
 #else

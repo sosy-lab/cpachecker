@@ -130,12 +130,12 @@ NODEPTR Mksource (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBsource)) return (_currn);
-if (IsSymb (_currn, SYMBdeclaration)) return (Mkrule_89(_coordref, _currn));
-if (IsSymb (_currn, SYMBfunction_definition)) return (Mkrule_89(_coordref, _currn));
-if (IsSymb (_currn, SYMBpre_include)) return (Mkrule_89(_coordref, _currn));
-if (IsSymb (_currn, SYMBfile)) return (Mkrule_89(_coordref, _currn));
-if (IsSymb (_currn, SYMBexternal_declaration)) return (Mkrule_89(_coordref, _currn));
-if (IsSymb (_currn, SYMBtranslation_unit)) return (Mkrule_89(_coordref, _currn));
+if (IsSymb (_currn, SYMBdeclaration)) return (Mkrule_92(_coordref, _currn));
+if (IsSymb (_currn, SYMBfunction_definition)) return (Mkrule_92(_coordref, _currn));
+if (IsSymb (_currn, SYMBpre_include)) return (Mkrule_92(_coordref, _currn));
+if (IsSymb (_currn, SYMBfile)) return (Mkrule_92(_coordref, _currn));
+if (IsSymb (_currn, SYMBexternal_declaration)) return (Mkrule_92(_coordref, _currn));
+if (IsSymb (_currn, SYMBtranslation_unit)) return (Mkrule_92(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mksource */
 
@@ -148,13 +148,13 @@ NODEPTR Mkroot (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBroot)) return (_currn);
-if (IsSymb (_currn, SYMBdeclaration)) return (Mkrule_85(_coordref, _currn));
-if (IsSymb (_currn, SYMBfunction_definition)) return (Mkrule_85(_coordref, _currn));
-if (IsSymb (_currn, SYMBpre_include)) return (Mkrule_85(_coordref, _currn));
-if (IsSymb (_currn, SYMBfile)) return (Mkrule_85(_coordref, _currn));
-if (IsSymb (_currn, SYMBsource)) return (Mkrule_85(_coordref, _currn));
-if (IsSymb (_currn, SYMBexternal_declaration)) return (Mkrule_85(_coordref, _currn));
-if (IsSymb (_currn, SYMBtranslation_unit)) return (Mkrule_85(_coordref, _currn));
+if (IsSymb (_currn, SYMBdeclaration)) return (Mkrule_88(_coordref, _currn));
+if (IsSymb (_currn, SYMBfunction_definition)) return (Mkrule_88(_coordref, _currn));
+if (IsSymb (_currn, SYMBpre_include)) return (Mkrule_88(_coordref, _currn));
+if (IsSymb (_currn, SYMBfile)) return (Mkrule_88(_coordref, _currn));
+if (IsSymb (_currn, SYMBsource)) return (Mkrule_88(_coordref, _currn));
+if (IsSymb (_currn, SYMBexternal_declaration)) return (Mkrule_88(_coordref, _currn));
+if (IsSymb (_currn, SYMBtranslation_unit)) return (Mkrule_88(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mkroot */
 
@@ -179,7 +179,7 @@ NODEPTR Mkparameter_list (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBparameter_list)) return (_currn);
-if (IsSymb (_currn, SYMBparameter)) return (Mkrule_75(_coordref, _currn));
+if (IsSymb (_currn, SYMBparameter)) return (Mkrule_78(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mkparameter_list */
 
@@ -192,10 +192,10 @@ NODEPTR Mkinitializer (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBinitializer)) return (_currn);
-if (IsSymb (_currn, SYMBinteger_constant)) return (Mkrule_64(_coordref, _currn));
-if (IsSymb (_currn, SYMBconstant)) return (Mkrule_64(_coordref, _currn));
-if (IsSymb (_currn, SYMBIdUse)) return (Mkrule_64(_coordref, _currn));
-if (IsSymb (_currn, SYMBExpression)) return (Mkrule_64(_coordref, _currn));
+if (IsSymb (_currn, SYMBinteger_constant)) return (Mkrule_67(_coordref, _currn));
+if (IsSymb (_currn, SYMBconstant)) return (Mkrule_67(_coordref, _currn));
+if (IsSymb (_currn, SYMBIdUse)) return (Mkrule_67(_coordref, _currn));
+if (IsSymb (_currn, SYMBExpression)) return (Mkrule_67(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mkinitializer */
 
@@ -232,10 +232,10 @@ NODEPTR Mktranslation_unit (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBtranslation_unit)) return (_currn);
-if (IsSymb (_currn, SYMBdeclaration)) return (Mkrule_90(_coordref, _currn));
-if (IsSymb (_currn, SYMBfunction_definition)) return (Mkrule_90(_coordref, _currn));
-if (IsSymb (_currn, SYMBpre_include)) return (Mkrule_90(_coordref, _currn));
-if (IsSymb (_currn, SYMBexternal_declaration)) return (Mkrule_90(_coordref, _currn));
+if (IsSymb (_currn, SYMBdeclaration)) return (Mkrule_93(_coordref, _currn));
+if (IsSymb (_currn, SYMBfunction_definition)) return (Mkrule_93(_coordref, _currn));
+if (IsSymb (_currn, SYMBpre_include)) return (Mkrule_93(_coordref, _currn));
+if (IsSymb (_currn, SYMBexternal_declaration)) return (Mkrule_93(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mktranslation_unit */
 
@@ -248,11 +248,11 @@ NODEPTR Mkfile (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBfile)) return (_currn);
-if (IsSymb (_currn, SYMBdeclaration)) return (Mkrule_55(_coordref, _currn));
-if (IsSymb (_currn, SYMBfunction_definition)) return (Mkrule_55(_coordref, _currn));
-if (IsSymb (_currn, SYMBpre_include)) return (Mkrule_55(_coordref, _currn));
-if (IsSymb (_currn, SYMBexternal_declaration)) return (Mkrule_55(_coordref, _currn));
-if (IsSymb (_currn, SYMBtranslation_unit)) return (Mkrule_55(_coordref, _currn));
+if (IsSymb (_currn, SYMBdeclaration)) return (Mkrule_58(_coordref, _currn));
+if (IsSymb (_currn, SYMBfunction_definition)) return (Mkrule_58(_coordref, _currn));
+if (IsSymb (_currn, SYMBpre_include)) return (Mkrule_58(_coordref, _currn));
+if (IsSymb (_currn, SYMBexternal_declaration)) return (Mkrule_58(_coordref, _currn));
+if (IsSymb (_currn, SYMBtranslation_unit)) return (Mkrule_58(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mkfile */
 
@@ -277,9 +277,9 @@ NODEPTR Mkexternal_declaration (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBexternal_declaration)) return (_currn);
-if (IsSymb (_currn, SYMBdeclaration)) return (Mkrule_52(_coordref, _currn));
-if (IsSymb (_currn, SYMBfunction_definition)) return (Mkrule_53(_coordref, _currn));
-if (IsSymb (_currn, SYMBpre_include)) return (Mkrule_54(_coordref, _currn));
+if (IsSymb (_currn, SYMBdeclaration)) return (Mkrule_55(_coordref, _currn));
+if (IsSymb (_currn, SYMBfunction_definition)) return (Mkrule_56(_coordref, _currn));
+if (IsSymb (_currn, SYMBpre_include)) return (Mkrule_57(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mkexternal_declaration */
 
@@ -304,7 +304,7 @@ NODEPTR Mkinit_declarator_list (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBinit_declarator_list)) return (_currn);
-if (IsSymb (_currn, SYMBinit_declarator)) return (Mkrule_62(_coordref, _currn));
+if (IsSymb (_currn, SYMBinit_declarator)) return (Mkrule_65(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mkinit_declarator_list */
 
@@ -341,7 +341,7 @@ NODEPTR Mkconstant (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBconstant)) return (_currn);
-if (IsSymb (_currn, SYMBinteger_constant)) return (Mkrule_43(_coordref, _currn));
+if (IsSymb (_currn, SYMBinteger_constant)) return (Mkrule_46(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mkconstant */
 
@@ -354,10 +354,10 @@ NODEPTR Mkargument_expression_list (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBargument_expression_list)) return (_currn);
-if (IsSymb (_currn, SYMBinteger_constant)) return (Mkrule_33(_coordref, _currn));
-if (IsSymb (_currn, SYMBconstant)) return (Mkrule_33(_coordref, _currn));
-if (IsSymb (_currn, SYMBIdUse)) return (Mkrule_33(_coordref, _currn));
-if (IsSymb (_currn, SYMBExpression)) return (Mkrule_33(_coordref, _currn));
+if (IsSymb (_currn, SYMBinteger_constant)) return (Mkrule_35(_coordref, _currn));
+if (IsSymb (_currn, SYMBconstant)) return (Mkrule_35(_coordref, _currn));
+if (IsSymb (_currn, SYMBIdUse)) return (Mkrule_35(_coordref, _currn));
+if (IsSymb (_currn, SYMBExpression)) return (Mkrule_35(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mkargument_expression_list */
 
@@ -394,11 +394,11 @@ NODEPTR Mkargument_expression_list_opt (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBargument_expression_list_opt)) return (_currn);
-if (IsSymb (_currn, SYMBargument_expression_list)) return (Mkrule_35(_coordref, _currn));
-if (IsSymb (_currn, SYMBinteger_constant)) return (Mkrule_35(_coordref, _currn));
-if (IsSymb (_currn, SYMBconstant)) return (Mkrule_35(_coordref, _currn));
-if (IsSymb (_currn, SYMBIdUse)) return (Mkrule_35(_coordref, _currn));
-if (IsSymb (_currn, SYMBExpression)) return (Mkrule_35(_coordref, _currn));
+if (IsSymb (_currn, SYMBargument_expression_list)) return (Mkrule_37(_coordref, _currn));
+if (IsSymb (_currn, SYMBinteger_constant)) return (Mkrule_37(_coordref, _currn));
+if (IsSymb (_currn, SYMBconstant)) return (Mkrule_37(_coordref, _currn));
+if (IsSymb (_currn, SYMBIdUse)) return (Mkrule_37(_coordref, _currn));
+if (IsSymb (_currn, SYMBExpression)) return (Mkrule_37(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mkargument_expression_list_opt */
 
@@ -411,9 +411,9 @@ NODEPTR MkExpression (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBExpression)) return (_currn);
-if (IsSymb (_currn, SYMBinteger_constant)) return (Mkrule_79(_coordref, _currn));
-if (IsSymb (_currn, SYMBconstant)) return (Mkrule_79(_coordref, _currn));
-if (IsSymb (_currn, SYMBIdUse)) return (Mkrule_80(_coordref, _currn));
+if (IsSymb (_currn, SYMBinteger_constant)) return (Mkrule_82(_coordref, _currn));
+if (IsSymb (_currn, SYMBconstant)) return (Mkrule_82(_coordref, _currn));
+if (IsSymb (_currn, SYMBIdUse)) return (Mkrule_83(_coordref, _currn));
 return(NULLNODEPTR);
 }/* MkExpression */
 
@@ -426,10 +426,10 @@ NODEPTR Mkfunction_call_expression (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBfunction_call_expression)) return (_currn);
-if (IsSymb (_currn, SYMBinteger_constant)) return (Mkrule_2(_coordref, _currn));
-if (IsSymb (_currn, SYMBconstant)) return (Mkrule_2(_coordref, _currn));
-if (IsSymb (_currn, SYMBIdUse)) return (Mkrule_2(_coordref, _currn));
-if (IsSymb (_currn, SYMBExpression)) return (Mkrule_2(_coordref, _currn));
+if (IsSymb (_currn, SYMBinteger_constant)) return (Mkrule_3(_coordref, _currn));
+if (IsSymb (_currn, SYMBconstant)) return (Mkrule_3(_coordref, _currn));
+if (IsSymb (_currn, SYMBIdUse)) return (Mkrule_3(_coordref, _currn));
+if (IsSymb (_currn, SYMBExpression)) return (Mkrule_3(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mkfunction_call_expression */
 
@@ -466,11 +466,11 @@ NODEPTR Mkassignment_expression (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBassignment_expression)) return (_currn);
-if (IsSymb (_currn, SYMBinteger_constant)) return (Mkrule_7(_coordref, _currn));
-if (IsSymb (_currn, SYMBconstant)) return (Mkrule_7(_coordref, _currn));
-if (IsSymb (_currn, SYMBIdUse)) return (Mkrule_7(_coordref, _currn));
-if (IsSymb (_currn, SYMBExpression)) return (Mkrule_7(_coordref, _currn));
-if (IsSymb (_currn, SYMBfunction_call_expression)) return (Mkrule_7(_coordref, _currn));
+if (IsSymb (_currn, SYMBinteger_constant)) return (Mkrule_8(_coordref, _currn));
+if (IsSymb (_currn, SYMBconstant)) return (Mkrule_8(_coordref, _currn));
+if (IsSymb (_currn, SYMBIdUse)) return (Mkrule_8(_coordref, _currn));
+if (IsSymb (_currn, SYMBExpression)) return (Mkrule_8(_coordref, _currn));
+if (IsSymb (_currn, SYMBfunction_call_expression)) return (Mkrule_8(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mkassignment_expression */
 
@@ -483,12 +483,12 @@ NODEPTR Mkexpression_opt (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBexpression_opt)) return (_currn);
-if (IsSymb (_currn, SYMBinteger_constant)) return (Mkrule_9(_coordref, _currn));
-if (IsSymb (_currn, SYMBconstant)) return (Mkrule_9(_coordref, _currn));
-if (IsSymb (_currn, SYMBIdUse)) return (Mkrule_9(_coordref, _currn));
-if (IsSymb (_currn, SYMBassignment_expression)) return (Mkrule_9(_coordref, _currn));
-if (IsSymb (_currn, SYMBExpression)) return (Mkrule_9(_coordref, _currn));
-if (IsSymb (_currn, SYMBfunction_call_expression)) return (Mkrule_9(_coordref, _currn));
+if (IsSymb (_currn, SYMBinteger_constant)) return (Mkrule_10(_coordref, _currn));
+if (IsSymb (_currn, SYMBconstant)) return (Mkrule_10(_coordref, _currn));
+if (IsSymb (_currn, SYMBIdUse)) return (Mkrule_10(_coordref, _currn));
+if (IsSymb (_currn, SYMBassignment_expression)) return (Mkrule_10(_coordref, _currn));
+if (IsSymb (_currn, SYMBExpression)) return (Mkrule_10(_coordref, _currn));
+if (IsSymb (_currn, SYMBfunction_call_expression)) return (Mkrule_10(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mkexpression_opt */
 
@@ -537,11 +537,11 @@ NODEPTR Mkstatement (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBstatement)) return (_currn);
-if (IsSymb (_currn, SYMBlabeled_statement)) return (Mkrule_17(_coordref, _currn));
-if (IsSymb (_currn, SYMBcompound_statement)) return (Mkrule_16(_coordref, _currn));
-if (IsSymb (_currn, SYMBexpression_statement)) return (Mkrule_15(_coordref, _currn));
-if (IsSymb (_currn, SYMBselection_statement)) return (Mkrule_14(_coordref, _currn));
-if (IsSymb (_currn, SYMBjump_statement)) return (Mkrule_13(_coordref, _currn));
+if (IsSymb (_currn, SYMBlabeled_statement)) return (Mkrule_18(_coordref, _currn));
+if (IsSymb (_currn, SYMBcompound_statement)) return (Mkrule_17(_coordref, _currn));
+if (IsSymb (_currn, SYMBexpression_statement)) return (Mkrule_16(_coordref, _currn));
+if (IsSymb (_currn, SYMBselection_statement)) return (Mkrule_15(_coordref, _currn));
+if (IsSymb (_currn, SYMBjump_statement)) return (Mkrule_14(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mkstatement */
 
@@ -554,12 +554,12 @@ NODEPTR Mkstatement_list (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBstatement_list)) return (_currn);
-if (IsSymb (_currn, SYMBlabeled_statement)) return (Mkrule_19(_coordref, _currn));
-if (IsSymb (_currn, SYMBcompound_statement)) return (Mkrule_19(_coordref, _currn));
-if (IsSymb (_currn, SYMBexpression_statement)) return (Mkrule_19(_coordref, _currn));
-if (IsSymb (_currn, SYMBselection_statement)) return (Mkrule_19(_coordref, _currn));
-if (IsSymb (_currn, SYMBjump_statement)) return (Mkrule_19(_coordref, _currn));
-if (IsSymb (_currn, SYMBstatement)) return (Mkrule_19(_coordref, _currn));
+if (IsSymb (_currn, SYMBlabeled_statement)) return (Mkrule_20(_coordref, _currn));
+if (IsSymb (_currn, SYMBcompound_statement)) return (Mkrule_20(_coordref, _currn));
+if (IsSymb (_currn, SYMBexpression_statement)) return (Mkrule_20(_coordref, _currn));
+if (IsSymb (_currn, SYMBselection_statement)) return (Mkrule_20(_coordref, _currn));
+if (IsSymb (_currn, SYMBjump_statement)) return (Mkrule_20(_coordref, _currn));
+if (IsSymb (_currn, SYMBstatement)) return (Mkrule_20(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mkstatement_list */
 
@@ -572,13 +572,13 @@ NODEPTR Mkstatement_list_opt (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBstatement_list_opt)) return (_currn);
-if (IsSymb (_currn, SYMBstatement_list)) return (Mkrule_20(_coordref, _currn));
-if (IsSymb (_currn, SYMBlabeled_statement)) return (Mkrule_20(_coordref, _currn));
-if (IsSymb (_currn, SYMBcompound_statement)) return (Mkrule_20(_coordref, _currn));
-if (IsSymb (_currn, SYMBexpression_statement)) return (Mkrule_20(_coordref, _currn));
-if (IsSymb (_currn, SYMBselection_statement)) return (Mkrule_20(_coordref, _currn));
-if (IsSymb (_currn, SYMBjump_statement)) return (Mkrule_20(_coordref, _currn));
-if (IsSymb (_currn, SYMBstatement)) return (Mkrule_20(_coordref, _currn));
+if (IsSymb (_currn, SYMBstatement_list)) return (Mkrule_21(_coordref, _currn));
+if (IsSymb (_currn, SYMBlabeled_statement)) return (Mkrule_21(_coordref, _currn));
+if (IsSymb (_currn, SYMBcompound_statement)) return (Mkrule_21(_coordref, _currn));
+if (IsSymb (_currn, SYMBexpression_statement)) return (Mkrule_21(_coordref, _currn));
+if (IsSymb (_currn, SYMBselection_statement)) return (Mkrule_21(_coordref, _currn));
+if (IsSymb (_currn, SYMBjump_statement)) return (Mkrule_21(_coordref, _currn));
+if (IsSymb (_currn, SYMBstatement)) return (Mkrule_21(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mkstatement_list_opt */
 
@@ -591,7 +591,7 @@ NODEPTR Mkdeclaration_list (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBdeclaration_list)) return (_currn);
-if (IsSymb (_currn, SYMBdeclaration)) return (Mkrule_45(_coordref, _currn));
+if (IsSymb (_currn, SYMBdeclaration)) return (Mkrule_48(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mkdeclaration_list */
 
@@ -628,7 +628,7 @@ NODEPTR Mkcompound_statement_opt (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBcompound_statement_opt)) return (_currn);
-if (IsSymb (_currn, SYMBcompound_statement)) return (Mkrule_24(_coordref, _currn));
+if (IsSymb (_currn, SYMBcompound_statement)) return (Mkrule_25(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mkcompound_statement_opt */
 
@@ -641,8 +641,8 @@ NODEPTR Mkparameter_list_opt (_coordref, _currn)
 {
 if (_currn == NULLNODEPTR) return NULLNODEPTR;
 if (IsSymb (_currn, SYMBparameter_list_opt)) return (_currn);
-if (IsSymb (_currn, SYMBparameter)) return (Mkrule_73(_coordref, _currn));
-if (IsSymb (_currn, SYMBparameter_list)) return (Mkrule_73(_coordref, _currn));
+if (IsSymb (_currn, SYMBparameter)) return (Mkrule_76(_coordref, _currn));
+if (IsSymb (_currn, SYMBparameter_list)) return (Mkrule_76(_coordref, _currn));
 return(NULLNODEPTR);
 }/* Mkparameter_list_opt */
 
@@ -671,12 +671,13 @@ return(NULLNODEPTR);
 }/* Mkfunction_definition */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_1 (POSITION *_coordref, int _TERM1, NODEPTR _desc1)
+NODEPTR Mkrule_1 (POSITION *_coordref, NODEPTR _desc1, int _TERM1, NODEPTR _desc2)
 #else
-NODEPTR Mkrule_1 (_coordref, _TERM1,_desc1)
+NODEPTR Mkrule_1 (_coordref,_desc1, _TERM1,_desc2)
 	POSITION *_coordref;
-	int _TERM1;
 	NODEPTR _desc1;
+	int _TERM1;
+	NODEPTR _desc2;
 #endif
 {	_TPPrule_1 _currn;
 #ifdef __cplusplus
@@ -688,9 +689,12 @@ _currn = (_TPPrule_1) TreeNodeAlloc (sizeof (struct _TPrule_1));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_1;
-_currn->_desc1 = (_TSPargument_expression_list_opt) Mkargument_expression_list_opt (_coordref, _desc1);	
+_currn->_desc1 = (_TSPtype_specifier) Mktype_specifier (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_1: root of subtree no. 1 can not be made a argument_expression_list_opt node ", 0, _coordref);
+	message (DEADLY, "RULE rule_1: root of subtree no. 1 can not be made a type_specifier node ", 0, _coordref);
+_currn->_desc2 = (_TSPargument_expression_list_opt) Mkargument_expression_list_opt (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_1: root of subtree no. 2 can not be made a argument_expression_list_opt node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_1;
 #ifdef MONITOR
@@ -702,10 +706,11 @@ return ( (NODEPTR) _currn);
 }/* Mkrule_1 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_2 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_2 (POSITION *_coordref, int _TERM1, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_2 (_coordref,_desc1)
+NODEPTR Mkrule_2 (_coordref, _TERM1,_desc1)
 	POSITION *_coordref;
+	int _TERM1;
 	NODEPTR _desc1;
 #endif
 {	_TPPrule_2 _currn;
@@ -718,11 +723,16 @@ _currn = (_TPPrule_2) TreeNodeAlloc (sizeof (struct _TPrule_2));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_2;
-_currn->_desc1 = (_TSPExpression) MkExpression (_coordref, _desc1);	
+_currn->_desc1 = (_TSPargument_expression_list_opt) Mkargument_expression_list_opt (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_2: root of subtree no. 1 can not be made a Expression node ", 0, _coordref);
-_COPYCOORD(_currn)
+	message (DEADLY, "RULE rule_2: root of subtree no. 1 can not be made a argument_expression_list_opt node ", 0, _coordref);
+_SETCOORD(_currn)
 _TERMACT_rule_2;
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+_dapto_term_int((_currn)->_uid, "ident", _TERM1);
+#endif
+
 return ( (NODEPTR) _currn);
 }/* Mkrule_2 */
 
@@ -743,20 +753,20 @@ _currn = (_TPPrule_3) TreeNodeAlloc (sizeof (struct _TPrule_3));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_3;
-_currn->_desc1 = (_TSPexpression_opt) Mkexpression_opt (_coordref, _desc1);	
+_currn->_desc1 = (_TSPExpression) MkExpression (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_3: root of subtree no. 1 can not be made a expression_opt node ", 0, _coordref);
-_SETCOORD(_currn)
+	message (DEADLY, "RULE rule_3: root of subtree no. 1 can not be made a Expression node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_3;
 return ( (NODEPTR) _currn);
 }/* Mkrule_3 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_4 (POSITION *_coordref, int _TERM1)
+NODEPTR Mkrule_4 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_4 (_coordref, _TERM1)
+NODEPTR Mkrule_4 (_coordref,_desc1)
 	POSITION *_coordref;
-	int _TERM1;
+	NODEPTR _desc1;
 #endif
 {	_TPPrule_4 _currn;
 #ifdef __cplusplus
@@ -768,24 +778,20 @@ _currn = (_TPPrule_4) TreeNodeAlloc (sizeof (struct _TPrule_4));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_4;
+_currn->_desc1 = (_TSPexpression_opt) Mkexpression_opt (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_4: root of subtree no. 1 can not be made a expression_opt node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_4;
-#ifdef MONITOR
-_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
-_dapto_term_int((_currn)->_uid, "ident", _TERM1);
-#endif
-
 return ( (NODEPTR) _currn);
 }/* Mkrule_4 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_5 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2, NODEPTR _desc3)
+NODEPTR Mkrule_5 (POSITION *_coordref, int _TERM1)
 #else
-NODEPTR Mkrule_5 (_coordref,_desc1,_desc2,_desc3)
+NODEPTR Mkrule_5 (_coordref, _TERM1)
 	POSITION *_coordref;
-	NODEPTR _desc1;
-	NODEPTR _desc2;
-	NODEPTR _desc3;
+	int _TERM1;
 #endif
 {	_TPPrule_5 _currn;
 #ifdef __cplusplus
@@ -797,27 +803,24 @@ _currn = (_TPPrule_5) TreeNodeAlloc (sizeof (struct _TPrule_5));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_5;
-_currn->_desc1 = (_TSPExpression) MkExpression (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_5: root of subtree no. 1 can not be made a Expression node ", 0, _coordref);
-_currn->_desc2 = (_TSPstatement) Mkstatement (_coordref, _desc2);	
-if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_5: root of subtree no. 2 can not be made a statement node ", 0, _coordref);
-_currn->_desc3 = (_TSPstatement) Mkstatement (_coordref, _desc3);	
-if (((NODEPTR)_currn->_desc3) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_5: root of subtree no. 3 can not be made a statement node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_5;
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+_dapto_term_int((_currn)->_uid, "ident", _TERM1);
+#endif
+
 return ( (NODEPTR) _currn);
 }/* Mkrule_5 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_6 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
+NODEPTR Mkrule_6 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2, NODEPTR _desc3)
 #else
-NODEPTR Mkrule_6 (_coordref,_desc1,_desc2)
+NODEPTR Mkrule_6 (_coordref,_desc1,_desc2,_desc3)
 	POSITION *_coordref;
 	NODEPTR _desc1;
 	NODEPTR _desc2;
+	NODEPTR _desc3;
 #endif
 {	_TPPrule_6 _currn;
 #ifdef __cplusplus
@@ -835,17 +838,21 @@ if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)
 _currn->_desc2 = (_TSPstatement) Mkstatement (_coordref, _desc2);	
 if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
 	message (DEADLY, "RULE rule_6: root of subtree no. 2 can not be made a statement node ", 0, _coordref);
+_currn->_desc3 = (_TSPstatement) Mkstatement (_coordref, _desc3);	
+if (((NODEPTR)_currn->_desc3) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_6: root of subtree no. 3 can not be made a statement node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_6;
 return ( (NODEPTR) _currn);
 }/* Mkrule_6 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_7 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_7 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
 #else
-NODEPTR Mkrule_7 (_coordref,_desc1)
+NODEPTR Mkrule_7 (_coordref,_desc1,_desc2)
 	POSITION *_coordref;
 	NODEPTR _desc1;
+	NODEPTR _desc2;
 #endif
 {	_TPPrule_7 _currn;
 #ifdef __cplusplus
@@ -857,22 +864,23 @@ _currn = (_TPPrule_7) TreeNodeAlloc (sizeof (struct _TPrule_7));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_7;
-_currn->_desc1 = (_TSPfunction_call_expression) Mkfunction_call_expression (_coordref, _desc1);	
+_currn->_desc1 = (_TSPExpression) MkExpression (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_7: root of subtree no. 1 can not be made a function_call_expression node ", 0, _coordref);
-_COPYCOORD(_currn)
+	message (DEADLY, "RULE rule_7: root of subtree no. 1 can not be made a Expression node ", 0, _coordref);
+_currn->_desc2 = (_TSPstatement) Mkstatement (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_7: root of subtree no. 2 can not be made a statement node ", 0, _coordref);
+_SETCOORD(_currn)
 _TERMACT_rule_7;
 return ( (NODEPTR) _currn);
 }/* Mkrule_7 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_8 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2, NODEPTR _desc3)
+NODEPTR Mkrule_8 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_8 (_coordref,_desc1,_desc2,_desc3)
+NODEPTR Mkrule_8 (_coordref,_desc1)
 	POSITION *_coordref;
 	NODEPTR _desc1;
-	NODEPTR _desc2;
-	NODEPTR _desc3;
 #endif
 {	_TPPrule_8 _currn;
 #ifdef __cplusplus
@@ -884,26 +892,22 @@ _currn = (_TPPrule_8) TreeNodeAlloc (sizeof (struct _TPrule_8));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_8;
-_currn->_desc1 = (_TSPIdUse) MkIdUse (_coordref, _desc1);	
+_currn->_desc1 = (_TSPfunction_call_expression) Mkfunction_call_expression (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_8: root of subtree no. 1 can not be made a IdUse node ", 0, _coordref);
-_currn->_desc2 = (_TSPassignment_operator) Mkassignment_operator (_coordref, _desc2);	
-if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_8: root of subtree no. 2 can not be made a assignment_operator node ", 0, _coordref);
-_currn->_desc3 = (_TSPfunction_call_expression) Mkfunction_call_expression (_coordref, _desc3);	
-if (((NODEPTR)_currn->_desc3) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_8: root of subtree no. 3 can not be made a function_call_expression node ", 0, _coordref);
-_SETCOORD(_currn)
+	message (DEADLY, "RULE rule_8: root of subtree no. 1 can not be made a function_call_expression node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_8;
 return ( (NODEPTR) _currn);
 }/* Mkrule_8 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_9 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_9 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2, NODEPTR _desc3)
 #else
-NODEPTR Mkrule_9 (_coordref,_desc1)
+NODEPTR Mkrule_9 (_coordref,_desc1,_desc2,_desc3)
 	POSITION *_coordref;
 	NODEPTR _desc1;
+	NODEPTR _desc2;
+	NODEPTR _desc3;
 #endif
 {	_TPPrule_9 _currn;
 #ifdef __cplusplus
@@ -915,19 +919,26 @@ _currn = (_TPPrule_9) TreeNodeAlloc (sizeof (struct _TPrule_9));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_9;
-_currn->_desc1 = (_TSPassignment_expression) Mkassignment_expression (_coordref, _desc1);	
+_currn->_desc1 = (_TSPIdUse) MkIdUse (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_9: root of subtree no. 1 can not be made a assignment_expression node ", 0, _coordref);
-_COPYCOORD(_currn)
+	message (DEADLY, "RULE rule_9: root of subtree no. 1 can not be made a IdUse node ", 0, _coordref);
+_currn->_desc2 = (_TSPassignment_operator) Mkassignment_operator (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_9: root of subtree no. 2 can not be made a assignment_operator node ", 0, _coordref);
+_currn->_desc3 = (_TSPfunction_call_expression) Mkfunction_call_expression (_coordref, _desc3);	
+if (((NODEPTR)_currn->_desc3) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_9: root of subtree no. 3 can not be made a function_call_expression node ", 0, _coordref);
+_SETCOORD(_currn)
 _TERMACT_rule_9;
 return ( (NODEPTR) _currn);
 }/* Mkrule_9 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_10 (POSITION *_coordref)
+NODEPTR Mkrule_10 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_10 (_coordref)
+NODEPTR Mkrule_10 (_coordref,_desc1)
 	POSITION *_coordref;
+	NODEPTR _desc1;
 #endif
 {	_TPPrule_10 _currn;
 #ifdef __cplusplus
@@ -939,17 +950,19 @@ _currn = (_TPPrule_10) TreeNodeAlloc (sizeof (struct _TPrule_10));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_10;
-_SETCOORD(_currn)
+_currn->_desc1 = (_TSPassignment_expression) Mkassignment_expression (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_10: root of subtree no. 1 can not be made a assignment_expression node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_10;
 return ( (NODEPTR) _currn);
 }/* Mkrule_10 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_11 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_11 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_11 (_coordref,_desc1)
+NODEPTR Mkrule_11 (_coordref)
 	POSITION *_coordref;
-	NODEPTR _desc1;
 #endif
 {	_TPPrule_11 _currn;
 #ifdef __cplusplus
@@ -961,20 +974,16 @@ _currn = (_TPPrule_11) TreeNodeAlloc (sizeof (struct _TPrule_11));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_11;
-_currn->_desc1 = (_TSPexpression_opt) Mkexpression_opt (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_11: root of subtree no. 1 can not be made a expression_opt node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_11;
 return ( (NODEPTR) _currn);
 }/* Mkrule_11 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_12 (POSITION *_coordref, int _TERM1, NODEPTR _desc1)
+NODEPTR Mkrule_12 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_12 (_coordref, _TERM1,_desc1)
+NODEPTR Mkrule_12 (_coordref,_desc1)
 	POSITION *_coordref;
-	int _TERM1;
 	NODEPTR _desc1;
 #endif
 {	_TPPrule_12 _currn;
@@ -987,24 +996,20 @@ _currn = (_TPPrule_12) TreeNodeAlloc (sizeof (struct _TPrule_12));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_12;
-_currn->_desc1 = (_TSPstatement) Mkstatement (_coordref, _desc1);	
+_currn->_desc1 = (_TSPexpression_opt) Mkexpression_opt (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_12: root of subtree no. 1 can not be made a statement node ", 0, _coordref);
+	message (DEADLY, "RULE rule_12: root of subtree no. 1 can not be made a expression_opt node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_12;
-#ifdef MONITOR
-_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
-_dapto_term_int((_currn)->_uid, "ident", _TERM1);
-#endif
-
 return ( (NODEPTR) _currn);
 }/* Mkrule_12 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_13 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_13 (POSITION *_coordref, int _TERM1, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_13 (_coordref,_desc1)
+NODEPTR Mkrule_13 (_coordref, _TERM1,_desc1)
 	POSITION *_coordref;
+	int _TERM1;
 	NODEPTR _desc1;
 #endif
 {	_TPPrule_13 _currn;
@@ -1017,11 +1022,16 @@ _currn = (_TPPrule_13) TreeNodeAlloc (sizeof (struct _TPrule_13));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_13;
-_currn->_desc1 = (_TSPjump_statement) Mkjump_statement (_coordref, _desc1);	
+_currn->_desc1 = (_TSPstatement) Mkstatement (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_13: root of subtree no. 1 can not be made a jump_statement node ", 0, _coordref);
-_COPYCOORD(_currn)
+	message (DEADLY, "RULE rule_13: root of subtree no. 1 can not be made a statement node ", 0, _coordref);
+_SETCOORD(_currn)
 _TERMACT_rule_13;
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+_dapto_term_int((_currn)->_uid, "ident", _TERM1);
+#endif
+
 return ( (NODEPTR) _currn);
 }/* Mkrule_13 */
 
@@ -1042,9 +1052,9 @@ _currn = (_TPPrule_14) TreeNodeAlloc (sizeof (struct _TPrule_14));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_14;
-_currn->_desc1 = (_TSPselection_statement) Mkselection_statement (_coordref, _desc1);	
+_currn->_desc1 = (_TSPjump_statement) Mkjump_statement (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_14: root of subtree no. 1 can not be made a selection_statement node ", 0, _coordref);
+	message (DEADLY, "RULE rule_14: root of subtree no. 1 can not be made a jump_statement node ", 0, _coordref);
 _COPYCOORD(_currn)
 _TERMACT_rule_14;
 return ( (NODEPTR) _currn);
@@ -1067,9 +1077,9 @@ _currn = (_TPPrule_15) TreeNodeAlloc (sizeof (struct _TPrule_15));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_15;
-_currn->_desc1 = (_TSPexpression_statement) Mkexpression_statement (_coordref, _desc1);	
+_currn->_desc1 = (_TSPselection_statement) Mkselection_statement (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_15: root of subtree no. 1 can not be made a expression_statement node ", 0, _coordref);
+	message (DEADLY, "RULE rule_15: root of subtree no. 1 can not be made a selection_statement node ", 0, _coordref);
 _COPYCOORD(_currn)
 _TERMACT_rule_15;
 return ( (NODEPTR) _currn);
@@ -1092,9 +1102,9 @@ _currn = (_TPPrule_16) TreeNodeAlloc (sizeof (struct _TPrule_16));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_16;
-_currn->_desc1 = (_TSPcompound_statement) Mkcompound_statement (_coordref, _desc1);	
+_currn->_desc1 = (_TSPexpression_statement) Mkexpression_statement (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_16: root of subtree no. 1 can not be made a compound_statement node ", 0, _coordref);
+	message (DEADLY, "RULE rule_16: root of subtree no. 1 can not be made a expression_statement node ", 0, _coordref);
 _COPYCOORD(_currn)
 _TERMACT_rule_16;
 return ( (NODEPTR) _currn);
@@ -1117,21 +1127,20 @@ _currn = (_TPPrule_17) TreeNodeAlloc (sizeof (struct _TPrule_17));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_17;
-_currn->_desc1 = (_TSPlabeled_statement) Mklabeled_statement (_coordref, _desc1);	
+_currn->_desc1 = (_TSPcompound_statement) Mkcompound_statement (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_17: root of subtree no. 1 can not be made a labeled_statement node ", 0, _coordref);
+	message (DEADLY, "RULE rule_17: root of subtree no. 1 can not be made a compound_statement node ", 0, _coordref);
 _COPYCOORD(_currn)
 _TERMACT_rule_17;
 return ( (NODEPTR) _currn);
 }/* Mkrule_17 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_18 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
+NODEPTR Mkrule_18 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_18 (_coordref,_desc1,_desc2)
+NODEPTR Mkrule_18 (_coordref,_desc1)
 	POSITION *_coordref;
 	NODEPTR _desc1;
-	NODEPTR _desc2;
 #endif
 {	_TPPrule_18 _currn;
 #ifdef __cplusplus
@@ -1143,23 +1152,21 @@ _currn = (_TPPrule_18) TreeNodeAlloc (sizeof (struct _TPrule_18));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_18;
-_currn->_desc1 = (_TSPstatement_list) Mkstatement_list (_coordref, _desc1);	
+_currn->_desc1 = (_TSPlabeled_statement) Mklabeled_statement (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_18: root of subtree no. 1 can not be made a statement_list node ", 0, _coordref);
-_currn->_desc2 = (_TSPstatement) Mkstatement (_coordref, _desc2);	
-if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_18: root of subtree no. 2 can not be made a statement node ", 0, _coordref);
-_SETCOORD(_currn)
+	message (DEADLY, "RULE rule_18: root of subtree no. 1 can not be made a labeled_statement node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_18;
 return ( (NODEPTR) _currn);
 }/* Mkrule_18 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_19 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_19 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
 #else
-NODEPTR Mkrule_19 (_coordref,_desc1)
+NODEPTR Mkrule_19 (_coordref,_desc1,_desc2)
 	POSITION *_coordref;
 	NODEPTR _desc1;
+	NODEPTR _desc2;
 #endif
 {	_TPPrule_19 _currn;
 #ifdef __cplusplus
@@ -1171,10 +1178,13 @@ _currn = (_TPPrule_19) TreeNodeAlloc (sizeof (struct _TPrule_19));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_19;
-_currn->_desc1 = (_TSPstatement) Mkstatement (_coordref, _desc1);	
+_currn->_desc1 = (_TSPstatement_list) Mkstatement_list (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_19: root of subtree no. 1 can not be made a statement node ", 0, _coordref);
-_COPYCOORD(_currn)
+	message (DEADLY, "RULE rule_19: root of subtree no. 1 can not be made a statement_list node ", 0, _coordref);
+_currn->_desc2 = (_TSPstatement) Mkstatement (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_19: root of subtree no. 2 can not be made a statement node ", 0, _coordref);
+_SETCOORD(_currn)
 _TERMACT_rule_19;
 return ( (NODEPTR) _currn);
 }/* Mkrule_19 */
@@ -1196,19 +1206,20 @@ _currn = (_TPPrule_20) TreeNodeAlloc (sizeof (struct _TPrule_20));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_20;
-_currn->_desc1 = (_TSPstatement_list) Mkstatement_list (_coordref, _desc1);	
+_currn->_desc1 = (_TSPstatement) Mkstatement (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_20: root of subtree no. 1 can not be made a statement_list node ", 0, _coordref);
+	message (DEADLY, "RULE rule_20: root of subtree no. 1 can not be made a statement node ", 0, _coordref);
 _COPYCOORD(_currn)
 _TERMACT_rule_20;
 return ( (NODEPTR) _currn);
 }/* Mkrule_20 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_21 (POSITION *_coordref)
+NODEPTR Mkrule_21 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_21 (_coordref)
+NODEPTR Mkrule_21 (_coordref,_desc1)
 	POSITION *_coordref;
+	NODEPTR _desc1;
 #endif
 {	_TPPrule_21 _currn;
 #ifdef __cplusplus
@@ -1220,17 +1231,19 @@ _currn = (_TPPrule_21) TreeNodeAlloc (sizeof (struct _TPrule_21));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_21;
-_SETCOORD(_currn)
+_currn->_desc1 = (_TSPstatement_list) Mkstatement_list (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_21: root of subtree no. 1 can not be made a statement_list node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_21;
 return ( (NODEPTR) _currn);
 }/* Mkrule_21 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_22 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_22 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_22 (_coordref,_desc1)
+NODEPTR Mkrule_22 (_coordref)
 	POSITION *_coordref;
-	NODEPTR _desc1;
 #endif
 {	_TPPrule_22 _currn;
 #ifdef __cplusplus
@@ -1242,21 +1255,17 @@ _currn = (_TPPrule_22) TreeNodeAlloc (sizeof (struct _TPrule_22));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_22;
-_currn->_desc1 = (_TSPstatement_list_opt) Mkstatement_list_opt (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_22: root of subtree no. 1 can not be made a statement_list_opt node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_22;
 return ( (NODEPTR) _currn);
 }/* Mkrule_22 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_23 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
+NODEPTR Mkrule_23 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_23 (_coordref,_desc1,_desc2)
+NODEPTR Mkrule_23 (_coordref,_desc1)
 	POSITION *_coordref;
 	NODEPTR _desc1;
-	NODEPTR _desc2;
 #endif
 {	_TPPrule_23 _currn;
 #ifdef __cplusplus
@@ -1268,23 +1277,21 @@ _currn = (_TPPrule_23) TreeNodeAlloc (sizeof (struct _TPrule_23));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_23;
-_currn->_desc1 = (_TSPdeclaration_list) Mkdeclaration_list (_coordref, _desc1);	
+_currn->_desc1 = (_TSPstatement_list_opt) Mkstatement_list_opt (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_23: root of subtree no. 1 can not be made a declaration_list node ", 0, _coordref);
-_currn->_desc2 = (_TSPstatement_list_opt) Mkstatement_list_opt (_coordref, _desc2);	
-if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_23: root of subtree no. 2 can not be made a statement_list_opt node ", 0, _coordref);
+	message (DEADLY, "RULE rule_23: root of subtree no. 1 can not be made a statement_list_opt node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_23;
 return ( (NODEPTR) _currn);
 }/* Mkrule_23 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_24 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_24 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
 #else
-NODEPTR Mkrule_24 (_coordref,_desc1)
+NODEPTR Mkrule_24 (_coordref,_desc1,_desc2)
 	POSITION *_coordref;
 	NODEPTR _desc1;
+	NODEPTR _desc2;
 #endif
 {	_TPPrule_24 _currn;
 #ifdef __cplusplus
@@ -1296,19 +1303,23 @@ _currn = (_TPPrule_24) TreeNodeAlloc (sizeof (struct _TPrule_24));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_24;
-_currn->_desc1 = (_TSPcompound_statement) Mkcompound_statement (_coordref, _desc1);	
+_currn->_desc1 = (_TSPdeclaration_list) Mkdeclaration_list (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_24: root of subtree no. 1 can not be made a compound_statement node ", 0, _coordref);
-_COPYCOORD(_currn)
+	message (DEADLY, "RULE rule_24: root of subtree no. 1 can not be made a declaration_list node ", 0, _coordref);
+_currn->_desc2 = (_TSPstatement_list_opt) Mkstatement_list_opt (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_24: root of subtree no. 2 can not be made a statement_list_opt node ", 0, _coordref);
+_SETCOORD(_currn)
 _TERMACT_rule_24;
 return ( (NODEPTR) _currn);
 }/* Mkrule_24 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_25 (POSITION *_coordref)
+NODEPTR Mkrule_25 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_25 (_coordref)
+NODEPTR Mkrule_25 (_coordref,_desc1)
 	POSITION *_coordref;
+	NODEPTR _desc1;
 #endif
 {	_TPPrule_25 _currn;
 #ifdef __cplusplus
@@ -1320,20 +1331,19 @@ _currn = (_TPPrule_25) TreeNodeAlloc (sizeof (struct _TPrule_25));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_25;
-_SETCOORD(_currn)
+_currn->_desc1 = (_TSPcompound_statement) Mkcompound_statement (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_25: root of subtree no. 1 can not be made a compound_statement node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_25;
 return ( (NODEPTR) _currn);
 }/* Mkrule_25 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_26 (POSITION *_coordref, NODEPTR _desc1, int _TERM1, NODEPTR _desc2, NODEPTR _desc3)
+NODEPTR Mkrule_26 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_26 (_coordref,_desc1, _TERM1,_desc2,_desc3)
+NODEPTR Mkrule_26 (_coordref)
 	POSITION *_coordref;
-	NODEPTR _desc1;
-	int _TERM1;
-	NODEPTR _desc2;
-	NODEPTR _desc3;
 #endif
 {	_TPPrule_26 _currn;
 #ifdef __cplusplus
@@ -1345,24 +1355,243 @@ _currn = (_TPPrule_26) TreeNodeAlloc (sizeof (struct _TPrule_26));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_26;
-_currn->_desc1 = (_TSPtype_specifier) Mktype_specifier (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_26: root of subtree no. 1 can not be made a type_specifier node ", 0, _coordref);
-_currn->_desc2 = (_TSPparameter_list_opt) Mkparameter_list_opt (_coordref, _desc2);	
-if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_26: root of subtree no. 2 can not be made a parameter_list_opt node ", 0, _coordref);
-_currn->_desc3 = (_TSPcompound_statement_opt) Mkcompound_statement_opt (_coordref, _desc3);	
-if (((NODEPTR)_currn->_desc3) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_26: root of subtree no. 3 can not be made a compound_statement_opt node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_26;
+return ( (NODEPTR) _currn);
+}/* Mkrule_26 */
+
+#if defined(__STDC__) || defined(__cplusplus)
+NODEPTR Mkrule_27 (POSITION *_coordref, NODEPTR _desc1, int _TERM1, NODEPTR _desc2, NODEPTR _desc3)
+#else
+NODEPTR Mkrule_27 (_coordref,_desc1, _TERM1,_desc2,_desc3)
+	POSITION *_coordref;
+	NODEPTR _desc1;
+	int _TERM1;
+	NODEPTR _desc2;
+	NODEPTR _desc3;
+#endif
+{	_TPPrule_27 _currn;
+#ifdef __cplusplus
+_currn = new _TPrule_27;
+#else
+_currn = (_TPPrule_27) TreeNodeAlloc (sizeof (struct _TPrule_27));
+#endif
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+#endif
+_currn->_prod = RULErule_27;
+_currn->_desc1 = (_TSPtype_specifier) Mktype_specifier (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_27: root of subtree no. 1 can not be made a type_specifier node ", 0, _coordref);
+_currn->_desc2 = (_TSPparameter_list_opt) Mkparameter_list_opt (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_27: root of subtree no. 2 can not be made a parameter_list_opt node ", 0, _coordref);
+_currn->_desc3 = (_TSPcompound_statement_opt) Mkcompound_statement_opt (_coordref, _desc3);	
+if (((NODEPTR)_currn->_desc3) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_27: root of subtree no. 3 can not be made a compound_statement_opt node ", 0, _coordref);
+_SETCOORD(_currn)
+_TERMACT_rule_27;
 #ifdef MONITOR
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 _dapto_term_int((_currn)->_uid, "ident", _TERM1);
 #endif
 
 return ( (NODEPTR) _currn);
-}/* Mkrule_26 */
+}/* Mkrule_27 */
+
+#if defined(__STDC__) || defined(__cplusplus)
+NODEPTR Mkrule_28 (POSITION *_coordref, NODEPTR _desc1, int _TERM1, NODEPTR _desc2, NODEPTR _desc3)
+#else
+NODEPTR Mkrule_28 (_coordref,_desc1, _TERM1,_desc2,_desc3)
+	POSITION *_coordref;
+	NODEPTR _desc1;
+	int _TERM1;
+	NODEPTR _desc2;
+	NODEPTR _desc3;
+#endif
+{	_TPPrule_28 _currn;
+#ifdef __cplusplus
+_currn = new _TPrule_28;
+#else
+_currn = (_TPPrule_28) TreeNodeAlloc (sizeof (struct _TPrule_28));
+#endif
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+#endif
+_currn->_prod = RULErule_28;
+_currn->_desc1 = (_TSPtype_specifier) Mktype_specifier (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_28: root of subtree no. 1 can not be made a type_specifier node ", 0, _coordref);
+_currn->_desc2 = (_TSPparameter_list_opt) Mkparameter_list_opt (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_28: root of subtree no. 2 can not be made a parameter_list_opt node ", 0, _coordref);
+_currn->_desc3 = (_TSPcompound_statement_opt) Mkcompound_statement_opt (_coordref, _desc3);	
+if (((NODEPTR)_currn->_desc3) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_28: root of subtree no. 3 can not be made a compound_statement_opt node ", 0, _coordref);
+_SETCOORD(_currn)
+_TERMACT_rule_28;
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+_dapto_term_int((_currn)->_uid, "ident", _TERM1);
+#endif
+
+return ( (NODEPTR) _currn);
+}/* Mkrule_28 */
+
+#if defined(__STDC__) || defined(__cplusplus)
+NODEPTR Mkrule_107 (POSITION *_coordref)
+#else
+NODEPTR Mkrule_107 (_coordref)
+	POSITION *_coordref;
+#endif
+{	_TPPrule_107 _currn;
+#ifdef __cplusplus
+_currn = new _TPrule_107;
+#else
+_currn = (_TPPrule_107) TreeNodeAlloc (sizeof (struct _TPrule_107));
+#endif
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+#endif
+_currn->_prod = RULErule_107;
+_SETCOORD(_currn)
+_TERMACT_rule_107;
+return ( (NODEPTR) _currn);
+}/* Mkrule_107 */
+
+#if defined(__STDC__) || defined(__cplusplus)
+NODEPTR Mkrule_106 (POSITION *_coordref)
+#else
+NODEPTR Mkrule_106 (_coordref)
+	POSITION *_coordref;
+#endif
+{	_TPPrule_106 _currn;
+#ifdef __cplusplus
+_currn = new _TPrule_106;
+#else
+_currn = (_TPPrule_106) TreeNodeAlloc (sizeof (struct _TPrule_106));
+#endif
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+#endif
+_currn->_prod = RULErule_106;
+_SETCOORD(_currn)
+_TERMACT_rule_106;
+return ( (NODEPTR) _currn);
+}/* Mkrule_106 */
+
+#if defined(__STDC__) || defined(__cplusplus)
+NODEPTR Mkrule_105 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
+#else
+NODEPTR Mkrule_105 (_coordref,_desc1,_desc2)
+	POSITION *_coordref;
+	NODEPTR _desc1;
+	NODEPTR _desc2;
+#endif
+{	_TPPrule_105 _currn;
+#ifdef __cplusplus
+_currn = new _TPrule_105;
+#else
+_currn = (_TPPrule_105) TreeNodeAlloc (sizeof (struct _TPrule_105));
+#endif
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+#endif
+_currn->_prod = RULErule_105;
+_currn->_desc1 = (_TSPunary_operator) Mkunary_operator (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_105: root of subtree no. 1 can not be made a unary_operator node ", 0, _coordref);
+_currn->_desc2 = (_TSPExpression) MkExpression (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_105: root of subtree no. 2 can not be made a Expression node ", 0, _coordref);
+_SETCOORD(_currn)
+_TERMACT_rule_105;
+return ( (NODEPTR) _currn);
+}/* Mkrule_105 */
+
+#if defined(__STDC__) || defined(__cplusplus)
+NODEPTR Mkrule_104 (POSITION *_coordref)
+#else
+NODEPTR Mkrule_104 (_coordref)
+	POSITION *_coordref;
+#endif
+{	_TPPrule_104 _currn;
+#ifdef __cplusplus
+_currn = new _TPrule_104;
+#else
+_currn = (_TPPrule_104) TreeNodeAlloc (sizeof (struct _TPrule_104));
+#endif
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+#endif
+_currn->_prod = RULErule_104;
+_SETCOORD(_currn)
+_TERMACT_rule_104;
+return ( (NODEPTR) _currn);
+}/* Mkrule_104 */
+
+#if defined(__STDC__) || defined(__cplusplus)
+NODEPTR Mkrule_103 (POSITION *_coordref)
+#else
+NODEPTR Mkrule_103 (_coordref)
+	POSITION *_coordref;
+#endif
+{	_TPPrule_103 _currn;
+#ifdef __cplusplus
+_currn = new _TPrule_103;
+#else
+_currn = (_TPPrule_103) TreeNodeAlloc (sizeof (struct _TPrule_103));
+#endif
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+#endif
+_currn->_prod = RULErule_103;
+_SETCOORD(_currn)
+_TERMACT_rule_103;
+return ( (NODEPTR) _currn);
+}/* Mkrule_103 */
+
+#if defined(__STDC__) || defined(__cplusplus)
+NODEPTR Mkrule_102 (POSITION *_coordref)
+#else
+NODEPTR Mkrule_102 (_coordref)
+	POSITION *_coordref;
+#endif
+{	_TPPrule_102 _currn;
+#ifdef __cplusplus
+_currn = new _TPrule_102;
+#else
+_currn = (_TPPrule_102) TreeNodeAlloc (sizeof (struct _TPrule_102));
+#endif
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+#endif
+_currn->_prod = RULErule_102;
+_SETCOORD(_currn)
+_TERMACT_rule_102;
+return ( (NODEPTR) _currn);
+}/* Mkrule_102 */
+
+#if defined(__STDC__) || defined(__cplusplus)
+NODEPTR Mkrule_101 (POSITION *_coordref)
+#else
+NODEPTR Mkrule_101 (_coordref)
+	POSITION *_coordref;
+#endif
+{	_TPPrule_101 _currn;
+#ifdef __cplusplus
+_currn = new _TPrule_101;
+#else
+_currn = (_TPPrule_101) TreeNodeAlloc (sizeof (struct _TPrule_101));
+#endif
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+#endif
+_currn->_prod = RULErule_101;
+_SETCOORD(_currn)
+_TERMACT_rule_101;
+return ( (NODEPTR) _currn);
+}/* Mkrule_101 */
 
 #if defined(__STDC__) || defined(__cplusplus)
 NODEPTR Mkrule_100 (POSITION *_coordref)
@@ -1407,12 +1636,10 @@ return ( (NODEPTR) _currn);
 }/* Mkrule_99 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_98 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
+NODEPTR Mkrule_98 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_98 (_coordref,_desc1,_desc2)
+NODEPTR Mkrule_98 (_coordref)
 	POSITION *_coordref;
-	NODEPTR _desc1;
-	NODEPTR _desc2;
 #endif
 {	_TPPrule_98 _currn;
 #ifdef __cplusplus
@@ -1424,12 +1651,6 @@ _currn = (_TPPrule_98) TreeNodeAlloc (sizeof (struct _TPrule_98));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_98;
-_currn->_desc1 = (_TSPunary_operator) Mkunary_operator (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_98: root of subtree no. 1 can not be made a unary_operator node ", 0, _coordref);
-_currn->_desc2 = (_TSPExpression) MkExpression (_coordref, _desc2);	
-if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_98: root of subtree no. 2 can not be made a Expression node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_98;
 return ( (NODEPTR) _currn);
@@ -1499,10 +1720,12 @@ return ( (NODEPTR) _currn);
 }/* Mkrule_95 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_94 (POSITION *_coordref)
+NODEPTR Mkrule_94 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
 #else
-NODEPTR Mkrule_94 (_coordref)
+NODEPTR Mkrule_94 (_coordref,_desc1,_desc2)
 	POSITION *_coordref;
+	NODEPTR _desc1;
+	NODEPTR _desc2;
 #endif
 {	_TPPrule_94 _currn;
 #ifdef __cplusplus
@@ -1514,16 +1737,23 @@ _currn = (_TPPrule_94) TreeNodeAlloc (sizeof (struct _TPrule_94));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_94;
+_currn->_desc1 = (_TSPtranslation_unit) Mktranslation_unit (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_94: root of subtree no. 1 can not be made a translation_unit node ", 0, _coordref);
+_currn->_desc2 = (_TSPexternal_declaration) Mkexternal_declaration (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_94: root of subtree no. 2 can not be made a external_declaration node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_94;
 return ( (NODEPTR) _currn);
 }/* Mkrule_94 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_93 (POSITION *_coordref)
+NODEPTR Mkrule_93 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_93 (_coordref)
+NODEPTR Mkrule_93 (_coordref,_desc1)
 	POSITION *_coordref;
+	NODEPTR _desc1;
 #endif
 {	_TPPrule_93 _currn;
 #ifdef __cplusplus
@@ -1535,16 +1765,20 @@ _currn = (_TPPrule_93) TreeNodeAlloc (sizeof (struct _TPrule_93));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_93;
-_SETCOORD(_currn)
+_currn->_desc1 = (_TSPexternal_declaration) Mkexternal_declaration (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_93: root of subtree no. 1 can not be made a external_declaration node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_93;
 return ( (NODEPTR) _currn);
 }/* Mkrule_93 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_92 (POSITION *_coordref)
+NODEPTR Mkrule_92 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_92 (_coordref)
+NODEPTR Mkrule_92 (_coordref,_desc1)
 	POSITION *_coordref;
+	NODEPTR _desc1;
 #endif
 {	_TPPrule_92 _currn;
 #ifdef __cplusplus
@@ -1556,18 +1790,19 @@ _currn = (_TPPrule_92) TreeNodeAlloc (sizeof (struct _TPrule_92));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_92;
-_SETCOORD(_currn)
+_currn->_desc1 = (_TSPfile) Mkfile (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_92: root of subtree no. 1 can not be made a file node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_92;
 return ( (NODEPTR) _currn);
 }/* Mkrule_92 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_91 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
+NODEPTR Mkrule_91 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_91 (_coordref,_desc1,_desc2)
+NODEPTR Mkrule_91 (_coordref)
 	POSITION *_coordref;
-	NODEPTR _desc1;
-	NODEPTR _desc2;
 #endif
 {	_TPPrule_91 _currn;
 #ifdef __cplusplus
@@ -1579,23 +1814,16 @@ _currn = (_TPPrule_91) TreeNodeAlloc (sizeof (struct _TPrule_91));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_91;
-_currn->_desc1 = (_TSPtranslation_unit) Mktranslation_unit (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_91: root of subtree no. 1 can not be made a translation_unit node ", 0, _coordref);
-_currn->_desc2 = (_TSPexternal_declaration) Mkexternal_declaration (_coordref, _desc2);	
-if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_91: root of subtree no. 2 can not be made a external_declaration node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_91;
 return ( (NODEPTR) _currn);
 }/* Mkrule_91 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_90 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_90 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_90 (_coordref,_desc1)
+NODEPTR Mkrule_90 (_coordref)
 	POSITION *_coordref;
-	NODEPTR _desc1;
 #endif
 {	_TPPrule_90 _currn;
 #ifdef __cplusplus
@@ -1607,20 +1835,19 @@ _currn = (_TPPrule_90) TreeNodeAlloc (sizeof (struct _TPrule_90));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_90;
-_currn->_desc1 = (_TSPexternal_declaration) Mkexternal_declaration (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_90: root of subtree no. 1 can not be made a external_declaration node ", 0, _coordref);
-_COPYCOORD(_currn)
+_SETCOORD(_currn)
 _TERMACT_rule_90;
 return ( (NODEPTR) _currn);
 }/* Mkrule_90 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_89 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_89 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2, NODEPTR _desc3)
 #else
-NODEPTR Mkrule_89 (_coordref,_desc1)
+NODEPTR Mkrule_89 (_coordref,_desc1,_desc2,_desc3)
 	POSITION *_coordref;
 	NODEPTR _desc1;
+	NODEPTR _desc2;
+	NODEPTR _desc3;
 #endif
 {	_TPPrule_89 _currn;
 #ifdef __cplusplus
@@ -1632,19 +1859,26 @@ _currn = (_TPPrule_89) TreeNodeAlloc (sizeof (struct _TPrule_89));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_89;
-_currn->_desc1 = (_TSPfile) Mkfile (_coordref, _desc1);	
+_currn->_desc1 = (_TSPExpression) MkExpression (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_89: root of subtree no. 1 can not be made a file node ", 0, _coordref);
-_COPYCOORD(_currn)
+	message (DEADLY, "RULE rule_89: root of subtree no. 1 can not be made a Expression node ", 0, _coordref);
+_currn->_desc2 = (_TSPshift_operator) Mkshift_operator (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_89: root of subtree no. 2 can not be made a shift_operator node ", 0, _coordref);
+_currn->_desc3 = (_TSPExpression) MkExpression (_coordref, _desc3);	
+if (((NODEPTR)_currn->_desc3) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_89: root of subtree no. 3 can not be made a Expression node ", 0, _coordref);
+_SETCOORD(_currn)
 _TERMACT_rule_89;
 return ( (NODEPTR) _currn);
 }/* Mkrule_89 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_88 (POSITION *_coordref)
+NODEPTR Mkrule_88 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_88 (_coordref)
+NODEPTR Mkrule_88 (_coordref,_desc1)
 	POSITION *_coordref;
+	NODEPTR _desc1;
 #endif
 {	_TPPrule_88 _currn;
 #ifdef __cplusplus
@@ -1656,7 +1890,10 @@ _currn = (_TPPrule_88) TreeNodeAlloc (sizeof (struct _TPrule_88));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_88;
-_SETCOORD(_currn)
+_currn->_desc1 = (_TSPsource) Mksource (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_88: root of subtree no. 1 can not be made a source node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_88;
 return ( (NODEPTR) _currn);
 }/* Mkrule_88 */
@@ -1683,13 +1920,10 @@ return ( (NODEPTR) _currn);
 }/* Mkrule_87 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_86 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2, NODEPTR _desc3)
+NODEPTR Mkrule_86 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_86 (_coordref,_desc1,_desc2,_desc3)
+NODEPTR Mkrule_86 (_coordref)
 	POSITION *_coordref;
-	NODEPTR _desc1;
-	NODEPTR _desc2;
-	NODEPTR _desc3;
 #endif
 {	_TPPrule_86 _currn;
 #ifdef __cplusplus
@@ -1701,26 +1935,16 @@ _currn = (_TPPrule_86) TreeNodeAlloc (sizeof (struct _TPrule_86));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_86;
-_currn->_desc1 = (_TSPExpression) MkExpression (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_86: root of subtree no. 1 can not be made a Expression node ", 0, _coordref);
-_currn->_desc2 = (_TSPshift_operator) Mkshift_operator (_coordref, _desc2);	
-if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_86: root of subtree no. 2 can not be made a shift_operator node ", 0, _coordref);
-_currn->_desc3 = (_TSPExpression) MkExpression (_coordref, _desc3);	
-if (((NODEPTR)_currn->_desc3) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_86: root of subtree no. 3 can not be made a Expression node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_86;
 return ( (NODEPTR) _currn);
 }/* Mkrule_86 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_85 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_85 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_85 (_coordref,_desc1)
+NODEPTR Mkrule_85 (_coordref)
 	POSITION *_coordref;
-	NODEPTR _desc1;
 #endif
 {	_TPPrule_85 _currn;
 #ifdef __cplusplus
@@ -1732,10 +1956,7 @@ _currn = (_TPPrule_85) TreeNodeAlloc (sizeof (struct _TPrule_85));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_85;
-_currn->_desc1 = (_TSPsource) Mksource (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_85: root of subtree no. 1 can not be made a source node ", 0, _coordref);
-_COPYCOORD(_currn)
+_SETCOORD(_currn)
 _TERMACT_rule_85;
 return ( (NODEPTR) _currn);
 }/* Mkrule_85 */
@@ -1762,10 +1983,11 @@ return ( (NODEPTR) _currn);
 }/* Mkrule_84 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_83 (POSITION *_coordref)
+NODEPTR Mkrule_83 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_83 (_coordref)
+NODEPTR Mkrule_83 (_coordref,_desc1)
 	POSITION *_coordref;
+	NODEPTR _desc1;
 #endif
 {	_TPPrule_83 _currn;
 #ifdef __cplusplus
@@ -1777,16 +1999,20 @@ _currn = (_TPPrule_83) TreeNodeAlloc (sizeof (struct _TPrule_83));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_83;
-_SETCOORD(_currn)
+_currn->_desc1 = (_TSPIdUse) MkIdUse (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_83: root of subtree no. 1 can not be made a IdUse node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_83;
 return ( (NODEPTR) _currn);
 }/* Mkrule_83 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_82 (POSITION *_coordref)
+NODEPTR Mkrule_82 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_82 (_coordref)
+NODEPTR Mkrule_82 (_coordref,_desc1)
 	POSITION *_coordref;
+	NODEPTR _desc1;
 #endif
 {	_TPPrule_82 _currn;
 #ifdef __cplusplus
@@ -1798,16 +2024,20 @@ _currn = (_TPPrule_82) TreeNodeAlloc (sizeof (struct _TPrule_82));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_82;
-_SETCOORD(_currn)
+_currn->_desc1 = (_TSPconstant) Mkconstant (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_82: root of subtree no. 1 can not be made a constant node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_82;
 return ( (NODEPTR) _currn);
 }/* Mkrule_82 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_81 (POSITION *_coordref)
+NODEPTR Mkrule_81 (POSITION *_coordref, int _TERM1)
 #else
-NODEPTR Mkrule_81 (_coordref)
+NODEPTR Mkrule_81 (_coordref, _TERM1)
 	POSITION *_coordref;
+	int _TERM1;
 #endif
 {	_TPPrule_81 _currn;
 #ifdef __cplusplus
@@ -1821,15 +2051,21 @@ _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 _currn->_prod = RULErule_81;
 _SETCOORD(_currn)
 _TERMACT_rule_81;
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+_dapto_term_int((_currn)->_uid, "include_string", _TERM1);
+#endif
+
 return ( (NODEPTR) _currn);
 }/* Mkrule_81 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_80 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_80 (POSITION *_coordref, NODEPTR _desc1, int _TERM1)
 #else
-NODEPTR Mkrule_80 (_coordref,_desc1)
+NODEPTR Mkrule_80 (_coordref,_desc1, _TERM1)
 	POSITION *_coordref;
 	NODEPTR _desc1;
+	int _TERM1;
 #endif
 {	_TPPrule_80 _currn;
 #ifdef __cplusplus
@@ -1841,20 +2077,26 @@ _currn = (_TPPrule_80) TreeNodeAlloc (sizeof (struct _TPrule_80));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_80;
-_currn->_desc1 = (_TSPIdUse) MkIdUse (_coordref, _desc1);	
+_currn->_desc1 = (_TSPtype_specifier) Mktype_specifier (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_80: root of subtree no. 1 can not be made a IdUse node ", 0, _coordref);
-_COPYCOORD(_currn)
+	message (DEADLY, "RULE rule_80: root of subtree no. 1 can not be made a type_specifier node ", 0, _coordref);
+_SETCOORD(_currn)
 _TERMACT_rule_80;
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+_dapto_term_int((_currn)->_uid, "ident", _TERM1);
+#endif
+
 return ( (NODEPTR) _currn);
 }/* Mkrule_80 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_79 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_79 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
 #else
-NODEPTR Mkrule_79 (_coordref,_desc1)
+NODEPTR Mkrule_79 (_coordref,_desc1,_desc2)
 	POSITION *_coordref;
 	NODEPTR _desc1;
+	NODEPTR _desc2;
 #endif
 {	_TPPrule_79 _currn;
 #ifdef __cplusplus
@@ -1866,20 +2108,23 @@ _currn = (_TPPrule_79) TreeNodeAlloc (sizeof (struct _TPrule_79));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_79;
-_currn->_desc1 = (_TSPconstant) Mkconstant (_coordref, _desc1);	
+_currn->_desc1 = (_TSPparameter_list) Mkparameter_list (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_79: root of subtree no. 1 can not be made a constant node ", 0, _coordref);
-_COPYCOORD(_currn)
+	message (DEADLY, "RULE rule_79: root of subtree no. 1 can not be made a parameter_list node ", 0, _coordref);
+_currn->_desc2 = (_TSPparameter) Mkparameter (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_79: root of subtree no. 2 can not be made a parameter node ", 0, _coordref);
+_SETCOORD(_currn)
 _TERMACT_rule_79;
 return ( (NODEPTR) _currn);
 }/* Mkrule_79 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_78 (POSITION *_coordref, int _TERM1)
+NODEPTR Mkrule_78 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_78 (_coordref, _TERM1)
+NODEPTR Mkrule_78 (_coordref,_desc1)
 	POSITION *_coordref;
-	int _TERM1;
+	NODEPTR _desc1;
 #endif
 {	_TPPrule_78 _currn;
 #ifdef __cplusplus
@@ -1891,23 +2136,19 @@ _currn = (_TPPrule_78) TreeNodeAlloc (sizeof (struct _TPrule_78));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_78;
-_SETCOORD(_currn)
+_currn->_desc1 = (_TSPparameter) Mkparameter (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_78: root of subtree no. 1 can not be made a parameter node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_78;
-#ifdef MONITOR
-_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
-_dapto_term_int((_currn)->_uid, "include_string", _TERM1);
-#endif
-
 return ( (NODEPTR) _currn);
 }/* Mkrule_78 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_77 (POSITION *_coordref, NODEPTR _desc1, int _TERM1)
+NODEPTR Mkrule_77 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_77 (_coordref,_desc1, _TERM1)
+NODEPTR Mkrule_77 (_coordref)
 	POSITION *_coordref;
-	NODEPTR _desc1;
-	int _TERM1;
 #endif
 {	_TPPrule_77 _currn;
 #ifdef __cplusplus
@@ -1919,26 +2160,17 @@ _currn = (_TPPrule_77) TreeNodeAlloc (sizeof (struct _TPrule_77));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_77;
-_currn->_desc1 = (_TSPtype_specifier) Mktype_specifier (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_77: root of subtree no. 1 can not be made a type_specifier node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_77;
-#ifdef MONITOR
-_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
-_dapto_term_int((_currn)->_uid, "ident", _TERM1);
-#endif
-
 return ( (NODEPTR) _currn);
 }/* Mkrule_77 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_76 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
+NODEPTR Mkrule_76 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_76 (_coordref,_desc1,_desc2)
+NODEPTR Mkrule_76 (_coordref,_desc1)
 	POSITION *_coordref;
 	NODEPTR _desc1;
-	NODEPTR _desc2;
 #endif
 {	_TPPrule_76 _currn;
 #ifdef __cplusplus
@@ -1953,20 +2185,16 @@ _currn->_prod = RULErule_76;
 _currn->_desc1 = (_TSPparameter_list) Mkparameter_list (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
 	message (DEADLY, "RULE rule_76: root of subtree no. 1 can not be made a parameter_list node ", 0, _coordref);
-_currn->_desc2 = (_TSPparameter) Mkparameter (_coordref, _desc2);	
-if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_76: root of subtree no. 2 can not be made a parameter node ", 0, _coordref);
-_SETCOORD(_currn)
+_COPYCOORD(_currn)
 _TERMACT_rule_76;
 return ( (NODEPTR) _currn);
 }/* Mkrule_76 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_75 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_75 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_75 (_coordref,_desc1)
+NODEPTR Mkrule_75 (_coordref)
 	POSITION *_coordref;
-	NODEPTR _desc1;
 #endif
 {	_TPPrule_75 _currn;
 #ifdef __cplusplus
@@ -1978,10 +2206,7 @@ _currn = (_TPPrule_75) TreeNodeAlloc (sizeof (struct _TPrule_75));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_75;
-_currn->_desc1 = (_TSPparameter) Mkparameter (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_75: root of subtree no. 1 can not be made a parameter node ", 0, _coordref);
-_COPYCOORD(_currn)
+_SETCOORD(_currn)
 _TERMACT_rule_75;
 return ( (NODEPTR) _currn);
 }/* Mkrule_75 */
@@ -2008,11 +2233,10 @@ return ( (NODEPTR) _currn);
 }/* Mkrule_74 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_73 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_73 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_73 (_coordref,_desc1)
+NODEPTR Mkrule_73 (_coordref)
 	POSITION *_coordref;
-	NODEPTR _desc1;
 #endif
 {	_TPPrule_73 _currn;
 #ifdef __cplusplus
@@ -2024,10 +2248,7 @@ _currn = (_TPPrule_73) TreeNodeAlloc (sizeof (struct _TPrule_73));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_73;
-_currn->_desc1 = (_TSPparameter_list) Mkparameter_list (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_73: root of subtree no. 1 can not be made a parameter_list node ", 0, _coordref);
-_COPYCOORD(_currn)
+_SETCOORD(_currn)
 _TERMACT_rule_73;
 return ( (NODEPTR) _currn);
 }/* Mkrule_73 */
@@ -2117,10 +2338,11 @@ return ( (NODEPTR) _currn);
 }/* Mkrule_69 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_68 (POSITION *_coordref)
+NODEPTR Mkrule_68 (POSITION *_coordref, int _TERM1)
 #else
-NODEPTR Mkrule_68 (_coordref)
+NODEPTR Mkrule_68 (_coordref, _TERM1)
 	POSITION *_coordref;
+	int _TERM1;
 #endif
 {	_TPPrule_68 _currn;
 #ifdef __cplusplus
@@ -2134,14 +2356,20 @@ _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 _currn->_prod = RULErule_68;
 _SETCOORD(_currn)
 _TERMACT_rule_68;
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+_dapto_term_int((_currn)->_uid, "integer", _TERM1);
+#endif
+
 return ( (NODEPTR) _currn);
 }/* Mkrule_68 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_67 (POSITION *_coordref)
+NODEPTR Mkrule_67 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_67 (_coordref)
+NODEPTR Mkrule_67 (_coordref,_desc1)
 	POSITION *_coordref;
+	NODEPTR _desc1;
 #endif
 {	_TPPrule_67 _currn;
 #ifdef __cplusplus
@@ -2153,16 +2381,21 @@ _currn = (_TPPrule_67) TreeNodeAlloc (sizeof (struct _TPrule_67));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_67;
-_SETCOORD(_currn)
+_currn->_desc1 = (_TSPExpression) MkExpression (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_67: root of subtree no. 1 can not be made a Expression node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_67;
 return ( (NODEPTR) _currn);
 }/* Mkrule_67 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_66 (POSITION *_coordref)
+NODEPTR Mkrule_66 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
 #else
-NODEPTR Mkrule_66 (_coordref)
+NODEPTR Mkrule_66 (_coordref,_desc1,_desc2)
 	POSITION *_coordref;
+	NODEPTR _desc1;
+	NODEPTR _desc2;
 #endif
 {	_TPPrule_66 _currn;
 #ifdef __cplusplus
@@ -2174,17 +2407,23 @@ _currn = (_TPPrule_66) TreeNodeAlloc (sizeof (struct _TPrule_66));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_66;
+_currn->_desc1 = (_TSPinit_declarator_list) Mkinit_declarator_list (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_66: root of subtree no. 1 can not be made a init_declarator_list node ", 0, _coordref);
+_currn->_desc2 = (_TSPinit_declarator) Mkinit_declarator (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_66: root of subtree no. 2 can not be made a init_declarator node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_66;
 return ( (NODEPTR) _currn);
 }/* Mkrule_66 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_65 (POSITION *_coordref, int _TERM1)
+NODEPTR Mkrule_65 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_65 (_coordref, _TERM1)
+NODEPTR Mkrule_65 (_coordref,_desc1)
 	POSITION *_coordref;
-	int _TERM1;
+	NODEPTR _desc1;
 #endif
 {	_TPPrule_65 _currn;
 #ifdef __cplusplus
@@ -2196,22 +2435,22 @@ _currn = (_TPPrule_65) TreeNodeAlloc (sizeof (struct _TPrule_65));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_65;
-_SETCOORD(_currn)
+_currn->_desc1 = (_TSPinit_declarator) Mkinit_declarator (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_65: root of subtree no. 1 can not be made a init_declarator node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_65;
-#ifdef MONITOR
-_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
-_dapto_term_int((_currn)->_uid, "integer", _TERM1);
-#endif
-
 return ( (NODEPTR) _currn);
 }/* Mkrule_65 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_64 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_64 (POSITION *_coordref, int _TERM1, NODEPTR _desc1, NODEPTR _desc2)
 #else
-NODEPTR Mkrule_64 (_coordref,_desc1)
+NODEPTR Mkrule_64 (_coordref, _TERM1,_desc1,_desc2)
 	POSITION *_coordref;
+	int _TERM1;
 	NODEPTR _desc1;
+	NODEPTR _desc2;
 #endif
 {	_TPPrule_64 _currn;
 #ifdef __cplusplus
@@ -2223,21 +2462,29 @@ _currn = (_TPPrule_64) TreeNodeAlloc (sizeof (struct _TPrule_64));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_64;
-_currn->_desc1 = (_TSPExpression) MkExpression (_coordref, _desc1);	
+_currn->_desc1 = (_TSPinteger_constant) Mkinteger_constant (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_64: root of subtree no. 1 can not be made a Expression node ", 0, _coordref);
-_COPYCOORD(_currn)
+	message (DEADLY, "RULE rule_64: root of subtree no. 1 can not be made a integer_constant node ", 0, _coordref);
+_currn->_desc2 = (_TSPtype_specifier) Mktype_specifier (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_64: root of subtree no. 2 can not be made a type_specifier node ", 0, _coordref);
+_SETCOORD(_currn)
 _TERMACT_rule_64;
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+_dapto_term_int((_currn)->_uid, "ident", _TERM1);
+#endif
+
 return ( (NODEPTR) _currn);
 }/* Mkrule_64 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_63 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
+NODEPTR Mkrule_63 (POSITION *_coordref, int _TERM1, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_63 (_coordref,_desc1,_desc2)
+NODEPTR Mkrule_63 (_coordref, _TERM1,_desc1)
 	POSITION *_coordref;
+	int _TERM1;
 	NODEPTR _desc1;
-	NODEPTR _desc2;
 #endif
 {	_TPPrule_63 _currn;
 #ifdef __cplusplus
@@ -2249,23 +2496,25 @@ _currn = (_TPPrule_63) TreeNodeAlloc (sizeof (struct _TPrule_63));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_63;
-_currn->_desc1 = (_TSPinit_declarator_list) Mkinit_declarator_list (_coordref, _desc1);	
+_currn->_desc1 = (_TSPinitializer) Mkinitializer (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_63: root of subtree no. 1 can not be made a init_declarator_list node ", 0, _coordref);
-_currn->_desc2 = (_TSPinit_declarator) Mkinit_declarator (_coordref, _desc2);	
-if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_63: root of subtree no. 2 can not be made a init_declarator node ", 0, _coordref);
+	message (DEADLY, "RULE rule_63: root of subtree no. 1 can not be made a initializer node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_63;
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+_dapto_term_int((_currn)->_uid, "ident", _TERM1);
+#endif
+
 return ( (NODEPTR) _currn);
 }/* Mkrule_63 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_62 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_62 (POSITION *_coordref, int _TERM1)
 #else
-NODEPTR Mkrule_62 (_coordref,_desc1)
+NODEPTR Mkrule_62 (_coordref, _TERM1)
 	POSITION *_coordref;
-	NODEPTR _desc1;
+	int _TERM1;
 #endif
 {	_TPPrule_62 _currn;
 #ifdef __cplusplus
@@ -2277,22 +2526,21 @@ _currn = (_TPPrule_62) TreeNodeAlloc (sizeof (struct _TPrule_62));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_62;
-_currn->_desc1 = (_TSPinit_declarator) Mkinit_declarator (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_62: root of subtree no. 1 can not be made a init_declarator node ", 0, _coordref);
-_COPYCOORD(_currn)
+_SETCOORD(_currn)
 _TERMACT_rule_62;
+#ifdef MONITOR
+_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
+_dapto_term_int((_currn)->_uid, "ident", _TERM1);
+#endif
+
 return ( (NODEPTR) _currn);
 }/* Mkrule_62 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_61 (POSITION *_coordref, int _TERM1, NODEPTR _desc1, NODEPTR _desc2)
+NODEPTR Mkrule_61 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_61 (_coordref, _TERM1,_desc1,_desc2)
+NODEPTR Mkrule_61 (_coordref)
 	POSITION *_coordref;
-	int _TERM1;
-	NODEPTR _desc1;
-	NODEPTR _desc2;
 #endif
 {	_TPPrule_61 _currn;
 #ifdef __cplusplus
@@ -2304,29 +2552,19 @@ _currn = (_TPPrule_61) TreeNodeAlloc (sizeof (struct _TPrule_61));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_61;
-_currn->_desc1 = (_TSPinteger_constant) Mkinteger_constant (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_61: root of subtree no. 1 can not be made a integer_constant node ", 0, _coordref);
-_currn->_desc2 = (_TSPtype_specifier) Mktype_specifier (_coordref, _desc2);	
-if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_61: root of subtree no. 2 can not be made a type_specifier node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_61;
-#ifdef MONITOR
-_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
-_dapto_term_int((_currn)->_uid, "ident", _TERM1);
-#endif
-
 return ( (NODEPTR) _currn);
 }/* Mkrule_61 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_60 (POSITION *_coordref, int _TERM1, NODEPTR _desc1)
+NODEPTR Mkrule_60 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2, NODEPTR _desc3)
 #else
-NODEPTR Mkrule_60 (_coordref, _TERM1,_desc1)
+NODEPTR Mkrule_60 (_coordref,_desc1,_desc2,_desc3)
 	POSITION *_coordref;
-	int _TERM1;
 	NODEPTR _desc1;
+	NODEPTR _desc2;
+	NODEPTR _desc3;
 #endif
 {	_TPPrule_60 _currn;
 #ifdef __cplusplus
@@ -2338,16 +2576,17 @@ _currn = (_TPPrule_60) TreeNodeAlloc (sizeof (struct _TPrule_60));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_60;
-_currn->_desc1 = (_TSPinitializer) Mkinitializer (_coordref, _desc1);	
+_currn->_desc1 = (_TSPExpression) MkExpression (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_60: root of subtree no. 1 can not be made a initializer node ", 0, _coordref);
+	message (DEADLY, "RULE rule_60: root of subtree no. 1 can not be made a Expression node ", 0, _coordref);
+_currn->_desc2 = (_TSPinclusive_OR_operator) Mkinclusive_OR_operator (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_60: root of subtree no. 2 can not be made a inclusive_OR_operator node ", 0, _coordref);
+_currn->_desc3 = (_TSPExpression) MkExpression (_coordref, _desc3);	
+if (((NODEPTR)_currn->_desc3) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_60: root of subtree no. 3 can not be made a Expression node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_60;
-#ifdef MONITOR
-_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
-_dapto_term_int((_currn)->_uid, "ident", _TERM1);
-#endif
-
 return ( (NODEPTR) _currn);
 }/* Mkrule_60 */
 
@@ -2379,10 +2618,11 @@ return ( (NODEPTR) _currn);
 }/* Mkrule_59 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_58 (POSITION *_coordref)
+NODEPTR Mkrule_58 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_58 (_coordref)
+NODEPTR Mkrule_58 (_coordref,_desc1)
 	POSITION *_coordref;
+	NODEPTR _desc1;
 #endif
 {	_TPPrule_58 _currn;
 #ifdef __cplusplus
@@ -2394,19 +2634,20 @@ _currn = (_TPPrule_58) TreeNodeAlloc (sizeof (struct _TPrule_58));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_58;
-_SETCOORD(_currn)
+_currn->_desc1 = (_TSPtranslation_unit) Mktranslation_unit (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_58: root of subtree no. 1 can not be made a translation_unit node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_58;
 return ( (NODEPTR) _currn);
 }/* Mkrule_58 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_57 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2, NODEPTR _desc3)
+NODEPTR Mkrule_57 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_57 (_coordref,_desc1,_desc2,_desc3)
+NODEPTR Mkrule_57 (_coordref,_desc1)
 	POSITION *_coordref;
 	NODEPTR _desc1;
-	NODEPTR _desc2;
-	NODEPTR _desc3;
 #endif
 {	_TPPrule_57 _currn;
 #ifdef __cplusplus
@@ -2418,26 +2659,20 @@ _currn = (_TPPrule_57) TreeNodeAlloc (sizeof (struct _TPrule_57));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_57;
-_currn->_desc1 = (_TSPExpression) MkExpression (_coordref, _desc1);	
+_currn->_desc1 = (_TSPpre_include) Mkpre_include (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_57: root of subtree no. 1 can not be made a Expression node ", 0, _coordref);
-_currn->_desc2 = (_TSPinclusive_OR_operator) Mkinclusive_OR_operator (_coordref, _desc2);	
-if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_57: root of subtree no. 2 can not be made a inclusive_OR_operator node ", 0, _coordref);
-_currn->_desc3 = (_TSPExpression) MkExpression (_coordref, _desc3);	
-if (((NODEPTR)_currn->_desc3) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_57: root of subtree no. 3 can not be made a Expression node ", 0, _coordref);
-_SETCOORD(_currn)
+	message (DEADLY, "RULE rule_57: root of subtree no. 1 can not be made a pre_include node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_57;
 return ( (NODEPTR) _currn);
 }/* Mkrule_57 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_56 (POSITION *_coordref, int _TERM1)
+NODEPTR Mkrule_56 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_56 (_coordref, _TERM1)
+NODEPTR Mkrule_56 (_coordref,_desc1)
 	POSITION *_coordref;
-	int _TERM1;
+	NODEPTR _desc1;
 #endif
 {	_TPPrule_56 _currn;
 #ifdef __cplusplus
@@ -2449,13 +2684,11 @@ _currn = (_TPPrule_56) TreeNodeAlloc (sizeof (struct _TPrule_56));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_56;
-_SETCOORD(_currn)
+_currn->_desc1 = (_TSPfunction_definition) Mkfunction_definition (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_56: root of subtree no. 1 can not be made a function_definition node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_56;
-#ifdef MONITOR
-_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
-_dapto_term_int((_currn)->_uid, "ident", _TERM1);
-#endif
-
 return ( (NODEPTR) _currn);
 }/* Mkrule_56 */
 
@@ -2476,20 +2709,19 @@ _currn = (_TPPrule_55) TreeNodeAlloc (sizeof (struct _TPrule_55));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_55;
-_currn->_desc1 = (_TSPtranslation_unit) Mktranslation_unit (_coordref, _desc1);	
+_currn->_desc1 = (_TSPdeclaration) Mkdeclaration (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_55: root of subtree no. 1 can not be made a translation_unit node ", 0, _coordref);
+	message (DEADLY, "RULE rule_55: root of subtree no. 1 can not be made a declaration node ", 0, _coordref);
 _COPYCOORD(_currn)
 _TERMACT_rule_55;
 return ( (NODEPTR) _currn);
 }/* Mkrule_55 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_54 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_54 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_54 (_coordref,_desc1)
+NODEPTR Mkrule_54 (_coordref)
 	POSITION *_coordref;
-	NODEPTR _desc1;
 #endif
 {	_TPPrule_54 _currn;
 #ifdef __cplusplus
@@ -2501,20 +2733,19 @@ _currn = (_TPPrule_54) TreeNodeAlloc (sizeof (struct _TPrule_54));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_54;
-_currn->_desc1 = (_TSPpre_include) Mkpre_include (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_54: root of subtree no. 1 can not be made a pre_include node ", 0, _coordref);
-_COPYCOORD(_currn)
+_SETCOORD(_currn)
 _TERMACT_rule_54;
 return ( (NODEPTR) _currn);
 }/* Mkrule_54 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_53 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_53 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2, NODEPTR _desc3)
 #else
-NODEPTR Mkrule_53 (_coordref,_desc1)
+NODEPTR Mkrule_53 (_coordref,_desc1,_desc2,_desc3)
 	POSITION *_coordref;
 	NODEPTR _desc1;
+	NODEPTR _desc2;
+	NODEPTR _desc3;
 #endif
 {	_TPPrule_53 _currn;
 #ifdef __cplusplus
@@ -2526,20 +2757,25 @@ _currn = (_TPPrule_53) TreeNodeAlloc (sizeof (struct _TPrule_53));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_53;
-_currn->_desc1 = (_TSPfunction_definition) Mkfunction_definition (_coordref, _desc1);	
+_currn->_desc1 = (_TSPExpression) MkExpression (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_53: root of subtree no. 1 can not be made a function_definition node ", 0, _coordref);
-_COPYCOORD(_currn)
+	message (DEADLY, "RULE rule_53: root of subtree no. 1 can not be made a Expression node ", 0, _coordref);
+_currn->_desc2 = (_TSPexclusive_OR_operator) Mkexclusive_OR_operator (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_53: root of subtree no. 2 can not be made a exclusive_OR_operator node ", 0, _coordref);
+_currn->_desc3 = (_TSPExpression) MkExpression (_coordref, _desc3);	
+if (((NODEPTR)_currn->_desc3) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_53: root of subtree no. 3 can not be made a Expression node ", 0, _coordref);
+_SETCOORD(_currn)
 _TERMACT_rule_53;
 return ( (NODEPTR) _currn);
 }/* Mkrule_53 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_52 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_52 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_52 (_coordref,_desc1)
+NODEPTR Mkrule_52 (_coordref)
 	POSITION *_coordref;
-	NODEPTR _desc1;
 #endif
 {	_TPPrule_52 _currn;
 #ifdef __cplusplus
@@ -2551,10 +2787,7 @@ _currn = (_TPPrule_52) TreeNodeAlloc (sizeof (struct _TPrule_52));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_52;
-_currn->_desc1 = (_TSPdeclaration) Mkdeclaration (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_52: root of subtree no. 1 can not be made a declaration node ", 0, _coordref);
-_COPYCOORD(_currn)
+_SETCOORD(_currn)
 _TERMACT_rule_52;
 return ( (NODEPTR) _currn);
 }/* Mkrule_52 */
@@ -2581,13 +2814,12 @@ return ( (NODEPTR) _currn);
 }/* Mkrule_51 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_50 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2, NODEPTR _desc3)
+NODEPTR Mkrule_50 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
 #else
-NODEPTR Mkrule_50 (_coordref,_desc1,_desc2,_desc3)
+NODEPTR Mkrule_50 (_coordref,_desc1,_desc2)
 	POSITION *_coordref;
 	NODEPTR _desc1;
 	NODEPTR _desc2;
-	NODEPTR _desc3;
 #endif
 {	_TPPrule_50 _currn;
 #ifdef __cplusplus
@@ -2599,25 +2831,24 @@ _currn = (_TPPrule_50) TreeNodeAlloc (sizeof (struct _TPrule_50));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_50;
-_currn->_desc1 = (_TSPExpression) MkExpression (_coordref, _desc1);	
+_currn->_desc1 = (_TSPtype_specifier) Mktype_specifier (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_50: root of subtree no. 1 can not be made a Expression node ", 0, _coordref);
-_currn->_desc2 = (_TSPexclusive_OR_operator) Mkexclusive_OR_operator (_coordref, _desc2);	
+	message (DEADLY, "RULE rule_50: root of subtree no. 1 can not be made a type_specifier node ", 0, _coordref);
+_currn->_desc2 = (_TSPinit_declarator_list) Mkinit_declarator_list (_coordref, _desc2);	
 if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_50: root of subtree no. 2 can not be made a exclusive_OR_operator node ", 0, _coordref);
-_currn->_desc3 = (_TSPExpression) MkExpression (_coordref, _desc3);	
-if (((NODEPTR)_currn->_desc3) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_50: root of subtree no. 3 can not be made a Expression node ", 0, _coordref);
+	message (DEADLY, "RULE rule_50: root of subtree no. 2 can not be made a init_declarator_list node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_50;
 return ( (NODEPTR) _currn);
 }/* Mkrule_50 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_49 (POSITION *_coordref)
+NODEPTR Mkrule_49 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
 #else
-NODEPTR Mkrule_49 (_coordref)
+NODEPTR Mkrule_49 (_coordref,_desc1,_desc2)
 	POSITION *_coordref;
+	NODEPTR _desc1;
+	NODEPTR _desc2;
 #endif
 {	_TPPrule_49 _currn;
 #ifdef __cplusplus
@@ -2629,16 +2860,23 @@ _currn = (_TPPrule_49) TreeNodeAlloc (sizeof (struct _TPrule_49));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_49;
+_currn->_desc1 = (_TSPdeclaration_list) Mkdeclaration_list (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_49: root of subtree no. 1 can not be made a declaration_list node ", 0, _coordref);
+_currn->_desc2 = (_TSPdeclaration) Mkdeclaration (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_49: root of subtree no. 2 can not be made a declaration node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_49;
 return ( (NODEPTR) _currn);
 }/* Mkrule_49 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_48 (POSITION *_coordref)
+NODEPTR Mkrule_48 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_48 (_coordref)
+NODEPTR Mkrule_48 (_coordref,_desc1)
 	POSITION *_coordref;
+	NODEPTR _desc1;
 #endif
 {	_TPPrule_48 _currn;
 #ifdef __cplusplus
@@ -2650,18 +2888,19 @@ _currn = (_TPPrule_48) TreeNodeAlloc (sizeof (struct _TPrule_48));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_48;
-_SETCOORD(_currn)
+_currn->_desc1 = (_TSPdeclaration) Mkdeclaration (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_48: root of subtree no. 1 can not be made a declaration node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_48;
 return ( (NODEPTR) _currn);
 }/* Mkrule_48 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_47 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
+NODEPTR Mkrule_47 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_47 (_coordref,_desc1,_desc2)
+NODEPTR Mkrule_47 (_coordref)
 	POSITION *_coordref;
-	NODEPTR _desc1;
-	NODEPTR _desc2;
 #endif
 {	_TPPrule_47 _currn;
 #ifdef __cplusplus
@@ -2673,24 +2912,17 @@ _currn = (_TPPrule_47) TreeNodeAlloc (sizeof (struct _TPrule_47));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_47;
-_currn->_desc1 = (_TSPtype_specifier) Mktype_specifier (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_47: root of subtree no. 1 can not be made a type_specifier node ", 0, _coordref);
-_currn->_desc2 = (_TSPinit_declarator_list) Mkinit_declarator_list (_coordref, _desc2);	
-if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_47: root of subtree no. 2 can not be made a init_declarator_list node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_47;
 return ( (NODEPTR) _currn);
 }/* Mkrule_47 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_46 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
+NODEPTR Mkrule_46 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_46 (_coordref,_desc1,_desc2)
+NODEPTR Mkrule_46 (_coordref,_desc1)
 	POSITION *_coordref;
 	NODEPTR _desc1;
-	NODEPTR _desc2;
 #endif
 {	_TPPrule_46 _currn;
 #ifdef __cplusplus
@@ -2702,23 +2934,19 @@ _currn = (_TPPrule_46) TreeNodeAlloc (sizeof (struct _TPrule_46));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_46;
-_currn->_desc1 = (_TSPdeclaration_list) Mkdeclaration_list (_coordref, _desc1);	
+_currn->_desc1 = (_TSPinteger_constant) Mkinteger_constant (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_46: root of subtree no. 1 can not be made a declaration_list node ", 0, _coordref);
-_currn->_desc2 = (_TSPdeclaration) Mkdeclaration (_coordref, _desc2);	
-if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_46: root of subtree no. 2 can not be made a declaration node ", 0, _coordref);
-_SETCOORD(_currn)
+	message (DEADLY, "RULE rule_46: root of subtree no. 1 can not be made a integer_constant node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_46;
 return ( (NODEPTR) _currn);
 }/* Mkrule_46 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_45 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_45 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_45 (_coordref,_desc1)
+NODEPTR Mkrule_45 (_coordref)
 	POSITION *_coordref;
-	NODEPTR _desc1;
 #endif
 {	_TPPrule_45 _currn;
 #ifdef __cplusplus
@@ -2730,19 +2958,18 @@ _currn = (_TPPrule_45) TreeNodeAlloc (sizeof (struct _TPrule_45));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_45;
-_currn->_desc1 = (_TSPdeclaration) Mkdeclaration (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_45: root of subtree no. 1 can not be made a declaration node ", 0, _coordref);
-_COPYCOORD(_currn)
+_SETCOORD(_currn)
 _TERMACT_rule_45;
 return ( (NODEPTR) _currn);
 }/* Mkrule_45 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_44 (POSITION *_coordref)
+NODEPTR Mkrule_44 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
 #else
-NODEPTR Mkrule_44 (_coordref)
+NODEPTR Mkrule_44 (_coordref,_desc1,_desc2)
 	POSITION *_coordref;
+	NODEPTR _desc1;
+	NODEPTR _desc2;
 #endif
 {	_TPPrule_44 _currn;
 #ifdef __cplusplus
@@ -2754,17 +2981,22 @@ _currn = (_TPPrule_44) TreeNodeAlloc (sizeof (struct _TPrule_44));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_44;
+_currn->_desc1 = (_TSPtype_specifier) Mktype_specifier (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_44: root of subtree no. 1 can not be made a type_specifier node ", 0, _coordref);
+_currn->_desc2 = (_TSPExpression) MkExpression (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_44: root of subtree no. 2 can not be made a Expression node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_44;
 return ( (NODEPTR) _currn);
 }/* Mkrule_44 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_43 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_43 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_43 (_coordref,_desc1)
+NODEPTR Mkrule_43 (_coordref)
 	POSITION *_coordref;
-	NODEPTR _desc1;
 #endif
 {	_TPPrule_43 _currn;
 #ifdef __cplusplus
@@ -2776,10 +3008,7 @@ _currn = (_TPPrule_43) TreeNodeAlloc (sizeof (struct _TPrule_43));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_43;
-_currn->_desc1 = (_TSPinteger_constant) Mkinteger_constant (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_43: root of subtree no. 1 can not be made a integer_constant node ", 0, _coordref);
-_COPYCOORD(_currn)
+_SETCOORD(_currn)
 _TERMACT_rule_43;
 return ( (NODEPTR) _currn);
 }/* Mkrule_43 */
@@ -2890,10 +3119,11 @@ return ( (NODEPTR) _currn);
 }/* Mkrule_38 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_37 (POSITION *_coordref)
+NODEPTR Mkrule_37 (POSITION *_coordref, NODEPTR _desc1)
 #else
-NODEPTR Mkrule_37 (_coordref)
+NODEPTR Mkrule_37 (_coordref,_desc1)
 	POSITION *_coordref;
+	NODEPTR _desc1;
 #endif
 {	_TPPrule_37 _currn;
 #ifdef __cplusplus
@@ -2905,7 +3135,10 @@ _currn = (_TPPrule_37) TreeNodeAlloc (sizeof (struct _TPrule_37));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_37;
-_SETCOORD(_currn)
+_currn->_desc1 = (_TSPargument_expression_list) Mkargument_expression_list (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_37: root of subtree no. 1 can not be made a argument_expression_list node ", 0, _coordref);
+_COPYCOORD(_currn)
 _TERMACT_rule_37;
 return ( (NODEPTR) _currn);
 }/* Mkrule_37 */
@@ -2948,19 +3181,21 @@ _currn = (_TPPrule_35) TreeNodeAlloc (sizeof (struct _TPrule_35));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_35;
-_currn->_desc1 = (_TSPargument_expression_list) Mkargument_expression_list (_coordref, _desc1);	
+_currn->_desc1 = (_TSPExpression) MkExpression (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_35: root of subtree no. 1 can not be made a argument_expression_list node ", 0, _coordref);
+	message (DEADLY, "RULE rule_35: root of subtree no. 1 can not be made a Expression node ", 0, _coordref);
 _COPYCOORD(_currn)
 _TERMACT_rule_35;
 return ( (NODEPTR) _currn);
 }/* Mkrule_35 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_34 (POSITION *_coordref)
+NODEPTR Mkrule_34 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
 #else
-NODEPTR Mkrule_34 (_coordref)
+NODEPTR Mkrule_34 (_coordref,_desc1,_desc2)
 	POSITION *_coordref;
+	NODEPTR _desc1;
+	NODEPTR _desc2;
 #endif
 {	_TPPrule_34 _currn;
 #ifdef __cplusplus
@@ -2972,17 +3207,22 @@ _currn = (_TPPrule_34) TreeNodeAlloc (sizeof (struct _TPrule_34));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_34;
+_currn->_desc1 = (_TSPargument_expression_list) Mkargument_expression_list (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_34: root of subtree no. 1 can not be made a argument_expression_list node ", 0, _coordref);
+_currn->_desc2 = (_TSPExpression) MkExpression (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_34: root of subtree no. 2 can not be made a Expression node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_34;
 return ( (NODEPTR) _currn);
 }/* Mkrule_34 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_33 (POSITION *_coordref, NODEPTR _desc1)
+NODEPTR Mkrule_33 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_33 (_coordref,_desc1)
+NODEPTR Mkrule_33 (_coordref)
 	POSITION *_coordref;
-	NODEPTR _desc1;
 #endif
 {	_TPPrule_33 _currn;
 #ifdef __cplusplus
@@ -2994,21 +3234,19 @@ _currn = (_TPPrule_33) TreeNodeAlloc (sizeof (struct _TPrule_33));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_33;
-_currn->_desc1 = (_TSPExpression) MkExpression (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_33: root of subtree no. 1 can not be made a Expression node ", 0, _coordref);
-_COPYCOORD(_currn)
+_SETCOORD(_currn)
 _TERMACT_rule_33;
 return ( (NODEPTR) _currn);
 }/* Mkrule_33 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_32 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2)
+NODEPTR Mkrule_32 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2, NODEPTR _desc3)
 #else
-NODEPTR Mkrule_32 (_coordref,_desc1,_desc2)
+NODEPTR Mkrule_32 (_coordref,_desc1,_desc2,_desc3)
 	POSITION *_coordref;
 	NODEPTR _desc1;
 	NODEPTR _desc2;
+	NODEPTR _desc3;
 #endif
 {	_TPPrule_32 _currn;
 #ifdef __cplusplus
@@ -3020,12 +3258,15 @@ _currn = (_TPPrule_32) TreeNodeAlloc (sizeof (struct _TPrule_32));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_32;
-_currn->_desc1 = (_TSPargument_expression_list) Mkargument_expression_list (_coordref, _desc1);	
+_currn->_desc1 = (_TSPExpression) MkExpression (_coordref, _desc1);	
 if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_32: root of subtree no. 1 can not be made a argument_expression_list node ", 0, _coordref);
-_currn->_desc2 = (_TSPExpression) MkExpression (_coordref, _desc2);	
+	message (DEADLY, "RULE rule_32: root of subtree no. 1 can not be made a Expression node ", 0, _coordref);
+_currn->_desc2 = (_TSPand_operator) Mkand_operator (_coordref, _desc2);	
 if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_32: root of subtree no. 2 can not be made a Expression node ", 0, _coordref);
+	message (DEADLY, "RULE rule_32: root of subtree no. 2 can not be made a and_operator node ", 0, _coordref);
+_currn->_desc3 = (_TSPExpression) MkExpression (_coordref, _desc3);	
+if (((NODEPTR)_currn->_desc3) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_32: root of subtree no. 3 can not be made a Expression node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_32;
 return ( (NODEPTR) _currn);
@@ -3053,13 +3294,10 @@ return ( (NODEPTR) _currn);
 }/* Mkrule_31 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_30 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2, NODEPTR _desc3)
+NODEPTR Mkrule_30 (POSITION *_coordref)
 #else
-NODEPTR Mkrule_30 (_coordref,_desc1,_desc2,_desc3)
+NODEPTR Mkrule_30 (_coordref)
 	POSITION *_coordref;
-	NODEPTR _desc1;
-	NODEPTR _desc2;
-	NODEPTR _desc3;
 #endif
 {	_TPPrule_30 _currn;
 #ifdef __cplusplus
@@ -3071,25 +3309,19 @@ _currn = (_TPPrule_30) TreeNodeAlloc (sizeof (struct _TPrule_30));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_30;
-_currn->_desc1 = (_TSPExpression) MkExpression (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_30: root of subtree no. 1 can not be made a Expression node ", 0, _coordref);
-_currn->_desc2 = (_TSPand_operator) Mkand_operator (_coordref, _desc2);	
-if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_30: root of subtree no. 2 can not be made a and_operator node ", 0, _coordref);
-_currn->_desc3 = (_TSPExpression) MkExpression (_coordref, _desc3);	
-if (((NODEPTR)_currn->_desc3) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_30: root of subtree no. 3 can not be made a Expression node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_30;
 return ( (NODEPTR) _currn);
 }/* Mkrule_30 */
 
 #if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_29 (POSITION *_coordref)
+NODEPTR Mkrule_29 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2, NODEPTR _desc3)
 #else
-NODEPTR Mkrule_29 (_coordref)
+NODEPTR Mkrule_29 (_coordref,_desc1,_desc2,_desc3)
 	POSITION *_coordref;
+	NODEPTR _desc1;
+	NODEPTR _desc2;
+	NODEPTR _desc3;
 #endif
 {	_TPPrule_29 _currn;
 #ifdef __cplusplus
@@ -3101,61 +3333,16 @@ _currn = (_TPPrule_29) TreeNodeAlloc (sizeof (struct _TPrule_29));
 _currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
 #endif
 _currn->_prod = RULErule_29;
+_currn->_desc1 = (_TSPExpression) MkExpression (_coordref, _desc1);	
+if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_29: root of subtree no. 1 can not be made a Expression node ", 0, _coordref);
+_currn->_desc2 = (_TSPBinOp) MkBinOp (_coordref, _desc2);	
+if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_29: root of subtree no. 2 can not be made a BinOp node ", 0, _coordref);
+_currn->_desc3 = (_TSPExpression) MkExpression (_coordref, _desc3);	
+if (((NODEPTR)_currn->_desc3) == NULLNODEPTR)	
+	message (DEADLY, "RULE rule_29: root of subtree no. 3 can not be made a Expression node ", 0, _coordref);
 _SETCOORD(_currn)
 _TERMACT_rule_29;
 return ( (NODEPTR) _currn);
 }/* Mkrule_29 */
-
-#if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_28 (POSITION *_coordref)
-#else
-NODEPTR Mkrule_28 (_coordref)
-	POSITION *_coordref;
-#endif
-{	_TPPrule_28 _currn;
-#ifdef __cplusplus
-_currn = new _TPrule_28;
-#else
-_currn = (_TPPrule_28) TreeNodeAlloc (sizeof (struct _TPrule_28));
-#endif
-#ifdef MONITOR
-_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
-#endif
-_currn->_prod = RULErule_28;
-_SETCOORD(_currn)
-_TERMACT_rule_28;
-return ( (NODEPTR) _currn);
-}/* Mkrule_28 */
-
-#if defined(__STDC__) || defined(__cplusplus)
-NODEPTR Mkrule_27 (POSITION *_coordref, NODEPTR _desc1, NODEPTR _desc2, NODEPTR _desc3)
-#else
-NODEPTR Mkrule_27 (_coordref,_desc1,_desc2,_desc3)
-	POSITION *_coordref;
-	NODEPTR _desc1;
-	NODEPTR _desc2;
-	NODEPTR _desc3;
-#endif
-{	_TPPrule_27 _currn;
-#ifdef __cplusplus
-_currn = new _TPrule_27;
-#else
-_currn = (_TPPrule_27) TreeNodeAlloc (sizeof (struct _TPrule_27));
-#endif
-#ifdef MONITOR
-_currn->_uid=MONTblStackSize; MONTblStackPush(((NODEPTR)_currn));
-#endif
-_currn->_prod = RULErule_27;
-_currn->_desc1 = (_TSPExpression) MkExpression (_coordref, _desc1);	
-if (((NODEPTR)_currn->_desc1) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_27: root of subtree no. 1 can not be made a Expression node ", 0, _coordref);
-_currn->_desc2 = (_TSPBinOp) MkBinOp (_coordref, _desc2);	
-if (((NODEPTR)_currn->_desc2) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_27: root of subtree no. 2 can not be made a BinOp node ", 0, _coordref);
-_currn->_desc3 = (_TSPExpression) MkExpression (_coordref, _desc3);	
-if (((NODEPTR)_currn->_desc3) == NULLNODEPTR)	
-	message (DEADLY, "RULE rule_27: root of subtree no. 3 can not be made a Expression node ", 0, _coordref);
-_SETCOORD(_currn)
-_TERMACT_rule_27;
-return ( (NODEPTR) _currn);
-}/* Mkrule_27 */
