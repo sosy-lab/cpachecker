@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.filterTargetElements;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -281,7 +283,6 @@ class MainCPAStatistics implements Statistics {
             }
         }
 
-        Iterable<AbstractElement> allTargetElements = AbstractElements.filterTargetElements(reached);
         int reachedSize = reached.size();
 
         out.println("CPAchecker general statistics");
@@ -296,9 +297,7 @@ class MainCPAStatistics implements Statistics {
           Map.Entry<Object, Collection<AbstractElement>> maxPartition = l.getMaxPartition();
           out.println("    Max states per loc.:      " + maxPartition.getValue().size() + " (at node " + maxPartition.getKey() + ")");
 
-        } else if (reached instanceof PartitionedReachedSet) {
-          PartitionedReachedSet p = (PartitionedReachedSet)reached;
-
+        } else {
           HashMultiset<CFANode> allLocations = HashMultiset.create(AbstractElements.extractLocations(reached));
           int locs = allLocations.entrySet().size();
           out.println("  Number of locations:        " + locs);
@@ -314,14 +313,17 @@ class MainCPAStatistics implements Statistics {
             }
           }
           out.println("    Max states per loc.:      " + max + " (at node " + maxLoc + ")");
+        }
 
+        if (reached instanceof PartitionedReachedSet) {
+          PartitionedReachedSet p = (PartitionedReachedSet)reached;
           int partitions = p.getNumberOfPartitions();
           out.println("  Number of partitions:       " + partitions);
           out.println("    Avg size of partitions:   " + reachedSize / partitions);
           Map.Entry<Object, Collection<AbstractElement>> maxPartition = p.getMaxPartition();
           out.println("    Max size of partitions:   " + maxPartition.getValue().size() + " (with key " + maxPartition.getKey() + ")");
         }
-        out.println("  Number of target elements:  " + Iterables.size(allTargetElements));
+        out.println("  Number of target elements:  " + Iterables.size(filterTargetElements(reached)));
         out.println("Time for analysis setup:      " + creationTime);
         out.println("  Time for loading CPAs:      " + cpaCreationTime);
         if (cfaCreator != null) {
