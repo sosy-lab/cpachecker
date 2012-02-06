@@ -48,17 +48,17 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
    */
   private final ExplicitElement previousElement;
 
-  public ExplicitElement() {
+  ExplicitElement() {
     constantsMap    = new HashMap<String, Long>();
     previousElement = null;
   }
 
-  public ExplicitElement(ExplicitElement previousElement) {
+  ExplicitElement(ExplicitElement previousElement) {
     constantsMap          = new HashMap<String, Long>();
     this.previousElement  = previousElement;
   }
 
-  public ExplicitElement(Map<String, Long> constantsMap, ExplicitElement previousElement) {
+  private ExplicitElement(Map<String, Long> constantsMap, ExplicitElement previousElement) {
     this.constantsMap     = constantsMap;
     this.previousElement  = previousElement;
   }
@@ -69,14 +69,15 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
    * @param value value to be assigned.
    */
   void assignConstant(String variableName, Long value) {
-    if(constantsMap.containsKey(variableName) && constantsMap.get(variableName).equals(value))
+    if (constantsMap.containsKey(variableName) && constantsMap.get(variableName).equals(value)) {
       return;
+    }
 
     constantsMap.put(variableName, value);
   }
 
   void forget(String variableName) {
-    if(constantsMap.containsKey(variableName)) {
+    if (constantsMap.containsKey(variableName)) {
       constantsMap.remove(variableName);
     }
   }
@@ -103,19 +104,19 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
    * @param other the other element to join with this element
    * @return a new element representing the join of this element and the other element
    */
-  public ExplicitElement join(ExplicitElement other) {
+  ExplicitElement join(ExplicitElement other) {
     int size = Math.min(constantsMap.size(), other.constantsMap.size());
 
     Map<String, Long> newConstantsMap = new HashMap<String, Long>(size);
 
-    for(Map.Entry<String, Long> otherEntry : other.constantsMap.entrySet()) {
+    for (Map.Entry<String, Long> otherEntry : other.constantsMap.entrySet()) {
       String otherKey = otherEntry.getKey();
       Long otherValue = constantsMap.get(otherKey);
 
       // both constant maps contain a value for the same constant ...
       if(otherValue != null) {
         // ... having identical values
-        if(otherValue.equals(otherEntry.getValue())) {
+        if (otherValue.equals(otherEntry.getValue())) {
           newConstantsMap.put(otherKey, otherValue);
         }
       }
@@ -130,22 +131,21 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
    * @param other the other element
    * @return true, if this element is less or equal than the other element, based on the order imposed by the lattice
    */
-  public boolean isLessOrEqual(ExplicitElement other) {
+  boolean isLessOrEqual(ExplicitElement other) {
     // this element is not less or equal than the other element, if the previous elements differ
-    if(previousElement != other.previousElement) {
+    if (previousElement != other.previousElement) {
       return false;
     }
 
     // also, this element is not less or equal than the other element, if it contains less elements
-    if(constantsMap.size() < other.constantsMap.size()) {
+    if (constantsMap.size() < other.constantsMap.size()) {
       return false;
     }
 
     // also, this element is not less or equal than the other element,
     // if any one constant's value of the other element differs from the constant's value in this element
-    for(Map.Entry<String, Long> entry : other.constantsMap.entrySet())
-    {
-      if(!entry.getValue().equals(constantsMap.get(entry.getKey()))) {
+    for (Map.Entry<String, Long> entry : other.constantsMap.entrySet()) {
+      if (!entry.getValue().equals(constantsMap.get(entry.getKey()))) {
         return false;
       }
     }
@@ -157,7 +157,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   public ExplicitElement clone() {
     ExplicitElement newElement = new ExplicitElement(previousElement);
 
-    for(String variableName: constantsMap.keySet()) {
+    for (String variableName : constantsMap.keySet()) {
       newElement.constantsMap.put(variableName, constantsMap.get(variableName));
     }
 
@@ -166,7 +166,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
 
   @Override
   public boolean equals(Object other) {
-    if(this == other) {
+    if (this == other) {
       return true;
     }
 
@@ -174,25 +174,25 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
       return false;
     }
 
-    if(!getClass().equals(other.getClass())) {
+    if (!getClass().equals(other.getClass())) {
       return false;
     }
 
     ExplicitElement otherElement = (ExplicitElement) other;
-    if(otherElement.previousElement != previousElement) {
+    if (otherElement.previousElement != previousElement) {
       return false;
     }
 
-    if(otherElement.constantsMap.size() != constantsMap.size()) {
+    if (otherElement.constantsMap.size() != constantsMap.size()) {
       return false;
     }
 
-    for(String s: constantsMap.keySet()) {
-      if(!otherElement.constantsMap.containsKey(s)) {
+    for (String s : constantsMap.keySet()) {
+      if (!otherElement.constantsMap.containsKey(s)) {
         return false;
       }
 
-      if(otherElement.constantsMap.get(s).longValue() != constantsMap.get(s)) {
+      if (otherElement.constantsMap.get(s).longValue() != constantsMap.get(s)) {
         return false;
       }
     }
@@ -209,7 +209,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("[");
-    for (Map.Entry<String, Long> entry: constantsMap.entrySet()) {
+    for (Map.Entry<String, Long> entry : constantsMap.entrySet()) {
       String key = entry.getKey();
       sb.append(" <");
       sb.append(key);
@@ -225,21 +225,20 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     pProperty = pProperty.trim();
 
-    if(pProperty.startsWith("contains(")) {
+    if (pProperty.startsWith("contains(")) {
       String varName = pProperty.substring("contains(".length(), pProperty.length() - 1);
       return this.constantsMap.containsKey(varName);
     } else {
       String[] parts = pProperty.split("==");
-      if(parts.length != 2) {
+      if (parts.length != 2) {
         Long value = this.constantsMap.get(pProperty);
-        if(value != null) {
+        if (value != null) {
           return value;
         } else {
-          throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not find the variable \"" + pProperty + "\"");
+          throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not find the variable \""
+              + pProperty + "\"");
         }
-      }
-
-      else {
+      } else {
         return checkProperty(pProperty);
       }
     }
@@ -250,24 +249,23 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     // e.g. "x==5" where x is a variable. Returns if 5 is the associated constant
     String[] parts = pProperty.split("==");
 
-    if(parts.length != 2) {
-      throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
+    if (parts.length != 2) {
+      throw new InvalidQueryException("The Query \"" + pProperty
+          + "\" is invalid. Could not split the property string correctly.");
     } else {
       Long value = this.constantsMap.get(parts[0]);
 
-      if(value == null) {
+      if (value == null) {
         return false;
-      }
-
-      else {
+      } else {
         try {
           return value.longValue() == Long.parseLong(parts[1]);
-        }
-        catch (NumberFormatException e) {
+        } catch (NumberFormatException e) {
           // The command might contains something like "main::p==cmd" where the user wants to compare the variable p to the variable cmd (nearest in scope)
           // perhaps we should omit the "main::" and find the variable via static scoping ("main::p" is also not intuitive for a user)
           // TODO: implement Variable finding via static scoping
-          throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not parse the long \"" + parts[1] + "\"");
+          throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not parse the long \""
+              + parts[1] + "\"");
         }
       }
     }
@@ -281,39 +279,40 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     String[] statements = pModification.split(";");
     for (int i = 0; i < statements.length; i++) {
       String statement = statements[i].trim().toLowerCase();
-      if(statement.startsWith("deletevalues(")) {
-        if(!statement.endsWith(")")) {
-          throw new InvalidQueryException(statement +" should end with \")\"");
+      if (statement.startsWith("deletevalues(")) {
+        if (!statement.endsWith(")")) {
+          throw new InvalidQueryException(statement + " should end with \")\"");
         }
 
         String varName = statement.substring("deletevalues(".length(), statement.length() - 1);
 
         Object x = this.constantsMap.remove(varName);
 
-        if(x == null) {
+        if (x == null) {
           // varname was not present in one of the maps
           // i would like to log an error here, but no logger is available
         }
       }
 
       else if (statement.startsWith("setvalue(")) {
-        if(!statement.endsWith(")")) {
-          throw new InvalidQueryException(statement +" should end with \")\"");
+        if (!statement.endsWith(")")) {
+          throw new InvalidQueryException(statement + " should end with \")\"");
         }
 
-        String assignment = statement.substring("setvalue(".length(), statement.length()-1);
+        String assignment = statement.substring("setvalue(".length(), statement.length() - 1);
         String[] assignmentParts = assignment.split(":=");
 
-        if(assignmentParts.length != 2) {
-          throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not split the property string correctly.");
+        if (assignmentParts.length != 2) {
+          throw new InvalidQueryException("The Query \"" + pModification
+              + "\" is invalid. Could not split the property string correctly.");
         } else {
           String varName = assignmentParts[0].trim();
           try {
             long newValue = Long.parseLong(assignmentParts[1].trim());
             this.assignConstant(varName, newValue);
-          }
-          catch (NumberFormatException e) {
-            throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not parse the long \"" + assignmentParts[1].trim() + "\"");
+          } catch (NumberFormatException e) {
+            throw new InvalidQueryException("The Query \"" + pModification
+                + "\" is invalid. Could not parse the long \"" + assignmentParts[1].trim() + "\"");
           }
         }
       }
@@ -329,10 +328,10 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   public Formula getFormulaApproximation(FormulaManager manager) {
     Formula formula = manager.makeTrue();
 
-    for(Map.Entry<String, Long> entry : constantsMap.entrySet()) {
+    for (Map.Entry<String, Long> entry : constantsMap.entrySet()) {
       Formula var = manager.makeVariable(entry.getKey());
       Formula val = manager.makeNumber(entry.getValue().toString());
-      formula     = manager.makeAnd(formula, manager.makeEqual(var, val));
+      formula = manager.makeAnd(formula, manager.makeEqual(var, val));
     }
 
     return formula;
