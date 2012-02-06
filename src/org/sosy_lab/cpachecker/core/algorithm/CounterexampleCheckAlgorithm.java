@@ -306,9 +306,9 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     if (checkTime.getNumberOfIntervals() > 0) {
       out.println("Number of infeasible paths:         " + numberOfInfeasiblePaths + " (" + toPercent(numberOfInfeasiblePaths, checkTime.getNumberOfIntervals()) +")" );
       out.println("Time for counterexample checks:     " + checkTime);
-    }
-    if (checker instanceof Statistics) {
-      ((Statistics)checker).printStatistics(out, pResult, pReached);
+      if (checker instanceof Statistics) {
+        ((Statistics)checker).printStatistics(out, pResult, pReached);
+      }
     }
   }
 

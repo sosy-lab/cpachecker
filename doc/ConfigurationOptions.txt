@@ -114,6 +114,9 @@ analysis.useBMC = false
 # use CBMC to double-check counter-examples
 analysis.useCBMC = false
 
+# use CBMC and the FeatureVars Restriction option
+analysis.useFeatureVarsRestriction = no default value
+
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
@@ -276,6 +279,13 @@ cpa.automaton.inputFile = no default value
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
 
+# which precision adjustment strategy to use (ignorant or omniscient)
+# While an ignorant strategy keeps the domain knowledge seperated, and
+# delegates to the component precision adjustment operators, the omniscient
+# strategy may operate on global knowledge.
+cpa.composite.precAdjust = "IGNORANT"
+  allowed values: [IGNORANT, OMNISCIENT]
+
 # Limit for Java heap memory used by CPAchecker (in MiB; -1 for infinite)
 cpa.conditions.global.memory.heap = -1
 
@@ -303,8 +313,14 @@ cpa.conditions.global.time.wall = -1
 # When using adjustable conditions, analysis will end after this threshold
 cpa.conditions.global.time.wall.hardlimit = -1
 
+# whether or not to track unique assignments only
+cpa.conditions.path.assignments.demandUniqueness = true
+
+# file name where to put the extended stats file
+cpa.conditions.path.assignments.extendedStatsFile = no default value
+
 # maximum number of assignments (-1 for infinite)
-cpa.conditions.path.assignments.limit = -1
+cpa.conditions.path.assignments.threshold = -1
 
 # maximum number of assume edges length (-1 for infinite)
 cpa.conditions.path.assumeedges.limit = -1
@@ -326,13 +342,17 @@ cpa.defuse.merge = "sep"
 cpa.explicit.merge = "SEP"
   allowed values: [SEP, JOIN]
 
+# threshold for amount of different values that are tracked for one variable
+# per path (-1 means infinitely)
+cpa.explicit.precision.path.defaultThreshold = -1
+
+# threshold for amount of different values that are tracked for one variable
+# within the reached set (-1 means infinitely)
+cpa.explicit.precision.reachedSet.defaultThreshold = -1
+
 # which stop operator to use for ExplicitCPA
 cpa.explicit.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
-
-# threshold for amount of different values that are tracked for one variable
-# in ExplicitCPA (0 means infinitely)
-cpa.explicit.threshold = 0
 
 # blacklist regex for variables that won't be tracked by ExplicitCPA
 cpa.explicit.variableBlacklist = ""

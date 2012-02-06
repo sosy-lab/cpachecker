@@ -89,7 +89,7 @@ public class CPAchecker {
   @Option(description="stop after the first error has been found")
   private boolean stopAfterError = true;
 
-  @Option(name="analysis.disable",
+  @Option(name="disable",
       description="stop CPAchecker after startup (internal option, not intended for users)")
   private boolean disableAnalysis = false;
 

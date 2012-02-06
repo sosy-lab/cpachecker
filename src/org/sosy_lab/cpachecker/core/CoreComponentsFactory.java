@@ -69,9 +69,8 @@ class CoreComponentsFactory {
   @Option(description="use CBMC to double-check counter-examples")
   private boolean useCBMC = false;
 
-  @Option(name="useFeatureVarsRestriction",
-      description="use CBMC and the FeatureVars Restriction option")
-  private boolean useFeatureVarsRestriction;
+  @Option(description="use CBMC and the FeatureVars Restriction option")
+  private boolean useFeatureVarsRestriction = false;
 
   @Option(description="use a BMC like algorithm that checks for satisfiability "
         + "after the analysis has finished, works only with PredicateCPA")
