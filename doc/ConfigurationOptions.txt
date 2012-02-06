@@ -599,6 +599,10 @@ cpa.predicate.useNondetFlags = false
 # Whether to call the stop operator always or only at loop head locations
 cpa.stopOnlyAtLoopHeads = false
 
+# Whether to throw away nodes at non-loopead locations after they've been
+# handled
+cpa.storeOnlyLoopHeads = false
+
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
   allowed values: [sep, join]

@@ -112,6 +112,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   @Option(description="Whether to call the stop operator always or only at loop head locations")
   private boolean stopOnlyAtLoopHeads = false;
 
+  @Option(description="Whether to throw away nodes at non-loopead locations after they've been handled")
+  private boolean storeOnlyLoopHeads = false;
 
   private final ConfigurableProgramAnalysis cpa;
 
@@ -202,6 +204,16 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           }
         }
         assert action == Action.CONTINUE : "Enum Action has unhandled values!";
+
+
+        if (storeOnlyLoopHeads) {
+          // Element has been handled successfully, all its successors have been
+          // created. Throw element away if possible.
+          if (!AbstractElements.extractLocation(element).isLoopStart()) {
+            reachedSet.remove(element);
+          }
+        }
+
 
         Collection<AbstractElement> reached = null;
 
