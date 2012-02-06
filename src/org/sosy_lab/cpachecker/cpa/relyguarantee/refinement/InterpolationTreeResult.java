@@ -42,14 +42,24 @@ public class InterpolationTreeResult {
   private final boolean isSpurious;
   private final SetMultimap<ARTElement, AbstractionPredicate> artMap;
   private final SetMultimap<ARTElement, AbstractionPredicate> envMap;
+  private final InterpolationTree tree;
 
 
   public InterpolationTreeResult(boolean spurious){
+    assert spurious;
     this.isSpurious = spurious;
-
     this.artMap = LinkedHashMultimap.create();
     this.envMap = LinkedHashMultimap.create();
+    this.tree = null;
+  }
 
+  public InterpolationTreeResult(boolean spurious, InterpolationTree tree){
+    assert !spurious;
+
+    this.isSpurious = spurious;
+    this.tree = tree;
+    this.artMap = null;
+    this.envMap = null;
   }
 
   public boolean isSpurious(){

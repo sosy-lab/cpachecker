@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
@@ -39,8 +38,6 @@ import com.google.common.base.Predicate;
 public class RGAbstractElement implements AbstractElement, Partitionable, FormulaReportingElement {
 
   public int tid;
-  private CFAEdge parentEdge = null;
-
 
   /** The path formula for the path from the last abstraction node to this node.
    * it is set to true on a new abstraction location and updated with a new
@@ -74,14 +71,6 @@ public class RGAbstractElement implements AbstractElement, Partitionable, Formul
     this.appInfo = null;
   }
 
-  public RGAbstractElement(PathFormula pf, AbstractionFormula a, CFAEdge edge, int tid) {
-    this.pathFormula = pf;
-    this.abstractionFormula = a;
-    this.parentEdge = edge;
-    this.tid = tid;
-    this.appInfo = null;
-  }
-
   public RGAbstractElement(PathFormula pf, AbstractionFormula a, int tid, RGApplicationInfo appInfo) {
     this.pathFormula = pf;
     this.abstractionFormula = a;
@@ -89,13 +78,7 @@ public class RGAbstractElement implements AbstractElement, Partitionable, Formul
     this.appInfo = appInfo;
   }
 
-  public RGAbstractElement(PathFormula pf, AbstractionFormula a, CFAEdge edge, int tid, RGApplicationInfo appInfo) {
-    this.pathFormula = pf;
-    this.abstractionFormula = a;
-    this.parentEdge = edge;
-    this.tid = tid;
-    this.appInfo = appInfo;
-  }
+
 
   public void setTid(int tid){
     this.tid = tid;
@@ -154,10 +137,6 @@ public class RGAbstractElement implements AbstractElement, Partitionable, Formul
     return getAbstractionFormula().asFormula();
   }
 
-  public CFAEdge getParentEdge() {
-    return this.parentEdge;
-  }
-
 
   @Override
   public int hashCode() {
@@ -185,15 +164,6 @@ public class RGAbstractElement implements AbstractElement, Partitionable, Formul
       // partialOrder relies on this for optimization.
     }
 
-
-    public AbstractionElement(PathFormula pf, AbstractionFormula pA, CFAEdge edge, int tid, PathFormula blockPF, RGApplicationInfo blockAppInfo) {
-      super(pf, pA, edge, tid, null);
-      this.blockPathFormula = blockPF;
-      this.blockAppInfo = blockAppInfo;
-      // Check whether the pathFormula of an abstraction element is just "true".
-      // partialOrder relies on this for optimization.
-
-    }
 
     @Override
     public Object getPartitionKey() {
@@ -240,11 +210,6 @@ public class RGAbstractElement implements AbstractElement, Partitionable, Formul
 
     public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc,  int tid,   RGApplicationInfo appInfo) {
       super(pf, pA,  tid, appInfo);
-      location = pLoc;
-    }
-
-    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, CFAEdge edge,  int tid, RGApplicationInfo appInfo) {
-      super(pf, pA, edge,  tid, appInfo);
       location = pLoc;
     }
 

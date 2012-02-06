@@ -26,8 +26,9 @@ package org.sosy_lab.cpachecker.cpa.art;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Vector;
+import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -44,31 +45,24 @@ public class ARTTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<ARTElement> getAbstractSuccessors(
-      AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
-      throws CPATransferException, InterruptedException {
+  public Collection<ARTElement> getAbstractSuccessors(AbstractElement pElement, Precision pPrecision, CFAEdge edge)throws CPATransferException, InterruptedException {
+
+    assert edge != null;
     ARTElement element = (ARTElement)pElement;
 
     AbstractElement wrappedElement = element.getWrappedElement();
-    Collection<? extends AbstractElement> successors = null;
-    if (pCfaEdge == null && element.getEnvEdgesToBeApplied() != null && !element.getEnvEdgesToBeApplied().isEmpty()){
-      Vector<AbstractElement> allSucc = new Vector<AbstractElement>();
-      for (CFAEdge edge : element.getEnvEdgesToBeApplied()){
-        allSucc.addAll(transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, edge));
-      }
-      element.getEnvEdgesToBeApplied().clear();
-      successors = allSucc;
-    } else {
-      successors = transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, pCfaEdge);
-    }
+    Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, edge);
+
 
     if (successors.isEmpty()) {
       return Collections.emptySet();
     }
 
+    Map<ARTElement, CFAEdge> parents = new HashMap<ARTElement, CFAEdge>(1);
+    parents.put(element, edge);
     Collection<ARTElement> wrappedSuccessors = new ArrayList<ARTElement>();
     for (AbstractElement absElement : successors) {
-      ARTElement successorElem = new ARTElement(absElement, element);
+      ARTElement successorElem = new ARTElement(absElement, parents);
       wrappedSuccessors.add(successorElem);
     }
     return wrappedSuccessors;

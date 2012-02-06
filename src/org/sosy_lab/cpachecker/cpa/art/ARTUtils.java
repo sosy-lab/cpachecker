@@ -62,7 +62,7 @@ public class ARTUtils {
 
     while (!waitList.isEmpty()) {
       ARTElement currentElement = waitList.poll();
-      for (ARTElement parent : currentElement.getParents()) {
+      for (ARTElement parent : currentElement.getParentARTs()) {
         if (result.add(parent)) {
           waitList.push(parent);
         }
@@ -116,7 +116,7 @@ public class ARTUtils {
         continue;
       }
 
-      for (ARTElement parent : currentElement.getParents()){
+      for (ARTElement parent : currentElement.getParentARTs()){
         if (currentElement == parent){
           continue;
         }
@@ -207,8 +207,8 @@ public class ARTUtils {
     path.addFirst(Pair.of(currentARTElement, lastEdge));
     seenElements.add(currentARTElement);
 
-    while (!currentARTElement.getParents().isEmpty()) {
-      Iterator<ARTElement> parents = currentARTElement.getParents().iterator();
+    while (!currentARTElement.getParentARTs().isEmpty()) {
+      Iterator<ARTElement> parents = currentARTElement.getParentARTs().iterator();
 
 
       ARTElement parentElement = parents.next();

@@ -441,22 +441,25 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   // pretty-printing of successors
   private void printRelyGuaranteeAbstractElement(AbstractElement pSuccessor) {
     ARTElement aElement = (ARTElement) pSuccessor;
-    RGAbstractElement rgElement = AbstractElements.extractElementByType(pSuccessor, RGAbstractElement.class);
-    CFANode loc = AbstractElements.extractLocation(pSuccessor);
-    if (rgElement.getParentEdge() == null){
+    Collection<CFAEdge> parentEdges = aElement.getParentEdges();
+
+    assert parentEdges.size() == 1;
+    CFAEdge edge = parentEdges.iterator().next();
+
+    /*if (rgElement.getParentEdge() == null){
       System.out.println("- by local edge UNKNOWN");
-    }
-    else if (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
-      RGCFAEdge rgEdge = (RGCFAEdge) rgElement.getParentEdge();
-      System.out.println("- by env. edge '"+rgEdge);
-    }
-    else if (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
-      //RGCombinedCFAEdge rgEdge = (RGCombinedCFAEdge) rgElement.getParentEdge();
-      //System.out.println("- by combined env. edge '"+rgEdge);
+    }*/
+    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+      RGCFAEdge rgEdge = (RGCFAEdge) edge;
+      System.out.println("- by env. edge "+rgEdge);
     }
     else {
-      System.out.println("- by local edge "+rgElement.getParentEdge().getRawStatement());
+      System.out.println("- by local edge "+edge.getRawStatement());
     }
+
+    RGAbstractElement rgElement = AbstractElements.extractElementByType(pSuccessor, RGAbstractElement.class);
+    CFANode loc = AbstractElements.extractLocation(pSuccessor);
+
     System.out.println("\t is '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc);
 
   }

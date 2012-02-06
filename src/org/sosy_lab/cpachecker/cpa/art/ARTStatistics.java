@@ -209,7 +209,7 @@ public class ARTStatistics implements Statistics {
         edges.append(" [style = dashed, label = \"covered by\"];\n");
       }
 
-      for (ARTElement child : currentElement.getChildren()) {
+      for (ARTElement child : currentElement.getChildARTs()) {
         boolean colored = pathEdges.contains(Pair.of(currentElement, child));
         CFAEdge edge = currentElement.getEdgeToChild(child);
         edges.append(currentElement.getElementId());

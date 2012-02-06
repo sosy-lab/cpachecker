@@ -25,11 +25,14 @@ package org.sosy_lab.cpachecker.cpa.art;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -38,14 +41,18 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public class ARTElement extends AbstractSingleWrapperElement {
 
-  private final Set<ARTElement> children;
-  private final Set<ARTElement> parents; // more than one parent if joining elements
+  //private final Set<ARTElement> children;
+  //private final Set<ARTElement> parents; // more than one parent if joining elements
+
+  private final HashMap<ARTElement, CFAEdge> parentMap;
+  private final HashMap<ARTElement, CFAEdge> childMap;
 
   // TODO for rely-guarantee
-  private List<CFAEdge> envEdgesToBeApplied;
 
   private ARTElement mCoveredBy = null;
   private Set<ARTElement> mCoveredByThis = null; // lazy initialization because rarely needed
@@ -58,22 +65,63 @@ public class ARTElement extends AbstractSingleWrapperElement {
   private final int elementId;
   private boolean hasLocalChild = false;
   private boolean byLocalEdge   = false;
+  private List<CFAEdge> envEdgesToBeApplied;
 
   private static int nextArtElementId = 0;
 
-  public ARTElement(AbstractElement pWrappedElement, ARTElement pParentElement) {
+  public ARTElement(AbstractElement pWrappedElement, Map<ARTElement, CFAEdge> parentEdges) {
     super(pWrappedElement);
-    elementId = ++nextArtElementId;
-    parents = new LinkedHashSet<ARTElement>();
-    if(pParentElement != null){
-      addParent(pParentElement);
+    assert parentEdges != null;
+
+    this.elementId = ++nextArtElementId;
+    this.parentMap = new LinkedHashMap<ARTElement, CFAEdge>(parentEdges);
+    this.childMap = new LinkedHashMap<ARTElement, CFAEdge>();
+    // add this as a child
+    for (ARTElement parent : parentEdges.keySet()){
+      CFAEdge edge = parentEdges.get(parent);
+      parent.childMap.put(this, edge);
     }
-    children = new LinkedHashSet<ARTElement>();
+
     envEdgesToBeApplied = null;
   }
 
-  public Set<ARTElement> getParents(){
-    return parents;
+  public ImmutableSet<ARTElement> getParentARTs(){
+    return ImmutableSet.copyOf(parentMap.keySet()) ;
+  }
+
+  public ImmutableSet<ARTElement> getChildARTs() {
+    // note for rely-guarantee analysis we may need the children of a destroyed element
+    //assert !destroyed;
+    return ImmutableSet.copyOf(childMap.keySet()) ;
+  }
+
+  public Collection<CFAEdge> getParentEdges(){
+    return parentMap.values();
+  }
+
+  public Collection<CFAEdge> getChildrenEdges(){
+    return parentMap.values();
+  }
+
+  public ImmutableMap<ARTElement, CFAEdge> getParentMap() {
+    return ImmutableMap.copyOf(parentMap);
+  }
+
+  public ImmutableMap<ARTElement, CFAEdge> getChildMap() {
+    return ImmutableMap.copyOf(childMap);
+  }
+
+  public void addParents(Map<ARTElement, CFAEdge> parents) {
+    parentMap.putAll(parents);
+  }
+
+  public void addChildren(Map<ARTElement, CFAEdge> children) {
+    childMap.putAll(children);
+  }
+
+  public void addParent(ARTElement element, CFAEdge edge) {
+    parentMap.put(element, edge);
+    element.childMap.put(this, edge);
   }
 
 
@@ -93,18 +141,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
     byLocalEdge = pByLocalEdge;
   }
 
-  public void addParent(ARTElement pOtherParent){
-    assert !destroyed;
-    if(parents.add(pOtherParent)){
-      pOtherParent.children.add(this);
-    }
-  }
 
-  public Set<ARTElement> getChildren() {
-    // note for rely-guarantee analysis we may need the children of a destroyed element
-    //assert !destroyed;
-    return children;
-  }
 
   protected void setCovered(ARTElement pCoveredBy) {
     assert pCoveredBy != null;
@@ -168,13 +205,13 @@ public class ARTElement extends AbstractSingleWrapperElement {
     if (!destroyed) {
       sb.append(", Parents: ");
       List<Integer> list = new ArrayList<Integer>();
-      for (ARTElement e: parents) {
+      for (ARTElement e: parentMap.keySet()) {
         list.add(e.elementId);
       }
       sb.append(list);
       sb.append(", Children: ");
       list.clear();
-      for (ARTElement e: children) {
+      for (ARTElement e: childMap.keySet()) {
         list.add(e.elementId);
       }
       sb.append(list);
@@ -196,7 +233,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
       ARTElement currentElement = workList.removeFirst();
       if (result.add(currentElement)) {
         // currentElement was not in result
-        workList.addAll(currentElement.children);
+        workList.addAll(currentElement.childMap.keySet());
       }
     }
     return result;
@@ -217,18 +254,24 @@ public class ARTElement extends AbstractSingleWrapperElement {
     assert !destroyed;
 
     // clear children
-    for (ARTElement child : children) {
-      assert (child.parents.contains(this));
-      child.parents.remove(this);
+    for (ARTElement child : childMap.keySet()) {
+      if (!child.parentMap.containsKey(this)){
+        System.out.println(this.getClass().toString());
+      }
+      assert (child.parentMap.containsKey(this));
+      child.parentMap.remove(this);
     }
-    children.clear();
+    childMap.clear();
 
     // clear parents
-    for (ARTElement parent : parents) {
-      assert (parent.children.contains(this));
-      parent.children.remove(this);
+    for (ARTElement parent : parentMap.keySet()) {
+      if (!parent.childMap.containsKey(this)){
+        System.out.println(this.getClass().toString());
+      }
+      assert (parent.childMap.containsKey(this));
+      parent.childMap.remove(this);
     }
-    parents.clear();
+    parentMap.clear();
 
     // clear coverage relation
     if (isCovered()) {
@@ -254,7 +297,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
   public CFAEdge getEdgeToChild(ARTElement pChild) {
-    Preconditions.checkArgument(children.contains(pChild));
+    Preconditions.checkArgument(childMap.containsKey(pChild));
 
     CFANode currentLoc = this.retrieveLocationElement().getLocationNode();
     CFANode childNode = pChild.retrieveLocationElement().getLocationNode();
@@ -273,5 +316,9 @@ public class ARTElement extends AbstractSingleWrapperElement {
   public void setEnvEdgesToBeApplied(List<CFAEdge> pEnvEdges) {
     envEdgesToBeApplied = pEnvEdges;
   }
+
+
+
+
 
 }

@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
+import java.util.Map;
+
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -66,14 +69,13 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
       return new Triple<AbstractElement, Precision, Action>(pElement, oldPrecision, action);
     }
 
-    ARTElement resultElement = new ARTElement(newElement, null);
+    Map<ARTElement, CFAEdge> parents = element.getParentMap();
 
-    for (ARTElement parent : element.getParents()) {
-      resultElement.addParent(parent);
-    }
-    for (ARTElement child : element.getChildren()) {
-      child.addParent(resultElement);
-    }
+    ARTElement resultElement = new ARTElement(newElement, parents);
+
+    Map<ARTElement, CFAEdge> children = element.getChildMap();
+
+    resultElement.addChildren(children);
 
     // first copy list of covered elements, then remove element from ART, then set elements covered by new element
     ImmutableList<ARTElement> coveredElements = ImmutableList.copyOf(element.getCoveredByThis());

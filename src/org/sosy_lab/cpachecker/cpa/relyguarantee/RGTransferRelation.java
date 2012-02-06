@@ -170,10 +170,10 @@ public class RGTransferRelation  implements TransferRelation {
 
     RGAbstractElement succ;
     if (doAbstraction) {
-      succ = new RGAbstractElement.ComputeAbstractionElement(pair.getFirst(), element.getAbstractionFormula(), loc, edge, cpa.getTid(), pair.getSecond());
+      succ = new RGAbstractElement.ComputeAbstractionElement(pair.getFirst(), element.getAbstractionFormula(), loc, cpa.getTid(), pair.getSecond());
 
     } else {
-      succ = new RGAbstractElement(pair.getFirst(), element.getAbstractionFormula(), edge, cpa.getTid(), pair.getSecond());
+      succ = new RGAbstractElement(pair.getFirst(), element.getAbstractionFormula(), cpa.getTid(), pair.getSecond());
     }
 
     return Collections.singleton(succ);

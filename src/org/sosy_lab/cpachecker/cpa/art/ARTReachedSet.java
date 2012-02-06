@@ -122,7 +122,7 @@ public class ARTReachedSet {
 
   private Set<ARTElement> removeSubtree0(ARTElement e) {
     Preconditions.checkNotNull(e);
-    Preconditions.checkArgument(!e.getParents().isEmpty(), "May not remove the initial element from the ART/reached set");
+    Preconditions.checkArgument(!e.getParentARTs().isEmpty(), "May not remove the initial element from the ART/reached set");
 
     Set<ARTElement> toUnreach = e.getSubtree();
 
@@ -155,7 +155,7 @@ public class ARTReachedSet {
     Set<ARTElement> toWaitlist = new LinkedHashSet<ARTElement>();
     for (ARTElement ae : elements) {
 
-      for (ARTElement parent : ae.getParents()) {
+      for (ARTElement parent : ae.getParentARTs()) {
         if (!elements.contains(parent)) {
           toWaitlist.add(parent);
         }
@@ -181,23 +181,23 @@ public class ARTReachedSet {
    */
   public void replaceWithBottom(ARTElement e) {
     Preconditions.checkNotNull(e);
-    Preconditions.checkArgument(!e.getParents().isEmpty(), "May not remove the initial element from the ART/reached set");
+    Preconditions.checkArgument(!e.getParentARTs().isEmpty(), "May not remove the initial element from the ART/reached set");
 
     Set<ARTElement> removedElements = new HashSet<ARTElement>();
     Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
 
-    workList.addAll(e.getChildren());
+    workList.addAll(e.getChildARTs());
     removedElements.add(e);
     e.removeFromART();
 
     while (!workList.isEmpty()) {
       ARTElement currentElement = workList.removeFirst();
-      if (currentElement.getParents().isEmpty()) {
+      if (currentElement.getParentARTs().isEmpty()) {
         // no other paths to this element
 
         if (removedElements.add(currentElement)) {
           // not yet handled
-          workList.addAll(currentElement.getChildren());
+          workList.addAll(currentElement.getChildARTs());
           currentElement.removeFromART();
         }
       }
@@ -226,7 +226,7 @@ public class ARTReachedSet {
    */
   public void removeCoverage(ARTElement element) {
     for (ARTElement covered : ImmutableList.copyOf(element.getCoveredByThis())) {
-      for (ARTElement parent : covered.getParents()) {
+      for (ARTElement parent : covered.getParentARTs()) {
         mReached.reAddToWaitlist(parent);
       }
       covered.removeFromART(); // also removes from element.getCoveredByThis() set

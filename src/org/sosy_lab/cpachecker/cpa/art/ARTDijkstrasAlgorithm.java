@@ -144,7 +144,7 @@ public class ARTDijkstrasAlgorithm {
         break;
       }
 
-      for (ARTElement child : node.getArtElem().getChildren()){
+      for (ARTElement child : node.getArtElem().getChildARTs()){
         DNode cn = nodeMap.get(child);
         if (cn == null){
           cn = new DNode(child);

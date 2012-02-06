@@ -118,8 +118,8 @@ public class AbstractPathToCTranslator {
 
     // the first element should have one child
     // TODO add more children support later
-    assert(firstElement.getChildren().size() == 1);
-    ARTElement firstElementsChild = (ARTElement)firstElement.getChildren().toArray()[0];
+    assert(firstElement.getChildARTs().size() == 1);
+    ARTElement firstElementsChild = (ARTElement)firstElement.getChildARTs().toArray()[0];
     // create the first stack element using the first element of the initiating function
     CBMCStackElement firstStackElement = new CBMCStackElement(firstElement.getElementId(),
         startFunction(firstElement.retrieveLocationElement().getLocationNode(), true));
@@ -153,7 +153,7 @@ public class AbstractPathToCTranslator {
       stack = cloneStack(stack);
 
       // how many parents does the child have?
-      int sizeOfChildsParents = childElement.getParents().size();
+      int sizeOfChildsParents = childElement.getParentARTs().size();
 
       // if there is only one child this is not the end of the condition
       if(sizeOfChildsParents == 1){
@@ -224,17 +224,17 @@ public class AbstractPathToCTranslator {
         }
       }
 
-      int sizeOfChildsChilds = childElement.getChildren().size();
+      int sizeOfChildsChilds = childElement.getChildARTs().size();
 
       List<ARTElement> relevantChildrenOfElement = new ArrayList<ARTElement>();
 
       // if it has only one child it is on the path to error
       if(sizeOfChildsChilds == 1){
-        relevantChildrenOfElement.addAll(childElement.getChildren());
+        relevantChildrenOfElement.addAll(childElement.getChildARTs());
       }
       // else find out whether children are on the path to error
       else{
-        for(ARTElement child: childElement.getChildren()){
+        for(ARTElement child: childElement.getChildARTs()){
           if(pElementsOnPath.contains(child)){
             relevantChildrenOfElement.add(child);
           }

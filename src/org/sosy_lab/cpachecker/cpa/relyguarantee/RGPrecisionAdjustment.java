@@ -135,7 +135,7 @@ public class RGPrecisionAdjustment implements PrecisionAdjustment {
     // create new empty path formula
     PathFormula newPathFormula = pfManager.makeEmptyPathFormula(pathFormula);
 
-    return new RGAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(),this.cpa.getTid(), element.getPathFormula(), element.getAppInfo());
+    return new RGAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, this.cpa.getTid(), element.getPathFormula(), element.getAppInfo());
   }
 
 

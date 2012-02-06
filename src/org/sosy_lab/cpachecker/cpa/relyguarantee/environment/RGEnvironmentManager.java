@@ -581,7 +581,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
         break;
       }
 
-      for (ARTElement parent : elem.getChildren()){
+      for (ARTElement parent : elem.getChildARTs()){
         if (!visisted.contains(parent)){
           toProcess.addLast(parent);
         }
@@ -619,7 +619,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
         break;
       }
 
-      for (ARTElement parent : element.getParents()){
+      for (ARTElement parent : element.getParentARTs()){
         if (!visisted.contains(parent)){
           toProcess.addLast(parent);
         }

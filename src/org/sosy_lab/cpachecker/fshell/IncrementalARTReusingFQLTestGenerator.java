@@ -877,7 +877,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
           GuardedEdgeAutomatonStateElement lStateElement = (GuardedEdgeAutomatonStateElement)lProductAutomatonElement.get(0);
 
           if (lStateElement.getAutomatonState() == lEdge.getSource()) {
-            if (lARTElement.getChildren().isEmpty()) {
+            if (lARTElement.getChildARTs().isEmpty()) {
               // re-add element to worklist
               pReachedSet.reAddToWaitlist(lARTElement);
             }
@@ -885,8 +885,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
               // by removing the children, lARTElement gets added to the
               // worklist automatically
 
-              while (!lARTElement.getChildren().isEmpty()) {
-                ARTElement lChildElement = lARTElement.getChildren().iterator().next();
+              while (!lARTElement.getChildARTs().isEmpty()) {
+                ARTElement lChildElement = lARTElement.getChildARTs().iterator().next();
 
                 pARTReachedSet.removeSubtree(lChildElement);
               }

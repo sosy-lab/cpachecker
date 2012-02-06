@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManagerFactory;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.RGLocationRefinementManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.RGRefinementManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -120,6 +121,7 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
   protected final SSAMapManager ssaManager;
   protected final RGEnvTransitionManager etManager;
   protected final  RGRefinementManager<?, ?> refManager;
+  protected final RGLocationRefinementManager locrefManager;
 
   @Option(name="blk.useCache", description="use caching of path formulas")
   private boolean useCache = true;
@@ -178,6 +180,7 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
     this.ssaManager = SSAMapManagerImpl.getInstance(fManager, config, logger);
     this.etManager  = RGEnvTransitionManagerFactory.getInstance(abstractEnvTransitions, fManager, pfManager, absManager, ssaManager, thmProver, rManager, variables, config, logger);
     this.refManager = RGRefinementManager.getInstance(rManager, fManager,  ssaManager, pfManager, etManager, thmProver, itpProver, alternativeItpProver, config, logger);
+    this.locrefManager = RGLocationRefinementManager.getInstance(fManager, pfManager, etManager, absManager, ssaManager, thmProver, itpProver, rManager, variables, config, logger);
 
     this.transfer = new RGTransferRelation(this);
     this.domain = new RGAbstractDomain(this);
@@ -298,5 +301,11 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
   public RGEnvTransitionManager getEtManager() {
     return etManager;
   }
+
+  public RGLocationRefinementManager getLocrefManager() {
+    return locrefManager;
+  }
+
+
 
 }

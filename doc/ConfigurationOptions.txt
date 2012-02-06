@@ -427,6 +427,8 @@ cpa.predicate.useBitwiseAxioms = false
 cpa.predicate.useNondetFlags = false
 
 # How to abstract environmental transitions:ST - no abstraction, SA -
+# precondition abstracted only, FA - precondition and operation abstracted.
+# How to abstract environmental transitions:ST - no abstraction, SA -
 # precondition abstracted only, FA - precondition and operation abstracted
 cpa.rg.abstractEnvTransitions = "FA"
   allowed values: [FA, SA, ST]
@@ -499,12 +501,20 @@ cpa.rg.refinement.addPredicatesGlobally = true
 # thread is analysed first.
 cpa.rg.refinement.continueThread = false
 
+# Print debugging info?
+cpa.rg.refinement.debug = false
+
 # Dump a DAG representation of interpolation formulas to the choosen file.
 cpa.rg.refinement.dumpDAGfile = "test/output/itpDAG"
 
 # which interpolating solver to use for interpolant generation?
 cpa.rg.refinement.interpolatingProver = "MATHSAT"
   allowed values: [MATHSAT, CSISAT]
+
+# Perform refinement of control locations if a feasible counterexample is
+# found.
+cpa.rg.refinement.locationRefinement = "MONOTONIC"
+  allowed values: [NONE, WITNESS, MONOTONIC, NONMONOTONIC]
 
 # split arithmetic equalities when extracting predicates from interpolants
 cpa.rg.refinement.splitItpAtoms = false

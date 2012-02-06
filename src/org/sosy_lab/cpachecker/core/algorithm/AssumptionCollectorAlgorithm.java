@@ -187,7 +187,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         // because the parents might have other potential successors that were
         // ignored by CPAAlgorithm due to the signaled break
 
-        ARTElement parent = Iterables.getOnlyElement(errorElement.getParents());
+        ARTElement parent = Iterables.getOnlyElement(errorElement.getParentARTs());
         reached.removeOnlyFromWaitlist(parent);
         exceptionElements.add(parent.getElementId());
         addAvoidingAssumptions(exceptionAssumptions, parent);
@@ -286,7 +286,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     for (ARTElement e : artNodes) {
       if (e.isCovered() || falseAssumptions.contains(e) ||
-          (!e.getParents().isEmpty() && trueAssumptions.containsAll(e.getParents()))){
+          (!e.getParentARTs().isEmpty() && trueAssumptions.containsAll(e.getParentARTs()))){
         continue;
       }
 
@@ -296,7 +296,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         sb.append("   TRUE -> GOTO __TRUE;\n\n");
 
       } else {
-        for (ARTElement child : e.getChildren()) {
+        for (ARTElement child : e.getChildARTs()) {
           if (child.isCovered()) {
             child = child.getCoveringElement();
             assert !child.isCovered();
@@ -356,7 +356,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
 
     List<ARTElement> childrenAndCoveredList = new ArrayList<ARTElement>();
-    childrenAndCoveredList.addAll(e.getChildren());
+    childrenAndCoveredList.addAll(e.getChildARTs());
     if(e.isCovered()){
       childrenAndCoveredList.add(e.getCoveringElement());
     }
@@ -368,7 +368,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     AssumptionStorageElement asmptElement = AbstractElements.extractElementByType(e, AssumptionStorageElement.class);
 
     List<ARTElement> tempChildrenAndCoveredList = new ArrayList<ARTElement>();
-    tempChildrenAndCoveredList.addAll(e.getChildren());
+    tempChildrenAndCoveredList.addAll(e.getChildARTs());
     if(e.isCovered()){
       tempChildrenAndCoveredList.add(e.getCoveringElement());
     }

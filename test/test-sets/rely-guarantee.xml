@@ -7,7 +7,7 @@
       <include>test/programs/multi-threaded/benchmarks/lu-fig2.fixed.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.fixed.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/read_write_lock.cil.c</include>
-      <include>test/programs/multi-threaded/various/mutex-safe.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-safe-modular.cil.c</include>
       <include>test/programs/multi-threaded/various/simple-safe-modular.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/bakery.simple.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/lu-fig2.cil.c</include>
@@ -33,7 +33,7 @@
       <include>test/programs/multi-threaded/benchmarks/lu-fig2.fixed.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.fixed.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/read_write_lock.cil.c</include>
-      <include>test/programs/multi-threaded/various/mutex-safe.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-safe-modular.cil.c</include>
       <include>test/programs/multi-threaded/various/simple-safe-modular.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/bakery.simple.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/lu-fig2.cil.c</include>
@@ -59,7 +59,7 @@
       <include>test/programs/multi-threaded/benchmarks/lu-fig2.fixed.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.fixed.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/read_write_lock.cil.c</include>
-      <include>test/programs/multi-threaded/various/mutex-safe.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-safe-modular.cil.c</include>
       <include>test/programs/multi-threaded/various/simple-safe-modular.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/bakery.simple.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/lu-fig2.cil.c</include>

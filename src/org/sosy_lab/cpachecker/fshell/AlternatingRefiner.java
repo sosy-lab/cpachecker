@@ -330,7 +330,7 @@ public class AlternatingRefiner implements Refiner {
 
     Map<ARTElement, Precision> lRemoveElements = new HashMap<ARTElement, Precision>();
 
-    for (ARTElement lParent : lLastARTElement.getParents()) {
+    for (ARTElement lParent : lLastARTElement.getParentARTs()) {
       CompositePrecision lParentPrecision = (CompositePrecision)pReached.getPrecision(lParent);
 
       CompositePrecision lAutomatonPrecision = (CompositePrecision)lParentPrecision.get(2);

@@ -90,6 +90,7 @@ public class RGRefiner implements StatisticsProvider{
 
   private final Stats stats;
   private final RGRefinementManager refManager;
+  private final RGLocationRefinementManager locrefManager;
   private final ARTCPA[] artCpas;
 
   private final  RGEnvironmentManager rgEnvironment;
@@ -127,6 +128,7 @@ public class RGRefiner implements StatisticsProvider{
     RGCPA rgCPA = artCpas[0].retrieveWrappedCpa(RGCPA.class);
     if (rgCPA != null){
       refManager = rgCPA.getRelyGuaranteeManager();
+      locrefManager = rgCPA.getLocrefManager();
       //rgCPA.getConfiguration().inject(this, RelyGuaranteeRefiner.class);
     } else {
       throw new InvalidConfigurationException("RelyGuaranteeCPA needed for refinement");
@@ -180,16 +182,17 @@ public class RGRefiner implements StatisticsProvider{
     }
     System.out.println();
     System.out.println("\t\t\t ----- Interpolation -----");
-    InterpolationTreeResult mCounterexampleTraceInfo = refManager.buildRgCounterexampleTrace(targetElement, reachedSets, errorThr);
+    InterpolationTreeResult counterexampleInfo = refManager.refine(targetElement, reachedSets, errorThr);
+    counterexampleInfo = locrefManager.refine(counterexampleInfo);
 
     // if error is spurious refine
-    if (mCounterexampleTraceInfo.isSpurious()) {
+    if (counterexampleInfo.isSpurious()) {
       Multimap<Integer, Pair<ARTElement, RGPrecision>> refinementResult;
 
       System.out.println();
       System.out.println("\t\t\t ----- Restarting analysis -----");
       stats.restartingTimer.start();
-      refinementResult = restartingRefinement(reachedSets, mCounterexampleTraceInfo);
+      refinementResult = restartingRefinement(reachedSets, counterexampleInfo);
 
 
       // drop subtrees and change precision
@@ -198,7 +201,7 @@ public class RGRefiner implements StatisticsProvider{
           ARTElement root = pair.getFirst();
           // drop cut-off node in every thread
           RGPrecision precision = pair.getSecond();
-          Set<ARTElement> parents = new HashSet<ARTElement>(root.getParents());
+          Set<ARTElement> parents = new HashSet<ARTElement>(root.getParentARTs());
 
 
           // TODO why does it take so long?
@@ -355,7 +358,7 @@ public class RGRefiner implements StatisticsProvider{
         stats.maxPredicatesPerLoc = Math.max(stats.maxPredicatesPerLoc, newPredMap.get(node).size());
       }
 
-      for (ARTElement initChild : inital.getChildren()){
+      for (ARTElement initChild : inital.getChildARTs()){
         refinementMap.put(tid, Pair.of(initChild, newPrecision));
       }
 
@@ -369,6 +372,7 @@ public class RGRefiner implements StatisticsProvider{
   public void collectStatistics(Collection<Statistics> scoll) {
     scoll.add(stats);
     refManager.collectStatistics(scoll);
+    locrefManager.collectStatistics(scoll);
   }
 
 

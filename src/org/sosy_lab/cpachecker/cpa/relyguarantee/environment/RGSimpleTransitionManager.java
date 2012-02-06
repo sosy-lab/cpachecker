@@ -263,7 +263,7 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
         break;
       }
 
-      for (ARTElement parent : element.getParents()){
+      for (ARTElement parent : element.getParentARTs()){
         if (!visisted.contains(parent)){
           toProcess.addFirst(parent);
         }

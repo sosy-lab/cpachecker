@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
+import java.util.Collections;
+import java.util.Map.Entry;
+
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -60,25 +64,26 @@ public class ARTMergeJoin implements MergeOperator {
       return pElement2;
     }
 
-    ARTElement mergedElement = new ARTElement(retElement, null);
+    ARTElement mergedElement = new ARTElement(retElement, Collections.<ARTElement, CFAEdge> emptyMap());
 
     // now replace artElement2 by mergedElement in ART
 
-    for (ARTElement parentOfElement1 : artElement1.getParents()) {
-      mergedElement.addParent(parentOfElement1);
+    for ( Entry<ARTElement, CFAEdge> entry : artElement1.getParentMap().entrySet()){
+      mergedElement.addParent(entry.getKey(), entry.getValue());
     }
 
-    for (ARTElement parentOfElement2 : artElement2.getParents()) {
-      mergedElement.addParent(parentOfElement2);
+    for ( Entry<ARTElement, CFAEdge> entry : artElement2.getParentMap().entrySet()){
+      mergedElement.addParent(entry.getKey(), entry.getValue());
     }
 
     // artElement1 is the current successor, it does not have any children yet
-    assert artElement1.getChildren().isEmpty();
+    assert artElement1.getChildARTs().isEmpty();
 
     // TODO check if correct - can get a loop in ARTby the two lines below
-    for (ARTElement childOfElement2 : artElement2.getChildren()) {
-      childOfElement2.addParent(mergedElement);
+    for (Entry<ARTElement, CFAEdge> entry : artElement2.getChildMap().entrySet()){
+      entry.getKey().addParent(mergedElement, entry.getValue());
     }
+
 
     // artElement1 will only be removed from ART if stop(e1, reached) returns true
     artElement2.removeFromART();

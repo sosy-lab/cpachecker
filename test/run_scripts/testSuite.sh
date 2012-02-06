@@ -1,6 +1,6 @@
 #!/bin/bash
 
-testsPositive="benchmarks/lu-fig2.fixed.cil.c benchmarks/lu-fig4-complete.fixed.cil.c benchmarks/read_write_lock.cil.c  various/mutex-safe.cil.c various/simple-safe-modular.cil.c benchmarks/bakery.simple.cil.c"
+testsPositive="benchmarks/lu-fig2.fixed.cil.c benchmarks/lu-fig4-complete.fixed.cil.c benchmarks/read_write_lock.cil.c  various/mutex-safe-modular.cil.c various/simple-safe-modular.cil.c benchmarks/bakery.simple.cil.c"
 testsNegative="benchmarks/lu-fig2.cil.c benchmarks/lu-fig4-complete.cil.c various/mutex-unsafe.cil.c various/real-unsafe.cil.c various/simple-unsafe.cil.c"
 
 positiveMsg='NO, the system is considered safe by the chosen CPAs'
