@@ -114,6 +114,7 @@ import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.ReadingFromNondetVaria
 import org.sosy_lab.cpachecker.cpa.pointer.Memory;
 import org.sosy_lab.cpachecker.cpa.pointer.Pointer;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerElement;
+import org.sosy_lab.cpachecker.efshell.Main;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -197,14 +198,16 @@ public class InterpreterTransferRelation implements TransferRelation {
 
 
     TRCOUNT++;
+    if(Main.CMPLXA==1){
     TRLIST.add(String.valueOf(cfaEdge.getLineNumber()));
+
     PersMemory.PMScnt=0;
     Scope.SVcnt=0;
     MemoryBlock.MBCcnt=0;
     AddrMemoryCell.AMCcnt=0;
     DataMemoryCell.DMCcnt=0;
     FuncMemoryCell.FMCcnt=0;
-
+    }
 
     t1 = System.nanoTime();
     InterpreterElement successor ;
@@ -215,7 +218,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
 
     // check the type of the edge
-    System.out.println(cfaEdge.getLineNumber()+": "+ cfaEdge.getRawStatement());
+    //System.out.println(cfaEdge.getLineNumber()+": "+ cfaEdge.getRawStatement());
     /*System.out.println(cfaEdge.getEdgeType());
     System.out.println(cfaEdge.getPredecessor());
     System.out.println(cfaEdge.getPredecessor().getNumLeavingEdges());
@@ -395,13 +398,16 @@ public class InterpreterTransferRelation implements TransferRelation {
     System.out.println(successor.toString());
     System.out.println("--------------");*/
 
+
+    if(Main.CMPLXA==1){
+
     PMSlist.add(PersMemory.PMScnt);
     SVlist.add(Scope.SVcnt);
     MBClist.add(MemoryBlock.MBCcnt);
     AMClist.add(AddrMemoryCell.AMCcnt);
     DMClist.add(DataMemoryCell.DMCcnt);
     FMClist.add(FuncMemoryCell.FMCcnt);
-
+    }
 
     if (InterpreterBottomElement.INSTANCE.equals(check)) {
       TRLISTTIME.add(System.nanoTime()-t1);

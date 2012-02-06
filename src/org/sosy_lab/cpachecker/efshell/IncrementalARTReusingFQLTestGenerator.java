@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterCPA;
+import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterElement;
 import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterTransferRelation;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -98,14 +99,15 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       e.printStackTrace();
     }
     time = k.stop();
-   //out.print(Long.toString(time));
+   out.print(Long.toString(time));
 
 
    int x =0,y=0;
    long t=0;
-   /*for(x=0;x<InterpreterTransferRelation.TRLIST.size();x++){
+   if (Main.CMPLXA==1){
+   for(x=0;x<InterpreterTransferRelation.TRLIST.size();x++){
       out.println(InterpreterTransferRelation.TRLIST.get(x)+","+InterpreterTransferRelation.TRLISTTIME.get(x));
-      /*out.print(/*","+InterpreterTransferRelation.PMSlist.get(x)+ ","+InterpreterTransferRelation.SVlist.get(x));
+      out.print(","+InterpreterTransferRelation.PMSlist.get(x)+ ","+InterpreterTransferRelation.SVlist.get(x));
       out.print(","+ InterpreterTransferRelation.MBClist.get(x)+ ","+InterpreterTransferRelation.AMClist.get(x));
       out.println(","+ InterpreterTransferRelation.DMClist.get(x)+ ","+InterpreterTransferRelation.FMClist.get(x));
 
@@ -120,8 +122,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   }
      out.println("\n"+t+"\t"+y);
      out.println(InterpreterElement.count);
+   }
 
-*/
     if(Main.OINTPR==0){
       k.start();
 
@@ -135,19 +137,20 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       }
       time = k.stop();
 
-      //out.println("," +Long.toString(time));
+      out.println("," +Long.toString(time));
       //out.print(", " + InterpreterTransferRelation.TRCOUNT);
 
      // out.println(", " + org.sosy_lab.cpachecker.cpa.interpreter.InterpreterTransferRelation.TRCOUNT);
-
+      if(Main.CMPLXA==1){
       for(x=0;x<InterpreterTransferRelation.TRLIST.size();x++){
         out.print(InterpreterTransferRelation.TRLIST.get(x)+", ");
         out.print(InterpreterTransferRelation.TRLISTTIME.get(x)+", ");
         out.println(org.sosy_lab.cpachecker.cpa.interpreter.InterpreterTransferRelation.TRLISTTIME.get(x));
 
       }
-      out.println();
 
+      out.println();
+      }
 
     }
     out.close();

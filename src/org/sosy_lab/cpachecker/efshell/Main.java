@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.util.Cilly;
 
 public class Main {
   public static int OINTPR=0;
+  public static final int CMPLXA=0;
   public static final String STATEMENT_COVERAGE = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
   public static final String STATEMENT_2_COVERAGE = STATEMENT_COVERAGE + ".NODES(ID).\"EDGES(ID)*\"";
   public static final String STATEMENT_3_COVERAGE = STATEMENT_2_COVERAGE + ".NODES(ID).\"EDGES(ID)*\"";

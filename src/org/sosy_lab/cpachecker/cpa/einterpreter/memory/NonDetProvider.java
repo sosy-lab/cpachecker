@@ -45,7 +45,7 @@ public class NonDetProvider {
   }
 
   public BigInteger getValue(InterpreterElement el) throws Exception{
-    t1= System.nanoTime();
+
     BigInteger numb;
     InterpreterElement pel = el;
     Integer index = null;
@@ -65,7 +65,7 @@ public class NonDetProvider {
       index++;
       indexs.put(el,index);*/
     }
-    System.out.println(System.nanoTime()-t1);
+
    // System.out.println("__BLAST_NONDET returns " + numb);
     return numb;
   }
