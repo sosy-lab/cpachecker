@@ -180,9 +180,8 @@ public class ExplicitTransferRelation implements TransferRelation
 
     // copy global variables into the new element, to make them available in body of called function
     for(String globalVar : globalVariables) {
-      Long value = element.getValueFor(globalVar);
-      if (value != null) {
-        newElement.assignConstant(globalVar, value);
+      if (element.contains(globalVar)) {
+        newElement.assignConstant(globalVar, element.getValueFor(globalVar));
       }
     }
 
