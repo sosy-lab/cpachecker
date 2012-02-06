@@ -63,26 +63,6 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
   }
 
   @Override
-  public boolean equals(Object other) {
-    if (other == this) {
-      return true;
-    }
-
-    if (other == null || !(other instanceof CompositeElement)) {
-      return false;
-    }
-
-    CompositeElement otherComposite = (CompositeElement) other;
-
-    return otherComposite.elements.equals(this.elements);
-  }
-
-  @Override
-  public int hashCode() {
-    return elements.hashCode();
-  }
-
-  @Override
   public String toString()
   {
     StringBuilder builder = new StringBuilder();
