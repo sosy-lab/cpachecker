@@ -115,7 +115,7 @@ analysis.useBMC = false
 analysis.useCBMC = false
 
 # use CBMC and the FeatureVars Restriction option
-analysis.useFeatureVarsRestriction = no default value
+analysis.useFeatureVarsRestriction = false
 
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
