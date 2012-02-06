@@ -347,7 +347,7 @@ public class CFACreator {
     if (exportCfaPerFunction) {
       try {
         File outdir = exportCfaFile.getParentFile();
-        DOTBuilder2.writeReport(cfa.getMainFunction(), outdir);
+        DOTBuilder2.writeReport(cfa, outdir);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
           "Could not write CFA to dot and json file.");

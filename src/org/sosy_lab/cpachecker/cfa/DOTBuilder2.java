@@ -37,8 +37,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
@@ -75,11 +73,13 @@ public final class DOTBuilder2 {
    * @param outdir
    * @throws IOException
    */
-  public static void writeReport(CFAFunctionDefinitionNode cfa, File outdir) throws IOException {
+  public static void writeReport(CFA cfa, File outdir) throws IOException {
     CFAJSONBuilder jsoner = new CFAJSONBuilder();
     DOTViewBuilder dotter = new DOTViewBuilder();
     CFAVisitor vis = new NodeCollectingCFAVisitor(new CompositeCFAVisitor(jsoner, dotter));
-    CFATraversal.dfs().traverse(cfa, vis);
+    for (CFAFunctionDefinitionNode entryNode : cfa.getAllFunctionHeads()) {
+      CFATraversal.dfs().ignoreFunctionCalls().traverse(entryNode, vis);
+    }
     dotter.writeFiles(outdir);
     Files.writeFile(new File(outdir, "cfainfo.json"), jsoner.getJSON().toJSONString());
   }
@@ -117,10 +117,9 @@ public final class DOTBuilder2 {
       if (    predecessor.isLoopStart()
           || (predecessor.getNumEnteringEdges() != 1)
           || (predecessor.getNumLeavingEdges() != 1)
-          || (predecessor.getLeavingSummaryEdge() != null)
-          || (edge instanceof FunctionReturnEdge)
-          || (edge instanceof AssumeEdge)
-          || (edge instanceof FunctionCallEdge)) {
+          || (currentComboEdge != null && !predecessor.equals(currentComboEdge.get(currentComboEdge.size()-1).getSuccessor()))
+          || (edge instanceof CallToReturnEdge)
+          || (edge instanceof AssumeEdge)) {
         // no, it does not
 
         func2nodes.put(predecessor.getFunctionName(), predecessor);
@@ -210,40 +209,28 @@ public final class DOTBuilder2 {
 
     @SuppressWarnings("unchecked")
     private String edgeToDot(CFAEdge edge) {
-      if (edge instanceof FunctionReturnEdge) {
-        return "";
-      }
-      if (edge instanceof FunctionCallEdge) {
+      if (edge instanceof CallToReturnEdge) {
        //create the function node
-        String ret = (++virtFuncCallNodeIdCounter) + " [shape=\"component\" label=\"" + edge.getSuccessor().getFunctionName() + "\"]\n";
+        String calledFunction = edge.getPredecessor().getLeavingEdge(0).getSuccessor().getFunctionName();
+        String ret = (++virtFuncCallNodeIdCounter) + " [shape=\"component\" label=\"" + calledFunction + "\"]\n";
         int from = edge.getPredecessor().getNodeNumber();
         ret += String.format("%d -> %d [label=\"%s\" fontname=\"Courier New\"]%n",
             from,
             virtFuncCallNodeIdCounter,
             getEdgeText(edge));
 
-        CFAEdge summaryEdge = edge.getPredecessor().getLeavingSummaryEdge();
-
-        if (summaryEdge != null) {
-          int to = summaryEdge.getSuccessor().getNodeNumber();
-          ret += String.format("%d -> %d [label=\"\" fontname=\"Courier New\"]%n",
-              virtFuncCallNodeIdCounter,
-              to);
-          virtFuncCallEdges.put(from, Lists.newArrayList(virtFuncCallNodeIdCounter, to));
-        }
+        int to = edge.getSuccessor().getNodeNumber();
+        ret += String.format("%d -> %d [label=\"\" fontname=\"Courier New\"]%n",
+            virtFuncCallNodeIdCounter,
+            to);
+        virtFuncCallEdges.put(from, Lists.newArrayList(virtFuncCallNodeIdCounter, to));
         return ret;
       }
 
-      String extra = "";
-      if (edge instanceof CallToReturnEdge) {
-        extra = "style=\"dotted\" arrowhead=\"empty\"";
-      }
-
-      return String.format("%d -> %d [label=\"%s\" %s fontname=\"Courier New\"]%n",
+      return String.format("%d -> %d [label=\"%s\" fontname=\"Courier New\"]%n",
           edge.getPredecessor().getNodeNumber(),
           edge.getSuccessor().getNodeNumber(),
-          getEdgeText(edge),
-          extra);
+          getEdgeText(edge));
     }
 
     @SuppressWarnings("unchecked")
