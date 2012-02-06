@@ -15,7 +15,7 @@ unsigned compute_successor(unsigned state, std::string op) {
 	}
 	else if(op == "ssl3_send_change_cipher_spec") {
 		if(state == 2) {
-			state = 2;
+			state = 3;
 		}
 	}
 	else if(op == "ssl3_get_finished") {
