@@ -138,7 +138,9 @@ public class ExplicitPrecision implements Precision {
    */
   public boolean isTracking(String variable) {
     //System.out.println("thresholdPrecision.allowsTrackingOf(" + variable + ") = " + reachedSetThresholds.allowsTrackingOf(variable));
-    return reachedSetThresholds.allowsTrackingOf(variable) && isOnWhitelist(variable) && !blackListPattern.matcher(variable).matches();
+    return reachedSetThresholds.allowsTrackingOf(variable)
+        && pathThresholds.allowsTrackingOf(variable)
+        && isOnWhitelist(variable) && !blackListPattern.matcher(variable).matches();
   }
 
   public boolean isNotTracking(String variable) {

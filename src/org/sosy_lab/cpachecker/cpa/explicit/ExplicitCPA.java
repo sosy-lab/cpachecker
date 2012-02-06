@@ -52,8 +52,7 @@ import com.google.common.collect.HashMultimap;
 @Options(prefix="cpa.explicit")
 public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
 
-  public static CPAFactory factory()
-  {
+  public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ExplicitCPA.class);
   }
 

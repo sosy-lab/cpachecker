@@ -31,7 +31,6 @@ import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
@@ -87,10 +86,6 @@ public class ExplicitTransferRelation implements TransferRelation
 {
   private final Set<String> globalVariables = new HashSet<String>();
   static Set<String> globalVarsStatic = null;
-
-  @Option(description="threshold for amount of different values that "
-    + "are tracked for one variable in ExplicitCPA (0 means infinitely)")
-  private int threshold = 0;
 
   private String missingInformationLeftVariable = null;
   private String missingInformationLeftPointer  = null;
@@ -184,10 +179,10 @@ public class ExplicitTransferRelation implements TransferRelation
     ExplicitElement newElement = new ExplicitElement(element);
 
     // copy global variables into the new element, to make them available in body of called function
-    // assignConstant() won't do it here, as the current referenceCount of the variable also has to be copied
     for(String globalVar : globalVariables) {
-      if(element.contains(globalVar)) {
-        newElement.copyConstant(element, globalVar);
+      Long value = element.getValueFor(globalVar);
+      if (value != null) {
+        newElement.assignConstant(globalVar, value);
       }
     }
 
@@ -248,10 +243,9 @@ public class ExplicitTransferRelation implements TransferRelation
     String calledFunctionName       = functionReturnEdge.getPredecessor().getFunctionName();
 
     // copy global variables back to the new element, to make them available in body of calling function
-    // assignConstant() won't do it here, as the current referenceCount of the variable also has to be copied back
     for(String variableName : globalVariables) {
       if(element.contains(variableName)) {
-        newElement.copyConstant(element, variableName);
+        newElement.assignConstant(variableName, element.getValueFor(variableName));
       } else {
         newElement.forget(variableName);
       }

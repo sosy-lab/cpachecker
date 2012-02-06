@@ -217,8 +217,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   }
 
   @Override
-  protected final List<Pair<ARTElement, CFAEdge>> transformPath(Path pPath)
-  {
+  protected final List<Pair<ARTElement, CFAEdge>> transformPath(Path pPath) {
     List<Pair<ARTElement, CFAEdge>> result = Lists.newArrayList();
 
     for(Pair<ARTElement, CFAEdge> element : skip(pPath, 1))
