@@ -205,16 +205,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         }
         assert action == Action.CONTINUE : "Enum Action has unhandled values!";
 
-
-        if (storeOnlyLoopHeads) {
-          // Element has been handled successfully, all its successors have been
-          // created. Throw element away if possible.
-          if (!AbstractElements.extractLocation(element).isLoopStart()) {
-            reachedSet.remove(element);
-          }
-        }
-
-
         Collection<AbstractElement> reached = null;
 
         if (mergeOperator != MergeSepOperator.getInstance()) {
@@ -278,6 +268,14 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           stats.addTimer.start();
           reachedSet.add(successor, successorPrecision);
           stats.addTimer.stop();
+        }
+      }
+
+      if (storeOnlyLoopHeads) {
+        // Element has been handled successfully, all its successors have been
+        // created. Throw element away if possible.
+        if (!AbstractElements.extractLocation(element).isLoopStart()) {
+          reachedSet.remove(element);
         }
       }
     }
