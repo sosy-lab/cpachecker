@@ -1,0 +1,55 @@
+unsigned get_initial_state() {
+	return 0;
+}
+
+unsigned compute_successor(unsigned state, std::string op) {
+	if(op == "ssl3_get_client_hello") {
+		if(state == 0) {
+			state = 1;
+		}
+	}
+	else if(op == "ssl3_send_server_hello") {
+		if(state == 1) {
+			state = 2;
+		}
+	}	
+	else if(op == "ssl3_send_server_certificate") {
+		if(state == 2) {
+			state = 6;
+		}
+	}
+	else if(op == "ssl3_send_server_key_exchange") {
+		if(state == 6) {
+			state = 7;
+		}
+	}
+	else if(op == "ssl3_send_certificate_request") {
+		if(state == 8) {
+			printf("ERROR: error location is reachable\n");
+			exit(EXIT_FAILURE);	
+		}
+	}
+	else if(op == "ssl3_get_finished") {
+		if(state == 5) {
+			printf("ERROR: error location is reachable\n");
+			exit(EXIT_FAILURE);
+		}
+	}
+	else if(op == "ssl3_send_change_cipher_spec") {
+		if(state == 2) {
+			state = 3;
+		}
+		else if(state == 4) {
+			state = 5;
+		}
+		else if(state == 7) {
+			state = 8;
+		}
+	}
+	else if(op == "ssl3_send_finished") {
+		if(state == 3) {
+			state = 4;
+		}
+	}
+	return state;
+}

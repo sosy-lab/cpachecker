@@ -612,7 +612,23 @@ int ssl3_accept(int initial_state )
                                                                               }
                                                                             } else {
                                                                               {
-#line 316
+
+                                                                              {
+#line 47 "spec.work"
+                                                                              __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
+#line 48
+                                                                              if (__MONITOR_STATE_state ==
+                                                                                  2) {
+#line 49
+                                                                                __MONITOR_STATE_state = 6;
+                                                                              }
+#line 51
+                                                                              __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
+                                                                              {
+
+                                                                              }
+                                                                              }
+#line 316 "s3_srvr_1.cil.c"
                                                                               ret = ssl3_send_server_certificate();
                                                                               }
 #line 317
@@ -705,7 +721,23 @@ int ssl3_accept(int initial_state )
                                                                                           tmp___7) {
                                                                                         _L___0: 
                                                                                         {
-#line 353
+
+                                                                                        {
+#line 61 "spec.work"
+                                                                                        __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
+#line 62
+                                                                                        if (__MONITOR_STATE_state ==
+                                                                                            6) {
+#line 63
+                                                                                          __MONITOR_STATE_state = 7;
+                                                                                        }
+#line 65
+                                                                                        __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
+                                                                                        {
+
+                                                                                        }
+                                                                                        }
+#line 353 "s3_srvr_1.cil.c"
                                                                                         ret = ssl3_send_server_key_exchange();
                                                                                         }
 #line 354
@@ -797,7 +829,22 @@ int ssl3_accept(int initial_state )
                                                                                   {
 #line 397
                                                                                   s__s3__tmp__cert_request = 1;
-#line 398
+                                                                                  {
+#line 75 "spec.work"
+                                                                                  __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
+#line 76
+                                                                                  if (__MONITOR_STATE_state ==
+                                                                                      8) {
+#line 77
+                                                                                    error_fn();
+                                                                                  }
+#line 79
+                                                                                  __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
+                                                                                  {
+
+                                                                                  }
+                                                                                  }
+#line 398 "s3_srvr_1.cil.c"
                                                                                   ret = ssl3_send_certificate_request();
                                                                                   }
 #line 399
@@ -971,15 +1018,15 @@ int ssl3_accept(int initial_state )
                                                                             {
 
                                                                             {
-#line 61 "spec.work"
+#line 89 "spec.work"
                                                                             __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 62
+#line 90
                                                                             if (__MONITOR_STATE_state ==
-                                                                                3) {
-#line 63
-                                                                              __MONITOR_STATE_state = 4;
+                                                                                5) {
+#line 91
+                                                                              error_fn();
                                                                             }
-#line 65
+#line 93
                                                                             __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
                                                                             {
 
@@ -1032,15 +1079,29 @@ int ssl3_accept(int initial_state )
                                                                             {
 
                                                                             {
-#line 47 "spec.work"
+#line 103 "spec.work"
                                                                             __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 48
+#line 104
                                                                             if (__MONITOR_STATE_state ==
                                                                                 2) {
-#line 49
+#line 105
                                                                               __MONITOR_STATE_state = 3;
+                                                                            } else {
+#line 107
+                                                                              if (__MONITOR_STATE_state ==
+                                                                                  4) {
+#line 108
+                                                                                __MONITOR_STATE_state = 5;
+                                                                              } else {
+#line 110
+                                                                                if (__MONITOR_STATE_state ==
+                                                                                    7) {
+#line 111
+                                                                                  __MONITOR_STATE_state = 8;
+                                                                                }
+                                                                              }
                                                                             }
-#line 51
+#line 113
                                                                             __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
                                                                             {
 
@@ -1079,22 +1140,15 @@ int ssl3_accept(int initial_state )
                                                                             {
 
                                                                             {
-#line 75 "spec.work"
+#line 123 "spec.work"
                                                                             __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 76
+#line 124
                                                                             if (__MONITOR_STATE_state ==
-                                                                                4) {
-#line 77
-                                                                              __MONITOR_STATE_state = 5;
-                                                                            } else {
-#line 79
-                                                                              if (__MONITOR_STATE_state ==
-                                                                                  5) {
-#line 80
-                                                                                error_fn();
-                                                                              }
+                                                                                3) {
+#line 125
+                                                                              __MONITOR_STATE_state = 4;
                                                                             }
-#line 82
+#line 127
                                                                             __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
                                                                             {
 
