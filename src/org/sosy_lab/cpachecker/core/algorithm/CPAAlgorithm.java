@@ -169,12 +169,23 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         Action action = precAdjustmentResult.getThird();
 
         if (action == Action.BREAK) {
-          if (stopOperator.stop(successor, reachedSet.getReached(successor), successorPrecision)) {
+          stats.stopTimer.start();
+          boolean stop = stopOperator.stop(successor, reachedSet.getReached(successor), successorPrecision);
+          stats.stopTimer.stop();
+
+          if (stop) {
             // don't signal BREAK for covered elements
-            action = Action.CONTINUE;
+            // no need to call merge and stop either, so just ignore this element
+            // and handle next successor
+            stats.countStop++;
+            logger.log(Level.FINER,
+                "Break was signalled but ignored because the element is covered.");
+            continue;
 
           } else {
             stats.countBreak++;
+            logger.log(Level.FINER, "Break signalled, CPAAlgorithm will stop.");
+
             // re-add the old element to the waitlist, there may be unhandled
             // successors left that otherwise would be forgotten
             reachedSet.reAddToWaitlist(element);
