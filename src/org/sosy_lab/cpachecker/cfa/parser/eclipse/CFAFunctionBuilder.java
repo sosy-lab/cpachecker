@@ -964,36 +964,55 @@ class CFAFunctionBuilder extends ASTVisitor {
   }
 
   /**
-   * isPathFromTo() makes a DFS-search from a given Node to search
-   * if there is a way to the target Node.
-   * the condition for this function is, that every Node has another NodeNumber
+   * Determines whether a forwards path between two nodes exists.
    *
-   * The code for this function was taken from CFATopologicalSort.java and is modified.
-   *
-   * @param fromNode starting node for DFS-search
-   * @param toNode target node for isPath
+   * @param fromNode starting node
+   * @param toNode target node
    */
   private boolean isPathFromTo(CFANode fromNode, CFANode toNode) {
-    return isPathFromTo0(new HashSet<CFANode>(), fromNode, toNode);
-  }
+    // Optimization: do two DFS searches in parallel:
+    // 1) search forwards from fromNode
+    // 2) search backwards from toNode
+    Deque<CFANode> toProcessForwards = new ArrayDeque<CFANode>();
+    Deque<CFANode> toProcessBackwards = new ArrayDeque<CFANode>();
+    Set<CFANode> visitedForwards = new HashSet<CFANode>();
+    Set<CFANode> visitedBackwards = new HashSet<CFANode>();
 
-  private boolean isPathFromTo0(Set<CFANode> pVisitedNodes, CFANode fromNode, CFANode toNode) {
-    // check if the target is reached
-    if (fromNode.equals(toNode)) {
-      return true;
-    }
+    toProcessForwards.addLast(fromNode);
+    visitedForwards.add(fromNode);
 
-    // add current node to visited nodes
-    pVisitedNodes.add(fromNode);
+    toProcessBackwards.addLast(toNode);
+    visitedBackwards.add(toNode);
 
-    // DFS-search with the children of current node
-    for (int i = 0; i < fromNode.getNumLeavingEdges(); i++) {
-      CFANode successor = fromNode.getLeavingEdge(i).getSuccessor();
-      if (!pVisitedNodes.contains(successor)) {
+    // if one of the queues is empty, the search has reached a dead end
+    while (!toProcessForwards.isEmpty() && !toProcessBackwards.isEmpty()) {
+      // step in forwards search
+      CFANode currentForwards = toProcessForwards.removeLast();
+      if (visitedBackwards.contains(currentForwards)) {
+        // the backwards search already has seen the current node
+        // so we know there's a path from fromNode to current and a path from
+        // current to toNode
+        return true;
+      }
 
-        if (isPathFromTo0(pVisitedNodes, successor, toNode)) {
-          // if there is a path, break the search and return true
-          return true;
+      for (CFAEdge child : CFAUtils.leavingEdges(currentForwards)) {
+        if (visitedForwards.add(child.getSuccessor())) {
+          toProcessForwards.addLast(child.getSuccessor());
+        }
+      }
+
+      // step in backwards search
+      CFANode currentBackwards = toProcessBackwards.removeLast();
+      if (visitedForwards.contains(currentBackwards)) {
+        // the forwards search already has seen the current node
+        // so we know there's a path from fromNode to current and a path from
+        // current to toNode
+        return true;
+      }
+
+      for (CFAEdge child : CFAUtils.enteringEdges(currentBackwards)) {
+        if (visitedBackwards.add(child.getPredecessor())) {
+          toProcessBackwards.addLast(child.getPredecessor());
         }
       }
     }
