@@ -48,6 +48,12 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
 
   private static final long serialVersionUID = -3223480082103314555L;
 
+  public Path(){};
+
+  public Path(Path other){
+    addAll(other);
+  }
+
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();

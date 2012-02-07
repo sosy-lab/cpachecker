@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
-import java.util.Collection;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
@@ -31,6 +31,9 @@ import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Environmental transitions with precondition and operation that were not abstracted.
@@ -51,6 +54,8 @@ public class RGSimpleTransition implements RGEnvTransition{
   private final ARTElement targetARTElement;
   /** Source thread's id */
   private final int tid;
+  /** ART elements that generated this transition */
+  private final ImmutableCollection<ARTElement> generatingARTElement;
 
   public RGSimpleTransition(Formula abstraction, Region abstractionReg, PathFormula pf, CFAEdge operation, ARTElement abstractionARTElem, ARTElement targetARTElem, int tid){
     this.abstraction = abstraction;
@@ -60,6 +65,9 @@ public class RGSimpleTransition implements RGEnvTransition{
     this.lastAbstractionARTElement = abstractionARTElem;
     this.targetARTElement  = targetARTElem;
     this.tid = tid;
+
+    Set<ARTElement> generating = ARTUtils.getAllElementsBetween(lastAbstractionARTElement, targetARTElement);
+    this.generatingARTElement = ImmutableSet.copyOf(generating);
   }
 
   @Override
@@ -99,9 +107,21 @@ public class RGSimpleTransition implements RGEnvTransition{
   }
 
   @Override
-  public Collection<? extends ARTElement> getGeneratingARTElements() {
-    return ARTUtils.getAllElementsBetween(lastAbstractionARTElement, targetARTElement);
+  public ImmutableCollection<ARTElement> getGeneratingARTElements() {
+    return generatingARTElement;
   }
+
+  @Override
+  public ARTElement getSourceARTElement() {
+    return lastAbstractionARTElement;
+  }
+
+  @Override
+  public ARTElement getTargetARTElement() {
+    return targetARTElement;
+  }
+
+
 
 
 }

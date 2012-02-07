@@ -32,7 +32,9 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Vector;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
@@ -75,9 +77,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 
 /**
  * Handles refinement of locations.
@@ -91,7 +91,7 @@ public class RGLocationRefinementManager<T> implements StatisticsProvider{
 
   @Option(toUppercase=true, values={"NONE", "WITNESS","MONOTONIC", "NONMONOTONIC"},
       description="Perform refinement of control locations if a feasible counterexample is found.")
-  private String locationRefinement =  "NONE";
+  private String locationRefinement =  "MONOTONIC";
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
@@ -139,8 +139,9 @@ public class RGLocationRefinementManager<T> implements StatisticsProvider{
    * it doesn't do anything, finds a witness or refines on locations.
    * @param counterexample
    * @return
+   * @throws CPATransferException
    */
-  public InterpolationTreeResult refine(InterpolationTreeResult counterexample) {
+  public InterpolationTreeResult refine(InterpolationTreeResult counterexample) throws CPATransferException {
     if (counterexample.isSpurious() || locationRefinement.equals("NONE")){
       // already refined or nothing to do
       return counterexample;
@@ -164,8 +165,10 @@ public class RGLocationRefinementManager<T> implements StatisticsProvider{
    * Monotonic refinement of the trace.
    * @param counterexample
    * @return
+   * @throws CPATransferException
    */
-  private InterpolationTreeResult monotonicRefinement(InterpolationTreeResult counterexample) {
+  private InterpolationTreeResult monotonicRefinement(InterpolationTreeResult counterexample) throws CPATransferException {
+    getErrorPathsForTrunk(counterexample.getTree());
     return counterexample;
   }
 
@@ -186,15 +189,19 @@ public class RGLocationRefinementManager<T> implements StatisticsProvider{
 
 
     assert predMap.isEmpty();
-    Map<Pair<ARTElement, CFAEdge>, Boolean> bMap = Collections.emptyMap();
+    // one model describes one path - no branching is specified by the empty model
+    Collection<RGBranchingModel> bModels = null;
 
     if (!predMap.isEmpty()){
       Formula bf = buildBranchingFormula(predMap, tree);
       assert false;
       // not supported yet
+    } else {
+      RGBranchingModel emptyModel = new RGBranchingModel();
+      bModels = Collections.singleton(emptyModel);
     }
 
-    Collection<Path> paths = getPathsForBranch(trunk, allElems, bMap);
+    Collection<Path> paths = getPathsForBranch(trunk, allElems, bModels);
 
 
 
@@ -205,71 +212,120 @@ public class RGLocationRefinementManager<T> implements StatisticsProvider{
    * Construct all paths on the branch using the map.
    * @param branch
    * @param elems
-   * @param bMap
+   * @param bModels
    * @return
    */
-  private Collection<Path> getPathsForBranch(List<InterpolationTreeNode> branch, Collection<ARTElement> elems, Map<Pair<ARTElement, CFAEdge>, Boolean> bMap) {
-    ARTElement start = branch.get(0).getArtElement();
-    ARTElement stop  = branch.get(branch.size()-1).getArtElement();
+  private Collection<Path> getPathsForBranch(List<InterpolationTreeNode> branch, Collection<ARTElement> elems, Collection<RGBranchingModel> bModels) {
+    assert !bModels.isEmpty();
 
-    return getPathsBetween(start, stop, elems, bMap);
+    Collection<Path> pis = new Vector<Path>(bModels.size());
+    ARTElement start  = branch.get(branch.size()-1).getArtElement();
+    ARTElement stop = branch.get(0).getArtElement();
+
+    for (RGBranchingModel bModel : bModels){
+      Path pi = getPathBetween(start, stop, elems, bModel);
+      pathPrinter(pi);
+      pis.add(pi);
+    }
+
+    return pis;
   }
 
 
+
+
+
   /**
-   * Contruct all paths between start and stop, whose elements belong to the set of elements.
-   * Branches are resolved using the map.
+   * Constructs the paths between start and stop, whose elements belong to the set of elements.
+   * Branches are resolved using the map, which should specify exactly one path.<
    * @param start
    * @param stop
    * @param elems
-   * @param bMap
+   * @param bModel
    * @return
    */
-  private Collection<Path> getPathsBetween(ARTElement start, ARTElement stop, Collection<ARTElement> elems, Map<Pair<ARTElement, CFAEdge>, Boolean> bMap) {
+  private Path getPathBetween(ARTElement start, ARTElement stop, Collection<ARTElement> elems, RGBranchingModel bModel) {
 
     Deque<ARTElement> queue = new LinkedList<ARTElement>();
     // paths for the element
-    Multimap<ARTElement, Path> pathMap = HashMultimap.create();
+    Map<ARTElement, Path> pathMap = new HashMap<ARTElement, Path>();
     pathMap.put(start, new Path());
 
     queue.add(start);
 
     // DFS
-    while(queue.isEmpty()){
+    while(!queue.isEmpty()){
       ARTElement elem = queue.pop();
+      Path elemPath = pathMap.get(elem);
 
       if (elem.equals(stop)){
         continue;
       }
 
-      Set<ARTElement> children = new LinkedHashSet<ARTElement>(elem.getChildMap().size());
-
+      // find children that are in elems
+      Map<ARTElement, CFAEdge> childMap = new HashMap<ARTElement, CFAEdge>();
       for (ARTElement child : elem.getChildARTs()){
         if (elems.contains(child)){
-          children.add(child);
+          CFAEdge edge = elem.getChildMap().get(child);
+          childMap.put(child, edge);
         }
       }
 
-      if (children.size() > 1){
+      ARTElement childTaken = null;
+      if (childMap.size() > 1){
         // find the branch
+        for (Entry<ARTElement, CFAEdge> entry : childMap.entrySet()){
+          Pair<ARTElement, CFAEdge> key = Pair.of(entry.getKey(), entry.getValue());
+          if (bModel.get(key)){
+            // one and only one branch can be taken
+            assert childTaken == null;
+            childTaken = entry.getKey();
+          }
+        }
       }
-      else if (children.size() == 1){
+      else if (childMap.size() == 1){
         // extend the path
-        ARTElement child = children.iterator().next();
-
-        CFAEdge edge = getParentChildEdge(elem, child);
-        assert edge != null;
-        Collection<Path> paths = pathMap.get(elem);
-        Collection<Path> edgePaths = pathsForEdge(edge, elems, bMap);
-        Collection<Path> childPaths = concatPaths(paths, edgePaths);
-        pathMap.putAll(child, childPaths);
-
+        Entry<ARTElement, CFAEdge> entry = childMap.entrySet().iterator().next();
+        childTaken = entry.getKey();
       }
+
+      // at least one branch found.
+      assert childTaken != null;
+      CFAEdge edge = childMap.get(childTaken);
+      Path edgePath = pathsForEdge(edge, elem, bModel);
+      Path childPath = new Path(elemPath);
+      childPath.addAll(edgePath);
+      pathMap.put(childTaken, childPath);
+      queue.addLast(childTaken);
     }
 
-    return null;
+    Path pi = pathMap.get(stop);
+    assert pi != null;
+    return pi;
   }
 
+
+  /**
+   * Constructs the path for a local or environmental edge.
+   * @param edge
+   * @param elem
+   * @param bModel
+   * @return
+   */
+  private Path pathsForEdge(CFAEdge edge, ARTElement elem, RGBranchingModel bModel) {
+    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+      // enviornmental
+      RGCFAEdge rgEdge = (RGCFAEdge) edge;
+      RGEnvTransition et = rgEdge.getRgEnvTransition();
+      return getPathBetween(et.getSourceARTElement(), et.getTargetARTElement(), et.getGeneratingARTElements(), bModel);
+    }
+    else {
+      // local
+      Path pi = new Path();
+      pi.push(Pair.of(elem, edge));
+      return pi;
+    }
+  }
 
 
   /**
@@ -284,23 +340,6 @@ public class RGLocationRefinementManager<T> implements StatisticsProvider{
   }
 
 
-  private Collection<Path> concatPaths(Collection<Path> pPaths,
-      Collection<Path> pEdgePaths) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-
-  private Collection<Path> pathsForEdge(CFAEdge pEdge,Collection<ARTElement> pElems, Map<Pair<ARTElement, CFAEdge>, Boolean> pBMap) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-
-
-
-
-
   /**
    * Find all ART elements, local and environmental, on the branch.
    * @param tree
@@ -308,9 +347,20 @@ public class RGLocationRefinementManager<T> implements StatisticsProvider{
    */
   private Collection<ARTElement> getAllARTElementsOnBranch(List<InterpolationTreeNode> branch) {
 
-    InterpolationTreeNode lastNode = branch.get(branch.size()-1);
+    if (branch.isEmpty()){
+      return Collections.emptySet();
+    }
+
+    InterpolationTreeNode lastNode = branch.get(0);
     ARTElement target = lastNode.getArtElement();
     Set<ARTElement> allElems = ARTUtils.getAllElementsOnPathsTo(target);
+
+    // check
+    if (debug){
+      for (InterpolationTreeNode node : branch){
+        assert allElems.contains(node.getArtElement());
+      }
+    }
 
 
     for (InterpolationTreeNode node : branch){
@@ -456,6 +506,16 @@ public class RGLocationRefinementManager<T> implements StatisticsProvider{
     }
 
     return bf;
+  }
+
+  private void pathPrinter(Path pi) {
+    System.out.println();
+    for (Pair<ARTElement, CFAEdge> pair : pi){
+      ARTElement element = pair.getFirst();
+      RGAbstractElement rgElement = AbstractElements.extractElementByType(element, RGAbstractElement.class);
+      CFAEdge edge = pair.getSecond();
+      System.out.println("("+rgElement.getTid()+","+element.getElementId()+")\t"+edge.getRawStatement());
+    }
   }
 
   /*private Path createPathFromPredicateValues(Path pPath, Map<Integer, Boolean> preds) {

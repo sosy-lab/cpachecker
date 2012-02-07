@@ -90,7 +90,8 @@ public class InterpolationTreeResult {
     return envMap.get(e);
   }
 
-
-
+  public InterpolationTree getTree() {
+    return tree;
+  }
 
 }

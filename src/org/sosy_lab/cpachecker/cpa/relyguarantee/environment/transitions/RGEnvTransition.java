@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
-import java.util.Collection;
-
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+
+import com.google.common.collect.ImmutableCollection;
 
 /**
  * Interface for rely-guarantee environmental transitions.
@@ -49,9 +49,23 @@ public interface RGEnvTransition {
 
   /**
    * Returns ART elements that generated this transitions.
+   * It contains  {@link #getSourceARTElement getSourceARTElement()} and
+   * {@link #getTargetARTElement getTargetARTElement()}.
    * @return
    */
-  Collection<? extends ARTElement> getGeneratingARTElements();
+  ImmutableCollection<ARTElement> getGeneratingARTElements();
+
+  /**
+   * ART element where the concrete operation was applied.
+   * @return
+   */
+  ARTElement getSourceARTElement();
+
+  /**
+   * ART element created by the concreate operation.
+   * @return
+   */
+  ARTElement getTargetARTElement();
 
 
 

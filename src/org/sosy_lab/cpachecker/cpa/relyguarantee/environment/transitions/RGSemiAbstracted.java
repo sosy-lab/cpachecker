@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
-import java.util.Collection;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -99,8 +98,18 @@ public class RGSemiAbstracted implements RGEnvTransition{
   }
 
   @Override
-  public Collection<? extends ARTElement> getGeneratingARTElements() {
+  public ImmutableCollection<ARTElement> getGeneratingARTElements() {
    return ImmutableSet.of(sourceARTElement, targetARTElement);
+  }
+
+  @Override
+  public ARTElement getSourceARTElement() {
+    return sourceARTElement;
+  }
+
+  @Override
+  public ARTElement getTargetARTElement() {
+    return targetARTElement;
   }
 
 }
