@@ -66,7 +66,7 @@ import com.google.common.collect.SortedSetMultimap;
  * until this method is called again.
  */
 @Options
-public class RelyGuaranteeCFACreator {
+public class RGCFACreator {
 
   @Option(name="cfa.relyguarantee.export",
       description="export CFA as .dot file")
@@ -109,7 +109,7 @@ public class RelyGuaranteeCFACreator {
   public final Timer pruningTime = new Timer();
   public final Timer exportTime = new Timer();
 
-  public RelyGuaranteeCFACreator(Configuration config, LogManager logger)
+  public RGCFACreator(Configuration config, LogManager logger)
           throws InvalidConfigurationException {
     config.inject(this);
 

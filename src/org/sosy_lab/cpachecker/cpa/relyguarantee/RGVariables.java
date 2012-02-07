@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.RelyGuaranteeCFA;
+import org.sosy_lab.cpachecker.cfa.RGCFA;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -41,14 +41,14 @@ public class RGVariables {
   public final ImmutableList<ImmutableSet<String>> localVars;
   public final ImmutableSet<String> allVars;
 
-  public RGVariables(RelyGuaranteeCFA[] cfas){
+  public RGVariables(RGCFA[] cfas){
     assert cfas.length > 0;
 
     this.threadNo = cfas.length;
     this.globalVars = ImmutableSet.copyOf(cfas[0].getGlobalVariables());
 
     Builder<ImmutableSet<String>> lb = new ImmutableList.Builder<ImmutableSet<String>>();
-    for (RelyGuaranteeCFA cfa : cfas){
+    for (RGCFA cfa : cfas){
       lb.add(ImmutableSet.copyOf(cfa.getScopedLocalVars()));
     }
     this.localVars = lb.build();

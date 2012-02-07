@@ -41,7 +41,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.DOTBuilder;
-import org.sosy_lab.cpachecker.cfa.RelyGuaranteeCFA;
+import org.sosy_lab.cpachecker.cfa.RGCFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -85,7 +85,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
   // TODO option for CFA export
   private int threadNo;
-  private RelyGuaranteeCFA[] cfas;
+  private RGCFA[] cfas;
   private CFAFunctionDefinitionNode[] mainFunctions;
   private ConfigurableProgramAnalysis[] cpas;
   private LogManager logger;
@@ -101,7 +101,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
   public RGVariables variables;
 
 
-  public RGAlgorithm(RelyGuaranteeCFA[] cfas, CFAFunctionDefinitionNode[] pMainFunctions, ConfigurableProgramAnalysis[] pCpas, RGEnvironmentManager environment, RGVariables vars, Configuration config, LogManager logger) {
+  public RGAlgorithm(RGCFA[] cfas, CFAFunctionDefinitionNode[] pMainFunctions, ConfigurableProgramAnalysis[] pCpas, RGEnvironmentManager environment, RGVariables vars, Configuration config, LogManager logger) {
     this.cfas = cfas;
     this.threadNo = cfas.length;
     this.mainFunctions = pMainFunctions;
@@ -346,7 +346,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
 
     ListMultimap<CFANode, CFAEdge> envEdgesMap = null;
-    RelyGuaranteeCFA cfa = cfas[i];
+    RGCFA cfa = cfas[i];
 
     // remove old environmental edges
     removeRGEdges(i);
@@ -470,7 +470,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
    */
   private ListMultimap<CFANode, CFAEdge> addSeparateEnvTransitionsToCFA(int i, Set<CFANode> toApply, List<RGEnvTransition> pValid, List<RGEnvTransition> pUnapplied) {
 
-    RelyGuaranteeCFA cfa = cfas[i];
+    RGCFA cfa = cfas[i];
     ListMultimap<CFANode, CFAEdge> envEdgesMap = ArrayListMultimap.create();
 
     // change unapplied to set, so its easier to decided membership
@@ -511,7 +511,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
    * Remove old environmental edges.
    */
   private void removeRGEdges(int i) {
-    RelyGuaranteeCFA cfa = this.cfas[i];
+    RGCFA cfa = this.cfas[i];
     List<CFAEdge> toRemove = new Vector<CFAEdge>();
     // remove old env edges from the CFA
     for (CFANode node : cfa.getCFANodes().values()){

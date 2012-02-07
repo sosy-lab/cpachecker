@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -51,16 +52,17 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 
-public class RelyGuaranteeCFA extends CFA {
+public class RGCFA extends CFA {
 
   private final Multimap<CFANode, String> rhsVariables;
   private final Multimap<CFANode, String> lhsVariables;
   private final Set<String> scopedLocalVars;
   private final List<CFANode> noEnvList;
+  protected final CFANode executionStartNode;
   protected final CFANode startNode;
 
 
-  public RelyGuaranteeCFA(CFA other, CFANode startNode, int tid) throws UnrecognizedCFAEdgeException{
+  public RGCFA(CFA other, CFANode startNode, CFAFunctionDefinitionNode mainFunction, int tid) throws UnrecognizedCFAEdgeException{
     super(other);
 
     rhsVariables = HashMultimap.create();
@@ -86,9 +88,10 @@ public class RelyGuaranteeCFA extends CFA {
         }
       }
     }
-
     // find the inital node
-    this.startNode = startNode;
+    this.executionStartNode = startNode;
+    this.startNode = mainFunction;
+
   }
 
 
@@ -162,8 +165,15 @@ public class RelyGuaranteeCFA extends CFA {
   }
 
 
+  public CFANode getExecutionStartNode() {
+    return executionStartNode;
+  }
+
+
   public CFANode getStartNode() {
     return startNode;
   }
+
+
 
 }

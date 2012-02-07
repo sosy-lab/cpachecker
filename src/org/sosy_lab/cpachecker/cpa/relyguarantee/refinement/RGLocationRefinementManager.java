@@ -44,6 +44,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.RGCFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -77,7 +78,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 
 /**
  * Handles refinement of locations.
@@ -105,20 +108,22 @@ public class RGLocationRefinementManager<T> implements StatisticsProvider{
   private final TheoremProver thmProver;
   private final InterpolatingTheoremProver<T> itpProver;
   private final RegionManager rManager;
+  private final RGCFA[] cfas;
+  private final int tidNo;
   private final LogManager logger;
   private final Stats stats;
 
-  private static RGLocationRefinementManager singleton;
+  private static RGLocationRefinementManager<?> singleton;
 
-  public static RGLocationRefinementManager<?> getInstance(FormulaManager pFManager, PathFormulaManager pPfManager, RGEnvTransitionManager pEtManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver, InterpolatingTheoremProver<?> itpProver, RegionManager pRManager, RGVariables variables, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+  public static RGLocationRefinementManager<?> getInstance(FormulaManager pFManager, PathFormulaManager pPfManager, RGEnvTransitionManager pEtManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver, InterpolatingTheoremProver<?> itpProver, RegionManager pRManager, RGCFA[] cfas, RGVariables variables, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     if (singleton == null){
-      singleton = new RGLocationRefinementManager(pFManager, pPfManager, pEtManager, absManager, pSsaManager, pThmProver,itpProver, pRManager, variables, pConfig, pLogger);
+      singleton = new RGLocationRefinementManager(pFManager, pPfManager, pEtManager, absManager, pSsaManager, pThmProver,itpProver, pRManager, cfas, variables, pConfig, pLogger);
     }
     return singleton;
   }
 
 
-  private RGLocationRefinementManager(FormulaManager pFManager, PathFormulaManager pPfManager, RGEnvTransitionManager pEtManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver, InterpolatingTheoremProver<T> itpProver, RegionManager pRManager, RGVariables variables, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+  private RGLocationRefinementManager(FormulaManager pFManager, PathFormulaManager pPfManager, RGEnvTransitionManager pEtManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver, InterpolatingTheoremProver<T> itpProver, RegionManager pRManager, RGCFA[] cfas, RGVariables variables, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     pConfig.inject(this, RGLocationRefinementManager.class);
 
     this.fManager = pFManager;
@@ -129,6 +134,8 @@ public class RGLocationRefinementManager<T> implements StatisticsProvider{
     this.thmProver = pThmProver;
     this.itpProver = itpProver;
     this.rManager = pRManager;
+    this.cfas = cfas;
+    this.tidNo = cfas.length;
     this.logger  = pLogger;
 
     this.stats = new Stats();
@@ -168,10 +175,64 @@ public class RGLocationRefinementManager<T> implements StatisticsProvider{
    * @throws CPATransferException
    */
   private InterpolationTreeResult monotonicRefinement(InterpolationTreeResult counterexample) throws CPATransferException {
-    getErrorPathsForTrunk(counterexample.getTree());
+    Collection<Path> paths = getErrorPathsForTrunk(counterexample.getTree());
+
+    /* Map: tid -> pair of unequal nodes */
+    Multimap <Integer, Pair<CFANode, CFANode>> inqMap = LinkedHashMultimap.create();
+
+    for (Path pi : paths){
+      Multimap <Integer, Pair<CFANode, CFANode>> threadLocInq = findLocationInequalities(pi);
+      inqMap.putAll(threadLocInq);
+    }
+
+
+
+
     return counterexample;
   }
 
+
+
+  /**
+   * Traverses the path and finds mismatching locations that make it spurious.
+   * Returns a map: thread id -> pair of mismatchig locations. The map is empty if
+   * the path is feasible w.r.t to locations.
+   * @param pi
+   * @return
+   */
+  private Multimap<Integer, Pair<CFANode, CFANode>> findLocationInequalities(Path pi) {
+
+    Multimap<Integer, Pair<CFANode, CFANode>> inqMap = LinkedHashMultimap.create();
+
+    // expected locations
+    CFANode[] pc = new CFANode[tidNo];
+
+    // initialize
+    for (int i=0; i<tidNo; i++){
+      pc[i] = cfas[i].getStartNode();
+    }
+
+    // execute
+    for (Pair<ARTElement, CFAEdge> pair : pi){
+      ARTElement element = pair.getFirst();
+      CFAEdge edge = pair.getSecond();
+
+      RGAbstractElement rgElement = AbstractElements.extractElementByType(element, RGAbstractElement.class);
+      int tid = rgElement.getTid();
+      CFANode loc = element.retrieveLocationElement().getLocationNode();
+
+      if (pc[tid].equals(loc)){
+        pc[tid] = edge.getSuccessor();
+      } else {
+        // mismatch pc[tid] != loc
+        Pair<CFANode, CFANode> mismatch = Pair.of(pc[tid], loc);
+        inqMap.put(tid, mismatch);
+        break;
+      }
+    }
+
+    return inqMap;
+  }
 
 
   private InterpolationTreeResult nonMonotonicRefinement(InterpolationTreeResult counterexample) {
@@ -181,7 +242,7 @@ public class RGLocationRefinementManager<T> implements StatisticsProvider{
 
 
 
-  private void getErrorPathsForTrunk(InterpolationTree tree) throws CPATransferException {
+  private Collection<Path> getErrorPathsForTrunk(InterpolationTree tree) throws CPATransferException {
 
     List<InterpolationTreeNode> trunk = tree.getTrunk();
     Collection<ARTElement> allElems = getAllARTElementsOnBranch(trunk);
@@ -202,10 +263,7 @@ public class RGLocationRefinementManager<T> implements StatisticsProvider{
     }
 
     Collection<Path> paths = getPathsForBranch(trunk, allElems, bModels);
-
-
-
-
+    return paths;
   }
 
   /**
@@ -230,9 +288,6 @@ public class RGLocationRefinementManager<T> implements StatisticsProvider{
 
     return pis;
   }
-
-
-
 
 
   /**
@@ -390,8 +445,6 @@ public class RGLocationRefinementManager<T> implements StatisticsProvider{
 
     for (final ARTElement pathElement : elementsOnPath) {
 
-
-      CFANode pLoc = pathElement.retrieveLocationElement().getLocationNode();
       Set<ARTElement> children = new LinkedHashSet<ARTElement>(pathElement.getChildMap().size());
       int localChildren = 0;
 

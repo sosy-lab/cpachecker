@@ -38,8 +38,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.EmptyCFAException;
-import org.sosy_lab.cpachecker.cfa.RelyGuaranteeCFA;
-import org.sosy_lab.cpachecker.cfa.RelyGuaranteeCFACreator;
+import org.sosy_lab.cpachecker.cfa.RGCFA;
+import org.sosy_lab.cpachecker.cfa.RGCFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -198,9 +198,9 @@ public class CPAchecker {
       stats.creationTime.start();
 
       // get main functions and CFA
-      Pair<CFAFunctionDefinitionNode[], RelyGuaranteeCFA[]> tuple = getMainFunctionsAndCfas(filename);
+      Pair<CFAFunctionDefinitionNode[], RGCFA[]> tuple = getMainFunctionsAndCfas(filename);
       CFAFunctionDefinitionNode[] mainFunctions = tuple.getFirst();
-      RelyGuaranteeCFA[] cfas = tuple.getSecond();
+      RGCFA[] cfas = tuple.getSecond();
 
       int threadNo = mainFunctions.length;
 
@@ -216,8 +216,7 @@ public class CPAchecker {
         ConfigurableProgramAnalysis cpa = createCPA(stats);
         WrapperCPA wCPA = (WrapperCPA) cpa;
         RGCPA rgCPA = wCPA.retrieveWrappedCpa(RGCPA.class);
-        rgCPA.setTid(i);
-        rgCPA.setVariables(vars);
+        rgCPA.setData(i, environment.getVariables(), cfas);
         //rgCPA.useHardcodedPredicates();
         cpas[i] = cpa;
       }
@@ -644,18 +643,18 @@ public class CPAchecker {
   }
 
   // returns main functions and CFA from the given file names
-  private Pair<CFAFunctionDefinitionNode[], RelyGuaranteeCFA[]> getMainFunctionsAndCfas(String filename) throws InvalidConfigurationException, IOException, ParserException, InterruptedException, EmptyCFAException, UnrecognizedCFAEdgeException{
+  private Pair<CFAFunctionDefinitionNode[], RGCFA[]> getMainFunctionsAndCfas(String filename) throws InvalidConfigurationException, IOException, ParserException, InterruptedException, EmptyCFAException, UnrecognizedCFAEdgeException{
 
-    RelyGuaranteeCFACreator creator = new RelyGuaranteeCFACreator(config, logger);
+    RGCFACreator creator = new RGCFACreator(config, logger);
     creator.parseFileAndCreateCFA(filename);
 
     List<CFAFunctionDefinitionNode> funs = creator.getMainFunctions();
     CFAFunctionDefinitionNode[] funsArr = funs.toArray(new CFAFunctionDefinitionNode[funs.size()]);
     List<CFA> cfas = creator.getCfas();
     List<CFANode> startNodes = creator.getStartNodes();
-    RelyGuaranteeCFA[] rgCfas = new RelyGuaranteeCFA[cfas.size()];
+    RGCFA[] rgCfas = new RGCFA[cfas.size()];
     for (int i=0; i<cfas.size(); i++){
-      RelyGuaranteeCFA rgCfa = new RelyGuaranteeCFA(cfas.get(i),startNodes.get(i),i);
+      RGCFA rgCfa = new RGCFA(cfas.get(i),startNodes.get(i),funs.get(i), i);
       rgCfas[i] = rgCfa;
     }
 

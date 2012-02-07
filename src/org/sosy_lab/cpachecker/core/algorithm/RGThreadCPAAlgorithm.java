@@ -41,7 +41,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.RelyGuaranteeCFA;
+import org.sosy_lab.cpachecker.cfa.RGCFA;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
@@ -93,7 +93,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   public final Stats stats;
   private RunStats runStats;
   private final ConfigurableProgramAnalysis cpa;
-  private final RelyGuaranteeCFA            cfa;
+  private final RGCFA            cfa;
   private final LogManager                  logger;
   private RGEnvironmentManager environment;
   private int tid;
@@ -103,7 +103,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   private Set<CFANode> nodeForEnvApp;
 
 
-  public RGThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, RelyGuaranteeCFA cfa, RGEnvironmentManager environment, Configuration config, LogManager logger,  int tid) {
+  public RGThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, RGCFA cfa, RGEnvironmentManager environment, Configuration config, LogManager logger,  int tid) {
     this.cpa = cpa;
     this.cfa = cfa;
     this.environment = environment;

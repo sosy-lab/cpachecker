@@ -30,6 +30,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.RGCFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -108,8 +109,11 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
   protected final RGMergeOperator merge;
   protected final RGPrecisionAdjustment prec;
   protected final StopOperator stop;
+
   protected RGPrecision initialPrecision;
   protected AbstractElement topElement;
+  private int tidNo;
+  private RGCFA[] cfas;
 
   // managers
   protected final RegionManager rManager;
@@ -120,13 +124,19 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
   protected final AbstractionManager aManager;
   protected final SSAMapManager ssaManager;
   protected final RGEnvTransitionManager etManager;
-  protected final  RGRefinementManager<?, ?> refManager;
-  protected final RGLocationRefinementManager locrefManager;
+  protected final RGRefinementManager<?, ?> refManager;
+  protected final InterpolatingTheoremProver<Integer> itpProver;
+  protected  RGLocationRefinementManager locrefManager;
+
 
   @Option(name="blk.useCache", description="use caching of path formulas")
   private boolean useCache = true;
 
   private RGCPAStatistics stats;
+
+
+
+
 
   public RGCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     this.config = config;
@@ -159,15 +169,14 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
       throw new InternalError("Update list of allowed solvers!");
     }
 
-    InterpolatingTheoremProver<Integer> itpProver;
     InterpolatingTheoremProver<Integer> alternativeItpProver = null;
     if (whichItpProver.equals("MATHSAT")) {
-      itpProver = MathsatInterpolatingProver.getInstance(mathsatFormulaManager, false);
+      this.itpProver = MathsatInterpolatingProver.getInstance(mathsatFormulaManager, false);
       if(changeItpSolveOTF){
         alternativeItpProver = CSIsatInterpolatingProver.getInstance(mathsatFormulaManager, logger);
       }
     } else if (whichItpProver.equals("CSISAT")) {
-      itpProver = CSIsatInterpolatingProver.getInstance(mathsatFormulaManager, logger);
+      this.itpProver = CSIsatInterpolatingProver.getInstance(mathsatFormulaManager, logger);
       if(changeItpSolveOTF){
         alternativeItpProver = MathsatInterpolatingProver.getInstance(mathsatFormulaManager, false);
       }
@@ -180,7 +189,7 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
     this.ssaManager = SSAMapManagerImpl.getInstance(fManager, config, logger);
     this.etManager  = RGEnvTransitionManagerFactory.getInstance(abstractEnvTransitions, fManager, pfManager, absManager, ssaManager, thmProver, rManager, variables, config, logger);
     this.refManager = RGRefinementManager.getInstance(rManager, fManager,  ssaManager, pfManager, etManager, thmProver, itpProver, alternativeItpProver, config, logger);
-    this.locrefManager = RGLocationRefinementManager.getInstance(fManager, pfManager, etManager, absManager, ssaManager, thmProver, itpProver, rManager, variables, config, logger);
+
 
     this.transfer = new RGTransferRelation(this);
     this.domain = new RGAbstractDomain(this);
@@ -193,8 +202,10 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
   }
 
-  public void setTid(int tid){
+  public void setData(int tid,RGVariables variables, RGCFA[] cfas) throws InvalidConfigurationException{
     this.tid = tid;
+    this.cfas = cfas;
+    this.variables = variables;
     Collection<AbstractionPredicate> predicates = null;
 
     if (checkBlockFeasibility) {
@@ -206,17 +217,13 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
     this.initialPrecision= new RGPrecision(predicates);
 
+    this.locrefManager = RGLocationRefinementManager.getInstance(fManager, pfManager, etManager, absManager, ssaManager, thmProver, itpProver, rManager, cfas, variables, config, logger);
+
   }
 
   public int getTid(){
     return this.tid;
   }
-
-  public void setVariables(RGVariables pVariables) {
-    variables = pVariables;
-
-  }
-
 
   @Override
   public AbstractElement getInitialElement(CFANode node) {
