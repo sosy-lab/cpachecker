@@ -85,6 +85,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
       throws InvalidConfigurationException {
     config.inject(this, SmtInterpolFormulaManager.class);
     script = createEnvironment();
+    this.sort = sort;
   }
 
   Script getEnvironment() {
@@ -310,7 +311,8 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   @Override
   public Formula makePredicateVariable(String var, int idx) {
     // System.out.println("DEBUG: termvariable '" + var + " " + idx + "'- perhaps not working?");
-    return makeVariable(makeName("PRED_" + var, idx));
+    return encapsulate(buildVariable(makeName("PRED_" + var, idx),
+     								 script.getTheory().getBooleanSort()));
   }
 
   @Override

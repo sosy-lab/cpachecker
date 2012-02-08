@@ -35,6 +35,7 @@ import com.google.common.collect.ImmutableMap;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Script;
+import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.Valuation;
@@ -130,6 +131,8 @@ public class SmtInterpolModel {
   static Model createSmtInterpolModel(Script script, Term[] keys) throws SMTLIBException {
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
 
+    assert script.checkSat() != LBool.UNSAT:
+            "model is not available for UNSAT"; // TODO expensive check?
     Valuation val = script.getValue(keys);
 
     Term modelFormula = script.term("true");

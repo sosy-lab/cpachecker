@@ -59,8 +59,20 @@ public class SmtInterpolTheoremProver implements TheoremProver {
 
   @Override
   public boolean isUnsat() {
-    LBool res = script.checkSat();
-    assert(res != LBool.UNKNOWN);
+    LBool res = LBool.UNKNOWN;
+    try {
+      script.push(1);
+
+      // asssert all terms
+      for (Term at : assertedTerms) {
+        script.assertTerm(at);
+      }
+      res = script.checkSat();
+      script.pop(1);
+    } catch (SMTLIBException e) {
+      e.printStackTrace();
+    }
+    assert res != LBool.UNKNOWN;
     return res == LBool.UNSAT;
   }
 
@@ -78,7 +90,19 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   public Model getModel() {
     Preconditions.checkNotNull(script);
     try {
-      return SmtInterpolModel.createSmtInterpolModel(script, assertedTerms.toArray(new Term[0]));
+      script.push(1);
+
+      // asssert all terms
+      for (Term at : assertedTerms) {
+        script.assertTerm(at);
+      }
+
+      // model can only return values for keys, not for terms
+      Term[] keys = getVars(assertedTerms);
+      Model model = SmtInterpolModel.createSmtInterpolModel(script, keys);
+      script.pop(1);
+
+      return model;
     } catch (SMTLIBException e) {
       e.printStackTrace();
       return null;

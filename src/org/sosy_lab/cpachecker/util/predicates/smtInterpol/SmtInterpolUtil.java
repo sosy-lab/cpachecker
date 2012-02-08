@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ConstantTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
@@ -171,6 +174,31 @@ public class SmtInterpolUtil {
       }
     } else { // numeral
       return t;
+    }
+  }
+
+  /** this function returns all variables in the terms.
+   * Doubles are removed. */
+  public static Term[] getVars(Iterable<Term> termList) {
+    Set<Term> vars = new HashSet<Term>();
+    for (Term t : termList) {
+      getVars(t, vars);
+    }
+    return vars.toArray(new Term[0]);
+  }
+
+  private static void getVars(Term t, Set<Term> vars) {
+    if (t instanceof ApplicationTerm &&
+        (t != t.getTheory().TRUE) && (t != t.getTheory().FALSE)) {
+      Term[] params = ((ApplicationTerm) t).getParameters();
+      if (params.length == 0) { // no params --> term is variable
+        vars.add(t);
+
+      } else {
+        for (Term innerTerm : params) { // recursive call
+          getVars(innerTerm, vars);
+        }
+      }
     }
   }
 }
