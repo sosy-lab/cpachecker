@@ -95,6 +95,12 @@ public class IASTFunctionTypeSpecifier extends IType {
 
     lASTString.append("(");
     Joiner.on(", ").appendTo(lASTString, new ASTStringIterable(parameters));
+    if (takesVarArgs) {
+      if (!parameters.isEmpty()) {
+        lASTString.append(", ");
+      }
+      lASTString.append("...");
+    }
     lASTString.append(")");
 
     return lASTString.toString();
