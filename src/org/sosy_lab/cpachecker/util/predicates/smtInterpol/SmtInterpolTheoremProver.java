@@ -89,46 +89,26 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   public void pop() {
     Preconditions.checkNotNull(script);
     assertedTerms.remove(assertedTerms.size()-1);
-    try {
-      script.pop(1);
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-    }
   }
 
   @Override
   public void push(Formula f) {
     Preconditions.checkNotNull(script);
-    script.push(1);
     final Term t = mgr.getTerm(f);
     assertedTerms.add(t);
-    try {
-      script.assertTerm(t);
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-    }
   }
 
   @Override
   public void init() {
     Preconditions.checkNotNull(mgr);
-    assert (assertedTerms == null);
     assert (script == null);
     assertedTerms = new ArrayList<Term>();
     script = mgr.getEnvironment();
-    script.push(1); // TODO necessary?
   }
 
   @Override
   public void reset() {
     Preconditions.checkNotNull(script);
-
-    try { // TODO correct?
-      script.pop(1);
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-    }
-    assertedTerms = null;
     script = null;
   }
 
@@ -137,13 +117,22 @@ public class SmtInterpolTheoremProver implements TheoremProver {
                              AbstractionManager amgr, Timer timer) {
     checkNotNull(amgr);
     checkNotNull(timer);
-    Term t = mgr.getTerm(f);
-    System.out.println("FROMULA: " + t.toString());
 
     Script allsatEnv = mgr.getEnvironment(); //TODO do we need a new environment?
     checkNotNull(allsatEnv);
 
     allsatEnv.push(1);
+
+    // asssert all terms
+    try {
+      for (Term at : assertedTerms) {
+        allsatEnv.assertTerm(at);
+      }
+    } catch (SMTLIBException e) {
+      e.printStackTrace();
+    }
+
+    Term t = mgr.getTerm(f);
 
     // unpack formulas to terms
     Term[] importantTerms = new Term[formulas.size()];
@@ -191,7 +180,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
         allsatEnv.assertTerm(notTerm);
       }
 
-      allsatEnv.pop(numModels); // we pushed some levels on assertionStack, remove them
+      allsatEnv.pop(numModels + 1); // we pushed some levels on assertionStack, remove them
     } catch (UnsupportedOperationException e) {
       e.printStackTrace();
     } catch (SMTLIBException e) {

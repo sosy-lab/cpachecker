@@ -46,6 +46,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
     private final SmtInterpolFormulaManager mgr;
     private Script script;
     List<String> assertedFormulas; // Collection of termNames
+    List<Term> annotatedFormulas; // Collection of terms
     private String prefix = "term_"; // for termnames
     static int counter = 0; // for different termnames // TODO static?
 
@@ -59,7 +60,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
     public void init() {
       script = mgr.getEnvironment();
       assertedFormulas = new ArrayList<String>();
-      script.push(1); // TODO correct??
+      annotatedFormulas = new ArrayList<Term>();
     }
 
     @Override
@@ -68,27 +69,47 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
       Term t = ((SmtInterpolFormula)f).getTerm();
 
       Term annotatedTerm = null;
+      String termName = prefix + counter++;
       try {
-        String termName = prefix + counter++;
         annotatedTerm = script.annotate(t, new Annotation(":named", termName));
-        script.assertTerm(annotatedTerm);
-        assertedFormulas.add(termName);
       } catch (SMTLIBException e) {
         e.printStackTrace();
       }
+      annotatedFormulas.add(annotatedTerm);
+      assertedFormulas.add(termName);
       return annotatedTerm;
     }
 
     @Override
     public boolean isUnsat() {
-      LBool res = script.checkSat();
-      assert(res != LBool.UNKNOWN); // TODO: why assertion?
-      return res == LBool.UNSAT;
+      LBool result = null;
+      try {
+
+        script.push(1);
+        for (Term t: annotatedFormulas) {
+          script.assertTerm(t);
+        }
+        result = script.checkSat();
+        script.pop(1);
+
+      } catch (SMTLIBException e) {
+        e.printStackTrace();
+      }
+      return result == LBool.UNSAT;
     }
 
     @Override
     public Formula getInterpolant(List<Term> formulasOfA) {
         Preconditions.checkNotNull(script);
+
+        script.push(1);
+        try {
+          for (Term t: annotatedFormulas) {
+            script.assertTerm(t);
+          }
+        } catch (SMTLIBException e) {
+          e.printStackTrace();
+        }
 
         // wrap terms into annotated term, collect their names as "termNamesOfA"
         Set<String> termNamesOfA = new HashSet<String>();
@@ -138,7 +159,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
           }
 
           itp = script.getInterpolants(new Term[] {termA, termB});
-
+          script.pop(1);
         } catch (SMTLIBException e) {
           e.printStackTrace();
         }
@@ -149,11 +170,6 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
     @Override
     public void reset() {
       Preconditions.checkNotNull(script);
-      try {
-        script.pop(1); // working??
-      } catch (SMTLIBException e) {
-        e.printStackTrace();
-      }
       assertedFormulas = null;
       script = null;
     }
