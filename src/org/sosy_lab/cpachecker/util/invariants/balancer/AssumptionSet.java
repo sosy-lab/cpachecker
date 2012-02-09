@@ -54,6 +54,7 @@ public class AssumptionSet implements Iterable<Assumption> {
     }
   }
 
+  @Override
   public Iterator<Assumption> iterator() {
     return aset.iterator();
   }

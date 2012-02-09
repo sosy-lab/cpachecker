@@ -49,6 +49,7 @@ public class Substitution implements Comparable<Substitution> {
     return s;
   }
 
+  @Override
   public int compareTo(Substitution other) {
     return this.degree - other.degree;
   }

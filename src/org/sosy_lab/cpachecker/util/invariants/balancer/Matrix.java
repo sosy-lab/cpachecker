@@ -168,6 +168,7 @@ public class Matrix implements MatrixI {
     entry[i][j] = f;
   }
 
+  @Override
   public Matrix getElemMatProd() {
     return elemMatProd;
   }
@@ -196,6 +197,7 @@ public class Matrix implements MatrixI {
     return c;
   }
 
+  @Override
   public Matrix concat(MatrixI b) {
     Matrix m = (Matrix)b;
     return Matrix.concat(this, m);
@@ -212,6 +214,7 @@ public class Matrix implements MatrixI {
     return c;
   }
 
+  @Override
   public Matrix augment(MatrixI b) {
     Matrix m = (Matrix)b;
     return Matrix.augment(this,m);
@@ -220,6 +223,7 @@ public class Matrix implements MatrixI {
   /*
    * Fill this matrix will zeros.
    */
+  @Override
   public void zeroFill() {
     for (int i = 0; i < rowNum; i++) {
       for (int j = 0; j < colNum; j++) {
@@ -228,10 +232,12 @@ public class Matrix implements MatrixI {
     }
   }
 
+  @Override
   public RationalFunction get(int i, int j) {
     return entry[i][j];
   }
 
+  @Override
   public void set(int i, int j, RationalFunction f) {
     entry[i][j] = f;
   }
@@ -239,6 +245,7 @@ public class Matrix implements MatrixI {
   /*
    * Swap rows i1 and i2.
    */
+  @Override
   public void swapRows(int i1, int i2) {
     RationalFunction temp;
     for (int j = 0; j < colNum; j++) {
@@ -263,6 +270,7 @@ public class Matrix implements MatrixI {
   /*
    * Multiply row i by RationalFunction f.
    */
+  @Override
   public void multRow(int i, RationalFunction f) {
     for (int j = 0; j < colNum; j++) {
       entry[i][j] = RationalFunction.multiply(entry[i][j],f);
@@ -272,6 +280,7 @@ public class Matrix implements MatrixI {
   /*
    * Add row i2 times RationalFunction f to row i1.
    */
+  @Override
   public void addMultiple(int i1, int i2, RationalFunction f) {
     for (int j = 0; j < colNum; j++) {
       RationalFunction product = RationalFunction.multiply(f,entry[i2][j]);
@@ -312,6 +321,7 @@ public class Matrix implements MatrixI {
    * For such a row, the "terminals" are the entries in the aug columns.
    * We write the assumptions that the almost zero row terminals be zero
    */
+  @Override
   public AssumptionSet getAlmostZeroRowAssumptions() {
     AssumptionSet aset = new AssumptionSet();
     for (int i = 0; i < rowNum; i++) {
@@ -336,6 +346,7 @@ public class Matrix implements MatrixI {
    * denominator that is identically zero then we return a singleton set containing only
    * the assumption that zero is nonzero. (This might be useful for deriving a contradiction.)
    */
+  @Override
   public AssumptionSet getDenomNonZeroAssumptions() {
     AssumptionSet aset = new AssumptionSet();
     outerloop:
@@ -365,6 +376,7 @@ public class Matrix implements MatrixI {
    * Put this matrix into reduced row-echelon form, using Gaussian elimination.
    * Returns the set of nonzero assumptions made each time we divided a pivot row by its lead entry.
    */
+  @Override
   public AssumptionSet putInRREF() {
     LogManager lm = null;
     return putInRREF(lm);
@@ -374,6 +386,7 @@ public class Matrix implements MatrixI {
    * Version of RREF algorithm that takes a logger.
    * Returns the set of nonzero assumptions made each time we divided a pivot row by its lead entry.
    */
+  @Override
   public AssumptionSet putInRREF(LogManager logger) {
     int m = rowNum;
     int n = colNum;
@@ -888,6 +901,7 @@ public class Matrix implements MatrixI {
       }
     }
 
+    @Override
     public int compareTo(SortablePivotEntry other) {
       if (this.kind != other.kind) {
         return this.kind - other.kind;

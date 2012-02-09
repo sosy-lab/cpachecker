@@ -151,14 +151,6 @@ public class ExplicitPrecision implements Precision {
     return blackListPattern.pattern();
   }
 
-  private class CegarPrecision {
-
-  }
-
-  private class BlacklistPrecision {
-
-  }
-
 
   abstract class Thresholds {
     /**
