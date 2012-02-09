@@ -24,6 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -45,10 +49,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManagerFactory;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.RGLocationRefinementManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.RGRefinementManager;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
@@ -125,6 +133,7 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
   protected final SSAMapManager ssaManager;
   protected final RGEnvTransitionManager etManager;
   protected final RGRefinementManager<?, ?> refManager;
+  private RGEnvironmentManager envManager;
   protected final InterpolatingTheoremProver<Integer> itpProver;
   protected  RGLocationRefinementManager locrefManager;
 
@@ -133,6 +142,8 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
   private boolean useCache = true;
 
   private RGCPAStatistics stats;
+
+
 
 
 
@@ -202,7 +213,7 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
   }
 
-  public void setData(int tid,RGVariables variables, RGCFA[] cfas) throws InvalidConfigurationException{
+  public void setData(int tid,RGVariables variables, RGEnvironmentManager envManager, RGCFA[] cfas) throws InvalidConfigurationException{
     this.tid = tid;
     this.cfas = cfas;
     this.variables = variables;
@@ -217,7 +228,9 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
     this.initialPrecision= new RGPrecision(predicates);
 
-    this.locrefManager = RGLocationRefinementManager.getInstance(fManager, pfManager, etManager, absManager, ssaManager, thmProver, itpProver, rManager, cfas, variables, config, logger);
+    this.envManager = envManager;
+
+    this.locrefManager = RGLocationRefinementManager.getInstance(fManager, pfManager, etManager, absManager, ssaManager, thmProver, rManager, envManager, cfas, variables, config, logger);
 
   }
 
@@ -311,6 +324,44 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
   public RGLocationRefinementManager getLocrefManager() {
     return locrefManager;
+  }
+
+
+  /**
+   * Finds the last rely-guarantee abstraction element that is an ancestor of the argument.
+   * @param pElement
+   * @return
+   */
+  public static ARTElement findLastAbstractionARTElement(ARTElement pElement) {
+    // TODO put in some more sutiable class
+    ARTElement laARTElement = null;
+    Deque<ARTElement> toProcess = new LinkedList<ARTElement>();
+    Set<ARTElement> visisted = new HashSet<ARTElement>();
+    toProcess.add(pElement);
+
+    while (!toProcess.isEmpty()){
+      ARTElement element = toProcess.poll();
+      visisted.add(element);
+
+      if (element.isDestroyed()){
+        element = element.getMergedWith();
+        assert !element.isDestroyed();
+      }
+
+      AbstractionElement aElement = AbstractElements.extractElementByType(element, AbstractionElement.class);
+      if (aElement != null){
+        laARTElement = element;
+        break;
+      }
+
+      for (ARTElement parent : element.getParentARTs()){
+        if (!visisted.contains(parent)){
+          toProcess.addFirst(parent);
+        }
+      }
+    }
+
+    return laARTElement;
   }
 
 

@@ -107,6 +107,13 @@ public class RGEnvCandidateManager {
       return true;
     }
 
+
+    /* destroyed element is covered by some other, but not
+     * necessarily c2 */
+    if (c1.getElement().isDestroyed()){
+      return true;
+    }
+
     CFAEdge op1 = c1.getOperation();
     CFAEdge op2 = c2.getOperation();
 

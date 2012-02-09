@@ -47,13 +47,6 @@ public interface RGEnvTransition {
    */
   int getTid();
 
-  /**
-   * Returns ART elements that generated this transitions.
-   * It contains  {@link #getSourceARTElement getSourceARTElement()} and
-   * {@link #getTargetARTElement getTargetARTElement()}.
-   * @return
-   */
-  ImmutableCollection<ARTElement> getGeneratingARTElements();
 
   /**
    * ART element where the concrete operation was applied.
@@ -62,12 +55,19 @@ public interface RGEnvTransition {
   ARTElement getSourceARTElement();
 
   /**
-   * ART element created by the concreate operation.
+   * ART element created by the concreate operation. May be covered.
    * @return
    */
   ARTElement getTargetARTElement();
 
-
+  /**
+   * Returns ART elements on the paths between {@link #getSourceARTElement()}
+   * and {@link #getTargetARTElement()}. These elements should belong to the
+   * reached set, so some if some element is covered then the covering element
+   * is taken instead.
+   * @return
+   */
+  ImmutableCollection<ARTElement> getGeneratingARTElements();
 
 }
 

@@ -267,7 +267,7 @@ public class RGCFACreator {
         tCfaFunctions.keySet().retainAll(calledFunctions);
 
         // add global declarations
-        insertGlobalDeclarations(mainFunction, tCfa.getGlobalDeclarations(), i, logger);
+        insertGlobalDeclarations(tCfa, mainFunction, i, logger);
 
         //Files.writeFile(exportCfaFile, DOTBuilder.generateDOT(tCfa.getFunctions().values(), mainFunction));
       }
@@ -321,32 +321,39 @@ public class RGCFACreator {
 
   /**
    * Insert nodes for global declarations after first node of CFA.
+   * @param cfa
    * @param i
    */
-  public void insertGlobalDeclarations(final CFAFunctionDefinitionNode cfa, List<IASTDeclaration> globalVars, int i, LogManager logger) {
+  public void insertGlobalDeclarations(CFA cfa, final CFAFunctionDefinitionNode mainFunction, int i, LogManager logger) {
+    List<IASTDeclaration> globalVars = cfa.getGlobalDeclarations();
+
     if (globalVars.isEmpty()) {
       return;
     }
 
     // split off first node of CFA
-    assert cfa.getNumLeavingEdges() == 1;
-    CFAEdge firstEdge = cfa.getLeavingEdge(0);
+    assert mainFunction.getNumLeavingEdges() == 1;
+    CFAEdge firstEdge = mainFunction.getLeavingEdge(0);
     assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
     CFANode secondNode = firstEdge.getSuccessor();
 
-    cfa.removeLeavingEdge(firstEdge);
+    mainFunction.removeLeavingEdge(firstEdge);
     secondNode.removeEnteringEdge(firstEdge);
 
     // insert one node to start the series of declarations
-    CFANode cur = new CFANode(0, cfa.getFunctionName());
-    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, cfa, cur);
+    CFANode cur = new CFANode(0, mainFunction.getFunctionName());
+    cfa.addNode(cur);
+    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, mainFunction, cur);
+
     addToCFA(be);
+
 
     // create a series of GlobalDeclarationEdges, one for each declaration
     for (IASTDeclaration d : globalVars) {
       assert d.isGlobal();
 
       CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
+      cfa.addNode(n);
       GlobalDeclarationEdge e = new GlobalDeclarationEdge(d,
           d.getFileLocation().getStartingLineNumber(), cur, n);
       addToCFA(e);

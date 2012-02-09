@@ -66,7 +66,15 @@ public class RGSimpleTransition implements RGEnvTransition{
     this.targetARTElement  = targetARTElem;
     this.tid = tid;
 
-    Set<ARTElement> generating = ARTUtils.getAllElementsBetween(lastAbstractionARTElement, targetARTElement);
+    ARTElement reachedTarget = targetARTElement;
+    if (targetARTElement.isDestroyed()){
+      reachedTarget = targetARTElement.getMergedWith();
+    }
+
+    assert !this.lastAbstractionARTElement.isDestroyed();
+    assert !reachedTarget.isDestroyed();
+
+    Set<ARTElement> generating = ARTUtils.getAllElementsBetween(lastAbstractionARTElement, reachedTarget);
     this.generatingARTElement = ImmutableSet.copyOf(generating);
   }
 
@@ -120,8 +128,6 @@ public class RGSimpleTransition implements RGEnvTransition{
   public ARTElement getTargetARTElement() {
     return targetARTElement;
   }
-
-
 
 
 }

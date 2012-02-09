@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
+import java.util.Set;
+
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -50,6 +53,8 @@ public class RGFullyAbstracted implements RGEnvTransition {
   private final ARTElement sourceARTElement;
   /** Source thred's id */
   private final int tid;
+  /** ART elements that generated this transition */
+  private ImmutableSet<ARTElement> generatingARTElement;
 
   public RGFullyAbstracted(Formula abstractTransition, Region abstractTransitionRegion, SSAMap lowSSA, SSAMap highSSA, ARTElement sourceARTElement, ARTElement targetARTElement,  int tid){
     this.abstractTransition = abstractTransition;
@@ -59,6 +64,17 @@ public class RGFullyAbstracted implements RGEnvTransition {
     this.sourceARTElement = sourceARTElement;
     this.targetARTElement = targetARTElement;
     this.tid = tid;
+
+    ARTElement reachedTarget = targetARTElement;
+    if (targetARTElement.isDestroyed()){
+      reachedTarget = targetARTElement.getMergedWith();
+    }
+
+    assert !this.sourceARTElement.isDestroyed();
+    assert !reachedTarget.isDestroyed();
+
+    Set<ARTElement> generating = ARTUtils.getAllElementsBetween(sourceARTElement, reachedTarget);
+    this.generatingARTElement = ImmutableSet.copyOf(generating);
   }
 
   @Override
@@ -99,7 +115,7 @@ public class RGFullyAbstracted implements RGEnvTransition {
 
   @Override
   public ImmutableCollection<ARTElement> getGeneratingARTElements() {
-    return ImmutableSet.of(targetARTElement, sourceARTElement);
+    return generatingARTElement;
   }
 
   @Override
@@ -111,5 +127,7 @@ public class RGFullyAbstracted implements RGEnvTransition {
   public ARTElement getTargetARTElement() {
     return targetARTElement;
   }
+
+
 
 }

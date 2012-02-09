@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.art.ARTTransferRelation;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
@@ -489,7 +490,10 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    ARTCPA artCPA = (ARTCPA) cpa;
     pStatsCollection.add(stats);
+    ARTTransferRelation artTr = (ARTTransferRelation) cpa.getTransferRelation();
+    artTr.collectStatistics(pStatsCollection);
   }
 
   /**

@@ -26,10 +26,12 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +42,7 @@ import java.util.Vector;
 /**
  * Tree of abstraction points.
  */
-public class InterpolationTree {
+public class InterpolationTree implements Iterable<InterpolationTreeNode> {
 
   private  InterpolationTreeNode root;
   private final Set<InterpolationTreeNode> leafs;
@@ -325,6 +327,8 @@ public class InterpolationTree {
     return trunk;
   }
 
+
+
   /**
    * Performs a bfs search and returns the required number of nodes.
    * @param start
@@ -372,6 +376,54 @@ public class InterpolationTree {
 
   public Map<InterpolationTreeNodeKey, InterpolationTreeNode> getNodeMap() {
     return Collections.unmodifiableMap(nodeMap);
+  }
+
+  @Override
+  public Iterator<InterpolationTreeNode> iterator() {
+    return topSort().iterator();
+  }
+
+  /**
+   *  Returns nodes matching the thread id and ART element id.
+   * @param tid
+   * @param ElemId
+   * @return
+   */
+  public Collection<InterpolationTreeNode> getNodesByTidAndElementId(int tid, int elemId) {
+    Collection<InterpolationTreeNode> result = new Vector<InterpolationTreeNode>();
+
+    for (InterpolationTreeNode node : nodeMap.values()){
+      if (node.tid == tid && node.artElement.getElementId() == elemId){
+        result.add(node);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Find the node where the argument's branch merged with its parent branch.
+   * Returns null if the argument belongs to the top branch.
+   * @param node
+   * @return
+   */
+  public InterpolationTreeNode getParentBranchId(InterpolationTreeNode node) {
+
+    InterpolationTreeNode toProcess = node;
+    InterpolationTreeNode result = null;
+
+    while(toProcess != null){
+
+      InterpolationTreeNode parent = toProcess.getParent();
+      if (parent != null && parent.uniqueId != toProcess.uniqueId){
+        result = parent;
+        break;
+      }
+
+      toProcess = parent;
+    }
+
+    return result;
   }
 
 

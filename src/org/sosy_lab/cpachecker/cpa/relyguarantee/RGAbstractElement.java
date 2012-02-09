@@ -79,11 +79,6 @@ public class RGAbstractElement implements AbstractElement, Partitionable, Formul
   }
 
 
-
-  public void setTid(int tid){
-    this.tid = tid;
-  }
-
   public int getTid(){
     return this.tid;
   }

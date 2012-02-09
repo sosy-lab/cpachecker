@@ -25,12 +25,8 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.environment;
 
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -41,14 +37,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGSimpleTransition;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -94,7 +89,7 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
     Region absReg = abs.asRegion();
     PathFormula pf = cand.getRgElement().getPathFormula();
 
-    ARTElement laElement = findLastAbstractionARTElement(cand.getElement());
+    ARTElement laElement = RGCPA.findLastAbstractionARTElement(cand.getElement());
     if (laElement == null){
       System.out.println(this.getClass());
     }
@@ -237,41 +232,7 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
     return rManager.isFalse(rAnd);
   }
 
-  /**
-   * Finds the last rely-guarantee abstraction element that is an ancestor of the argument.
-   * @param pElement
-   * @return
-   */
-  private ARTElement findLastAbstractionARTElement(ARTElement pElement) {
-    ARTElement laARTElement = null;
-    Deque<ARTElement> toProcess = new LinkedList<ARTElement>();
-    Set<ARTElement> visisted = new HashSet<ARTElement>();
-    toProcess.add(pElement);
 
-    while (!toProcess.isEmpty()){
-      ARTElement element = toProcess.poll();
-      visisted.add(element);
-
-      if (element.isDestroyed()){
-        element = element.getMergedWith();
-        assert !element.isDestroyed();
-      }
-
-      AbstractionElement aElement = AbstractElements.extractElementByType(element, AbstractionElement.class);
-      if (aElement != null){
-        laARTElement = element;
-        break;
-      }
-
-      for (ARTElement parent : element.getParentARTs()){
-        if (!visisted.contains(parent)){
-          toProcess.addFirst(parent);
-        }
-      }
-    }
-
-    return laARTElement;
-  }
 
 
   public static class Stats implements Statistics {

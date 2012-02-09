@@ -58,9 +58,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
 public class CPAchecker {
@@ -209,14 +210,17 @@ public class CPAchecker {
       // extract variables
       RGVariables vars = new RGVariables(cfas);
 
-      RGEnvironmentManager environment = new RGEnvironmentManager(threadNo, vars, config, logger);
+      RGEnvironmentManager environment = new RGEnvironmentManager(threadNo, vars, cfas, config, logger);
+
+      ImmutableMap<CFANode, Integer> locMapping = environment.getLocationMapping();
 
       // create a cpa for each thread
       for(int i=0; i<threadNo; i++){
         ConfigurableProgramAnalysis cpa = createCPA(stats);
-        WrapperCPA wCPA = (WrapperCPA) cpa;
-        RGCPA rgCPA = wCPA.retrieveWrappedCpa(RGCPA.class);
-        rgCPA.setData(i, environment.getVariables(), cfas);
+        ARTCPA artCPA = (ARTCPA) cpa;
+        artCPA.setData(cfas, locMapping, i);
+        RGCPA rgCPA = artCPA.retrieveWrappedCpa(RGCPA.class);
+        rgCPA.setData(i, environment.getVariables(), environment, cfas);
         //rgCPA.useHardcodedPredicates();
         cpas[i] = cpa;
       }

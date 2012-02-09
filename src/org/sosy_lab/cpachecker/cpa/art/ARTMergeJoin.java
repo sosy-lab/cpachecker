@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import com.google.common.collect.ImmutableList;
+
 public class ARTMergeJoin implements MergeOperator {
 
   private final MergeOperator wrappedMerge;
@@ -57,6 +59,14 @@ public class ARTMergeJoin implements MergeOperator {
       return pElement2;
     }
 
+    // merged olny elements that have matching location classes
+    ImmutableList<Integer> locations1 = artElement1.getLocationClasses();
+    ImmutableList<Integer> locations2 = artElement2.getLocationClasses();
+
+    if (!locations1.equals(locations2)){
+      return pElement2;
+    }
+
     AbstractElement wrappedElement1 = artElement1.getWrappedElement();
     AbstractElement wrappedElement2 = artElement2.getWrappedElement();
     AbstractElement retElement = wrappedMerge.merge(wrappedElement1, wrappedElement2, pPrecision);
@@ -64,7 +74,7 @@ public class ARTMergeJoin implements MergeOperator {
       return pElement2;
     }
 
-    ARTElement mergedElement = new ARTElement(retElement, Collections.<ARTElement, CFAEdge> emptyMap());
+    ARTElement mergedElement = new ARTElement(retElement, Collections.<ARTElement, CFAEdge> emptyMap(), locations1);
 
     // now replace artElement2 by mergedElement in ART
 

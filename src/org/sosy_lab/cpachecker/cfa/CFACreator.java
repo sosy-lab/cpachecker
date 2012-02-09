@@ -338,6 +338,7 @@ public class CFACreator {
 
     // insert one node to start the series of declarations
     CFANode cur = new CFANode(0, cfa.getFunctionName());
+    //cfa.addNode(cur);
     BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, cfa, cur);
     addToCFA(be);
 
@@ -346,6 +347,7 @@ public class CFACreator {
       assert d.isGlobal();
 
       CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
+      //cfa.addNode(cur);
       GlobalDeclarationEdge e = new GlobalDeclarationEdge(d,
           d.getFileLocation().getStartingLineNumber(), cur, n);
       addToCFA(e);

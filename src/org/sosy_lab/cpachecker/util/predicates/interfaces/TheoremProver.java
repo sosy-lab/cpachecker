@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.Collection;
+import java.util.Map;
 
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.util.predicates.Model;
@@ -53,4 +54,27 @@ public interface TheoremProver {
      */
     public int getCount();
   }
+
+  /** Get all sat result a mapping from important predicates to truth values */
+  AllSatPredicates allSatPredicate(Formula f, Collection<Formula> important);
+
+  interface AllSatPredicates {
+
+    /**
+     * Collection of models, where each model its a map from an important
+     * predicat to true or false.
+     * @return
+     */
+    public Collection<Map<Formula, Boolean>> getPredicateModels();
+
+    /**
+     * The number of satisfying assignments contained in the result, of
+     * {@link Integer#MAX_VALUE} if this number is infinite.
+     */
+    public int getCount();
+
+  }
+
+
+
 }

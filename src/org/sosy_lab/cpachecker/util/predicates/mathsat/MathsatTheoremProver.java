@@ -30,6 +30,9 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat.NativeApi.*;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Vector;
 
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.util.predicates.Model;
@@ -224,5 +227,86 @@ public class MathsatTheoremProver implements TheoremProver {
 
       totalTime.stop();
     }
+  }
+
+  @Override
+  public AllSatPredicates allSatPredicate(Formula f, Collection<Formula> important) {
+    long formula = getTerm(f);
+
+    long allsatEnv = mgr.createEnvironment(true, true);
+
+    long[] imp = new long[important.size()];
+    int i = 0;
+    for (Formula impF : important) {
+      imp[i++] = getTerm(impF);
+    }
+    MathsatAllSatPredicates callback = new MathsatAllSatPredicates();
+    msat_assert_formula(allsatEnv, formula);
+    int numModels = msat_all_sat(allsatEnv, imp, callback);
+
+    if (numModels == -1) {
+      throw new RuntimeException("Error occurred during Mathsat allsat");
+
+    } else if (numModels == -2) {
+      // infinite models
+      callback.setInfiniteNumberOfModels();
+
+    } else {
+      assert numModels == callback.count;
+    }
+
+    msat_destroy_env(allsatEnv);
+
+    return callback;
+  }
+
+
+  static class MathsatAllSatPredicates implements NativeApi.AllSatModelCallback, TheoremProver.AllSatPredicates {
+
+    /** Nmuber of models */
+    private int count = 0;
+
+    private final Collection<Map<Formula, Boolean>> models;;
+
+    public MathsatAllSatPredicates(){
+      models = new Vector<Map<Formula, Boolean>>();
+    }
+
+    @Override
+    public void callback(long[] model) {
+
+      Map<Formula, Boolean> predModel = new HashMap<Formula, Boolean>();
+
+      for (long t : model) {
+        Region v;
+        if (msat_term_is_not(t) != 0) {
+          t = msat_term_get_arg(t, 0);
+          predModel.put(encapsulate(t), Boolean.FALSE);
+        } else {
+          predModel.put(encapsulate(t), Boolean.TRUE);
+        }
+      }
+
+      count++;
+
+      models.add(predModel);
+    }
+
+    @Override
+    public Collection<Map<Formula, Boolean>> getPredicateModels() {
+      return models;
+    }
+
+    public void setInfiniteNumberOfModels() {
+      count = Integer.MAX_VALUE;
+    }
+
+
+
+    @Override
+    public int getCount() {
+      return count;
+    }
+
   }
 }

@@ -161,9 +161,6 @@ public class ARTUtils {
 
     // TODO correctness check
     RGAbstractElement rgElem = AbstractElements.extractElementByType(target, RGAbstractElement.class);
-    if (!(rgElem instanceof RGAbstractElement.AbstractionElement)){
-      System.out.println();
-    }
 
     Path pathFrom = ARTDijkstrasAlgorithm.shortestPath(target, trm);
     assert !(rgElem instanceof RGAbstractElement.AbstractionElement) || pathFrom.isEmpty();

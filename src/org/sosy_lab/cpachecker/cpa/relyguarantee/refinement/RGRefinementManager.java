@@ -633,7 +633,6 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
     List<InterpolationTreeNode> lBranch = null;
 
     if (rgTarget instanceof RGAbstractElement.AbstractionElement){
-
       // the target is an abstraction point
       InterpolationDagNode targetNode = dag.getNode(tid, elemId);
       List<InterpolationDagNode> lPath = dag.getModularPathToNode(targetNode);
@@ -649,7 +648,9 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
       }
 
     } else {
-      // it's NOT an abstraction element, so only its last abstraction element is in the DAG
+      /* It's NOT an abstraction element, so only its last abstraction element is in the DAG.
+       * The branch consists of the abstraction elements on the path plus the last
+       * non- abstraction target. */
       ARTElement aARTElement = RGEnvironmentManager.findLastAbstractionARTElement(target);
       assert aARTElement != null;
       InterpolationDagNode aNode = dag.getNode(tid, aARTElement.getElementId());

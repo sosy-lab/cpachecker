@@ -80,4 +80,9 @@ public class CFA {
   public List<IASTDeclaration> getGlobalDeclarations() {
     return globalDeclarations;
   }
+
+  void addNode(CFANode pNode) {
+    assert functions.containsKey(pNode.getFunctionName());
+    cfaNodes.put(pNode.getFunctionName(), pNode);
+  }
 }

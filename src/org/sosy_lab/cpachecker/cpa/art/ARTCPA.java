@@ -25,10 +25,13 @@ package org.sosy_lab.cpachecker.cpa.art;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Vector;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.RGCFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
@@ -47,6 +50,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
 public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM {
 
   public static CPAFactory factory() {
@@ -56,21 +62,30 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final LogManager logger;
 
   private final AbstractDomain abstractDomain;
-  private final TransferRelation transferRelation;
+  private final TransferRelation wrappedTranferRelation;
+  private TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
   private final Reducer reducer;
   private final Statistics stats;
 
+  // TODO check if needed
+  private RGCFA cfas[];
+  // maps cfa nodes to equivalence classes
+  private ImmutableMap<CFANode, Integer> locationMapping;
+  private int tid = Integer.MAX_VALUE;
+
   private Path targetPath = null;
+
+
 
   private ARTCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(cpa);
 
     this.logger = logger;
     abstractDomain = new FlatLatticeDomain();
-    transferRelation = new ARTTransferRelation(cpa.getTransferRelation());
+    this.wrappedTranferRelation = cpa.getTransferRelation();
     precisionAdjustment = new ARTPrecisionAdjustment(cpa.getPrecisionAdjustment());
     if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
       Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM)cpa).getReducer();
@@ -91,6 +106,13 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     }
     stopOperator = new ARTStopSep(getWrappedCpa());
     stats = new ARTStatistics(config, this);
+  }
+
+  public void setData(RGCFA[] cfas, ImmutableMap<CFANode, Integer> locationMapping, int tid){
+    this.cfas = cfas;
+    this.locationMapping = locationMapping;
+    this.tid = tid;
+    this.transferRelation = new ARTTransferRelation(wrappedTranferRelation, locationMapping, tid);
   }
 
   @Override
@@ -130,7 +152,15 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   @Override
   public AbstractElement getInitialElement (CFANode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ART
-    return new ARTElement(getWrappedCpa().getInitialElement(pNode), Collections.<ARTElement, CFAEdge> emptyMap());
+    List<Integer> locVector = new Vector<Integer>(cfas.length);
+
+    for (int i=0; i<cfas.length; i++){
+      CFANode node = cfas[i].getStartNode();
+      locVector.add(locationMapping.get(node));
+    }
+
+    ImmutableList<Integer> locationClasses = ImmutableList.copyOf(locVector);
+    return new ARTElement(getWrappedCpa().getInitialElement(pNode), Collections.<ARTElement, CFAEdge> emptyMap(), locationClasses);
   }
 
   protected LogManager getLogger() {
@@ -150,4 +180,8 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   void setTargetPath(Path pTargetPath) {
     targetPath = pTargetPath;
   }
+
+
+
+
 }

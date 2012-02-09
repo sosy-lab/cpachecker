@@ -429,4 +429,9 @@ public class YicesTheoremProver implements TheoremProver {
       return new Model(smgr);
     }
 
+    @Override
+    public AllSatPredicates allSatPredicate(Formula pF, Collection<Formula> pImportant) {
+      return null;
+    }
+
 }

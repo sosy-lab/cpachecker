@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -51,8 +52,6 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   private final HashMap<ARTElement, CFAEdge> parentMap;
   private final HashMap<ARTElement, CFAEdge> childMap;
-
-  // TODO for rely-guarantee
 
   private ARTElement mCoveredBy = null;
   private Set<ARTElement> mCoveredByThis = null; // lazy initialization because rarely needed
@@ -67,9 +66,15 @@ public class ARTElement extends AbstractSingleWrapperElement {
   private boolean byLocalEdge   = false;
   private List<CFAEdge> envEdgesToBeApplied;
 
+
+  /**
+   * equivalences class of each program counter
+   */
+  private final ImmutableList<Integer> locationClasses;
+
   private static int nextArtElementId = 0;
 
-  public ARTElement(AbstractElement pWrappedElement, Map<ARTElement, CFAEdge> parentEdges) {
+  public ARTElement(AbstractElement pWrappedElement, Map<ARTElement, CFAEdge> parentEdges, ImmutableList<Integer> locationClasses) {
     super(pWrappedElement);
     assert parentEdges != null;
 
@@ -83,6 +88,10 @@ public class ARTElement extends AbstractSingleWrapperElement {
     }
 
     envEdgesToBeApplied = null;
+
+    this.locationClasses = locationClasses;
+
+
   }
 
   public ImmutableSet<ARTElement> getParentARTs(){
@@ -141,7 +150,9 @@ public class ARTElement extends AbstractSingleWrapperElement {
     byLocalEdge = pByLocalEdge;
   }
 
-
+  public ImmutableList<Integer> getLocationClasses() {
+    return locationClasses;
+  }
 
   protected void setCovered(ARTElement pCoveredBy) {
     assert pCoveredBy != null;
