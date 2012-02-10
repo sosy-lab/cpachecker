@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.anderson.util;
 
-import org.sosy_lab.cpachecker.cpa.pointerA.util.BaseConstraint;
-import org.sosy_lab.cpachecker.cpa.pointerA.util.ComplexConstraint;
-import org.sosy_lab.cpachecker.cpa.pointerA.util.Constraint;
 
 /**
  * This class models a ComplexConstraint in pointer analysis. This constraint has the

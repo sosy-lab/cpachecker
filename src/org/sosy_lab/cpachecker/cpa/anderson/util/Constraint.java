@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.anderson.util;
 
-import org.sosy_lab.cpachecker.cpa.pointerA.util.Constraint;
 
 
 /**

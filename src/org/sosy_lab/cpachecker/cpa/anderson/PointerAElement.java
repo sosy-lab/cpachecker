@@ -35,8 +35,6 @@ import org.sosy_lab.cpachecker.cpa.anderson.util.BaseConstraint;
 import org.sosy_lab.cpachecker.cpa.anderson.util.ComplexConstraint;
 import org.sosy_lab.cpachecker.cpa.anderson.util.DirectedGraph;
 import org.sosy_lab.cpachecker.cpa.anderson.util.SimpleConstraint;
-import org.sosy_lab.cpachecker.cpa.pointerA.PointerAElement;
-import org.sosy_lab.cpachecker.cpa.pointerA.util.Edge;
 
 public class PointerAElement implements AbstractElement, Cloneable {
 

@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.anderson.util;
 
-import org.sosy_lab.cpachecker.cpa.pointerA.util.Constraint;
-import org.sosy_lab.cpachecker.cpa.pointerA.util.SimpleConstraint;
 
 /**
  * This class models a SimpleConstraint in pointer analysis. This constraint has the

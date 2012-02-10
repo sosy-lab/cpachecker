@@ -30,9 +30,6 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.pointerA.util.DirectedGraph;
-import org.sosy_lab.cpachecker.cpa.pointerA.util.Node;
-
 public class DirectedGraph {
 
   public class Node {

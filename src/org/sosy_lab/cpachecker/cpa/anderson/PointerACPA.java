@@ -46,11 +46,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.pointerA.PointerACPA;
-import org.sosy_lab.cpachecker.cpa.pointerA.PointerADomain;
-import org.sosy_lab.cpachecker.cpa.pointerA.PointerAElement;
-import org.sosy_lab.cpachecker.cpa.pointerA.PointerAPrecision;
-import org.sosy_lab.cpachecker.cpa.pointerA.PointerATransferRelation;
 
 @Options(prefix="cpa.pointerA")
 public class PointerACPA implements ConfigurableProgramAnalysisWithABM {
