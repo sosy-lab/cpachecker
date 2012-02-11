@@ -63,18 +63,11 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithABM {
       description="which stop operator to use for PointerACPA")
   private String stopType = "SEP";
 
-//  @Option(name="variableBlacklist",
-//      description="blacklist regex for variables that won't be tracked by PointerACPA")
-//  private String variableBlacklist = "";
-
-//  private ExplicitPrecision precision;
-
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
-//  private final ExplicitReducer reducer;
 
   private final Configuration config;
   private final LogManager logger;
@@ -87,11 +80,9 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithABM {
 
     abstractDomain      = new AndersenDomain();
     transferRelation    = new AndersenTransferRelation(config);
-//    precision           = initializePrecision();
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-//    reducer             = new ExplicitReducer();
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -121,16 +112,6 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithABM {
 
     return null;
   }
-
-//  private ExplicitPrecision initializePrecision() {
-//    HashMultimap<CFANode, String> whitelist = null;
-//
-//    if(this.useCegar()) {
-//      whitelist = HashMultimap.create();
-//    }
-//
-//    return new ExplicitPrecision(variableBlacklist, whitelist);
-//  }
 
   @Override
   public AbstractDomain getAbstractDomain() {
@@ -173,11 +154,6 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithABM {
 
   protected LogManager getLogger() {
     return logger;
-  }
-
-  private boolean useCegar() {
-    return this.config.getProperty("analysis.useRefinement") != null
-      && this.config.getProperty("cegar.refiner").equals("cpa.pointerA.PointerARefiner");
   }
 
   @Override

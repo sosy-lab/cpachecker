@@ -69,7 +69,7 @@ public class AndersenTransferRelation implements TransferRelation {
       throws CPATransferException {
 
     AbstractElement successor = null;
-    AndersenElement pointerAElement = (AndersenElement) element;
+    AndersenElement andersenElement = (AndersenElement) element;
 
     // check the type of the edge
     switch (cfaEdge.getEdgeType()) {
@@ -77,55 +77,26 @@ public class AndersenTransferRelation implements TransferRelation {
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge:
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
-      successor = handleStatement(pointerAElement, statementEdge.getStatement(), cfaEdge);
+      successor = handleStatement(andersenElement, statementEdge.getStatement(), cfaEdge);
       break;
-
-
-    //    case ReturnStatementEdge:
-    //      ReturnStatementEdge returnEdge = (ReturnStatementEdge)cfaEdge;
-    //      // this statement is a function return, e.g. return (a);
-    //      // note that this is different from return edge
-    //      // this is a statement edge which leads the function to the
-    //      // last node of its CFA, where return edge is from that last node
-    //      // to the return site of the caller function
-    //      successor = handleExitFromFunction(pointerAElement, returnEdge.getExpression(), returnEdge);
-    //      break;
 
     // edge is a declaration edge, e.g. int a;
     case DeclarationEdge:
       DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
-      successor = handleDeclaration(pointerAElement, declarationEdge);
+      successor = handleDeclaration(andersenElement, declarationEdge);
       break;
 
     // this is an assumption, e.g. if(a == b)
     case AssumeEdge:
-      successor = pointerAElement.clone();
-//      AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
-//      successor =
-//          handleAssumption(pointerAElement.clone(), assumeEdge.getExpression(), cfaEdge,
-//              assumeEdge.getTruthAssumption());
+      successor = andersenElement.clone();
       break;
 
     case BlankEdge:
-      successor = pointerAElement.clone();
+      successor = andersenElement.clone();
       break;
-
-    //    case FunctionCallEdge:
-    //      FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
-    //      successor = handleFunctionCall(pointerAElement, functionCallEdge);
-    //      break;
-    //
-    //    // this is a return edge from function, this is different from return statement
-    //    // of the function. See case for statement edge for details
-    //    case FunctionReturnEdge:
-    //      FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) cfaEdge;
-    //      successor = handleFunctionReturn(pointerAElement, functionReturnEdge);
-    //      break;
 
     default:
       printWarning(cfaEdge);
-
-      //      throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
 
     if (successor == null)
@@ -193,6 +164,21 @@ public class AndersenTransferRelation implements TransferRelation {
       throw new UnrecognizedCCodeException("not supported", cfaEdge, op1);
   }
 
+  /**
+   * Handles an assignement of the form <code>op1 = ...</code> to a given variable <code>op1</code>.
+   *
+   * @param op1
+   *        Name of the lefthandside variable in the assignement <code>op1 = ...</code>.
+   * @param op2
+   *        Righthandside of the assignement.
+   * @param element
+   *        Predecessor of this assignement's AndersonElement.
+   * @param cfaEdge
+  *          Corresponding edge of the CFA.
+   * @return <code>element</code>'s successor.
+   *
+   * @throws UnrecognizedCCodeException
+   */
   private AndersenElement handleAssignmentTo(String op1, IASTRightHandSide op2, AndersenElement element, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
@@ -260,21 +246,10 @@ public class AndersenTransferRelation implements TransferRelation {
       return element.clone();
     }
 
-    IASTVariableDeclaration decl = (IASTVariableDeclaration)declarationEdge.getDeclaration();
+    IASTVariableDeclaration decl = (IASTVariableDeclaration) declarationEdge.getDeclaration();
 
     // get the variable name in the declarator
     String varName = decl.getName();
-    //    String functionName = declarationEdge.getPredecessor().getFunctionName();
-
-    //    // handle global variables
-    //    if(declarationEdge.isGlobal())
-    //    {
-    //      // if this is a global variable, add to the list of global variables
-    //      globalVariables.add(varName);
-    //
-    //      // global variables without initializer are set to 0 in C
-    //      initialValue = 0L;
-    //    }
 
     // get initial value
     IASTInitializer init = decl.getInitializer();
@@ -288,6 +263,10 @@ public class AndersenTransferRelation implements TransferRelation {
     return element.clone();
   }
 
+  /**
+   * Prints a warning to System.err that the statement corresponding to the given
+   * <code>cfaEdge</code> was not handled.
+   */
   private void printWarning(CFAEdge cfaEdge) {
 
     StackTraceElement[] trace = Thread.currentThread().getStackTrace();

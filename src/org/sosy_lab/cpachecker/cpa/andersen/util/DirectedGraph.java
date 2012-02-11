@@ -30,61 +30,140 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * This class represents a directed graph.<br>
+ * A new {@link DirectedGraph.Node} for the variable <code>var</code> is inserted by calling
+ * {@link DirectedGraph#getNode(String var)} if <code>var</code> is not already mapped to another
+ * node.
+ */
 public class DirectedGraph {
 
+  /**
+   * This class represents a <code>Node</code> in a {@link DirectedGraph}.
+   */
   public class Node {
 
+    /** The Node this one was merged into, or <code>null</code> if this node is still valid. */
     private DirectedGraph.Node replacement = null;
 
     public int dfs = 0;
     public int lowlink = 0;
 
+    /** The {@link DirectedGraph.Node} this points-to variables can safely be merged with. */
     public DirectedGraph.Node mergePts = null;
 
+    /**
+     * {var | "*n \subseteq var" \in complex-constraints}, where n is (one of) the variable(s) this
+     * {@link DirectedGraph.Node} stands for.
+     */
     public final Set<String> complexConstrMeSub = new HashSet<String>();
+
+    /**
+     * {var | "var \subseteq *n" \in complex-constraints}, where n is (one of) the variable(s) this
+     * {@link DirectedGraph.Node} stands for.
+     */
     public final Set<String> complexConstrMeSuper = new HashSet<String>();
 
+    /** This {@link DirectedGraph.Node}s points-to set. */
     private final Set<String> pointsToSet = new HashSet<String>();
 
+    /** This {@link DirectedGraph.Node}s predecessors. */
     private final Set<DirectedGraph.Node> predecessors = new HashSet<DirectedGraph.Node>();
+
+    /** This {@link DirectedGraph.Node}s successors. */
     private final Set<DirectedGraph.Node> successors = new HashSet<DirectedGraph.Node>();
 
+
+    private Node() {}
+
+    /**
+     * Test if this {@link DirectedGraph.Node} is valid.<br>
+     * <i>Note:</i> A {@link DirectedGraph.Node} gets invalid, if it is merged into another one.
+     *
+     * @return <code>true</code> if this {@link DirectedGraph.Node} is still valid.
+     *
+     * @see DirectedGraph.Node#getReplacement()
+     */
     public boolean isValid() {
 
       return replacement == null;
     }
 
+    /**
+     * Returns the {@link DirectedGraph.Node}, this one was merged into, or <code>null</code> if
+     * this {@link DirectedGraph.Node} is still vaild.
+     *
+     * @return the {@link DirectedGraph.Node} this one was merged into.
+     *
+     * @see DirectedGraph.Node#isValid()
+     */
     public DirectedGraph.Node getReplacement() {
 
       return replacement;
     }
 
+    /**
+     * Tests if the given {@link DirectedGraph.Node} is a successor of this one. In other words,
+     * tests if there is an edge from this {@link DirectedGraph.Node} to the passed one.
+     *
+     * @param succ
+     *        The other {@link DirectedGraph.Node}.
+     * @return <code>true</code> if the given {@link DirectedGraph.Node} is a successor of this one.
+     */
     public boolean isSuccessor(DirectedGraph.Node succ) {
 
       return successors.contains(succ);
     }
 
+    /**
+     * Returns a {@link Collection} of this {@link DirectedGraph.Node}s successors.
+     *
+     * @return a {@link Collection} of this {@link DirectedGraph.Node}s successors.
+     */
     public Collection<DirectedGraph.Node> getSuccessors() {
 
       return successors;
     }
 
+    /**
+     * Propagates all points-to information from this {@link DirectedGraph.Node} to the given one.
+     *
+     * @return <code>true</code> if the points-to set of the given {@link DirectedGraph.Node}
+     *         changed as a result of this call.
+     */
     public boolean propagatePointerTargetsTo(DirectedGraph.Node other) {
 
       return other.pointsToSet.addAll(this.pointsToSet);
     }
 
+    /**
+     * Adds a variable to this {@link DirectedGraph.Node}s points-to set.
+     *
+     * @param var
+     *        Name of the variable that should be added to this {@link DirectedGraph.Node}s
+     *        points-to set.
+     */
     public void addPointerTarget(String var) {
 
       pointsToSet.add(var);
     }
 
+    /**
+     * Returns a {@link Collection} of this {@link DirectedGraph.Node}s points-to set.
+     *
+     * @return this {@link DirectedGraph.Node}'s points-to set.
+     */
     public Collection<String> getPointsToSet() {
 
       return pointsToSet;
     }
 
-    public Collection<DirectedGraph.Node> getPointsToNodesSet() {
+    /**
+     * Returns a {@link Set} of {@link DirectedGraph.Node}s of this ones points-to set.
+     *
+     * @return the {@link DirectedGraph.Node}s the variables of this ones points-to sets represent.
+     */
+    public Set<DirectedGraph.Node> getPointsToNodesSet() {
 
       HashSet<DirectedGraph.Node> ptNSet = new HashSet<DirectedGraph.Node>();
 
@@ -95,11 +174,27 @@ public class DirectedGraph {
     }
   }
 
+  /**
+   * The <code>Edge</code> represents an edge in the corresponding graph. This class only
+   * encapsulates two nodes and is note directly used in the {@link DirectedGraph}.
+   */
   public class Edge {
 
+    /** The source {@link DirectedGraph.Node} of this {@link DirectedGraph.Edge}. */
     public final DirectedGraph.Node src;
+
+    /** The destination {@link DirectedGraph.Node} of this {@link DirectedGraph.Edge}. */
     public final DirectedGraph.Node dest;
 
+    /**
+     * Creates a new {@link DirectedGraph.Edge} with the given {@link DirectedGraph.Node}s as source
+     * and destination.
+     *
+     * @param src
+     *        The source {@link DirectedGraph.Node} of this {@link DirectedGraph.Edge}.
+     * @param dest
+     *        The destination {@link DirectedGraph.Node} of this {@link DirectedGraph.Edge}.
+     */
     public Edge(DirectedGraph.Node src, DirectedGraph.Node dest) {
       this.src = src;
       this.dest = dest;
@@ -130,6 +225,7 @@ public class DirectedGraph {
     }
   }
 
+  /** This graphs name mapping. */
   private final Map<String, DirectedGraph.Node> nameMapping = new HashMap<String, DirectedGraph.Node>();
 
   /**
@@ -253,6 +349,16 @@ public class DirectedGraph {
     return merged;
   }
 
+  /**
+   * Returns the {@link DirectedGraph.Node} of this {@link DirectedGraph} representing the given
+   * variable. If there is no node associated with the given variable, a new one is created and
+   * returned.
+   *
+   * @param var
+   *        Variable name for the requested {@link DirectedGraph.Node}.
+   *
+   * @return the {@link DirectedGraph.Node} associated witht he given variable.
+   */
   public DirectedGraph.Node getNode(String var) {
 
     Node n = nameMapping.get(var);
@@ -270,6 +376,12 @@ public class DirectedGraph {
     return n;
   }
 
+  /**
+   * Returns the name mappings for this graph. Modifications of the elements of the returned
+   * {@link Collection} are reflected in this graphs name mapping.
+   *
+   * @return a {@link Collection} of name mappings.
+   */
   public Set<Map.Entry<String, Node>> getNameMappings() {
 
     Set<Map.Entry<String, Node>> entrySet = nameMapping.entrySet();
@@ -283,6 +395,14 @@ public class DirectedGraph {
     return nameMapping.entrySet();
   }
 
+  /**
+   * Adds an edge to this graph.
+   *
+   * @param src
+   *        Source node of the new edge.
+   * @param dest
+   *        Destination node of the new edge.
+   */
   public void addEdge(DirectedGraph.Node src, DirectedGraph.Node dest) {
 
     if (src == dest)
@@ -290,10 +410,5 @@ public class DirectedGraph {
 
     src.successors.add(dest);
     dest.predecessors.add(src);
-  }
-
-  public void clear() {
-
-    nameMapping.clear();
   }
 }
