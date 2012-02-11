@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.anderson;
+package org.sosy_lab.cpachecker.cpa.andersen;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -48,11 +48,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 @Options(prefix="cpa.pointerA")
-public class PointerACPA implements ConfigurableProgramAnalysisWithABM {
+public class AndersenCPA implements ConfigurableProgramAnalysisWithABM {
 
   public static CPAFactory factory()
   {
-    return AutomaticCPAFactory.forType(PointerACPA.class);
+    return AutomaticCPAFactory.forType(AndersenCPA.class);
   }
 
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
@@ -79,14 +79,14 @@ public class PointerACPA implements ConfigurableProgramAnalysisWithABM {
   private final Configuration config;
   private final LogManager logger;
 
-  private PointerACPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private AndersenCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     this.config = config;
     this.logger = logger;
 
     config.inject(this);
 
-    abstractDomain      = new PointerADomain();
-    transferRelation    = new PointerATransferRelation(config);
+    abstractDomain      = new AndersenDomain();
+    transferRelation    = new AndersenTransferRelation(config);
 //    precision           = initializePrecision();
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
@@ -154,12 +154,12 @@ public class PointerACPA implements ConfigurableProgramAnalysisWithABM {
 
   @Override
   public AbstractElement getInitialElement(CFANode node) {
-    return new PointerAElement();
+    return new AndersenElement();
   }
 
   @Override
   public Precision getInitialPrecision(CFANode pNode) {
-    return new PointerAPrecision();
+    return new AndersenPrecision();
   }
 
   @Override

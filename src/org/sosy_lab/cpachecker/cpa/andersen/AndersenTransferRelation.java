@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.anderson;
+package org.sosy_lab.cpachecker.cpa.andersen;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -50,16 +50,16 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.anderson.util.BaseConstraint;
-import org.sosy_lab.cpachecker.cpa.anderson.util.ComplexConstraint;
-import org.sosy_lab.cpachecker.cpa.anderson.util.SimpleConstraint;
+import org.sosy_lab.cpachecker.cpa.andersen.util.BaseConstraint;
+import org.sosy_lab.cpachecker.cpa.andersen.util.ComplexConstraint;
+import org.sosy_lab.cpachecker.cpa.andersen.util.SimpleConstraint;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 @Options(prefix = "cpa.pointerA")
-public class PointerATransferRelation implements TransferRelation {
+public class AndersenTransferRelation implements TransferRelation {
 
-  public PointerATransferRelation(Configuration config) throws InvalidConfigurationException {
+  public AndersenTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
 
@@ -69,7 +69,7 @@ public class PointerATransferRelation implements TransferRelation {
       throws CPATransferException {
 
     AbstractElement successor = null;
-    PointerAElement pointerAElement = (PointerAElement) element;
+    AndersenElement pointerAElement = (AndersenElement) element;
 
     // check the type of the edge
     switch (cfaEdge.getEdgeType()) {
@@ -143,7 +143,7 @@ public class PointerATransferRelation implements TransferRelation {
     return null;
   }
 
-  private PointerAElement handleStatement(PointerAElement element, IASTStatement expression, CFAEdge cfaEdge)
+  private AndersenElement handleStatement(AndersenElement element, IASTStatement expression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     // e.g. a = b;
@@ -161,7 +161,7 @@ public class PointerATransferRelation implements TransferRelation {
       throw new UnrecognizedCCodeException(cfaEdge, expression);
   }
 
-  private PointerAElement handleAssignment(PointerAElement element, IASTAssignment assignExpression, CFAEdge cfaEdge)
+  private AndersenElement handleAssignment(AndersenElement element, IASTAssignment assignExpression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     IASTExpression op1 = assignExpression.getLeftHandSide();
@@ -182,7 +182,7 @@ public class PointerATransferRelation implements TransferRelation {
 
       if (op1 instanceof IASTIdExpression) {
 
-        PointerAElement succ = element.clone();
+        AndersenElement succ = element.clone();
         succ.addConstraint(new ComplexConstraint(op2.toASTString(), op1.toASTString(), false));
         return succ;
 
@@ -193,7 +193,7 @@ public class PointerATransferRelation implements TransferRelation {
       throw new UnrecognizedCCodeException("not supported", cfaEdge, op1);
   }
 
-  private PointerAElement handleAssignmentTo(String op1, IASTRightHandSide op2, PointerAElement element, CFAEdge cfaEdge)
+  private AndersenElement handleAssignmentTo(String op1, IASTRightHandSide op2, AndersenElement element, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     // unpack cast if necessary
@@ -204,7 +204,7 @@ public class PointerATransferRelation implements TransferRelation {
 
       // a = b; simple constraint
 
-      PointerAElement succ = element.clone();
+      AndersenElement succ = element.clone();
       succ.addConstraint(new SimpleConstraint(op2.toASTString(), op1));
       return succ;
 
@@ -216,7 +216,7 @@ public class PointerATransferRelation implements TransferRelation {
 
       if (op2 instanceof IASTIdExpression) {
 
-        PointerAElement succ = element.clone();
+        AndersenElement succ = element.clone();
         succ.addConstraint(new BaseConstraint(op2.toASTString(), op1));
         return succ;
 
@@ -231,7 +231,7 @@ public class PointerATransferRelation implements TransferRelation {
 
       if (op2 instanceof IASTIdExpression) {
 
-        PointerAElement succ = element.clone();
+        AndersenElement succ = element.clone();
         succ.addConstraint(new ComplexConstraint(op2.toASTString(), op1, true));
         return succ;
 
@@ -241,7 +241,7 @@ public class PointerATransferRelation implements TransferRelation {
     } else if (op2 instanceof IASTFunctionCallExpression
         && "malloc".equals(((IASTFunctionCallExpression) op2).getFunctionNameExpression().toASTString())) {
 
-      PointerAElement succ = element.clone();
+      AndersenElement succ = element.clone();
       succ.addConstraint(new BaseConstraint("malloc-" + cfaEdge.getLineNumber(), op1));
       return succ;
 
@@ -252,7 +252,7 @@ public class PointerATransferRelation implements TransferRelation {
     return element.clone();
   }
 
-  private PointerAElement handleDeclaration(PointerAElement element, DeclarationEdge declarationEdge)
+  private AndersenElement handleDeclaration(AndersenElement element, DeclarationEdge declarationEdge)
       throws UnrecognizedCCodeException {
 
     if (!(declarationEdge.getDeclaration() instanceof IASTVariableDeclaration)) {

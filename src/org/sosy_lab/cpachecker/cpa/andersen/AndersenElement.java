@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.anderson;
+package org.sosy_lab.cpachecker.cpa.andersen;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -31,12 +31,12 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.cpa.anderson.util.BaseConstraint;
-import org.sosy_lab.cpachecker.cpa.anderson.util.ComplexConstraint;
-import org.sosy_lab.cpachecker.cpa.anderson.util.DirectedGraph;
-import org.sosy_lab.cpachecker.cpa.anderson.util.SimpleConstraint;
+import org.sosy_lab.cpachecker.cpa.andersen.util.BaseConstraint;
+import org.sosy_lab.cpachecker.cpa.andersen.util.ComplexConstraint;
+import org.sosy_lab.cpachecker.cpa.andersen.util.DirectedGraph;
+import org.sosy_lab.cpachecker.cpa.andersen.util.SimpleConstraint;
 
-public class PointerAElement implements AbstractElement, Cloneable {
+public class AndersenElement implements AbstractElement, Cloneable {
 
   // ------- global constraint system -------
   private static final Set<BaseConstraint> gBaseConstraints = new HashSet<BaseConstraint>();
@@ -56,7 +56,7 @@ public class PointerAElement implements AbstractElement, Cloneable {
 
   private boolean lChanged = false;
 
-  public PointerAElement() {}
+  public AndersenElement() {}
 
   /**
    * Add a (new) {@link BaseConstraint} to this element.
@@ -446,7 +446,7 @@ public class PointerAElement implements AbstractElement, Cloneable {
     if (other == null || !this.getClass().equals(other.getClass()))
       return false;
 
-    PointerAElement oEl = (PointerAElement) other;
+    AndersenElement oEl = (AndersenElement) other;
 
     return (this.lBaseConstraints.equals(oEl.lBaseConstraints)
         && this.lSimpleConstraints.equals(oEl.lSimpleConstraints)
@@ -454,11 +454,11 @@ public class PointerAElement implements AbstractElement, Cloneable {
   }
 
   @Override
-  public PointerAElement clone() {
+  public AndersenElement clone() {
 
     // super.clone() is not possible for final attributes... and the list interface also doesn't
     // provide a clone() method
-    PointerAElement clone = new PointerAElement();
+    AndersenElement clone = new AndersenElement();
 
     clone.lBaseConstraints.addAll(this.lBaseConstraints);
     clone.lSimpleConstraints.addAll(this.lSimpleConstraints);
