@@ -25,12 +25,15 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Joiner;
 
@@ -38,10 +41,12 @@ import com.google.common.base.Joiner;
  * This class combines a AutomatonInternal State with a variable Configuration.
  * Instaces of this class are passed to the CPAchecker as AbstractElement.
  */
-class AutomatonState implements AbstractQueryableElement, Targetable {
+public class AutomatonState implements AbstractQueryableElement, Targetable, Serializable {
+  private static final long serialVersionUID = -4665039439114057346L;
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
 
   static class TOP extends AutomatonState {
+    private static final long serialVersionUID = -7848577870312049023L;
     public TOP(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable>emptyMap(),
             new AutomatonInternalState("_predefinedState_TOP", Collections.<AutomatonTransition>emptyList()),
@@ -57,6 +62,7 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
     }
   }
   static class BOTTOM extends AutomatonState {
+    private static final long serialVersionUID = -401794748742705212L;
     public BOTTOM(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable>emptyMap(),
             AutomatonInternalState.BOTTOM,
@@ -72,9 +78,9 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
     }
   }
 
-  private final ControlAutomatonCPA automatonCPA;
+  private transient final ControlAutomatonCPA automatonCPA;
   private final Map<String, AutomatonVariable> vars;
-  private final AutomatonInternalState internalState;
+  private transient AutomatonInternalState internalState;
 
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
@@ -134,6 +140,7 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
    * During the subsequent "strengthen" call enough information should be available to determine a normal AutomatonState as following State.
    */
   static class AutomatonUnknownState extends AutomatonState {
+    private static final long serialVersionUID = -2010032222354565037L;
     private final AutomatonState previousState;
 
     AutomatonUnknownState(AutomatonState pPreviousState) {
@@ -228,7 +235,22 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
     return internalState;
   }
 
+  public String getInternalStateName() {
+    return internalState.getName();
+  }
+
   Map<String, AutomatonVariable> getVars() {
    return vars;
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    out.defaultWriteObject();
+    out.writeInt(internalState.getStateId());
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+    int stateId = in.readInt();
+    internalState = GlobalInfo.getInstance().getAutomatonInfo().getStateById(stateId);
   }
 }

@@ -41,6 +41,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
@@ -151,9 +153,12 @@ public class ARTUtils {
    * @param pathEdges the edges of the error path (may be empty)
    * @return the ART as DOT graph
    */
-  static String convertARTToDot(ReachedSet pReached, Set<Pair<ARTElement, ARTElement>> pathEdges) {
+  public static String convertARTToDot(ReachedSet pReached, Set<Pair<ARTElement, ARTElement>> pathEdges) {
     ARTElement firstElement = (ARTElement)pReached.getFirstElement();
+    return convertARTToDot(firstElement, pathEdges);
+  }
 
+  public static String convertARTToDot(ARTElement firstElement, Set<Pair<ARTElement, ARTElement>> pathEdges) {
     Deque<ARTElement> worklist = new LinkedList<ARTElement>();
     Set<Integer> nodesList = new HashSet<Integer>();
     Set<ARTElement> processed = new HashSet<ARTElement>();
@@ -175,8 +180,7 @@ public class ARTUtils {
 
       if(!nodesList.contains(currentElement.getElementId())){
 
-        CFANode loc = extractLocation(currentElement);
-        String label = ((loc == null) ? 0 : loc.getNodeNumber()) + "000" + currentElement.getElementId();
+        String label = determineLabel(currentElement);
 
         sb.append(currentElement.getElementId());
         sb.append(" [");
@@ -233,6 +237,59 @@ public class ARTUtils {
     sb.append(edges);
     sb.append("}\n");
     return sb.toString();
+  }
+
+  private static String determineLabel(ARTElement currentElement) {
+    StringBuilder builder = new StringBuilder();
+
+    builder.append(currentElement.getElementId());
+    builder.append(" (");
+
+    boolean first = true;
+
+    CFANode loc = AbstractElements.extractLocation(currentElement);
+    if(loc != null) {
+      if(first) {
+        first = false;
+      } else {
+        builder.append(", ");
+      }
+      builder.append(loc.toString());
+    }
+
+    AutomatonState state = AbstractElements.extractElementByType(currentElement, AutomatonState.class);
+    if(state != null) {
+      if(first) {
+        first = false;
+      } else {
+        builder.append(", ");
+      }
+      builder.append(state.getInternalStateName());
+    }
+
+    PredicateAbstractElement abstraction = AbstractElements.extractElementByType(currentElement, PredicateAbstractElement.class);
+    if(abstraction != null && abstraction.isAbstractionElement()) {
+      if(first) {
+        first = false;
+      } else {
+        builder.append(", ");
+      }
+      builder.append(abstraction.getAbstractionFormula().asFormula().toString());
+    }
+
+    ExplicitElement explicit = AbstractElements.extractElementByType(currentElement, ExplicitElement.class);
+    if(explicit != null) {
+      if(first) {
+        first = false;
+      } else {
+        builder.append(", ");
+      }
+      builder.append(explicit.toCompactString());
+    }
+
+    builder.append(")");
+
+    return builder.toString();
   }
 
   /**

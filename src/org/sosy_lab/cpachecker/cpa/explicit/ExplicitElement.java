@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.explicit;
 import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -38,7 +39,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Preconditions;
 
-public class ExplicitElement implements AbstractQueryableElement, FormulaReportingElement {
+public class ExplicitElement implements AbstractQueryableElement, FormulaReportingElement, Serializable {
+  private static final long serialVersionUID = -3152134511524554357L;
+
   /**
    * the map that keeps the name of variables and their constant values
    */
@@ -189,6 +192,28 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     }
 
     return sb.append("] size->  ").append(constantsMap.size()).toString();
+  }
+
+  public String toCompactString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("[");
+
+    boolean first = true;
+    for (Map.Entry<String, Long> entry: constantsMap.entrySet())
+    {
+      if(first) {
+        first = false;
+      } else {
+        sb.append(", ");
+      }
+      String key = entry.getKey();
+      sb.append(key);
+      sb.append("=");
+      sb.append(entry.getValue());
+    }
+    sb.append("]");
+
+    return sb.toString();
   }
 
   @Override

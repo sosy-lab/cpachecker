@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.location;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.SortedSet;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -33,11 +35,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 
-public class LocationElement implements AbstractElementWithLocation, AbstractQueryableElement, Partitionable {
+public class LocationElement implements AbstractElementWithLocation, AbstractQueryableElement, Partitionable, Serializable {
+
+  private static final long serialVersionUID = -801176497691618779L;
 
   static class LocationElementFactory {
     private final LocationElement[] elements;
@@ -63,7 +68,7 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     }
   }
 
-    private final CFANode locationNode;
+    private transient CFANode locationNode;
 
     private LocationElement(CFANode locationNode) {
         this.locationNode = locationNode;
@@ -126,4 +131,17 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     }
 
     // no equals and hashCode because there is always only one element per CFANode
+
+
+    //TODO: could also use a serial proxy to return the right location node using the factory
+    private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+      out.defaultWriteObject();
+      out.writeInt(locationNode.getNodeNumber());
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+      in.defaultReadObject();
+      int nodeNumber = in.readInt();
+      locationNode = GlobalInfo.getInstance().getCFAInfo().getNodeByNodeNumber(nodeNumber);
+    }
 }

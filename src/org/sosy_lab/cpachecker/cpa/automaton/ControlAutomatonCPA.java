@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 /**
  * This class implements an AutomatonAnalysis as described in the related Documentation.
@@ -128,6 +129,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
         logger.log(Level.WARNING, "Could not create/write to the Automaton DOT file \"" + exportFile + "\"");
       }
     }
+
+    GlobalInfo.getInstance().storeAutomaton(automaton);
   }
 
   Automaton getAutomaton() {

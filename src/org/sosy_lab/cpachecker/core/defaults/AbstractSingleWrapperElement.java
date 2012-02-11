@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import java.io.Serializable;
 import java.util.Collections;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -37,8 +38,9 @@ import com.google.common.base.Preconditions;
  * Base class for AbstractElements which wrap the abstract element of exactly
  * one CPA.
  */
-public abstract class AbstractSingleWrapperElement implements AbstractWrapperElement, Targetable, Partitionable {
+public abstract class AbstractSingleWrapperElement implements AbstractWrapperElement, Targetable, Partitionable, Serializable {
 
+  private static final long serialVersionUID = -332757795984736107L;
   private static Function<AbstractElement, AbstractElement> unwrapFunction
       = new Function<AbstractElement, AbstractElement>() {
 
