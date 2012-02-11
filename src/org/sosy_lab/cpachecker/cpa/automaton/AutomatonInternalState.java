@@ -23,16 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 /** Represents a State in the automaton.
  */
-public class AutomatonInternalState implements Serializable {
-  //TODO: maybe treat Automaton as CFA (i.e. dot not serialize it)?
-  private static final long serialVersionUID = -8980553179171668308L;
+public class AutomatonInternalState {
   // the StateId is used to identify States in GraphViz
   private static int stateIdCounter = 0;
   // stateIdCounter is incremented every time an instance of AutomatonState is created.
