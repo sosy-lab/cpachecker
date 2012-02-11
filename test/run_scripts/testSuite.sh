@@ -1,6 +1,7 @@
 #!/bin/bash
 
-testsPositive="benchmarks/lu-fig2.fixed.cil.c benchmarks/lu-fig4-complete.fixed.cil.c benchmarks/read_write_lock.cil.c  various/mutex-safe-modular.cil.c various/simple-safe-modular.cil.c benchmarks/bakery.simple.cil.c"
+testsPositive="benchmarks/lu-fig2.fixed.cil.c benchmarks/lu-fig4-complete.fixed.cil.c benchmarks/read_write_lock.cil.c  various/mutex-safe-modular.cil.c various/simple-safe-modular.cil.c benchmarks/bakery.simple.cil.c benchmarks/bluetooth.cav09.cil.c benchmarks/dekker.cil.c benchmarks/peterson.cil.c benchmarks/time_var_mutex.cil.c benchmarks/szymanski.cil.c benchmarks/bakery.cil.c benchmarks/lamport.cil.c"
+testsPositive="benchmarks/lu-fig2.fixed.cil.c benchmarks/lu-fig4-complete.fixed.cil.c benchmarks/read_write_lock.cil.c  various/mutex-safe-modular.cil.c various/simple-safe-modular.cil.c benchmarks/bakery.simple.cil.c benchmarks/dekker.cil.c benchmarks/peterson.cil.c benchmarks/time_var_mutex.cil.c benchmarks/szymanski.cil.c benchmarks/bakery.cil.c benchmarks/lamport.cil.c"
 testsNegative="benchmarks/lu-fig2.cil.c benchmarks/lu-fig4-complete.cil.c various/mutex-unsafe.cil.c various/real-unsafe.cil.c various/simple-unsafe.cil.c"
 
 positiveMsg='NO, the system is considered safe by the chosen CPAs'
@@ -36,7 +37,8 @@ do
     grep  "$positiveMsg" out >/dev/null
     if [ $? -ne 0 ]; then
 	echo ""
-	echo "Error: scripts/cpa.sh -concurrent -config $configDir/$1 $testDir/$test > out 2>/dev/null"
+	echo "Error:"
+	echo "scripts/cpa.sh -concurrent -config $configDir/$1 $testDir/$test > out"
 	exit 1
     fi
 done;
@@ -50,7 +52,8 @@ do
 
     if [ $? -ne 0 ]; then
 	echo ""
-	echo "Error: scripts/cpa.sh -concurrent -config $configDir/$1 $testDir/$test > out 2>/dev/null"
+	echo "Error:"
+	echo "scripts/cpa.sh -concurrent -config $configDir/$1 $testDir/$test > out"
 	exit 1
     fi
 done;

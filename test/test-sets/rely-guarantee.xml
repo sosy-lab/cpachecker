@@ -22,6 +22,8 @@
       <include>test/programs/multi-threaded/benchmarks/szymanski.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/bakery.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/lamport.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-safe-nonmodular.cil.c</include>
+ 
     </sourcefiles>
 
       <option name="-concurrent"/>
@@ -48,6 +50,7 @@
       <include>test/programs/multi-threaded/benchmarks/szymanski.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/bakery.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/lamport.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-safe-nonmodular.cil.c</include>
     </sourcefiles>
 
       <option name="-concurrent"/>
@@ -74,6 +77,7 @@
       <include>test/programs/multi-threaded/benchmarks/szymanski.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/bakery.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/lamport.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-safe-nonmodular.cil.c</include>
     </sourcefiles>
 
       <option name="-concurrent"/>

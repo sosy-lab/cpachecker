@@ -155,14 +155,6 @@ counterexample.removeInfeasibleErrors = false
 # CPA to use (see HowToConfiguration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
-# disable caching of abstract state spaces for blocks
-cpa.abm.NO_CACHING = false
-
-# Type of partitioning (FunctionAndLoopPartitioning or
-# DelayedFunctionAndLoopPartitioning)
-# or any class that implements a PartitioningHeuristic
-cpa.abm.blockHeuristic = "FunctionAndLoopPartitioning"
-
 # export error path to file, if one is found
 cpa.art.errorPath.core = "ErrorPathCore.txt"
 cpa.art.errorPath.export = true
@@ -264,9 +256,6 @@ cpa.pointer.merge = "sep"
 
 # print warnings during analysis when unsafe pointer operations are found
 cpa.pointer.printWarnings = true
-
-# whether to use auxiliary predidates for reduction
-cpa.predicate.abm.auxiliaryPredicateComputer = true
 
 # use caching of region to formula conversions
 # use caching of abstractions

@@ -48,21 +48,25 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTr
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class ARTTransferRelation implements TransferRelation, StatisticsProvider {
 
   private final TransferRelation transferRelation;
-  private final Map<CFANode, Integer> locationMapping;
+  private ImmutableMap<CFANode, Integer> locationMapping;
   private final int tid;
 
   private final Stats stats;
 
-  public ARTTransferRelation(TransferRelation tr, Map<CFANode, Integer> locationMapping, int tid) {
-
+  public ARTTransferRelation(TransferRelation tr, ImmutableMap<CFANode, Integer> locationMapping, int tid) {
     this.transferRelation = tr;
     this.locationMapping = locationMapping;
     this.tid = tid;
     this.stats = new Stats(tid);
+  }
+
+  public void setLocationMapping(ImmutableMap<CFANode, Integer> lm){
+    locationMapping = lm;
   }
 
   @Override

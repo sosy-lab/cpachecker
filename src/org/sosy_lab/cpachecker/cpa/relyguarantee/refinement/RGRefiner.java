@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
+import org.sosy_lab.cpachecker.cpa.art.ARTTransferRelation;
 import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
@@ -64,6 +65,7 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
@@ -93,7 +95,7 @@ public class RGRefiner implements StatisticsProvider{
   private final RGLocationRefinementManager locrefManager;
   private final ARTCPA[] artCpas;
 
-  private final  RGEnvironmentManager rgEnvironment;
+  private final  RGEnvironmentManager environment;
   private static RGRefiner singleton;
 
   /**
@@ -122,7 +124,7 @@ public class RGRefiner implements StatisticsProvider{
       }
     }
 
-    this.rgEnvironment = rgEnvironment;
+    this.environment = rgEnvironment;
     this.stats = new Stats();
 
     RGCPA rgCPA = artCpas[0].retrieveWrappedCpa(RGCPA.class);
@@ -194,7 +196,6 @@ public class RGRefiner implements StatisticsProvider{
       stats.restartingTimer.start();
       refinementResult = restartingRefinement(reachedSets, counterexampleInfo);
 
-
       // drop subtrees and change precision
       for(int tid : refinementResult.keySet()){
         for(Pair<ARTElement, RGPrecision> pair : refinementResult.get(tid)){
@@ -214,8 +215,8 @@ public class RGRefiner implements StatisticsProvider{
               System.out.println("Precision for thread "+tid+":");
               System.out.println("\t-ART local "  + prec.getPredicateMap());
               System.out.println("\t-ART global " + prec.getGlobalPredicates());
-              System.out.println("\t-Env local "  +  rgEnvironment.getEnvPrecision()[tid]);
-              System.out.println("\t-Env global " + rgEnvironment.getEnvGlobalPrecision()[tid]);
+              System.out.println("\t-Env local "  +  environment.getEnvPrecision()[tid]);
+              System.out.println("\t-Env global " + environment.getEnvGlobalPrecision()[tid]);
             }
           }
         }
@@ -255,10 +256,32 @@ public class RGRefiner implements StatisticsProvider{
     // multimap : thread no -> (ART element)
     Multimap<Integer, ARTElement> artMap = HashMultimap.create();
 
+
+
     boolean newPredicates = false;
+    boolean newLM = false;
 
     if (debug){
       System.out.println("New predicates:");
+    }
+
+    ImmutableMap<CFANode, Integer> lm = info.getRefinedLocationMapping();
+    if (lm != null){
+      newLM = true;
+
+      if (true){
+        System.out.println("new location mapping:");
+        System.out.println(lm);
+      }
+      environment.setLocationMapping(lm);
+
+      for (int i=0; i<artCpas.length; i++){
+        ARTCPA artCpa = artCpas[i];
+        artCpa.setLocationMapping(lm);
+        ARTTransferRelation tr = (ARTTransferRelation) artCpa.getTransferRelation();
+        tr.setLocationMapping(lm);
+      }
+
     }
 
     // add env. predicates to precision
@@ -270,7 +293,7 @@ public class RGRefiner implements StatisticsProvider{
       Collection<AbstractionPredicate> preds = info.getEnvPredicatesForRefinement(aElement);
 
       if (!this.addEnvPredicatesGlobally){
-        SetMultimap<CFANode, AbstractionPredicate> tPrec = rgEnvironment.getEnvPrecision()[tid];
+        SetMultimap<CFANode, AbstractionPredicate> tPrec = environment.getEnvPrecision()[tid];
         if (!tPrec.get(loc).containsAll(preds)){
           newPredicates = true;
           Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(preds);
@@ -281,7 +304,7 @@ public class RGRefiner implements StatisticsProvider{
         }
         tPrec.putAll(loc, preds);
       } else {
-        Set<AbstractionPredicate> tPrec = rgEnvironment.getEnvGlobalPrecision()[tid];
+        Set<AbstractionPredicate> tPrec = environment.getEnvGlobalPrecision()[tid];
         if (!tPrec.containsAll(preds)){
           newPredicates = true;
           Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(preds);
@@ -363,7 +386,7 @@ public class RGRefiner implements StatisticsProvider{
       }
 
     }
-    assert newPredicates;
+    assert newPredicates || newLM;
 
     return refinementMap;
   }

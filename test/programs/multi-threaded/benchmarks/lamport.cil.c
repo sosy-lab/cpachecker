@@ -19,7 +19,7 @@ int X  ;
 #line 8 "lamport.c"
 
 #line 11 "lamport.c"
-void thr1(void) 
+void thread0(void) 
 { 
 
 
@@ -124,7 +124,7 @@ void thr1(void)
 }
 }
 #line 39 "lamport.c"
-void thr2(void) 
+void thread1(void) 
 { 
 
 

@@ -181,6 +181,10 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     targetPath = pTargetPath;
   }
 
+  public void setLocationMapping(ImmutableMap<CFANode, Integer> lm) {
+    this.locationMapping = lm;
+  }
+
 
 
 

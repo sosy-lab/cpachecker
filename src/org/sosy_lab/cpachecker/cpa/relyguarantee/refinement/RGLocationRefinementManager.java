@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -76,6 +77,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatPredicates;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -178,21 +180,59 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     Multimap <Integer, Pair<CFANode, CFANode>> inqMap = LinkedHashMultimap.create();
 
     for (Path pi : paths){
-      Multimap <Integer, Pair<CFANode, CFANode>> threadLocInq = findLocationInequalities(pi);
+      Multimap <Integer, Pair<CFANode, CFANode>> threadLocInq = findLocationInequalities(pi, true);
+
+      if (threadLocInq.isEmpty()){
+        // concreate, feasible error path found
+        counterexample.setCounterexamplePath(pi);
+        return counterexample;
+      }
+
       inqMap.putAll(threadLocInq);
     }
 
+    // path is spurious, find new location mapping
+    ImmutableMap<CFANode, Integer> refLocationMapping = monotonicLocationMapping(envManager.getLocationMapping(), inqMap);
+    counterexample = new InterpolationTreeResult(true);
+    counterexample.setRefinedLocationMapping(refLocationMapping);
+
     return counterexample;
   }
+
+
+
+  /**
+   * Refines old location mapping by putting mistmatching nodes in different equivalence classes.
+   * @param oldLM
+   * @param inqMap
+   * @return
+   */
+  private ImmutableMap<CFANode, Integer> monotonicLocationMapping(ImmutableMap<CFANode, Integer> oldLM, Multimap<Integer, Pair<CFANode, CFANode>> inqMap) {
+    Collection<Pair<CFANode, CFANode>> inqColl = inqMap.values();
+
+    HashSet<Integer> valSet = new HashSet<Integer>(oldLM.values());
+    Integer topCl = valSet.size();
+
+    HashMap<CFANode, Integer> newLM = new HashMap<CFANode, Integer>(oldLM);
+
+    // put one of the mistmatching nodes in a new class
+    for (Pair<CFANode, CFANode> inq : inqColl){
+      newLM.put(inq.getSecond(), ++topCl);
+    }
+
+    return ImmutableMap.copyOf(newLM);
+  }
+
 
   /**
    * Traverses the path and finds mismatching locations that make it spurious.
    * Returns a map: thread id -> pair of mismatchig locations. The map is empty if
    * the path is feasible w.r.t to locations.
    * @param pi
+   * @param stopAfterFirst find only the first inequality
    * @return
    */
-  private Multimap<Integer, Pair<CFANode, CFANode>> findLocationInequalities(Path pi) {
+  private Multimap<Integer, Pair<CFANode, CFANode>> findLocationInequalities(Path pi, boolean stopAfterFirst) {
 
     Multimap<Integer, Pair<CFANode, CFANode>> inqMap = LinkedHashMultimap.create();
 
@@ -219,7 +259,10 @@ public class RGLocationRefinementManager implements StatisticsProvider{
         // mismatch pc[tid] != loc
         Pair<CFANode, CFANode> mismatch = Pair.of(pc[tid], loc);
         inqMap.put(tid, mismatch);
-        break;
+
+        if (stopAfterFirst){
+          break;
+        }
       }
     }
 

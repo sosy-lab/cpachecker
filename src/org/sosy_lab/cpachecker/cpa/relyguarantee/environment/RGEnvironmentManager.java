@@ -106,7 +106,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
   private final RGVariables variables;
   /** Specifies equivalence classes for locations, i.e. two location are
   equivalent iff they are mapped to the same value */
-  private final Map<CFANode, Integer> locationMapping;
+  private ImmutableMap<CFANode, Integer> locationMapping;
 
   /* Managers */
   private final PathFormulaManager pfManager;
@@ -208,8 +208,14 @@ public class RGEnvironmentManager implements StatisticsProvider{
    * @return
    */
   public ImmutableMap<CFANode, Integer> getLocationMapping() {
-    return ImmutableMap.copyOf(locationMapping);
+    return locationMapping;
   }
+
+
+  public void setLocationMapping(ImmutableMap<CFANode, Integer> pLocationMapping) {
+    locationMapping = pLocationMapping;
+  }
+
 
   /**
    * Add new environmental transitions for processing.
@@ -426,7 +432,8 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
     /* sanity check on request */
     if (debug){
-      // for every input candidate there exist an candidate in cndToProcess that is greater or equal
+      // for every input candidate there exist an candidate in cndToProcess that is greater or equal,
+      // unless the candidate is bottom
       for (RGEnvCandidate cand1 : candidates){
         boolean existsGeq = false;
         for (RGEnvCandidate cand2 : cndToProcess){
@@ -435,7 +442,8 @@ public class RGEnvironmentManager implements StatisticsProvider{
             break;
           }
         }
-        assert existsGeq;
+
+        assert existsGeq || candManager.isBottom(cand1);
       }
 
       // among the candidates in cndToProcess none is less or equal than other
@@ -647,10 +655,10 @@ public class RGEnvironmentManager implements StatisticsProvider{
   }
 
 
-
   public SetMultimap<CFANode, AbstractionPredicate>[] getEnvPrecision() {
     return envPrecision;
   }
+
 
   /**
    * Add predicates to environmental precision of some thread.
@@ -722,18 +730,22 @@ public class RGEnvironmentManager implements StatisticsProvider{
    * @param cfas
    * @return
    */
-  private Map<CFANode, Integer> getEmptyMapping(RGCFA[] cfas) {
+  private ImmutableMap<CFANode, Integer> getEmptyMapping(RGCFA[] cfas) {
 
     Map<CFANode, Integer> map = new HashMap<CFANode, Integer>(100);
 
     for (int i=0; i<cfas.length; i++){
       Collection<CFANode> nodes = cfas[i].getCFANodes().values();
+      System.out.println("t"+i+" :"+nodes);
       for (CFANode node : nodes){
         Integer oldValue = map.put(node, 1);
+        if (oldValue != null){
+          assert false;
+        }
         assert oldValue == null;
       }
     }
-    return map;
+    return ImmutableMap.copyOf(map);
   }
 
 
