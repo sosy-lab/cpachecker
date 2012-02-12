@@ -111,7 +111,7 @@ public class RGSimpleTransition implements RGEnvTransition{
   }
 
   public String toString() {
-    return "st: "+operation.getRawStatement()+", "+abstraction+", "+pf;
+    return "st: "+operation.getRawStatement()+", "+abstraction+", "+pf+", "+lastAbstractionARTElement.getLocationClasses()+"->"+targetARTElement.getLocationClasses();
   }
 
   @Override

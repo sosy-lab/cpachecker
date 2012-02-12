@@ -250,9 +250,9 @@ public class RGTransferRelation  implements TransferRelation {
       appInfo.setRefinementFormula(refPf);
     }
 
-    if (debug){
+    /*if (debug){
       System.out.println("\tby pf '"+appPf+"'");
-    }
+    }*/
 
     return Pair.of(appPf, appInfo);
   }

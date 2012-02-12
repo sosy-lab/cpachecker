@@ -31,6 +31,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import com.google.common.collect.ImmutableList;
+
 public class ARTStopSep implements StopOperator {
 
   private final ConfigurableProgramAnalysis wrappedCpa;
@@ -44,6 +46,7 @@ public class ARTStopSep implements StopOperator {
       Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
 
     ARTElement artElement = (ARTElement)pElement;
+
 
     for (AbstractElement reachedElement : pReached) {
       ARTElement artReachedElement = (ARTElement)reachedElement;
@@ -59,6 +62,13 @@ public class ARTStopSep implements StopOperator {
                                                       throws CPAException {
 
     if (!pReachedElement.mayCover()) {
+      return false;
+    }
+
+    ImmutableList<Integer> locations1 = pElement.getLocationClasses();
+    ImmutableList<Integer> locations2 = pReachedElement.getLocationClasses();
+
+    if (!locations1.equals(locations2)){
       return false;
     }
 

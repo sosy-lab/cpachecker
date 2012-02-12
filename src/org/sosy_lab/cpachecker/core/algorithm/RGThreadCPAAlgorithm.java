@@ -42,7 +42,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.RGCFA;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -50,7 +49,6 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -66,7 +64,6 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTTransferRelation;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGTransferRelation;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
@@ -75,7 +72,6 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCa
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
-import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
 import com.google.common.collect.HashMultimap;
@@ -180,26 +176,16 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       final AbstractElement element =  reachedSet.popFromWaitlist();
       final Precision precision = reachedSet.getPrecision(element);
 
-      logger.log(Level.FINER, "Retrieved element from waitlist");
-      logger.log(Level.ALL, "Current element is", element, "with precision",
-          precision);
-
-
-
       ARTElement aElement = (ARTElement) element;
-      AbstractElementWithLocation lElement = aElement.retrieveLocationElement();
-      CFANode loc = lElement.getLocationNode();
+      CFANode loc = aElement.retrieveLocationElement().getLocationNode();
+
       if (debug){
-        // pretty printing
-        RGAbstractElement rgElement = AbstractElements.extractElementByType(element, RGAbstractElement.class);
-        Precision prec = reachedSet.getPrecision(element);
-        RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
-        System.out.println();
-        System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc);
+        System.out.println("Successors of "+aElement);
       }
 
       stats.transferTimer.start();
       runStats.transferTimer.start();
+
       // if local child was not expanded, then do it, otherwise only apply new env. transitions
       int edgesNo = 0;
 
@@ -216,6 +202,9 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
 
       if (nodeForEnvApp.contains(loc)){
+        if (loc.getNodeNumber() == 23){
+          System.out.println(this.getClass());
+        }
         for (RGEnvTransition template : envEdges){
           // find the edge matching the template
           RGCFAEdge rgEdge = null;
@@ -233,7 +222,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         }
       }
 
-
       if (!aElement.hasLocalChild()){
         for (int i=0; i<loc.getNumLeavingEdges(); i++){
           CFAEdge lEdge = loc.getLeavingEdge(i);
@@ -243,17 +231,23 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         aElement.setHasLocalChild(true);
       }
 
+      if (edges.isEmpty()){
+        System.out.println();
+      }
+
       Collection<Pair<AbstractElement,CFAEdge>> successors = new LinkedHashSet<Pair<AbstractElement,CFAEdge>>(edgesNo);
 
 
       for (CFAEdge edge : edges){
-
         Collection<? extends AbstractElement> newSucc = transferRelation.getAbstractSuccessors(element, precision, edge);
-        // generate env edge
+
+        if (newSucc.isEmpty()){
+          this.printSuccessor(null, edge);
+        }
+
         for (AbstractElement successor : newSucc){
           successors.add(Pair.of(successor, edge));
         }
-
       }
       stats.transferTimer.stop();
       runStats.transferTimer.stop();
@@ -298,7 +292,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         stats.envPrecisionTimer.stop();
 
         if (debug){
-          printRelyGuaranteeAbstractElement(successor);
+          printSuccessor(successor, edge);
         }
 
         if (action == Action.BREAK) {
@@ -389,7 +383,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
           "Successor is covered or unreachable, not adding to waitlist");
 
           if (debug){
-            printCovered(successor);
+            printCovered(successor, reached);
           }
           stats.countStop++;
           if (byEnvEdge){
@@ -402,6 +396,8 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
           reachedSet.add(successor, successorPrecision);
         }
+
+        System.out.println();
       }
 
       if (changeThread && reachedSet.hasWaitingElement()){
@@ -417,70 +413,40 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
     return true;
   }
 
-  private void printCovered(AbstractElement pSuccessor) {
-    ARTElement aSuccessor = (ARTElement) pSuccessor;
-    RGAbstractElement rSuccessor = AbstractElements.extractElementByType(pSuccessor, RGAbstractElement.class);
-    System.out.println("^ Covered  '"+rSuccessor.getAbstractionFormula()+"','"+rSuccessor.getPathFormula()+"' with SSA "+rSuccessor.getPathFormula().getSsa()+" id:"+aSuccessor.getElementId());
-
+  private void printCovered(AbstractElement pSuccessor, Collection<AbstractElement> reached) {
+    System.out.println("\t covered by "+reached);
   }
 
-  private void printMerge(AbstractElement pSuccessor, AbstractElement pReachedElement, AbstractElement pMergedElement) {
-    ARTElement aSuccessor = (ARTElement) pSuccessor;
-    ARTElement aReachedElement = (ARTElement) pReachedElement;
-    ARTElement aMergedElement = (ARTElement) pMergedElement;
-    RGAbstractElement rSuccessor = AbstractElements.extractElementByType(pSuccessor, RGAbstractElement.class);
-    RGAbstractElement rReached   = AbstractElements.extractElementByType(pReachedElement, RGAbstractElement.class);
-    RGAbstractElement rMerged  = AbstractElements.extractElementByType(pMergedElement, RGAbstractElement.class);
-    CFANode lSuccessor = AbstractElements.extractLocation(pSuccessor);
-    CFANode lReached = AbstractElements.extractLocation(pSuccessor);
-    CFANode lMerged = AbstractElements.extractLocation(pSuccessor);
-    System.out.println("+ merged '"+rSuccessor.getAbstractionFormula()+"','"+rSuccessor.getPathFormula()+" id:"+aSuccessor.getElementId()+" at "+lSuccessor);
-    System.out.println("\twith '"+rReached.getAbstractionFormula()+"','"+rReached.getPathFormula()+" id:"+aReachedElement.getElementId()+" at "+lReached);
-    System.out.println("\t= '"+rMerged.getAbstractionFormula()+"','"+rMerged.getPathFormula()+" id:"+aMergedElement.getElementId()+" at "+lMerged);
+  private void printMerge(AbstractElement successor, AbstractElement reachedElement, AbstractElement mergedElement) {
+    System.out.println("\t merged with "+reachedElement);
+    System.out.println("\t to "+mergedElement);
   }
 
   // pretty-printing of successors
-  private void printRelyGuaranteeAbstractElement(AbstractElement pSuccessor) {
-    ARTElement aElement = (ARTElement) pSuccessor;
-    Collection<CFAEdge> parentEdges = aElement.getParentEdges();
+  private void printSuccessor(AbstractElement pSuccessor, CFAEdge edge) {
+    System.out.println("\t-by edge "+edge.getRawStatement()+":");
 
-    assert parentEdges.size() == 1;
-    CFAEdge edge = parentEdges.iterator().next();
-
-    /*if (rgElement.getParentEdge() == null){
-      System.out.println("- by local edge UNKNOWN");
-    }*/
-    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
-      RGCFAEdge rgEdge = (RGCFAEdge) edge;
-      System.out.println("- by env. edge "+rgEdge);
+    if (pSuccessor == null){
+      System.out.println("\t none");
+      System.out.println();
+    } else {
+      System.out.println("\t "+pSuccessor);
     }
-    else {
-      System.out.println("- by local edge "+edge.getRawStatement());
-    }
-
-    RGAbstractElement rgElement = AbstractElements.extractElementByType(pSuccessor, RGAbstractElement.class);
-    CFANode loc = AbstractElements.extractLocation(pSuccessor);
-
-    System.out.println("\t is '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc);
-
   }
-
-
-
 
 
   // returns true if an environmental transition should be created by the edge
   private boolean createsEnvTransition(CFAEdge edge){
-    if (edge.getRawAST() instanceof IASTFunctionCallStatement) {
+    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
       return false;
     }
-    if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
-      return true;
-    }
-    if (edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+
+    if (!edge.getSuccessor().isGeneratesEnv()){
       return false;
     }
-    return false;
+    return true;
+
+
   }
 
   @Override

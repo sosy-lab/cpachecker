@@ -44,6 +44,9 @@ public class CFANode implements Comparable<CFANode> {
   // can rely-guarantee environmental edges be applied to this node?
   private boolean             isEnvAllowed            = true;
 
+  // can it generate rely-guarantee environmental edges?
+  private boolean             generatesEnv            = true;
+
   // in which function is that node?
   private final String        functionName;
 
@@ -195,4 +198,14 @@ public class CFANode implements Comparable<CFANode> {
   public int compareTo(CFANode o) {
     return getNodeNumber() - o.getNodeNumber();
   }
+
+  public boolean isGeneratesEnv() {
+    return generatesEnv;
+  }
+
+  public void setGeneratesEnv(boolean pGeneratesEnv) {
+    generatesEnv = pGeneratesEnv;
+  }
+
+
 }

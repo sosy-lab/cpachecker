@@ -74,11 +74,6 @@ public class RGEnvCandidateManager {
 
     CFAEdge op = c.getOperation();
 
-    // TODO probably not complete
-    if (this.isLocalAssigment(op)){
-      return true;
-    }
-
     Formula absF = c.getRgElement().getAbstractionFormula().asFormula();
     Formula f = c.getRgElement().getPathFormula().getFormula();
 
@@ -107,7 +102,6 @@ public class RGEnvCandidateManager {
       return true;
     }
 
-
     /* destroyed element is covered by some other, but not
      * necessarily c2 */
     if (c1.getElement().isDestroyed()){
@@ -116,11 +110,6 @@ public class RGEnvCandidateManager {
 
     CFAEdge op1 = c1.getOperation();
     CFAEdge op2 = c2.getOperation();
-
-    // TODO probably not complete
-    if (this.isLocalAssigment(op1)){
-      return true;
-    }
 
     if (!op1.equals(op2)){
       return false;

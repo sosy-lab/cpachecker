@@ -58,12 +58,6 @@ public class RGAbstractElement implements AbstractElement, Partitionable, Formul
    */
   private RGApplicationInfo appInfo;
 
-  /**
-   * If env. edges have been applied, then this path formula represents
-   * the local fragment.
-   */
-  private  PathFormula localPf;
-
   public RGAbstractElement(PathFormula pf, AbstractionFormula a,  int tid) {
     this.pathFormula = pf;
     this.abstractionFormula = a;
@@ -118,7 +112,7 @@ public class RGAbstractElement implements AbstractElement, Partitionable, Formul
 
   @Override
   public String toString() {
-    return "T:"+this.tid+", Non-abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' SSA "+this.getPathFormula().getSsa();
+    return "RG element (not-abs): "+abstractionFormula+", "+pathFormula;
   }
 
   @Override
@@ -183,17 +177,9 @@ public class RGAbstractElement implements AbstractElement, Partitionable, Formul
 
     @Override
     public String toString() {
-      /*if (this.pathBuilder == null){
-        return "T:"+this.tid+", Abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' with SSA "+this.getPathFormula().getSsa()+", empty template";
-      } else {
-        return "T:"+this.tid+", Abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' with SSA "+this.getPathFormula().getSsa()+", "+this.pathBuilder;
-      }*/
-      return "T:"+this.tid+", Abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' with SSA "+this.getPathFormula().getSsa();
+      return "RG element (abs): "+super.abstractionFormula+", "+super.pathFormula;
     }
-
-
   }
-
 
   public static class ComputeAbstractionElement extends RGAbstractElement {
 
@@ -216,16 +202,13 @@ public class RGAbstractElement implements AbstractElement, Partitionable, Formul
 
     @Override
     public String toString() {
-      return "T:"+this.tid+", Abstraction location: true, Abstraction: <TO COMPUTE>";
+      return "RG element (compute): "+super.abstractionFormula+", "+super.pathFormula;
     }
 
     public CFANode getLocation() {
       return location;
     }
+
   }
-
-
-
-
 
 }

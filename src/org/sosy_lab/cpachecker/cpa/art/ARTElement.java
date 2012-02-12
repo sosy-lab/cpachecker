@@ -39,6 +39,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -52,6 +54,8 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   private final HashMap<ARTElement, CFAEdge> parentMap;
   private final HashMap<ARTElement, CFAEdge> childMap;
+
+  private final RGAbstractElement rgElement;
 
   private ARTElement mCoveredBy = null;
   private Set<ARTElement> mCoveredByThis = null; // lazy initialization because rarely needed
@@ -91,7 +95,8 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
     this.locationClasses = locationClasses;
 
-
+    this.rgElement = AbstractElements.extractElementByType(this, RGAbstractElement.class);
+    assert this.rgElement != null;
   }
 
   public ImmutableSet<ARTElement> getParentARTs(){
@@ -208,11 +213,15 @@ public class ARTElement extends AbstractSingleWrapperElement {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
+
+    CFANode loc = retrieveLocationElement().getLocationNode();
+
     if (destroyed) {
       sb.append("Destroyed ");
     }
     sb.append("ART Element (Id: ");
     sb.append(elementId);
+    sb.append(", Location: "+loc+" "+locationClasses);
     if (!destroyed) {
       sb.append(", Parents: ");
       List<Integer> list = new ArrayList<Integer>();
@@ -228,7 +237,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
       sb.append(list);
     }
     sb.append(") ");
-    sb.append(getWrappedElement());
+    sb.append(rgElement);
     return sb.toString();
   }
 

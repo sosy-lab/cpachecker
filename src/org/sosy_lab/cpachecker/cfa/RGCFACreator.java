@@ -331,6 +331,8 @@ public class RGCFACreator {
       return;
     }
 
+
+
     // split off first node of CFA
     assert mainFunction.getNumLeavingEdges() == 1;
     CFAEdge firstEdge = mainFunction.getLeavingEdge(0);
@@ -340,8 +342,12 @@ public class RGCFACreator {
     mainFunction.removeLeavingEdge(firstEdge);
     secondNode.removeEnteringEdge(firstEdge);
 
+    mainFunction.setGeneratesEnv(false);
+    secondNode.setGeneratesEnv(false);
+
     // insert one node to start the series of declarations
     CFANode cur = new CFANode(0, mainFunction.getFunctionName());
+    cur.setGeneratesEnv(false);
     cfa.addNode(cur);
     BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, mainFunction, cur);
 
@@ -353,6 +359,7 @@ public class RGCFACreator {
       assert d.isGlobal();
 
       CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
+      n.setGeneratesEnv(false);
       cfa.addNode(n);
       GlobalDeclarationEdge e = new GlobalDeclarationEdge(d,
           d.getFileLocation().getStartingLineNumber(), cur, n);

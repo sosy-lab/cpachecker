@@ -476,11 +476,6 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     // change unapplied to set, so its easier to decided membership
     Set<RGEnvTransition> unappliedSet = new HashSet<RGEnvTransition>(pUnapplied);
 
-    if (debug){
-      System.out.println();
-      System.out.println("Env edges applied at CFA "+i+" :");
-    }
-
     // apply env. edges
     for(Entry<String, CFANode> entry :   cfa.getCFANodes().entries()){
       CFANode node = entry.getValue();
@@ -491,10 +486,6 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
         for (RGEnvTransition edge : pValid){
           RGCFAEdge rgEdge = new RGCFAEdge(edge, node, node);
           addEnvTransitionToNode(rgEdge);
-
-          if (debug){
-            System.out.println("\t-node "+node+" applied "+rgEdge);
-          }
 
           if (unappliedSet.contains(edge)){
             envEdgesMap.put(node, rgEdge);

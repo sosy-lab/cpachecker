@@ -110,7 +110,7 @@ public class RGSemiAbstracted implements RGEnvTransition{
   }
 
   public String toString(){
-    return "sa: "+operation.getRawStatement()+", "+abstractPrecondition;
+    return "sa: "+operation.getRawStatement()+", "+abstractPrecondition+", "+sourceARTElement.getLocationClasses()+"->"+targetARTElement.getLocationClasses();
   }
 
   @Override

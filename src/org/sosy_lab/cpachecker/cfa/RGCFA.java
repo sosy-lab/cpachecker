@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -57,7 +56,6 @@ public class RGCFA extends CFA {
   private final Multimap<CFANode, String> rhsVariables;
   private final Multimap<CFANode, String> lhsVariables;
   private final Set<String> scopedLocalVars;
-  private final List<CFANode> noEnvList;
   protected final CFANode executionStartNode;
   protected final CFANode startNode;
 
@@ -68,7 +66,6 @@ public class RGCFA extends CFA {
     rhsVariables = HashMultimap.create();
     lhsVariables = HashMultimap.create();
     scopedLocalVars = new HashSet<String>();
-    noEnvList = new Vector<CFANode>();
     for (CFANode node : other.cfaNodes.values()){
       for (int i=0; i<node.getNumLeavingEdges(); i++) {
         CFAEdge edge = node.getLeavingEdge(i);
@@ -88,6 +85,7 @@ public class RGCFA extends CFA {
         }
       }
     }
+
     // find the inital node
     this.executionStartNode = startNode;
     this.startNode = mainFunction;
