@@ -49,9 +49,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM {
 
@@ -63,7 +63,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
   private final AbstractDomain abstractDomain;
   private final TransferRelation wrappedTranferRelation;
-  private TransferRelation transferRelation;
+  private ARTTransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
@@ -73,7 +73,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   // TODO check if needed
   private RGCFA cfas[];
   // maps cfa nodes to equivalence classes
-  private ImmutableMap<CFANode, Integer> locationMapping;
+  private RGLocationMapping locationMapping;
   private int tid = Integer.MAX_VALUE;
 
   private Path targetPath = null;
@@ -108,7 +108,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     stats = new ARTStatistics(config, this);
   }
 
-  public void setData(RGCFA[] cfas, ImmutableMap<CFANode, Integer> locationMapping, int tid){
+  public void setData(RGCFA[] cfas, RGLocationMapping locationMapping, int tid){
     this.cfas = cfas;
     this.locationMapping = locationMapping;
     this.tid = tid;
@@ -181,8 +181,9 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     targetPath = pTargetPath;
   }
 
-  public void setLocationMapping(ImmutableMap<CFANode, Integer> lm) {
+  public void setLocationMapping(RGLocationMapping lm) {
     this.locationMapping = lm;
+    this.transferRelation.setLocationMapping(lm);
   }
 
 

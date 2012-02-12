@@ -331,8 +331,6 @@ public class RGCFACreator {
       return;
     }
 
-
-
     // split off first node of CFA
     assert mainFunction.getNumLeavingEdges() == 1;
     CFAEdge firstEdge = mainFunction.getLeavingEdge(0);
@@ -343,7 +341,6 @@ public class RGCFACreator {
     secondNode.removeEnteringEdge(firstEdge);
 
     mainFunction.setGeneratesEnv(false);
-    secondNode.setGeneratesEnv(false);
 
     // insert one node to start the series of declarations
     CFANode cur = new CFANode(0, mainFunction.getFunctionName());
@@ -372,7 +369,7 @@ public class RGCFACreator {
     addToCFA(be);
 
     // rember where the program  starts
-    startNodes.add(i, secondNode);
+    startNodes.add(i, cur);
   }
 
   private static void addToCFA(CFAEdge edge) {

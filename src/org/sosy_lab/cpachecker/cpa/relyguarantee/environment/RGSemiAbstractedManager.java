@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 
 /**
@@ -183,6 +184,20 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
     CFAEdge op2 = sa2.getOperation();
 
     if (!op1.equals(op2)){
+      return false;
+    }
+
+    ImmutableList<Integer> locCl1 = et1.getSourceARTElement().getLocationClasses();
+    ImmutableList<Integer> locCl2 = et2.getSourceARTElement().getLocationClasses();
+
+    if (!locCl1.equals(locCl2)){
+      return false;
+    }
+
+    ImmutableList<Integer> tlocCl1 = et1.getTargetARTElement().getLocationClasses();
+    ImmutableList<Integer> tlocCl2 = et2.getTargetARTElement().getLocationClasses();
+
+    if (!tlocCl1.equals(tlocCl2)){
       return false;
     }
 

@@ -25,12 +25,11 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
 
@@ -48,7 +47,7 @@ public class InterpolationTreeResult {
   private final InterpolationTree tree;
   /** witness path for a feasible counterexample */
   private Path path;
-  private ImmutableMap<CFANode, Integer> refinedLocationMapping;
+  private RGLocationMapping refinedLocationMapping;
 
 
   public InterpolationTreeResult(boolean spurious){
@@ -110,11 +109,12 @@ public class InterpolationTreeResult {
     this.path = path;
   }
 
-  public ImmutableMap<CFANode, Integer> getRefinedLocationMapping() {
+  public RGLocationMapping getRefinedLocationMapping() {
     return refinedLocationMapping;
   }
 
-  public void setRefinedLocationMapping(ImmutableMap<CFANode, Integer> refinedLocationMapping) {
+  public void setRefinedLocationMapping(RGLocationMapping refinedLocationMapping) {
+    assert isSpurious;
     this.refinedLocationMapping = refinedLocationMapping;
   }
 

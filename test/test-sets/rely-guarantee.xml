@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="300">
+<benchmark tool="cpachecker" timelimit="180">
 
   <test name="global pred, SBE, Cartesian abst, fully abstracted env.">
     <sourcefiles>
@@ -15,7 +15,7 @@
       <include>test/programs/multi-threaded/various/mutex-unsafe.cil.c</include>
       <include>test/programs/multi-threaded/various/real-unsafe.cil.c</include>
       <include>test/programs/multi-threaded/various/simple-unsafe.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/bluetooth.cav09.cil.c</include>
+      <!-- <include>test/programs/multi-threaded/benchmarks/bluetooth.cav09.cil.c</include> -->
       <include>test/programs/multi-threaded/benchmarks/dekker.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/peterson.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/time_var_mutex.cil.c</include>
@@ -27,7 +27,7 @@
     </sourcefiles>
 
       <option name="-concurrent"/>
-      <option name="-config">test/config/rg-global-sbe-cartesian-fa.properties</option>
+      <option name="-config">test/config/rg-global-sbe-cartesian-fa-debug.properties</option>
   </test>
 
   <test name="global pred, SBE, Cartesian abst, semi-abstracted env.">
@@ -43,7 +43,7 @@
       <include>test/programs/multi-threaded/various/mutex-unsafe.cil.c</include>
       <include>test/programs/multi-threaded/various/real-unsafe.cil.c</include>
       <include>test/programs/multi-threaded/various/simple-unsafe.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/bluetooth.cav09.cil.c</include>
+      <!-- <include>test/programs/multi-threaded/benchmarks/bluetooth.cav09.cil.c</include> -->
       <include>test/programs/multi-threaded/benchmarks/dekker.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/peterson.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/time_var_mutex.cil.c</include>
@@ -54,7 +54,7 @@
     </sourcefiles>
 
       <option name="-concurrent"/>
-      <option name="-config">test/config/rg-global-sbe-cartesian-sa.properties</option>
+      <option name="-config">test/config/rg-global-sbe-cartesian-sa-debug.properties</option>
   </test>
 
   <test name="global pred, SBE, Cartesian abst, simple transition env.">
@@ -70,7 +70,7 @@
       <include>test/programs/multi-threaded/various/mutex-unsafe.cil.c</include>
       <include>test/programs/multi-threaded/various/real-unsafe.cil.c</include>
       <include>test/programs/multi-threaded/various/simple-unsafe.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/bluetooth.cav09.cil.c</include>
+      <!-- <include>test/programs/multi-threaded/benchmarks/bluetooth.cav09.cil.c</include> -->
       <include>test/programs/multi-threaded/benchmarks/dekker.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/peterson.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/time_var_mutex.cil.c</include>
@@ -81,7 +81,7 @@
     </sourcefiles>
 
       <option name="-concurrent"/>
-      <option name="-config">test/config/rg-global-sbe-cartesian-st.properties</option>
+      <option name="-config">test/config/rg-global-sbe-cartesian-st-debug.properties</option>
   </test>
 
   

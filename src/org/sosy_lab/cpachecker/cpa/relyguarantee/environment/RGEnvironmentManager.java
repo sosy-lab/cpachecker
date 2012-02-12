@@ -27,11 +27,9 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -51,6 +49,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
@@ -68,7 +67,6 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.SetMultimap;
 
 /**
@@ -104,9 +102,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
   private final Set<AbstractionPredicate>[] envGlobalPrecision;
   /** information about variables in threads */
   private final RGVariables variables;
-  /** Specifies equivalence classes for locations, i.e. two location are
-  equivalent iff they are mapped to the same value */
-  private ImmutableMap<CFANode, Integer> locationMapping;
 
   /* Managers */
   private final PathFormulaManager pfManager;
@@ -123,6 +118,12 @@ public class RGEnvironmentManager implements StatisticsProvider{
   private RelyGuaranteeEnvironmentProcessStatistics processStats;
   /** General stats */
   public final Stats stats;
+
+  private RGLocationMapping locationMapping;
+
+
+
+
 
 
   public RGEnvironmentManager(int threadNo, RGVariables vars, RGCFA[] cfas, Configuration config, LogManager logger) throws InvalidConfigurationException{
@@ -162,7 +163,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
       this.envGlobalPrecision[i] = new HashSet<AbstractionPredicate>();
     }
 
-    this.locationMapping = this.getEmptyMapping(cfas);
   }
 
 
@@ -202,20 +202,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
   public AbstractionManagerImpl getAbsManager() {
     return amManager;
   }
-
-  /**
-   * Returns unmodifiable view of the location mapping.
-   * @return
-   */
-  public ImmutableMap<CFANode, Integer> getLocationMapping() {
-    return locationMapping;
-  }
-
-
-  public void setLocationMapping(ImmutableMap<CFANode, Integer> pLocationMapping) {
-    locationMapping = pLocationMapping;
-  }
-
 
   /**
    * Add new environmental transitions for processing.
@@ -659,6 +645,15 @@ public class RGEnvironmentManager implements StatisticsProvider{
     return envPrecision;
   }
 
+  public RGLocationMapping getLocationMapping() {
+    return locationMapping;
+  }
+
+  public void setLocationMapping(RGLocationMapping pLocationMapping) {
+    locationMapping = pLocationMapping;
+  }
+
+
 
   /**
    * Add predicates to environmental precision of some thread.
@@ -725,28 +720,8 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
   }
 
-  /**
-   * Location mapping that puts all nodes in the same class.
-   * @param cfas
-   * @return
-   */
-  private ImmutableMap<CFANode, Integer> getEmptyMapping(RGCFA[] cfas) {
 
-    Map<CFANode, Integer> map = new HashMap<CFANode, Integer>(100);
 
-    for (int i=0; i<cfas.length; i++){
-      Collection<CFANode> nodes = cfas[i].getCFANodes().values();
-      System.out.println("t"+i+" :"+nodes);
-      for (CFANode node : nodes){
-        Integer oldValue = map.put(node, 1);
-        if (oldValue != null){
-          assert false;
-        }
-        assert oldValue == null;
-      }
-    }
-    return ImmutableMap.copyOf(map);
-  }
 
 
 

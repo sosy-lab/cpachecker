@@ -259,6 +259,12 @@ public class ARTElement extends AbstractSingleWrapperElement {
     return result;
   }
 
+
+
+  public RGAbstractElement getRgElement() {
+    return rgElement;
+  }
+
   /**
    * This method removes this element from the ART by removing it from its
    * parents' children list and from its children's parents list.

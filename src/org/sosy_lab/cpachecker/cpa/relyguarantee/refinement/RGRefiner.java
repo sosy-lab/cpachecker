@@ -50,12 +50,12 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTTransferRelation;
 import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
@@ -261,28 +260,25 @@ public class RGRefiner implements StatisticsProvider{
     boolean newPredicates = false;
     boolean newLM = false;
 
-    if (debug){
-      System.out.println("New predicates:");
-    }
 
-    ImmutableMap<CFANode, Integer> lm = info.getRefinedLocationMapping();
+    RGLocationMapping lm = info.getRefinedLocationMapping();
     if (lm != null){
       newLM = true;
 
       if (true){
-        System.out.println("new location mapping:");
-        System.out.println(lm);
+        System.out.println("New "+lm);
       }
+
       environment.setLocationMapping(lm);
 
       for (int i=0; i<artCpas.length; i++){
         ARTCPA artCpa = artCpas[i];
         artCpa.setLocationMapping(lm);
-        ARTTransferRelation tr = (ARTTransferRelation) artCpa.getTransferRelation();
-        tr.setLocationMapping(lm);
       }
-
     }
+    else if (debug){
+        System.out.println("New predicates:");
+      }
 
     // add env. predicates to precision
     for (ARTElement aElement : info.getEnvPredicatesForRefinmentKeys()){

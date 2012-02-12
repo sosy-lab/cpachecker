@@ -35,7 +35,6 @@ import java.util.Vector;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -43,29 +42,29 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 public class ARTTransferRelation implements TransferRelation, StatisticsProvider {
 
   private final TransferRelation transferRelation;
-  private ImmutableMap<CFANode, Integer> locationMapping;
+  private RGLocationMapping locationMapping;
   private final int tid;
 
   private final Stats stats;
 
-  public ARTTransferRelation(TransferRelation tr, ImmutableMap<CFANode, Integer> locationMapping, int tid) {
+  public ARTTransferRelation(TransferRelation tr, RGLocationMapping locationMapping, int tid) {
     this.transferRelation = tr;
     this.locationMapping = locationMapping;
     this.tid = tid;
     this.stats = new Stats(tid);
   }
 
-  public void setLocationMapping(ImmutableMap<CFANode, Integer> lm){
+  protected void setLocationMapping(RGLocationMapping lm){
     locationMapping = lm;
   }
 

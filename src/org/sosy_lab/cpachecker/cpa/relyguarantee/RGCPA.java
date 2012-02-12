@@ -143,12 +143,6 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
   private RGCPAStatistics stats;
 
-
-
-
-
-
-
   public RGCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     this.config = config;
     this.logger = logger;

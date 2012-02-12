@@ -202,9 +202,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
 
       if (nodeForEnvApp.contains(loc)){
-        if (loc.getNodeNumber() == 23){
-          System.out.println(this.getClass());
-        }
         for (RGEnvTransition template : envEdges){
           // find the edge matching the template
           RGCFAEdge rgEdge = null;
@@ -290,6 +287,10 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         stats.precisionTimer.stop();
         runStats.precisionTimer.stop();
         stats.envPrecisionTimer.stop();
+
+        if (((ARTElement)successor).getElementId() == 718){
+          System.out.println(this.getClass());
+        }
 
         if (debug){
           printSuccessor(successor, edge);
@@ -394,10 +395,13 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
           logger.log(Level.FINER,
           "No need to stop, adding successor to waitlist");
 
+          if (debug){
+            System.out.println();
+          }
           reachedSet.add(successor, successorPrecision);
         }
 
-        System.out.println();
+        //System.out.println();
       }
 
       if (changeThread && reachedSet.hasWaitingElement()){
@@ -414,7 +418,8 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private void printCovered(AbstractElement pSuccessor, Collection<AbstractElement> reached) {
-    System.out.println("\t covered by "+reached);
+    System.out.println("\t covered");
+    System.out.println("");
   }
 
   private void printMerge(AbstractElement successor, AbstractElement reachedElement, AbstractElement mergedElement) {
