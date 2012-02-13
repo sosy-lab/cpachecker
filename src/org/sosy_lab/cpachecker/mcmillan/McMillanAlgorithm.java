@@ -29,8 +29,10 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -81,6 +83,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
 
 
   private final Timer expandTime = new Timer();
+  private final Timer forceCoverTime = new Timer();
   private final Timer refinementTime = new Timer();
   private final Timer coverTime = new Timer();
   private final Timer closeTime = new Timer();
@@ -99,6 +102,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
       out.println("Time for expand:                    " + expandTime);
+      out.println("  Time for forced covering:         " + forceCoverTime);
       out.println("Time for refinement:                " + refinementTime);
       out.println("Time for close:                     " + closeTime);
       out.println("  Time for cover:                   " + coverTime);
@@ -137,18 +141,34 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
     return true;
   }
 
-  private void expand(Vertex v, ReachedSet reached) throws CPATransferException {
+  private void expand(Vertex v, ReachedSet reached) throws CPAException, InterruptedException {
     expandTime.start();
-    if (v.isLeaf() && !v.isCovered()) {
-      CFANode loc = v.getLocationNode();
-      for (CFAEdge edge : leavingEdges(loc)) {
+    try {
+      if (v.isLeaf() && !v.isCovered()) {
 
-        Vertex w = new Vertex(v, edge.getSuccessor(), fmgr.makeTrue(), edge);
-        reached.add(w, SingletonPrecision.getInstance());
-        reached.popFromWaitlist(); // we don't use the waitlist
+        forceCoverTime.start();
+        try {
+          for (AbstractElement ae : reached.getReached(v)) {
+            Vertex w = (Vertex)ae;
+            if (v != w && forceCover(v, w)) {
+              return;
+            }
+          }
+        } finally {
+          forceCoverTime.stop();
+        }
+
+        CFANode loc = v.getLocationNode();
+        for (CFAEdge edge : leavingEdges(loc)) {
+
+          Vertex w = new Vertex(v, edge.getSuccessor(), fmgr.makeTrue(), edge);
+          reached.add(w, SingletonPrecision.getInstance());
+          reached.popFromWaitlist(); // we don't use the waitlist
+        }
       }
+    } finally {
+      expandTime.stop();
     }
-    expandTime.stop();
   }
 
   private List<Vertex> refine(final Vertex v) throws CPAException, InterruptedException {
@@ -156,7 +176,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
     try {
       assert (v.isTarget() && !v.getStateFormula().isFalse());
 
-      logger.log(Level.INFO, "Refinement on " + v);
+      logger.log(Level.FINER, "Refinement on " + v);
 
       // build list of path elements in bottom-to-top order and reverse
       List<Vertex> path = getPathFromRootTo(v);
@@ -172,7 +192,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
         return Collections.emptyList(); // real counterexample
       }
 
-      logger.log(Level.INFO, "Refinement successful");
+      logger.log(Level.FINER, "Refinement successful");
 
       path = path.subList(0, path.size()-1); // skip last element, itp is always false there
       assert cex.getPredicatesForRefinement().size() ==  path.size();
@@ -222,6 +242,82 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
     coverTime.stop();
+  }
+
+  private boolean forceCover(Vertex v, Vertex w) throws CPAException, InterruptedException {
+    List<Vertex> path = new ArrayList<Vertex>();
+    Vertex x = v;
+    {
+      Set<Vertex> parentsOfW = new HashSet<Vertex>(getPathFromRootTo(w));
+
+      while (!parentsOfW.contains(x)) {
+        path.add(x);
+
+        assert x.hasParent();
+        x = x.getParent();
+      }
+    }
+
+    // x is common ancestor
+    // path is ]x; v] (path from x to v, excluding x, including v)
+
+    List<Formula> formulas = new ArrayList<Formula>(path.size()+2);
+    {
+      PathFormula pf = pfmgr.makeEmptyPathFormula();
+      formulas.add(fmgr.instantiate(x.getStateFormula(), pf.getSsa()));
+
+      for (Vertex w1 : path) {
+        pf = pfmgr.makeAnd(pf, w1.getIncomingEdge());
+        formulas.add(pf.getFormula());
+        pf = pfmgr.makeEmptyPathFormula(pf); // reset formula, keep SSAMap
+      }
+
+      formulas.add(fmgr.makeNot(fmgr.instantiate(w.getStateFormula(), pf.getSsa())));
+    }
+
+    path.add(0, x);
+    assert formulas.size() == path.size() + 1;
+
+    CounterexampleTraceInfo<Formula> interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARTElement>emptySet());
+
+    if (!interpolantInfo.isSpurious()) {
+      return false; // forced covering not possible
+    }
+
+    logger.log(Level.INFO, "Forced covering successful");
+
+
+    List<Formula> interpolants = interpolantInfo.getPredicatesForRefinement();
+//    assert interpolants.size() == formulas.size() - 1;
+//    interpolants = interpolants.subList(1, interpolants.size()-1);
+//    path = path.subList(0, path.size()-1);
+    assert interpolants.size() ==  path.size();
+
+    List<Vertex> changedElements = new ArrayList<Vertex>();
+
+    for (Pair<Formula, Vertex> interpolationPoint : Pair.zipList(interpolants, path)) {
+      Formula itp = interpolationPoint.getFirst();
+      Vertex p = interpolationPoint.getSecond();
+
+      if (itp.isTrue()) {
+        continue;
+      }
+
+      Formula stateFormula = p.getStateFormula();
+      if (!implies(stateFormula, itp)) {
+        p.setStateFormula(fmgr.makeAnd(stateFormula, itp)); // automatically uncovers nodes as needed
+        changedElements.add(p);
+      }
+    }
+
+    assert !changedElements.contains(x);
+    assert changedElements.contains(v);
+
+    assert implies(v.getStateFormula(), w.getStateFormula());
+    cover(v, w);
+    assert v.isCovered();
+
+    return true;
   }
 
   private void close(Vertex v, ReachedSet reached) {
