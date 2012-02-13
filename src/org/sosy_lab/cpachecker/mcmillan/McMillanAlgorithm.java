@@ -235,19 +235,21 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private void cover(Vertex v, Vertex w) {
+  private void cover(Vertex v, Vertex w, Precision prec) throws CPAException {
     coverTime.start();
 
-    if (extractLocation(v).equals(extractLocation(w))
-        && !v.isCovered()
+    if (   !v.isCovered()
         && !w.isCovered() // ???
         && !v.isAncestorOf(w)) {
 
-      if (implies(v.getStateFormula(), w.getStateFormula())) {
-        for (Vertex y : v.getSubtree()) {
-          y.cleanCoverage();
+      if (cpa.getStopOperator().stop(v.getWrappedElement(), Collections.singleton(w.getWrappedElement()), prec)) {
+
+        if (implies(v.getStateFormula(), w.getStateFormula())) {
+          for (Vertex y : v.getSubtree()) {
+            y.cleanCoverage();
+          }
+          v.setCoveredBy(w);
         }
-        v.setCoveredBy(w);
       }
     }
     coverTime.stop();
@@ -265,7 +267,12 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
    * @throws CPAException
    * @throws InterruptedException
    */
-  private boolean forceCover(Vertex v, Vertex w) throws CPAException, InterruptedException {
+  private boolean forceCover(Vertex v, Vertex w, Precision prec) throws CPAException, InterruptedException {
+    if (!cpa.getStopOperator().stop(v.getWrappedElement(), Collections.singleton(w.getWrappedElement()), prec)) {
+      // w is not a potential candidate, it would never cover v due to the other elements' contents
+      return false;
+    }
+
     List<Vertex> path = new ArrayList<Vertex>();
     Vertex x = v;
     {
@@ -336,21 +343,22 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
     assert changedElements.contains(v);
 
     assert implies(v.getStateFormula(), w.getStateFormula());
-    cover(v, w);
+    cover(v, w, prec);
     assert v.isCovered();
 
     return true;
   }
 
-  private void close(Vertex v, ReachedSet reached) {
+  private void close(Vertex v, ReachedSet reached) throws CPAException {
     if (!v.isCovered()) {
       closeTime.start();
 
+      Precision prec = reached.getPrecision(v);
       for (AbstractElement ae : reached.getReached(v)) {
         Vertex w = (Vertex)ae;
 
         if (w.isOlderThan(v)) {
-          cover(v, w);
+          cover(v, w, prec);
         }
       }
 
@@ -386,9 +394,10 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
 
     forceCoverTime.start();
     try {
+      Precision prec = reached.getPrecision(v);
       for (AbstractElement ae : reached.getReached(v)) {
         Vertex w = (Vertex)ae;
-        if (v != w && w.isOlderThan(v) && !w.isCovered() && forceCover(v, w)) {
+        if (v != w && w.isOlderThan(v) && !w.isCovered() && forceCover(v, w, prec)) {
           assert v.isCovered();
           return true; // no need to expand
         }
