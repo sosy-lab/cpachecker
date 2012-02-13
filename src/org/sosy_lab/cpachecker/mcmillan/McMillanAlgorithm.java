@@ -325,6 +325,10 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
       trivialImplicationChecks++;
       return false;
     }
+    if (a.equals(b)) {
+      trivialImplicationChecks++;
+      return true;
+    }
 
     Formula f = fmgr.makeNot(fmgr.makeImplication(a, b));
 
