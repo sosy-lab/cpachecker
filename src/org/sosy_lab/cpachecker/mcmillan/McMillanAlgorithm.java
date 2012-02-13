@@ -59,8 +59,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.DefaultInterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.UninstantiatingInterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
@@ -118,7 +118,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
     fmgr = new ExtendedFormulaManager(mfmgr, config, logger);
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger));
     prover = new MathsatTheoremProver(mfmgr);
-    imgr = new DefaultInterpolationManager(fmgr, pfmgr, prover, config, logger);
+    imgr = new UninstantiatingInterpolationManager(fmgr, pfmgr, prover, config, logger);
 
     prover.init();
   }
