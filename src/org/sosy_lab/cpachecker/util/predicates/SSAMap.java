@@ -132,9 +132,8 @@ public class SSAMap {
     return EMPTY_SSA_MAP;
   }
 
-  public static SSAMap emptyWithDefault(final int defaultValue) {
-    return new SSAMap(ImmutableMultiset.<String>of(),
-                      ImmutableMultiset.<Pair<String, FormulaList>>of()) {
+  public SSAMap withDefault(final int defaultValue) {
+    return new SSAMap(this.vars, this.funcs) {
 
       @Override
       public int getIndex(String pVariable) {

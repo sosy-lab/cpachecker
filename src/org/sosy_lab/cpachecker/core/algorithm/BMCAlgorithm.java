@@ -521,7 +521,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     // get global invariants
     Formula invariants = extractInvariantsAt(loopHead, invariantGenerator.get());
-    invariants = fmgr.instantiate(invariants, SSAMap.emptyWithDefault(1));
+    invariants = fmgr.instantiate(invariants, SSAMap.emptySSAMap().withDefault(1));
 
     // Create formulas
     Formula inductions = fmgr.makeTrue();
