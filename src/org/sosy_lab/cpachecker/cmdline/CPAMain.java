@@ -40,7 +40,7 @@ import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.pcc.proof_gen.ProofGenerator;
+import org.sosy_lab.pcc.proof_gen.GenericProofGenerator;
 
 import com.google.common.collect.Iterables;
 
@@ -114,7 +114,7 @@ import com.google.common.collect.Iterables;
 
 	    // create PCC proof (if enabled)
 	    try {
-	      ProofGenerator pccProofGenerator = new ProofGenerator(cpaConfig, logManager);
+	      GenericProofGenerator pccProofGenerator = new GenericProofGenerator(cpaConfig, logManager);
 	      // generate PCC proof
 	      pccProofGenerator.generateProof(result);
 	    } catch (InvalidConfigurationException e) {

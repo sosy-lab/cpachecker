@@ -23,23 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.net.URL;
-import java.util.Collections;
 import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -54,8 +44,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -202,42 +190,9 @@ public class CPAchecker {
       // run analysis
       result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
 
-
-      //TODO:
-      //test deserialization
-      InputStream fis = null;
-      ARTElement art = null;
-      try {
-        fis = new FileInputStream( "art.obj" );
-        ObjectInputStream o = new ObjectInputStream( fis );
-        art = (ARTElement)o.readObject();
-        Files.writeFile(new File("ReadART.dot"), ARTUtils.convertARTToDot(art, Collections.<Pair<ARTElement, ARTElement>>emptySet()));
-      }
-      catch ( IOException e ) { System.err.println(e); }
-      catch (ClassNotFoundException e) { e.printStackTrace(); }
-      finally { try { fis.close(); } catch ( Exception e ) { } }
-
-
       boolean sound = runAlgorithm(algorithm, reached, stats);
 
       result = analyzeResult(reached, sound);
-
-      //TODO:
-      //test serialization
-      OutputStream fos = null;
-      try {
-        fos = new FileOutputStream( "art.obj" );
-        ObjectOutputStream o = new ObjectOutputStream( fos );
-        o.writeObject(  reached.getFirstElement() );
-      }
-      catch ( IOException e ) { System.err.println(e); }
-      finally { try { fos.close(); } catch ( Exception e ) { } }
-
-      try {
-        Files.writeFile(new File("ComputedART.dot"), ARTUtils.convertARTToDot((ARTElement)reached.getFirstElement(), Collections.<Pair<ARTElement, ARTElement>>emptySet()));
-      } catch (IOException e) { System.err.println(e); }
-
-
 
     } catch (IOException e) {
       logger.logUserException(Level.SEVERE, e, "Could not read file");
