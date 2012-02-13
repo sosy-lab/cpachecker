@@ -25,20 +25,26 @@ package org.sosy_lab.cpachecker.mcmillan;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -59,7 +65,7 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 import com.google.common.collect.Lists;
 
-public class McMillanAlgorithm implements Algorithm {
+public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
 
   private final LogManager logger;
 
@@ -69,6 +75,28 @@ public class McMillanAlgorithm implements Algorithm {
   private final InterpolationManager<Formula> imgr;
 
   private final List<Vertex> allNodes = new ArrayList<Vertex>(); // chronologically sorted
+
+  private final Timer expandTime = new Timer();
+  private final Timer refinementTime = new Timer();
+  private final Timer coverTime = new Timer();
+  private final Timer solverTime = new Timer();
+
+  private class Stats implements Statistics {
+
+    @Override
+    public String getName() {
+      return "McMillan's algorithm";
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+      out.println("Time for expand:                    " + expandTime);
+      out.println("Time for refinement:                " + refinementTime);
+      out.println("Time for cover:                     " + coverTime);
+      out.println("Time spent by solver for reasoning: " + solverTime);
+    }
+  }
+
 
   public McMillanAlgorithm(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     logger = pLogger;
@@ -95,6 +123,7 @@ public class McMillanAlgorithm implements Algorithm {
   }
 
   private void expand(Vertex v) throws CPATransferException {
+    expandTime.start();
     if (v.isLeaf() && !v.isCovered()) {
       CFANode loc = v.getLocation();
       for (CFAEdge edge : leavingEdges(loc)) {
@@ -104,61 +133,69 @@ public class McMillanAlgorithm implements Algorithm {
         allNodes.add(w);
       }
     }
+    expandTime.stop();
   }
 
   private boolean refine(final Vertex v) throws CPAException, InterruptedException {
-    if (v.isTarget() && !v.getStateFormula().isFalse()) {
+    refinementTime.start();
+    try {
+      if (v.isTarget() && !v.getStateFormula().isFalse()) {
 
-      logger.log(Level.INFO, "Refinement on " + v);
+        logger.log(Level.INFO, "Refinement on " + v);
 
-      // build list of path elements/formulas in bottom-to-top order and reverse
-      List<Vertex> path = new ArrayList<Vertex>();
-      List<Formula> pathFormulas = new ArrayList<Formula>();
-      {
-        Vertex w = v;
-        while (w.hasParent()) {
-          pathFormulas.add(w.getPathFormula().getFormula());
-          path.add(w);
-          w = w.getParent();
+        // build list of path elements/formulas in bottom-to-top order and reverse
+        List<Vertex> path = new ArrayList<Vertex>();
+        List<Formula> pathFormulas = new ArrayList<Formula>();
+        {
+          Vertex w = v;
+          while (w.hasParent()) {
+            pathFormulas.add(w.getPathFormula().getFormula());
+            path.add(w);
+            w = w.getParent();
+          }
+          path.add(w); // this is the root element of the ART
+          // ignore path formula of root element, it is "true"
         }
-        path.add(w); // this is the root element of the ART
-        // ignore path formula of root element, it is "true"
-      }
-      path = Lists.reverse(path);
-      pathFormulas = Lists.reverse(pathFormulas);
+        path = Lists.reverse(path);
+        pathFormulas = Lists.reverse(pathFormulas);
 
-      CounterexampleTraceInfo<Formula> cex = imgr.buildCounterexampleTrace(pathFormulas, Collections.<ARTElement>emptySet());
+        CounterexampleTraceInfo<Formula> cex = imgr.buildCounterexampleTrace(pathFormulas, Collections.<ARTElement>emptySet());
 
-      if (!cex.isSpurious()) {
-        return false; // real counterexample
-      }
-
-      logger.log(Level.INFO, "Refinement successful");
-
-      path = path.subList(1, path.size()-1); // skip first and last element, itp is always true/false there
-      assert cex.getPredicatesForRefinement().size() ==  path.size();
-
-      for (Pair<Formula, Vertex> interpolationPoint : Pair.zipList(cex.getPredicatesForRefinement(), path)) {
-        Formula itp = interpolationPoint.getFirst();
-        Vertex w = interpolationPoint.getSecond();
-
-        if (itp.isTrue()) {
-          continue;
+        if (!cex.isSpurious()) {
+          return false; // real counterexample
         }
 
-        Formula stateFormula = w.getStateFormula();
-        if (!implies(stateFormula, itp)) {
-          w.setStateFormula(fmgr.makeAnd(stateFormula, itp)); // automatically uncovers nodes as needed
-        }
-      }
+        logger.log(Level.INFO, "Refinement successful");
 
-      // itp of last element is always false, set it
-      v.setStateFormula(fmgr.makeFalse());
+        path = path.subList(1, path.size()-1); // skip first and last element, itp is always true/false there
+        assert cex.getPredicatesForRefinement().size() ==  path.size();
+
+        for (Pair<Formula, Vertex> interpolationPoint : Pair.zipList(cex.getPredicatesForRefinement(), path)) {
+          Formula itp = interpolationPoint.getFirst();
+          Vertex w = interpolationPoint.getSecond();
+
+          if (itp.isTrue()) {
+            continue;
+          }
+
+          Formula stateFormula = w.getStateFormula();
+          if (!implies(stateFormula, itp)) {
+            w.setStateFormula(fmgr.makeAnd(stateFormula, itp)); // automatically uncovers nodes as needed
+          }
+        }
+
+        // itp of last element is always false, set it
+        v.setStateFormula(fmgr.makeFalse());
+      }
+      return true;
+    } finally {
+      refinementTime.stop();
     }
-    return true;
   }
 
   private void cover(Vertex v, Vertex w) {
+    coverTime.start();
+
     if (v.getLocation().equals(w.getLocation())
         && !v.isCovered()
         && !w.isCovered() // ???
@@ -171,6 +208,7 @@ public class McMillanAlgorithm implements Algorithm {
         v.setCoveredBy(w);
       }
     }
+    coverTime.stop();
   }
 
   private void close(Vertex v) {
@@ -237,6 +275,16 @@ public class McMillanAlgorithm implements Algorithm {
   private boolean implies(Formula a, Formula b) {
     Formula f = fmgr.makeNot(fmgr.makeImplication(a, b));
 
-    return prover.isUnsat(f);
+    solverTime.start();
+    try {
+      return prover.isUnsat(f);
+    } finally {
+      solverTime.stop();
+    }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(new Stats());
   }
 }
