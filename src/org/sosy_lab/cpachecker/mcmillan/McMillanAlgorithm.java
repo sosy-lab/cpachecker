@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -73,8 +74,6 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
   private final PathFormulaManager pfmgr;
   private final TheoremProver prover;
   private final InterpolationManager<Formula> imgr;
-
-  private final List<Vertex> allNodes = new ArrayList<Vertex>(); // chronologically sorted
 
   private final Timer expandTime = new Timer();
   private final Timer refinementTime = new Timer();
@@ -111,9 +110,11 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   public AbstractElement getInitialElement(CFANode location) {
-    Vertex root = new Vertex(location, fmgr.makeTrue(), pfmgr.makeEmptyPathFormula());
-    allNodes.add(root);
-    return root;
+    return new Vertex(location, fmgr.makeTrue(), pfmgr.makeEmptyPathFormula());
+  }
+
+  public Precision getInitialPrecision() {
+    return SingletonPrecision.getInstance();
   }
 
   @Override
@@ -122,7 +123,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
     return true;
   }
 
-  private void expand(Vertex v) throws CPATransferException {
+  private void expand(Vertex v, ReachedSet reached) throws CPATransferException {
     expandTime.start();
     if (v.isLeaf() && !v.isCovered()) {
       CFANode loc = v.getLocation();
@@ -130,7 +131,8 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
 
         PathFormula newPathFormula = pfmgr.makeAnd(v.getPathFormula(), edge);
         Vertex w = new Vertex(v, edge.getSuccessor(), fmgr.makeTrue(), newPathFormula);
-        allNodes.add(w);
+        reached.add(w, SingletonPrecision.getInstance());
+        reached.popFromWaitlist(); // we don't use the waitlist
       }
     }
     expandTime.stop();
@@ -217,9 +219,10 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
     coverTime.stop();
   }
 
-  private void close(Vertex v) {
+  private void close(Vertex v, ReachedSet reached) {
     if (!v.isCovered()) {
-      for (Vertex w : allNodes) {
+      for (AbstractElement ae : reached) {
+        Vertex w = (Vertex)ae;
         if (w.isOlderThan(v) && w.getLocation().equals(v.getLocation())) {
           cover(v, w);
         }
@@ -227,8 +230,8 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private boolean dfs(Vertex v) throws CPAException, InterruptedException {
-    close(v);
+  private boolean dfs(Vertex v, ReachedSet reached) throws CPAException, InterruptedException {
+    close(v, reached);
     if (!v.isCovered()) {
       if (v.isTarget()) {
         List<Vertex> changedElements = refine(v);
@@ -239,31 +242,32 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
         // optimization: instead of closing all ancestors of v,
         // close only those that were strengthened during refine
         for (Vertex w : changedElements) {
-          close(w);
+          close(w, reached);
         }
       }
-      expand(v);
+      expand(v, reached);
       for (Vertex w : v.getChildren()) {
-        dfs(w);
+        dfs(w, reached);
       }
     }
     return true;
   }
 
-  private void unwind(ReachedSet pReached) throws CPAException, InterruptedException {
+  private void unwind(ReachedSet reached) throws CPAException, InterruptedException {
 
     outer:
     while (true) {
-      for (Vertex v : allNodes) {
+      for (AbstractElement ae : reached) {
+        Vertex v = (Vertex)ae;
         if (v.isLeaf() && !v.isCovered()) {
 
           Vertex w = v;
           while (w.hasParent()) {
             w = w.getParent();
-            close(w);
+            close(w, reached);
           }
 
-          if (!dfs(v)) {
+          if (!dfs(v, reached)) {
             logger.log(Level.INFO, "Bug found");
             break outer;
           }
@@ -272,11 +276,6 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
         }
       }
       break outer;
-    }
-
-    for (Vertex v : allNodes) {
-      pReached.add(v, SingletonPrecision.getInstance());
-      pReached.popFromWaitlist();
     }
   }
 
