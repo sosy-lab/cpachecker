@@ -120,6 +120,9 @@ analysis.useFeatureVarsRestriction = false
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
+# Use McMillans algorithm for lazy interpolation
+analysis.useMcMillan = false
+
 # use CEGAR algorithm for lazy counter-example guided analysis
 # You need to specify a refiner with the cegar.refiner option.
 # Currently all refiner require the use of the ARTCPA.

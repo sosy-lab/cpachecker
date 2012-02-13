@@ -77,7 +77,7 @@ class CoreComponentsFactory {
         + "after the analysis has finished, works only with PredicateCPA")
   private boolean useBMC = false;
 
-  @Option(name="analysis.useMcMillan",
+  @Option(name="useMcMillan",
       description="Use McMillans algorithm for lazy interpolation")
   private boolean useMcMillan = false;
 
