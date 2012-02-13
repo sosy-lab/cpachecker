@@ -235,31 +235,44 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private void cover(Vertex v, Vertex w, Precision prec) throws CPAException {
-    coverTime.start();
-
-    if (   !v.isCovered()
+  /**
+   * Check if a vertex v may potentially be covered by another vertex w.
+   * It checks everything except their state formulas.
+   */
+  private boolean mayCover(Vertex v, Vertex w, Precision prec) throws CPAException {
+    return (v != w)
         && !w.isCovered() // ???
-        && !v.isAncestorOf(w)) {
+        && w.isOlderThan(v)
+        && !v.isAncestorOf(w)
+        && cpa.getStopOperator().stop(v.getWrappedElement(), Collections.singleton(w.getWrappedElement()), prec);
+  }
 
-      if (cpa.getStopOperator().stop(v.getWrappedElement(), Collections.singleton(w.getWrappedElement()), prec)) {
+  private boolean cover(Vertex v, Vertex w, Precision prec) throws CPAException {
+    coverTime.start();
+    try {
+      assert !v.isCovered();
 
-        if (implies(v.getStateFormula(), w.getStateFormula())) {
-          for (Vertex y : v.getSubtree()) {
-            y.cleanCoverage();
-          }
-          v.setCoveredBy(w);
+      if (mayCover(v, w, prec)
+          && implies(v.getStateFormula(), w.getStateFormula())) {
+
+        for (Vertex y : v.getSubtree()) {
+          y.cleanCoverage();
         }
+        v.setCoveredBy(w);
+
+        return true;
       }
+      return false;
+
+    } finally {
+      coverTime.stop();
     }
-    coverTime.stop();
   }
 
   /**
    * Preconditions:
-   * v is not covered, w is not covered
-   * v is a leaf
-   * v is not coverable by w in its current state
+   * v may be covered by w ({@link #mayCover(Vertex, Vertex, Precision)}).
+   * v is not coverable by w in its current state.
    *
    * @param v
    * @param w
@@ -268,11 +281,6 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
    * @throws InterruptedException
    */
   private boolean forceCover(Vertex v, Vertex w, Precision prec) throws CPAException, InterruptedException {
-    if (!cpa.getStopOperator().stop(v.getWrappedElement(), Collections.singleton(w.getWrappedElement()), prec)) {
-      // w is not a potential candidate, it would never cover v due to the other elements' contents
-      return false;
-    }
-
     List<Vertex> path = new ArrayList<Vertex>();
     Vertex x = v;
     {
@@ -339,36 +347,37 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    assert !changedElements.contains(x);
-    assert changedElements.contains(v);
-
-    assert implies(v.getStateFormula(), w.getStateFormula());
-    cover(v, w, prec);
-    assert v.isCovered();
+    boolean covered = cover(v, w, prec);
+    assert covered;
 
     return true;
   }
 
-  private void close(Vertex v, ReachedSet reached) throws CPAException {
-    if (!v.isCovered()) {
-      closeTime.start();
+  private boolean close(Vertex v, ReachedSet reached) throws CPAException {
+    closeTime.start();
+    try {
+      if (v.isCovered()) {
+        return true;
+      }
 
       Precision prec = reached.getPrecision(v);
       for (AbstractElement ae : reached.getReached(v)) {
         Vertex w = (Vertex)ae;
 
-        if (w.isOlderThan(v)) {
-          cover(v, w, prec);
+        if (cover(v, w, prec)) {
+          return true; // v is now covered
         }
       }
 
+      return false;
+
+    } finally {
       closeTime.stop();
     }
   }
 
   private boolean dfs(Vertex v, ReachedSet reached) throws CPAException, InterruptedException {
-    close(v, reached);
-    if (v.isCovered()) {
+    if (close(v, reached)) {
       return true; // no need to expand
     }
 
@@ -381,7 +390,9 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
       // optimization: instead of closing all ancestors of v,
       // close only those that were strengthened during refine
       for (Vertex w : changedElements) {
-        close(w, reached);
+        if (close(w, reached)) {
+          break; // all further elements are covered anyway
+        }
       }
 
       assert v.getStateFormula().isFalse();
@@ -397,9 +408,11 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
       Precision prec = reached.getPrecision(v);
       for (AbstractElement ae : reached.getReached(v)) {
         Vertex w = (Vertex)ae;
-        if (v != w && w.isOlderThan(v) && !w.isCovered() && forceCover(v, w, prec)) {
-          assert v.isCovered();
-          return true; // no need to expand
+        if (mayCover(v, w, prec)) {
+          if (forceCover(v, w, prec)) {
+            assert v.isCovered();
+            return true; // no need to expand
+          }
         }
       }
     } finally {
@@ -428,7 +441,9 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
           List<Vertex> path = getPathFromRootTo(v);
           path = path.subList(0, path.size()-1); // skip v itself
           for (Vertex w : path) {
-            close(w, reached);
+            if (close(w, reached)) {
+              continue outer; // v is now covered
+            }
           }
 
           if (!dfs(v, reached)) {
