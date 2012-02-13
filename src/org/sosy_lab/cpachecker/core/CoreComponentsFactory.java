@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.mcmillan.McMillanAlgorithm;
 
 /**
  * Factory class for the three core components of CPAchecker:
@@ -75,6 +76,10 @@ class CoreComponentsFactory {
   @Option(description="use a BMC like algorithm that checks for satisfiability "
         + "after the analysis has finished, works only with PredicateCPA")
   private boolean useBMC = false;
+
+  @Option(name="analysis.useMcMillan",
+      description="Use McMillans algorithm for lazy interpolation")
+  private boolean useMcMillan = false;
 
   @Option(name="restartAfterUnknown",
       description="restart the algorithm using a different CPA after unknown result")
@@ -106,6 +111,9 @@ class CoreComponentsFactory {
     if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = new RestartAlgorithm(config, logger, filename, cfa);
+
+    } else if (useMcMillan) {
+      algorithm = new McMillanAlgorithm(config, logger);
 
     } else {
       algorithm = new CPAAlgorithm(cpa, logger);
