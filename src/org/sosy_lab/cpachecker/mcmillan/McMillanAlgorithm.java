@@ -164,14 +164,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
 
       // build list of formulas for edges
       List<Formula> pathFormulas = new ArrayList<Formula>(path.size());
-      {
-        PathFormula pf = pfmgr.makeEmptyPathFormula();
-        for (Vertex w : path) {
-          pf = pfmgr.makeAnd(pf, w.getIncomingEdge());
-          pathFormulas.add(pf.getFormula());
-          pf = pfmgr.makeEmptyPathFormula(pf); // reset formula, keep SSAMap
-        }
-      }
+      addPathFormulasToList(path, pathFormulas);
 
       CounterexampleTraceInfo<Formula> cex = imgr.buildCounterexampleTrace(pathFormulas, Collections.<ARTElement>emptySet());
 
@@ -294,6 +287,15 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
         }
       }
       break outer;
+    }
+  }
+
+  private void addPathFormulasToList(List<Vertex> path, List<Formula> pathFormulas) throws CPATransferException {
+    PathFormula pf = pfmgr.makeEmptyPathFormula();
+    for (Vertex w : path) {
+      pf = pfmgr.makeAnd(pf, w.getIncomingEdge());
+      pathFormulas.add(pf.getFormula());
+      pf = pfmgr.makeEmptyPathFormula(pf); // reset formula, keep SSAMap
     }
   }
 
