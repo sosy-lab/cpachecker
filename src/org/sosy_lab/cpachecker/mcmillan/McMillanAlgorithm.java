@@ -126,7 +126,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
   private void expand(Vertex v, ReachedSet reached) throws CPATransferException {
     expandTime.start();
     if (v.isLeaf() && !v.isCovered()) {
-      CFANode loc = v.getLocation();
+      CFANode loc = v.getLocationNode();
       for (CFAEdge edge : leavingEdges(loc)) {
 
         PathFormula newPathFormula = pfmgr.makeAnd(v.getPathFormula(), edge);
@@ -204,7 +204,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
   private void cover(Vertex v, Vertex w) {
     coverTime.start();
 
-    if (v.getLocation().equals(w.getLocation())
+    if (v.getLocationNode().equals(w.getLocationNode())
         && !v.isCovered()
         && !w.isCovered() // ???
         && !v.isAncestorOf(w)) {
@@ -221,9 +221,10 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
 
   private void close(Vertex v, ReachedSet reached) {
     if (!v.isCovered()) {
-      for (AbstractElement ae : reached) {
+      for (AbstractElement ae : reached.getReached(v)) {
         Vertex w = (Vertex)ae;
-        if (w.isOlderThan(v) && w.getLocation().equals(v.getLocation())) {
+
+        if (w.isOlderThan(v)) {
           cover(v, w);
         }
       }

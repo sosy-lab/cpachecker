@@ -32,12 +32,13 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 
-class Vertex implements AbstractElement, Targetable {
+class Vertex implements AbstractElement, Targetable, AbstractElementWithLocation {
 
   private static int nextId = 0;
   private final int id = nextId++;
@@ -71,7 +72,8 @@ class Vertex implements AbstractElement, Targetable {
   }
 
 
-  public CFANode getLocation() {
+  @Override
+  public CFANode getLocationNode() {
     return location;
   }
 
