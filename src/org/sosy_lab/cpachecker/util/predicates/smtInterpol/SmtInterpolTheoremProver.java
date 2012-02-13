@@ -52,6 +52,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   private final SmtInterpolFormulaManager mgr;
   private Script script;
   private List<Term> assertedTerms;
+
   public SmtInterpolTheoremProver(SmtInterpolFormulaManager pMgr) {
     mgr = pMgr;
     script = null;
@@ -59,20 +60,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
 
   @Override
   public boolean isUnsat() {
-    LBool res = LBool.UNKNOWN;
-    try {
-      script.push(1);
-
-      // asssert all terms
-      for (Term at : assertedTerms) {
-        script.assertTerm(at);
-      }
-      res = script.checkSat();
-      script.pop(1);
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-    }
-    assert res != LBool.UNKNOWN;
+    LBool res = script.checkSat();
     return res == LBool.UNSAT;
   }
 
@@ -89,20 +77,11 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   @Override
   public Model getModel() {
     Preconditions.checkNotNull(script);
+
+    // model can only return values for keys, not for terms
+    Term[] keys = getVars(assertedTerms);
     try {
-      script.push(1);
-
-      // asssert all terms
-      for (Term at : assertedTerms) {
-        script.assertTerm(at);
-      }
-
-      // model can only return values for keys, not for terms
-      Term[] keys = getVars(assertedTerms);
-      Model model = SmtInterpolModel.createSmtInterpolModel(script, keys);
-      script.pop(1);
-
-      return model;
+      return SmtInterpolModel.createSmtInterpolModel(script, keys);
     } catch (SMTLIBException e) {
       e.printStackTrace();
       return null;
@@ -112,7 +91,12 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   @Override
   public void pop() {
     Preconditions.checkNotNull(script);
-    assertedTerms.remove(assertedTerms.size()-1);
+    assertedTerms.remove(assertedTerms.size()-1); // remove last term
+    try {
+      script.pop(1);
+    } catch (SMTLIBException e) {
+      e.printStackTrace();
+    }
   }
 
   @Override
@@ -120,6 +104,12 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     Preconditions.checkNotNull(script);
     final Term t = mgr.getTerm(f);
     assertedTerms.add(t);
+    script.push(1);
+    try {
+      script.assertTerm(t);
+    } catch (SMTLIBException e) {
+      e.printStackTrace();
+    }
   }
 
   @Override
@@ -147,17 +137,6 @@ public class SmtInterpolTheoremProver implements TheoremProver {
 
     allsatEnv.push(1);
 
-    // asssert all terms
-    try {
-      for (Term at : assertedTerms) {
-        allsatEnv.assertTerm(at);
-      }
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-    }
-
-    Term t = mgr.getTerm(f);
-
     // unpack formulas to terms
     Term[] importantTerms = new Term[formulas.size()];
     int i = 0;
@@ -168,7 +147,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     // create new allSatResult
     SmtInterpolAllSatCallback result = new SmtInterpolAllSatCallback(amgr, timer);
     try {
-      allsatEnv.assertTerm(t);
+      allsatEnv.assertTerm(mgr.getTerm(f));
 
       int numModels = 0;
       while(allsatEnv.checkSat() == LBool.SAT) {

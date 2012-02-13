@@ -59,11 +59,65 @@ public class SmtInterpolUtil {
     return is;
   }
 
+  /** check for ConstantTerm with Number or
+   * ApplicationTerm with negative Number */
   public static boolean isNumber(Term t) {
-    boolean is = (t instanceof ConstantTerm)
-        && ((ConstantTerm) t).getValue() instanceof Number; // TODO hex or binary data, string?
-    if (log) System.out.println("   isNumber (" + is +"): " + t);
+    boolean is = false;
+
+    // ConstantTerm with Number --> "123"
+    if (t instanceof ConstantTerm
+        && ((ConstantTerm) t).getValue() instanceof Number) {
+      is = true;
+
+    } else if (t instanceof ApplicationTerm) {
+      ApplicationTerm at = (ApplicationTerm) t;
+
+      // ApplicationTerm with negative Number --> "(- 123)"
+      if ("-".equals(at.getFunction().getName())
+          && (at.getParameters().length == 1)
+          && isNumber(at.getParameters()[0])) {
+        is = true;
+
+        // ApplicationTerm with Division --> "(/ 1 5)"
+      } else if ("/".equals(at.getFunction().getName())
+          && (at.getParameters().length == 2)
+          && isNumber(at.getParameters()[0])
+          && isNumber(at.getParameters()[1])) {
+        is = true;
+      }
+    }
+
+    // TODO hex or binary data, string?
+    if (log)
+      System.out.println("   isNumber (" + is + "): " + t);
     return is;
+  }
+
+  /** converts a term to a number,
+   * currently only Double is supported. */
+  public static double toNumber(Term t) {
+    assert isNumber(t) : "term is not a number: " + t;
+
+    // ConstantTerm with Number --> "123"
+    if (t instanceof ConstantTerm) {
+      Object value = ((ConstantTerm) t).getValue();
+      if (value instanceof Number) {
+        return ((Number) value).doubleValue();
+      }
+
+      // ApplicationTerm with negative Number --> "-123"
+    } else if (t instanceof ApplicationTerm) {
+      ApplicationTerm at = (ApplicationTerm) t;
+
+      if ("-".equals(at.getFunction().getName())) {
+        return - toNumber(at.getParameters()[0]);
+      } else if ("/".equals(at.getFunction().getName())) {
+        return toNumber(at.getParameters()[1]) /
+          toNumber(at.getParameters()[1]);
+      }
+    }
+
+    throw new NumberFormatException("unknown format of numeric term: " + t);
   }
 
   public static boolean isBoolean(Script script, Term t) {

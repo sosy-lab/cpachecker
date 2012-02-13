@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUtil.*;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -38,10 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.FileAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -54,12 +48,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
-import de.uni_freiburg.informatik.ultimate.logic.LoggingScript;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Script;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
-import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.Benchmark;
 
 @Options(prefix="cpa.predicate.smtinterpol")
 public abstract class SmtInterpolFormulaManager implements FormulaManager {
@@ -79,52 +71,16 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   // cache for uninstantiating terms (see uninstantiate() below)
   private final Map<Formula, Formula> uninstantiateCache = new HashMap<Formula, Formula>();
 
-  private int logCounter = 0;
-
   SmtInterpolFormulaManager(Configuration config, LogManager logger, String sort)
       throws InvalidConfigurationException {
     config.inject(this, SmtInterpolFormulaManager.class);
-    script = createEnvironment();
+    script = new SmtInterpolEnvironment();
     this.sort = sort;
   }
 
   Script getEnvironment() {
     assert script != null;
     return script; // TODO working?? correct??
-  }
-
-  private Script createEnvironment() {
-    Logger logger = Logger.getRootLogger(); // TODO use SosyLAb-Logger
-    SimpleLayout layout = new SimpleLayout();
-    try {
-      FileAppender fileAppender = new FileAppender(layout, "output/smtinterpol" + (logCounter++) + ".log", false);
-      logger.addAppender(fileAppender);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    // levels: ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF:
-    logger.setLevel( Level.ALL );
-    Script env = null;
-    try {
-      // create a thin wrapper around Benchmark,
-      // this allows to write most formulas of the solver to outputfile
-      env = new LoggingScript(new Benchmark(logger), "interpol.smt2", true);
-    } catch (FileNotFoundException e1) {
-      e1.printStackTrace();
-    }
-
-    try {
-      env.setOption(":produce-proofs", true);
-      env.setOption(":produce-models", true);
-      env.setOption(":produce-assignments", true);
-      env.setOption(":interactive-mode", true);
-    //  BigInteger verbosity = (BigInteger) env.getOption(":verbosity");
-    //  env.setOption(":verbosity", verbosity.subtract(BigInteger.ONE));
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-    }
-
-    return env;
   }
 
   // ----------------- Helper function -----------------
@@ -167,22 +123,12 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
   @Override
   public Formula makeTrue() {
-    try {
-      return encapsulate(script.term("true"));
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
-    }
+    return encapsulate(script.getTheory().TRUE);
   }
 
   @Override
   public Formula makeFalse() {
-    try {
-      return encapsulate(script.term("false"));
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
-    }
+    return encapsulate(script.getTheory().FALSE);
   }
 
   @Override
@@ -197,8 +143,13 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
   @Override
   public Formula makeAnd(Formula f1, Formula f2) {
+    Term t1 = getTerm(f1);
+    Term t2 = getTerm(f2);
+    if (t1 == t2) { return f1;}
+    if (t1 == script.getTheory().TRUE) { return f2;}
+    if (t2 == script.getTheory().TRUE) { return f1;}
     try {
-      return encapsulate(script.term("and", getTerm(f1), getTerm(f2)));
+      return encapsulate(script.term("and", t1, t2));
     } catch (SMTLIBException e) {
       e.printStackTrace();
       return null;
@@ -207,8 +158,12 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
   @Override
   public Formula makeOr(Formula f1, Formula f2) {
+    Term t1 = getTerm(f1);
+    Term t2 = getTerm(f2);
+    if (t1 == script.getTheory().FALSE) { return f2;}
+    if (t2 == script.getTheory().FALSE) { return f1;}
     try {
-      return encapsulate(script.term("or", getTerm(f1), getTerm(f2)));
+      return encapsulate(script.term("or", t1, t2));
     } catch (SMTLIBException e) {
       e.printStackTrace();
       return null;
@@ -253,7 +208,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
       }
     }
     try {
-      return script.term(name);
+      return script.term(name, args);
     } catch (SMTLIBException e) {
       e.printStackTrace();
       return null;

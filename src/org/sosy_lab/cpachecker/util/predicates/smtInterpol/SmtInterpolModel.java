@@ -150,7 +150,7 @@ public class SmtInterpolModel {
       // TODO we are assuming numbers as values
       if (!(SmtInterpolUtil.isNumber(lValueTerm)
             || SmtInterpolUtil.isBoolean(script, lValueTerm))) {
-        throw new IllegalArgumentException("Mathsat term is not a number!");
+        throw new IllegalArgumentException("term is not a number: " + lValueTerm);
       }
 
       String lTermRepresentation = lValueTerm.toString();
@@ -161,28 +161,13 @@ public class SmtInterpolModel {
       case Boolean:
         lValue = Boolean.valueOf(lTermRepresentation);
         break;
+
       case Real:
-        try {
-          lValue = Double.valueOf(lTermRepresentation);
-        }
-        catch (NumberFormatException e) {
-          // lets try special case for mathsat
-          String[] lNumbers = lTermRepresentation.split("/");
-
-          if (lNumbers.length != 2) {
-            throw new NumberFormatException("Unknown number format: " + lTermRepresentation);
-          }
-
-          double lNumerator = Double.valueOf(lNumbers[0]);
-          double lDenominator = Double.valueOf(lNumbers[1]);
-
-          lValue = lNumerator/lDenominator;
-        }
-
+        lValue = SmtInterpolUtil.toNumber(lValueTerm);
         break;
 
       case Integer:
-        lValue = Long.valueOf(lTermRepresentation);
+        lValue = SmtInterpolUtil.toNumber(lValueTerm);
         break;
 
 //      case Bitvector:

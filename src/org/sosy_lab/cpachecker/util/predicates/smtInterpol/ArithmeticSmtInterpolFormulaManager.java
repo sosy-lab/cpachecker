@@ -161,9 +161,11 @@ class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManager {
 
   @Override
   public Formula makeDivide(Formula f1, Formula f2) {
+    assert script.getTheory().getLogic() != Logics.QF_UFLIA :
+      "divisions not possible in integer-logic.";
+
     Term t1 = getTerm(f1);
     Term t2 = getTerm(f2);
-
     Term result = null;
     if (isNumber(t2)) {
       try {
