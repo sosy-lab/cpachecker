@@ -29,12 +29,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 
@@ -49,26 +49,25 @@ class Vertex implements AbstractElement, Targetable, AbstractElementWithLocation
 
   private final CFANode location;
   private Formula stateFormula;
-  private final PathFormula pathFormula;
+  private final CFAEdge edge; // the edge to the predecessor
 
   private Vertex coveredBy = null;
   private List<Vertex> coveredNodes = new ArrayList<Vertex>(0);
 
-  public Vertex(CFANode pLocation, Formula pStateFormula, PathFormula pPathFormula) {
+  public Vertex(CFANode pLocation, Formula pStateFormula) {
     parent = null;
     location = checkNotNull(pLocation);
     assert pStateFormula.isTrue();
     stateFormula = pStateFormula;
-    assert pPathFormula.getFormula().isTrue();
-    pathFormula = checkNotNull(pPathFormula);
+    edge = null;
   }
 
-  public Vertex(Vertex pParent, CFANode pLocation, Formula pStateFormula,  PathFormula pPathFormula) {
+  public Vertex(Vertex pParent, CFANode pLocation, Formula pStateFormula, CFAEdge pEdge) {
     parent = checkNotNull(pParent);
     parent.children.add(this);
     location = checkNotNull(pLocation);
     stateFormula = checkNotNull(pStateFormula);
-    pathFormula = checkNotNull(pPathFormula);
+    edge = checkNotNull(pEdge);
   }
 
 
@@ -81,8 +80,8 @@ class Vertex implements AbstractElement, Targetable, AbstractElementWithLocation
     return stateFormula;
   }
 
-  public PathFormula getPathFormula() {
-    return pathFormula;
+  public CFAEdge getIncomingEdge() {
+    return edge;
   }
 
   public void setCoveredBy(Vertex pCoveredBy) {

@@ -124,7 +124,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   public AbstractElement getInitialElement(CFANode location) {
-    return new Vertex(location, fmgr.makeTrue(), pfmgr.makeEmptyPathFormula());
+    return new Vertex(location, fmgr.makeTrue());
   }
 
   public Precision getInitialPrecision() {
@@ -143,8 +143,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
       CFANode loc = v.getLocationNode();
       for (CFAEdge edge : leavingEdges(loc)) {
 
-        PathFormula newPathFormula = pfmgr.makeAnd(v.getPathFormula(), edge);
-        Vertex w = new Vertex(v, edge.getSuccessor(), fmgr.makeTrue(), newPathFormula);
+        Vertex w = new Vertex(v, edge.getSuccessor(), fmgr.makeTrue(), edge);
         reached.add(w, SingletonPrecision.getInstance());
         reached.popFromWaitlist(); // we don't use the waitlist
       }
@@ -159,21 +158,29 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
 
       logger.log(Level.INFO, "Refinement on " + v);
 
-      // build list of path elements/formulas in bottom-to-top order and reverse
+      // build list of path elements in bottom-to-top order and reverse
       List<Vertex> path = new ArrayList<Vertex>();
-      List<Formula> pathFormulas = new ArrayList<Formula>();
       {
         Vertex w = v;
         while (w.hasParent()) {
-          pathFormulas.add(w.getPathFormula().getFormula());
           path.add(w);
           w = w.getParent();
         }
-        path.add(w); // this is the root element of the ART
-        // ignore path formula of root element, it is "true"
+        // root element of ART is skipped
+
+        path = Lists.reverse(path);
       }
-      path = Lists.reverse(path);
-      pathFormulas = Lists.reverse(pathFormulas);
+
+      // build list of formulas for edges
+      List<Formula> pathFormulas = new ArrayList<Formula>(path.size());
+      {
+        PathFormula pf = pfmgr.makeEmptyPathFormula();
+        for (Vertex w : path) {
+          pf = pfmgr.makeAnd(pf, w.getIncomingEdge());
+          pathFormulas.add(pf.getFormula());
+          pf = pfmgr.makeEmptyPathFormula(pf); // reset formula, keep SSAMap
+        }
+      }
 
       CounterexampleTraceInfo<Formula> cex = imgr.buildCounterexampleTrace(pathFormulas, Collections.<ARTElement>emptySet());
 
@@ -183,7 +190,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
 
       logger.log(Level.INFO, "Refinement successful");
 
-      path = path.subList(1, path.size()-1); // skip first and last element, itp is always true/false there
+      path = path.subList(0, path.size()-1); // skip last element, itp is always false there
       assert cex.getPredicatesForRefinement().size() ==  path.size();
 
       List<Vertex> changedElements = new ArrayList<Vertex>();
