@@ -31,6 +31,8 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.util.logging.Level;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
@@ -48,7 +50,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 public class GenericProofGenerator {
 
   @Option(name = "pcc.proofgen.doPCC", description = "")
-  private boolean doPCC = true;
+  private boolean doPCC = false;
   @Option(description = "file in which ART representation needed for proof checking is stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File file = new File("art.obj");
@@ -80,7 +82,11 @@ public class GenericProofGenerator {
     OutputStream fos = null;
     try {
       fos = new FileOutputStream(file);
-      ObjectOutputStream o = new ObjectOutputStream(fos);
+      ZipOutputStream zos = new ZipOutputStream(fos);
+      zos.setLevel(9);
+      ZipEntry ze = new ZipEntry("Proof");
+      zos.putNextEntry(ze);
+      ObjectOutputStream o = new ObjectOutputStream(zos);
       //TODO might also want to write used configuration to the file so that proof checker does not need to get it as an argument
       //write ART
       o.writeObject(reached.getFirstElement());
@@ -100,5 +106,4 @@ public class GenericProofGenerator {
     writingTimer.stop();
     logger.log(Level.INFO, "Writing proof took " + writingTimer.printMaxTime());
   }
-
 }

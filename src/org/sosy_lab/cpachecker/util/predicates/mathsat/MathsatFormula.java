@@ -77,6 +77,7 @@ class MathsatFormula implements Formula, Serializable {
     }
 
     private Object writeReplace() throws ObjectStreamException {
+      //TODO this representation is a bit inefficient (e.g., declares occurring variables for each formula independently)
       return new SerialProxy(GlobalInfo.getInstance().getFormulaManager().dumpFormula(this));
     }
 
