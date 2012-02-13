@@ -136,58 +136,64 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
     expandTime.stop();
   }
 
-  private boolean refine(final Vertex v) throws CPAException, InterruptedException {
+  private List<Vertex> refine(final Vertex v) throws CPAException, InterruptedException {
     refinementTime.start();
     try {
-      if (v.isTarget() && !v.getStateFormula().isFalse()) {
+      assert (v.isTarget() && !v.getStateFormula().isFalse());
 
-        logger.log(Level.INFO, "Refinement on " + v);
+      logger.log(Level.INFO, "Refinement on " + v);
 
-        // build list of path elements/formulas in bottom-to-top order and reverse
-        List<Vertex> path = new ArrayList<Vertex>();
-        List<Formula> pathFormulas = new ArrayList<Formula>();
-        {
-          Vertex w = v;
-          while (w.hasParent()) {
-            pathFormulas.add(w.getPathFormula().getFormula());
-            path.add(w);
-            w = w.getParent();
-          }
-          path.add(w); // this is the root element of the ART
-          // ignore path formula of root element, it is "true"
+      // build list of path elements/formulas in bottom-to-top order and reverse
+      List<Vertex> path = new ArrayList<Vertex>();
+      List<Formula> pathFormulas = new ArrayList<Formula>();
+      {
+        Vertex w = v;
+        while (w.hasParent()) {
+          pathFormulas.add(w.getPathFormula().getFormula());
+          path.add(w);
+          w = w.getParent();
         }
-        path = Lists.reverse(path);
-        pathFormulas = Lists.reverse(pathFormulas);
-
-        CounterexampleTraceInfo<Formula> cex = imgr.buildCounterexampleTrace(pathFormulas, Collections.<ARTElement>emptySet());
-
-        if (!cex.isSpurious()) {
-          return false; // real counterexample
-        }
-
-        logger.log(Level.INFO, "Refinement successful");
-
-        path = path.subList(1, path.size()-1); // skip first and last element, itp is always true/false there
-        assert cex.getPredicatesForRefinement().size() ==  path.size();
-
-        for (Pair<Formula, Vertex> interpolationPoint : Pair.zipList(cex.getPredicatesForRefinement(), path)) {
-          Formula itp = interpolationPoint.getFirst();
-          Vertex w = interpolationPoint.getSecond();
-
-          if (itp.isTrue()) {
-            continue;
-          }
-
-          Formula stateFormula = w.getStateFormula();
-          if (!implies(stateFormula, itp)) {
-            w.setStateFormula(fmgr.makeAnd(stateFormula, itp)); // automatically uncovers nodes as needed
-          }
-        }
-
-        // itp of last element is always false, set it
-        v.setStateFormula(fmgr.makeFalse());
+        path.add(w); // this is the root element of the ART
+        // ignore path formula of root element, it is "true"
       }
-      return true;
+      path = Lists.reverse(path);
+      pathFormulas = Lists.reverse(pathFormulas);
+
+      CounterexampleTraceInfo<Formula> cex = imgr.buildCounterexampleTrace(pathFormulas, Collections.<ARTElement>emptySet());
+
+      if (!cex.isSpurious()) {
+        return Collections.emptyList(); // real counterexample
+      }
+
+      logger.log(Level.INFO, "Refinement successful");
+
+      path = path.subList(1, path.size()-1); // skip first and last element, itp is always true/false there
+      assert cex.getPredicatesForRefinement().size() ==  path.size();
+
+      List<Vertex> changedElements = new ArrayList<Vertex>();
+
+      for (Pair<Formula, Vertex> interpolationPoint : Pair.zipList(cex.getPredicatesForRefinement(), path)) {
+        Formula itp = interpolationPoint.getFirst();
+        Vertex w = interpolationPoint.getSecond();
+
+        if (itp.isTrue()) {
+          continue;
+        }
+
+        Formula stateFormula = w.getStateFormula();
+        if (!implies(stateFormula, itp)) {
+          w.setStateFormula(fmgr.makeAnd(stateFormula, itp)); // automatically uncovers nodes as needed
+          changedElements.add(w);
+        }
+      }
+
+      // itp of last element is always false, set it
+      if (!v.getStateFormula().isFalse()) {
+        v.setStateFormula(fmgr.makeFalse());
+        changedElements.add(v);
+      }
+
+      return changedElements;
     } finally {
       refinementTime.stop();
     }
@@ -212,9 +218,11 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private void close(Vertex v) {
-    for (Vertex w : allNodes) {
-      if (w.isOlderThan(v) && w.getLocation().equals(v.getLocation())) {
-        cover(v, w);
+    if (!v.isCovered()) {
+      for (Vertex w : allNodes) {
+        if (w.isOlderThan(v) && w.getLocation().equals(v.getLocation())) {
+          cover(v, w);
+        }
       }
     }
   }
@@ -223,14 +231,14 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
     close(v);
     if (!v.isCovered()) {
       if (v.isTarget()) {
-        if (!refine(v)) {
-          return false;
+        List<Vertex> changedElements = refine(v);
+        if (changedElements.isEmpty()) {
+          return false; // real counterexample
         }
 
-        Vertex w = v;
-        close(w);
-        while (w.hasParent()) {
-          w = w.getParent();
+        // optimization: instead of closing all ancestors of v,
+        // close only those that were strengthened during refine
+        for (Vertex w : changedElements) {
           close(w);
         }
       }
@@ -273,6 +281,15 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private boolean implies(Formula a, Formula b) {
+    if (a.isFalse() || b.isTrue()) {
+      return true;
+    }
+    if (a.isTrue() || b.isFalse()) {
+      // "true" implies only "true", but b is not "true"
+      // "false" is implied only by "false", but a is not "false"
+      return false;
+    }
+
     Formula f = fmgr.makeNot(fmgr.makeImplication(a, b));
 
     solverTime.start();
