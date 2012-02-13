@@ -207,8 +207,7 @@ public class CPAchecker {
       //test deserialization
       InputStream fis = null;
       ARTElement art = null;
-      try
-      {
+      try {
         fis = new FileInputStream( "art.obj" );
         ObjectInputStream o = new ObjectInputStream( fis );
         art = (ARTElement)o.readObject();
@@ -226,8 +225,7 @@ public class CPAchecker {
       //TODO:
       //test serialization
       OutputStream fos = null;
-      try
-      {
+      try {
         fos = new FileOutputStream( "art.obj" );
         ObjectOutputStream o = new ObjectOutputStream( fos );
         o.writeObject(  reached.getFirstElement() );

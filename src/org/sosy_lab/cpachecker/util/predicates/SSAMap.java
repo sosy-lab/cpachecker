@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.Set;
 
@@ -41,7 +42,9 @@ import com.google.common.collect.Multiset.Entry;
  * Maps a variable name to its latest "SSA index", that should be used when
  * referring to that variable
  */
-public class SSAMap {
+public class SSAMap implements Serializable {
+
+  private static final long serialVersionUID = 7618801653203679876L;
 
   /**
    * Builder for SSAMaps. Its state starts with an existing SSAMap, but may be
@@ -135,6 +138,8 @@ public class SSAMap {
   public static SSAMap emptyWithDefault(final int defaultValue) {
     return new SSAMap(ImmutableMultiset.<String>of(),
                       ImmutableMultiset.<Pair<String, FormulaList>>of()) {
+
+      private static final long serialVersionUID = -5638018887478723717L;
 
       @Override
       public int getIndex(String pVariable) {

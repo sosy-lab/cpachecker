@@ -23,14 +23,20 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat;
 
+import java.io.ObjectStreamException;
+import java.io.Serializable;
+
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 
 /**
  * A Formula represented as a MathSAT term.
  */
-class MathsatFormula implements Formula {
+class MathsatFormula implements Formula, Serializable {
 
+    private static final long serialVersionUID = 7662624283533815801L;
     private final long msatTerm;
 
     public MathsatFormula(long t) {
@@ -68,5 +74,23 @@ class MathsatFormula implements Formula {
     @Override
     public int hashCode() {
         return (int)msatTerm;
+    }
+
+    private Object writeReplace() throws ObjectStreamException {
+      return new SerialProxy(GlobalInfo.getInstance().getFormulaManager().dumpFormula(this));
+    }
+
+    private static class SerialProxy implements Serializable {
+      private static final long serialVersionUID = 6889568471468710163L;
+      private final String formulaStr;
+
+      public SerialProxy(String pFormulaStr) {
+        formulaStr = pFormulaStr.replaceAll("\"", "");
+      }
+
+      private Object readResolve() throws ObjectStreamException {
+        ExtendedFormulaManager fm = GlobalInfo.getInstance().getFormulaManager();
+        return fm.parse(formulaStr);
+      }
     }
 }

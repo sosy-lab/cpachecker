@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.globalinfo;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 
 import com.google.common.base.Preconditions;
 
@@ -33,6 +34,7 @@ public class GlobalInfo {
   private static GlobalInfo instance;
   private CFAInfo cfaInfo;
   private AutomatonInfo automatonInfo = new AutomatonInfo();
+  private ExtendedFormulaManager formulaManager;
 
   private GlobalInfo() {
 
@@ -62,6 +64,16 @@ public class GlobalInfo {
   public AutomatonInfo getAutomatonInfo() {
     Preconditions.checkState(automatonInfo != null);
     return automatonInfo;
+  }
+
+  public void storeFormulaManager(ExtendedFormulaManager formulaManager) {
+    Preconditions.checkState(this.formulaManager == null);
+    this.formulaManager = formulaManager;
+  }
+
+  public ExtendedFormulaManager getFormulaManager() {
+    Preconditions.checkState(formulaManager != null);
+    return formulaManager;
   }
 
 }

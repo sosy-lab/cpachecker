@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
@@ -176,6 +177,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     initialPrecision = new PredicatePrecision(predicates);
 
     stats = new PredicateCPAStatistics(this, blk);
+
+    GlobalInfo.getInstance().storeFormulaManager(formulaManager);
   }
 
   private Collection<AbstractionPredicate> readPredicatesFromFile() {
