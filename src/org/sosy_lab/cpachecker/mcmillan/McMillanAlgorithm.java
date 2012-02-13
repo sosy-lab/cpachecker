@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -65,6 +66,7 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -75,11 +77,17 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
   private final TheoremProver prover;
   private final InterpolationManager<Formula> imgr;
 
+  private final Map<Formula, Boolean> implicationCache = Maps.newHashMap();
+
+
   private final Timer expandTime = new Timer();
   private final Timer refinementTime = new Timer();
   private final Timer coverTime = new Timer();
   private final Timer closeTime = new Timer();
   private final Timer solverTime = new Timer();
+  private int implicationChecks = 0;
+  private int trivialImplicationChecks = 0;
+  private int cachedImplicationChecks = 0;
 
   private class Stats implements Statistics {
 
@@ -95,6 +103,10 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Time for close:                     " + closeTime);
       out.println("  Time for cover:                   " + coverTime);
       out.println("Time spent by solver for reasoning: " + solverTime);
+      out.println();
+      out.println("Number of implication checks:       " + implicationChecks);
+      out.println("  trivial:                          " + trivialImplicationChecks);
+      out.println("  cached:                           " + cachedImplicationChecks);
     }
   }
 
@@ -287,23 +299,35 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private boolean implies(Formula a, Formula b) {
+    implicationChecks++;
+
     if (a.isFalse() || b.isTrue()) {
+      trivialImplicationChecks++;
       return true;
     }
     if (a.isTrue() || b.isFalse()) {
       // "true" implies only "true", but b is not "true"
       // "false" is implied only by "false", but a is not "false"
+      trivialImplicationChecks++;
       return false;
     }
 
     Formula f = fmgr.makeNot(fmgr.makeImplication(a, b));
 
+    Boolean result = implicationCache.get(f);
+    if (result != null) {
+      cachedImplicationChecks++;
+      return result;
+    }
+
     solverTime.start();
     try {
-      return prover.isUnsat(f);
+      result = prover.isUnsat(f);
     } finally {
       solverTime.stop();
     }
+    implicationCache.put(f, result);
+    return result;
   }
 
   @Override
