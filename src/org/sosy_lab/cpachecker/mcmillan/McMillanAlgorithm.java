@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
@@ -301,7 +302,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
     List<Formula> formulas = new ArrayList<Formula>(path.size()+2);
     {
       PathFormula pf = pfmgr.makeEmptyPathFormula();
-      formulas.add(fmgr.instantiate(x.getStateFormula(), pf.getSsa()));
+      formulas.add(fmgr.instantiate(x.getStateFormula(), SSAMap.emptySSAMap().withDefault(1)));
 
       for (Vertex w1 : path) {
         pf = pfmgr.makeAnd(pf, w1.getIncomingEdge());
@@ -309,7 +310,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
         pf = pfmgr.makeEmptyPathFormula(pf); // reset formula, keep SSAMap
       }
 
-      formulas.add(fmgr.makeNot(fmgr.instantiate(w.getStateFormula(), pf.getSsa())));
+      formulas.add(fmgr.makeNot(fmgr.instantiate(w.getStateFormula(), pf.getSsa().withDefault(1))));
     }
 
     path.add(0, x); // now path is [x; v] (including x and v)
