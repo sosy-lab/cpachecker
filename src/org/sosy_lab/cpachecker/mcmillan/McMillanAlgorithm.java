@@ -154,26 +154,26 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
   private void expand(Vertex v, ReachedSet reached) throws CPAException, InterruptedException {
     expandTime.start();
     try {
-      if (v.isLeaf() && !v.isCovered()) {
-        AbstractElement predecessor = v.getWrappedElement();
-        Precision precision = reached.getPrecision(v);
+      assert v.isLeaf() && !v.isCovered();
 
-        CFANode loc = extractLocation(v);
-        for (CFAEdge edge : leavingEdges(loc)) {
+      AbstractElement predecessor = v.getWrappedElement();
+      Precision precision = reached.getPrecision(v);
 
-          Collection<? extends AbstractElement> successors = cpa.getTransferRelation().getAbstractSuccessors(predecessor, precision, edge);
-          if (successors.isEmpty()) {
-            // edge not feasible
-            // create fake vertex
-            new Vertex(v, fmgr.makeFalse(), edge, null);
-            continue;
-          }
-          assert successors.size() == 1;
+      CFANode loc = extractLocation(v);
+      for (CFAEdge edge : leavingEdges(loc)) {
 
-          Vertex w = new Vertex(v, fmgr.makeTrue(), edge, Iterables.getOnlyElement(successors));
-          reached.add(w, precision);
-          reached.popFromWaitlist(); // we don't use the waitlist
+        Collection<? extends AbstractElement> successors = cpa.getTransferRelation().getAbstractSuccessors(predecessor, precision, edge);
+        if (successors.isEmpty()) {
+          // edge not feasible
+          // create fake vertex
+          new Vertex(v, fmgr.makeFalse(), edge, null);
+          continue;
         }
+        assert successors.size() == 1;
+
+        Vertex w = new Vertex(v, fmgr.makeTrue(), edge, Iterables.getOnlyElement(successors));
+        reached.add(w, precision);
+        reached.popFromWaitlist(); // we don't use the waitlist
       }
     } finally {
       expandTime.stop();
@@ -360,42 +360,50 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
 
   private boolean dfs(Vertex v, ReachedSet reached) throws CPAException, InterruptedException {
     close(v, reached);
-    if (!v.isCovered()) {
-      if (v.isTarget()) {
-        List<Vertex> changedElements = refine(v);
-        if (changedElements.isEmpty()) {
-          return false; // real counterexample
-        }
+    if (v.isCovered()) {
+      return true; // no need to expand
+    }
 
-        // optimization: instead of closing all ancestors of v,
-        // close only those that were strengthened during refine
-        for (Vertex w : changedElements) {
-          close(w, reached);
-        }
+    if (v.isTarget()) {
+      List<Vertex> changedElements = refine(v);
+      if (changedElements.isEmpty()) {
+        return false; // real counterexample
       }
 
-      if (v.isLeaf() && !v.isCovered()) {
-
-        forceCoverTime.start();
-        try {
-          for (AbstractElement ae : reached.getReached(v)) {
-            Vertex w = (Vertex)ae;
-            if (v != w && w.isOlderThan(v) && !w.isCovered() && forceCover(v, w)) {
-              break;
-            }
-          }
-        } finally {
-          forceCoverTime.stop();
-        }
+      // optimization: instead of closing all ancestors of v,
+      // close only those that were strengthened during refine
+      for (Vertex w : changedElements) {
+        close(w, reached);
       }
 
-      expand(v, reached);
-      for (Vertex w : v.getChildren()) {
-        if (!w.getStateFormula().isFalse()) {
-          dfs(w, reached);
+      assert v.getStateFormula().isFalse();
+      return true; // no need to expand further
+    }
+
+    if (!v.isLeaf()) {
+      return true; // no need to expand
+    }
+
+    forceCoverTime.start();
+    try {
+      for (AbstractElement ae : reached.getReached(v)) {
+        Vertex w = (Vertex)ae;
+        if (v != w && w.isOlderThan(v) && !w.isCovered() && forceCover(v, w)) {
+          assert v.isCovered();
+          return true; // no need to expand
         }
+      }
+    } finally {
+      forceCoverTime.stop();
+    }
+
+    expand(v, reached);
+    for (Vertex w : v.getChildren()) {
+      if (!w.getStateFormula().isFalse()) {
+        dfs(w, reached);
       }
     }
+
     return true;
   }
 
