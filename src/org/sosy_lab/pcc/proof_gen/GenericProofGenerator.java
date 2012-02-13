@@ -90,6 +90,8 @@ public class GenericProofGenerator {
       //TODO might also want to write used configuration to the file so that proof checker does not need to get it as an argument
       //write ART
       o.writeObject(reached.getFirstElement());
+      o.close();
+      zos.close();
     } catch (IOException e) {
       System.err.println(e);
     } finally {
