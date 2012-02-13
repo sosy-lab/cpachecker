@@ -113,7 +113,7 @@ class CoreComponentsFactory {
       algorithm = new RestartAlgorithm(config, logger, filename, cfa);
 
     } else if (useMcMillan) {
-      algorithm = new McMillanAlgorithm(config, logger);
+      algorithm = new McMillanAlgorithm(config, logger, cpa);
 
     } else {
       algorithm = new CPAAlgorithm(cpa, logger);

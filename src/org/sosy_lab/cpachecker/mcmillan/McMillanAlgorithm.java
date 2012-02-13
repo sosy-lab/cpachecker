@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.mcmillan;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.io.PrintStream;
@@ -44,8 +45,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -67,12 +68,15 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
 
   private final LogManager logger;
+
+  private final ConfigurableProgramAnalysis cpa;
 
   private final ExtendedFormulaManager fmgr;
   private final PathFormulaManager pfmgr;
@@ -119,8 +123,9 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
   }
 
 
-  public McMillanAlgorithm(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  public McMillanAlgorithm(Configuration config, LogManager pLogger, ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, CPAException {
     logger = pLogger;
+    cpa = pCpa;
 
     MathsatFormulaManager mfmgr = MathsatFactory.createFormulaManager(config, logger);
     fmgr = new ExtendedFormulaManager(mfmgr, config, logger);
@@ -132,11 +137,11 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   public AbstractElement getInitialElement(CFANode location) {
-    return new Vertex(location, fmgr.makeTrue());
+    return new Vertex(fmgr.makeTrue(), cpa.getInitialElement(location));
   }
 
-  public Precision getInitialPrecision() {
-    return SingletonPrecision.getInstance();
+  public Precision getInitialPrecision(CFANode location) {
+    return cpa.getInitialPrecision(location);
   }
 
   @Override
@@ -163,11 +168,23 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
           forceCoverTime.stop();
         }
 
-        CFANode loc = v.getLocationNode();
+        AbstractElement predecessor = v.getWrappedElement();
+        Precision precision = reached.getPrecision(v);
+
+        CFANode loc = extractLocation(v);
         for (CFAEdge edge : leavingEdges(loc)) {
 
-          Vertex w = new Vertex(v, edge.getSuccessor(), fmgr.makeTrue(), edge);
-          reached.add(w, SingletonPrecision.getInstance());
+          Collection<? extends AbstractElement> successors = cpa.getTransferRelation().getAbstractSuccessors(predecessor, precision, edge);
+          if (successors.isEmpty()) {
+            // edge not feasible
+            // create fake vertex
+            new Vertex(v, fmgr.makeFalse(), edge, null);
+            continue;
+          }
+          assert successors.size() == 1;
+
+          Vertex w = new Vertex(v, fmgr.makeTrue(), edge, Iterables.getOnlyElement(successors));
+          reached.add(w, precision);
           reached.popFromWaitlist(); // we don't use the waitlist
         }
       }
@@ -234,7 +251,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
   private void cover(Vertex v, Vertex w) {
     coverTime.start();
 
-    if (v.getLocationNode().equals(w.getLocationNode())
+    if (extractLocation(v).equals(extractLocation(w))
         && !v.isCovered()
         && !w.isCovered() // ???
         && !v.isAncestorOf(w)) {
@@ -359,7 +376,9 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
       }
       expand(v, reached);
       for (Vertex w : v.getChildren()) {
-        dfs(w, reached);
+        if (!w.getStateFormula().isFalse()) {
+          dfs(w, reached);
+        }
       }
     }
     return true;

@@ -174,7 +174,7 @@ public class CPAchecker {
 
         if (algorithm instanceof McMillanAlgorithm) {
           McMillanAlgorithm mcmillan = (McMillanAlgorithm)algorithm;
-          reached.add(mcmillan.getInitialElement(cfa.getMainFunction()), mcmillan.getInitialPrecision());
+          reached.add(mcmillan.getInitialElement(cfa.getMainFunction()), mcmillan.getInitialPrecision(cfa.getMainFunction()));
         } else {
           initializeReachedSet(reached, cpa, cfa.getMainFunction());
         }

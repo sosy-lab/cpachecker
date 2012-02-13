@@ -30,15 +30,14 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 
-class Vertex implements AbstractElement, Targetable, AbstractElementWithLocation {
+class Vertex implements AbstractElement, Targetable, AbstractWrapperElement {
 
   private static int nextId = 0;
   private final int id = nextId++;
@@ -47,37 +46,37 @@ class Vertex implements AbstractElement, Targetable, AbstractElementWithLocation
 
   private final List<Vertex> children = new ArrayList<Vertex>(2);
 
-  private final CFANode location;
+  private final AbstractElement wrappedElement;
+
   private Formula stateFormula;
   private final CFAEdge edge; // the edge to the predecessor
 
   private Vertex coveredBy = null;
   private List<Vertex> coveredNodes = new ArrayList<Vertex>(0);
 
-  public Vertex(CFANode pLocation, Formula pStateFormula) {
+  public Vertex(Formula pStateFormula, AbstractElement pElement) {
     parent = null;
-    location = checkNotNull(pLocation);
+    wrappedElement = checkNotNull(pElement);
     assert pStateFormula.isTrue();
     stateFormula = pStateFormula;
     edge = null;
   }
 
-  public Vertex(Vertex pParent, CFANode pLocation, Formula pStateFormula, CFAEdge pEdge) {
+  public Vertex(Vertex pParent, Formula pStateFormula, CFAEdge pEdge, AbstractElement pElement) {
     parent = checkNotNull(pParent);
     parent.children.add(this);
-    location = checkNotNull(pLocation);
+    wrappedElement = pElement;
     stateFormula = checkNotNull(pStateFormula);
     edge = checkNotNull(pEdge);
   }
 
 
-  @Override
-  public CFANode getLocationNode() {
-    return location;
-  }
-
   public Formula getStateFormula() {
     return stateFormula;
+  }
+
+  public AbstractElement getWrappedElement() {
+    return wrappedElement;
   }
 
   public CFAEdge getIncomingEdge() {
@@ -155,14 +154,17 @@ class Vertex implements AbstractElement, Targetable, AbstractElementWithLocation
   }
 
   public boolean isLeaf() {
-    return children.isEmpty() && location.getNumLeavingEdges() > 0;
+    return children.isEmpty() && AbstractElements.extractLocation(wrappedElement).getNumLeavingEdges() > 0;
   }
 
   @Override
   public boolean isTarget() {
-    return (location instanceof CFALabelNode)
-        && ((CFALabelNode) location).getLabel().equals("ERROR")
-        && !stateFormula.isFalse();
+    return !stateFormula.isFalse() && AbstractElements.isTargetElement(wrappedElement);
+  }
+
+  @Override
+  public Iterable<? extends AbstractElement> getWrappedElements() {
+    return Collections.singleton(wrappedElement);
   }
 
   public boolean isAncestorOf(Vertex v) {
@@ -185,6 +187,6 @@ class Vertex implements AbstractElement, Targetable, AbstractElementWithLocation
 
   @Override
   public String toString() {
-    return "Id: " + id + " Loc: " + location.toString() + " " + stateFormula.toString();
+    return "Id: " + id + " " + stateFormula.toString() + "\n" + wrappedElement;
   }
 }
