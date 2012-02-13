@@ -74,6 +74,7 @@ public class IRMatrix implements MatrixI {
     colIneq[0] = reln;
   }
 
+  @Override
   public IRMatrix getElemMatProd() {
     return null;
   }
@@ -109,6 +110,7 @@ public class IRMatrix implements MatrixI {
     return c;
   }
 
+  @Override
   public IRMatrix concat(MatrixI b) {
     IRMatrix m = (IRMatrix)b;
     return IRMatrix.concat(this, m);
@@ -133,6 +135,7 @@ public class IRMatrix implements MatrixI {
     return c;
   }
 
+  @Override
   public IRMatrix augment(MatrixI b) {
     IRMatrix m = (IRMatrix) b;
     return IRMatrix.augment(this,m);
@@ -285,6 +288,7 @@ public class IRMatrix implements MatrixI {
    * denominator that is identically zero then we return a singleton set containing only
    * the assumption that zero is nonzero. (This might be useful for deriving a contradiction.)
    */
+  @Override
   public AssumptionSet getDenomNonZeroAssumptions() {
     AssumptionSet aset = new AssumptionSet();
     outerloop:
@@ -373,6 +377,7 @@ public class IRMatrix implements MatrixI {
     return assume;
   }
 
+  @Override
   public AssumptionSet putInRREF(LogManager logger) {
     // TODO
     return null;

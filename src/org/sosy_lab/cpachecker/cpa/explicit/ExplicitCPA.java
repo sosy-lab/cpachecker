@@ -52,8 +52,7 @@ import com.google.common.collect.HashMultimap;
 @Options(prefix="cpa.explicit")
 public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
 
-  public static CPAFactory factory()
-  {
+  public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ExplicitCPA.class);
   }
 
@@ -89,7 +88,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
 
     abstractDomain      = new ExplicitDomain();
     transferRelation    = new ExplicitTransferRelation(config);
-    precision           = initializePrecision();
+    precision           = initializePrecision(config);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
@@ -124,14 +123,14 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
     return null;
   }
 
-  private ExplicitPrecision initializePrecision() {
+  private ExplicitPrecision initializePrecision(Configuration config) throws InvalidConfigurationException {
     HashMultimap<CFANode, String> whitelist = null;
 
     if(this.useCegar()) {
       whitelist = HashMultimap.create();
     }
 
-    return new ExplicitPrecision(variableBlacklist, whitelist);
+    return new ExplicitPrecision(variableBlacklist, whitelist, config);
   }
 
   @Override

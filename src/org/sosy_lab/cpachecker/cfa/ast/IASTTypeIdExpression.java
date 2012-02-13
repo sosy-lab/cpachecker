@@ -26,21 +26,21 @@ package org.sosy_lab.cpachecker.cfa.ast;
 public final class IASTTypeIdExpression extends IASTExpression {
 
   private final TypeIdOperator operator;
-  private final IASTTypeId type;
+  private final IType type;
 
   public IASTTypeIdExpression(final IASTFileLocation pFileLocation,
-                              final IType pType, final TypeIdOperator pOperator,
-                              final IASTTypeId pTypeId) {
-    super(pFileLocation, pType);
+                              final IType pExpressionType, final TypeIdOperator pOperator,
+                              final IType pType) {
+    super(pFileLocation, pExpressionType);
     operator = pOperator;
-    type = pTypeId;
+    type = pType;
   }
 
   public TypeIdOperator getOperator() {
     return operator;
   }
 
-  public IASTTypeId getTypeId() {
+  public IType getType() {
     return type;
   }
 
@@ -71,6 +71,6 @@ public final class IASTTypeIdExpression extends IASTExpression {
 
   @Override
   public String toASTString() {
-    return operator.getOperator() + "(" + type.toASTString() + ")";
+    return operator.getOperator() + "(" + type.toASTString("") + ")";
   }
 }

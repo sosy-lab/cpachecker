@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
@@ -287,7 +287,7 @@ public class CFACreator {
     CFAFunctionDefinitionNode firstNode = cfa.getMainFunction();
     assert firstNode.getNumLeavingEdges() == 1;
     CFAEdge firstEdge = firstNode.getLeavingEdge(0);
-    assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
+    assert firstEdge instanceof BlankEdge;
     CFANode secondNode = firstEdge.getSuccessor();
 
     CFACreationUtils.removeEdgeFromNodes(firstEdge);
@@ -295,7 +295,7 @@ public class CFACreator {
     // insert one node to start the series of declarations
     CFANode cur = new CFANode(0, firstNode.getFunctionName());
     cfa.addNode(cur);
-    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, firstNode, cur);
+    BlankEdge be = new BlankEdge("", 0, firstNode, cur, "INIT GLOBAL VARS");
     addToCFA(be);
 
     // create a series of GlobalDeclarationEdges, one for each declaration
@@ -306,14 +306,14 @@ public class CFACreator {
 
       CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
       cfa.addNode(n);
-      GlobalDeclarationEdge e = new GlobalDeclarationEdge(rawSignature,
+      DeclarationEdge e = new DeclarationEdge(rawSignature,
           d.getFileLocation().getStartingLineNumber(), cur, n, d);
       addToCFA(e);
       cur = n;
     }
 
     // and a blank edge connecting the declarations with the second node of CFA
-    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
+    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode, firstEdge.getDescription());
     addToCFA(be);
   }
 
@@ -340,7 +340,7 @@ public class CFACreator {
     if (exportCfaPerFunction) {
       try {
         File outdir = exportCfaFile.getParentFile();
-        DOTBuilder2.writeReport(cfa.getMainFunction(), outdir);
+        DOTBuilder2.writeReport(cfa, outdir);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
           "Could not write CFA to dot and json file.");

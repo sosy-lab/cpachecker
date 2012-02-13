@@ -75,7 +75,12 @@ public class ExplicitReducer implements Reducer {
       }
     }*/
     for(String trackedVar : reducedElement.getTrackedVariableNames()) {
-      diffElement.copyConstant(reducedElement, trackedVar);
+      Long value = reducedElement.getValueFor(trackedVar);
+      if(value != null) {
+        diffElement.assignConstant(trackedVar, reducedElement.getValueFor(trackedVar));
+      } else {
+        diffElement.forget(trackedVar);
+      }
     }
 
     return diffElement;

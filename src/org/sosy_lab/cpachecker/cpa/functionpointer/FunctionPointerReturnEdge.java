@@ -35,10 +35,10 @@ class FunctionPointerReturnEdge extends FunctionReturnEdge {
 
   private final FunctionPointerCallEdge callEdge;
 
-  public FunctionPointerReturnEdge(String pRawStatement, int pLineNumber,
+  public FunctionPointerReturnEdge(int pLineNumber,
       CFAFunctionExitNode pPredecessor, CFANode pSuccessor,
       FunctionPointerCallEdge pCallEdge, CallToReturnEdge pSummaryEdge) {
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor, pSummaryEdge);
+    super(pLineNumber, pPredecessor, pSuccessor, pSummaryEdge);
 
     callEdge = pCallEdge;
   }

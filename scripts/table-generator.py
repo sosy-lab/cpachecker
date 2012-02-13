@@ -48,494 +48,6 @@ CSV_SEPARATOR = '\t'
 BUG_SUBSTRING_LIST = ['bad', 'bug', 'unsafe']
 
 
-DOCTYPE = '''
-<!DOCTYPE HTML>
-'''
-
-
-CSS = '''
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-
-<style type="text/css">
-    <!--
-    table { outline:3px solid black; border-spacing:0px; font-family:arial, sans serif}
-    thead { text-align:center}
-    tbody { text-align:right}
-    tfoot { text-align:center}
-    tr:hover { background-color:yellow}
-    td { border:1px solid black}
-    td:first-child { text-align:left; white-space:nowrap}
-    tbody td:first-child { font-family: monospace; }
-    #options td:not(:first-child) {  text-align:left; font-size: x-small;
-                                     font-family: monospace; }
-    #columnTitles td:first-child { font-family: monospace; font-size: x-small; }
-    tbody tr:first-child td { border-top:3px solid black}
-    tfoot tr:first-child td { border-top:3px solid black}
-    .correctSafe, .correctUnsafe { text-align:center; color:green}
-    .wrongSafe, .wrongUnsafe { text-align:center; color:red; font-weight: bold; }
-    .unknown { text-align:center; color:orange; font-weight: bold; }
-    .error { text-align:center; color:magenta; font-weight: bold; }
-    .score { text-align:center; font-size:large; font-weight:bold; }
-    .clickable:hover { background: lime; cursor: pointer; }
-    -->
-</style>
-'''
-
-# TODO: copy external scripts to local repository? working offline?
-
-SCRIPT_INCLUDES = '''
-<script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
-
-<script type="text/javascript">
-function debug(logInfo) {
-  if(!true) {
-    console.log(logInfo);
-  }
-}
-</script>
-'''
-
-
-CONTENT_PANE = '''
-<script type="text/javascript">
-function showContentPane() {
-    // add function for cleanup, first unbind any old function
-    $('#contentPaneBackground').unbind().click(hideContentPane).show();
-    $('#contentPane').show();
-}
-
-function hideContentPane() {
-    $('#contentPaneBackground').hide();
-    $('#contentPane').hide().empty();
-}
-</script>
-
-<style type="text/css">
-    #contentPaneBackground { height:5000px; width:5000px;
-             position:fixed; top:0px; left:0px;
-             background-image: url(http://www.house-events.de/schnee.gif);
-             background-color:grey; 
-             opacity:0.5; display:none }
-    #contentPane { height:90%; width:90%; position:fixed; top:5%; left:5%;
-             border:solid 10px black; border-radius:15px;
-             background-color:white; opacity:1; display:none }
-</style>
-
-<div id="contentPaneBackground"></div>
-<div id="contentPane"></div>
-'''
-
-
-FILE_CONTENT_SCRIPT = '''
-<script type="text/javascript">
-function loadContentWrapper(event) {
-    var url = $(event.target).attr("url");
-    loadContent(url);
-}
-
-function loadContent(url) {
-    var contentPane = $("<pre>").appendTo("#contentPane")
-            .css("width", "100%").css("height", "100%")
-            .css("margin", "0").css("overflow", "auto");
-
-    $.ajax({
-        async: false, // wait for isError
-        url: url,
-        cache: false,
-        dataType: "text",
-        beforeSend: function() {
-            showContentPane();
-            contentPane.html("loading...");
-        },
-        success: function(text){
-            newtext = text.replace(/&/g, "&amp;")
-                          .replace(/"/g, "&quot;")
-                          .replace(/</g, "&lt;")
-                          .replace(/>/g, "&gt;")
-                          .replace(/\\n/g, "<br>");
-            contentPane.html(newtext);
-        },
-        error: function() {
-            contentPane.html("error while loading content.<br>" +
-            "this could be a problem of the 'same-origin-policy' of your browser.<br><br>" + 
-            "only firefox seems to be able to access files from local directories<br>" + 
-            "and this works only if the file is in the same directory as this website.<br><br>" + 
-            "you can try to download the file: <a href=" + url + ">" + url + "</a>");
-        },
-    });
-}
-
-$(document).ready(function(){
-    var cellsWithUrls = $('td[url]');
-    //console.log(cellsWithUrls);
-    cellsWithUrls.each(
-        function(index, elem){
-            $(elem).click(loadContentWrapper)
-                   .addClass("clickable");
-        });
-});
-</script>
-'''
-
-
-PLOTTING_SCRIPT = '''
-<script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
-<script type="text/javascript" src="http://www.jqplot.com/src/jquery.jqplot.min.js"></script>
-<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.highlighter.min.js"></script>
-<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.cursor.min.js"></script>
-<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.canvasTextRenderer.min.js"></script>
-<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.canvasAxisTickRenderer.min.js"></script>
-<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.enhancedLegendRenderer.min.js"></script>
-
-<style type="text/css">
-    .jqplot-title {font-family:arial, sans serif; font-size:large }
-    .jqplot-table-legend-swatch {width:20px; height:15px }
-    .jqplot-table-legend { border-style:none; outline:none }
-    .jqplot-table-legend tbody { border-style:none }
-    .jqplot-table-legend tbody tr td { border-top:none; cursor:pointer }
-    .jqplot-highlighter-tooltip {font-family:arial, sans serif; font-size:large;
-             border:solid 1px black; padding:2px;
-             border-radius:8px; border-bottom-left-radius:0px;
-             background-color:white; opacity:0.8; }
-    #chart { height:100%; width:100% }
-    #button-trend { position:absolute; bottom:0px; }
-</style>
-
-<script type="text/javascript">
-
-// this function collects the indices of columns with title "header"
-function getColumnIndicesForHeader(header) {
-    var columnIndizes = [];
-    var cells = document.getElementById('columnTitles').cells;
-
-    for(i = 0; i < cells.length; i++) {
-      var currentHeader = cells[i].textContent;
-      if (currentHeader == header) {
-        columnIndizes.push(i);
-      }
-    }
-
-    return columnIndizes;
-};
-
-// getTableData returns a list of arrays, 
-// each array is of the form: [[file1, value1], [file2, value1], ...]
-function getTableData(header) {
-    debug("data for: " + header);
-    var data = [];
-
-    var indices = getColumnIndicesForHeader(header);
-    for (j = 0; j < indices.length; j++) {
-      data.push([]);
-    }
-
-    var tableBody = $('#dataTable > tbody')[0];
-
-    for(i = 0; i < tableBody.rows.length; i++) {
-      var currentRow = tableBody.rows[i];
-
-      for (j = 0; j < indices.length; j++) {
-        var index = indices[j];
-        var currentCell = currentRow.cells[index];
-
-        var value;
-        if (header === 'status') {
-            if (currentCell.className.indexOf('correct') == 0)     value = 1;
-            else if (currentCell.className.indexOf('wrong') == 0)  value = 0;
-            else                                                  value = -1;
-        } else {
-          value = parseFloat(currentCell.textContent)
-        }
-        data[j].push([i, value]);
-      }
-    }
-
-    debug(data);
-    return function inner(){ return data;};
-};
-
-
-// this method returns sorted data for showTrend().
-function sortData(data) {
-    var newData = [];
-    for (i = 0; i < data.length; i++) {
-        var line = data[i];
-        var array = [];
-
-        for (j = 0; j < line.length; j++) {
-            if (line[j].length != 2) {debug("ERROR: data is invalid!");}
-            array.push(line[j][1]);
-        }
-
-        array.sort( function(a, b) { return a - b;} ); // compare numbers!
-
-        var newLine = [];
-        for (j = 0; j < line.length; j++) {
-            newLine.push([j, array[j]]);
-        }
-
-        newData.push(newLine);
-    }
-    return function inner(){ return newData;};
-}
-
-// get labels for x-direction
-function getXTicks(){
-    var xTicks = [];
-    var maxLength = 40;
-    var tableBody = $('#dataTable > tbody')[0];
-    for(i = 0; i < tableBody.rows.length; i++) {
-      var name = tableBody.rows[i].cells[0].textContent;
-      if (name.length > maxLength) { name = name.substring(0, maxLength) + "..."; }
-      xTicks.push([i, name]);
-    }
-    return xTicks;
-}
-
-// get labels for x-direction as [[0," 0"],[1," "],...] with a number in each 5th element
-function getXTicksWithNumbers(){
-    var xTicks = [];
-    var maxLength = 40;
-    var tableBody = $('#dataTable > tbody')[0];
-    for(i = 0; i < tableBody.rows.length; i++) {
-      xTicks.push([i, ((i%5)?" ":" " + i)]);
-    }
-    return xTicks;
-}
-
-// get labels for y-direction
-function getYTicks(header) {
-    if (header == "status") {
-      return [[-1.5, " "], [-1, "wrong"], [0, "unknown"], [1, "correct"], [1.5, " "]];
-    } else {
-      return [];
-    }
-}
-
-// returns a list of cells, each cell is multiplied by value of its colspan.
-function expandColSpan(row) {
-    var list = [];
-    for (i=0; i<row.cells.length; i++) {
-      var cell = row.cells[i];
-      for (j=0; j<parseInt(cell.colSpan); j++) {
-        list.push(cell);
-      }
-    }
-    return list;
-}
-
-
-// returns label of a test: 'tool+test+date'.
-function getLabels(header) {
-    debug("labels for: " + header);
-    var labels = [];
-
-    var indices = getColumnIndicesForHeader(header);
-    var tableHead = $('#dataTable > thead')[0];
-    var toolRow = expandColSpan(tableHead.rows[0]);
-    var dateRow = expandColSpan(tableHead.rows[3]);
-    var testRow = expandColSpan(tableHead.rows[4]);
-
-    // assertion
-    if ((toolRow.length != dateRow.length) || 
-        (toolRow.length != testRow.length)) {
-        debug("ERROR: number of columns is invalid!");
-    }
-
-    for (i = 0; i < indices.length; i++) {
-        var index = indices[i];
-        labels.push(toolRow[index].textContent + " " +
-                    testRow[index].textContent + " " +
-                    dateRow[index].textContent);
-    }
-
-    debug(labels);
-    return labels;
-};
-
-
-function addLegendActions() {
-    var legendButtons = $('tr.jqplot-table-legend');
-    var seriesLines = $('canvas.jqplot-series-canvas');
-
-    // assertion
-    if (legendButtons.length != seriesLines.length) {
-        debug("ERROR: number of series does not match buttons!");
-    }
-
-    for (i = 0; i<legendButtons.length; i++) {
-      var currentButton = legendButtons[i];
-      var currentLine = seriesLines[i];
-
-      currentButton.onclick = function(event) {
-        var hideOpacity = 0.3;
-        if (this.style.opacity == hideOpacity) {
-            this.style.opacity = 1;
-        } else {
-            this.style.opacity = hideOpacity;
-        }
-      }
-
-      currentButton.onmouseover = function(line) {
-        return function(event){ line.style.zIndex = 5; }
-      }(currentLine);
-
-      currentButton.onmouseout = function(line) {
-        return function(event){ line.style.zIndex = 0; }
-      }(currentLine);
-    }
-}
-
-
-function showPlot(header) {
-    debug("show plot of: " + header);
-    $('#contentPaneBackground').trigger('click');
-
-    var yTicks = getYTicks(header);
-    var xTicks = getXTicks(); // filenames for labels
-    var data = getTableData(header);
-
-    drawPlot(header, data, xTicks, yTicks, "plot");
-
-    var button = $('#button-trend')[0];
-    button.onclick = function() { showTrend(header); };
-    button.textContent = 'Show Trend';
-};
-
-
-function showTrend(header) {
-    debug("show trend of: " + header);
-    $('#contentPaneBackground').trigger('click');
-
-    var yTicks = getYTicks(header);
-    var xTicks = getXTicksWithNumbers();
-    var data = sortData(getTableData(header)());
-
-    drawPlot(header, data, xTicks, yTicks, "trend");
-
-    var button = $('#button-trend')[0];
-    button.onclick = function() { showPlot(header); };
-    button.textContent = 'Show Plot';
-};
-
-
-function getFormatter(labels, header) {
-    return function(str, seriesIndex, pointIndex){
-        debug(str, seriesIndex, pointIndex);
-        var filename = labels[pointIndex][1];
-        if (header == "status") {
-            if (str == 1)       str = "correct";
-            else if (str == 0)  str = "unknown";
-            else                str = "wrong";
-        }
-        if (filename.indexOf(" ") == 0) { // for showTrend(), all labels start with space.
-            filename = "";
-        } else {
-            filename = filename + "<br>";
-        }
-        return filename + str;
-    };
-}
-
-plotCache = {};
-
-function drawPlot(header, data, xTicks, yTicks, type) {
-    $('#contentPane').append('<div id="chart"></div>',
-                   '<button id="button-trend"></button>');
-
-    showContentPane();
-    $('#contentPaneBackground').click(function(event){
-        $('#chart').empty();
-    });
-
-/* there seems to be a bug with dimensions of a cached plot, cache is disabled
-    var key = type + "@" + header;
-    if (plotCache.hasOwnProperty(key)) {
-        debug("object in cache: " + key);
-        var plot = plotCache[key];
-        plot.replot();
-
-    } else {
-*/
-        // data array is empty, we use "columnRenderer" option to get data.
-        var plot = $.jqplot('chart',[],{
-          title: header,
-          legend: {
-            show:true,
-            placement: 'outsideGrid',
-            renderer: $.jqplot.EnhancedLegendRenderer,
-            labels: getLabels(header),
-            location: 's',
-            rowSpacing: "0px",
-            showSwatches: true,
-          },
-          dataRenderer: data,
-          highlighter:{
-            show: true,
-            sizeAdjust: 10,
-            showMarker: true,
-            tooltipAxes: 'y',
-            tooltipLocation: 'ne',
-            tooltipContentEditor: getFormatter(xTicks, header),
-          },
-          seriesDefaults:{
-            shadow: false,
-          },
-          cursor:{
-            show: false,
-            zoom: false,
-            showTooltip: false,
-          },
-          axes:{
-            xaxis:{
-              ticks: xTicks,
-              tickRenderer: $.jqplot.CanvasAxisTickRenderer,
-              tickOptions: {
-                fontSize: '9px',
-                angle: -60,
-              }
-            },
-            yaxis:{
-              ticks: yTicks,
-              pad: 1.2,
-              tickOptions:{
-                formatString:'%.2f'
-              }
-            }
-          },
-        });
-
-/*
-        plotCache[key] = plot;
-    }
-*/
-
-    addLegendActions();
-};
-
-
-// this function adds the listeners to the table
-$(document).ready(function(){
-    var columnTitles = $('#columnTitles > td');
-    for (i = 1; i< columnTitles.length; i++) { // do not use first column (i!=0)
-      var column = columnTitles[i];
-      debug(column);
-      column.style.cursor = "pointer";
-      column.onclick = function (event) {
-          var header = event.target.textContent;
-          return showPlot(header);
-      }
-    }
-});
-
-</script>
-'''
-
-
-TITLE = '''
-<title>table of tests</title>
-'''
-
 # space in front of a line in htmlcode (4 spaces)
 HTML_SHIFT = '    '
 
@@ -546,6 +58,29 @@ SCORE_CORRECT_UNSAFE = 1
 SCORE_UNKNOWN = 0
 SCORE_WRONG_UNSAFE = -2
 SCORE_WRONG_SAFE = -4
+
+
+class Template():
+    """
+    a limited template "engine", similar to report-generator
+    """
+
+    def __init__(self, infile, outfile):
+        self.infile = infile
+        self.outfile = outfile
+
+    def render(self, **kws):
+        """
+        This function replaces every appearance of "{{{key}}}"
+        through the value of the key.
+        """
+        for line in self.infile:
+            for key in kws:
+                matcher = "{{{" + key + "}}}"
+                if matcher in line:
+                    line = line.replace(matcher, kws[key])
+                    
+            self.outfile.write(line)
 
 
 def getListOfTests(file, filesFromXML=False):
@@ -604,11 +139,6 @@ def appendTests(listOfTests, filelist, columns=None):
 
             resultElem.set("filename", resultFile)
 
-            # check for equal files in the tests
-            if len(listOfTests) and not containEqualFiles(listOfTests[0][0], resultElem):
-                print ('        resultfile contains different files, skipping resultfile')
-                continue
-
             availableColumnTitles = [column.get("title") for column in
                                 resultElem.find('sourcefile').findall('column')]
             if columns: # not None
@@ -654,6 +184,26 @@ def insertLogFileNames(resultFile, resultElem):
     for sourcefile in resultElem.findall('sourcefile'):
         logFileName = os.path.basename(sourcefile.get('name')) + ".log"
         sourcefile.set('logfileForHtml', logFolder + logFileName)
+
+
+def mergeFilelists(listOfTests):
+    """
+    This function returns a list of testelements (+ column), 
+    so that each test has the same length and 
+    the sourcefiles have the same order in all tests. 
+    Invalid testsElements are removed.
+    """
+    mergedListOfTests = []
+    for testResult, columns in listOfTests:
+        # TODO handle missing files, similar to regression.py?
+        # check for equal files in the tests
+        if containEqualFiles(listOfTests[0][0], testResult):
+            mergedListOfTests.append((testResult, columns))
+        else:
+            print ('    {0} contains different files, skipping resultfile'.
+                        format(testResult.get("filename")))
+            continue
+    return mergedListOfTests
 
 
 def getFileList(shortFile):
@@ -890,63 +440,105 @@ def getTableBody(listOfTests):
     The foot contains some statistics.
     '''
 
-    rowsForHTML = []
-    rowsForCSV = []
-    fileList = listOfTests[0][0].findall('sourcefile')
+    listsOfFiles = [test.findall('sourcefile') for test, columns in listOfTests]
+    listsOfColumns = [columns for test, columns in listOfTests]
 
     # get filenames
-    fileNames = [file.get("name") for file in fileList]
+    fileNames = [file.get("name") for file in listsOfFiles[0]]
 
-    maxScore = sum([SCORE_CORRECT_UNSAFE
-                    if containsAny(name.lower(), BUG_SUBSTRING_LIST)
-                    else SCORE_CORRECT_SAFE
-                        for name in fileNames])
-    rowsForStats = [['<td>total files</td>'],
-                    ['<td title="(no bug exists + result is SAFE) OR ' + \
-                     '(bug exists + result is UNSAFE)">correct results</td>'],
-                    ['<td title="bug exists + result is SAFE">false negatives</td>'],
-                    ['<td title="no bug exists + result is UNSAFE">false positives</td>'],
-                    ['<td>score ({0} files, max score: {1})</td>'
-                        .format(len(fileList), maxScore)]]
-
-
-    # get common folder
-    commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
-    commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
-
-    # generate text for filenames
-    for fileName in fileNames:
-        filePath = getPathOfSourceFile(fileName)
-        rowsForHTML.append(['<td url="{0}">{1}</td>'.
-                            format(quote(filePath), fileName.replace(commonPrefix, '', 1))])
-        rowsForCSV.append([fileName.replace(commonPrefix, '', 1)])
+    rowsForHTML = [[] for _ in fileNames]
+    rowsForCSV  = [[] for _ in fileNames]
 
     # get values for each test
-    for testResult, columns in listOfTests:
-
+    for files, columns in zip(listsOfFiles, listsOfColumns):
         valuesListHTML = []
         valuesListCSV = []
 
         # get values for each file in a test
-        for fileResult in testResult.findall('sourcefile'):
+        for fileResult in files:
             (valuesHTML, valuesCSV) = getValuesOfFileXTest(fileResult, columns)
             valuesListHTML.append(valuesHTML)
             valuesListCSV.append(valuesCSV)
 
         # append values to html and csv
-        for row, values in zip(rowsForHTML, valuesListHTML): row.extend(values)
-        for row, values in zip(rowsForCSV, valuesListCSV): row.extend(values)
+        for row, values in zip(rowsForHTML, valuesListHTML): row.append(values)
+        for row, values in zip(rowsForCSV, valuesListCSV): row.append(values)
 
-        # get statistics
-        stats = getStatsOfTest(testResult.findall('sourcefile'), columns, valuesListCSV)
-        for row, values in zip(rowsForStats, stats): row.extend(values)
+    maxLen = max((len(file.get('name')) for file in listsOfFiles[0]))
 
-    rowsHTML = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(map(''.join, rowsForHTML))
+    # get differences
+    rowsForHTMLdiff = []
+    rowsForCSVdiff = []
+    fileNamesDiff = []
+    listsOfFilesDiff = [[] for tests in listsOfFiles]
+    isDifference = False
+    for elem in zip(rowsForHTML, rowsForCSV, *listsOfFiles):
+        HTMLrow, CSVrow, listOfFiles = elem[0], elem[1], elem [2:]
+
+        (allEqual, oldStatus, newStatus) = allEqualResult(listOfFiles)
+        if not allEqual:
+            isDifference = True
+            filename = listOfFiles[0].get('name')
+            rowsForHTMLdiff.append(HTMLrow)
+            rowsForCSVdiff.append(CSVrow)
+            fileNamesDiff.append(filename)
+            for list, file in zip(listsOfFilesDiff, listOfFiles): list.append(file)
+            print ('    difference found:  {0} : {1} --> {2}'.format(
+                        filename.ljust(maxLen), oldStatus, newStatus))
+
+    if len(listOfTests) > 1 and not isDifference:
+        print ("\n---> NO DIFFERENCE FOUND IN COLUMN 'STATUS'")
+
+    rowsForStats = getStatsHTML(listsOfFiles, fileNames, listsOfColumns, rowsForCSV)
+    if isDifference:
+        rowsForStatsDiff = getStatsHTML(listsOfFilesDiff, fileNamesDiff, listsOfColumns, rowsForCSVdiff)
+
+    # get common folder
+    commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
+    commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
+
+    # generate text for filenames, insert it as first column
+    # this implicitly adds filenames into diff-lists, too
+    for fileName, HTMLrow, CSVrow in zip(fileNames, rowsForHTML, rowsForCSV):
+        filePath = getPathOfSourceFile(fileName)
+        HTMLrow.insert(0, ['<td><a href="{0}">{1}</a></td>'.
+                    format(quote(filePath), fileName.replace(commonPrefix, '', 1))])
+        CSVrow.insert(0, [fileName.replace(commonPrefix, '', 1)])
+
+    # join all listelements to strings
+    rowsHTML = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(joinRows(rowsForHTML))
     statsHTML = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(map(''.join, rowsForStats))
+    HTMLbody = '<tbody>\n{0}<tr>{1}</tr>\n</tbody>'.format(HTML_SHIFT, rowsHTML)
+    HTMLfooter = '<tfoot>\n{0}<tr>{1}</tr>\n</tfoot>'.format(HTML_SHIFT, statsHTML)
+    CSVbody = '\n'.join(joinRows(rowsForCSV, CSV_SEPARATOR))
 
-    return ('<tbody>\n{0}<tr>{1}</tr>\n</tbody>'.format(HTML_SHIFT, rowsHTML),
-            '<tfoot>\n{0}<tr>{1}</tr>\n</tfoot>'.format(HTML_SHIFT, statsHTML),
-            '\n'.join(map(CSV_SEPARATOR.join, rowsForCSV)))
+    if isDifference:
+        rowsHTMLdiff = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(joinRows(rowsForHTMLdiff))
+        statsHTMLdiff = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(map(''.join, rowsForStatsDiff))
+        HTMLdiff = '<tbody>\n{0}<tr>{1}</tr>\n</tbody>'.format(HTML_SHIFT, rowsHTMLdiff)
+        HTMLdiffFooter = '<tfoot>\n{0}<tr>{1}</tr>\n</tfoot>'.format(HTML_SHIFT, statsHTMLdiff)
+        CSVdiff = '\n'.join(joinRows(rowsForCSVdiff, CSV_SEPARATOR))
+    else:
+        HTMLdiff = ''
+        HTMLdiffFooter = ''
+        CSVdiff = ''
+
+    return (HTMLbody, HTMLfooter, HTMLdiff, HTMLdiffFooter, CSVbody, CSVdiff)
+
+
+def joinRows(rows, str=""):
+    """
+    This function joins all values in each test in each row.
+    It returns an iterator over the rows.
+    """
+    return (str.join(value for test in row for value in test) for row in rows)
+
+
+def allEqualResult(listOfFiles):
+    for file in listOfFiles:
+        if listOfFiles[0].status != file.status:
+            return (False, listOfFiles[0].status, file.status)
+    return (True, None, None)
 
 
 def getPathOfSourceFile(filename):
@@ -999,7 +591,7 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
                     else:
                         currentFile.status = 'error'
 
-                    valuesForHTML.append('<td class="{0}" url="{1}">{2}</td>'
+                    valuesForHTML.append('<td class="{0}"><a href="{1}">{2}</a></td>'
                             .format(currentFile.status, quote(str(currentFile.get('logfileForHtml'))), status))
 
                 else:
@@ -1028,7 +620,32 @@ def toDecimal(s):
     return Decimal(s)
 
 
+def getStatsHTML(listsOfFiles, fileNames, listsOfColumns, valuesList):
+    maxScore = sum([SCORE_CORRECT_UNSAFE
+                    if containsAny(name.lower(), BUG_SUBSTRING_LIST)
+                    else SCORE_CORRECT_SAFE
+                        for name in fileNames])
+    rowsForStats = [['<td>total files</td>'],
+                    ['<td title="(no bug exists + result is SAFE) OR ' + \
+                     '(bug exists + result is UNSAFE)">correct results</td>'],
+                    ['<td title="bug exists + result is SAFE">false negatives</td>'],
+                    ['<td title="no bug exists + result is UNSAFE">false positives</td>'],
+                    ['<td>score ({0} files, max score: {1})</td>'
+                        .format(len(fileNames), maxScore)]]
+
+    # get statistics
+    for elem in zip(listsOfFiles, listsOfColumns, *valuesList):
+        files, columns, values = elem[0], elem[1], elem[2:]
+        stats = getStatsOfTest(files, columns, values)
+        for row, values in zip(rowsForStats, stats): row.extend(values)
+
+    return rowsForStats
+
+
 def getStatsOfTest(fileResult, columns, valuesList):
+    """
+    This function return HTML for the table-footer.
+    """
 
     # list for status of bug vs tool
     statusList = [file.status for file in fileResult]
@@ -1110,45 +727,73 @@ def createTable(file, filesFromXML=False):
 
     if filesFromXML:
         listOfTests = getListOfTests(file, True)
-        HTMLOutFileName = OUTPUT_PATH + os.path.basename(file)[:-3] + "table.html"
-        CSVOutFileName = OUTPUT_PATH + os.path.basename(file)[:-3] + "table.csv"
+        prefix = OUTPUT_PATH + os.path.basename(file)[:-3]
     else:
         listOfTests = getListOfTests(file)
         timestamp = time.strftime("%y%m%d-%H%M", time.localtime())
-        HTMLOutFileName = OUTPUT_PATH + NAME_START + "." + timestamp + ".table.html"
-        CSVOutFileName = OUTPUT_PATH + NAME_START + "." + timestamp + ".table.csv"
+        prefix = OUTPUT_PATH + NAME_START + "." + timestamp
+
+    HTMLOutFileName = prefix + ".table.html"
+    HTMLdiffOutFileName = prefix + ".diff.html"
+    CSVOutFileName = prefix + ".table.csv"
 
     if len(listOfTests) == 0:
         print ('\nError! No file with testresults found.\n' \
             + 'Please check the filenames in your XML-file.')
         exit()
 
-    print ('generating html into %s ...' % (HTMLOutFileName, ))
 
+    # merge list of tests, so that all tests contain the same filenames
+    print ('merging files ...')
+    listOfTests = mergeFilelists(listOfTests)
+
+    print ('generating table ...')
     (tableHeadHTML, tableHeadCSV) = getTableHead(listOfTests)
-    (tableBodyHTML, tableFootHTML, tableBodyCSV) = getTableBody(listOfTests)
+    (tableBodyHTML, tableFootHTML, tableBodyDiffHTML, tableFootDiffHTML, tableBodyCSV, CSVdiff) \
+            = getTableBody(listOfTests)
 
-    tableCode = '<table id="dataTable">\n' \
-                + tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
+    tableCode = tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
                 + '\n' + HTML_SHIFT \
                 + tableFootHTML.replace('\n','\n' + HTML_SHIFT) \
                 + '\n' + HTML_SHIFT \
-                + tableBodyHTML.replace('\n','\n' + HTML_SHIFT) \
-                + '\n</table>\n\n'
+                + tableBodyHTML.replace('\n','\n' + HTML_SHIFT)
 
-    htmlCode = DOCTYPE + '<html>\n\n<head>\n' + \
-                CSS + SCRIPT_INCLUDES + FILE_CONTENT_SCRIPT + TITLE + \
-                '\n</head>\n\n<body>\n\n' + CONTENT_PANE + '\n\n'
-    if options.enablePlotting: htmlCode += PLOTTING_SCRIPT + '\n'
-    htmlCode += tableCode + '</body>\n\n</html>'
+    if tableBodyDiffHTML != '':
+        tableDiffCode = tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
+                + '\n' + HTML_SHIFT \
+                + tableFootDiffHTML.replace('\n','\n' + HTML_SHIFT) \
+                + '\n' + HTML_SHIFT \
+                + tableBodyDiffHTML.replace('\n','\n' + HTML_SHIFT)
 
     if not os.path.isdir(OUTPUT_PATH): os.makedirs(OUTPUT_PATH)
-    HTMLFile = open(HTMLOutFileName, "w")
-    HTMLFile.write(htmlCode)
-    HTMLFile.close()
 
+    # write HTML to file
+    templateFileName = os.path.join(os.path.dirname(__file__),
+                               'table-generator-template.html')
+
+    print ('writing html into %s ...' % (HTMLOutFileName, ))
+
+    templateFile = open(templateFileName, 'r')
+    HTMLOutFile = open(HTMLOutFileName, 'w')
+    Template(templateFile, HTMLOutFile).render(
+                title="table of tests",
+                table=tableCode
+                )
+    templateFile.close()
+    HTMLOutFile.close()
+
+    if tableBodyDiffHTML != '':
+        templateFile = open(templateFileName, 'r')
+        HTMLdiffOutFile = open(HTMLdiffOutFileName, 'w')
+        Template(templateFile, HTMLdiffOutFile).render(
+                title="differences",
+                table=tableDiffCode
+                )
+        templateFile.close()
+        HTMLdiffOutFile.close()
+
+    # write CSV to file
     CSVCode = tableHeadCSV + tableBodyCSV
-
     CSVFile = open(CSVOutFileName, "w")
     CSVFile.write(CSVCode)
     CSVFile.close()
@@ -1176,12 +821,7 @@ def main(args=None):
         dest="outputPath",
         help="outputPath for table. if it does not exist, it is created."
     )
-    parser.add_option("-p", "--plot", 
-        action="store_true", dest="enablePlotting", default=False,
-        help="put JavaScript in html-code that enables plotting functionality in the resulting table."
-    )
 
-    global options
     options, args = parser.parse_args(args)
 
     if options.outputPath:

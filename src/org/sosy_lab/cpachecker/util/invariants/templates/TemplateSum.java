@@ -147,7 +147,7 @@ public class TemplateSum extends TemplateFormula {
   }
 
   @Override
-  public boolean evaluate(HashMap<String,Rational> map) {
+  public boolean evaluate(Map<String,Rational> map) {
     boolean ans = true;
     TemplateTerm T;
     for (int i = 0; i < getNumTerms(); i++) {

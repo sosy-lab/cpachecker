@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.featurevariables;
 
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -71,18 +72,24 @@ public class FeatureVarsTransferRelation implements TransferRelation {
    * a local variable with the same name)
    */
   @Override
-  public Collection<AbstractElement> getAbstractSuccessors(
+  public Collection<FeatureVarsElement> getAbstractSuccessors(
       AbstractElement element, Precision pPrecision, CFAEdge cfaEdge)
       throws CPATransferException {
     Preconditions.checkArgument(pPrecision instanceof FeatureVarsPrecision, "precision is no FeatureVarsPrecision");
     FeatureVarsPrecision precision = (FeatureVarsPrecision) pPrecision;
-    if (precision.isDisabled()) {
-      // this means that no variables should be tracked (whitelist is empty)
-      return Collections.singleton(element);
+    FeatureVarsElement fvElement = (FeatureVarsElement) element;
+    if (fvElement.getRegion().isFalse()) {
+      return Collections.emptyList();
     }
 
-    FeatureVarsElement fvElement = (FeatureVarsElement) element;
-    AbstractElement successor = fvElement;
+    //assert !fvElement.getRegion().isFalse();
+
+    if (precision.isDisabled()) {
+      // this means that no variables should be tracked (whitelist is empty)
+      return Collections.singleton(fvElement);
+    }
+
+    FeatureVarsElement successor = fvElement;
     // check the type of the edge
     switch (cfaEdge.getEdgeType()) {
     // if edge is a statement edge, e.g. a = b + c
@@ -128,11 +135,12 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     if (successor == null) {
       return Collections.emptySet();
     } else {
+      assert !successor.getRegion().isFalse();
       return Collections.singleton(successor);
     }
   }
 
-  private AbstractElement handleStatementEdge(FeatureVarsElement element,
+  private FeatureVarsElement handleStatementEdge(FeatureVarsElement element,
       IASTStatement pIastStatement, StatementEdge cfaEdge,
       FeatureVarsPrecision pPrecision) {
 
@@ -166,14 +174,11 @@ public class FeatureVarsTransferRelation implements TransferRelation {
         }
       }
     }
-    if (result.getRegion().isFalse()) {
-      return null; // assumption is not fulfilled / not possible
-    } else {
-      return result;
-    }
+    assert !result.getRegion().isFalse();
+    return result;
   }
 
-  private AbstractElement handleAssumption(FeatureVarsElement element,
+  private FeatureVarsElement handleAssumption(FeatureVarsElement element,
       IASTExpression expression, CFAEdge cfaEdge, boolean truthValue,
       FeatureVarsPrecision precision) throws UnrecognizedCCodeException {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -318,6 +323,13 @@ public class FeatureVarsTransferRelation implements TransferRelation {
           propagateBinaryBooleanExpression(element, binExp.getOperator(),
               binExp.getOperand1(), binExp.getOperand2(), functionName,
               precision, edge);
+    } else if (op2 instanceof IASTIntegerLiteralExpression) {
+      IASTIntegerLiteralExpression number = (IASTIntegerLiteralExpression)op2;
+      if (number.getValue().equals(BigInteger.ZERO)) {
+        operand2 = rmgr.makeFalse();
+      } else {
+        operand2 = rmgr.makeTrue();
+      }
     }
     if (operand1 == null || operand2 == null) {
       return null;
@@ -332,7 +344,17 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       returnValue = rmgr.makeOr(operand1, operand2);
       break;
     case EQUALS:
+      returnValue = rmgr.makeOr(
+              rmgr.makeAnd(operand1, operand2),
+              rmgr.makeAnd(rmgr.makeNot(operand1), rmgr.makeNot(operand2))
+          );
+      break;
     case NOT_EQUALS:
+      returnValue = rmgr.makeOr(
+              rmgr.makeAnd(rmgr.makeNot(operand1), operand2),
+              rmgr.makeAnd(operand1, rmgr.makeNot(operand2))
+          );
+      break;
     default:
       throw new UnrecognizedCCodeException(
           "Cases ==, != and others are not implemented", edge);

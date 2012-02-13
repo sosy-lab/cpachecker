@@ -21,24 +21,25 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cpa.art;
 
+import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-/**
- * This is the declaration of a member of a composite type.
- * It contains a type and an optional name.
- */
-public final class IASTCompositeTypeMemberDeclaration extends IASTSimpleDeclaration {
+public class ARTSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
 
-  public IASTCompositeTypeMemberDeclaration(IASTFileLocation pFileLocation,
-                                            IType pSpecifier,
-                                            String pName) {
-    super(pFileLocation, pSpecifier, pName);
+  private final SimplePrecisionAdjustment wrappedPrecAdjustment;
+
+  public ARTSimplePrecisionAdjustment(SimplePrecisionAdjustment pWrappedPrecAdjustment) {
+    wrappedPrecAdjustment = pWrappedPrecAdjustment;
   }
 
   @Override
-  public String toASTString() {
-    return getDeclSpecifier().toASTString() + getName() + ";";
-  }
+  public Action prec(AbstractElement pElement, Precision pPrecision) throws CPAException {
+    ARTElement element = (ARTElement)pElement;
 
+    return wrappedPrecAdjustment.prec(element.getWrappedElement(), pPrecision);
+  }
 }

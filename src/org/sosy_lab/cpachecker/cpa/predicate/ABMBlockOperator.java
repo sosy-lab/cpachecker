@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
@@ -41,8 +42,10 @@ public class ABMBlockOperator extends BlockOperator {
   }
 
   @Override
-  public boolean isBlockEnd(CFANode pSuccLoc, PathFormula pPf) {
-    return super.isBlockEnd(pSuccLoc, pPf) || partitioning.isCallNode(pSuccLoc) || partitioning.isReturnNode(pSuccLoc);
+  public boolean isBlockEnd(CFAEdge pEdge, PathFormula pPf) {
+    CFANode succLoc = pEdge.getSuccessor();
+
+    return super.isBlockEnd(pEdge, pPf) || partitioning.isCallNode(succLoc) || partitioning.isReturnNode(succLoc);
   }
 
   public BlockPartitioning getPartitioning() {

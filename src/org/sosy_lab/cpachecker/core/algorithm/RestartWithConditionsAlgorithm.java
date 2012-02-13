@@ -66,7 +66,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
   public RestartWithConditionsAlgorithm(Algorithm pAlgorithm,
         ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger)
         throws InvalidConfigurationException {
-
+    config.inject(this);
     logger = pLogger;
     innerAlgorithm = pAlgorithm;
 

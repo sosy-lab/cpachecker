@@ -67,7 +67,13 @@ public class GlobalConditionsCPA implements ConfigurableProgramAnalysisWithABM, 
 
     if (thresholds.isLimitEnabled()) {
       logger.log(Level.INFO, "Analyzing with the following", thresholds);
-      precisionAdjustment = new GlobalConditionsPrecisionAdjustment(logger, thresholds);
+      GlobalConditionsSimplePrecisionAdjustment prec = new GlobalConditionsSimplePrecisionAdjustment(logger, thresholds);
+
+      if (thresholds.getReachedSetSizeThreshold() >= 0) {
+        precisionAdjustment = new GlobalConditionsPrecisionAdjustment(logger, thresholds, prec);
+      } else {
+        precisionAdjustment = prec;
+      }
 
     } else {
       precisionAdjustment = StaticPrecisionAdjustment.getInstance();

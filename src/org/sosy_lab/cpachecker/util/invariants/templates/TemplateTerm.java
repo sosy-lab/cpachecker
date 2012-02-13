@@ -101,7 +101,7 @@ public class TemplateTerm extends TemplateSum {
   }
 
   @Override
-  public boolean evaluate(HashMap<String,Rational> map) {
+  public boolean evaluate(Map<String,Rational> map) {
     boolean ans = true;
     if (hasParameter()) {
       ans = false;

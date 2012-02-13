@@ -48,7 +48,7 @@ public class DummyType extends IType {
   }
 
   @Override
-  public String toASTString() {
-    return typeName + " ";
+  public String toASTString(String pDeclarator) {
+    return typeName + " " + pDeclarator;
   }
 }

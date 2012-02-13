@@ -30,6 +30,7 @@ import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 
@@ -43,15 +44,16 @@ abstract class AutomatonAction {
 
   // in this method the Value inside the resultValueObject is not important (most ActionClasses will return "" as inner value)
   // more important is if the action was evaluated (ResultValue.canNotEvaluate())
-  abstract ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs);
+  abstract ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
   /**
    * Returns if the action can execute on the given AutomatonExpressionArguments.
    * If it cannot execute this is probably because of missing AbstractElements (from other CPAs).
    * @param pArgs
    * @return
+   * @throws CPATransferException
    */
-  boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
+  boolean canExecuteOn(AutomatonExpressionArguments pArgs) throws CPATransferException {
     return true;
   }
   //abstract void execute(AutomatonExpressionArguments pArgs);
@@ -65,7 +67,7 @@ abstract class AutomatonAction {
     public Print(List<AutomatonExpression> pArgs) { toPrint = pArgs; }
 
     @Override
-    boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
+    boolean canExecuteOn(AutomatonExpressionArguments pArgs) throws CPATransferException {
       // TODO: every action is computed twice (once here, once in eval)
       for (AutomatonExpression expr : toPrint) {
         ResultValue<?> res = expr.eval(pArgs);
@@ -75,7 +77,7 @@ abstract class AutomatonAction {
       }
       return true;
     }
-    @Override ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) {
+    @Override ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
       StringBuilder sb = new StringBuilder();
       for (AutomatonExpression expr : toPrint) {
         ResultValue<?> res = expr.eval(pArgs);
@@ -165,7 +167,7 @@ abstract class AutomatonAction {
             } catch (InvalidQueryException e) {
               pArgs.getLogger().logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA (Element " + aqe.toString() + ") on Edge " + pArgs.getCfaEdge().getRawStatement());
+                  + cpaName + " CPA (Element " + aqe.toString() + ") on Edge " + pArgs.getCfaEdge().getDescription());
               return defaultResultValue; // try to carry on with the further evaluation
             }
           }

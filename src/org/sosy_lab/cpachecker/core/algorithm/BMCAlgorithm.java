@@ -641,7 +641,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
         }
 
-        invariantCPAs = new CPABuilder(invariantConfig, logger, reachedSetFactory, cfa).buildCPAs();
+        invariantCPAs = new CPABuilder(invariantConfig, logger, reachedSetFactory).buildCPAs(cfa);
         reached = new ReachedSetFactory(invariantConfig, logger).create();
 
       } else {

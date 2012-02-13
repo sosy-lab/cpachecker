@@ -30,27 +30,33 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
   private final LogManager logger;
   private final TemplateFormula entryFormula;
   private final TemplateFormula loopFormula;
+  private final TemplateFormula loopFormulaHead;
+  private final TemplateFormula loopFormulaTail;
   private final TemplateFormula exitFormula;
-  private final TemplateFormula exitHead;
-  private final TemplateFormula exitTail;
+  private final TemplateFormula exitFormulaHead;
+  private final TemplateFormula exitFormulaTail;
   private final TemplateChooserStrategy strategy;
 
 
-  public SingleLoopTemplateChooser(LogManager logger, TemplateFormula entryFormula,
-      TemplateFormula loopFormula, TemplateFormula exitFormula, TemplateFormula exitHead,
-      TemplateFormula exitTail) {
+  public SingleLoopTemplateChooser(LogManager logger,
+      TemplateFormula entryFormula,
+      TemplateFormula loopFormula, TemplateFormula loopFormulaHead, TemplateFormula loopFormulaTail,
+      TemplateFormula exitFormula, TemplateFormula exitFormulaHead, TemplateFormula exitFormulaTail) {
     this.logger = logger;
     this.entryFormula = entryFormula;
     this.loopFormula = loopFormula;
+    this.loopFormulaHead = loopFormulaHead;
+    this.loopFormulaTail = loopFormulaTail;
     this.exitFormula = exitFormula;
-    this.exitHead = exitHead;
-    this.exitTail = exitTail;
+    this.exitFormulaHead = exitFormulaHead;
+    this.exitFormulaTail = exitFormulaTail;
     this.strategy = new TemplateChooserStrategy();
   }
 
   private enum TemplateChooserMethod {
     TOPLEVELTERMFORMS,
     LOOPVARSFREECOMB,
+    LOOPVARSFREECOMBANDLOOPHEADFREECOMB,
     EXITHEADNEGATION,
     EXITTAILCOMB;
   }
@@ -67,6 +73,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
   private class TemplateChooserStrategy {
 
     private TemplateChooserMethod[] methods = {
+        TemplateChooserMethod.LOOPVARSFREECOMBANDLOOPHEADFREECOMB,
         TemplateChooserMethod.EXITTAILCOMB,
         TemplateChooserMethod.EXITHEADNEGATION,
         TemplateChooserMethod.LOOPVARSFREECOMB,
@@ -131,7 +138,53 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
       choice = exitTailIndexOneFreeCombMethod(relation); break;
     case LOOPVARSFREECOMB:
       choice = loopVarsFreeCombMethod(relation); break;
+    case LOOPVARSFREECOMBANDLOOPHEADFREECOMB:
+      choice = loopVarsAndHeadFreeCombMethod(relation); break;
     }
+    return choice;
+  }
+
+  private Template loopVarsAndHeadFreeCombMethod(InfixReln relation) {
+    Template choice = null;
+    // Get all loop head and loop tail variables.
+    Set<TemplateTerm> headVars = getUnindexedVarsAsTerms(loopFormulaHead);
+    Set<TemplateTerm> tailVars = getUnindexedVarsAsTerms(loopFormulaTail);
+
+    // Declare a list of terms for each conjunct.
+    List<TemplateTerm> headTerms = new Vector<TemplateTerm>();
+    List<TemplateTerm> tailTerms = new Vector<TemplateTerm>();
+
+    // Add the loop vars.
+    headTerms.addAll(headVars);
+    tailTerms.addAll(tailVars);
+
+    // Create a fresh parameter linear combination of the terms for each conjunct.
+    TemplateSum headLHS = TemplateSum.freshParamLinComb(headTerms);
+    TemplateSum tailLHS = TemplateSum.freshParamLinComb(tailTerms);
+
+    // Make RHS parameters.
+    TemplateVariable param = TemplateTerm.getNextFreshParameter();
+    TemplateTerm headRHS = new TemplateTerm();
+    headRHS.setParameter(param);
+    param = TemplateTerm.getNextFreshParameter();
+    TemplateTerm tailRHS = new TemplateTerm();
+    tailRHS.setParameter(param);
+
+    // Build the conjuncts as constraints.
+    TemplateFormula headFormula = new TemplateConstraint(headLHS, InfixReln.LEQ, headRHS);
+    TemplateFormula tailFormula = new TemplateConstraint(tailLHS, InfixReln.EQUAL, tailRHS);
+
+    // Form the conjunction.
+    TemplateFormula formula = TemplateConjunction.conjoin((TemplateBoolean)headFormula, (TemplateBoolean)tailFormula);
+
+    // Make nonzero parameter clause.
+    // Namely, we simply ask that not all of the top-level parameters on
+    // the LHS be zero.
+    Set<TemplateVariable> topLevelLHSparams = headLHS.getTopLevelParameters();
+    topLevelLHSparams.addAll( tailLHS.getTopLevelParameters() );
+    TemplateFormula nzpc = makeBasicParamClause(topLevelLHSparams);
+
+    choice = new Template(formula, nzpc);
     return choice;
   }
 
@@ -263,7 +316,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
    */
   private Template exitHeadNegationMethod(InfixReln relation) {
     // FIXME: we shouldn't have to do this type cast here.
-    TemplateBoolean head = (TemplateBoolean) exitHead;
+    TemplateBoolean head = (TemplateBoolean) exitFormulaHead;
     // negate
     head = head.logicNegate();
     // put in strong DNF
@@ -299,7 +352,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
    */
   private Template exitTailIndexOneFreeCombMethod(InfixReln relation) {
     // Get top-level terms.
-    Set<TemplateTerm> terms = exitTail.getTopLevelTerms();
+    Set<TemplateTerm> terms = exitFormulaTail.getTopLevelTerms();
 
     // Keep just those that have max index 1.
     Set<TemplateTerm> indexone = new HashSet<TemplateTerm>();

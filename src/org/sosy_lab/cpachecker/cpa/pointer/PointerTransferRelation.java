@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
@@ -48,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
@@ -61,16 +61,16 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -188,7 +188,7 @@ public class PointerTransferRelation implements TransferRelation {
         warnings.add(warningIndex);
         if (lineNumber != null) {
           logger.log(Level.WARNING, "Warning: " + message + " in line "
-              + lineNumber + ": " + edge.getRawStatement());
+              + lineNumber + ": " + edge.getDescription());
         } else {
           logger.log(Level.WARNING, "Warning: " + message);
         }
@@ -209,7 +209,7 @@ public class PointerTransferRelation implements TransferRelation {
         memoryLeakWarnings.add(warningIndex);
         if (lineNumber != null) {
           logger.log(Level.WARNING, "Warning: " + message + " in line "
-              + lineNumber + ": " + edge.getRawStatement());
+              + lineNumber + ": " + edge.getDescription());
         } else {
           logger.log(Level.WARNING, "Warning: " + message);
         }
@@ -221,7 +221,7 @@ public class PointerTransferRelation implements TransferRelation {
     if (printWarnings) {
       int lineNumber = edge.getLineNumber();
       logger.log(Level.WARNING, "ERROR: " + message + " in line " + lineNumber
-          + ": " + edge.getRawStatement());
+          + ": " + edge.getDescription());
     }
   }
 
@@ -243,7 +243,12 @@ public class PointerTransferRelation implements TransferRelation {
 
       case DeclarationEdge:
         DeclarationEdge declEdge = (DeclarationEdge)cfaEdge;
-        handleDeclaration(successor, cfaEdge, declEdge.getStorageClass(), declEdge.getName(), declEdge.getDeclSpecifier());
+
+        // ignore type definitions, struct prototypes etc.
+        if (declEdge.getDeclaration() instanceof IASTVariableDeclaration) {
+          IASTVariableDeclaration decl = (IASTVariableDeclaration)declEdge.getDeclaration();
+          handleDeclaration(successor, cfaEdge, decl.isGlobal(), decl.getName(), decl.getDeclSpecifier());
+        }
         break;
 
       case StatementEdge:
@@ -287,8 +292,8 @@ public class PointerTransferRelation implements TransferRelation {
 
       case BlankEdge:
         //the first function start dummy edge is the actual start of the entry function
-        if (!entryFunctionProcessed &&
-            cfaEdge.getRawStatement().equals("Function start dummy edge")) {
+        if (!entryFunctionProcessed
+            && (cfaEdge.getPredecessor() instanceof CFAFunctionDefinitionNode)) {
 
           //since by this point all global variables have been processed, we can now process the entry function
           //by first creating its context...
@@ -299,7 +304,7 @@ public class PointerTransferRelation implements TransferRelation {
           //..then adding all parameters as local variables
           for (IASTParameterDeclaration dec : l) {
             IType declSpecifier = dec.getDeclSpecifier();
-            handleDeclaration(successor, cfaEdge, StorageClass.AUTO, dec.getName(), declSpecifier);
+            handleDeclaration(successor, cfaEdge, false, dec.getName(), declSpecifier);
           }
           entryFunctionProcessed = true;
         }
@@ -337,28 +342,10 @@ public class PointerTransferRelation implements TransferRelation {
   }
 
   private void handleDeclaration(PointerElement element, CFAEdge edge,
-      StorageClass storageClass,
-      String name,
-      IType specifier) throws CPATransferException {
-
-    if (storageClass == StorageClass.TYPEDEF) {
-      // ignore, this is a type definition, not a variable declaration
-      return;
-    }
-
-    if (name == null
-        && (specifier instanceof IASTElaboratedTypeSpecifier
-            || specifier instanceof IASTCompositeTypeSpecifier)) {
-      // ignore struct prototypes
-      return;
-    }
+      final boolean global, String name, IType specifier) throws CPATransferException {
 
     if (name == null) {
       throw new UnrecognizedCCodeException("not expected in CIL", edge);
-    }
-
-    if (specifier instanceof IASTFunctionTypeSpecifier) {
-      return;
     }
 
     if (specifier instanceof IASTCompositeTypeSpecifier
@@ -373,7 +360,7 @@ public class PointerTransferRelation implements TransferRelation {
 
     if (specifier instanceof IASTArrayTypeSpecifier) {
       Pointer p = new Pointer(1);
-      if (edge instanceof GlobalDeclarationEdge) {
+      if (global) {
         element.addNewGlobalPointer(varName, p);
       } else {
         element.addNewLocalPointer(varName, p);
@@ -418,7 +405,7 @@ public class PointerTransferRelation implements TransferRelation {
 
         Pointer ptr = new Pointer(depth);
 
-        if (edge instanceof GlobalDeclarationEdge) {
+        if (global) {
           element.addNewGlobalPointer(varName, ptr);
           element.pointerOp(new Pointer.Assign(Memory.UNINITIALIZED_POINTER),
               ptr);
@@ -445,7 +432,7 @@ public class PointerTransferRelation implements TransferRelation {
 
       } else {
         Pointer p = new Pointer(depth);
-        if (edge instanceof GlobalDeclarationEdge) {
+        if (global) {
           element.addNewGlobalPointer(varName, p);
           element.pointerOp(new Pointer.Assign(Memory.UNINITIALIZED_POINTER), p);
         } else {
@@ -470,7 +457,7 @@ public class PointerTransferRelation implements TransferRelation {
       }
 
     } else {
-      if (edge instanceof GlobalDeclarationEdge) {
+      if (global) {
         element.addNewGlobalPointer(varName, null);
       } else {
         element.addNewLocalPointer(varName, null);
@@ -1524,7 +1511,8 @@ public class PointerTransferRelation implements TransferRelation {
 
       // pointer variable declaration
       String functionName = cfaEdge.getSuccessor().getFunctionName();
-      if (missing.typeInformationEdge instanceof GlobalDeclarationEdge) {
+      if (missing.typeInformationEdge instanceof DeclarationEdge
+          && ((IASTDeclaration) missing.typeInformationEdge).isGlobal()) {
         functionName = null;
       }
 

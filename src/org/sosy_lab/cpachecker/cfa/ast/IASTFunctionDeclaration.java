@@ -25,28 +25,21 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-
 /**
- * This is a function definition. It contains a type and a name.
- * The storage class should assumed to be "auto" (i.e., the default).
- * It is only used for functions that are actually defined in the code, although
- * it stores no information about the function body.
+ * This class represents forward declarations of functions.
+ * Example code:
+ *
+ * int foo(int x);
  */
-public final class IASTFunctionDefinition extends IASTSimpleDeclaration {
+public final class IASTFunctionDeclaration extends IASTDeclaration {
 
-  public IASTFunctionDefinition(IASTFileLocation pFileLocation,
-                                IASTFunctionTypeSpecifier pSpecifier,
-                                String pName) {
-    super(pFileLocation, pSpecifier, checkNotNull(pName));
+  public IASTFunctionDeclaration(IASTFileLocation pFileLocation,
+      IASTFunctionTypeSpecifier pSpecifier, String pName) {
+    super(pFileLocation, true, pSpecifier, checkNotNull(pName), pName);
   }
 
   @Override
   public IASTFunctionTypeSpecifier getDeclSpecifier() {
     return (IASTFunctionTypeSpecifier) super.getDeclSpecifier();
-  }
-
-  @Override
-  public String toASTString() {
-    return getDeclSpecifier().toASTString();
   }
 }

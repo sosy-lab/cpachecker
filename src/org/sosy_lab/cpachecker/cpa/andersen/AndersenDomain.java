@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,25 +21,22 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.automaton;
+package org.sosy_lab.cpachecker.cpa.andersen;
 
-import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
-public class AutomatonPrecisionAdjustment implements PrecisionAdjustment {
+public class AndersenDomain implements AbstractDomain {
 
   @Override
-  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement,
-      Precision pPrecision, UnmodifiableReachedSet pElements) {
-
-    Action action = ((AutomatonState)pElement).isTarget()
-                    ? Action.BREAK : Action.CONTINUE;
-    return new Triple<AbstractElement, Precision, Action>(
-        pElement, SingletonPrecision.getInstance(), action);
+  public boolean isLessOrEqual(AbstractElement currentElement, AbstractElement reachedElement) {
+    return false;
+//    return ((PointerAElement)currentElement).isLessOrEqual((PointerAElement)reachedElement);
   }
 
+  @Override
+  public AbstractElement join(AbstractElement currentElement, AbstractElement reachedElement) {
+    return null;
+//    return ((PointerAElement)currentElement).join((PointerAElement)reachedElement);
+  }
 }

@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
-
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
 public abstract class AbstractCFAEdge implements CFAEdge {
@@ -58,18 +57,18 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   }
 
   @Override
-  public String getRawStatement() {
+  public final String getRawStatement() {
     return rawStatement;
   }
 
   @Override
-  public IASTNode getRawAST() {
-    return null;
+  public Optional<?> getRawAST() {
+    return Optional.absent();
   }
 
   @Override
-  public boolean isJumpEdge() {
-    return false;
+  public String getDescription() {
+    return getCode();
   }
 
   @Override
@@ -100,8 +99,8 @@ public abstract class AbstractCFAEdge implements CFAEdge {
 
   @Override
   public String toString() {
-    return "(" + getPredecessor() + " -{" +
-        getRawStatement().replaceAll("\n", " ") +
-        "}-> " + getSuccessor() + ")";
+    return "Line " + getLineNumber() + ":\t" + getPredecessor() + " -{" +
+        getDescription().replaceAll("\n", " ") +
+        "}-> " + getSuccessor();
   }
 }

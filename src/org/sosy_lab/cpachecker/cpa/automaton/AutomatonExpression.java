@@ -27,11 +27,12 @@ import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 interface AutomatonExpression {
 
-  ResultValue<?> eval(AutomatonExpressionArguments pArgs);
+  ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
 
   static class StringExpression implements AutomatonExpression {
@@ -85,9 +86,9 @@ interface AutomatonExpression {
             } catch (InvalidQueryException e) {
               pArgs.getLogger().logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement());
+                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription());
               return new ResultValue<String>("Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement(), "AutomatonExpression.CPAQuery");
+                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription(), "AutomatonExpression.CPAQuery");
             }
           }
         }

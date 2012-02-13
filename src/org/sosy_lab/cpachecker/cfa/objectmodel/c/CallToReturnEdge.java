@@ -44,6 +44,11 @@ public class CallToReturnEdge extends AbstractCFAEdge {
 	}
 
 	@Override
+	public String getCode() {
+	  return expression.asStatement().toASTString();
+	}
+
+	@Override
   public CFAEdgeType getEdgeType() {
 		return CFAEdgeType.CallToReturnEdge;
 	}

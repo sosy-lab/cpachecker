@@ -104,8 +104,9 @@ class AutomatonTransferRelation implements TransferRelation {
    *
    * If the state is a NonDet-State multiple following states may be returned.
    * If the only following state is BOTTOM an empty set is returned.
+   * @throws CPATransferException
    */
-  private Collection<? extends AbstractElement> getFollowStates(AutomatonState state, List<AbstractElement> otherElements, CFAEdge edge, boolean strengthen) {
+  private Collection<? extends AbstractElement> getFollowStates(AutomatonState state, List<AbstractElement> otherElements, CFAEdge edge, boolean strengthen) throws CPATransferException {
     Preconditions.checkArgument(!(state instanceof AutomatonUnknownState));
     if (state == cpa.getBottomState()) {
       return Collections.emptySet();
@@ -165,7 +166,7 @@ class AutomatonTransferRelation implements TransferRelation {
           } else {
             // matching transitions, but unfulfilled assertions: goto error state
             AutomatonState errorState = AutomatonState.automatonStateFactory(Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa);
-            logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + edge.getRawStatement() + "\"");
+            logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + edge.getDescription() + "\"");
             lSuccessors.add(errorState);
           }
 

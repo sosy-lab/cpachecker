@@ -57,7 +57,7 @@ public final class IASTCompositeTypeSpecifier extends IType {
   public static final int k_union  = 2;
 
   @Override
-  public String toASTString() {
+  public String toASTString(String pDeclarator) {
     StringBuilder lASTString = new StringBuilder();
 
     if (isConst()) {
@@ -84,7 +84,22 @@ public final class IASTCompositeTypeSpecifier extends IType {
       lASTString.append("\n");
     }
     lASTString.append("} ");
+    lASTString.append(pDeclarator);
 
     return lASTString.toString();
+  }
+
+
+  /**
+   * This is the declaration of a member of a composite type.
+   * It contains a type and an optional name.
+   */
+  public static final class IASTCompositeTypeMemberDeclaration extends IASTSimpleDeclaration {
+
+    public IASTCompositeTypeMemberDeclaration(IASTFileLocation pFileLocation,
+                                              IType pSpecifier,
+                                              String pName) {
+      super(pFileLocation, pSpecifier, pName);
+    }
   }
 }

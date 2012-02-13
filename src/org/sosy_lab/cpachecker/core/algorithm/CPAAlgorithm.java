@@ -59,6 +59,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private Timer transferTimer      = new Timer();
     private Timer mergeTimer         = new Timer();
     private Timer stopTimer          = new Timer();
+    private Timer addTimer           = new Timer();
 
     private int   countIterations   = 0;
     private int   maxWaitlistSize   = 0;
@@ -87,12 +88,15 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Number of times stopped:         " + countStop);
       out.println("Number of times breaked:         " + countBreak);
       out.println();
-      out.println("Total time for CPA algorithm:   " + totalTimer + " (Max: " + totalTimer.printMaxTime() + ")");
-      out.println("Time for choose from waitlist:  " + chooseTimer);
-      out.println("Time for precision adjustment:  " + precisionTimer);
-      out.println("Time for transfer relation:     " + transferTimer);
-      out.println("Time for merge operator:        " + mergeTimer);
-      out.println("Time for stop operator:         " + stopTimer);
+      out.println("Total time for CPA algorithm:     " + totalTimer + " (Max: " + totalTimer.printMaxTime() + ")");
+      out.println("  Time for choose from waitlist:  " + chooseTimer);
+      out.println("  Time for precision adjustment:  " + precisionTimer);
+      out.println("  Time for transfer relation:     " + transferTimer);
+      if (mergeTimer.getNumberOfIntervals() > 0) {
+        out.println("  Time for merge operator:        " + mergeTimer);
+      }
+      out.println("  Time for stop operator:         " + stopTimer);
+      out.println("  Time for adding to reached set: " + addTimer);
     }
   }
 
@@ -165,14 +169,31 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         Action action = precAdjustmentResult.getThird();
 
         if (action == Action.BREAK) {
-          stats.countBreak++;
-          // re-add the old element to the waitlist, there may be unhandled
-          // successors left that otherwise would be forgotten
-          reachedSet.reAddToWaitlist(element);
-          reachedSet.add(successor, successorPrecision);
+          stats.stopTimer.start();
+          boolean stop = stopOperator.stop(successor, reachedSet.getReached(successor), successorPrecision);
+          stats.stopTimer.stop();
 
-          stats.totalTimer.stop();
-          return true;
+          if (stop) {
+            // don't signal BREAK for covered elements
+            // no need to call merge and stop either, so just ignore this element
+            // and handle next successor
+            stats.countStop++;
+            logger.log(Level.FINER,
+                "Break was signalled but ignored because the element is covered.");
+            continue;
+
+          } else {
+            stats.countBreak++;
+            logger.log(Level.FINER, "Break signalled, CPAAlgorithm will stop.");
+
+            // re-add the old element to the waitlist, there may be unhandled
+            // successors left that otherwise would be forgotten
+            reachedSet.reAddToWaitlist(element);
+            reachedSet.add(successor, successorPrecision);
+
+            stats.totalTimer.stop();
+            return true;
+          }
         }
         assert action == Action.CONTINUE : "Enum Action has unhandled values!";
 
@@ -225,7 +246,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           logger.log(Level.FINER,
               "No need to stop, adding successor to waitlist");
 
+          stats.addTimer.start();
           reachedSet.add(successor, successorPrecision);
+          stats.addTimer.stop();
         }
       }
     }

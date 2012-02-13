@@ -50,7 +50,7 @@ public class IComplexType extends IType {
   }
 
   @Override
-  public String toASTString() {
-    return name + " ";
+  public String toASTString(String pDeclator) {
+    return name + " " + pDeclator;
   }
 }

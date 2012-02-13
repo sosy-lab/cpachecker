@@ -175,6 +175,10 @@ public class RationalFunction {
     return num.isZero();
   }
 
+  public boolean isUnity() {
+    return num.equals(denom);
+  }
+
   public boolean isPositive() {
     return isConstant() && num.isPositive();
   }
@@ -185,6 +189,26 @@ public class RationalFunction {
 
   public boolean isPolynomial() {
     return denom.isUnity();
+  }
+
+  /*
+   * Return the max of the number of terms of the num and denom.
+   */
+  public int getTermHeight() {
+    return Math.max( num.getNumTerms(), denom.getNumTerms() );
+  }
+
+  /*
+   * If this function is constant, returns the value; else returns null.
+   */
+  public Rational getConstant() {
+    Rational c = null;
+    if (isConstant()) {
+      Rational a = num.getConstant();
+      Rational b = denom.getConstant();
+      c = a.div(b);
+    }
+    return c;
   }
 
   @Override
@@ -221,15 +245,7 @@ public class RationalFunction {
 
   public void simplify() {
 
-    // If num is 0, set denom to 1.
-    if (num.isZero()) {
-      denom = Polynomial.makeUnity();
-    }
-    // If not, then check whether num = denom, and in that case set both to 1.
-    else if (num.equals(denom)) {
-      num = Polynomial.makeUnity();
-      denom = Polynomial.makeUnity();
-    }
+
 
     // Cancel common monomial content of num and denom.
     Monomial mn = num.getMonomialContent();
@@ -261,6 +277,21 @@ public class RationalFunction {
       Polynomial cinv = new Polynomial(c.makeReciprocal());
       num = Polynomial.multiply(cinv,num);
       denom = new Polynomial(1);
+    }
+
+    // If num is 0, set denom to 1.
+    if (num.isZero()) {
+      denom = Polynomial.makeUnity();
+    }
+    // If not, then check whether num = denom, and in that case set both to 1.
+    else if (num.equals(denom)) {
+      num = Polynomial.makeUnity();
+      denom = Polynomial.makeUnity();
+    }
+    // If not, then check whether -1*num = denom, and in that case set num = -1, denom = 1.
+    else if (Polynomial.multiply(new Polynomial(-1), num).equals(denom)) {
+      num = new Polynomial(-1);
+      denom = Polynomial.makeUnity();
     }
 
   }

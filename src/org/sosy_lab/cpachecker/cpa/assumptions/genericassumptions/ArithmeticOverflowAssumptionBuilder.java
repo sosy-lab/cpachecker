@@ -178,7 +178,7 @@ implements GenericAssumptionBuilder
     switch (pEdge.getEdgeType()) {
     case DeclarationEdge:
       DeclarationEdge declarationEdge = (DeclarationEdge) pEdge;
-      result = declarationEdge.getRawAST();
+      result = declarationEdge.getRawAST().get();
       break;
     case AssumeEdge:
       AssumeEdge assumeEdge = (AssumeEdge) pEdge;

@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 public class UnrecognizedCFAEdgeException extends CPATransferException {
 
     public UnrecognizedCFAEdgeException(CFAEdge edge) {
-        super("Unknown CFA edge: " + edge.getEdgeType() + " (" + edge.getRawStatement() + ")");
+        super("Unknown CFA edge: " + edge.getEdgeType() + " (" + edge.getDescription() + ")");
     }
 
     /**

@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
@@ -227,6 +228,23 @@ public class PCCProofCheckMain {
       } catch (IOException e) {
         System.err.println("Could not read config file " + e.getMessage());
         System.exit(1);
+      }
+
+      {
+        // We want to be able to use options of type "File" with some additional
+        // logic provided by FileTypeConverter, so we create such a converter,
+        // add it to our Configuration object and to the the map of default converters.
+        // The latter will ensure that it is used whenever a Configuration object
+        // is created.
+        FileTypeConverter fileTypeConverter = new FileTypeConverter(config);
+
+        config = Configuration.builder()
+                            .copyFrom(config)
+                            .addConverter(FileOption.class, new FileTypeConverter(config))
+                            .build();
+
+        Configuration.getDefaultConverters()
+                     .put(FileOption.class, fileTypeConverter);
       }
 
       logger = new LogManager(config);

@@ -162,11 +162,14 @@ public class CFASecondPassBuilder {
     CFACreationUtils.removeEdgeFromNodes(edge);
 
     // create new edges
-    CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(functionCall.asStatement().toASTString(), lineNumber, predecessorNode, successorNode, functionCall);
+    CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(edge.getRawStatement(),
+        lineNumber, predecessorNode, successorNode, functionCall);
     predecessorNode.addLeavingSummaryEdge(calltoReturnEdge);
     successorNode.addEnteringSummaryEdge(calltoReturnEdge);
 
-    FunctionCallEdge callEdge = new FunctionCallEdge(functionCallExpression.toASTString(), edge.getStatement(), lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, parameters, calltoReturnEdge);
+    FunctionCallEdge callEdge = new FunctionCallEdge(edge.getRawStatement(),
+        lineNumber, predecessorNode,
+        (FunctionDefinitionNode)fDefNode, functionCall, calltoReturnEdge);
     predecessorNode.addLeavingEdge(callEdge);
     fDefNode.addEnteringEdge(callEdge);
 
@@ -178,7 +181,7 @@ public class CFASecondPassBuilder {
 
     } else {
 
-      FunctionReturnEdge returnEdge = new FunctionReturnEdge("Return Edge to " + successorNode.getNodeNumber(), lineNumber, fExitNode, successorNode, calltoReturnEdge);
+      FunctionReturnEdge returnEdge = new FunctionReturnEdge(lineNumber, fExitNode, successorNode, calltoReturnEdge);
       fExitNode.addLeavingEdge(returnEdge);
       successorNode.addEnteringEdge(returnEdge);
     }

@@ -23,83 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import static com.google.common.base.Preconditions.*;
+
 
 /**
- * This class represents declaration of types and variables. It contains a
- * storage class, a type, a name and an optional initializer.
- *
- * If the storage class is TYPEDEF, then the given name is aliased to the
- * given type (as typedef does in C).
- * Otherwise the name may be null, then it is a struct prototype.
- * In any other case, it is a variable declaration with the given name and type.
+ * This class represents all sorts of top-level declarations (i.e., declarations
+ * not nested inside another type declaration).
+ * This excludes for examples function parameter declarations and struct members.
+ * It includes local and global variables and types, as well as functions.
  */
-public final class IASTDeclaration extends IASTSimpleDeclaration {
+public abstract class IASTDeclaration extends IASTSimpleDeclaration {
 
   private final boolean               isGlobal;
-  private final StorageClass          storageClass;
-  private final IASTInitializer       initializer;
 
   public IASTDeclaration(IASTFileLocation pFileLocation,
                          boolean pIsGlobal,
-                         StorageClass pStorageClass,
                          IType pSpecifier, String pName,
-                         IASTInitializer pInitializer) {
-    this(pFileLocation, pIsGlobal, pStorageClass, pSpecifier, pName, pName, pInitializer);
-  }
-
-  public IASTDeclaration(IASTFileLocation pFileLocation,
-                         boolean pIsGlobal,
-                         StorageClass pStorageClass,
-                         IType pSpecifier, String pName,
-                         String pOrigName,
-                         IASTInitializer pInitializer) {
+                         String pOrigName) {
     super(pFileLocation, pSpecifier, pName, pOrigName);
     isGlobal = pIsGlobal;
-    storageClass = checkNotNull(pStorageClass);
-    initializer = pInitializer;
-
-    checkArgument(!(storageClass == StorageClass.TYPEDEF && getName() == null), "Typedefs require a name");
-    checkArgument(!(storageClass == StorageClass.EXTERN && initializer != null), "Extern declarations cannot have an initializer");
-  }
-
-  public boolean isGlobal() {
-    return isGlobal;
-  }
-
-  public StorageClass getStorageClass() {
-    return storageClass;
   }
 
   /**
-   * The initial value of the variable
-   * (only if present, null otherwise).
+   * Whether this declaration is a global one (i.e., not inside a function).
    */
-  public IASTInitializer getInitializer() {
-    return initializer;
-  }
-
-  @Override
-  public String toASTString() {
-    StringBuilder lASTString = new StringBuilder();
-
-    lASTString.append(storageClass.toASTString());
-    lASTString.append(getDeclSpecifier().toASTString());
-
-    if (getName() != null
-        && !(getDeclSpecifier() instanceof IASTFunctionTypeSpecifier)
-        && !(getDeclSpecifier() instanceof IASTPointerTypeSpecifier
-            && ((IASTPointerTypeSpecifier)getDeclSpecifier()).getType() instanceof IASTFunctionTypeSpecifier)) {
-      lASTString.append(getName());
-    }
-
-    if (initializer != null) {
-      lASTString.append(" = ");
-      lASTString.append(initializer.toASTString());
-    }
-
-    lASTString.append(";");
-
-    return lASTString.toString();
+  public boolean isGlobal() {
+    return isGlobal;
   }
 }

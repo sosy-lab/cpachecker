@@ -29,14 +29,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 public class ExplicitDomain implements AbstractDomain
 {
   @Override
-  public boolean isLessOrEqual(AbstractElement currentElement, AbstractElement reachedElement)
-  {
+  public boolean isLessOrEqual(AbstractElement currentElement, AbstractElement reachedElement) {
     return ((ExplicitElement)currentElement).isLessOrEqual((ExplicitElement)reachedElement);
   }
 
   @Override
-  public AbstractElement join(AbstractElement currentElement, AbstractElement reachedElement)
-  {
+  public AbstractElement join(AbstractElement currentElement, AbstractElement reachedElement) {
     return ((ExplicitElement)currentElement).join((ExplicitElement)reachedElement);
   }
 }

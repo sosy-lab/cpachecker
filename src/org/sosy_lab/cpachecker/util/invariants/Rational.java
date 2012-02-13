@@ -108,6 +108,16 @@ public class Rational {
   }
 
   /*
+   * Return the "height" of the quotient, namely the maximum of the absolute values
+   * of its numerator and denominator.
+   */
+  public int getHeight() {
+    int a = Math.abs(num);
+    int b = Math.abs(denom);
+    return Math.max(a,b);
+  }
+
+  /*
    * Create an Integer with the same value as this Rational, in the case that
    * this Rational is integral. Otherwise, return null.
    */
@@ -156,6 +166,9 @@ public class Rational {
     return new Rational(n,d);
   }
 
+  /*
+   * Create and return a new Rational, equal to this divided by other.
+   */
   public Rational div(Rational other) {
     int a = other.num;
     int b = other.denom;

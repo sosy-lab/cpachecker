@@ -25,28 +25,23 @@ package org.sosy_lab.cpachecker.cfa.objectmodel;
 
 public class BlankEdge extends AbstractCFAEdge {
 
-  private final boolean jumpEdge;
+  private final String description;
 
-  public BlankEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
-      CFANode pSuccessor) {
-
-    this(pRawStatement, pLineNumber, pPredecessor, pSuccessor, false);
-  }
-
-  public BlankEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
-      CFANode pSuccessor, boolean pJumpEdge) {
+  public BlankEdge(String pRawStatement, int pLineNumber,  CFANode pPredecessor,
+      CFANode pSuccessor, String pDescription) {
 
     super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
-    jumpEdge = pJumpEdge;
+    description = pDescription;
   }
 
-  /**
-   * Gives information whether this edge is a jump as produced by a goto,
-   * continue and break statements.
-   */
   @Override
-  public boolean isJumpEdge() {
-    return jumpEdge;
+  public String getDescription() {
+    return description;
+  }
+
+  @Override
+  public String getCode() {
+    return "";
   }
 
   @Override

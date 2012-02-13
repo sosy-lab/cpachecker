@@ -73,7 +73,7 @@ class ImpactTransferRelation implements TransferRelation {
 
     ImpactAbstractElement newElement;
 
-    if (blk.isBlockEnd(pCfaEdge.getSuccessor(), newPathFormula)) {
+    if (blk.isBlockEnd(pCfaEdge, newPathFormula)) {
       PathFormula blockFormula = newPathFormula;
       newPathFormula = pfmgr.makeEmptyPathFormula(blockFormula);
 

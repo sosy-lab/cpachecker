@@ -56,6 +56,8 @@ class AutomatonStatistics implements Statistics {
       out.println("  Time for transition assertions:    " + trans.assertionsTime);
       out.println("  Time for transition actions:       " + trans.actionTime);
     }
-    out.println("Total time for strengthen operator:  " + trans.totalStrengthenTime);
+    if (trans.totalStrengthenTime.getNumberOfIntervals() > 0) {
+      out.println("Total time for strengthen operator:  " + trans.totalStrengthenTime);
+    }
   }
 }

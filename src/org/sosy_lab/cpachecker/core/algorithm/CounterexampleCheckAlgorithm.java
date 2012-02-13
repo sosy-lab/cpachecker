@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import static com.google.common.collect.ImmutableList.copyOf;
+
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -266,11 +269,14 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       sound = false;
     }
 
-    for (ARTElement toRemove : parent.getChildren()) {
-      // this includes the errorElement and its siblings
+    // this includes the errorElement and its siblings
+    List<ARTElement> siblings = copyOf(parent.getChildren());
+    for (ARTElement toRemove : siblings) {
 
       assert toRemove.getChildren().isEmpty();
-      assert toRemove.getCoveredByThis().isEmpty();
+
+      // element toRemove may cover some elements, but hopefully only siblings which we remove anyway
+      assert siblings.containsAll(toRemove.getCoveredByThis());
 
       reached.remove(toRemove);
       toRemove.removeFromART();
@@ -300,9 +306,9 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     if (checkTime.getNumberOfIntervals() > 0) {
       out.println("Number of infeasible paths:         " + numberOfInfeasiblePaths + " (" + toPercent(numberOfInfeasiblePaths, checkTime.getNumberOfIntervals()) +")" );
       out.println("Time for counterexample checks:     " + checkTime);
-    }
-    if (checker instanceof Statistics) {
-      ((Statistics)checker).printStatistics(out, pResult, pReached);
+      if (checker instanceof Statistics) {
+        ((Statistics)checker).printStatistics(out, pResult, pReached);
+      }
     }
   }
 

@@ -113,7 +113,7 @@ public abstract class ProductAutomatonElement extends CompositeElement {
       return false;
     }
 
-    for (AbstractElement lElement : getElements()) {
+    for (AbstractElement lElement : getWrappedElements()) {
       IGuardedEdgeAutomatonStateElement lStateElement = (IGuardedEdgeAutomatonStateElement)lElement;
 
       if (!lStateElement.isFinalState()) {
@@ -130,7 +130,7 @@ public abstract class ProductAutomatonElement extends CompositeElement {
       return true;
     }
 
-    for (AbstractElement lElement : getElements()) {
+    for (AbstractElement lElement : getWrappedElements()) {
       Targetable lSubelement = (Targetable)lElement;
 
       if (lSubelement.isTarget()) {

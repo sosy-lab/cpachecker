@@ -53,8 +53,8 @@ public class CompositeDomain implements AbstractDomain {
     CompositeElement comp1 = (CompositeElement)pElement1;
     CompositeElement comp2 = (CompositeElement)pElement2;
 
-    List<AbstractElement> comp1Elements = comp1.getElements();
-    List<AbstractElement> comp2Elements = comp2.getElements();
+    List<AbstractElement> comp1Elements = comp1.getWrappedElements();
+    List<AbstractElement> comp2Elements = comp2.getWrappedElements();
 
     Preconditions.checkState(comp1Elements.size() == comp2Elements.size());
     Preconditions.checkState(comp1Elements.size() == domains.size());

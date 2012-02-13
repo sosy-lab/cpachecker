@@ -44,8 +44,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 
 public class Wrapper {
 
@@ -238,14 +238,14 @@ public class Wrapper {
     // split off first node of CFA
     assert firstNode.getNumLeavingEdges() == 1;
     CFAEdge firstEdge = firstNode.getLeavingEdge(0);
-    assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
+    assert firstEdge instanceof BlankEdge;
     CFANode secondNode = firstEdge.getSuccessor();
 
     CFACreationUtils.removeEdgeFromNodes(firstEdge);
 
     // insert one node to start the series of declarations
     CFANode cur = new CFANode(0, firstNode.getFunctionName());
-    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, firstNode, cur);
+    BlankEdge be = new BlankEdge("", 0, firstNode, cur, "INIT GLOBAL VARS");
     addToCFA(be);
 
     // create a series of GlobalDeclarationEdges, one for each declaration
@@ -255,14 +255,14 @@ public class Wrapper {
       assert d.isGlobal();
 
       CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
-      GlobalDeclarationEdge e = new GlobalDeclarationEdge(rawSignature,
+      DeclarationEdge e = new DeclarationEdge(rawSignature,
           d.getFileLocation().getStartingLineNumber(), cur, n, d);
       addToCFA(e);
       cur = n;
     }
 
     // and a blank edge connecting the declarations with the second node of CFA
-    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
+    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode, firstEdge.getDescription());
     addToCFA(be);
   }
 

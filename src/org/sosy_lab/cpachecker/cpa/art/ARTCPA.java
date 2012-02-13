@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -72,7 +73,14 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     this.logger = logger;
     abstractDomain = new FlatLatticeDomain();
     transferRelation = new ARTTransferRelation(cpa.getTransferRelation());
-    precisionAdjustment = new ARTPrecisionAdjustment(cpa.getPrecisionAdjustment());
+
+    PrecisionAdjustment wrappedPrec = cpa.getPrecisionAdjustment();
+    if (wrappedPrec instanceof SimplePrecisionAdjustment) {
+      precisionAdjustment = new ARTSimplePrecisionAdjustment((SimplePrecisionAdjustment) wrappedPrec);
+    } else {
+      precisionAdjustment = new ARTPrecisionAdjustment(cpa.getPrecisionAdjustment());
+    }
+
     if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
       Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM)cpa).getReducer();
       if (wrappedReducer != null) {

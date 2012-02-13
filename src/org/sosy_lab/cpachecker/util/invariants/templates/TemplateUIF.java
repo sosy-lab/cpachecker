@@ -100,7 +100,7 @@ public class TemplateUIF extends TemplateFormula {
   }
 
   @Override
-  public boolean evaluate(HashMap<String,Rational> map) {
+  public boolean evaluate(Map<String,Rational> map) {
     boolean ans = true;
     if (args!=null) {
       ans &= args.evaluate(map);

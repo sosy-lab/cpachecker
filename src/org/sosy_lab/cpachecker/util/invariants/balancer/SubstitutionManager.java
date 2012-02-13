@@ -74,7 +74,7 @@ public class SubstitutionManager {
     if (!hasNext()) {
       return null;
     }
-    logger.log(Level.ALL,"Substitutions before taking next:\n", subList);
+    logger.log(Level.ALL,"Substitutions:\n", subList);
     Substitution s = subList.get(0);
     // Now we apply s to the remaining substitutions.
     Set<Substitution> toRemove = new HashSet<Substitution>();
@@ -98,7 +98,7 @@ public class SubstitutionManager {
     subList.removeAll(toRemove);
     // Sort into ascending order according to degree of rhs.
     Collections.sort(subList);
-    logger.log(Level.ALL,"Substitutions after taking next:\n", subList);
+    //logger.log(Level.ALL,"Substitutions:\n", subList);
     // Finally, return s.
     return s;
   }

@@ -24,9 +24,9 @@
 package org.sosy_lab.cpachecker.fshell.targetgraph.mask;
 
 import org.jgrapht.graph.MaskFunctor;
-import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.fshell.targetgraph.Edge;
 import org.sosy_lab.cpachecker.fshell.targetgraph.Node;
@@ -46,13 +46,8 @@ public class FunctionEntriesMaskFunctor implements MaskFunctor<Node, Edge> {
   private boolean isFunctionEntryEdge(CFAEdge lEdge) {
     assert(lEdge != null);
 
-    if (lEdge.getEdgeType().equals(CFAEdgeType.BlankEdge)) {
-      BlankEdge lBlankEdge = (BlankEdge)lEdge;
-
-      return lBlankEdge.getRawStatement().equals("Function start dummy edge");
-    }
-
-    return false;
+    return (lEdge.getEdgeType().equals(CFAEdgeType.BlankEdge)
+        && (lEdge.getPredecessor() instanceof CFAFunctionDefinitionNode));
   }
 
   @Override

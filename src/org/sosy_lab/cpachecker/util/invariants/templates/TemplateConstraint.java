@@ -152,7 +152,7 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   }
 
   @Override
-  public boolean evaluate(HashMap<String,Rational> map) {
+  public boolean evaluate(Map<String,Rational> map) {
     boolean ans = true;
     ans &= LHS.evaluate(map);
     ans &= RHS.evaluate(map);

@@ -126,7 +126,7 @@ public class TemplateNegation extends TemplateBoolean {
   }
 
   @Override
-  public boolean evaluate(HashMap<String,Rational> map) {
+  public boolean evaluate(Map<String,Rational> map) {
     boolean ans = arg.evaluate(map);
     return ans;
   }

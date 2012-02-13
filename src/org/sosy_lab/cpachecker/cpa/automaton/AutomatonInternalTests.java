@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
  * This class contains Tests for the AutomatonAnalysis
@@ -46,8 +47,9 @@ class AutomatonInternalTests {
   /**
    * Runs some tests for the automatonAnalysis
    * @param args
+   * @throws CPATransferException
    */
-  public static void main(String[] args) {
+  public static void main(String[] args) throws CPATransferException {
     /*
     AutomatonBoolExpr ex = AutomatonBoolExpr.TRUE;
     System.out.println(ex.eval(null));
@@ -87,7 +89,7 @@ class AutomatonInternalTests {
 
     testAndOr();
   }
-  private static void testAndOr() {
+  private static void testAndOr() throws CPATransferException {
     // will always return MaybeBoolean.MAYBE
     AutomatonBoolExpr cannot = new AutomatonBoolExpr.CPAQuery("none", "none");
     Map<String, AutomatonVariable> vars = Collections.emptyMap();

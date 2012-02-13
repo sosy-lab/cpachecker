@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Strings;
+
 /**
  * This class represents the core components that occur in each declaration:
  * a type an an (optional) name.
@@ -65,5 +67,11 @@ public abstract class IASTSimpleDeclaration extends IASTNode {
 
   public String getOrigName() {
     return origName;
+  }
+
+  @Override
+  public String toASTString() {
+    String name = Strings.nullToEmpty(getName());
+    return getDeclSpecifier().toASTString(name) + ";";
   }
 }

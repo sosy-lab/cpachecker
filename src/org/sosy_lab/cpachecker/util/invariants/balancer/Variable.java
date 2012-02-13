@@ -36,6 +36,10 @@ public class Variable implements Comparable<Variable> {
     return name;
   }
 
+  public Variable copy() {
+    return new Variable( new String(name) );
+  }
+
   @Override
   public int compareTo(Variable v) {
     return name.compareTo(v.name);

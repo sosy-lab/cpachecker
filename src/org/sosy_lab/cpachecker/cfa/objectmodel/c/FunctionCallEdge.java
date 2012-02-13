@@ -26,26 +26,25 @@ package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.base.Optional;
 
 public class FunctionCallEdge extends AbstractCFAEdge {
 
-	private final List<IASTExpression> arguments;
-	private final IASTStatement rawAST;
+	private final IASTFunctionCall functionCall;
 	private final CallToReturnEdge summaryEdge;
 
-  public FunctionCallEdge (String pRawStatement, IASTStatement pRawAST,
+  public FunctionCallEdge (String pRawStatement,
       int pLineNumber, CFANode pPredecessor, FunctionDefinitionNode pSuccessor,
-      List<IASTExpression> pArguments, CallToReturnEdge pSummaryEdge) {
+      IASTFunctionCall pFunctionCall, CallToReturnEdge pSummaryEdge) {
 
     super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
-    arguments = ImmutableList.copyOf(pArguments);
-    rawAST = pRawAST;
+    functionCall = pFunctionCall;
     summaryEdge = pSummaryEdge;
   }
 
@@ -59,12 +58,17 @@ public class FunctionCallEdge extends AbstractCFAEdge {
   }
 
   public List<IASTExpression> getArguments() {
-    return arguments;
+    return functionCall.getFunctionCallExpression().getParameterExpressions();
   }
 
   @Override
-  public IASTStatement getRawAST() {
-    return rawAST;
+  public String getCode() {
+    return functionCall.getFunctionCallExpression().toASTString();
+  }
+
+  @Override
+  public Optional<IASTStatement> getRawAST() {
+    return Optional.of(functionCall.asStatement());
   }
 
   @Override

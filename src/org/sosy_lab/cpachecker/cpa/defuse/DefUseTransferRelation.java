@@ -30,6 +30,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
@@ -57,11 +58,12 @@ public class DefUseTransferRelation implements TransferRelation
 
   private DefUseElement handleDeclaration (DefUseElement defUseElement, DeclarationEdge cfaEdge)
   {
-    if (cfaEdge.getName() != null) {
-      IASTInitializer initializer = cfaEdge.getInitializer ();
+    if (cfaEdge.getDeclaration() instanceof IASTVariableDeclaration) {
+      IASTVariableDeclaration decl = (IASTVariableDeclaration)cfaEdge.getDeclaration();
+      IASTInitializer initializer = decl.getInitializer();
       if (initializer != null)
       {
-        String varName = cfaEdge.getName();
+        String varName = decl.getName();
         DefUseDefinition definition = new DefUseDefinition (varName, cfaEdge);
 
         defUseElement = new DefUseElement(defUseElement, definition);

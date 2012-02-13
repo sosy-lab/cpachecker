@@ -25,11 +25,13 @@ package org.sosy_lab.cpachecker.util.invariants.balancer;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 import org.sosy_lab.cpachecker.util.invariants.balancer.MatrixSolvingFailedException.Reason;
 
@@ -40,8 +42,11 @@ public class PivotRowHandler {
   private final Matrix mat;
   private final int m, n, augStart;
   private final Vector<Integer> remainingRows;
+  @SuppressWarnings("unused")
+  private final Vector<Integer> pivotRows;
   private final int[][] codes;
-  private final List<Integer> AU, CU;
+  private List<Integer> AU, CU;
+  private OptionManager opman;
 
   //-----------------------------------------------------------------
   // Constructing
@@ -61,12 +66,12 @@ public class PivotRowHandler {
         remainingRows.add(new Integer(i));
       }
     }
+    // Make a copy, which we will NOT alter as we proceed.
+    // This serves to say which rows were pivot rows when we began.
+    pivotRows = new Vector<Integer>(remainingRows);
 
     codes = buildCodes();
-    List<List<Integer>> unblocked = computeUnblockedColumns();
-    AU = unblocked.get(0);
-    CU = unblocked.get(1);
-
+    computeUnblockedColumns();
   }
 
   public int[] intListToArray(List<Integer> list) {
@@ -79,11 +84,40 @@ public class PivotRowHandler {
     return a;
   }
 
+  private void computeUnblockedColumns() {
+    // Compute absolutely and conditionally unblocked columns.
+    // A column is absolutely unblocked if it contains only 0's and 3's.
+    // A column is conditionally unblocked if it contains only 0's, 2's, and 3's.
+    Vector<Integer> auv = new Vector<Integer>();
+    Vector<Integer> cuv = new Vector<Integer>();
+    for (int j = 0; j < augStart; j++) {
+      boolean absolute = true;
+      boolean conditional = true;
+      for (int i = 0; i < m; i++) {
+        if (codes[i][j] == 1) {
+          absolute = false;
+          conditional = false;
+          break;
+        }
+        else if (codes[i][j] == 2) {
+          absolute = false;
+        }
+      }
+      if (absolute) {
+        auv.add(new Integer(j));
+      } else if (conditional) {
+        cuv.add(new Integer(j));
+      }
+    }
+    AU = auv;
+    CU = cuv;
+  }
+  /*
   private List<List<Integer>> computeUnblockedColumns() {
     // Compute absolutely and conditionally unblocked columns.
     Vector<Integer> auv = new Vector<Integer>();
     Vector<Integer> cuv = new Vector<Integer>();
-    for (int j = 0; j < n; j++) {
+    for (int j = 0; j < augStart; j++) {
       boolean absolute = true;
       boolean conditional = true;
       for (int i = 0; i < m; i++) {
@@ -108,6 +142,7 @@ public class PivotRowHandler {
     u.add(cuv);
     return u;
   }
+  */
 
   /*
    * We represent each entry f of the matrix by a code:
@@ -223,6 +258,19 @@ public class PivotRowHandler {
     return ans;
   }
 
+  /*
+   * Check whether all post-pivots in row r are of code 0, 1, or 3.
+   */
+  private boolean FApr013(Integer r) {
+    boolean ans = true;
+    for (int j = 0; j < augStart; j++) {
+      if (codes[r][j] == 2) {
+        ans = false; break;
+      }
+    }
+    return ans;
+  }
+
   private AssumptionSet firstPass() throws MatrixSolvingFailedException {
     AssumptionSet aset = new AssumptionSet();
     Vector<Integer> discard = new Vector<Integer>();
@@ -266,6 +314,54 @@ public class PivotRowHandler {
     return aset;
   }
 
+  public void firstPass(AssumptionManager amgr) throws BadAssumptionsException {
+    Vector<Integer> discard = new Vector<Integer>();
+    logger.log(Level.ALL, "Processing pivot rows:\n",remainingRows,"\nfor matrix:","\n"+mat.toString());
+    for (Integer r : remainingRows) {
+      if (FAar01(r) && FApr013(r)) {
+        // If every augmentation entry in row r is of code 0 or 1, then row r will be satisfied
+        // if and only if it has no positive entries in a column that some row wants to use.
+        // So if there are any 2's among the postpivots, then we might still need to use one of
+        // them during the third pass. So we rule this row out right now only if in addition there
+        // are no 2's among the postpivots.
+        logger.log(Level.ALL,"Discarding row",r,": all augmentation entries nonnegative constants,",
+            "and all postpivots are constant.");
+        discard.add(r);
+      }
+      else if (EXpr3AU(r)) {
+        // If row r has a post-pivot entry that is of code 3 and in an absolutely unblocked column,
+        // then again we do not need to worry about row r at all.
+        logger.log(Level.ALL,"Discarding row",r,": contains a negative constant in an absolutely unblocked column.");
+        discard.add(r);
+      }
+      else if (FApr01(r)) {
+        // Suppose all post-pivot entries are of code 0 or 1.
+        if (EXar3(r)) {
+          // If in addition there is an aug entry of code 3, then we have a complete fail.
+          // We hope it was only because of bad nonzero assumptions during the RREF process,
+          // and not that the template is simply unusable.
+          logger.log(Level.ALL, "Matrix unsolvable! Row",r,
+              "has a negative constant augmentation entry, but all post-pivot entries nonnegative constants.");
+          throw new BadAssumptionsException();
+        } else {
+          // Else all aug entries are of codes 0, 1, 2, and the only hope for this row is that
+          // all entries of code 2 be nonnegative.
+          AssumptionSet nonneg = ar2nonneg(r);
+          discard.add(r);
+          logger.log(Level.ALL, "Discarding row",r,", and adding assumptions:",
+              "all post-pivot entries are nonnegative constants, but no augmentation entries are negative",
+              "constants. Therefore we add assumptions that all variable augmentation entries in row",
+              r,"be nonnegative. Assumptions added:","\n"+nonneg.toString());
+          amgr.addNecessaryAssumptions( nonneg );
+        }
+      }
+    }
+    discardRows(discard);
+    if (remainingRows.size() > 0) {
+      logger.log(Level.ALL,"The rows still remaining to be processed are:\n",remainingRows);
+    }
+  }
+
   /**
    * Return the set of assumptions saying that every aug entry in row r of code 2
    * is nonnegative.
@@ -292,10 +388,124 @@ public class PivotRowHandler {
     // First step: for those rows that only have a single option, take those "options".
     AssumptionSet soleOpAset = optionTable.takeSoleOptions();
     // Next ... TODO
+    if (optionTable.getRemainingRows().size() > 0) {
+      logger.log(Level.FINEST,"Not all rows satisfied on second pass! Unsatisfied rows:",remainingRows);
+    }
     // For now we return just the soleOpAset, to see test our progress.
     asetset.add(soleOpAset);
     //
     return asetset;
+  }
+
+  public void secondPass(AssumptionManager amgr) throws BadAssumptionsException {
+    // On this second pass we build the OptionManager, populate it with PivotRows, and
+    // retrieve all those conditions corresponding to pivot rows that have just a single option.
+    // We store the OptionManager, so that it can be retrieved and used later, by the thirdPass.
+
+    // Build the option manager.
+    buildOptionManager();
+
+    // If there are any rows that have just a sole option, add the corresponding assumptions
+    // as necessary assumptions.
+    AssumptionSet aset = opman.getSoleOptionRowsAssumptions();
+    if (aset.size() > 0) {
+      logger.log(Level.ALL,"Some of the remaining rows have just a single option.",
+          "Taking those options yields the new assumptions:\n",aset);
+      amgr.addNecessaryAssumptions(aset);
+    } else {
+      logger.log(Level.ALL,"There were no remaining pivot rows having just a single option.");
+    }
+  }
+
+  public void thirdPass(AssumptionManager amgr, MatrixBalancer balancer) throws BadAssumptionsException {
+    if (opman == null || opman.numRemainingRows() == 0) {
+      return;
+    }
+    // Otherwise we have an opman (it should have been initialized during the second pass)
+    // and it has at least one row left.
+
+    boolean successful = false;
+
+    AssumptionSet aset = opman.nextTry();
+    while (aset != null) {
+      logger.log(Level.ALL,"Trying to satisfy remaining pivot rows with set:\n",aset);
+      // Get a copy of the current assumption set.
+      AssumptionSet curr = new AssumptionSet(amgr.getCurrentAssumptionSet());
+      logger.log(Level.ALL,"Current set is:\n",curr);
+      boolean consistent = curr.addAll(aset);
+      logger.log(Level.ALL,"Combined set is:\n",curr);
+      // Is the next try from opman consistent with the current assumption set?
+      if (!consistent) {
+        // If not, go to the next try.
+        logger.log(Level.ALL,"This set was inconsistent.");
+      } else {
+        // It is consistent. So now we ask Redlog whether it can find parameter values.
+        logger.log(Level.ALL,"The set is at least not immediately contradictory.",
+            "We ask Redlog if it is satisfiable.");
+        Map<String,Rational> map = balancer.tryAssumptionSet(curr);
+        if (map != null || balancer.redlogSaidTrue()) {
+          // Success!
+          logger.log(Level.ALL,"The set is satisfiable!");
+          successful = true;
+          // FIXME: Instead of the next line, we should be adding these assumptions as
+          // possibly unnecessary. We cannot yet do that, because AssumptionManager is not
+          // prepared to store a stack frame the popping of which will return us precisely
+          // to the point we are at right now!
+          amgr.setCurrentAssumptionSet(curr);
+          amgr.zeroSubsCurrent(aset);
+          break;
+        }
+      }
+      aset = opman.nextTry();
+    }
+    if (!successful) {
+      // There was no way to satisfy the pivot rows and get parameter values, so we have to backtrack.
+      logger.log(Level.ALL,"There was no way to satisfy the remaining rows.");
+      throw new BadAssumptionsException();
+    }
+    // If we were successful, then we just return. The successful assumption set is in amgr.
+  }
+
+  private void buildOptionManager() {
+    // Initialize the option manager.
+    opman = new OptionManager(logger);
+    // Add the usable columns.
+    for (Integer c : CU) {
+      UsableColumn u = new UsableColumn(mat,c,logger);
+      opman.addUsableColumn(u, c);
+    }
+    // Create the augmentation column.
+    AugmentationColumn ac = new AugmentationColumn();
+    for (Integer r : remainingRows) {
+      if (!EXar3(r)) {
+        // In this case row r has no 3 codes in its augmentation columns.
+        // This means that it does have an aug col option.
+        AssumptionSet aco = ar2nonneg(r);
+        ac.addSet(r, aco);
+      }
+    }
+    // Add it to the option manager as column number -1.
+    opman.addUsableColumn(ac, -1);
+
+    // Create the pivot rows, and add them to the option manager.
+    // Tell each one which are its usable columns.
+    for (Integer r : remainingRows) {
+      // Create and add.
+      PivotRow pr = new PivotRow(r,logger);
+      opman.addPivotRow(pr);
+      // Assign usable columns.
+      for (Integer c : CU) {
+        int a = codes[r][c];
+        if (2 <= a && a <= 3) {
+          UsableColumn u = opman.getUsableColumn(c);
+          pr.addUsableColumn(u);
+        }
+      }
+      // Add the aug col, if it is usable by this row.
+      if (ac.rowHasAugColOption(r)) {
+        pr.addUsableColumn(ac);
+      }
+    }
   }
 
   private OptionTable buildOptionTable() {
