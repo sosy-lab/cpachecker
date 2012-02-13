@@ -159,17 +159,8 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.INFO, "Refinement on " + v);
 
       // build list of path elements in bottom-to-top order and reverse
-      List<Vertex> path = new ArrayList<Vertex>();
-      {
-        Vertex w = v;
-        while (w.hasParent()) {
-          path.add(w);
-          w = w.getParent();
-        }
-        // root element of ART is skipped
-
-        path = Lists.reverse(path);
-      }
+      List<Vertex> path = getPathFromRootTo(v);
+      path = path.subList(1, path.size()); // skip root element, it has no formula
 
       // build list of formulas for edges
       List<Formula> pathFormulas = new ArrayList<Formula>(path.size());
@@ -287,9 +278,10 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
         Vertex v = (Vertex)ae;
         if (v.isLeaf() && !v.isCovered()) {
 
-          Vertex w = v;
-          while (w.hasParent()) {
-            w = w.getParent();
+          // close parents of v
+          List<Vertex> path = getPathFromRootTo(v);
+          path = path.subList(0, path.size()-1); // skip v itself
+          for (Vertex w : path) {
             close(w, reached);
           }
 
@@ -303,6 +295,19 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
       }
       break outer;
     }
+  }
+
+  private List<Vertex> getPathFromRootTo(Vertex v) {
+    List<Vertex> path = new ArrayList<Vertex>();
+
+    Vertex w = v;
+    while (w.hasParent()) {
+      path.add(w);
+      w = w.getParent();
+    }
+    path.add(w); // root element
+
+    return Lists.reverse(path);
   }
 
   private boolean implies(Formula a, Formula b) {
