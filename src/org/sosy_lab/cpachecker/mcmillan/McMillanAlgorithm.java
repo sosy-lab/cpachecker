@@ -142,6 +142,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
   @Override
   public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     unwind(pReachedSet);
+    pReachedSet.popFromWaitlist();
     return true;
   }
 
