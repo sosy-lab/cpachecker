@@ -133,8 +133,20 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
   @Override
   public Formula makeNot(Formula f) {
+    Term t = getTerm(f);
+
+    // simplify term (not not t)
+    if (t instanceof ApplicationTerm) {
+      ApplicationTerm at = (ApplicationTerm) t;
+      if ("not".equals(at.getFunction().getName())
+          && at.getParameters().length == 1) {
+        return encapsulate(at.getParameters()[0]);
+      }
+    }
+    
+    // make 'normal' not
     try {
-      return encapsulate(script.term("not", getTerm(f)));
+      return encapsulate(script.term("not", t));
     } catch (SMTLIBException e) {
       e.printStackTrace();
       return null;

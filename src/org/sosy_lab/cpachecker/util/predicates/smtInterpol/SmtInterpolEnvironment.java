@@ -23,18 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.log4j.SimpleLayout;
 import org.sosy_lab.common.Triple;
 
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
-import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Assignments;
+import de.uni_freiburg.informatik.ultimate.logic.LoggingScript;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Script;
@@ -52,12 +55,10 @@ public class SmtInterpolEnvironment implements Script {
   /** the wrapped Script */
   private Script script;
 
-  private int stacksize = 0;
-  private List<List<Triple<String, Sort[], Sort>>> declarationsPerLevel =
+  private List<List<Triple<String, Sort[], Sort>>> stack =
       new ArrayList<List<Triple<String, Sort[], Sort>>>();
-  private List<Triple<String, Sort[], Sort>> currentDeclarations =
-      new ArrayList<Triple<String, Sort[], Sort>>();
-//  private int logCounter = 0;
+  private List<Triple<String, Sort[], Sort>> currentDeclarations;
+  private int logCounter = 0;
 
   public SmtInterpolEnvironment() {
     Logger logger = Logger.getRootLogger(); // TODO use SosyLAb-Logger
@@ -65,30 +66,32 @@ public class SmtInterpolEnvironment implements Script {
     logger.setLevel(Level.OFF);
     script = new Benchmark(logger);
 
-//    try {
-//      FileAppender fileAppender = new FileAppender(
-//          new SimpleLayout(),
-//          "output/smtinterpol" + (logCounter++) + ".log",
-//          false);
-//      logger.addAppender(fileAppender);
-//    } catch (IOException e) {
-//      e.printStackTrace();
-//    }
-
-//    try {
-//      // create a thin wrapper around Benchmark,
-//      // this allows to write most formulas of the solver to outputfile
-//      // TODO how much faster is SmtInterpol without this Wrapper?
-//      script = new LoggingScript(new Benchmark(logger), "interpol.smt2", true);
-//    } catch (FileNotFoundException e1) {
-//      e1.printStackTrace();
-//    }
+    try {
+      FileAppender fileAppender = new FileAppender(
+          new SimpleLayout(),
+          "output/smtinterpol" + (logCounter++) + ".log",
+          false);
+      logger.addAppender(fileAppender);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
 
     try {
-      script.setOption(":produce-proofs", true);
+      // create a thin wrapper around Benchmark,
+      // this allows to write most formulas of the solver to outputfile
+      // TODO how much faster is SmtInterpol without this Wrapper?
+      script = new LoggingScript(new Benchmark(logger), "interpol.smt2", true);
+    } catch (FileNotFoundException e1) {
+      e1.printStackTrace();
+    }
+
+    try {
+
+//    script.setOption(":produce-proofs", true);
+//    script.setOption(":produce-assignments", true);
+//    script.setOption(":interactive-mode", true);
+
       script.setOption(":produce-models", true);
-      script.setOption(":produce-assignments", true);
-      script.setOption(":interactive-mode", true);
       BigInteger verbosity = (BigInteger) script.getOption(":verbosity");
       script.setOption(":verbosity", verbosity.subtract(new BigInteger("2")));
     } catch (SMTLIBException e) {
@@ -129,7 +132,7 @@ public class SmtInterpolEnvironment implements Script {
   @Override
   public void declareFun(String fun, Sort[] paramSorts, Sort resultSort) throws SMTLIBException {
     script.declareFun(fun, paramSorts, resultSort);
-    if (stacksize != 0) {
+    if (stack.size() != 0) {
       currentDeclarations.add(
           new Triple<String, Sort[], Sort>(fun, paramSorts, resultSort));
     }
@@ -142,19 +145,17 @@ public class SmtInterpolEnvironment implements Script {
 
   @Override
   public void push(int levels) {
-    stacksize += levels;
     script.push(levels);
 
     for (int i = 0; i < levels; i++) {
       currentDeclarations = new ArrayList<Triple<String, Sort[], Sort>>();
-      declarationsPerLevel.add(currentDeclarations);
+      stack.add(currentDeclarations);
     }
   }
 
   @Override
   public void pop(int levels) throws SMTLIBException {
-    assert stacksize >= levels : "not enough levels to remove";
-    stacksize -= levels;
+    assert stack.size() >= levels : "not enough levels to remove";
     script.pop(levels);
 
     for (int i = 0; i < levels; i++) {
@@ -164,36 +165,14 @@ public class SmtInterpolEnvironment implements Script {
         final Sort resultSort = function.getThird();
         script.declareFun(fun, paramSorts, resultSort);
       }
-      currentDeclarations = declarationsPerLevel.remove(
-          declarationsPerLevel.size() - 1);
+      currentDeclarations = stack.remove(stack.size() - 1);
     }
   }
 
   @Override
   public LBool assertTerm(Term term) throws SMTLIBException {
-    assert stacksize > 0 : "assertions should be on higher levels";
-    //System.out.println("ASSERT TERM");
-    List<Term> l = new LinkedList<Term>();
-    int c = 0;
-    l.add(term);
-    while (l.size() != 0) {
-      c++;
-      Term t = l.remove(0);
-      if (t instanceof ApplicationTerm) {
-        //System.out.println(((ApplicationTerm) t).getFunction().toString());
-        Term[] params = ((ApplicationTerm) t).getParameters();
-        for (Term x : params) {
-          l.add(x);
-        }
-      } else {
-        // System.out.println(t.toStringDirect());
-      }
-    }
-    //System.out.println(c);
-    //System.out.println(term.toString());
-    //System.out.println(term.toStringDirect());
-    LBool result = script.assertTerm(script.simplifyTerm(term));
-    //System.out.println("ASSERT TERM END");
+    assert stack.size() > 0 : "assertions should be on higher levels";
+    LBool result = script.assertTerm(term);
     return result;
   }
 
@@ -324,7 +303,7 @@ public class SmtInterpolEnvironment implements Script {
 
   @Override
   public Term[] getInterpolants(Term[] partition) throws SMTLIBException, UnsupportedOperationException {
-    assert stacksize > 0 : "interpolants should be on higher levels";
+    assert stack.size() > 0 : "interpolants should be on higher levels";
     return script.getInterpolants(partition);
   }
 

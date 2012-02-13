@@ -112,7 +112,7 @@ public class SmtInterpolUtil {
       if ("-".equals(at.getFunction().getName())) {
         return - toNumber(at.getParameters()[0]);
       } else if ("/".equals(at.getFunction().getName())) {
-        return toNumber(at.getParameters()[1]) /
+        return toNumber(at.getParameters()[0]) /
           toNumber(at.getParameters()[1]);
       }
     }
