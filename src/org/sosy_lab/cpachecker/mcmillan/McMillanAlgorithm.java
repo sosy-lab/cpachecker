@@ -91,6 +91,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
   private int implicationChecks = 0;
   private int trivialImplicationChecks = 0;
   private int cachedImplicationChecks = 0;
+  private int successfulForcedCovering = 0;
 
   private class Stats implements Statistics {
 
@@ -111,6 +112,9 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Number of implication checks:       " + implicationChecks);
       out.println("  trivial:                          " + trivialImplicationChecks);
       out.println("  cached:                           " + cachedImplicationChecks);
+      out.println("Number of refinements:              " + refinementTime.getNumberOfIntervals());
+      out.println("Number of forced coverings:         " + forceCoverTime.getNumberOfIntervals());
+      out.println("  Successful:                       " + successfulForcedCovering);
     }
   }
 
@@ -286,6 +290,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
       return false; // forced covering not possible
     }
 
+    successfulForcedCovering++;
     logger.log(Level.FINER, "Forced covering successful.");
 
 
