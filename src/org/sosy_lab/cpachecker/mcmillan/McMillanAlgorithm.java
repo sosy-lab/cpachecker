@@ -78,6 +78,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
   private final Timer expandTime = new Timer();
   private final Timer refinementTime = new Timer();
   private final Timer coverTime = new Timer();
+  private final Timer closeTime = new Timer();
   private final Timer solverTime = new Timer();
 
   private class Stats implements Statistics {
@@ -91,7 +92,8 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
       out.println("Time for expand:                    " + expandTime);
       out.println("Time for refinement:                " + refinementTime);
-      out.println("Time for cover:                     " + coverTime);
+      out.println("Time for close:                     " + closeTime);
+      out.println("  Time for cover:                   " + coverTime);
       out.println("Time spent by solver for reasoning: " + solverTime);
     }
   }
@@ -221,6 +223,8 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
 
   private void close(Vertex v, ReachedSet reached) {
     if (!v.isCovered()) {
+      closeTime.start();
+
       for (AbstractElement ae : reached.getReached(v)) {
         Vertex w = (Vertex)ae;
 
@@ -228,6 +232,8 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
           cover(v, w);
         }
       }
+
+      closeTime.stop();
     }
   }
 
