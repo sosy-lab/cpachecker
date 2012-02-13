@@ -40,7 +40,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.RGCFA;
+import org.sosy_lab.cpachecker.cfa.ThreadCFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -126,7 +126,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
 
 
-  public RGEnvironmentManager(int threadNo, RGVariables vars, RGCFA[] cfas, Configuration config, LogManager logger) throws InvalidConfigurationException{
+  public RGEnvironmentManager(int threadNo, RGVariables vars, ThreadCFA[] cfas, Configuration config, LogManager logger) throws InvalidConfigurationException{
     // TODO add option for caching
     config.inject(this, RGEnvironmentManager.class);
 

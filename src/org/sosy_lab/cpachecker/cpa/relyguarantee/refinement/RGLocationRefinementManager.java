@@ -44,7 +44,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.RGCFA;
+import org.sosy_lab.cpachecker.cfa.ThreadCFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -107,7 +107,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   private final TheoremProver thmProver;
   private final RegionManager rManager;
   private final RGEnvironmentManager envManager;
-  private final RGCFA[] cfas;
+  private final ThreadCFA[] cfas;
   private final int tidNo;
   private final LogManager logger;
   private final Stats stats;
@@ -118,7 +118,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
 
   private static RGLocationRefinementManager singleton;
 
-  public static RGLocationRefinementManager getInstance(FormulaManager pFManager, PathFormulaManager pPfManager, RGEnvTransitionManager pEtManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver, RegionManager pRManager, RGEnvironmentManager envManager, RGCFA[] cfas, RGVariables variables, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+  public static RGLocationRefinementManager getInstance(FormulaManager pFManager, PathFormulaManager pPfManager, RGEnvTransitionManager pEtManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver, RegionManager pRManager, RGEnvironmentManager envManager, ThreadCFA[] cfas, RGVariables variables, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     if (singleton == null){
       singleton = new RGLocationRefinementManager(pFManager, pPfManager, pEtManager, absManager, pSsaManager, pThmProver, pRManager, envManager, cfas, variables, pConfig, pLogger);
     }
@@ -126,7 +126,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   }
 
 
-  private RGLocationRefinementManager(FormulaManager pFManager, PathFormulaManager pPfManager, RGEnvTransitionManager pEtManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver,  RegionManager pRManager, RGEnvironmentManager envManager, RGCFA[] cfas, RGVariables variables, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+  private RGLocationRefinementManager(FormulaManager pFManager, PathFormulaManager pPfManager, RGEnvTransitionManager pEtManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver,  RegionManager pRManager, RGEnvironmentManager envManager, ThreadCFA[] cfas, RGVariables variables, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     pConfig.inject(this, RGLocationRefinementManager.class);
 
     this.fManager = pFManager;
@@ -299,13 +299,15 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     stats.formulaTimer.start();
     Formula f = fManager.makeTrue();
 
-    int clNoBit = 2;
-    while (clNoBit < clNo){
-      clNoBit *= 2;
+    int bitNo = 0;
+    int powerOf2 = 1;
+    while (powerOf2 < clNo){
+      bitNo++;
+      powerOf2 *= 2;
     }
 
     for (Path pi : inqMap.keySet()){
-      Formula dis = buildDisjunctionOverMistmaches(inqMap.get(pi), clNoBit);
+      Formula dis = buildDisjunctionOverMistmaches(inqMap.get(pi), bitNo);
       f = fManager.makeAnd(f, dis);
     }
 
@@ -316,14 +318,14 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   /**
    * Builds disjunction over all mismatching locations using the given number of bits.
    * @param inqColl
-   * @param clNoBit
+   * @param bitNo
    * @return
    */
-  private Formula buildDisjunctionOverMistmaches(Collection<Pair<CFANode, CFANode>> inqColl, int clNoBit) {
+  private Formula buildDisjunctionOverMistmaches(Collection<Pair<CFANode, CFANode>> inqColl, int bitNo) {
     Formula f = fManager.makeTrue();
 
     for (Pair<CFANode, CFANode> pair : inqColl){
-      Formula fmis = buildMistmach(pair, clNoBit);
+      Formula fmis = buildMistmach(pair.getFirst(), pair.getSecond(), bitNo);
       f = fManager.makeOr(f, fmis);
     }
 
@@ -333,13 +335,35 @@ public class RGLocationRefinementManager implements StatisticsProvider{
 
   /**
    * Encodes a mismatching pair of locations using the given number of bits.
-   * @param pair
-   * @param clNoBit
+   * @param first
+   * @param second
+   * @param bitNo
    * @return
    */
-  private Formula buildMistmach(Pair<CFANode, CFANode> pair, int clNoBit) {
-    // TODO Auto-generated method stub
-    return null;
+  private Formula buildMistmach(CFANode first, CFANode second, int bitNo) {
+
+    Formula f = fManager.makeTrue();
+
+    for (int i=1; i<=bitNo; i++){
+      Formula b1i = getVariable(first, i);
+      Formula b2i = getVariable(second, i);
+      Formula xor = fManager.makeNot(fManager.makeEquivalence(b1i, b2i));
+      f = fManager.makeAnd(f, xor);
+    }
+
+    return f;
+  }
+
+
+  /**
+   * Creates a predicate variable for bit i of the location.
+   * @param node
+   * @param i
+   * @return
+   */
+  private Formula getVariable(CFANode node, int i) {
+    String name = node+"_"+i;
+    return fManager.makePredicateVariable(name, 0);
   }
 
 
@@ -391,9 +415,9 @@ public class RGLocationRefinementManager implements StatisticsProvider{
      * and other threads to start of execution */
     for (int i=0; i<tidNo; i++){
       if (i == stid){
-        pc[i] = cfas[i].getStartNode();
+        pc[i] = cfas[i].getInitalNode();
       } else {
-        pc[i] = cfas[i].getExecutionStartNode();
+        pc[i] = cfas[i].getThreadStart();
       }
 
     }
@@ -422,9 +446,6 @@ public class RGLocationRefinementManager implements StatisticsProvider{
 
     return inqColl;
   }
-
-
-
 
 
   private Collection<Path> getErrorPathsForTrunk(InterpolationTree tree) throws CPATransferException {

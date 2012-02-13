@@ -184,7 +184,7 @@ public class CtoFormulaConverter {
   }
 
   // looks up the variable in the current namespace
-  private String scopedIfNecessary(IASTIdExpression var, String function) {
+  public static String scopedIfNecessary(IASTIdExpression var, String function) {
     IASTSimpleDeclaration decl = var.getDeclaration();
     boolean isGlobal = false;
     if (decl instanceof IASTDeclaration) {
@@ -200,7 +200,7 @@ public class CtoFormulaConverter {
 
   // prefixes function to variable name
   // Call only if you are sure you have a local variable!
-  private static String scoped(String var, String function) {
+  public static String scoped(String var, String function) {
     return function + "::" + var;
   }
 

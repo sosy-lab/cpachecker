@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFA.Loop;
-import org.sosy_lab.cpachecker.util.CFA.NoEnvNodes;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -96,7 +95,6 @@ public class CFACreator {
   private final LogManager logger;
   private final CParser parser;
   private final CFAReduction cfaReduction;
-  private       CFA cfa;
 
   private Map<String, CFAFunctionDefinitionNode> functions;
   private CFAFunctionDefinitionNode mainFunction;
@@ -169,9 +167,6 @@ public class CFACreator {
 
       logger.log(Level.FINE, "Starting parsing of file");
       CFA c = parser.parseFile(filename);
-      // remember the cfa
-      cfa = c;
-
       logger.log(Level.FINE, "Parser Finished");
 
       final Map<String, CFAFunctionDefinitionNode> cfas = c.getFunctions();
@@ -211,18 +206,6 @@ public class CFACreator {
         // don't abort here, because if the analysis doesn't need the loop information, we can continue
         logger.log(Level.WARNING, e.getMessage());
       }
-
-      // get information about nodes where between _START_NOENV and _END_NOENV statement edges
-      // at these nodes no rely-guarantee environmetal edges can be applied
-      assert mainFunction.getNumLeavingEdges() == 1;
-      CFAEdge firstEdge = mainFunction.getLeavingEdge(0);
-      assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
-      CFANode secondNode = firstEdge.getSuccessor();
-      Set<CFANode> noenvNodes = NoEnvNodes.getNoEnvNodes(secondNode);
-      for (CFANode node : noenvNodes){
-        node.setEnvAllowed(false);
-      }
-
 
       // Insert call and return edges and build the supergraph
       if (interprocedural) {
@@ -315,9 +298,6 @@ public class CFACreator {
     }
   }
 
-  public CFA getCFA(){
-    return cfa;
-  }
 
   /**
    * Insert nodes for global declarations after first node of CFA.
@@ -338,7 +318,6 @@ public class CFACreator {
 
     // insert one node to start the series of declarations
     CFANode cur = new CFANode(0, cfa.getFunctionName());
-    //cfa.addNode(cur);
     BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, cfa, cur);
     addToCFA(be);
 
@@ -347,7 +326,6 @@ public class CFACreator {
       assert d.isGlobal();
 
       CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
-      //cfa.addNode(cur);
       GlobalDeclarationEdge e = new GlobalDeclarationEdge(d,
           d.getFileLocation().getStartingLineNumber(), cur, n);
       addToCFA(e);
@@ -363,6 +341,4 @@ public class CFACreator {
     edge.getPredecessor().addLeavingEdge(edge);
     edge.getSuccessor().addEnteringEdge(edge);
   }
-
-
 }

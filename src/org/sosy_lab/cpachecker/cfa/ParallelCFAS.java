@@ -21,37 +21,35 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.objectmodel;
+package org.sosy_lab.cpachecker.cfa;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import java.util.List;
+import java.util.Set;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 
+/**
+ * Specifies a collection of concurrent threads.
+ */
+public class ParallelCFAS {
 
-public interface CFAEdge
-{
-    public CFAEdgeType getEdgeType ();
+  private final ImmutableList<ThreadCFA> cfas;
+  private final ImmutableSet<String> globalVariables;
 
-    public CFANode getPredecessor ();
-    public CFANode getSuccessor ();
+  public ParallelCFAS(List<ThreadCFA> cfas, Set<String> globalVariables){
+    this.cfas = ImmutableList.copyOf(cfas);
+    this.globalVariables = ImmutableSet.copyOf(globalVariables);
+  }
 
-    public String getRawStatement ();
-    public IASTNode getRawAST();
+  public ImmutableList<ThreadCFA> getCfas() {
+    return cfas;
+  }
 
-    public int getLineNumber();
-
-    /**
-     * Gives information whether this information represents a jump to a
-     * distant program location (e.g. a return or a goto statement).
-     */
-    public boolean isJumpEdge ();
-
-    public boolean isLocalRead();
-
-    public boolean isGlobalRead();
-
-    public boolean isLocalWrite();
-
-    public boolean isGlobalWrite();
+  public ImmutableSet<String> getGlobalVariables() {
+    return globalVariables;
+  }
 
 
 }

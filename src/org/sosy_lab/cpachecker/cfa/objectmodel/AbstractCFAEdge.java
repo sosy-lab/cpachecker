@@ -37,6 +37,49 @@ public abstract class AbstractCFAEdge implements CFAEdge
 
     private final int lineNumber;
 
+
+    private boolean localRead;
+    private boolean globalRead;
+    private boolean localWrite;
+    private boolean globalWrite;
+
+
+    @Override
+    public boolean isLocalRead() {
+      return localRead;
+    }
+
+    public void setLocalRead(boolean pLocalRead) {
+      localRead = pLocalRead;
+    }
+
+    @Override
+    public boolean isGlobalRead() {
+      return globalRead;
+    }
+
+    public void setGlobalRead(boolean pGlobalRead) {
+      globalRead = pGlobalRead;
+    }
+
+    @Override
+    public boolean isLocalWrite() {
+      return localWrite;
+    }
+
+    public void setLocalWrite(boolean pLocalWrite) {
+      localWrite = pLocalWrite;
+    }
+
+    @Override
+    public boolean isGlobalWrite() {
+      return globalWrite;
+    }
+
+    public void setGlobalWrite(boolean pGlobalWrite) {
+      globalWrite = pGlobalWrite;
+    }
+
     public AbstractCFAEdge(String rawStatement, int lineNumber, CFANode predecessor, CFANode successor) {
       Preconditions.checkNotNull(rawStatement);
       Preconditions.checkNotNull(predecessor);
@@ -107,4 +150,6 @@ public abstract class AbstractCFAEdge implements CFAEdge
                 getRawStatement().replaceAll("\n", " ") +
                "}-> " + getSuccessor() + ")";
     }
+
+
 }

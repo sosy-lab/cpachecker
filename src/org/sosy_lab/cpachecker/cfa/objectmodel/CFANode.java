@@ -32,7 +32,7 @@ public class CFANode implements Comparable<CFANode> {
 
   private static int          nextNodeNumber      = 0;
 
-  private final int           nodeNumber;
+  private int                 nodeNumber;
   private final int           lineNumber;
 
   private final List<CFAEdge> leavingEdges        = new ArrayList<CFAEdge>();
@@ -41,14 +41,15 @@ public class CFANode implements Comparable<CFANode> {
   // is start node of a loop?
   private boolean             isLoopStart         = false;
 
-  // can rely-guarantee environmental edges be applied to this node?
-  private boolean             isEnvAllowed            = true;
+  /** can rely-guarantee environmental edges be applied to this node? */
+  private boolean             envApplication            = true;
 
-  // can it generate rely-guarantee environmental edges?
+  /** does this node generate env transitions? */
+  // TODO: move to an edge.
   private boolean             generatesEnv            = true;
 
   // in which function is that node?
-  private final String        functionName;
+  private String        functionName;
 
   // list of summary edges
   private CallToReturnEdge    leavingSummaryEdge  = null;
@@ -63,6 +64,7 @@ public class CFANode implements Comparable<CFANode> {
     assert !functionName.isEmpty();
     this.nodeNumber = nextNodeNumber++;
   }
+
 
   public int getLineNumber() {
     return lineNumber;
@@ -149,12 +151,12 @@ public class CFANode implements Comparable<CFANode> {
   }
 
 
-  public boolean isEnvAllowed() {
-    return isEnvAllowed;
+  public boolean isEnvApplicationAllowed() {
+    return envApplication;
   }
 
-  public void setEnvAllowed(boolean pIsEnv) {
-    isEnvAllowed = pIsEnv;
+  public void setEnvApplicationAllowed(boolean pIsEnv) {
+    envApplication = pIsEnv;
   }
 
   public String getFunctionName() {
@@ -206,6 +208,19 @@ public class CFANode implements Comparable<CFANode> {
   public void setGeneratesEnv(boolean pGeneratesEnv) {
     generatesEnv = pGeneratesEnv;
   }
+
+  public void setNodeNumber(int pNodeNumber) {
+    nodeNumber = pNodeNumber;
+  }
+
+
+  public void setFunctionName(String pFunctionName) {
+    functionName = pFunctionName;
+  }
+
+
+
+
 
 
 }

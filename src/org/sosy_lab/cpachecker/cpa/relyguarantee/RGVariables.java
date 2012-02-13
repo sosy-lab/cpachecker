@@ -23,29 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.cfa.RGCFA;
+import org.sosy_lab.cpachecker.cfa.ThreadCFA;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableList.Builder;
 
 /**
  * Stores information about variables of a concurrent program.
  */
 public class RGVariables {
 
-  public final int threadNo;
-  public final ImmutableSet<String> globalVars;
-  public final ImmutableList<ImmutableSet<String>> localVars;
-  public final ImmutableSet<String> allVars;
+  public RGVariables(ThreadCFA[] pCfas) {
+    // TODO Auto-generated constructor stub
+  }
+  public int threadNo;
+  public ImmutableSet<String> globalVars;
+  public ImmutableList<ImmutableSet<String>> localVars;
+  public ImmutableSet<String> allVars;
 
-  public RGVariables(RGCFA[] cfas){
-    assert cfas.length > 0;
+  /*public RGVariables(RGCFAS rgCfas){
+    assert cfas.size() > 0;
 
     this.threadNo = cfas.length;
-    this.globalVars = ImmutableSet.copyOf(cfas[0].getGlobalVariables());
+    this.globalVars = ImmutableSet.copyOf(rgCfas.getGlobalVariables());
 
     Builder<ImmutableSet<String>> lb = new ImmutableList.Builder<ImmutableSet<String>>();
     for (RGCFA cfa : cfas){
@@ -61,7 +61,7 @@ public class RGVariables {
     this.allVars = avb.build();
 
     assert this.localVars.size() == this.threadNo;
-  }
+  }*/
 
   /*public RelyGuaranteeVariables(int threadNo, Set<String> globalVars, List<Set<String>> localVars) {
     assert threadNo > 0;

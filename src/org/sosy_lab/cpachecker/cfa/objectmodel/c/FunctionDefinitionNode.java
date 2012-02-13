@@ -50,6 +50,13 @@ public class FunctionDefinitionNode extends CFAFunctionDefinitionNode {
     this.parameterNames = ImmutableList.copyOf(parameterNames);
   }
 
+  public FunctionDefinitionNode(FunctionDefinitionNode other){
+    super(other.getLineNumber(), other.getFunctionName(), other.getExitNode());
+    this.functionDefinition = other.functionDefinition;
+    this.parameters = other.parameters;
+    this.parameterNames = other.parameterNames;
+  }
+
   public IASTFunctionDefinition getFunctionDefinition() {
     return functionDefinition;
   }

@@ -31,7 +31,7 @@ import java.util.Vector;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.RGCFA;
+import org.sosy_lab.cpachecker.cfa.ThreadCFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
@@ -71,7 +71,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final Statistics stats;
 
   // TODO check if needed
-  private RGCFA cfas[];
+  private ThreadCFA cfas[];
   // maps cfa nodes to equivalence classes
   private RGLocationMapping locationMapping;
   private int tid = Integer.MAX_VALUE;
@@ -108,7 +108,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     stats = new ARTStatistics(config, this);
   }
 
-  public void setData(RGCFA[] cfas, RGLocationMapping locationMapping, int tid){
+  public void setData(ThreadCFA[] cfas, RGLocationMapping locationMapping, int tid){
     this.cfas = cfas;
     this.locationMapping = locationMapping;
     this.tid = tid;
@@ -155,7 +155,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     List<Integer> locVector = new Vector<Integer>(cfas.length);
 
     for (int i=0; i<cfas.length; i++){
-      CFANode node = cfas[i].getStartNode();
+      CFANode node = cfas[i].getInitalNode();
       locVector.add(locationMapping.get(node));
     }
 

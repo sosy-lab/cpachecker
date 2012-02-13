@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.RGCFA;
+import org.sosy_lab.cpachecker.cfa.ThreadCFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -121,7 +121,7 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
   protected RGPrecision initialPrecision;
   protected AbstractElement topElement;
   private int tidNo;
-  private RGCFA[] cfas;
+  private ThreadCFA[] cfas;
 
   // managers
   protected final RegionManager rManager;
@@ -207,7 +207,7 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
   }
 
-  public void setData(int tid,RGVariables variables, RGEnvironmentManager envManager, RGCFA[] cfas) throws InvalidConfigurationException{
+  public void setData(int tid,RGVariables variables, RGEnvironmentManager envManager, ThreadCFA[] cfas) throws InvalidConfigurationException{
     this.tid = tid;
     this.cfas = cfas;
     this.variables = variables;

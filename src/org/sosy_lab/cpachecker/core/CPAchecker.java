@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -35,13 +34,11 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.EmptyCFAException;
-import org.sosy_lab.cpachecker.cfa.RGCFA;
+import org.sosy_lab.cpachecker.cfa.ThreadCFA;
 import org.sosy_lab.cpachecker.cfa.RGCFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
@@ -199,9 +196,9 @@ public class CPAchecker {
       stats.creationTime.start();
 
       // get main functions and CFA
-      Pair<CFAFunctionDefinitionNode[], RGCFA[]> tuple = getMainFunctionsAndCfas(filename);
+      Pair<CFAFunctionDefinitionNode[], ThreadCFA[]> tuple = getMainFunctionsAndCfas(filename);
       CFAFunctionDefinitionNode[] mainFunctions = tuple.getFirst();
-      RGCFA[] cfas = tuple.getSecond();
+      ThreadCFA[] cfas = tuple.getSecond();
 
       int threadNo = mainFunctions.length;
 
@@ -649,10 +646,15 @@ public class CPAchecker {
   }
 
   // returns main functions and CFA from the given file names
-  private Pair<CFAFunctionDefinitionNode[], RGCFA[]> getMainFunctionsAndCfas(String filename) throws InvalidConfigurationException, IOException, ParserException, InterruptedException, EmptyCFAException, UnrecognizedCFAEdgeException{
+  private Pair<CFAFunctionDefinitionNode[], ThreadCFA[]> getMainFunctionsAndCfas(String filename) throws InvalidConfigurationException, IOException, ParserException, InterruptedException, EmptyCFAException, UnrecognizedCFAEdgeException{
+
+
 
     RGCFACreator creator = new RGCFACreator(config, logger);
-    creator.parseFileAndCreateCFA(filename);
+    ThreadCFA rgCfas[] = creator.createParallelCFAS(filename);
+    CFAFunctionDefinitionNode[] funsArr  = null;
+    /*creator.parseFileAndCreateCFA(filename);
+
 
     List<CFAFunctionDefinitionNode> funs = creator.getMainFunctions();
     CFAFunctionDefinitionNode[] funsArr = funs.toArray(new CFAFunctionDefinitionNode[funs.size()]);
@@ -662,7 +664,7 @@ public class CPAchecker {
     for (int i=0; i<cfas.size(); i++){
       RGCFA rgCfa = new RGCFA(cfas.get(i),startNodes.get(i),funs.get(i), i);
       rgCfas[i] = rgCfa;
-    }
+    }*/
 
     return Pair.of(funsArr, rgCfas);
   }

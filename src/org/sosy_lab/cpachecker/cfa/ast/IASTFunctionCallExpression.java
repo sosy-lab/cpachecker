@@ -48,6 +48,11 @@ public class IASTFunctionCallExpression extends IASTRightHandSide {
     return functionName;
   }
 
+  public IASTExpression getFunctionName() {
+    return functionName;
+  }
+
+
   public List<IASTExpression> getParameterExpressions() {
     return parameters;
   }

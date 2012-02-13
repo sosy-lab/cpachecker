@@ -86,4 +86,24 @@ public class RGCFAEdge implements CFAEdge {
     return et.toString();
   }
 
+  @Override
+  public boolean isLocalRead() {
+    return false;
+  }
+
+  @Override
+  public boolean isGlobalRead() {
+    return false;
+  }
+
+  @Override
+  public boolean isLocalWrite() {
+    return false;
+  }
+
+  @Override
+  public boolean isGlobalWrite() {
+    return false;
+  }
+
 }
