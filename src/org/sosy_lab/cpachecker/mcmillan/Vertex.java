@@ -147,10 +147,18 @@ class Vertex implements AbstractElement, Targetable, AbstractWrapperElement {
     if (coveredBy != null) {
       return true;
     }
-    if (parent == null) {
-      return false;
+
+    // now check recursively all parents
+    Vertex v = this;
+    while (v.hasParent()) {
+      v = v.getParent();
+
+      if (v.coveredBy != null) {
+        return true;
+      }
     }
-    return parent.isCovered();
+
+    return false;
   }
 
   public boolean isLeaf() {
