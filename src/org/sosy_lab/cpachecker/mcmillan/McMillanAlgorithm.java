@@ -150,7 +150,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
         try {
           for (AbstractElement ae : reached.getReached(v)) {
             Vertex w = (Vertex)ae;
-            if (v != w && forceCover(v, w)) {
+            if (v != w && !w.isCovered() && forceCover(v, w)) {
               return;
             }
           }
@@ -257,6 +257,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
         x = x.getParent();
       }
     }
+    path = Lists.reverse(path);
 
     // x is common ancestor
     // path is ]x; v] (path from x to v, excluding x, including v)
@@ -275,22 +276,21 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
       formulas.add(fmgr.makeNot(fmgr.instantiate(w.getStateFormula(), pf.getSsa())));
     }
 
-    path.add(0, x);
+    path.add(0, x); // now path is [x; v] (including x and v)
     assert formulas.size() == path.size() + 1;
 
     CounterexampleTraceInfo<Formula> interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARTElement>emptySet());
 
     if (!interpolantInfo.isSpurious()) {
+      logger.log(Level.FINER, "Forced covering unsuccessful.");
       return false; // forced covering not possible
     }
 
-    logger.log(Level.INFO, "Forced covering successful");
+    logger.log(Level.FINER, "Forced covering successful.");
 
 
     List<Formula> interpolants = interpolantInfo.getPredicatesForRefinement();
-//    assert interpolants.size() == formulas.size() - 1;
-//    interpolants = interpolants.subList(1, interpolants.size()-1);
-//    path = path.subList(0, path.size()-1);
+    assert interpolants.size() == formulas.size() - 1;
     assert interpolants.size() ==  path.size();
 
     List<Vertex> changedElements = new ArrayList<Vertex>();
