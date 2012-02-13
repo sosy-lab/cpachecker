@@ -91,10 +91,12 @@ import com.google.common.collect.Iterables;
 	    CPAchecker cpachecker = null;
 	    ShutdownHook shutdownHook = null;
 	    File cFile = null;
+	    GenericProofGenerator pccProofGenerator = null;
 	    try {
 	      shutdownHook = new ShutdownHook(cpaConfig, logManager, outputDirectory);
 	      cpachecker = new CPAchecker(cpaConfig, logManager);
 	      cFile = getCodeFile(cpaConfig);
+	      pccProofGenerator = new GenericProofGenerator(cpaConfig, logManager);
 	    } catch (InvalidConfigurationException e) {
 	      logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
 	      System.exit(1);
@@ -112,15 +114,8 @@ import com.google.common.collect.Iterables;
 
 	    // statistics are displayed by shutdown hook
 
-	    // create PCC proof (if enabled)
-	    try {
-	      GenericProofGenerator pccProofGenerator = new GenericProofGenerator(cpaConfig, logManager);
-	      // generate PCC proof
-	      pccProofGenerator.generateProof(result);
-	    } catch (InvalidConfigurationException e) {
-	      logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
-	      System.exit(1);
-	    }
+	    // generated PCC proof (if enabled)
+	    pccProofGenerator.generateProof(result);
 	  }
 
 	  @Options
