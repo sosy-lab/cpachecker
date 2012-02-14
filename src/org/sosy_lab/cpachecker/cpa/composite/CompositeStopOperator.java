@@ -28,7 +28,9 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -73,6 +75,31 @@ public class CompositeStopOperator implements StopOperator{
         return false;
       }
     }
+    return true;
+  }
+
+  boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement, List<ConfigurableProgramAnalysis> cpas) throws CPAException {
+    CompositeElement compositeElement = (CompositeElement)pElement;
+    CompositeElement compositeOtherElement = (CompositeElement)pOtherElement;
+
+    List<AbstractElement> componentElements = compositeElement.getWrappedElements();
+    List<AbstractElement> componentOtherElements = compositeOtherElement.getWrappedElements();
+
+    if(componentElements.size() != cpas.size()) {
+      return false;
+    }
+
+    for (int idx = 0; idx < componentElements.size(); idx++) {
+      ProofChecker componentProofChecker = (ProofChecker)cpas.get(idx);
+
+      AbstractElement absElem1 = componentElements.get(idx);
+      AbstractElement absElem2 = componentOtherElements.get(idx);
+
+      if (!componentProofChecker.isCoveredBy(absElem1, absElem2)){
+        return false;
+      }
+    }
+
     return true;
   }
 }

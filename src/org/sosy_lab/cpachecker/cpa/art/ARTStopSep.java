@@ -30,6 +30,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -106,5 +107,15 @@ public class ARTStopSep implements StopOperator {
       pElement.setCovered(pReachedElement);
     }
     return stop;
+  }
+
+  boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement, ProofChecker wrappedProofChecker) throws CPAException {
+    ARTElement artElement = (ARTElement)pElement;
+    ARTElement otherArtElement = (ARTElement)pOtherElement;
+
+    AbstractElement wrappedElement = artElement.getWrappedElement();
+    AbstractElement wrappedOtherElement = otherArtElement.getWrappedElement();
+
+    return wrappedProofChecker.isCoveredBy(wrappedElement, wrappedOtherElement);
   }
 }
