@@ -30,6 +30,7 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.logging.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -155,7 +156,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.FINER, "Element is covered by another abstract element; checking coverage");
         stats.stopTimer.start();
         ARTElement coveringElement = element.getCoveringElement();
-        if(!cpa.isCoveredBy(element, coveringElement)) {
+        if(!(cpa.isCoveredBy(element, coveringElement) && isCoveringCycleFree(element))) {
           stats.stopTimer.stop();
           stats.totalTimer.stop();
           logger.log(Level.WARNING, "Element", element, "is not covered by", coveringElement);
@@ -180,6 +181,19 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
     stats.totalTimer.stop();
+    return true;
+  }
+
+  private boolean isCoveringCycleFree(ARTElement pElement) {
+    HashSet<ARTElement> seen = new HashSet<ARTElement>();
+    seen.add(pElement);
+    while(pElement.isCovered()) {
+      pElement = pElement.getCoveringElement();
+      boolean isNew = seen.add(pElement);
+      if(!isNew) {
+        return false;
+      }
+    }
     return true;
   }
 
