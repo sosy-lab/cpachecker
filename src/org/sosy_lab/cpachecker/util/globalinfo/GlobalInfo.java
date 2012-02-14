@@ -75,5 +75,4 @@ public class GlobalInfo {
     Preconditions.checkState(formulaManager != null);
     return formulaManager;
   }
-
 }

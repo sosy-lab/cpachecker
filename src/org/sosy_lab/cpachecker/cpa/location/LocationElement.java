@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.location;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.IOException;
+import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.util.SortedSet;
 
@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Preconditions;
@@ -44,7 +45,7 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
 
   private static final long serialVersionUID = -801176497691618779L;
 
-  static class LocationElementFactory {
+  public static class LocationElementFactory {
     private final LocationElement[] elements;
 
     public LocationElementFactory(CFA pCfa) {
@@ -132,16 +133,22 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
 
     // no equals and hashCode because there is always only one element per CFANode
 
-
-    //TODO: could also use a serial proxy to return the right location node using the factory
-    private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-      out.defaultWriteObject();
-      out.writeInt(locationNode.getNodeNumber());
+    private Object writeReplace() throws ObjectStreamException {
+      return new SerialProxy(locationNode.getNodeNumber());
     }
 
-    private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-      in.defaultReadObject();
-      int nodeNumber = in.readInt();
-      locationNode = GlobalInfo.getInstance().getCFAInfo().getNodeByNodeNumber(nodeNumber);
+    private static class SerialProxy implements Serializable {
+      private static final long serialVersionUID = 6889568471468710163L;
+      private final int nodeNumber;
+
+      public SerialProxy(int nodeNumber) {
+        this.nodeNumber = nodeNumber;
+      }
+
+      private Object readResolve() throws ObjectStreamException {
+        CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo();
+        return cfaInfo.getLocationElementFactory().getElement(cfaInfo.getNodeByNodeNumber(nodeNumber));
+      }
     }
+
 }

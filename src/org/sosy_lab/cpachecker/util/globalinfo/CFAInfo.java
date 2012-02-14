@@ -28,11 +28,13 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cpa.location.LocationElement.LocationElementFactory;
 
 
 public class CFAInfo {
   private final CFA cfa;
   private final Map<Integer, CFANode> nodeNumberToNode;
+  private LocationElementFactory locationElementFactory;
 
   CFAInfo(CFA cfa) {
     this.cfa = cfa;
@@ -46,5 +48,13 @@ public class CFAInfo {
 
   public CFANode getNodeByNodeNumber(int nodeNumber) {
     return nodeNumberToNode.get(nodeNumber);
+  }
+
+  public void storeLocationElementFactory(LocationElementFactory pElementFactory) {
+    locationElementFactory = pElementFactory;
+  }
+
+  public LocationElementFactory getLocationElementFactory() {
+    return locationElementFactory;
   }
 }
