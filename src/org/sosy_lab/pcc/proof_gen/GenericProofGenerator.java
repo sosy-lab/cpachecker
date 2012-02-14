@@ -51,7 +51,7 @@ public class GenericProofGenerator {
 
   @Option(name = "pcc.proofgen.doPCC", description = "")
   private boolean doPCC = false;
-  @Option(description = "file in which ART representation needed for proof checking is stored")
+  @Option(name = "pcc.proofFile", description = "file in which ART representation needed for proof checking is stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File file = new File("art.obj");
 

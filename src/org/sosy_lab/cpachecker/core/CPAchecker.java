@@ -166,6 +166,7 @@ public class CPAchecker {
 
       } else {
         CFA cfa = parse(filename, stats);
+        GlobalInfo.getInstance().storeCFA(cfa);
         stopIfNecessary();
 
         ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, stats);
@@ -173,8 +174,6 @@ public class CPAchecker {
         algorithm = factory.createAlgorithm(cpa, filename, cfa, stats);
 
         initializeReachedSet(reached, cpa, cfa.getMainFunction());
-
-        GlobalInfo.getInstance().storeCFA(cfa);
       }
 
       printConfigurationWarnings();
