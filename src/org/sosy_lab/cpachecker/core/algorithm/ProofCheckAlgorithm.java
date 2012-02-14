@@ -156,7 +156,13 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.FINER, "Element is covered by another abstract element; checking coverage");
         stats.stopTimer.start();
         ARTElement coveringElement = element.getCoveringElement();
-        if(!(cpa.isCoveredBy(element, coveringElement) && isCoveringCycleFree(element))) {
+        if(!isCoveringCycleFree(element)) {
+          stats.stopTimer.stop();
+          stats.totalTimer.stop();
+          logger.log(Level.WARNING, "Found cycle in covering relation for element", element);
+          return false;
+        }
+        if(!cpa.isCoveredBy(element, coveringElement)) {
           stats.stopTimer.stop();
           stats.totalTimer.stop();
           logger.log(Level.WARNING, "Element", element, "is not covered by", coveringElement);
