@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.google.common.collect.Sets;
+
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ConstantTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
@@ -33,7 +35,6 @@ import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Script;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
-
 
 /** This is a Class similiar to Mathsat-NativeApi,
  *  it contains some useful functions. */
@@ -192,25 +193,15 @@ public class SmtInterpolUtil {
   }
 
   public static boolean isTrue(Script script, Term t) {
-    try {
-      boolean isTrue = script.getTheory().TRUE == script.simplifyTerm(t);
-      if (log) System.out.println("   isTrue (" + t +"): " + isTrue);
-      return isTrue;
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return false;
-    }
+    boolean isTrue = script.getTheory().TRUE == t;
+    if (log) System.out.println("   isTrue (" + t +"): " + isTrue);
+    return isTrue;
   }
 
   public static boolean isFalse(Script script, Term t) {
-    try {
-      boolean isFalse = script.getTheory().FALSE == script.simplifyTerm(t);
-      if (log) System.out.println("   isTrue (" + t +"): " + isFalse);
-      return isFalse;
-      } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return false;
-    }
+    boolean isFalse = script.getTheory().FALSE == t;
+    if (log) System.out.println("   isTrue (" + t +"): " + isFalse);
+    return isFalse;
   }
 
   /** this function creates a new Term with the same function and new parameters. */
@@ -253,6 +244,120 @@ public class SmtInterpolUtil {
           getVars(innerTerm, vars);
         }
       }
+    }
+  }
+
+  /** This function simplifies a term and returns a shorter terms.
+   * It factors out common children of the term.
+   * Example:   (a&b)|(a&c)  -->   a&(b|c)   */
+  public static Term simplify(Script script, Term t) throws SMTLIBException {
+    if (t instanceof ApplicationTerm) {
+      ApplicationTerm at = (ApplicationTerm) t;
+      FunctionSymbol function = at.getFunction();
+      Term[] params = at.getParameters();
+
+      // (a&b&c)|(a&d&e)   -->    a&((b&c)|(d&e))
+      if (script.getTheory().m_Or == function) {
+        assert params.length >= 2;
+        Set<Term>[] children = new Set[params.length];
+        for (int i = 0; i < params.length; i++) {
+          if (params[i] instanceof ApplicationTerm) {
+            ApplicationTerm atChild = (ApplicationTerm) params[i];
+            if (script.getTheory().m_And == atChild.getFunction()) {
+              children[i] = Sets.newHashSet(atChild.getParameters());
+            } else {
+              return t; // if one child is no AND, there is no common child
+            }
+          }
+        }
+        Set<Term> commonTerms = children[0];
+        for (int i = 1; i < children.length; i++) {
+          commonTerms = Sets.intersection(commonTerms, children[i]);
+        }
+        Term[] newChildren = new Term[children.length];
+        for (int i = 0; i < children.length; i++) {
+          Set<Term> diff = Sets.difference(children[i], commonTerms);
+          if (diff.size() == 0) {
+            newChildren[i] = script.getTheory().FALSE;
+          } else if (diff.size() == 1) {
+            newChildren[i] = diff.toArray(new Term[1])[0];
+          } else {
+            newChildren[i] = script.term("and", diff.toArray(new Term[0]));
+          }
+        }
+        Term mergedChildren = script.term("or", newChildren);
+        Term[] ts = commonTerms.toArray(new Term[commonTerms.size()+2]);
+        ts[ts.length-2] = script.getTheory().TRUE; // one TRUE in AND does not matter
+        ts[ts.length-1] = mergedChildren;
+        return script.term("and", ts);
+
+        // (a|b|c)&(a|d|e)   -->    a|((b|c)&(d|e))
+      } else if (script.getTheory().m_And == function) {
+        assert params.length >= 2;
+        Set<Term>[] children = new Set[params.length];
+        for (int i = 0; i < params.length; i++) {
+          if (params[i] instanceof ApplicationTerm) {
+            ApplicationTerm atChild = (ApplicationTerm) params[i];
+            if (script.getTheory().m_Or == atChild.getFunction()) {
+              children[i] = Sets.newHashSet(atChild.getParameters());
+            } else {
+              return t; // if one child is no OR, there is no common child
+            }
+          }
+        }
+        Set<Term> commonTerms = children[0];
+        for (int i = 1; i < children.length; i++) {
+          commonTerms = Sets.intersection(commonTerms, children[i]);
+        }
+        Term[] newChildren = new Term[children.length];
+        for (int i = 0; i < children.length; i++) {
+          Set<Term> diff = Sets.difference(children[i], commonTerms);
+          if (diff.size() == 0) {
+            newChildren[i] = script.getTheory().TRUE;
+          } else if (diff.size() == 1) {
+            newChildren[i] = diff.toArray(new Term[1])[0];
+          } else {
+            newChildren[i] = script.term("or", diff.toArray(new Term[0]));
+          }
+        }
+        Term mergedChildren = script.term("and", newChildren);
+        Term[] ts = commonTerms.toArray(new Term[commonTerms.size()+2]);
+        ts[ts.length-2] = script.getTheory().FALSE; // one FALSE in OR does not matter
+        ts[ts.length-1] = mergedChildren;
+        return script.term("or", ts);
+
+      } else {
+        return t;
+      }
+    } else {
+      return t;
+    }
+  }
+
+  /** this function can be used to print a bigger term*/
+  public static String prettyPrint(Term t) {
+    StringBuilder str = new StringBuilder();
+    prettyPrint(t, str, 0);
+    return str.toString();
+  }
+
+  private static void prettyPrint(Term t, StringBuilder str, int n) {
+    for (int i=0; i<n; i++) str.append("  ");
+    if (t instanceof ApplicationTerm) {
+      ApplicationTerm at = (ApplicationTerm) t;
+      String function = at.getFunction().getName();
+      if ("and".equals(function) || "or".equals(function)) {
+        str.append("(").append(function).append("\n");
+        for (Term child : at.getParameters()) {
+          prettyPrint(child, str, n+1);
+        }
+        for (int i=0; i<n; i++) str.append("  ");
+        str.append(")\n");
+      } else {
+        str.append(t.toStringDirect()).append("\n");
+      }
+    } else {
+      str.append(t.toStringDirect()).append("\n");
     }
   }
 }

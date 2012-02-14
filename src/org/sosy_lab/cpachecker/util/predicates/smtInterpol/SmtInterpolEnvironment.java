@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -37,7 +36,6 @@ import org.sosy_lab.common.Triple;
 
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
 import de.uni_freiburg.informatik.ultimate.logic.Assignments;
-import de.uni_freiburg.informatik.ultimate.logic.LoggingScript;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Script;
@@ -76,14 +74,14 @@ public class SmtInterpolEnvironment implements Script {
       e.printStackTrace();
     }
 
-    try {
-      // create a thin wrapper around Benchmark,
-      // this allows to write most formulas of the solver to outputfile
-      // TODO how much faster is SmtInterpol without this Wrapper?
-      script = new LoggingScript(new Benchmark(logger), "interpol.smt2", true);
-    } catch (FileNotFoundException e1) {
-      e1.printStackTrace();
-    }
+//    try {
+//      // create a thin wrapper around Benchmark,
+//      // this allows to write most formulas of the solver to outputfile
+//      // TODO how much faster is SmtInterpol without this Wrapper?
+//      script = new LoggingScript(new Benchmark(logger), "interpol.smt2", true);
+//    } catch (FileNotFoundException e1) {
+//      e1.printStackTrace();
+//    }
 
     try {
 
@@ -158,14 +156,21 @@ public class SmtInterpolEnvironment implements Script {
     assert stack.size() >= levels : "not enough levels to remove";
     script.pop(levels);
 
+    if (stack.size() - levels > 0) {
+      currentDeclarations = stack.get(stack.size() - levels - 1);
+    } else {
+      currentDeclarations = null;
+    }
+
     for (int i = 0; i < levels; i++) {
-      for (Triple<String, Sort[], Sort> function : currentDeclarations) {
+      final List<Triple<String, Sort[], Sort>> topDecl = stack.remove(stack.size() - 1);
+
+      for (Triple<String, Sort[], Sort> function : topDecl) {
         final String fun = function.getFirst();
         final Sort[] paramSorts = function.getSecond();
         final Sort resultSort = function.getThird();
-        script.declareFun(fun, paramSorts, resultSort);
+        declareFun(fun, paramSorts, resultSort);
       }
-      currentDeclarations = stack.remove(stack.size() - 1);
     }
   }
 
@@ -294,6 +299,7 @@ public class SmtInterpolEnvironment implements Script {
   @Override
   public Term simplifyTerm(Term term) throws SMTLIBException {
     return script.simplifyTerm(term);
+    //throw new UnsupportedOperationException();
   }
 
   @Override

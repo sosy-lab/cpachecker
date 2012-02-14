@@ -143,7 +143,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
         return encapsulate(at.getParameters()[0]);
       }
     }
-    
+
     // make 'normal' not
     try {
       return encapsulate(script.term("not", t));
@@ -161,7 +161,10 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
     if (t1 == script.getTheory().TRUE) { return f2;}
     if (t2 == script.getTheory().TRUE) { return f1;}
     try {
-      return encapsulate(script.term("and", t1, t2));
+      Term t = script.term("and", t1, t2);
+     // System.out.println("old:\n" + prettyPrint(t) + "\n\n");
+     // System.out.println(prettyPrint(simplify(script, t)) + "\n\n");
+      return encapsulate(simplify(script, t));
     } catch (SMTLIBException e) {
       e.printStackTrace();
       return null;
@@ -175,7 +178,10 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
     if (t1 == script.getTheory().FALSE) { return f2;}
     if (t2 == script.getTheory().FALSE) { return f1;}
     try {
-      return encapsulate(script.term("or", t1, t2));
+      Term t = script.term("or", t1, t2);
+     // System.out.println("old:\n" + prettyPrint(t) + "\n\n");
+     // System.out.println(prettyPrint(simplify(script, t)) + "\n\n");
+      return encapsulate(simplify(script, t));
     } catch (SMTLIBException e) {
       e.printStackTrace();
       return null;
