@@ -20,17 +20,17 @@ public class ComplexTests extends ExperimentalSeries  {
 
     String[] lArguments;
     lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
-                                        "test/programs/fql/data-structures/primitive/dint.cil.c",
+                                        "test/programs/ntdrivers/diskperf.i.cil.cil.c",
                                         "main",
                                         true);
 
-    fil = new FileWriter("test/programs/fql/result/dint.cil.c.data",true);
+    fil = new FileWriter("test/programs/fql/result/diskperf.i.cil.cil.c.data",true);
     out = new PrintWriter(fil);
 
 
 
     TestCase pTestCase;
-     pTestCase= TestCase.fromString("p,-3");
+     pTestCase= TestCase.fromString("p,1,0,0,0,1,1");
     Main.run(lArguments, pTestCase,out);
 
 
@@ -58,7 +58,7 @@ public class ComplexTests extends ExperimentalSeries  {
 
 
     TestCase pTestCase;
-     pTestCase= TestCase.fromString("p,-3,-4,-7,3,6,8,9,9,9");
+     pTestCase= TestCase.fromString("p,-3,-4,-7,3,6,8,9,9,-93,-4,-7,3,6,8,9,9,9");
     Main.run(lArguments, pTestCase,out);
 
 

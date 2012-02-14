@@ -24,6 +24,12 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterCPA;
 import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterElement;
 import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterTransferRelation;
+import org.sosy_lab.cpachecker.cpa.einterpreter.memory.AddrMemoryCell;
+import org.sosy_lab.cpachecker.cpa.einterpreter.memory.DataMemoryCell;
+import org.sosy_lab.cpachecker.cpa.einterpreter.memory.FuncMemoryCell;
+import org.sosy_lab.cpachecker.cpa.einterpreter.memory.MemoryBlock;
+import org.sosy_lab.cpachecker.cpa.einterpreter.memory.PersMemory;
+import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Scope;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fshell.cfa.Wrapper;
@@ -84,45 +90,45 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   }
 
 
+  @SuppressWarnings("unused")
   @Override
   public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating,TestCase pTestCase, PrintWriter out) {
+
+    /*ProcMem pm = new ProcMem();
+    Sigar h = new Sigar();
+    try {
+      pm = h.getProcMem(h.getPid());
+    } catch (SigarException e) {
+      //TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    System.out.println("Resident" +pm.getResident()/1024/1024);
+    System.out.println("Size: " +pm.getSize()/1024/1024);
+    System.out.println("Share: " +pm.getShare()/1024/1024);
+    System.out.println();*/
 
 
     Timer k = new Timer();
     k.start();
     long time;
     // new interpreter cpa
-    try {
-      run2(new InterpreterCPA(pTestCase.getInputs(),lCFAMap));
-    } catch (Exception e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
+      InterpreterCPA cpa= new InterpreterCPA(pTestCase.getInputs(),lCFAMap);
+
+      try {
+        run2(cpa);
+      } catch (Exception e1) {
+        // TODO Auto-generated catch block
+        e1.printStackTrace();
+      }
+
     time = k.stop();
-   out.print(Long.toString(time));
+
 
 
    int x =0,y=0;
    long t=0;
-   if (Main.CMPLXA==1){
-   for(x=0;x<InterpreterTransferRelation.TRLIST.size();x++){
-      out.println(InterpreterTransferRelation.TRLIST.get(x)+","+InterpreterTransferRelation.TRLISTTIME.get(x));
-      out.print(","+InterpreterTransferRelation.PMSlist.get(x)+ ","+InterpreterTransferRelation.SVlist.get(x));
-      out.print(","+ InterpreterTransferRelation.MBClist.get(x)+ ","+InterpreterTransferRelation.AMClist.get(x));
-      out.println(","+ InterpreterTransferRelation.DMClist.get(x)+ ","+InterpreterTransferRelation.FMClist.get(x));
 
 
-   }
-
-   for(x=0;x<InterpreterTransferRelation.TRLIST.size();x++){
-     t+=InterpreterTransferRelation.TRLISTTIME.get(x).longValue();
-     if(InterpreterTransferRelation.TRLISTTIME.get(x).longValue()==0){
-       y++;
-     }
-  }
-     out.println("\n"+t+"\t"+y);
-     out.println(InterpreterElement.count);
-   }
 
     if(Main.OINTPR==0){
       k.start();
@@ -137,23 +143,72 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       }
       time = k.stop();
 
-      out.println("," +Long.toString(time));
+
       //out.print(", " + InterpreterTransferRelation.TRCOUNT);
 
      // out.println(", " + org.sosy_lab.cpachecker.cpa.interpreter.InterpreterTransferRelation.TRCOUNT);
-      if(Main.CMPLXA==1){
-      for(x=0;x<InterpreterTransferRelation.TRLIST.size();x++){
-        out.print(InterpreterTransferRelation.TRLIST.get(x)+", ");
-        out.print(InterpreterTransferRelation.TRLISTTIME.get(x)+", ");
-        out.println(org.sosy_lab.cpachecker.cpa.interpreter.InterpreterTransferRelation.TRLISTTIME.get(x));
 
-      }
-
-      out.println();
-      }
 
     }
+
+//Ausgabe
+
+
+
+    if (Main.CMPLXA==1){
+      for(x=0;x<InterpreterTransferRelation.TRLIST.size();x++){
+         out.print(InterpreterTransferRelation.TRLIST.get(x)+","+InterpreterTransferRelation.TRLISTTIME.get(x));
+         out.print(","+InterpreterTransferRelation.PMSlist.get(x)+ ","+InterpreterTransferRelation.SVlist.get(x));
+         out.print(","+ InterpreterTransferRelation.MBClist.get(x)+ ","+InterpreterTransferRelation.AMClist.get(x));
+         out.println(","+ InterpreterTransferRelation.DMClist.get(x)+ ","+InterpreterTransferRelation.FMClist.get(x));
+
+        t+=InterpreterTransferRelation.TRLISTTIME.get(x).longValue();
+        if(InterpreterTransferRelation.TRLISTTIME.get(x).longValue()==0){
+          y++;
+        }
+
+     }
+        out.println("\n"+t+"\t"+y);
+        out.println(InterpreterElement.count);
+    }else if(Main.CMPLXA==2){
+
+      for(Integer value  : PersMemory.PMdpt ){
+        out.println(value);
+      }
+      out.println("---");
+      for(Integer value  : Scope.Sdpt ){
+        out.println(value);
+      }
+      out.println("---");
+      for(Integer value  : MemoryBlock.Mdpt ){
+        out.println(value);
+      }
+      out.println("---");
+      for(Integer value  : AddrMemoryCell.Adpt ){
+        out.println(value);
+      }
+      out.println("---");
+      for(Integer value  : DataMemoryCell.Ddpt ){
+        out.println(value);
+      }
+      out.println("---");
+      for(Integer value  : FuncMemoryCell.Fdpt ){
+        out.println(value);
+      }
+
+
+
+
+
+
+      }else{
+        out.print(Long.toString(time));
+        out.println("," +Long.toString(time));
+      }
+
     out.close();
+
+
     return null;
   }
 

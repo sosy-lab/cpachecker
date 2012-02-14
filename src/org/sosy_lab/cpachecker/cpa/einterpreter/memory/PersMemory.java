@@ -34,8 +34,10 @@ public class PersMemory {
   private InterpreterElement tmp=null;
   private Scope tmps=null;
   private HashMap<InterpreterElement,Scope> curscopes;
-  public static int PMScnt=0;
 
+
+  public static int PMScnt=0;
+  private static int cnt=0;
   public static ArrayList <Integer>PMdpt= new ArrayList<Integer>();
   public PersMemory(InterpreterElement el){
     factory = new MemoryFactory();
@@ -53,21 +55,24 @@ public class PersMemory {
   }
 
   public Scope getCurrentScope(InterpreterElement el){
-
+    cnt=0;
     if( tmp !=null && tmp.equals(el)){
       return  tmps;
     }
     tmp = el;
     Scope s;
     s = curscopes.get(el);
-    PMScnt++;
     el = el.getprev();
+    PMScnt++;
+    cnt++;
     while(s == null && el != null){
-      PMScnt++;
       s = curscopes.get(el);
       el = el.getprev();
+      PMScnt++;
+      cnt++;
     }
 
+    PMdpt.add(cnt);
     if(s==null){
       throw new RuntimeException("not possible");
       //TODO: not possible

@@ -199,7 +199,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
     TRCOUNT++;
     if(Main.CMPLXA==1){
-    TRLIST.add(String.valueOf(cfaEdge.getLineNumber()));
+    TRLIST.add(String.valueOf(cfaEdge.getRawStatement()));
 
     PersMemory.PMScnt=0;
     Scope.SVcnt=0;
@@ -2062,10 +2062,7 @@ private BigInteger decodeVar(PrimitiveVariable pVar, InterpreterElement pel) thr
  */
 public void handleDeclaration(DeclarationEdge pDeclarationEdge,
     InterpreterElement pElement) throws Exception{
- if(pDeclarationEdge.getName().startsWith("__BLAST_NONDET")){
-    return;
 
-  }
   //typedef declaration is handled here
   if(pDeclarationEdge.getStorageClass().name().compareTo("TYPEDEF")==0){
     String tmp = pDeclarationEdge.getName();

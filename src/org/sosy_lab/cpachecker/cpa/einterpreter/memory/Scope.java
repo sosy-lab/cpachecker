@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.einterpreter.memory;
 
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,6 +12,8 @@ import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterElement;
 public class Scope {
   private Map<InterpreterElement,HashMap<String,Variable>> variables; //versions
   public static int SVcnt=0;
+  private static int cnt=0;
+  public static ArrayList<Integer> Sdpt= new  ArrayList<Integer>();
   private  String   name;
   private Scope parent;
 
@@ -62,15 +65,18 @@ public class Scope {
   }
   @SuppressWarnings("unchecked")
   public Variable getVariable(String pname , InterpreterElement tmp){
+      cnt=0;
       //TODO: globale Variablen richtig handeln
       HashMap<String, Variable> vtmp = variables.get(tmp);
       InterpreterElement itmp= tmp;
       while(vtmp == null && itmp != null){
         SVcnt++;
+        cnt++;
         itmp = itmp.getprev();
         vtmp = variables.get(itmp);
       }
       Variable k = vtmp.get(pname);
+      Sdpt.add(cnt);
       Scope s = this;
       if(k==null&& !s.name.equals("main")){
         while(!s.name.equals("main")&& s.parent!=null){
@@ -103,15 +109,17 @@ public class Scope {
 
   @SuppressWarnings("unchecked")
   public void addVariable(Variable pvar,InterpreterElement el){
+    cnt=0;
     InterpreterElement tmp=el;
     HashMap<String, Variable> variable = null;
     while(variable == null){
-
+      cnt++;
       variable = variables.get(tmp);
       SVcnt++;
       tmp = tmp.getprev();
 
     }
+    Sdpt.add(cnt);
     variable = (HashMap<String, Variable>) variable.clone();
     variable.put(pvar.getName(), pvar);
     variables.put(el, variable);

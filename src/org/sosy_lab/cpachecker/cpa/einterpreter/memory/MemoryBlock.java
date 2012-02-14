@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.einterpreter.memory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -39,6 +40,8 @@ public class MemoryBlock {
   }
   HashMap<InterpreterElement,  MemoryCell[]> blocks;
   public static int MBCcnt=0;
+  private static int cnt=0;
+  public static ArrayList<Integer>Mdpt=new ArrayList<Integer>();
   MemoryBlock clone = null;
   boolean free = false;
   int size;
@@ -94,6 +97,7 @@ public class MemoryBlock {
 
 
     private MemoryCell[] getMemoryBlock(InterpreterElement pEl) {
+      cnt=0;
     if(blocks.isEmpty()){
       MemoryCell tmp[] = new MemoryCell[size];
       blocks.put(pEl, tmp);
@@ -102,9 +106,11 @@ public class MemoryBlock {
     InterpreterElement cur = pEl;
     while(pEl !=null && blocks.containsKey(pEl)==false){
       MBCcnt++;
+      cnt++;
       pEl = pEl.getprev();
 
     }
+    Mdpt.add(cnt);
     if(pEl==null){
       MemoryCell tmp[] = new MemoryCell[size];
       blocks.put(cur, tmp);

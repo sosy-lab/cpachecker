@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.einterpreter.memory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterElement;
@@ -32,6 +33,9 @@ public class DataMemoryCell implements MemoryCell{
   private DataMemoryCell clone = null;
   public static int DMCcnt=0;
 
+
+ private static int cnt=0;
+ public static ArrayList<Integer> Ddpt = new ArrayList<Integer>();
   public DataMemoryCell( InterpreterElement el){
     data = new HashMap<InterpreterElement, Byte>();
     data.put(el, (byte) 0);
@@ -46,10 +50,13 @@ public class DataMemoryCell implements MemoryCell{
   }
 
   public byte getData(InterpreterElement pel){
+    cnt=0;
     while( pel!=null&&data.containsKey(pel)==false ){
+      cnt++;
       DMCcnt++;
       pel = pel.getprev();
     }
+    Ddpt.add(cnt);
     if(pel==null){
       throw new RuntimeException("there exists no byte for InterpreterElement");
     }
