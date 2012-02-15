@@ -123,7 +123,7 @@ public class ExplicitPrecision implements Precision {
     /**
      * the collection that determines which variables are tracked at a specific location - if it is null, all variables are tracked
      */
-    private SetMultimap<CFANode, String> mapping = HashMultimap.create();
+    private SetMultimap<CFANode, String> mapping = null;
 
     private CegarPrecision(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
