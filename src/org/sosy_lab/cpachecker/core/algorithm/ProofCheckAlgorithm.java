@@ -73,11 +73,11 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     @Override
     public void printStatistics(PrintStream out, Result pResult,
         ReachedSet pReached) {
-      out.println("Number of iterations:                 " + countIterations);
+      out.println("Number of iterations:                     " + countIterations);
       out.println();
       out.println("Total time for proof check algorithm: " + totalTimer + " (Max: " + totalTimer.printMaxTime() + ")");
-      out.println("  Time for abstract successor check:  " + transferTimer);
-      out.println("  Time for covering check:            " + stopTimer);
+      out.println("  Time for abstract successor check:  " + transferTimer + " (Calls: " + transferTimer.getNumberOfIntervals() + ")");
+      out.println("  Time for covering check:            " + stopTimer  + " (Calls: " + stopTimer.getNumberOfIntervals() + ")");
     }
   }
 
@@ -127,6 +127,8 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+    //TODO does not account for strengthen yet (proof check will fail if strengthen is needed to explain successor states)
+
     stats.totalTimer.start();
 
     logger.log(Level.INFO, "Proof check algorithm started");
@@ -136,7 +138,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     logger.log(Level.FINE, "Checking root element");
 
-    if(!cpa.isCoveredBy(initialElement, rootElement)) {
+    if(!(cpa.isCoveredBy(initialElement, rootElement) && cpa.isCoveredBy(rootElement, initialElement))) {
       stats.totalTimer.stop();
       logger.log(Level.WARNING, "Root element of proof is invalid.");
       return false;
@@ -169,7 +171,11 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
           return false;
         }
         stats.stopTimer.stop();
-        reachedSet.add(coveringElement, initialPrecision);
+        if(!reachedSet.contains(coveringElement)) {
+          stats.totalTimer.stop();
+          logger.log(Level.WARNING, "Covering element", coveringElement, "was not found in reached set");
+          return false; //this is a bit more strict than need, but allows the covering check to "trust" the elements
+        }
       }
       else {
         stats.transferTimer.start();
@@ -178,6 +184,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         if(!cpa.areAbstractSuccessors(element, null, successors)) {
           stats.transferTimer.stop();
           stats.totalTimer.stop();
+          logger.log(Level.WARNING, "Element", element, "has other successors than", successors);
           return false;
         }
         stats.transferTimer.stop();
