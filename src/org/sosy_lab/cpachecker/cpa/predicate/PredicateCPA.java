@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -46,9 +47,12 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -73,7 +77,7 @@ import com.google.common.io.Files;
  * CPA that defines symbolic predicate abstraction.
  */
 @Options(prefix="cpa.predicate")
-public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
@@ -276,5 +280,15 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   PredicateCPAStatistics getStats() {
     return stats;
+  }
+
+  @Override
+  public boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge, Collection<? extends AbstractElement> pSuccessors) throws CPATransferException, InterruptedException {
+    return getTransferRelation().areAbstractSuccessors(pElement, pCfaEdge, pSuccessors);
+  }
+
+  @Override
+  public boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement) throws CPAException {
+    return getAbstractDomain().formulaBasedIsLessOrEqual(pElement, pOtherElement);
   }
 }

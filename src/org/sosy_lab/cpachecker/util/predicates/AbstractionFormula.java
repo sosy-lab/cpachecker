@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 public class AbstractionFormula implements Serializable {
 
   private static final long serialVersionUID = -7756517128231447936L;
-  private transient final Region region; // TODO serialize region too? (might as well just use formulae for covering checks)
+  private transient final Region region;
   private final Formula formula;
 
   /**

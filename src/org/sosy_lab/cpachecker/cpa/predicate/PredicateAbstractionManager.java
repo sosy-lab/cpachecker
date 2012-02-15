@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
@@ -386,6 +387,45 @@ public class PredicateAbstractionManager {
       thmProver.reset();
     }
   }
+
+  /**
+   * Checks whether a1.getFormula() => a2.getFormula() and whether the a1.getSsa()(v) <= a2.getSsa()(v) for all v
+   */
+  public boolean checkCoverage(PathFormula a1, PathFormula a2, PathFormulaManager pfmgr) {
+    //check ssa maps
+    SSAMap map1 = a1.getSsa();
+    SSAMap map2 = a2.getSsa();
+    for(String var : map1.allVariables()) {
+     if(map2.getIndex(var) < map1.getIndex(var)) {
+       return false;
+     }
+    }
+
+    //merge path formulae
+    PathFormula mergedPathFormulae = pfmgr.makeOr(a1, a2);
+
+    //check formulae
+    if(!checkCoverage(mergedPathFormulae.getFormula(), a2.getFormula())) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Checks if a1 => a2
+   */
+  private boolean checkCoverage(Formula a1, Formula a2) {
+    Formula toCheck = fmgr.makeAnd(a1, fmgr.makeNot(a2));
+
+    thmProver.init();
+    try {
+      return thmProver.isUnsat(toCheck);
+    } finally {
+      thmProver.reset();
+    }
+  }
+
 
   /**
    * Checks if an abstraction formula and a pathFormula are unsatisfiable.

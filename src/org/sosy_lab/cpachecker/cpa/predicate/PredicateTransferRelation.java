@@ -321,4 +321,53 @@ public class PredicateTransferRelation implements TransferRelation {
       return PredicateAbstractElement.abstractionElement(newPathFormula, abs);
     }
   }
+
+  boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge, Collection<? extends AbstractElement> pSuccessors) throws CPATransferException, InterruptedException {
+    PredicateAbstractElement predicateElement = (PredicateAbstractElement)pElement;
+
+    if(pSuccessors.isEmpty()) {
+      Collection<? extends AbstractElement> foundSuccessors = getAbstractSuccessors(pElement, null, pCfaEdge);
+
+      //if we found successors, they all have to be unsat
+      for(AbstractElement e : foundSuccessors) {
+        PredicateAbstractElement successor = (PredicateAbstractElement)e;
+        if(!formulaManager.unsat(successor.getAbstractionFormula(), successor.getPathFormula())) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    for(AbstractElement e : pSuccessors) {
+      PredicateAbstractElement successor = (PredicateAbstractElement)e;
+
+      if(successor.isAbstractionElement()) {
+        //check abstraction
+        if(!formulaManager.checkCoverage(predicateElement.getAbstractionFormula(), predicateElement.getPathFormula(), successor.getAbstractionFormula())) {
+          return false;
+        }
+
+        //check path formula
+        if(!successor.getPathFormula().equals(pathFormulaManager.makeEmptyPathFormula(predicateElement.getPathFormula()))) {
+          return false;
+        }
+      }
+      else {
+        //check abstraction
+        if(!successor.getAbstractionFormula().equals(predicateElement.getAbstractionFormula())) {
+          return false;
+        }
+
+        //check path formula
+        PathFormula successorPathFormula = successor.getPathFormula();
+        PathFormula computedPathFormula = convertEdgeToPathFormula(predicateElement.getPathFormula(), pCfaEdge);
+        if(!formulaManager.checkCoverage(computedPathFormula, successorPathFormula, pathFormulaManager)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
 }
