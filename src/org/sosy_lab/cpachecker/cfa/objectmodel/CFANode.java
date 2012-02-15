@@ -42,11 +42,11 @@ public class CFANode implements Comparable<CFANode> {
   private boolean             isLoopStart         = false;
 
   /** can rely-guarantee environmental edges be applied to this node? */
-  private boolean             envApplication            = true;
+  //private boolean             envApplication            = true;
 
   /** does this node generate env transitions? */
   // TODO: move to an edge.
-  private boolean             generatesEnv            = true;
+  //private boolean             generatesEnv            = true;
 
   // in which function is that node?
   private String        functionName;
@@ -151,14 +151,6 @@ public class CFANode implements Comparable<CFANode> {
   }
 
 
-  public boolean isEnvApplicationAllowed() {
-    return envApplication;
-  }
-
-  public void setEnvApplicationAllowed(boolean pIsEnv) {
-    envApplication = pIsEnv;
-  }
-
   public String getFunctionName() {
     return functionName;
   }
@@ -199,14 +191,6 @@ public class CFANode implements Comparable<CFANode> {
   @Override
   public int compareTo(CFANode o) {
     return getNodeNumber() - o.getNodeNumber();
-  }
-
-  public boolean isGeneratesEnv() {
-    return generatesEnv;
-  }
-
-  public void setGeneratesEnv(boolean pGeneratesEnv) {
-    generatesEnv = pGeneratesEnv;
   }
 
   public void setNodeNumber(int pNodeNumber) {

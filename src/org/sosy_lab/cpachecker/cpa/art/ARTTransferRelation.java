@@ -130,6 +130,11 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
       // local edge can always be applied; change the class for this thread
       List<Integer> list = new Vector<Integer>(locCl);
       Integer newClass = locationMapping.get(edge.getSuccessor());
+
+      if (newClass == null){
+        System.out.println(this.getClass());
+      }
+
       assert newClass != null;
       list.set(tid, newClass);
       succLocCl = ImmutableList.copyOf(list);

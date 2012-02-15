@@ -525,7 +525,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
           info = new InterpolationTreeResult(false, tree);
           if (debug){
-            System.out.println("\tFeasbile error trace.");
+            System.out.println("\tFeasibile error trace.");
           }
 
           break;

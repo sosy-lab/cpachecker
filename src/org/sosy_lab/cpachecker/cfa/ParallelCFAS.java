@@ -23,33 +23,70 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 
 
 /**
  * Specifies a collection of concurrent threads.
  */
-public class ParallelCFAS {
+public class ParallelCFAS implements Iterable<ThreadCFA> {
 
   private final ImmutableList<ThreadCFA> cfas;
   private final ImmutableSet<String> globalVariables;
+  private final ImmutableSet<String> allVariables;
+  private final int threadNo;
 
-  public ParallelCFAS(List<ThreadCFA> cfas, Set<String> globalVariables){
+  public ParallelCFAS(List<ThreadCFA> cfas, Set<String> globalVariables) {
     this.cfas = ImmutableList.copyOf(cfas);
     this.globalVariables = ImmutableSet.copyOf(globalVariables);
+    this.threadNo = cfas.size();
+
+    Builder<String> bldr = ImmutableSet.builder();
+    bldr = bldr.addAll(globalVariables);
+
+    for (ThreadCFA cfa : cfas){
+      bldr = bldr.addAll(cfa.getLocalVars());
+    }
+
+    this.allVariables = bldr.build();
   }
 
   public ImmutableList<ThreadCFA> getCfas() {
     return cfas;
   }
 
+  public ThreadCFA getCfa(int i) {
+    return cfas.get(i);
+  }
+
   public ImmutableSet<String> getGlobalVariables() {
     return globalVariables;
   }
+
+  public ImmutableSet<String> getLocalVars(int tid) {
+    return cfas.get(tid).getLocalVars();
+  }
+
+  public int getThreadNo() {
+    return threadNo;
+  }
+
+  public ImmutableSet<String> getAllVariables() {
+    return allVariables;
+  }
+
+  @Override
+  public Iterator<ThreadCFA> iterator() {
+    return cfas.iterator();
+  }
+
+
 
 
 }

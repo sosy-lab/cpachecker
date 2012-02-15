@@ -44,7 +44,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ThreadCFA;
+import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGApplicationInfo;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
@@ -107,7 +106,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   private final TheoremProver thmProver;
   private final RegionManager rManager;
   private final RGEnvironmentManager envManager;
-  private final ThreadCFA[] cfas;
+  private ParallelCFAS pcfa;
   private final int tidNo;
   private final LogManager logger;
   private final Stats stats;
@@ -116,17 +115,19 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   /** Number of classes in the last non-monotonic refinement*/
   private int   numberOfNMClasses = 2;
 
+
+
   private static RGLocationRefinementManager singleton;
 
-  public static RGLocationRefinementManager getInstance(FormulaManager pFManager, PathFormulaManager pPfManager, RGEnvTransitionManager pEtManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver, RegionManager pRManager, RGEnvironmentManager envManager, ThreadCFA[] cfas, RGVariables variables, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+  public static RGLocationRefinementManager getInstance(FormulaManager pFManager, PathFormulaManager pPfManager, RGEnvTransitionManager pEtManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver, RegionManager pRManager, RGEnvironmentManager envManager, ParallelCFAS pPcfa, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     if (singleton == null){
-      singleton = new RGLocationRefinementManager(pFManager, pPfManager, pEtManager, absManager, pSsaManager, pThmProver, pRManager, envManager, cfas, variables, pConfig, pLogger);
+      singleton = new RGLocationRefinementManager(pFManager, pPfManager, pEtManager, absManager, pSsaManager, pThmProver, pRManager, envManager, pPcfa, pConfig, pLogger);
     }
     return singleton;
   }
 
 
-  private RGLocationRefinementManager(FormulaManager pFManager, PathFormulaManager pPfManager, RGEnvTransitionManager pEtManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver,  RegionManager pRManager, RGEnvironmentManager envManager, ThreadCFA[] cfas, RGVariables variables, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+  private RGLocationRefinementManager(FormulaManager pFManager, PathFormulaManager pPfManager, RGEnvTransitionManager pEtManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver,  RegionManager pRManager, RGEnvironmentManager envManager, ParallelCFAS pcfa, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     pConfig.inject(this, RGLocationRefinementManager.class);
 
     this.fManager = pFManager;
@@ -137,8 +138,8 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     this.thmProver = pThmProver;
     this.rManager = pRManager;
     this.envManager = envManager;
-    this.cfas = cfas;
-    this.tidNo = cfas.length;
+    this.pcfa = pcfa;
+    this.tidNo = pcfa.getThreadNo();
     this.logger  = pLogger;
     this.stats = new Stats();
 
@@ -415,9 +416,9 @@ public class RGLocationRefinementManager implements StatisticsProvider{
      * and other threads to start of execution */
     for (int i=0; i<tidNo; i++){
       if (i == stid){
-        pc[i] = cfas[i].getInitalNode();
+        pc[i] = pcfa.getCfas().get(i).getInitalNode();
       } else {
-        pc[i] = cfas[i].getThreadStart();
+        pc[i] = pcfa.getCfas().get(i).getThreadStart();
       }
 
     }

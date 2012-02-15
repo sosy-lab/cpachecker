@@ -41,10 +41,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.DOTBuilder;
+import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.cfa.ThreadCFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
@@ -68,9 +67,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.rg")
 public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
@@ -85,27 +82,21 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
   // TODO option for CFA export
   private int threadNo;
-  private ThreadCFA[] cfas;
-  private CFAFunctionDefinitionNode[] mainFunctions;
+  private ParallelCFAS pcfa;
   private ConfigurableProgramAnalysis[] cpas;
   private LogManager logger;
 
 
   // CPAAlgorithm for each thread
   private RGThreadCPAAlgorithm[] threadCPA;
-  // data structure for deciding whether a variable is global
-
   // stores information about environmental transitions
   private RGEnvironmentManager environment;
-  // data on variables
-  public RGVariables variables;
 
 
-  public RGAlgorithm(ThreadCFA[] cfas, CFAFunctionDefinitionNode[] pMainFunctions, ConfigurableProgramAnalysis[] pCpas, RGEnvironmentManager environment, RGVariables vars, Configuration config, LogManager logger) {
-    this.cfas = cfas;
-    this.threadNo = cfas.length;
-    this.mainFunctions = pMainFunctions;
-    this.variables = vars;
+
+  public RGAlgorithm(ParallelCFAS pcfa, ConfigurableProgramAnalysis[] pCpas, RGEnvironmentManager environment, Configuration config, LogManager logger) {
+    this.pcfa = pcfa;
+    this.threadNo = pcfa.getThreadNo();
     this.cpas = pCpas;
     this.logger = logger;
     this.stats = new Stats();
@@ -121,7 +112,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     }
 
     for (int i=0; i< this.threadNo; i++){
-      threadCPA[i] = new RGThreadCPAAlgorithm(cpas[i],cfas[i], environment,config, logger, i);
+      threadCPA[i] = new RGThreadCPAAlgorithm(cpas[i],pcfa.getCfa(i), environment,config, logger, i);
     }
 
     // create DOT file for the original CFA
@@ -323,8 +314,9 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     FileWriter fstream;
     try {
       fstream = new FileWriter(file);
-      BufferedWriter out = new BufferedWriter(fstream);;
-      String s = DOTBuilder.generateDOT(cfas[pI].getFunctions().values(), mainFunctions[pI]);
+      BufferedWriter out = new BufferedWriter(fstream);
+      ThreadCFA cfa = pcfa.getCfa(pI);
+      String s = DOTBuilder.generateDOT(cfa.getFunctions().values(), cfa.getInitalNode());
       out.write(s);
       out.close();
     } catch (IOException e) {
@@ -346,7 +338,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
 
     ListMultimap<CFANode, CFAEdge> envEdgesMap = null;
-    ThreadCFA cfa = cfas[i];
+    ThreadCFA cfa = pcfa.getCfa(i);
 
     // remove old environmental edges
     removeRGEdges(i);
@@ -371,22 +363,17 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     Set<CFANode> toApply = new HashSet<CFANode>();
 
     // apply all env transitions to CFA nodes that have an outgoing edge that reads from or writes to a global variable
-    Multimap<CFANode, String> lhsVars = cfa.getLhsVariables();
-    Multimap<CFANode, String> rhsVars = cfa.getRhsVariables();
-    Multimap<CFANode, String> allVars = HashMultimap.create(lhsVars);
-    allVars.putAll(rhsVars);
+    for (CFANode node : cfa.getExecNodes()){
 
-    for(Entry<String, CFANode> entry :   cfa.getCFANodes().entries()){
-      CFANode node = entry.getValue();
-
-      if (!node.isEnvApplicationAllowed()){
+      if (cfa.getAtomic().contains(node)){
         continue;
       }
 
-      for (String var : allVars.get(node)){
-        if (variables.allVars.contains(var)){
+      for (int j=0; j<node.getNumLeavingEdges(); j++){
+        CFAEdge edge = node.getLeavingEdge(j);
+
+        if (edge.isGlobalRead() || edge.isGlobalWrite()){
           toApply.add(node);
-          break;
         }
       }
     }
@@ -470,7 +457,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
    */
   private ListMultimap<CFANode, CFAEdge> addSeparateEnvTransitionsToCFA(int i, Set<CFANode> toApply, List<RGEnvTransition> pValid, List<RGEnvTransition> pUnapplied) {
 
-    ThreadCFA cfa = cfas[i];
+    ThreadCFA cfa = pcfa.getCfa(i);
     ListMultimap<CFANode, CFAEdge> envEdgesMap = ArrayListMultimap.create();
 
     // change unapplied to set, so its easier to decided membership
@@ -502,7 +489,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
    * Remove old environmental edges.
    */
   private void removeRGEdges(int i) {
-    ThreadCFA cfa = this.cfas[i];
+    ThreadCFA cfa = pcfa.getCfa(i);
     List<CFAEdge> toRemove = new Vector<CFAEdge>();
     // remove old env edges from the CFA
     for (CFANode node : cfa.getCFANodes().values()){

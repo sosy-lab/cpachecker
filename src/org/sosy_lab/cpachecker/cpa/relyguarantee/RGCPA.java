@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.cfa.ThreadCFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -107,8 +108,11 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
       + "ST - no abstraction, SA - precondition abstracted only, FA - precondition and operation abstracted")
   private String abstractEnvTransitions = "FA";
 
+  @Option(name="blk.useCache", description="use caching of path formulas")
+  private boolean useCache = true;
+
   private int tid;
-  public RGVariables variables;
+  private ParallelCFAS pcfa;
 
   protected final Configuration config;
   protected final LogManager logger;
@@ -138,10 +142,10 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
   protected  RGLocationRefinementManager locrefManager;
 
 
-  @Option(name="blk.useCache", description="use caching of path formulas")
-  private boolean useCache = true;
 
   private RGCPAStatistics stats;
+
+
 
   public RGCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     this.config = config;
@@ -192,7 +196,7 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
     this.absManager = RGAbstractionManager.getInstance(rManager, fManager, pfManager, thmProver, config, logger);
     this.aManager = AbstractionManagerImpl.getInstance(rManager, mathsatFormulaManager, pfManager, config, logger);
     this.ssaManager = SSAMapManagerImpl.getInstance(fManager, config, logger);
-    this.etManager  = RGEnvTransitionManagerFactory.getInstance(abstractEnvTransitions, fManager, pfManager, absManager, ssaManager, thmProver, rManager, variables, config, logger);
+    this.etManager  = RGEnvTransitionManagerFactory.getInstance(abstractEnvTransitions, fManager, pfManager, absManager, ssaManager, thmProver, rManager, pcfa, config, logger);
     this.refManager = RGRefinementManager.getInstance(rManager, fManager,  ssaManager, pfManager, etManager, thmProver, itpProver, alternativeItpProver, config, logger);
 
 
@@ -207,10 +211,9 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
   }
 
-  public void setData(int tid,RGVariables variables, RGEnvironmentManager envManager, ThreadCFA[] cfas) throws InvalidConfigurationException{
+  public void setData(int tid, ParallelCFAS pcfa, RGEnvironmentManager envManager) throws InvalidConfigurationException{
     this.tid = tid;
-    this.cfas = cfas;
-    this.variables = variables;
+    this.pcfa = pcfa;
     Collection<AbstractionPredicate> predicates = null;
 
     if (checkBlockFeasibility) {
@@ -224,7 +227,7 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
     this.envManager = envManager;
 
-    this.locrefManager = RGLocationRefinementManager.getInstance(fManager, pfManager, etManager, absManager, ssaManager, thmProver, rManager, envManager, cfas, variables, config, logger);
+    this.locrefManager = RGLocationRefinementManager.getInstance(fManager, pfManager, etManager, absManager, ssaManager, thmProver, rManager, envManager, pcfa, config, logger);
 
   }
 

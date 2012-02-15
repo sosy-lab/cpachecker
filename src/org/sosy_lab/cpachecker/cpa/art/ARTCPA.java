@@ -31,6 +31,7 @@ import java.util.Vector;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.cfa.ThreadCFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -71,7 +72,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final Statistics stats;
 
   // TODO check if needed
-  private ThreadCFA cfas[];
+  private ParallelCFAS pcfa;
   // maps cfa nodes to equivalence classes
   private RGLocationMapping locationMapping;
   private int tid = Integer.MAX_VALUE;
@@ -108,8 +109,8 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     stats = new ARTStatistics(config, this);
   }
 
-  public void setData(ThreadCFA[] cfas, RGLocationMapping locationMapping, int tid){
-    this.cfas = cfas;
+  public void setData(ParallelCFAS pcfa, RGLocationMapping locationMapping, int tid){
+    this.pcfa = pcfa;
     this.locationMapping = locationMapping;
     this.tid = tid;
     this.transferRelation = new ARTTransferRelation(wrappedTranferRelation, locationMapping, tid);
@@ -152,10 +153,10 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   @Override
   public AbstractElement getInitialElement (CFANode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ART
-    List<Integer> locVector = new Vector<Integer>(cfas.length);
+    List<Integer> locVector = new Vector<Integer>(pcfa.getThreadNo());
 
-    for (int i=0; i<cfas.length; i++){
-      CFANode node = cfas[i].getInitalNode();
+    for (ThreadCFA cfa : pcfa){
+      CFANode node = cfa.getInitalNode();
       locVector.add(locationMapping.get(node));
     }
 

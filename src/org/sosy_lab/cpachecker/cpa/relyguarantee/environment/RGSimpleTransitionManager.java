@@ -30,6 +30,7 @@ import java.util.Map;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -39,7 +40,6 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGSimpleTransition;
@@ -70,7 +70,7 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
   private final LogManager logger;
   private final Stats stats;
 
-  public RGSimpleTransitionManager(FormulaManager pFManager, PathFormulaManager pPfManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver, RegionManager pRManager, RGVariables variables, Configuration pConfig, LogManager pLogger) {
+  public RGSimpleTransitionManager(FormulaManager pFManager, PathFormulaManager pPfManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver, RegionManager pRManager, ParallelCFAS pPcfa, Configuration pConfig, LogManager pLogger) {
     this.fManager = pFManager;
     this.pfManager = pPfManager;
     this.absManager = absManager;

@@ -32,6 +32,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -40,7 +41,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGSemiAbstracted;
@@ -71,19 +71,20 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
   private final SSAMapManager ssaManager;
   private final TheoremProver thmProver;
   private final RegionManager rManager;
-  private final RGVariables variables;
+  private final ParallelCFAS pcfas;
 
   private final LogManager logger;
   private final Stats stats;
 
-  protected RGSemiAbstractedManager(FormulaManager fManager, PathFormulaManager pfManager, RGAbstractionManager absManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, RGVariables variables, Configuration config,  LogManager logger) {
+
+  protected RGSemiAbstractedManager(FormulaManager fManager, PathFormulaManager pfManager, RGAbstractionManager absManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, ParallelCFAS pPcfa, Configuration config,  LogManager logger) {
     this.fManager = fManager;
     this.pfManager = pfManager;
     this.absManager  = absManager;
     this.ssaManager = ssaManager;
     this.thmProver = thmProver;
     this.rManager  = rManager;
-    this.variables = variables;
+    this.pcfas = pPcfa;
     this.logger = logger;
     this.stats = new Stats();
   }

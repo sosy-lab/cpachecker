@@ -29,7 +29,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
+import org.sosy_lab.cpachecker.cfa.ThreadCFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import com.google.common.collect.ImmutableMap;
@@ -47,14 +48,14 @@ public class RGLocationMapping {
 
   /**
    * Return location mapping, where all nodes belong to class number 1.
-   * @param cfas
+   * @param pcfa
    * @return
    */
-  public static RGLocationMapping getEmpty(CFA[] cfas){
+  public static RGLocationMapping getEmpty(ParallelCFAS pcfa){
     Map<CFANode, Integer> map = new HashMap<CFANode, Integer>(100);
 
-    for (int i=0; i<cfas.length; i++){
-      Collection<CFANode> nodes = cfas[i].getCFANodes().values();
+    for (ThreadCFA cfa : pcfa){
+      Collection<CFANode> nodes = cfa.getAllNodes();
       for (CFANode node : nodes){
         Integer oldValue = map.put(node, 1);
         if (oldValue != null){

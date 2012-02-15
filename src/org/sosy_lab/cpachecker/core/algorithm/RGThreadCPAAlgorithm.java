@@ -29,7 +29,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -65,7 +64,6 @@ import org.sosy_lab.cpachecker.cpa.art.ARTTransferRelation;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGTransferRelation;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
@@ -73,9 +71,6 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTr
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.rg")
 public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
@@ -117,32 +112,23 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       e.printStackTrace();
     }
 
- // check where to apply env. edges
+    // check where to apply env. edges
     nodeForEnvApp = new HashSet<CFANode>();
 
-    RGVariables variables = environment.getVariables();
+    for (CFANode node : cfa.getExecNodes()){
 
-    Multimap<CFANode, String> lhsVars = cfa.getLhsVariables();
-    Multimap<CFANode, String> rhsVars = cfa.getRhsVariables();
-    Multimap<CFANode, String> allVars = HashMultimap.create(lhsVars);
-    allVars.putAll(rhsVars);
-
-    for(Entry<String, CFANode> entry :   cfa.getCFANodes().entries()){
-      CFANode node = entry.getValue();
-
-      if (!node.isEnvApplicationAllowed()){
+      if (cfa.getAtomic().contains(node)){
         continue;
       }
 
-      for (String var : allVars.get(node)){
-        if (variables.allVars.contains(var)){
+      for (int i=0; i<node.getNumLeavingEdges(); i++){
+        CFAEdge edge = node.getLeavingEdge(i);
+        if (edge.isGlobalRead() || edge.isGlobalWrite()){
           nodeForEnvApp.add(node);
-          break;
         }
       }
-    }
-    System.out.println();
 
+    }
   }
 
   @Override
@@ -287,10 +273,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         stats.precisionTimer.stop();
         runStats.precisionTimer.stop();
         stats.envPrecisionTimer.stop();
-
-        if (((ARTElement)successor).getElementId() == 718){
-          System.out.println(this.getClass());
-        }
 
         if (debug){
           printSuccessor(successor, edge);
@@ -446,11 +428,13 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       return false;
     }
 
-    if (!edge.getSuccessor().isGeneratesEnv()){
+    CFANode node = edge.getPredecessor();
+
+    if (cfa.getExecNodes().contains(node)){
+      return true;
+    } else {
       return false;
     }
-    return true;
-
 
   }
 

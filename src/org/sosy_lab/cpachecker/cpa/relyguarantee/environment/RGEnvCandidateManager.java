@@ -25,12 +25,12 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.environment;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -51,17 +51,17 @@ public class RGEnvCandidateManager {
   private final SSAMapManager ssaManager;
   private final TheoremProver thmProver;
   private final RegionManager rManager;
-  private final RGVariables variables;
+  private final ParallelCFAS pcfas;
   private final LogManager logger;
 
-  public RGEnvCandidateManager(FormulaManager fManager, PathFormulaManager pfManager, RGAbstractionManager absManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, RGVariables variables, Configuration config,  LogManager logger) {
+  public RGEnvCandidateManager(FormulaManager fManager, PathFormulaManager pfManager, RGAbstractionManager absManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, ParallelCFAS pPcfa, Configuration config,  LogManager logger) {
     this.fManager = fManager;
     this.pfManager = pfManager;
     this.absManager  = absManager;
     this.ssaManager = ssaManager;
     this.thmProver = thmProver;
     this.rManager  = rManager;
-    this.variables = variables;
+    this.pcfas = pPcfa;
     this.logger = logger;
   }
 
@@ -140,7 +140,7 @@ public class RGEnvCandidateManager {
    */
   private boolean isLocalAssigment(CFAEdge edge) {
     String var = getLhsVariable(edge);
-    if (var == null || !variables.globalVars.contains(var)){
+    if (var == null || !pcfas.getGlobalVariables().contains(var)){
       return true;
     }
     return false;

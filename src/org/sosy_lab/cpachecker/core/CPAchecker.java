@@ -29,15 +29,13 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.EmptyCFAException;
-import org.sosy_lab.cpachecker.cfa.ThreadCFA;
-import org.sosy_lab.cpachecker.cfa.RGCFACreator;
+import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
+import org.sosy_lab.cpachecker.cfa.ParallelCFASCreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -60,11 +58,9 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Joiner;
@@ -196,20 +192,21 @@ public class CPAchecker {
       stats.creationTime.start();
 
       // get main functions and CFA
-      Pair<CFAFunctionDefinitionNode[], ThreadCFA[]> tuple = getMainFunctionsAndCfas(filename);
-      CFAFunctionDefinitionNode[] mainFunctions = tuple.getFirst();
-      ThreadCFA[] cfas = tuple.getSecond();
+      stats.getSubStatistics().clear();
+      ParallelCFASCreator creator = new ParallelCFASCreator(config, logger);
+      creator.collectStatistics(stats.getSubStatistics());
+      ParallelCFAS pcfa = creator.createParallelCFAS(filename);
 
-      int threadNo = mainFunctions.length;
+      int threadNo = pcfa.getThreadNo();
 
       cpas  = new ConfigurableProgramAnalysis[threadNo];
 
       // extract variables
-      RGVariables vars = new RGVariables(cfas);
+      //RGVariables vars = new RGVariables(cfas);
 
-      RGEnvironmentManager environment = new RGEnvironmentManager(threadNo, vars, cfas, config, logger);
+      RGEnvironmentManager environment = new RGEnvironmentManager(pcfa, config, logger);
 
-      RGLocationMapping locMapping = RGLocationMapping.getEmpty(cfas);
+      RGLocationMapping locMapping = RGLocationMapping.getEmpty(pcfa);
 
       environment.setLocationMapping(locMapping);
 
@@ -217,9 +214,9 @@ public class CPAchecker {
       for(int i=0; i<threadNo; i++){
         ConfigurableProgramAnalysis cpa = createCPA(stats);
         ARTCPA artCPA = (ARTCPA) cpa;
-        artCPA.setData(cfas, locMapping, i);
+        artCPA.setData(pcfa, locMapping, i);
         RGCPA rgCPA = artCPA.retrieveWrappedCpa(RGCPA.class);
-        rgCPA.setData(i, environment.getVariables(), environment, cfas);
+        rgCPA.setData(i, pcfa, environment);
         //rgCPA.useHardcodedPredicates();
         cpas[i] = cpa;
       }
@@ -227,11 +224,11 @@ public class CPAchecker {
       // get the initial reached sets
       initalReachedSets = new ReachedSet[threadNo];
       for(int i=0; i<threadNo; i++){
-        initalReachedSets[i] = createInitialReachedSet(cpas[i], mainFunctions[i]);
+        initalReachedSets[i] = createInitialReachedSet(cpas[i], pcfa.getCfa(i).getInitalNode());
       }
 
       // TODO handle only with ConcurrentAlgorithm
-      RGAlgorithm rgAlgorithm = new RGAlgorithm(cfas, mainFunctions, cpas, environment, vars, config, logger);
+      RGAlgorithm rgAlgorithm = new RGAlgorithm(pcfa, cpas, environment,  config, logger);
       ConcurrentAlgorithm algorithm;
 
       if (options.useRefinement) {
@@ -242,7 +239,7 @@ public class CPAchecker {
       }
 
       // add the main statistics of the algorithm
-      stats.getSubStatistics().clear();
+
       algorithm.collectStatistics(stats.getSubStatistics());
       stats.creationTime.stop();
 
@@ -296,9 +293,6 @@ public class CPAchecker {
 
     } catch (CPAException e) {
       logger.logException(Level.SEVERE, e, null);
-    } catch (EmptyCFAException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
     }
     return new CPAcheckerResult(result, initalReachedSets[0], stats);
   }
@@ -644,53 +638,6 @@ public class CPAchecker {
     reached.add(initialElement, initialPrecision);
     return reached;
   }
-
-  // returns main functions and CFA from the given file names
-  private Pair<CFAFunctionDefinitionNode[], ThreadCFA[]> getMainFunctionsAndCfas(String filename) throws InvalidConfigurationException, IOException, ParserException, InterruptedException, EmptyCFAException, UnrecognizedCFAEdgeException{
-
-
-
-    RGCFACreator creator = new RGCFACreator(config, logger);
-    ThreadCFA rgCfas[] = creator.createParallelCFAS(filename);
-    CFAFunctionDefinitionNode[] funsArr  = null;
-    /*creator.parseFileAndCreateCFA(filename);
-
-
-    List<CFAFunctionDefinitionNode> funs = creator.getMainFunctions();
-    CFAFunctionDefinitionNode[] funsArr = funs.toArray(new CFAFunctionDefinitionNode[funs.size()]);
-    List<CFA> cfas = creator.getCfas();
-    List<CFANode> startNodes = creator.getStartNodes();
-    RGCFA[] rgCfas = new RGCFA[cfas.size()];
-    for (int i=0; i<cfas.size(); i++){
-      RGCFA rgCfa = new RGCFA(cfas.get(i),startNodes.get(i),funs.get(i), i);
-      rgCfas[i] = rgCfa;
-    }*/
-
-    return Pair.of(funsArr, rgCfas);
-  }
-
-  // returns main functions and CFA from the given file names
-  /*private Pair<CFAFunctionDefinitionNode[], CFA[]> getMainFunctionsAndCFAS(String[] pFilenames) throws InvalidConfigurationException, IOException, ParserException, InterruptedException, EmptyCFAException{
-    int threadNo = pFilenames.length;
-    CFACreator[] cfaCreators = new CFACreator[threadNo];
-    CFA cfas[] = new CFA[threadNo];
-    CFAFunctionDefinitionNode mainFunctions[] = new CFAFunctionDefinitionNode[threadNo];
-
-    CFACreator creator;
-    for(int i=0; i<threadNo; i++){
-      String filename = pFilenames[i];
-      creator = new CFACreator(config, logger);
-      creator.parseFileAndCreateCFA(filename);
-      if (creator.getFunctions().isEmpty()) {
-        // empty program, do nothing
-        throw new EmptyCFAException();
-      }
-      mainFunctions[i] = creator.getMainFunction();
-      cfas[i] = creator.getCFA();
-    }
-
-    return new Pair<CFAFunctionDefinitionNode[], CFA[]>(mainFunctions, cfas);
-  }*/
 
 
 }

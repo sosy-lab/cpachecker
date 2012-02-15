@@ -121,19 +121,18 @@ cfa.exportPerFunction = true
 
 # export CFA as .dot file
 cfa.file = "cfa.dot"
-cfa.relyguarantee.export = true
-
-# export individual CFAs for function as .dot files
-cfa.relyguarantee.exportPerFunction = true
-
-# File path template for exporting  thread CFA to .dot files
-cfa.relyguarantee.file = "test/output/cfa_"
-
-# Names of main functions for threads. They ought to be uniquee.
-cfa.relyguarantee.threadFunctions = {"thread0", "thread1", "thread3", "thread4", "thread5", "thread6", "thread7", "thread8", "thread9"}
 
 # remove paths from CFA that cannot lead to a error location
 cfa.removeIrrelevantForErrorLocations = false
+
+# export CFA as .dot file
+cfa.rg.export = true
+
+# File path template for exporting  thread CFA to .dot files
+cfa.rg.file = "test/output/cfa_"
+
+# Names of main functions for threads. They ought to be uniquee.
+cfa.rg.threadFunctions = {"thread0", "thread1", "thread3", "thread4", "thread5", "thread6", "thread7", "thread8", "thread9"}
 
 # which model checker to use for verifying counterexamples as a second check
 # Currently CBMC or CPAchecker with a different config can be used.

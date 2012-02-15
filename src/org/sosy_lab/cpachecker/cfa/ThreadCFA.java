@@ -23,15 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
+import java.util.Vector;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
 
 /**
  * Wrapper around CFA with information on thread number, variables, etc.
@@ -39,63 +38,76 @@ import com.google.common.collect.Multimap;
 public class ThreadCFA extends CFA {
 
   public final int tid;
-  public final ImmutableList<CFANode> globalDeclNodes;
-  /** The first node of the CFA */
+  /** All nodes **/
+  public final ImmutableSet<CFANode> allNodes;
+  /** Nodes before global declarations, up to but excluding {@link #executionStart} node. */
+  public final ImmutableSet<CFANode> globalDeclNodes;
+  /** All nodes minus the global declaration nodes. */
+  public final ImmutableSet<CFANode> execNodes;
+  /** nodes where other threads cannot interfere */
+  public final ImmutableSet<CFANode> atomic;
+  /** The first node of the CFA. */
   public final CFAFunctionDefinitionNode initalNode;
-  /** The first node after the global declaration */
-  public final CFANode threadStart;
+  /** The first node after the global declaration, i.e. the predecessor of "Function start dummy edge". */
+  public final CFANode executionStart;
   public final String threadName;
   /** local variables */
-  private ImmutableSet<String> localVars;
+  public final ImmutableSet<String> localVars;
 
-  public ThreadCFA(CFA cfa, int tid, List<CFANode> globalDecl, CFAFunctionDefinitionNode initalNode, CFANode threadStart, String name){
+
+  public ThreadCFA(CFA cfa, int tid, Collection<CFANode> globalDecl, Collection<CFANode> atomic, Collection<String> localVars, CFAFunctionDefinitionNode initalNode, CFANode threadStart, String name){
     super(cfa.getFunctions(), cfa.getCFANodes(), cfa.getGlobalDeclarations());
     this.tid = tid;
-    this.globalDeclNodes = ImmutableList.copyOf(globalDecl);
+    this.globalDeclNodes = ImmutableSet.copyOf(globalDecl);
     this.initalNode = initalNode;
-    this.threadStart = threadStart;
+    this.executionStart = threadStart;
+
+    List<CFANode> bldr = new Vector<CFANode>(cfa.getCFANodes().values());
+    bldr.add(this.executionStart);
+    bldr.addAll(this.globalDeclNodes);
+    this.allNodes = ImmutableSet.copyOf(bldr);
+    bldr.removeAll(this.globalDeclNodes);
+    this.execNodes = ImmutableSet.copyOf(bldr);
+
     this.threadName = name;
+    this.localVars = ImmutableSet.copyOf(localVars);
+    this.atomic  = ImmutableSet.copyOf(atomic);
+  }
+
+  public ImmutableSet<CFANode> getAllNodes() {
+    return allNodes;
+  }
+
+  public ImmutableSet<CFANode> getGlobalDeclNodes() {
+    return globalDeclNodes;
+  }
+
+  public ImmutableSet<CFANode> getExecNodes() {
+    return execNodes;
   }
 
   public int getTid() {
     return tid;
   }
 
-  public ImmutableList<CFANode> getGlobalDeclNodes() {
-    return globalDeclNodes;
-  }
-
   public CFANode getThreadStart() {
-    return threadStart;
+    return executionStart;
   }
 
   public CFAFunctionDefinitionNode getInitalNode() {
     return initalNode;
   }
 
-  public Multimap<CFANode, String> getLhsVariables() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  public Multimap<CFANode, String> getRhsVariables() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-
   public ImmutableSet<String> getLocalVars() {
     return localVars;
   }
 
-  public void setLocalVars(ImmutableSet<String> pLocalVars) {
-    localVars = pLocalVars;
+  public String getThreadName() {
+    return threadName;
   }
 
-  public void setLocalVars(final Set<String> localVars) {
-    this.localVars = ImmutableSet.copyOf(localVars);
+  public ImmutableSet<CFANode> getAtomic() {
+    return atomic;
   }
-
-
 
 }

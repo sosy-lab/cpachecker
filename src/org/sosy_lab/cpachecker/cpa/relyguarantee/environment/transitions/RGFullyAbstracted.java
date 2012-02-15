@@ -66,11 +66,14 @@ public class RGFullyAbstracted implements RGEnvTransition {
     this.tid = tid;
 
     ARTElement reachedTarget = targetARTElement;
-    if (targetARTElement.isDestroyed()){
+    while (reachedTarget.isDestroyed()){
       reachedTarget = targetARTElement.getMergedWith();
     }
 
     assert !this.sourceARTElement.isDestroyed();
+    if (reachedTarget.isDestroyed()){
+      System.out.println(this.getClass());
+    }
     assert !reachedTarget.isDestroyed();
 
     Set<ARTElement> generating = ARTUtils.getAllElementsBetween(sourceARTElement, reachedTarget);

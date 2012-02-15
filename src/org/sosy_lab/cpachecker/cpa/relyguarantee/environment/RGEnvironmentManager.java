@@ -40,7 +40,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ThreadCFA;
+import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -100,8 +99,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
   private final SetMultimap<CFANode, AbstractionPredicate>[] envPrecision;
   /** envGlobalPrecision[i] contains global env. predicates for thread i */
   private final Set<AbstractionPredicate>[] envGlobalPrecision;
-  /** information about variables in threads */
-  private final RGVariables variables;
 
   /* Managers */
   private final PathFormulaManager pfManager;
@@ -126,17 +123,16 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
 
 
-  public RGEnvironmentManager(int threadNo, RGVariables vars, ThreadCFA[] cfas, Configuration config, LogManager logger) throws InvalidConfigurationException{
+  public RGEnvironmentManager(ParallelCFAS pcfa, Configuration config, LogManager logger) throws InvalidConfigurationException{
     // TODO add option for caching
     config.inject(this, RGEnvironmentManager.class);
 
-    this.threadNo = threadNo;
+    this.threadNo = pcfa.getThreadNo();
     this.candidates = new Vector<RGEnvCandidate>();
     this.validEnvEdgesFromThread = new Vector[threadNo];
     this.unappliedEnvEdgesForThread = new Vector[threadNo];
     this.envPrecision = new SetMultimap[threadNo];
     this.envGlobalPrecision = new HashSet[threadNo];
-    this.variables = vars;
     this.stats = new Stats();
 
     // set up managers
@@ -152,8 +148,8 @@ public class RGEnvironmentManager implements StatisticsProvider{
     this.absManager = RGAbstractionManager.getInstance(rManager, fManager, pfMgr, tProver, config, logger);
     this.amManager = AbstractionManagerImpl.getInstance(rManager, msatFormulaManager, pfManager, config, logger);
     this.ssaManager = SSAMapManagerImpl.getInstance(fManager, config, logger);
-    this.etManager  = RGEnvTransitionManagerFactory.getInstance(abstractEnvTransitions, fManager, pfManager, absManager, ssaManager, tProver, rManager, variables, config, logger);
-    this.candManager = new RGEnvCandidateManager(fManager, pfManager, absManager, ssaManager, tProver, rManager, variables, config, logger);
+    this.etManager  = RGEnvTransitionManagerFactory.getInstance(abstractEnvTransitions, fManager, pfManager, absManager, ssaManager, tProver, rManager, pcfa, config, logger);
+    this.candManager = new RGEnvCandidateManager(fManager, pfManager, absManager, ssaManager, tProver, rManager, pcfa, config, logger);
 
     for (int i=0; i< threadNo; i++){
       //envTransProcessedBeforeFromThread[i] = HashMultimap.<ARTElement, RelyGuaranteeEnvironmentalTransition>create();
@@ -173,10 +169,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
   public void setThreadNo(int pThreadNo) {
     threadNo = pThreadNo;
-  }
-
-  public RGVariables getVariables() {
-    return variables;
   }
 
   public PathFormulaManager getPfManager() {

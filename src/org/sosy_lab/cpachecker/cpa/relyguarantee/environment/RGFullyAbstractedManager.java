@@ -34,6 +34,7 @@ import java.util.Set;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -41,7 +42,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransitionType;
@@ -73,20 +73,20 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
   private final SSAMapManager ssaManager;
   private final TheoremProver thmProver;
   private final RegionManager rManager;
-  private final RGVariables variables;
+  private final ParallelCFAS pcfas;
 
   private final LogManager logger;
   private final Stats stats;
 
 
-  protected RGFullyAbstractedManager(FormulaManager fManager, PathFormulaManager pfManager, RGAbstractionManager absManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, RGVariables variables, Configuration config, LogManager logger){
+  protected RGFullyAbstractedManager(FormulaManager fManager, PathFormulaManager pfManager, RGAbstractionManager absManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, ParallelCFAS pPcfa, Configuration config, LogManager logger){
     this.fManager = fManager;
     this.pfManager = pfManager;
     this.absManager  = absManager;
     this.ssaManager = ssaManager;
     this.thmProver = thmProver;
     this.rManager  = rManager;
-    this.variables = variables;
+    this.pcfas = pPcfa;
     this.logger = logger;
     this.stats = new Stats();
   }
@@ -116,8 +116,8 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
     }
 
     // increment indexes of variables global and local to this thread by 1, mimimal index is 2
-    Set<String> vars = new HashSet<String>(variables.globalVars);
-    vars.addAll(variables.localVars.get(sourceTid));
+    Set<String> vars = new HashSet<String>(pcfas.getGlobalVariables());
+    vars.addAll(pcfas.getLocalVars(sourceTid));
     SSAMap oldSsa = oldPf.getSsa();
     SSAMap newSsa = ssaManager.incrementMap(oldSsa, vars, 1);
 
@@ -154,9 +154,9 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
     Formula filter = fa.getAbstractTransition();
 
     // increment all indexes that the transition can change by 1
-    Set<String> nlVars = new HashSet<String>(variables.globalVars);
+    Set<String> nlVars = new HashSet<String>(pcfas.getGlobalVariables());
     int sourceTid = fa.getTid();
-    nlVars.addAll(variables.localVars.get(sourceTid));
+    nlVars.addAll(pcfas.getLocalVars(sourceTid));
     SSAMap lowSSA = pf.getSsa();
     SSAMap highSSA = ssaManager.incrementMap(lowSSA, nlVars, 1);
 
@@ -192,9 +192,9 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
       PathFormula lowPf = pfManager.makePrimedEqualities(lowSSA, -1, gSsa, unique);
 
       // increment all indexes that the transition can change by 1
-      Set<String> nlVars = new HashSet<String>(variables.globalVars);
+      Set<String> nlVars = new HashSet<String>(pcfas.getGlobalVariables());
       int sourceTid = fa.getTid();
-      nlVars.addAll(variables.localVars.get(sourceTid));
+      nlVars.addAll(pcfas.getLocalVars(sourceTid));
 
       SSAMap highSSA = ssaManager.incrementMap(lowSSA, nlVars, 1);
 
