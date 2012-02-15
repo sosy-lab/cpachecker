@@ -62,6 +62,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     private Timer totalTimer         = new Timer();
     private Timer transferTimer      = new Timer();
     private Timer stopTimer          = new Timer();
+    private Timer readTimer          = new Timer();
 
     private int   countIterations   = 0;
 
@@ -75,7 +76,8 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         ReachedSet pReached) {
       out.println("Number of iterations:                     " + countIterations);
       out.println();
-      out.println("Total time for proof check algorithm: " + totalTimer + " (Max: " + totalTimer.printMaxTime() + ")");
+      out.println("Total time for proof check algorithm: " + totalTimer);
+      out.println("  Time for reading in proof           " + readTimer);
       out.println("  Time for abstract successor check:  " + transferTimer + " (Calls: " + transferTimer.getNumberOfIntervals() + ")");
       out.println("  Time for covering check:            " + stopTimer  + " (Calls: " + stopTimer.getNumberOfIntervals() + ")");
     }
@@ -108,9 +110,12 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       throw new RuntimeException("Failed reading ART.", e);
     }
     this.rootElement = rootElement;
+    System.gc();
   }
 
   private ARTElement readART() throws IOException, ClassNotFoundException {
+    stats.totalTimer.start();
+    stats.readTimer.start();
     InputStream fis = null;
     try {
       fis = new FileInputStream(file);
@@ -122,6 +127,8 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     }
     finally {
       fis.close();
+      stats.readTimer.stop();
+      stats.totalTimer.stop();
     }
   }
 

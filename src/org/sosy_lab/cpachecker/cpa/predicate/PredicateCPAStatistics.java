@@ -230,6 +230,12 @@ class PredicateCPAStatistics implements Statistics {
         }
         out.println("  Error path post-processing:        " + refiner.errorPathProcessing);
       }
+
+      if(trans.pathFormulaCheckTimer.getNumberOfIntervals() > 0 || trans.abstractionCheckTimer.getNumberOfIntervals() > 0) {
+        out.println("Abstraction check time:            " + trans.abstractionCheckTimer);
+        out.println("Path formula check time:           " + trans.pathFormulaCheckTimer);
+        out.println("Unsat check time:                  " + trans.satCheckTimer);
+      }
     }
 
     private String toPercent(double val, double full) {

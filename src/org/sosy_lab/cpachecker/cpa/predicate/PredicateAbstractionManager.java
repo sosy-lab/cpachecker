@@ -392,6 +392,11 @@ public class PredicateAbstractionManager {
    * Checks whether a1.getFormula() => a2.getFormula() and whether the a1.getSsa()(v) <= a2.getSsa()(v) for all v
    */
   public boolean checkCoverage(PathFormula a1, PathFormula a2, PathFormulaManager pfmgr) {
+    //handle common special case more efficiently
+    if(a1.equals(a2)) {
+      return true;
+    }
+
     //check ssa maps
     SSAMap map1 = a1.getSsa();
     SSAMap map2 = a2.getSsa();
