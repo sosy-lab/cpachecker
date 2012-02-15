@@ -380,6 +380,19 @@ public class RGEnvironmentManager implements StatisticsProvider{
     // candidate that are covered or false
     Vector<RGEnvCandidate> cndCovered = new Vector<RGEnvCandidate>();
 
+    /* remove candidates whose application wouldn't make sense */
+    for (RGEnvCandidate cnd : cndToProcess){
+      if (candManager.isBottom(cnd)){
+        cndCovered.add(cnd);
+
+        if (debug){
+          System.out.println("\t-bottom: "+cnd);
+        }
+      }
+    }
+
+    cndToProcess.removeAll(cndCovered);
+
     /* find the most general candidates by comparing them */
     for (RGEnvCandidate cnd1 : cndToProcess){
       if (!cndCovered.contains(cnd1)){
@@ -400,13 +413,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
     cndToProcess.removeAll(cndCovered);
 
-    /* if there is only one element, the check if its not bottom */
-    if (cndToProcess.size() == 1){
-      RGEnvCandidate cnd = cndToProcess.get(0);
-      if (candManager.isBottom(cnd)){
-        cndToProcess.clear();
-      }
-    }
 
     /* sanity check on request */
     if (debug){
@@ -450,6 +456,19 @@ public class RGEnvironmentManager implements StatisticsProvider{
     // candidate that are covered or false
     Vector<RGEnvTransition> etCovered = new Vector<RGEnvTransition>();
 
+    /* remove candidates whose application wouldn't make sense */
+    for (RGEnvTransition et : etToProcess){
+      if (etManager.isBottom(et)){
+        etCovered.add(et);
+
+        if (debug){
+          System.out.println("\t-bottom: "+et);
+        }
+      }
+    }
+
+    etToProcess.removeAll(etCovered);
+
     /* find the most general candidates by comparing them */
     for (RGEnvTransition et1 : etToProcess){
       if (!etCovered.contains(et1)){
@@ -458,7 +477,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
             if (etManager.isLessOrEqual(et1, et2)){
               // edge1 => edge2
               if (debug){
-                System.out.println("Covered 0:\t"+et1+" => "+et2);
+                System.out.println("\t-covered: "+et1+" => "+et2);
               }
               etCovered.add(et1);
               break;

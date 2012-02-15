@@ -200,12 +200,13 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
     this.refManager = RGRefinementManager.getInstance(rManager, fManager,  ssaManager, pfManager, etManager, thmProver, itpProver, alternativeItpProver, config, logger);
 
 
-    this.transfer = new RGTransferRelation(this);
+
     this.domain = new RGAbstractDomain(this);
     this.merge = new RGMergeOperator(this);
     this.prec = new RGPrecisionAdjustment(this);
     this.stop = new StopSepOperator(domain);
     this.stats = new RGCPAStatistics(this);
+    this.transfer = new RGTransferRelation(this);
 
 
 
@@ -222,7 +223,7 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
     }
     // TODO make-shift solution
     this.topElement = new RGAbstractElement.AbstractionElement(pfManager.makeEmptyPathFormula(), absManager.makeTrueAbstractionFormula(null),  tid, pfManager.makeEmptyPathFormula(), null);
-
+    this.transfer.setData(pcfa.getCfa(tid));
     this.initialPrecision= new RGPrecision(predicates);
 
     this.envManager = envManager;

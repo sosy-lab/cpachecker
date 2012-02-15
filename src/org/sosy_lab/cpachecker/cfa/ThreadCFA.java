@@ -90,7 +90,7 @@ public class ThreadCFA extends CFA {
     return tid;
   }
 
-  public CFANode getThreadStart() {
+  public CFANode getExecutionStart() {
     return executionStart;
   }
 

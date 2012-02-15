@@ -29,8 +29,9 @@ int thread0(void)
   while (1) {
     while_continue: /* CIL Label */ ;
 #line 12
+    _START_ATOMIC;
     if (m_inode != 0) {
-
+      _END_ATOMIC;
     } else {
 #line 12
       goto while_break;
@@ -39,9 +40,9 @@ int thread0(void)
   while_break: /* CIL Label */ ;
   }
 #line 13\
-  _START_NOENV;
+
   m_inode = 1;
-  _END_NOENV;
+  _END_ATOMIC;
 #line 14
   if (inode == 0) {
     {
@@ -49,8 +50,9 @@ int thread0(void)
     while (1) {
       while_continue___0: /* CIL Label */ ;
 #line 15
+      _START_ATOMIC;
       if (m_busy != 0) {
-
+	_END_ATOMIC;
       } else {
 #line 15
         goto while_break___0;
@@ -59,9 +61,8 @@ int thread0(void)
     while_break___0: /* CIL Label */ ;
     }
 #line 16
-    _START_NOENV;
     m_busy = 1;
-    _END_NOENV;
+    _END_ATOMIC;
 #line 17
     busy = 1;
 #line 18
@@ -99,8 +100,9 @@ int thread1(void)
   while (1) {
     while_continue: /* CIL Label */ ;
 #line 27
+    _START_ATOMIC;
     if (m_busy != 0) {
-
+      _END_ATOMIC;
     } else {
 #line 27
       goto while_break;
@@ -109,9 +111,8 @@ int thread1(void)
   while_break: /* CIL Label */ ;
   }
 #line 28
-  _START_NOENV;
   m_busy = 1;
-  _END_NOENV;
+  _END_ATOMIC;
 #line 30
   if (busy == 0) {
 #line 31

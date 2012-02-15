@@ -19,8 +19,9 @@ void thread0(void)
     {
       while (1) {
       while_0_continue: /* CIL Label */ ;
+	_START_ATOMIC;
         if (mStartLock != 0) {
-
+	  _END_ATOMIC;
         } else {
           goto while_0_break;
         }
@@ -28,7 +29,9 @@ void thread0(void)
     while_0_break: /* CIL Label */ ;
     }
     mStartLock = 1;
+    _END_ATOMIC;
     start_main = 1;
+    _START_ATOMIC;
     if (__COUNT__ == 0) {
       mThread = PR_CreateThread__RES;
       __COUNT__ = __COUNT__ + 1;
@@ -37,6 +40,7 @@ void thread0(void)
         __assert_fail("0", "lu-fig2-thr0.fixed.c", 23U, "main");
       }
     }
+    _END_ATOMIC;
     mStartLock = 0;
     if (mThread == 0) {
       return;
@@ -67,16 +71,19 @@ void thread1(void)
     {
       while (1) {
       while_1_continue: /* CIL Label */ ;
+	_START_ATOMIC;
         if (mStartLock != 0) {
-
+	  _END_ATOMIC;
         } else {
           goto while_1_break;
         }
       }
     while_1_break: /* CIL Label */ ;
     }
-    mStartLock = 2;
+    mStartLock = 1;
+    _END_ATOMIC;
     mStartLock = 0;
+    _START_ATOMIC;
     if (__COUNT__ == 1) {
       rv = self;
       __COUNT__ = __COUNT__ + 1;
@@ -85,6 +92,7 @@ void thread1(void)
         __assert_fail("0", "lu-fig2-thr1.fixed.c", 24U, "main");
       }
     }
+    _END_ATOMIC;
     return;
   }
 }

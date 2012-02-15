@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -72,6 +71,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
+import com.google.common.collect.ImmutableSet;
+
 @Options(prefix="cpa.rg")
 public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -92,10 +93,10 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private MathsatFormulaManager fManager;
 
-  private Set<CFANode> nodeForEnvApp;
+  private ImmutableSet<CFANode> applyEnv;
 
 
-  public RGThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, ThreadCFA cfa, RGEnvironmentManager environment, Configuration config, LogManager logger,  int tid) {
+  public RGThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, ThreadCFA cfa, RGEnvironmentManager environment, ImmutableSet<CFANode> applyEnv, Configuration config, LogManager logger,  int tid) {
     this.cpa = cpa;
     this.cfa = cfa;
     this.environment = environment;
@@ -113,22 +114,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     // check where to apply env. edges
-    nodeForEnvApp = new HashSet<CFANode>();
-
-    for (CFANode node : cfa.getExecNodes()){
-
-      if (cfa.getAtomic().contains(node)){
-        continue;
-      }
-
-      for (int i=0; i<node.getNumLeavingEdges(); i++){
-        CFAEdge edge = node.getLeavingEdge(i);
-        if (edge.isGlobalRead() || edge.isGlobalWrite()){
-          nodeForEnvApp.add(node);
-        }
-      }
-
-    }
+    this.applyEnv = applyEnv;
   }
 
   @Override
@@ -175,7 +161,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       // if local child was not expanded, then do it, otherwise only apply new env. transitions
       int edgesNo = 0;
 
-      if (nodeForEnvApp.contains(loc)){
+      if (applyEnv.contains(loc)){
         edgesNo = envEdges.size();
       }
 
@@ -187,7 +173,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       Set<CFAEdge> edges = new LinkedHashSet<CFAEdge>(edgesNo);
 
 
-      if (nodeForEnvApp.contains(loc)){
+      if (applyEnv.contains(loc)){
         for (RGEnvTransition template : envEdges){
           // find the edge matching the template
           RGCFAEdge rgEdge = null;
@@ -199,6 +185,10 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
                 break;
               }
             }
+          }
+
+          if (rgEdge == null){
+            System.out.println(this.getClass());
           }
           assert rgEdge != null;
           edges.add(rgEdge);
@@ -347,9 +337,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
           stats.envMergeTimer.stop();
           runStats.mergeTimer.stop();
         }
-
-
-
 
         stats.stopTimer.start();
         runStats.stopTimer.start();

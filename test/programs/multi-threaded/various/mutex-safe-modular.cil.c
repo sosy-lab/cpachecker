@@ -15,22 +15,24 @@ void thread0(void)
 
   {
     {
+
       while (1) {
       while_0_continue: /* CIL Label */ ;
         {
           while (1) {
           while_1_continue: /* CIL Label */ ;
+	  _START_ATOMIC_;
             if (lock != 0) {
-
+	      _END_ATOMIC_;
             } else {
               goto while_1_break;
             }
           }
+
         while_1_break: /* CIL Label */ ;
         }
-        _START_NOENV_;
         lock = 1;
-        _END_NOENV_;
+        _END_ATOMIC_;
         cs1 = 1;
         if (cs2 == 0) {
 
@@ -58,17 +60,17 @@ void thread1(void)
         {
           while (1) {
           while_1_continue: /* CIL Label */ ;
+	    _START_ATOMIC_;
             if (lock != 0) {
-
+	      _END_ATOMIC_;
             } else {
               goto while_1_break;
             }
           }
         while_1_break: /* CIL Label */ ;
         }
-        _START_NOENV_;
         lock = 2;
-        _END_NOENV_;
+        _END_ATOMIC_;
         cs2 = 1;
         if (cs1 == 0) {
 

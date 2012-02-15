@@ -64,18 +64,16 @@ void thread0(int fd , int bytes , int op )
           if (__cil_tmp9 > 20480L) {
             doingAsync = 1;
             __START_ASYNC__ = 1;
+              _START_ATOMIC;
             if (__COUNT__ == 0) {
-              _START_NOENV;
               me_io_pending = 1;
               __COUNT__ = __COUNT__ + 1;
-              _END_NOENV;
             } else {
               {
-                _START_NOENV;
                 __assert_fail("0", "lu-fig4-complete-thr0.c", 60U, "main");
-                _END_NOENV;
               }
             }
+	    _END_ATOMIC;
           } else {
             {
               me_io_pending = 0;
@@ -165,18 +163,16 @@ __inline void DoneWaitingOnThisThread(int thread )
 { int thread_io_pending ;
 
   {
+    _START_ATOMIC;
     if (__COUNT__ == 1) {
-      _START_NOENV;
       thread_io_pending = 0;
       __COUNT__ = __COUNT__ + 1;
-      _END_NOENV;
     } else {
       {
-        _START_NOENV;
         __assert_fail("0", "lu-fig4-complete-thr1.c", 39U, "DoneWaitingOnThisThread");
-        _END_NOENV;
       }
     }
+    _END_ATOMIC;
     return;
   }
 }

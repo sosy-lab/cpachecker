@@ -36,6 +36,7 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.ThreadCFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -126,6 +127,7 @@ public class RGTransferRelation  implements TransferRelation {
 
   //private final MathsatFormulaManager manager;
   private final RGCPA cpa;
+  private ThreadCFA cfa;
 
 
   /** Unique number for env. applications in this thread */
@@ -133,7 +135,6 @@ public class RGTransferRelation  implements TransferRelation {
 
   public RGTransferRelation(RGCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this, RGTransferRelation.class);
-
     logger = pCpa.logger;
     cpa = pCpa;
     absManager = pCpa.absManager;
@@ -368,6 +369,11 @@ public class RGTransferRelation  implements TransferRelation {
   protected boolean isBlockEnd(CFANode succLoc, PathFormula pf, CFAEdge edge) {
     boolean result = false;
 
+    // always abstract the execution start
+    if (cfa.getExecutionStart().equals(succLoc)){
+      return true;
+    }
+
     if (absOnLoop) {
       result = succLoc.isLoopStart();
       if (result) {
@@ -544,5 +550,9 @@ public class RGTransferRelation  implements TransferRelation {
       // TODO check if correct
       return new RGAbstractElement.AbstractionElement(newPathFormula, abs , cpa.getTid(), pElement.getPathFormula(), pElement.getAppInfo());
     }
+  }
+
+  public void setData(ThreadCFA cfa) {
+    this.cfa = cfa;
   }
 }

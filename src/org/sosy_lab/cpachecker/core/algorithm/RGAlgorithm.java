@@ -30,7 +30,6 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Vector;
 
@@ -67,6 +66,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 
 @Options(prefix="cpa.rg")
@@ -78,19 +78,27 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
   @Option(description="Combine all valid environmental edges for thread in two one edge?")
   boolean combineEnvEdges = false;
 
+  @Option(toUppercase=true, values={"ALL", "GLOBAL"},
+      description="Where to apply env. edges:\n"  +
+      		"ALL - to every non-atomic location,\n" +
+          "GLOBAL - to non-atomic locations that after global writes, reads or are the inital state.")
+  private String applyEnvEdges =  "GLOBAL";
+
+
+
+  private final int threadNo;
+  private final ParallelCFAS pcfa;
+  private final ConfigurableProgramAnalysis[] cpas;
+  private final LogManager logger;
+
+  /** CPAAlgorithm for each thread */
+  private final RGThreadCPAAlgorithm[] threadCPA;
+  /** stores information about environmental transitions */
+  private final RGEnvironmentManager environment;
+  /** Where to apply env. transitionas */
+  private final ImmutableSet<CFANode>[] applyEnv;
+
   public final Stats stats;
-
-  // TODO option for CFA export
-  private int threadNo;
-  private ParallelCFAS pcfa;
-  private ConfigurableProgramAnalysis[] cpas;
-  private LogManager logger;
-
-
-  // CPAAlgorithm for each thread
-  private RGThreadCPAAlgorithm[] threadCPA;
-  // stores information about environmental transitions
-  private RGEnvironmentManager environment;
 
 
 
@@ -101,18 +109,19 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     this.logger = logger;
     this.stats = new Stats();
 
-    threadCPA = new RGThreadCPAAlgorithm[threadNo];
+    this.threadCPA = new RGThreadCPAAlgorithm[threadNo];
+    this.applyEnv = new ImmutableSet[threadNo];
 
     this.environment = environment;
     try {
-      //environment = new RGEnvironmentManager(threadNo, vars, config, logger);
       config.inject(this, RGAlgorithm.class);
     } catch (InvalidConfigurationException e) {
       e.printStackTrace();
     }
 
     for (int i=0; i< this.threadNo; i++){
-      threadCPA[i] = new RGThreadCPAAlgorithm(cpas[i],pcfa.getCfa(i), environment,config, logger, i);
+      this.applyEnv[i] = getNodesForEnvApplication(pcfa.getCfa(i));
+      this.threadCPA[i] = new RGThreadCPAAlgorithm(cpas[i],pcfa.getCfa(i), environment, applyEnv[i], config, logger, i);
     }
 
     // create DOT file for the original CFA
@@ -120,6 +129,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
       dumpDot(i, "test/output/oldCFA"+i+".dot");
     }
   }
+
 
   /**
    * Returns -1 if no error is found or the thread no with an error
@@ -324,12 +334,48 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     }
   }
 
+
+  /**
+   * Get set of nodes, where env. transitions can be applied.
+   * @param cfa
+   * @return
+   */
+  private ImmutableSet<CFANode> getNodesForEnvApplication(ThreadCFA cfa) {
+    Set<CFANode> toApply = new HashSet<CFANode>();
+
+    boolean global = applyEnvEdges.equals("GLOBAL");
+
+    // apply all env transitions to CFA nodes that have an outgoing edge that reads from or writes to a global variable
+    for (CFANode node : cfa.getExecNodes()){
+
+      if (cfa.getAtomic().contains(node)){
+        continue;
+      }
+
+      if (global){
+        // apply at the exeuctution start and after global reads and writes
+        if (cfa.getExecutionStart().equals(node)){
+          toApply.add(node);
+        }
+
+        for (int j=0; j<node.getNumEnteringEdges(); j++){
+          CFAEdge edge = node.getEnteringEdge(j);
+
+          if (edge.isGlobalRead() || edge.isGlobalWrite()){
+            toApply.add(node);
+          }
+        }
+      }
+      else {
+        toApply.add(node);
+      }
+    }
+    return ImmutableSet.copyOf(toApply);
+  }
+
   /**
    * Applies environmental edges to CFA i. Returns a map with env. edges that haven't
-   * been applied before. All env. edges :
-   * 1) are applied before global reads,
-   * 2) are applied before global writes,
-   * 3) are not applied where node.isEnvAllowed() is false.
+   * been applied before.
    *
    * @param   i CFA number
    * @return  multimap CFA nodes -> CFA edges
@@ -341,7 +387,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     ThreadCFA cfa = pcfa.getCfa(i);
 
     // remove old environmental edges
-    removeRGEdges(i);
+    removeRGEdges(i, applyEnv[i]);
 
     if (debug){
       dumpDot(i, "test/output/revertedCFA"+i+".dot");
@@ -359,25 +405,6 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
       return ArrayListMultimap.create();
     }
 
-    // check where to apply env. edges
-    Set<CFANode> toApply = new HashSet<CFANode>();
-
-    // apply all env transitions to CFA nodes that have an outgoing edge that reads from or writes to a global variable
-    for (CFANode node : cfa.getExecNodes()){
-
-      if (cfa.getAtomic().contains(node)){
-        continue;
-      }
-
-      for (int j=0; j<node.getNumLeavingEdges(); j++){
-        CFAEdge edge = node.getLeavingEdge(j);
-
-        if (edge.isGlobalRead() || edge.isGlobalWrite()){
-          toApply.add(node);
-        }
-      }
-    }
-
     // list of env. edges that haven't been applied before
     List<RGEnvTransition> unapplied = environment.getUnappliedEnvEdgesForThread(i);
 
@@ -387,7 +414,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
           //addCombinedEnvTransitionsToCFA(i, toApply, valid, unapplied);
     } else {
       // valid env. edges are applied separately
-      envEdgesMap = addSeparateEnvTransitionsToCFA(i, toApply, valid, unapplied);
+      envEdgesMap = addSeparateEnvTransitionsToCFA(i, applyEnv[i], valid, unapplied);
     }
 
     if (debug){
@@ -447,7 +474,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
   /**
    * Apply valid environmental edges to the nodes of CFA i, which belong to toApply.
-   * Returns Returns a map with env. edges that haven't been applied before.
+   * Returns a map with env. edges that haven't been applied before.
    *
    * @param i
    * @param toApply
@@ -464,19 +491,13 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     Set<RGEnvTransition> unappliedSet = new HashSet<RGEnvTransition>(pUnapplied);
 
     // apply env. edges
-    for(Entry<String, CFANode> entry :   cfa.getCFANodes().entries()){
-      CFANode node = entry.getValue();
+    for(CFANode node : toApply){
+      for (RGEnvTransition edge : pValid){
+        RGCFAEdge rgEdge = new RGCFAEdge(edge, node, node);
+        addEnvTransitionToNode(rgEdge);
 
-      if (toApply.contains(node)){
-        // apply edges
-
-        for (RGEnvTransition edge : pValid){
-          RGCFAEdge rgEdge = new RGCFAEdge(edge, node, node);
-          addEnvTransitionToNode(rgEdge);
-
-          if (unappliedSet.contains(edge)){
-            envEdgesMap.put(node, rgEdge);
-          }
+        if (unappliedSet.contains(edge)){
+          envEdgesMap.put(node, rgEdge);
         }
       }
     }
@@ -487,12 +508,14 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
   /**
    * Remove old environmental edges.
+   * @param applyEnv
    */
-  private void removeRGEdges(int i) {
+  private void removeRGEdges(int i, ImmutableSet<CFANode> applyEnv) {
     ThreadCFA cfa = pcfa.getCfa(i);
     List<CFAEdge> toRemove = new Vector<CFAEdge>();
     // remove old env edges from the CFA
-    for (CFANode node : cfa.getCFANodes().values()){
+
+    for (CFANode node : applyEnv){
       for (int j=0; j<node.getNumLeavingEdges(); j++) {
         CFAEdge edge = node.getLeavingEdge(j);
         if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){

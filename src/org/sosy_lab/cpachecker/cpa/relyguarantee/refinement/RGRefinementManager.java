@@ -265,7 +265,8 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
     if (target == null){
       System.out.println();
     }
-    if (target.isDestroyed()){
+
+    while (target.isDestroyed()){
       target = target.getMergedWith();
     }
     assert !target.isDestroyed();

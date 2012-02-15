@@ -17,21 +17,21 @@ void thread0(void)
       while_0_continue: /* CIL Label */ ;
         if (w != 0) {
         } else {
-          _START_NOENV;
+          _START_ATOMIC;
 
           if (r != 0) {
-            _END_NOENV;
+            _END_ATOMIC;
           } else {
-            _END_NOENV;
+            _END_ATOMIC;
             goto while_0_break;
           }
         }
       }
     while_0_break: /* CIL Label */ ;
     }
-    _START_NOENV;
+    _START_ATOMIC;
     w = 1;
-    _END_NOENV;
+    _END_ATOMIC;
     x = 3;
     w = 0;
     return;
@@ -54,9 +54,9 @@ void thread1(void)
       }
     while_0_break: /* CIL Label */ ;
     }
-    _START_NOENV;
+    _START_ATOMIC;
     r = r + 1;
-    _ENV_NOENV;
+    _ENV_ATOMIC;
     y = x;
     if (y == x) {
 

@@ -227,7 +227,9 @@ public class ARTUtils {
         }
       }
 
-      CFAEdge edge = parentElement.getEdgeToChild(currentARTElement);
+      //CFAEdge edge = parentElement.getEdgeToChild(currentARTElement);
+      CFAEdge edge = parentElement.getChildMap().get(currentARTElement);
+      assert edge != null;
       path.addFirst(Pair.of(parentElement, edge));
 
       currentARTElement = parentElement;

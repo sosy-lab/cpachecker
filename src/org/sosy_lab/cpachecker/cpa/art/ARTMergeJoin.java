@@ -33,12 +33,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class ARTMergeJoin implements MergeOperator {
 
   private final MergeOperator wrappedMerge;
 
-  public ARTMergeJoin(MergeOperator pWrappedMerge) {
+  public ARTMergeJoin(MergeOperator pWrappedMerge)  {
     wrappedMerge = pWrappedMerge;
   }
 
@@ -68,9 +69,9 @@ public class ARTMergeJoin implements MergeOperator {
     }
 
     AbstractElement wrappedElement1 = artElement1.getWrappedElement();
-    AbstractElement wrappedElement2 = artElement2.getWrappedElement();
-    AbstractElement retElement = wrappedMerge.merge(wrappedElement1, wrappedElement2, pPrecision);
-    if(retElement.equals(wrappedElement2)){
+    AbstractElement wrapppedElement2 = artElement2.getWrappedElement();
+    AbstractElement retElement = wrappedMerge.merge(wrappedElement1, wrapppedElement2, pPrecision);
+    if(retElement.equals(wrapppedElement2)){
       return pElement2;
     }
 
@@ -94,6 +95,17 @@ public class ARTMergeJoin implements MergeOperator {
       entry.getKey().addParent(mergedElement, entry.getValue());
     }
 
+    // TODO delete this check
+    /*System.out.println("REMOVE ME: "+this.getClass());
+    this.checkParentChildCheck(mergedElement);
+
+    for (ARTElement parent : mergedElement.getParentARTs()){
+      this.checkParentChildCheck(parent);
+    }
+
+    for (ARTElement child : mergedElement.getChildARTs()){
+      this.checkParentChildCheck(child);
+    }*/
 
     // artElement1 will only be removed from ART if stop(e1, reached) returns true
     artElement2.removeFromART();
@@ -104,5 +116,26 @@ public class ARTMergeJoin implements MergeOperator {
     artElement2.setMergedWith(mergedElement);
 
     return mergedElement;
+  }
+
+
+  private void checkParentChildCheck(ARTElement elem){
+
+    ImmutableMap<ARTElement, CFAEdge> pMap = elem.getParentMap();
+    for (ARTElement parent : pMap.keySet()){
+      assert !parent.isDestroyed();
+      CFAEdge edge = pMap.get(parent);
+      CFAEdge pEdge = parent.getChildMap().get(elem);
+      assert pEdge != null && edge != null && pEdge.equals(edge);
+    }
+
+    ImmutableMap<ARTElement, CFAEdge> cMap = elem.getChildMap();
+    for (ARTElement child : cMap.keySet()){
+      assert !child.isDestroyed();
+      CFAEdge edge = pMap.get(child);
+      CFAEdge cEdge = child.getParentMap().get(elem);
+      assert cEdge != null && edge != null && cEdge.equals(edge);
+    }
+
   }
 }

@@ -110,8 +110,8 @@ public class ParallelCFASCreator implements StatisticsProvider{
       description="Names of main functions for threads. They ought to be uniquee.")
   protected String[] threadFunctions = {"thread0", "thread1", "thread3", "thread4", "thread5", "thread6", "thread7", "thread8", "thread9"};
 
-  public static final String noEnvStart       = "_START_NOENV";
-  public static final String noEnvStop        = "_END_NOENV";
+  public static final String atomicStart       = "START_ATOMIC";
+  public static final String atomicStop        = "END_ATOMIC";
   public static final String functionPrefix   = "tid";
 
   private final CParser parser;
@@ -723,7 +723,7 @@ public class ParallelCFASCreator implements StatisticsProvider{
 
 
   /**
-   * Gathers information about CFANodes that are between statement edges {@link #noEnvStart} and {@link #noEnvStop}.
+   * Gathers information about CFANodes that are between statement edges {@link #atomicStart} and {@link #atomicStop}.
    * In rely-guarantee analysis, no enviormental information can be applied to such nodes. These tags cannot
    * be nested and have to properly enclose nodes.
    * @param start
@@ -746,7 +746,7 @@ public class ParallelCFASCreator implements StatisticsProvider{
         CFANode n  = toProcessNoEnv.pop();
         seenNoEnv.add(n);
         if (seenEnv.contains(n)){
-          throw new ParserException("Mismatched _START_NOENV and _ENV_NOENV tags.");
+          throw new ParserException("Mismatched "+atomicStart+ " and "+atomicStop+" tags.");
         }
 
         for (int i = 0; i < n.getNumLeavingEdges(); ++i) {
@@ -754,10 +754,10 @@ public class ParallelCFASCreator implements StatisticsProvider{
           CFANode s = e.getSuccessor();
           if (!seenNoEnv.contains(s)){
             if (e.getEdgeType() == CFAEdgeType.StatementEdge){
-              if (e.getRawStatement().contains("_END_NOENV")){
+              if (e.getRawStatement().contains(atomicStop)){
                 toProcessEnv.push(s);
-              } else if (e.getRawStatement().contains("_START_NOENV")){
-                throw new ParserException("Mismatched _START_NOENV and _ENV_NOENV tags.");
+              } else if (e.getRawStatement().contains(atomicStart)){
+                throw new ParserException("Mismatched "+atomicStart+ " and "+atomicStop+" tags.");
               } else {
                 toProcessNoEnv.push(s);
               }
@@ -779,7 +779,7 @@ public class ParallelCFASCreator implements StatisticsProvider{
         CFANode n = toProcessEnv.pop();
         seenEnv.add(n);
         if (seenNoEnv.contains(n)){
-          throw new ParserException("Mismatched _START_NOENV and _ENV_NOENV tags.");
+          throw new ParserException("Mismatched "+atomicStart+ " and "+atomicStop+" tags.");
         }
 
         for (int i = 0; i < n.getNumLeavingEdges(); ++i) {
@@ -787,10 +787,10 @@ public class ParallelCFASCreator implements StatisticsProvider{
           CFANode s = e.getSuccessor();
           if (!seenEnv.contains(s)){
             if (e.getEdgeType() == CFAEdgeType.StatementEdge){
-              if (e.getRawStatement().contains("_START_NOENV")){
+              if (e.getRawStatement().contains(atomicStart)){
                 toProcessNoEnv.push(s);
-              } else if (e.getRawStatement().contains("_NO_NOENV")){
-                throw new ParserException("Mismatched _START_NOENV and _ENV_NOENV tags.");
+              } else if (e.getRawStatement().contains(atomicStop)){
+                throw new ParserException("Mismatched "+atomicStart+ " and "+atomicStop+" tags.");
               } else {
                 toProcessEnv.push(s);
               }

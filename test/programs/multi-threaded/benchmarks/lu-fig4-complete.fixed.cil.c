@@ -17,18 +17,17 @@ __inline void DoneWaitingOnThisThread(int thread )
 { int thread_io_pending ;
 
   {
+      _START_ATOMIC;
     if (__COUNT__ == 1) {
-      _START_NOENV;
       thread_io_pending = 0;
       __COUNT__ = __COUNT__ + 1;
-      _END_NOENV;
+
     } else {
       {
-        _START_NOENV;
         __assert_fail("0", "lu-fig4-complete.fixed-thr1.c", 38U, "DoneWaitingOnThisThread");
-        _END_NOENV;
       }
     }
+    _END_ATOMIC;
     return;
   }
 }
@@ -100,18 +99,16 @@ void thread0(int fd , int bytes , int op )
           __cil_tmp9 = (long )bytes;
           if (__cil_tmp9 > 20480L) {
             doingAsync = 1;
+              _START_ATOMIC;
             if (__COUNT__ == 0) {
-              _START_NOENV;
               me_io_pending = 1;
               __COUNT__ = __COUNT__ + 1;
-              _END_NOENV;
             } else {
               {
-                _START_NOENV;
                 __assert_fail("0", "lu-fig4-complete.fixed-thr0.c", 59U, "main");
-                _END_NOENV;
               }
             }
+	    _END_ATOMIC;
             __START_ASYNC__ = 1;
           } else {
             {

@@ -16,16 +16,18 @@ void thread0(void)
   {
     PR_CreateThread__RES = 1;
     start_main = 1;
+    START_ATOMIC;
     if (__COUNT__ == 0) {
-      START_NOENV;
+
       mThread = PR_CreateThread__RES;
       __COUNT__ = __COUNT__ + 1;
-      END_NOENV;
+
     } else {
       {
         __assert_fail("0", "lu-fig2-thr0.c", 15U, "main");
       }
     }
+    END_ATOMIC;
     if (mThread == 0) {
       return;
     } else {
@@ -52,16 +54,17 @@ void thread1(void)
       }
     while_0_break: /* CIL Label */ ;
     }
+    START_ATOMIC;
     if (__COUNT__ == 1) {
-      START_NOENV;
+
       rv = self;
       __COUNT__ = __COUNT__ + 1;
-      END_NOENV;
     } else {
       {
         __assert_fail("0", "lu-fig2-thr1.c", 15U, "main");
       }
     }
+    END_ATOMIC;
     return;
   }
 }

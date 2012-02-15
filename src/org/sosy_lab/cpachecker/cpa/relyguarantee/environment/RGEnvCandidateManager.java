@@ -40,6 +40,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * Defines partial order on environmental candidates.
  */
@@ -72,8 +74,27 @@ public class RGEnvCandidateManager {
    */
   public boolean isBottom(RGEnvCandidate c){
 
+    /* Destroyed element is covered by some other. */
+    if (c.getElement().isDestroyed()){
+      return true;
+    }
+
     CFAEdge op = c.getOperation();
 
+    /*
+     * if op is not an assignment and locationClass(c) = locationClass(SP_op(c)),
+     * then c is bottom
+     */
+    if (!op.isGlobalWrite() && !op.isLocalWrite()){
+      ImmutableList<Integer> locCl1 = c.getElement().getLocationClasses();
+      ImmutableList<Integer> locCl2 = c.getSuccessor().getLocationClasses();
+
+      if (locCl1.equals(locCl2)){
+        return true;
+      }
+    }
+
+    /* if abs1 or pf1 is false, then c is bottom */
     Formula absF = c.getRgElement().getAbstractionFormula().asFormula();
     Formula f = c.getRgElement().getPathFormula().getFormula();
 
@@ -94,17 +115,16 @@ public class RGEnvCandidateManager {
   public boolean isLessOrEqual(RGEnvCandidate c1, RGEnvCandidate c2) {
     /*
      * c1 less or equal than c2 only if
-     * (abs1 & pf1) -> (abs2 & pf2) and
-     * op1 = op2
+     * (abs1 & pf1) -> (abs2 & pf2) and op1 = op2 and locationClass(c1) = locationClass(c2)
+     *                      OR
+     * c1 is bottom
      */
 
     if (c1.equals(c2)){
       return true;
     }
 
-    /* destroyed element is covered by some other, but not
-     * necessarily c2 */
-    if (c1.getElement().isDestroyed()){
+    if (isBottom(c1)){
       return true;
     }
 

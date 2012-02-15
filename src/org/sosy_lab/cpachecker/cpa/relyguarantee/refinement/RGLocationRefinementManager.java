@@ -418,7 +418,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       if (i == stid){
         pc[i] = pcfa.getCfas().get(i).getInitalNode();
       } else {
-        pc[i] = pcfa.getCfas().get(i).getThreadStart();
+        pc[i] = pcfa.getCfas().get(i).getExecutionStart();
       }
 
     }
