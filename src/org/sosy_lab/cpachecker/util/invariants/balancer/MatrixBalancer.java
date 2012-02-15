@@ -34,7 +34,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
-import org.sosy_lab.cpachecker.util.invariants.balancer.prh12.PivotRowHandler2;
+import org.sosy_lab.cpachecker.util.invariants.balancer.prh3.PivotRowHandler;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.VariableManager;
 import org.sosy_lab.cpachecker.util.invariants.redlog.EliminationAnswer;
 import org.sosy_lab.cpachecker.util.invariants.redlog.EliminationHandler;
@@ -135,15 +135,20 @@ public class MatrixBalancer implements Balancer {
           logger.log(Level.ALL, "Working on matrix:","\n"+m.toString());
           m.putInRREF(amgr, logger);
           /*
-           * Old method:
+           * First method:
           PivotRowHandler prh = new PivotRowHandler(m, logger);
           prh.firstPass(amgr);
           prh.secondPass(amgr);
           prh.thirdPass(amgr, this);
           */
+          /*
+           * Second method:
           PivotRowHandler2 prh = new PivotRowHandler2(m, amgr, this, logger);
           prh.firstPass();
           prh.secondPass();
+          */
+          PivotRowHandler prh = new PivotRowHandler(m, amgr, this, logger);
+          prh.solve();
           m = amgr.nextMatrix();
         }
 
@@ -249,6 +254,11 @@ public class MatrixBalancer implements Balancer {
     }
 
     return map;
+  }
+
+  public boolean isSatisfiable(AssumptionSet aset) {
+    Map<String,Rational> map = tryAssumptionSet(aset);
+    return map != null || redlogReturnedTrue;
   }
 
   /**

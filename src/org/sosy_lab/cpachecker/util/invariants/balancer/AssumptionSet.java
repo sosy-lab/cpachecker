@@ -162,6 +162,25 @@ public class AssumptionSet implements Iterable<Assumption> {
     return addAll(a.aset);
   }
 
+  public boolean contains(Assumption a) {
+    return aset.contains(a);
+  }
+
+  public boolean isSubsetOf(AssumptionSet that) {
+    boolean subset = true;
+    for (Assumption a : aset) {
+      if (!that.contains(a)) {
+        subset = false;
+        break;
+      }
+    }
+    return subset;
+  }
+
+  public boolean equals(AssumptionSet that) {
+    return this.isSubsetOf(that) && that.isSubsetOf(this);
+  }
+
   /*
    * We match the passed assumption a against all those in the set,
    * returning the /strongest/ relation we find.
@@ -198,14 +217,31 @@ public class AssumptionSet implements Iterable<Assumption> {
    * Returns 'true' if we have no assumptions about f.
    */
   public AssumptionType query(RationalFunction f) {
-    Assumption a = new Assumption(f, AssumptionType.TRUE);
+    AssumptionType at = AssumptionType.TRUE;
+    Assumption a = new Assumption(f, at);
     for (Assumption b : aset) {
       Assumption c = b.strengthen(a);
       if (c != null) {
-        a = b;
+        RationalFunction g = b.getRationalFunction();
+        // Since b strengthens a, g must be a constant multiple of f.
+        // If that multiple is negative, then we must flip the assumption type.
+        if (g.isZero()) {
+          // This should happen only if f was zero.
+          return AssumptionType.ZERO;
+        }
+        RationalFunction q = RationalFunction.divide(f, g);
+        if (!q.isConstant()) {
+          // This should not happen. Just in case,
+          return AssumptionType.TRUE;
+        }
+        at = b.getAssumptionType();
+        if (!q.isPositive()) {
+          // If q is negative, then flip the assumption type.
+          at = at.flip();
+        }
       }
     }
-    return a.getAssumptionType();
+    return at;
   }
 
 }

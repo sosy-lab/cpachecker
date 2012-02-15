@@ -58,7 +58,6 @@ public class Substitution {
         throw new UndefinedSubstitutionException();
       }
     } catch (Exception e) {
-      System.err.println(e.getMessage());
     }
     return r;
   }

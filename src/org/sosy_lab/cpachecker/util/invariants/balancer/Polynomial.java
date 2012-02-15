@@ -174,7 +174,7 @@ public class Polynomial {
   }
 
   /*
-   * Apply the substitution to the polynomial, replacing all occurences of the substituted variable
+   * Apply the substitution to the polynomial, replacing all occurrences of the substituted variable
    * by the polynomial substituted for it. Do not alter the passed polynomial; create a new one.
    */
   public static Polynomial applySubstitution(Substitution subs, Polynomial f) {

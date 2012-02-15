@@ -164,6 +164,9 @@ public class RationalFunction {
     return new RationalFunction(negnum,f.denom);
   }
 
+  /*
+   * Does not alter the passed rational function; creates a new one.
+   */
   public static RationalFunction applySubstitution(Substitution subs, RationalFunction f) {
     Polynomial n = Polynomial.applySubstitution(subs, f.num);
     Polynomial d = Polynomial.applySubstitution(subs, f.denom);
