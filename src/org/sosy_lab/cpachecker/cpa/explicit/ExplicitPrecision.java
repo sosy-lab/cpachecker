@@ -49,10 +49,19 @@ public class ExplicitPrecision implements Precision {
    */
   private CFANode currentLocation                   = null;
 
+  /**
+   * the component responsible for thresholds concerning the reached set
+   */
   private ReachedSetThresholds reachedSetThresholds = null;
 
+  /**
+   * the component responsible for thresholds concerning paths
+   */
   private PathThresholds pathThresholds             = null;
 
+  /**
+   * the component responsible for variables that need to be tracked, according to refinement
+   */
   private CegarPrecision cegarPrecision             = null;
 
   public ExplicitPrecision(String variableBlacklist, Configuration config) throws InvalidConfigurationException {
@@ -65,6 +74,11 @@ public class ExplicitPrecision implements Precision {
     pathThresholds        = new PathThresholds(config);
   }
 
+  /**
+   * copy constructor
+   *
+   * @param original the ExplicitPrecision to copy
+   */
   public ExplicitPrecision(ExplicitPrecision original) {
 
     blackListPattern = original.blackListPattern;
@@ -103,7 +117,6 @@ public class ExplicitPrecision implements Precision {
    * @return true, if the variable has to be tracked, else false
    */
   public boolean isTracking(String variable) {
-    //System.out.println("thresholdPrecision.allowsTrackingOf(" + variable + ") = " + reachedSetThresholds.allowsTrackingOf(variable));
     return reachedSetThresholds.allowsTrackingOf(variable)
         && pathThresholds.allowsTrackingOf(variable)
         && cegarPrecision.allowsTrackingOf(variable)
@@ -118,19 +131,32 @@ public class ExplicitPrecision implements Precision {
     return blackListPattern.pattern();
   }
 
-  @Options(prefix="cpa.explicit.precision.cegar")
+  @Options(prefix="analysis")
   class CegarPrecision {
     /**
      * the collection that determines which variables are tracked at a specific location - if it is null, all variables are tracked
      */
     private SetMultimap<CFANode, String> mapping = null;
 
+    @Option(description="whether or not to use refinement or not")
+    private boolean useRefinement = false;
+
     private CegarPrecision(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
+
+      if(useRefinement) {
+        mapping = HashMultimap.create();
+      }
     }
 
+    /**
+     * copy constructor
+     *
+     * @param original the CegarPrecison to copy
+     */
     private CegarPrecision(CegarPrecision original) {
-      mapping = HashMultimap.create(original.mapping);
+      if(original.mapping != null)
+        mapping = HashMultimap.create(original.mapping);
     }
 
     /**
@@ -140,8 +166,6 @@ public class ExplicitPrecision implements Precision {
      * @return true, when the variable is allowed to be tracked, else false
      */
     boolean allowsTrackingOf(String variable) {
-      //if(!variable.contains("::"))
-        //return true;
       return mapping == null
           || mapping.containsEntry(currentLocation, variable);
     }
@@ -153,14 +177,8 @@ public class ExplicitPrecision implements Precision {
      */
     void addToMapping(SetMultimap<CFANode, String> additionalMapping) {
       mapping.putAll(additionalMapping);
-      //System.out.println(mapping);
     }
   }
-
-  private class BlacklistPrecision {
-
-  }
-
 
   abstract class Thresholds {
     /**
@@ -204,6 +222,11 @@ public class ExplicitPrecision implements Precision {
       config.inject(this);
     }
 
+    /**
+     * copy constructor
+     *
+     * @param original the ReachedSetThresholds to copy
+     */
     private ReachedSetThresholds(ReachedSetThresholds original) {
       defaultThreshold  = original.defaultThreshold;
       thresholds        = new HashMap<String, Integer>(original.thresholds);
@@ -244,6 +267,11 @@ public class ExplicitPrecision implements Precision {
       config.inject(this);
     }
 
+    /**
+     * copy constructor
+     *
+     * @param original the PathThresholds to copy
+     */
     private PathThresholds(PathThresholds original) {
       defaultThreshold  = original.defaultThreshold;
       thresholds        = new HashMap<String, Integer>(original.thresholds);

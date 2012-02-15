@@ -277,7 +277,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     assert firstInterpolationPoint != null;
 
-System.out.println("\n" + (++refinementCounter) + ". refining ...");
+//System.out.println("\n" + (++refinementCounter) + ". refining ...");
 //System.out.println(getErrorPathAsString(errorPath));
 /*
 System.out.println("\nreferencedVariables: " + variableMapping.values());
@@ -286,7 +286,6 @@ System.out.println("\nallReferencedVariables: " + allReferencedVariables);
 System.out.println("\nnew predicate map: " + predicates.toString());
 System.out.println("\nfirstInterpolationPoint = " + firstInterpolationPoint + "\n");
 */
-//System.exit(0);
     // extract the precision of the available CPAs
     ExplicitPrecision oldExplicitPrecision    = extractExplicitPrecision(oldPrecision);
     PredicatePrecision oldPredicatePrecision  = extractPredicatePrecision(oldPrecision);
@@ -309,7 +308,6 @@ System.out.println("\nfirstInterpolationPoint = " + firstInterpolationPoint + "\
 
     // refine the predicate precision if a path was found again
     if (predicateCpaInUse && errorTrace.equals(lastPath)) {
-//System.out.println("adding predicates");
         predicatePrecision = getPredicatePrecision(getInExplicitVariables(errorPath),
             oldPredicatePrecision,
             predicates);
@@ -467,10 +465,6 @@ System.out.println("\nfirstInterpolationPoint = " + firstInterpolationPoint + "\
   private PredicatePrecision getPredicatePrecision(Set<String> inexplicitVars,
                                                     PredicatePrecision oldPredicatePrecision,
                                                     PredicateMap predicateMap) {
-
-    //System.out.println("inexplicitVars = " + inexplicitVars);
-    Set<String> newPreds = new HashSet<String>();
-
     Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPredicatePrecision.getPredicateMap();
     Set<AbstractionPredicate> globalPredicates = oldPredicatePrecision.getGlobalPredicates();
 
@@ -481,13 +475,13 @@ System.out.println("\nfirstInterpolationPoint = " + firstInterpolationPoint + "\
       CFANode location                = predicateAtLocation.getKey();
       AbstractionPredicate predicate  = predicateAtLocation.getValue();
 
+      // for now, add all predicates to the precision, not only those referencing "inexplicit" variables
       /*for (String variable : fmgr.extractVariables(predicate.getSymbolicAtom())) {
         variable = variable.substring(variable.lastIndexOf(":") + 1);
 
         if (inexplicitVars.contains(variable)) {
           pmapBuilder.putAll(location, predicate);
           System.out.println("adding " + predicate);
-          newPreds.add(variable);
         }
       }*/
 
