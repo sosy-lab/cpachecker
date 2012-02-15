@@ -94,7 +94,7 @@ public class ARTTransferRelation implements TransferRelation {
     CFANode loc = AbstractElements.extractLocation(element);
     for(int i = 0; i < loc.getNumLeavingEdges(); ++i) {
       CFAEdge edge = loc.getLeavingEdge(i);
-      if(!wrappedProofChecker.areAbstractSuccessors(wrappedElement, pCfaEdge, wrappedSuccessors.get(edge))) {
+      if(!wrappedProofChecker.areAbstractSuccessors(wrappedElement, edge, wrappedSuccessors.get(edge))) {
         return false;
       }
     }
