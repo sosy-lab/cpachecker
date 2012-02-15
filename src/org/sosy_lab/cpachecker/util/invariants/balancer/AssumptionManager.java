@@ -103,7 +103,7 @@ public class AssumptionManager {
    * Add assumptions that follow necessarily from those we have assumed so far. So there
    * are no options here. Either add, or fail.
    */
-  void addNecessaryAssumptions(AssumptionSet na) throws BadAssumptionsException {
+  public void addNecessaryAssumptions(AssumptionSet na) throws BadAssumptionsException {
     // Add the assumptions to the current assumption set, and check whether this
     // gave rise to an immediate contradiction.
     logger.log(Level.ALL,"Adding necessary assumptions:",na);
@@ -184,7 +184,7 @@ public class AssumptionManager {
     return currentAssumptionSet;
   }
 
-  void setCurrentAssumptionSet(AssumptionSet a) {
+  public void setCurrentAssumptionSet(AssumptionSet a) {
     currentAssumptionSet = a;
   }
 
@@ -197,7 +197,7 @@ public class AssumptionManager {
   /*
    * Make substitutions in the current matrices on the basis of polynomials assumed to be zero.
    */
-  void zeroSubsCurrent(AssumptionSet aset) {
+  public void zeroSubsCurrent(AssumptionSet aset) {
     // Prepare the list of all current matrices.
     List<Matrix> ml = allCurrentMatrices();
 

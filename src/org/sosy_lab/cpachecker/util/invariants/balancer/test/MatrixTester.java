@@ -21,7 +21,12 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.invariants.balancer;
+package org.sosy_lab.cpachecker.util.invariants.balancer.test;
+
+import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionSet;
+import org.sosy_lab.cpachecker.util.invariants.balancer.IRMatrix;
+import org.sosy_lab.cpachecker.util.invariants.balancer.RationalFunction;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Variable;
 
 
 public class MatrixTester {

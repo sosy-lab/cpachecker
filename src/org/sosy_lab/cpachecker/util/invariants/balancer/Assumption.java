@@ -48,6 +48,7 @@ public class Assumption {
       f = p.getFirst();
       a = p.getSecond();
     }
+    f.simplify();
     func = f;
     atype = a;
   }
@@ -124,8 +125,8 @@ public class Assumption {
       // Then tt ^ ot <--> ot, so in particular ot --> tt, i.e. this weakens other.
       return AssumptionRelation.WEAKENS;
     }
-    // Otherwise, we don't know the relation.
-    return AssumptionRelation.UNKNOWN;
+    // Otherwise, their conjunction is a common refinement, different from them both.
+    return AssumptionRelation.REFINES;
   }
 
 
@@ -138,6 +139,13 @@ public class Assumption {
    * "sign content" which is -1 if every coefficient in the polynomial is negative.
    */
   private Pair<RationalFunction,AssumptionType> simplify(Polynomial f, AssumptionType a) {
+    // Cancel rational content. Since this is always positive, we need not flip the assumption type.
+    f = f.cancelRationalContent();
+    // TODO: Clean up.
+    // cancelRationalContent is a new method, added long after this simplify method was
+    // written. Is the rest of the method still needed? Or does cancelRationalContent already
+    // do everything we want? Perhaps the unit content part is still needed, but not the part
+    // pertaining to integer content?
     int u = f.getUnitContent();
     // If u = 0, then f is 0. Otherwise, we try to simplify.
     if (u != 0) {
@@ -220,9 +228,9 @@ public class Assumption {
   public enum AssumptionRelation {
     CONTRADICTS       (5),
     ISSAMEAS          (4),
-    STRENGTHENS       (3),
-    WEAKENS           (2),
-    UNKNOWN           (1),
+    WEAKENS           (3),
+    REFINES           (2),
+    STRENGTHENS       (1),
     DOESNOTCOMPARETO  (0);
 
     private final int num;
@@ -264,6 +272,10 @@ public class Assumption {
       codes.add(AssumptionType.NONPOSITIVE); // 101
       codes.add(AssumptionType.NONZERO);     // 110
       codes.add(AssumptionType.TRUE);        // 111
+    }
+
+    public int getCode() {
+      return codes.indexOf(this);
     }
 
     private AssumptionType(String t) {

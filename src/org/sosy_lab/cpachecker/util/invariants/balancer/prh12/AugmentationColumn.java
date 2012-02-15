@@ -21,12 +21,14 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.invariants.balancer;
+package org.sosy_lab.cpachecker.util.invariants.balancer.prh12;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
+import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionSet;
 
 
 public class AugmentationColumn extends UsableColumn {
@@ -34,6 +36,7 @@ public class AugmentationColumn extends UsableColumn {
   private final int colNum = -1;
   private Map<Integer,AssumptionSet> asets;
   private Set<Integer> requests;
+  final int height = Integer.MIN_VALUE;
 
   public AugmentationColumn() {
     asets = new HashMap<Integer,AssumptionSet>();
@@ -43,6 +46,11 @@ public class AugmentationColumn extends UsableColumn {
   @Override
   public int getColNum() {
     return colNum;
+  }
+
+  @Override
+  boolean isAugCol() {
+    return true;
   }
 
   @Override

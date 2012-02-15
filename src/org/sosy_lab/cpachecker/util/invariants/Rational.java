@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.invariants;
 
+import org.sosy_lab.cpachecker.util.invariants.balancer.Polynomial;
+
 
 public class Rational {
 
@@ -117,6 +119,14 @@ public class Rational {
     return Math.max(a,b);
   }
 
+  public int getNumerator() {
+    return num;
+  }
+
+  public int getDenominator() {
+    return denom;
+  }
+
   /*
    * Create an Integer with the same value as this Rational, in the case that
    * this Rational is integral. Otherwise, return null.
@@ -160,10 +170,21 @@ public class Rational {
     return r;
   }
 
+  /*
+   * Return a new Rational, equal to the result of cancelling
+   * the gcd of num and denom.
+   */
+  public Rational leastTerms() {
+    int g = Polynomial.gcd(num, denom);
+    int n = num/g;
+    int d = denom/g;
+    return new Rational(n,d);
+  }
+
   public Rational times(Rational other) {
     int n = this.num * other.num;
     int d = this.denom * other.denom;
-    return new Rational(n,d);
+    return new Rational(n,d).leastTerms();
   }
 
   /*
@@ -174,7 +195,7 @@ public class Rational {
     int b = other.denom;
     int n = this.num * b;
     int d = this.denom * a;
-    return new Rational(n,d);
+    return new Rational(n,d).leastTerms();
   }
 
   public Rational plus(Rational other) {
@@ -184,7 +205,7 @@ public class Rational {
     int d = other.denom;
     int p = a*d + b*c;
     int q = b*d;
-    return new Rational(p,q);
+    return new Rational(p,q).leastTerms();
   }
 
   public Rational minus(Rational other) {
@@ -194,7 +215,7 @@ public class Rational {
     int d = other.denom;
     int p = a*d - b*c;
     int q = b*d;
-    return new Rational(p,q);
+    return new Rational(p,q).leastTerms();
   }
 
 }

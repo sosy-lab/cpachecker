@@ -34,6 +34,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
+import org.sosy_lab.cpachecker.util.invariants.balancer.prh12.PivotRowHandler2;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.VariableManager;
 import org.sosy_lab.cpachecker.util.invariants.redlog.EliminationAnswer;
 import org.sosy_lab.cpachecker.util.invariants.redlog.EliminationHandler;
@@ -133,10 +134,16 @@ public class MatrixBalancer implements Balancer {
         while (m != null) {
           logger.log(Level.ALL, "Working on matrix:","\n"+m.toString());
           m.putInRREF(amgr, logger);
+          /*
+           * Old method:
           PivotRowHandler prh = new PivotRowHandler(m, logger);
           prh.firstPass(amgr);
           prh.secondPass(amgr);
           prh.thirdPass(amgr, this);
+          */
+          PivotRowHandler2 prh = new PivotRowHandler2(m, amgr, this, logger);
+          prh.firstPass();
+          prh.secondPass();
           m = amgr.nextMatrix();
         }
 
@@ -159,7 +166,7 @@ public class MatrixBalancer implements Balancer {
         // We wind up here if anything went wrong, anywhere in the process.
         // It is now time to backtrack, i.e. to ask the assumption manager to take us back in time
         // to the last point at which we made a "possibly unnecessary" assumption. We'll carry on
-        // from there. Or, if there are no options left, then 'matrices' will be null, and we will
+        // from there. Or, if there are no options left, then 'tryAgain' will be false, and we will
         // exit the while loop. 'values' will still be null, indicating that we failed to find
         // values for the parameters.
         tryAgain = amgr.nextBranch();
@@ -218,7 +225,7 @@ public class MatrixBalancer implements Balancer {
    * If it succeeds, then we return a map, mapping parameter names to rationals.
    * Else we return null.
    */
-  HashMap<String,Rational> tryAssumptionSet(AssumptionSet aset) {
+  public HashMap<String,Rational> tryAssumptionSet(AssumptionSet aset) {
     logger.log(Level.ALL, "Asking Redlog to find values for the parameters, assuming:\n",aset);
     HashMap<String,Rational> map = null;
 

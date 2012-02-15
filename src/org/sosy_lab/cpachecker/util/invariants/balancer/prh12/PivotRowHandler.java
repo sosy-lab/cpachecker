@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.invariants.balancer;
+package org.sosy_lab.cpachecker.util.invariants.balancer.prh12;
 
 import java.util.HashSet;
 import java.util.List;
@@ -32,6 +32,14 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption;
+import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionManager;
+import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionSet;
+import org.sosy_lab.cpachecker.util.invariants.balancer.BadAssumptionsException;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Matrix;
+import org.sosy_lab.cpachecker.util.invariants.balancer.MatrixBalancer;
+import org.sosy_lab.cpachecker.util.invariants.balancer.MatrixSolvingFailedException;
+import org.sosy_lab.cpachecker.util.invariants.balancer.RationalFunction;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 import org.sosy_lab.cpachecker.util.invariants.balancer.MatrixSolvingFailedException.Reason;
 
@@ -259,12 +267,12 @@ public class PivotRowHandler {
   }
 
   /*
-   * Check whether all post-pivots in row r are of code 0, 1, or 3.
+   * Check whether all post-pivots in row r are of code 0 or 3.
    */
-  private boolean FApr013(Integer r) {
+  private boolean FApr03(Integer r) {
     boolean ans = true;
     for (int j = 0; j < augStart; j++) {
-      if (codes[r][j] == 2) {
+      if (codes[r][j] == 1 || codes[r][j] == 2) {
         ans = false; break;
       }
     }
@@ -318,14 +326,14 @@ public class PivotRowHandler {
     Vector<Integer> discard = new Vector<Integer>();
     logger.log(Level.ALL, "Processing pivot rows:\n",remainingRows,"\nfor matrix:","\n"+mat.toString());
     for (Integer r : remainingRows) {
-      if (FAar01(r) && FApr013(r)) {
+      if (FAar01(r) && FApr03(r)) {
         // If every augmentation entry in row r is of code 0 or 1, then row r will be satisfied
         // if and only if it has no positive entries in a column that some row wants to use.
-        // So if there are any 2's among the postpivots, then we might still need to use one of
+        // So if there are any 1's or 2's among the postpivots, then we might still need to use one of
         // them during the third pass. So we rule this row out right now only if in addition there
-        // are no 2's among the postpivots.
+        // are no 1's or 2's among the postpivots.
         logger.log(Level.ALL,"Discarding row",r,": all augmentation entries nonnegative constants,",
-            "and all postpivots are constant.");
+            "and all postpivots are nonpositive constants.");
         discard.add(r);
       }
       else if (EXpr3AU(r)) {
@@ -343,7 +351,12 @@ public class PivotRowHandler {
           logger.log(Level.ALL, "Matrix unsolvable! Row",r,
               "has a negative constant augmentation entry, but all post-pivot entries nonnegative constants.");
           throw new BadAssumptionsException();
-        } else {
+        }
+        /*
+         * Actually we need to keep this kind of row (below), in case another pivot row tries to use
+         * a column that has a 1 in this row.
+         *
+        else {
           // Else all aug entries are of codes 0, 1, 2, and the only hope for this row is that
           // all entries of code 2 be nonnegative.
           AssumptionSet nonneg = ar2nonneg(r);
@@ -354,6 +367,7 @@ public class PivotRowHandler {
               r,"be nonnegative. Assumptions added:","\n"+nonneg.toString());
           amgr.addNecessaryAssumptions( nonneg );
         }
+        */
       }
     }
     discardRows(discard);

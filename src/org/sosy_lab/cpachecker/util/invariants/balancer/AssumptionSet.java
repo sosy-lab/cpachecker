@@ -166,16 +166,20 @@ public class AssumptionSet implements Iterable<Assumption> {
    * We match the passed assumption a against all those in the set,
    * returning the /strongest/ relation we find.
    *
-   * We can find: C, I, S, W, U, D.
+   * We can find: C, I, W, R, S, D.
    *
    * If there's a C, we return that.
    * If there's no C, but there is an I, then we return that.
-   * If there's neither C nor I, but there is an S or a W, then we return that.
-   * (We should never get both an S and a W. For if the set contains b and c such
-   *  that b --> a --> c, then b --> c, but AssumptionSets are never supposed to
-   *  contain one element that is implied by another, since it's redundant.)
-   * If there are no C, I, S, or W, but there is a U, then we return U.
+   * If there's neither C nor I, but there is a W, R, or S, then we return that.
    * Else, there were only D, and we return D.
+   *
+   * Note that if the current set is neither redundant (containing b and c such that
+   * b W c or b S c) nor immediately contradictory (containing b and c such that b C c),
+   * then we will never get more than one of W, R, and S.
+   *
+   * For if we get both a W b and a S c, then c W b, and the set is redundant.
+   * If we get both a R b and a W c, then either b W c or b C c.
+   * If we get both a R b and a S c, then c W b.
    *
    */
   public AssumptionRelation matchAgainst(Assumption a) {
@@ -187,6 +191,21 @@ public class AssumptionSet implements Iterable<Assumption> {
       }
     }
     return max;
+  }
+
+  /*
+   * Say the strongest assumption we have on f, if any.
+   * Returns 'true' if we have no assumptions about f.
+   */
+  public AssumptionType query(RationalFunction f) {
+    Assumption a = new Assumption(f, AssumptionType.TRUE);
+    for (Assumption b : aset) {
+      Assumption c = b.strengthen(a);
+      if (c != null) {
+        a = b;
+      }
+    }
+    return a.getAssumptionType();
   }
 
 }

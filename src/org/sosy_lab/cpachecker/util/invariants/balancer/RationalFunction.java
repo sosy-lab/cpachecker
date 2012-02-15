@@ -33,6 +33,7 @@ public class RationalFunction {
   public RationalFunction(Polynomial n, Polynomial d) {
     num = n;
     denom = d;
+    simplify();
   }
 
   public RationalFunction(Polynomial n) {
@@ -191,6 +192,24 @@ public class RationalFunction {
     return denom.isUnity();
   }
 
+  public boolean isRationalConstantMultipleOf(RationalFunction that) {
+    Polynomial p = this.num.cancelRationalContent();
+    Polynomial q = this.denom.cancelRationalContent();
+    RationalFunction a = new RationalFunction(p,q);
+    Polynomial r = that.num.cancelRationalContent();
+    Polynomial s = that.denom.cancelRationalContent();
+    RationalFunction b = new RationalFunction(r,s);
+    if (subtract(a,b).isZero()) {
+      return true;
+    }
+    else if (add(a,b).isZero()) {
+      return true;
+    }
+    else {
+      return false;
+    }
+  }
+
   /*
    * Return the max of the number of terms of the num and denom.
    */
@@ -245,7 +264,26 @@ public class RationalFunction {
 
   public void simplify() {
 
+    // Check whether num is constant multiple of denom.
+    Rational q = num.rationalConstantQuotientOver(denom);
+    if (q != null) {
+      // In this case, this rational function is simply equal to q, everywhere it is defined.
+      num = new Polynomial(q);
+      denom = new Polynomial(1);
+    }
 
+    // Make coefficients integers, if we are not a polynomial.
+    if (!isPolynomial()) {
+      Rational a = num.getRationalContent();
+      Rational b = denom.getRationalContent();
+      num = num.cancelRationalContent();
+      denom = denom.cancelRationalContent();
+      Rational c = a.div(b);
+      int n = c.getNumerator();
+      int d = c.getDenominator();
+      num = Polynomial.multiply(new Polynomial(n), num);
+      denom = Polynomial.multiply(new Polynomial(d), denom);
+    }
 
     // Cancel common monomial content of num and denom.
     Monomial mn = num.getMonomialContent();
