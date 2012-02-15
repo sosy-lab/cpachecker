@@ -129,7 +129,7 @@ public class AutomatonState implements AbstractQueryableElement, Targetable, Ser
 
   @Override
   public String toString() {
-    return automatonCPA.getAutomaton().getName() + ": " + internalState.getName() + ' ' + Joiner.on(' ').withKeyValueSeparator("=").join(vars);
+    return (automatonCPA!=null?automatonCPA.getAutomaton().getName() + ": ": "") + internalState.getName() + ' ' + Joiner.on(' ').withKeyValueSeparator("=").join(vars);
   }
 
 
