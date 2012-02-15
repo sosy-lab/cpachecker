@@ -238,6 +238,7 @@ public class CompositeTransferRelation implements TransferRelation{
 
     CompositeElement compositeElement = (CompositeElement)pElement;
 
+    int resultCount = 1;
     boolean result = true;
     for(int i = 0; i < size; ++i) {
       Set<AbstractElement> componentSuccessors = new HashSet<AbstractElement>();
@@ -248,6 +249,7 @@ public class CompositeTransferRelation implements TransferRelation{
         }
         componentSuccessors.add(compositeSuccessor.get(i));
       }
+      resultCount *= componentSuccessors.size();
       ProofChecker componentProofChecker = (ProofChecker)cpas.get(i);
       if(!componentProofChecker.areAbstractSuccessors(compositeElement.get(i), pCfaEdge, componentSuccessors)) {
         result = false; //if there are no successors it might be still ok if one of the other components is fine with the empty set
@@ -257,6 +259,10 @@ public class CompositeTransferRelation implements TransferRelation{
           return true; //another component is indeed fine with the empty set as set of successors; transition is ok
         }
       }
+    }
+
+    if(resultCount != pSuccessors.size()) {
+      return false;
     }
 
     return result;
