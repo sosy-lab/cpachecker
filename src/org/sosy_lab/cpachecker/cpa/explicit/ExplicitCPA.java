@@ -47,8 +47,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-import com.google.common.collect.HashMultimap;
-
 @Options(prefix="cpa.explicit")
 public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
 
@@ -124,13 +122,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
   }
 
   private ExplicitPrecision initializePrecision(Configuration config) throws InvalidConfigurationException {
-    HashMultimap<CFANode, String> whitelist = null;
-
-    if(this.useCegar()) {
-      whitelist = HashMultimap.create();
-    }
-
-    return new ExplicitPrecision(variableBlacklist, whitelist, config);
+    return new ExplicitPrecision(variableBlacklist, config);
   }
 
   @Override

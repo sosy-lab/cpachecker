@@ -93,6 +93,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.predicate")
 public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARTElement, CFAEdge>> {
@@ -116,6 +117,8 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   private Set<Integer> pathHashes = new HashSet<Integer>();
 
   private Integer previousPathHash = null;
+
+  private static int refinementCounter = 0;
 
   String lastPath;
 
@@ -274,7 +277,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     assert firstInterpolationPoint != null;
 
-//System.out.println("\n" + (++refinementCounter) + ". refining ...");
+System.out.println("\n" + (++refinementCounter) + ". refining ...");
 //System.out.println(getErrorPathAsString(errorPath));
 /*
 System.out.println("\nreferencedVariables: " + variableMapping.values());
@@ -289,7 +292,7 @@ System.out.println("\nfirstInterpolationPoint = " + firstInterpolationPoint + "\
     PredicatePrecision oldPredicatePrecision  = extractPredicatePrecision(oldPrecision);
 
     // create the new precision
-    ExplicitPrecision explicitPrecision = new ExplicitPrecision(oldExplicitPrecision, variableMapping, relevantVariablesOnPath);
+    ExplicitPrecision explicitPrecision       = createExplicitPrecision(oldExplicitPrecision, variableMapping, relevantVariablesOnPath);
 
     String errorTrace = getErrorPathAsString(errorPath);
     Integer errorTraceHash = errorTrace.hashCode();
@@ -306,6 +309,7 @@ System.out.println("\nfirstInterpolationPoint = " + firstInterpolationPoint + "\
 
     // refine the predicate precision if a path was found again
     if (predicateCpaInUse && errorTrace.equals(lastPath)) {
+//System.out.println("adding predicates");
         predicatePrecision = getPredicatePrecision(getInExplicitVariables(errorPath),
             oldPredicatePrecision,
             predicates);
@@ -350,6 +354,21 @@ System.out.println("\nfirstInterpolationPoint = " + firstInterpolationPoint + "\
     }
     return predicatePrecision;
   }
+
+  private ExplicitPrecision createExplicitPrecision(ExplicitPrecision oldPrecision,
+      Multimap<CFANode, String> variableMapping,
+      Multimap<CFANode, String> relevantVariablesOnPath) {
+
+    ExplicitPrecision explicitPrecision             = new ExplicitPrecision(oldPrecision);
+    SetMultimap<CFANode, String> additionalMapping  = HashMultimap.create(variableMapping);
+
+    additionalMapping.putAll(relevantVariablesOnPath);
+
+    explicitPrecision.getCegarPrecision().addToMapping(additionalMapping);
+
+    return explicitPrecision;
+  }
+
 
   private boolean madeProgress(Integer currentPathHash) {
     // if the current path was gone before, signal a failure
@@ -462,16 +481,17 @@ System.out.println("\nfirstInterpolationPoint = " + firstInterpolationPoint + "\
       CFANode location                = predicateAtLocation.getKey();
       AbstractionPredicate predicate  = predicateAtLocation.getValue();
 
-      for (String variable : fmgr.extractVariables(predicate.getSymbolicAtom())) {
+      /*for (String variable : fmgr.extractVariables(predicate.getSymbolicAtom())) {
         variable = variable.substring(variable.lastIndexOf(":") + 1);
 
         if (inexplicitVars.contains(variable)) {
           pmapBuilder.putAll(location, predicate);
+          System.out.println("adding " + predicate);
           newPreds.add(variable);
         }
-      }
+      }*/
 
-      if (predicate.getSymbolicAtom().isFalse())
+      //if (predicate.getSymbolicAtom().isFalse())
         pmapBuilder.putAll(location, predicate);
     }
 
