@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 
 
@@ -237,4 +238,15 @@ public interface FormulaManager {
      * if it is not done by the caller of this method.
      */
     public Formula createPredicateVariable(Formula pAtom);
+
+    /**
+     * Splits a formula with a binary top level op into two formulae, e.g.,
+     * "f1 or f2" gets split to "f1", "f2"
+     */
+    public Pair<Formula, Formula> splitBinOp(Formula f);
+
+    /**
+     * Checks whether leftFormula occurs in rightFormula.
+     */
+    public boolean checkSyntacticEntails(Formula leftFormula, Formula rightFormula);
 }

@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -273,6 +274,16 @@ public class ForwardingFormulaManager implements FormulaManager {
   @Override
   public Formula createPredicateVariable(Formula pAtom) {
     return delegate.createPredicateVariable(pAtom);
+  }
+
+  @Override
+  public Pair<Formula, Formula> splitBinOp(Formula pF) {
+    return delegate.splitBinOp(pF);
+  }
+
+  @Override
+  public boolean checkSyntacticEntails(Formula pLeftFormula, Formula pRightFormula) {
+    return delegate.checkSyntacticEntails(pLeftFormula, pRightFormula);
   }
 
 }

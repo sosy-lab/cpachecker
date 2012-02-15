@@ -63,6 +63,11 @@ public class PredicateAbstractionManager {
 
     public long allSatCount = 0;
     public int maxAllSatCount = 0;
+
+    public int numPathFormulaCoverageChecks = 0;
+    public int numEqualPathFormulae = 0;
+    public int numSyntacticEntailedPathFormulae = 0;
+    public int numSemanticEntailedPathFormulae = 0;
   }
 
   final Stats stats;
@@ -392,8 +397,11 @@ public class PredicateAbstractionManager {
    * Checks whether a1.getFormula() => a2.getFormula() and whether the a1.getSsa()(v) <= a2.getSsa()(v) for all v
    */
   public boolean checkCoverage(PathFormula a1, PathFormula a2, PathFormulaManager pfmgr) {
+    stats.numPathFormulaCoverageChecks++;
+
     //handle common special case more efficiently
     if(a1.equals(a2)) {
+      stats.numEqualPathFormulae++;
       return true;
     }
 
@@ -409,10 +417,20 @@ public class PredicateAbstractionManager {
     //merge path formulae
     PathFormula mergedPathFormulae = pfmgr.makeOr(a1, a2);
 
+    //quick syntactic check
+    Formula leftFormula = fmgr.splitBinOp(mergedPathFormulae.getFormula()).getFirst();
+    Formula rightFormula = a2.getFormula();
+    if(fmgr.checkSyntacticEntails(leftFormula, rightFormula)) {
+      stats.numSyntacticEntailedPathFormulae++;
+      return true;
+    }
+
+
     //check formulae
     if(!checkCoverage(mergedPathFormulae.getFormula(), a2.getFormula())) {
       return false;
     }
+    stats.numSemanticEntailedPathFormulae++;
 
     return true;
   }

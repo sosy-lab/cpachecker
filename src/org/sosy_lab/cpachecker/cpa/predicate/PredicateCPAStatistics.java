@@ -232,9 +232,9 @@ class PredicateCPAStatistics implements Statistics {
       }
 
       if(trans.pathFormulaCheckTimer.getNumberOfIntervals() > 0 || trans.abstractionCheckTimer.getNumberOfIntervals() > 0) {
-        out.println("Abstraction check time:            " + trans.abstractionCheckTimer);
-        out.println("Path formula check time:           " + trans.pathFormulaCheckTimer);
-        out.println("Unsat check time:                  " + trans.satCheckTimer);
+        out.println("Time for abstraction checks:       " + trans.abstractionCheckTimer);
+        out.println("Time for path formulae checks:     " + trans.pathFormulaCheckTimer + " (Num: " + as.numPathFormulaCoverageChecks + ", Equal: " + as.numEqualPathFormulae + ", Syn. entailed: " + as.numSyntacticEntailedPathFormulae + ", Sem. entailed: " + as.numSemanticEntailedPathFormulae + ")");
+        out.println("Time for unsat checks:             " + trans.satCheckTimer + " (Calls: " + trans.satCheckTimer.getNumberOfIntervals() + ")");
       }
     }
 
