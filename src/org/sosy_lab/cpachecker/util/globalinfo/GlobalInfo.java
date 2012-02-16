@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.globalinfo;
 
+import java.io.Serializable;
+import java.util.ArrayList;
+
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
@@ -35,6 +38,7 @@ public class GlobalInfo {
   private CFAInfo cfaInfo;
   private AutomatonInfo automatonInfo = new AutomatonInfo();
   private ExtendedFormulaManager formulaManager;
+  private ArrayList<Serializable> helperStorages = new ArrayList<Serializable>();
 
   private GlobalInfo() {
 
@@ -74,5 +78,18 @@ public class GlobalInfo {
   public ExtendedFormulaManager getFormulaManager() {
     Preconditions.checkState(formulaManager != null);
     return formulaManager;
+  }
+
+  public int addHelperStorage(Serializable e) {
+    helperStorages.add(e);
+    return helperStorages.size() - 1;
+  }
+
+  public Serializable getHelperStorage(int index) {
+    return helperStorages.get(index);
+  }
+
+  public int getNumberOfHelperStorages() {
+    return helperStorages.size();
   }
 }

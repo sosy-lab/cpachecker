@@ -91,7 +91,6 @@ public abstract class PredicateAbstractElement implements AbstractElement, Parti
   }
 
   private static class NonAbstractionElement extends PredicateAbstractElement {
-    //TODO may want to overload writeObject here to avoid writing the (unchanged) abstraction formula over and over again
     private static final long serialVersionUID = -6912172362012773999L;
     /**
      * The abstract element this element was merged into.

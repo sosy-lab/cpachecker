@@ -206,14 +206,14 @@ public abstract class MathsatFormulaManager implements FormulaManager {
 
   // ----------------- Uninterpreted functions -----------------
 
-  private long buildMsatUF(String name, long[] args) {
+  private long buildMsatUF(String name, long[] args, boolean predicate) {
     if (!useUIFs) {
       return buildMsatUfReplacement(); // shortcut
     }
 
     int[] tp = new int[args.length];
-    Arrays.fill(tp, msatVarType);
-    long decl = msat_declare_uif(msatEnv, name, msatVarType, tp);
+    Arrays.fill(tp, predicate?MSAT_BOOL:msatVarType);
+    long decl = msat_declare_uif(msatEnv, name, predicate?MSAT_BOOL:msatVarType, tp);
     if (MSAT_ERROR_DECL(decl)) {
       return MSAT_MAKE_ERROR_TERM();
     }
@@ -239,13 +239,18 @@ public abstract class MathsatFormulaManager implements FormulaManager {
   }
 
   @Override
+  public Formula makeUIP(String name, FormulaList args) {
+    return encapsulate(buildMsatUF(name, getTerm(args), true));
+  }
+
+  @Override
   public Formula makeUIF(String name, FormulaList args) {
-    return encapsulate(buildMsatUF(name, getTerm(args)));
+    return encapsulate(buildMsatUF(name, getTerm(args), false));
   }
 
   @Override
   public Formula makeUIF(String name, FormulaList args, int idx) {
-    return encapsulate(buildMsatUF(makeName(name, idx), getTerm(args)));
+    return encapsulate(buildMsatUF(makeName(name, idx), getTerm(args), false));
   }
 
   // ----------------- Other formulas -----------------
@@ -425,7 +430,7 @@ public abstract class MathsatFormulaManager implements FormulaManager {
               int idx = ssa.getIndex(name, encapsulate(newargs));
               if (idx > 0) {
                 // ok, the variable has an instance in the SSA, replace it
-                newt = buildMsatUF(makeName(name, idx), newargs);
+                newt = buildMsatUF(makeName(name, idx), newargs, false);
               } else {
                 newt = msat_replace_args(msatEnv, t, newargs);
               }
@@ -494,7 +499,7 @@ public abstract class MathsatFormulaManager implements FormulaManager {
             if (ufCanBeLvalue(name)) {
               name = parseName(name).getFirst();
 
-              newt = buildMsatUF(name, newargs);
+              newt = buildMsatUF(name, newargs, false);
             } else {
               newt = msat_replace_args(msatEnv, t, newargs);
             }
@@ -668,5 +673,23 @@ public abstract class MathsatFormulaManager implements FormulaManager {
     }
 
     return false;
+  }
+
+  @Override
+  public Formula[] getArguments(Formula f) {
+    final long t = getTerm(f);
+    int arity = msat_term_arity(t);
+    Formula[] result = new Formula[arity];
+    for(int i = 0; i < arity; ++i) {
+      result[i] = encapsulate(msat_term_get_arg(t, i));
+    }
+    return result;
+  }
+
+  @Override
+  public void declareUIP(String name, int argCount) {
+    int[] tp = new int[argCount];
+    Arrays.fill(tp, MSAT_BOOL);
+    msat_declare_uif(msatEnv, name, MSAT_BOOL, tp);
   }
 }

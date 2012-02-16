@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.PrintStream;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -54,6 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 @Options
 public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
@@ -121,9 +123,32 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     try {
       fis = new FileInputStream(file);
       ZipInputStream zis = new ZipInputStream(fis);
+
       ZipEntry entry = zis.getNextEntry();
       assert entry.getName().equals("Proof");
+      zis.closeEntry();
+
+      entry = zis.getNextEntry();
+      assert entry.getName().equals("Helper");
       ObjectInputStream o = new ObjectInputStream(zis);
+      //read helper storages
+      int numberOfStorages = o.readInt();
+      for(int i = 0; i < numberOfStorages; ++i) {
+        Serializable storage = (Serializable)o.readObject();
+        GlobalInfo.getInstance().addHelperStorage(storage);
+      }
+      zis.closeEntry();
+
+      o.close();
+      zis.close();
+      fis.close();
+
+      fis = new FileInputStream(file);
+      zis = new ZipInputStream(fis);
+      entry = zis.getNextEntry();
+      assert entry.getName().equals("Proof");
+      o = new ObjectInputStream(zis);
+      //read ART
       return (ARTElement)o.readObject();
     }
     finally {

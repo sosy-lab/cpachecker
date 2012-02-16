@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 @Options
 public class GenericProofGenerator {
@@ -84,12 +85,27 @@ public class GenericProofGenerator {
       fos = new FileOutputStream(file);
       ZipOutputStream zos = new ZipOutputStream(fos);
       zos.setLevel(9);
+
       ZipEntry ze = new ZipEntry("Proof");
       zos.putNextEntry(ze);
       ObjectOutputStream o = new ObjectOutputStream(zos);
       //TODO might also want to write used configuration to the file so that proof checker does not need to get it as an argument
       //write ART
       o.writeObject(reached.getFirstElement());
+      zos.closeEntry();
+
+      ze = new ZipEntry("Helper");
+      zos.putNextEntry(ze);
+      //write helper storages
+      o = new ObjectOutputStream(zos);
+      int numberOfStorages = GlobalInfo.getInstance().getNumberOfHelperStorages();
+      o.writeInt(numberOfStorages);
+      for(int i = 0; i < numberOfStorages; ++i) {
+        o.writeObject(GlobalInfo.getInstance().getHelperStorage(i));
+      }
+
+      zos.closeEntry();
+
       o.close();
       zos.close();
     } catch (IOException e) {

@@ -245,8 +245,14 @@ public interface FormulaManager {
      */
     public Pair<Formula, Formula> splitBinOp(Formula f);
 
+    public Formula[] getArguments(Formula f);
+
     /**
      * Checks whether leftFormula occurs in rightFormula.
      */
     public boolean checkSyntacticEntails(Formula leftFormula, Formula rightFormula);
+
+    Formula makeUIP(String pName, FormulaList pArgs);
+
+    void declareUIP(String pName, int pArgCount);
 }

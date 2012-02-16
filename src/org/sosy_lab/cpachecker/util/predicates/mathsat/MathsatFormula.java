@@ -23,11 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat;
 
+import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
+import java.util.ArrayList;
 
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 
@@ -77,21 +78,96 @@ class MathsatFormula implements Formula, Serializable {
     }
 
     private Object writeReplace() throws ObjectStreamException {
-      //TODO this representation is a bit inefficient (e.g., declares occurring variables for each formula independently)
-      return new SerialProxy(GlobalInfo.getInstance().getFormulaManager().dumpFormula(this));
+      return new SerialProxy(this);
     }
 
     private static class SerialProxy implements Serializable {
       private static final long serialVersionUID = 6889568471468710163L;
-      private final String formulaStr;
+      private transient static int storageIndex = -1;
 
-      public SerialProxy(String pFormulaStr) {
-        formulaStr = pFormulaStr.replaceAll("\"", "");
+      public SerialProxy(Formula pFormula) {
+        if(storageIndex == -1) {
+          storageIndex = GlobalInfo.getInstance().addHelperStorage(new MathsatFormulaStorage());
+        }
+        ((MathsatFormulaStorage)GlobalInfo.getInstance().getHelperStorage(storageIndex)).storeFormula(pFormula);
+      }
+
+      private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+        out.defaultWriteObject();
+        out.writeInt(storageIndex);
+      }
+
+      private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        storageIndex = in.readInt();
       }
 
       private Object readResolve() throws ObjectStreamException {
-        ExtendedFormulaManager fm = GlobalInfo.getInstance().getFormulaManager();
-        return fm.parse(formulaStr);
+        return ((MathsatFormulaStorage)GlobalInfo.getInstance().getHelperStorage(storageIndex)).restoreFormula();
+      }
+    }
+
+    private static class MathsatFormulaStorage implements Serializable {
+      private static final long serialVersionUID = -3773448463181606622L;
+      private transient ArrayList<Formula> formulaeStorage;
+
+      public MathsatFormulaStorage() {
+        formulaeStorage = new ArrayList<Formula>();
+      }
+
+      public void storeFormula(Formula f) {
+        formulaeStorage.add(f);
+      }
+
+      public Formula restoreFormula() {
+        Formula result = formulaeStorage.get(0);
+        formulaeStorage.remove(0);
+
+        return result;
+      }
+
+      private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+        out.defaultWriteObject();
+
+        //build overall formula using a uninterpreted predicate dummy
+        //storageFormula = dummy(formula_1, formula_2, ...)
+        long[] terms = new long[formulaeStorage.size()];
+        for(int i = 0; i < formulaeStorage.size(); ++i) {
+          terms[i] = ((MathsatFormula)formulaeStorage.get(i)).msatTerm;
+        }
+        Formula storageFormula = GlobalInfo.getInstance().getFormulaManager().makeUIP("dummy", new MathsatFormulaList(terms));
+
+        String storageFormulaRepresentation = GlobalInfo.getInstance().getFormulaManager().dumpFormula(storageFormula);
+
+        //avoid quotation marks in formulae
+        storageFormulaRepresentation = storageFormulaRepresentation.replaceAll("\"", "");
+
+        //work around for MathSat bug
+        int index = storageFormulaRepresentation.indexOf("VAR dummy :");
+        String pre = storageFormulaRepresentation.substring(0, index);
+        String post = storageFormulaRepresentation.substring(storageFormulaRepresentation.indexOf("\n", index)+1);
+        storageFormulaRepresentation = pre + post;
+
+        //write everything
+        out.writeInt(formulaeStorage.size());
+        out.writeObject(storageFormulaRepresentation);
+      }
+
+      private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+
+        //work around for MathSat bug
+        int storageSize = in.readInt();
+        GlobalInfo.getInstance().getFormulaManager().declareUIP("dummy", storageSize);
+
+        Formula storageFormula = GlobalInfo.getInstance().getFormulaManager().parse((String)in.readObject());
+
+        //split storage formula
+        Formula[] formulae = GlobalInfo.getInstance().getFormulaManager().getArguments(storageFormula);
+        formulaeStorage = new ArrayList<Formula>(storageSize);
+        for(Formula f : formulae) {
+          formulaeStorage.add(f);
+        }
       }
     }
 }
