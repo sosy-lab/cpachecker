@@ -220,7 +220,7 @@ public class MathsatFormulaManager implements FormulaManager, StatisticsProvider
     return new MathsatFormulaList(t);
   }
 
-  private static String makeName(String name, int idx) {
+  public static String makeName(String name, int idx) {
     return name + INDEX_SEPARATOR + idx;
   }
 

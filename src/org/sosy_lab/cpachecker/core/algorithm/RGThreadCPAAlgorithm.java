@@ -187,9 +187,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
             }
           }
 
-          if (rgEdge == null){
-            System.out.println(this.getClass());
-          }
           assert rgEdge != null;
           edges.add(rgEdge);
         }
@@ -204,7 +201,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         aElement.setHasLocalChild(true);
       }
 
-      if (edges.isEmpty()){
+      if (debug && edges.isEmpty()){
         System.out.println();
       }
 

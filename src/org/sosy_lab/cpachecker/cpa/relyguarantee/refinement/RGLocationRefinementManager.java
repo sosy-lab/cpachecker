@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -35,6 +36,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Vector;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
@@ -45,6 +47,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
+import org.sosy_lab.cpachecker.cfa.ThreadCFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -68,6 +71,8 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTr
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -76,7 +81,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatPredicates;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -111,13 +118,14 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   private final LogManager logger;
   private final Stats stats;
 
+  /* for non-monotonic refinement only */
   private final Multimap<Path, Pair<CFANode, CFANode>> globalInqMap;
+  private final Map<String, CFANode> nodeMap;
   /** Number of classes in the last non-monotonic refinement*/
   private int   numberOfNMClasses = 2;
 
-
-
   private static RGLocationRefinementManager singleton;
+  private static Pattern varRegex = Pattern.compile("^PRED_(N\\d+)_(\\d+)$");
 
   public static RGLocationRefinementManager getInstance(FormulaManager pFManager, PathFormulaManager pPfManager, RGEnvTransitionManager pEtManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver, RegionManager pRManager, RGEnvironmentManager envManager, ParallelCFAS pPcfa, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     if (singleton == null){
@@ -145,10 +153,28 @@ public class RGLocationRefinementManager implements StatisticsProvider{
 
     if (locationRefinement.equals("NONMONOTONIC")){
       globalInqMap = LinkedHashMultimap.create();
+      nodeMap = initializeNodeMap(this.pcfa);
     } else {
       globalInqMap = null;
+      nodeMap = null;
     }
   }
+
+
+
+  private Map<String, CFANode> initializeNodeMap(ParallelCFAS pcfa) {
+
+    Map<String, CFANode> nodeMap = new HashMap<String, CFANode>();
+
+    for (ThreadCFA cfa : pcfa){
+      for (CFANode node : cfa.getAllNodes()){
+        nodeMap.put(node.toString(), node);
+      }
+    }
+
+    return nodeMap;
+  }
+
 
   /**
    * Analyze the feasible counterexample. Depending on the configuration
@@ -240,7 +266,8 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @throws CPATransferException
    */
   private InterpolationTreeResult nonMonotonicRefinement(InterpolationTreeResult counterexample) throws CPATransferException {
-    Collection<Path> paths = getErrorPathsForTrunk(counterexample.getTree());
+    InterpolationTree tree = counterexample.getTree();
+    Collection<Path> paths = getErrorPathsForTrunk(tree);
 
     for (Path pi : paths){
       Collection<Pair<CFANode, CFANode>> threadInq = findLocationInequalities(pi, false);
@@ -268,37 +295,94 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   /**
    * Finds the minimal number of equivalence class that puts splits mistmatching locations using a SAT solver.
    * @param inqMap
+   * @param tree
    * @return
    */
   private RGLocationMapping nonMonotonicLocationMapping(Multimap<Path, Pair<CFANode, CFANode>> inqMap) {
 
     int clNo = numberOfNMClasses;
+    thmProver.init();
 
     boolean unsat;
     do {
-      Formula f = buildNonMonotonicFormula(inqMap, clNo);
+      Formula fr = buildNonMonotonicFormulaSAT(inqMap, clNo);
+      thmProver.push(fr);
+
+      stats.solverTimer.start();
+      unsat = thmProver.isUnsat(fManager.makeTrue());
+      stats.solverTimer.stop();
+
       clNo++;
-      unsat = thmProver.isUnsat(f);
     } while (unsat);
 
     numberOfNMClasses = clNo-1;
 
-    Model m = thmProver.getModel();
-    RGLocationMapping lm = locationMappingFromModel(m);
+    Model model = thmProver.getModel();
+    thmProver.reset();
 
+    RGLocationMapping lm = RGLocationMappingSAT(model);
     return lm;
   }
 
   /**
-   * Builds a formula that is satisfiable if the mismatching locations can be split
+   * Builds a linear-arithmetic formula that is satisfiable if the mismatching locations can be split
    * in "the next power of 2 that is >= clNo" number of classes.
    * @param inqMap
    * @param clNo
    * @return
    */
-  private Formula buildNonMonotonicFormula(Multimap<Path, Pair<CFANode, CFANode>> inqMap, int clNo) {
+  private Formula buildNonMonotonicFormulaLA(Multimap<Path, Pair<CFANode, CFANode>> inqMap, int clNo) {
+    stats.formulaTimer.start();
+
+    Formula f = fManager.makeTrue();
+    Formula one = fManager.makeNumber(1);
+    Formula max = fManager.makeNumber(clNo);
+    Set<Formula> variablesUsed = new HashSet<Formula>();
+
+    for (Path pi : inqMap.keySet()){
+      Formula fdis = fManager.makeFalse();
+      Collection<Pair<CFANode, CFANode>> misColl = inqMap.get(pi);
+
+      for (Pair<CFANode, CFANode> pair : misColl){
+        String first = MathsatFormulaManager.makeName(pair.getFirst().toString(), 0);
+        String second = MathsatFormulaManager.makeName(pair.getSecond().toString(), 0);
+
+        Formula va = fManager.makeVariable(first);
+        Formula vb = fManager.makeVariable(second);
+        variablesUsed.add(va);
+        variablesUsed.add(vb);
+
+        Formula fmis = fManager.makeNot(fManager.makeEqual(va, vb));
+        fdis = fManager.makeOr(fdis, fmis);
+      }
+
+      f = fManager.makeAnd(f, fdis);
+    }
+
+    for (Formula var : variablesUsed){
+      Formula geq = fManager.makeGeq(var, one);
+      Formula leq = fManager.makeLeq(var, max);
+      f = fManager.makeAnd(f, leq);
+      f = fManager.makeAnd(f, geq);
+    }
+
+    stats.formulaTimer.stop();
+    return f;
+  }
+
+
+  /**
+   * Builds a propositional formula that is satisfiable if the mismatching locations can be split
+   * in "the next power of 2 that is >= clNo" number of classes.
+   * @param inqMap
+   * @param clNo
+   * @return
+   */
+  private Formula buildNonMonotonicFormulaSAT(Multimap<Path, Pair<CFANode, CFANode>> inqMap, int clNo) {
     stats.formulaTimer.start();
     Formula f = fManager.makeTrue();
+
+
 
     int bitNo = 0;
     int powerOf2 = 1;
@@ -308,7 +392,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     }
 
     for (Path pi : inqMap.keySet()){
-      Formula dis = buildDisjunctionOverMistmaches(inqMap.get(pi), bitNo);
+      Formula dis = buildDisjunctionOverMistmachesSAT(inqMap.get(pi), bitNo);
       f = fManager.makeAnd(f, dis);
     }
 
@@ -322,11 +406,11 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @param bitNo
    * @return
    */
-  private Formula buildDisjunctionOverMistmaches(Collection<Pair<CFANode, CFANode>> inqColl, int bitNo) {
-    Formula f = fManager.makeTrue();
+  private Formula buildDisjunctionOverMistmachesSAT(Collection<Pair<CFANode, CFANode>> inqColl, int bitNo) {
+    Formula f = fManager.makeFalse();
 
     for (Pair<CFANode, CFANode> pair : inqColl){
-      Formula fmis = buildMistmach(pair.getFirst(), pair.getSecond(), bitNo);
+      Formula fmis = buildMistmachSAT(pair.getFirst(), pair.getSecond(), bitNo);
       f = fManager.makeOr(f, fmis);
     }
 
@@ -341,7 +425,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @param bitNo
    * @return
    */
-  private Formula buildMistmach(CFANode first, CFANode second, int bitNo) {
+  private Formula buildMistmachSAT(CFANode first, CFANode second, int bitNo) {
 
     Formula f = fManager.makeTrue();
 
@@ -363,13 +447,116 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @return
    */
   private Formula getVariable(CFANode node, int i) {
-    String name = node+"_"+i;
+    String name = "_"+node+"_"+i;
     return fManager.makePredicateVariable(name, 0);
   }
 
 
-  private RGLocationMapping locationMappingFromModel(Model m) {
-    return null;
+  private RGLocationMapping RGLocationMappingLA(Model model) {
+
+    Map<CFANode, Integer> locMapping = new HashMap<CFANode, Integer>();
+    Set<CFANode> allNodes = new HashSet<CFANode>(nodeMap.values());
+
+
+    /* retrive location classes from the model*/
+    for (AssignableTerm term : model.keySet()){
+      assert term.getType() == TermType.Integer;
+      Integer classNo = (Integer) model.get(term);
+
+      CFANode node = nodeMap.get(term.getName());
+      locMapping.put(node, classNo);
+
+      allNodes.remove(node);
+    }
+
+    /* put remaining nodes in class 1*/
+    for (CFANode node : allNodes){
+      locMapping.put(node, 1);
+    }
+
+
+    return RGLocationMapping.copyOf(locMapping);
+  }
+
+  /**
+   * Creates a location from the SAT model.
+   * @param pModel
+   * @return
+   */
+  private RGLocationMapping RGLocationMappingSAT(Model model) {
+    Map<CFANode, Integer> locMapping = new HashMap<CFANode, Integer>();
+    Set<CFANode> allNodes = new HashSet<CFANode>(nodeMap.values());
+
+    // map: location -> (bit number, value)
+    Multimap<CFANode, Pair<Integer, Boolean>> predMap = HashMultimap.create();
+
+    /* get bit values */
+    for (AssignableTerm term : model.keySet()){
+      assert term.getType() == TermType.Boolean;
+      Boolean value = (Boolean) model.get(term);
+
+      Pair<CFANode, Integer> pair = parseSATVariable(term.getName());
+      CFANode node = pair.getFirst();
+      Integer bitNo = pair.getSecond();
+      predMap.put(node, Pair.of(bitNo, value));
+    }
+
+    /* retrive location classes from the bits */
+    for (CFANode node : predMap.keySet()){
+      Integer locCl = bitsToNumber(predMap.get(node))+1;
+      locMapping.put(node, locCl);
+      allNodes.remove(node);
+    }
+
+
+    /* put remaining nodes in class 1*/
+    for (CFANode node : allNodes){
+      locMapping.put(node, 1);
+    }
+
+
+    return RGLocationMapping.copyOf(locMapping);
+  }
+
+
+  /**
+   * Bit to integer representation.
+   * @param collection
+   * @return
+   */
+  private Integer bitsToNumber(Collection<Pair<Integer, Boolean>> collection) {
+    int value = 0;
+    for (Pair<Integer, Boolean> pair : collection){
+      if (pair.getSecond()){
+
+        int powerOf2 = 1;
+        for (int i=2; i<=pair.getFirst(); i++){
+          powerOf2 *= 2;
+        }
+
+        value += powerOf2;
+      }
+    }
+
+    return value;
+  }
+
+
+  /**
+   * Retrieves CFANode and bit number from predicate name.
+   * @param name
+   * @return
+   */
+  private Pair<CFANode, Integer> parseSATVariable(String name) {
+    Matcher mt = varRegex.matcher(name);
+    if (mt.find()){
+      String nodeName = mt.group(1);
+      CFANode node = nodeMap.get(nodeName);
+      Integer bitNo = Integer.parseInt(mt.group(2));
+      return Pair.of(node, bitNo);
+    }
+
+    throw new UnsupportedOperationException("Couldn't parse "+name);
   }
 
 
@@ -442,6 +629,8 @@ public class RGLocationRefinementManager implements StatisticsProvider{
         if (stopAfterFirst){
           break;
         }
+
+        pc[tid] = edge.getSuccessor();
       }
     }
 
@@ -857,8 +1046,10 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   public static class Stats implements Statistics {
     public final Timer locRefTimer    = new Timer();
     public final Timer formulaTimer   = new Timer();
+    public final Timer solverTimer    = new Timer();
     public int iterations             = 0;
     public int locClNo                = 1;
+
 
 
     @Override
@@ -868,7 +1059,9 @@ public class RGLocationRefinementManager implements StatisticsProvider{
 
     @Override
     public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached){
-      out.println("total time on location ref.:     " + locRefTimer);
+      out.println("time on location ref.:           " + locRefTimer);
+      out.println("time on constraint solving:      " + solverTimer);
+      out.println("time on location formulas:       " + formulaTimer);
       out.println("refinements no:                  " + formatInt(iterations));
       out.println("number of location classes:      " + formatInt(locClNo));
     }
