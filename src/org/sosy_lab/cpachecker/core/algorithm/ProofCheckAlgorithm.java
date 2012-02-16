@@ -31,6 +31,7 @@ import java.io.ObjectInputStream;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -153,53 +154,69 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     reachedSet.add(rootElement, initialPrecision);
 
-    while (reachedSet.hasWaitingElement()) {
-      CPAchecker.stopIfNecessary();
+    Set<ARTElement> postponedElements = new HashSet<ARTElement>();
 
-      stats.countIterations++;
-      ARTElement element = (ARTElement)reachedSet.popFromWaitlist();
-
-      logger.log(Level.FINE, "Looking at element", element);
-
-      if(element.isCovered()) {
-        logger.log(Level.FINER, "Element is covered by another abstract element; checking coverage");
-        stats.stopTimer.start();
-        ARTElement coveringElement = element.getCoveringElement();
-        if(!isCoveringCycleFree(element)) {
-          stats.stopTimer.stop();
+    do {
+      for(ARTElement e : postponedElements) {
+        if(!reachedSet.contains(e.getCoveringElement())) {
           stats.totalTimer.stop();
-          logger.log(Level.WARNING, "Found cycle in covering relation for element", element);
+          logger.log(Level.WARNING, "Covering element", e.getCoveringElement(), "was not found in reached set");
           return false;
         }
-        if(!cpa.isCoveredBy(element, coveringElement)) {
-          stats.stopTimer.stop();
-          stats.totalTimer.stop();
-          logger.log(Level.WARNING, "Element", element, "is not covered by", coveringElement);
-          return false;
-        }
-        stats.stopTimer.stop();
-        if(!reachedSet.contains(coveringElement)) {
-          stats.totalTimer.stop();
-          logger.log(Level.WARNING, "Covering element", coveringElement, "was not found in reached set");
-          return false; //this is a bit more strict than need, but allows the covering check to "trust" the elements
-        }
+        reachedSet.reAddToWaitlist(e);
       }
-      else {
-        stats.transferTimer.start();
-        Collection<ARTElement> successors = element.getChildren();
-        logger.log(Level.FINER, "Checking abstract successors", successors);
-        if(!cpa.areAbstractSuccessors(element, null, successors)) {
+      postponedElements.clear();
+
+      while (reachedSet.hasWaitingElement()) {
+        CPAchecker.stopIfNecessary();
+
+        stats.countIterations++;
+        ARTElement element = (ARTElement)reachedSet.popFromWaitlist();
+
+        logger.log(Level.FINE, "Looking at element", element);
+
+        if(element.isCovered()) {
+
+          logger.log(Level.FINER, "Element is covered by another abstract element; checking coverage");
+          ARTElement coveringElement = element.getCoveringElement();
+
+          if(!reachedSet.contains(coveringElement)) {
+            postponedElements.add(element);
+            continue;
+          }
+
+          stats.stopTimer.start();
+          if(!isCoveringCycleFree(element)) {
+            stats.stopTimer.stop();
+            stats.totalTimer.stop();
+            logger.log(Level.WARNING, "Found cycle in covering relation for element", element);
+            return false;
+          }
+          if(!cpa.isCoveredBy(element, coveringElement)) {
+            stats.stopTimer.stop();
+            stats.totalTimer.stop();
+            logger.log(Level.WARNING, "Element", element, "is not covered by", coveringElement);
+            return false;
+          }
+          stats.stopTimer.stop();
+        }
+        else {
+          stats.transferTimer.start();
+          Collection<ARTElement> successors = element.getChildren();
+          logger.log(Level.FINER, "Checking abstract successors", successors);
+          if(!cpa.areAbstractSuccessors(element, null, successors)) {
+            stats.transferTimer.stop();
+            stats.totalTimer.stop();
+            logger.log(Level.WARNING, "Element", element, "has other successors than", successors);
+            return false;
+          }
           stats.transferTimer.stop();
-          stats.totalTimer.stop();
-          logger.log(Level.WARNING, "Element", element, "has other successors than", successors);
-          return false;
-        }
-        stats.transferTimer.stop();
-        for(ARTElement e : successors) {
-          reachedSet.add(e, initialPrecision);
+          for(ARTElement e : successors) {
+            reachedSet.add(e, initialPrecision);
+          }
         }
       }
-    }
+    } while(!postponedElements.isEmpty());
     stats.totalTimer.stop();
     return true;
   }
