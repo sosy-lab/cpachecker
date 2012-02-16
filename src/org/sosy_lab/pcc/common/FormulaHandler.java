@@ -136,7 +136,6 @@ public class FormulaHandler {
     return result;
   }
 
-  @SuppressWarnings("deprecation")
   // do not call since uninstantiate is buggy
   public Formula removeIndices(Formula pFormula) {
     try {
