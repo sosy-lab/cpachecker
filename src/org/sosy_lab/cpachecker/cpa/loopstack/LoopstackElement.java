@@ -29,8 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
-import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula;
-import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
+import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -119,9 +118,7 @@ public class LoopstackElement implements AbstractElement, Partitionable, Avoidan
   @Override
   public Formula getReasonFormula(FormulaManager manager) {
     if (stop) {
-      String preventingHeuristicStringFormula = HeuristicToFormula.getFormulaStringForHeuristic(
-          PreventingHeuristicType.LOOPITERATIONS, iteration);
-      return manager.parse(preventingHeuristicStringFormula);
+      return manager.parse(PreventingHeuristic.LOOPITERATIONS.getFormulaString(iteration));
     } else {
       return manager.makeTrue();
     }

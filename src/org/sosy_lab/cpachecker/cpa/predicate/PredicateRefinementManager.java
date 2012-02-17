@@ -107,7 +107,6 @@ public class PredicateRefinementManager extends InterpolationManager<Collection<
   /**
    * Create predicates for all atoms in a formula.
    */
-  @SuppressWarnings("deprecation")
   private List<AbstractionPredicate> getAtomsAsPredicates(Formula f) {
     Collection<Formula> atoms;
     if (atomicPredicates) {

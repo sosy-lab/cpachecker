@@ -27,13 +27,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.NumericTypes;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.collect.ImmutableList;
 
@@ -53,29 +55,28 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
     ImmutableList.<GenericAssumptionBuilder>of(
         new ArithmeticOverflowAssumptionBuilder());
 
-  private final AssumptionManager manager;
-
-  /**
-   * Constructor
-   */
-  public GenericAssumptionsTransferRelation(AssumptionManager manager)
-  {
-    this.manager = manager;
-  }
-
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement el, Precision p, CFAEdge edge)
   throws CPATransferException
   {
-    String function = (edge.getSuccessor() != null) ? edge.getSuccessor().getFunctionName() : null;
 
-    Formula assumptionFormula = manager.makeTrue();
-    for (GenericAssumptionBuilder b : assumptionBuilders)
-    {
-      assumptionFormula =
-        manager.makeAnd(assumptionFormula, b.assumptionsForEdge(edge), edge, function);
+    IASTExpression allAssumptions = null;
+    for (GenericAssumptionBuilder b : assumptionBuilders) {
+      IASTExpression assumption = b.assumptionsForEdge(edge);
+      if (assumption != null) {
+        if (allAssumptions == null) {
+          allAssumptions = assumption;
+        } else {
+          allAssumptions = new IASTBinaryExpression(null, null, allAssumptions, assumption, BinaryOperator.LOGICAL_AND);
+        }
+      }
     }
-    return Collections.singleton(new GenericAssumptionsElement(assumptionFormula));
+
+    if (allAssumptions == null) {
+      allAssumptions = NumericTypes.TRUE;
+    }
+
+    return Collections.singleton(new GenericAssumptionsElement(allAssumptions));
   }
 
   @Override

@@ -135,9 +135,8 @@ public class SSAMap implements Serializable {
     return EMPTY_SSA_MAP;
   }
 
-  public static SSAMap emptyWithDefault(final int defaultValue) {
-    return new SSAMap(ImmutableMultiset.<String>of(),
-                      ImmutableMultiset.<Pair<String, FormulaList>>of()) {
+  public SSAMap withDefault(final int defaultValue) {
+    return new SSAMap(this.vars, this.funcs) {
 
       private static final long serialVersionUID = -5638018887478723717L;
 

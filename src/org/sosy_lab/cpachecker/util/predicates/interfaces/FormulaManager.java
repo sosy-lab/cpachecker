@@ -204,7 +204,6 @@ public interface FormulaManager {
      * which all the variables are "generic" ones. This is the inverse of the
      * instantiate() method above
      */
-    @Deprecated
     public Formula uninstantiate(Formula pF);
 
     /**

@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.NumericTypes;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
@@ -78,7 +79,6 @@ import org.sosy_lab.cpachecker.cpa.pointer.PointerElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
-import org.sosy_lab.cpachecker.util.assumptions.NumericTypes;
 
 @Options(prefix="cpa.explicit")
 public class ExplicitTransferRelation implements TransferRelation
@@ -478,11 +478,6 @@ public class ExplicitTransferRelation implements TransferRelation
       IASTExpression rVarInBinaryExp = pE.getOperand2();
 
       switch(binaryOperator) {
-      case MODULO:
-      case SHIFT_RIGHT:
-        // TODO check which cases can be handled (I think all)
-        return null;
-
       case PLUS:
       case MINUS:
       case DIVIDE:
@@ -583,8 +578,11 @@ public class ExplicitTransferRelation implements TransferRelation
         return (result ? 1L : 0L);
       }
 
+      case MODULO:
+      case SHIFT_RIGHT:
       default:
-        throw new UnrecognizedCCodeException("unsupported binary operator", edge, pE);
+        // TODO check which cases can be handled (I think all)
+        return null;
       }
     }
 
@@ -668,10 +666,10 @@ public class ExplicitTransferRelation implements TransferRelation
         return null;
 
       case SIZEOF:
-        return null;
-
+      case TILDE:
       default:
-        throw new UnrecognizedCCodeException("unknown unary operator", edge, unaryExpression);
+        // TODO handle unimplemented operators
+        return null;
       }
     }
 

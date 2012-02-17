@@ -552,6 +552,7 @@ class ASTConverter {
         switch (c) {
         case 'b'  : result = '\b'; break;
         case 't'  : result = '\t'; break;
+        case 'v'  : result = 11; break;
         case 'n'  : result = '\n'; break;
         case 'f'  : result = '\f'; break;
         case 'r'  : result = '\r'; break;

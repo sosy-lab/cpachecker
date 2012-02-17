@@ -97,6 +97,10 @@ public class Matrix implements MatrixI {
     entry = a;
   }
 
+  public void setAugStart(int a) {
+    numAugCols = colNum - a;
+  }
+
   /*
    * Return a copy of this Matrix.
    */
@@ -122,6 +126,14 @@ public class Matrix implements MatrixI {
     }
     //
     return m;
+  }
+
+  public RationalFunction[][] getEntries() {
+    return entry;
+  }
+
+  public int getNumPivotRows() {
+    return pivotRows.size();
   }
 
   public void setHaltOnVarNumPivot(boolean b) {

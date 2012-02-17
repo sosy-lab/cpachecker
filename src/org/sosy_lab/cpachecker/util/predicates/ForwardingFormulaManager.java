@@ -244,7 +244,6 @@ public class ForwardingFormulaManager implements FormulaManager {
   }
 
   @Override
-  @Deprecated
   public Formula uninstantiate(Formula pF) {
     return delegate.uninstantiate(pF);
   }

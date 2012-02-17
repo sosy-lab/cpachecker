@@ -27,8 +27,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingElement;
-import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula;
-import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
+import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -48,14 +47,14 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
   private final long totalTimeOnPath;
 
   // stores what caused the element to go further (may be null)
-  private final Pair<PreventingHeuristicType, Long> preventingCondition;
+  private final Pair<PreventingHeuristic, Long> preventingCondition;
 
   protected MonitorElement(AbstractElement pWrappedElement, long totalTimeOnPath) {
     this(pWrappedElement, totalTimeOnPath, null);
   }
 
   protected MonitorElement(AbstractElement pWrappedElement, long totalTimeOnPath,
-      Pair<PreventingHeuristicType, Long> preventingCondition) {
+      Pair<PreventingHeuristic, Long> preventingCondition) {
     super(pWrappedElement);
     Preconditions.checkArgument(!(pWrappedElement instanceof MonitorElement), "Don't wrap a MonitorCPA in a MonitorCPA, this makes no sense!");
     Preconditions.checkArgument(!(pWrappedElement == TimeoutElement.INSTANCE && preventingCondition == null), "Need a preventingCondition in case of TimeoutElement");
@@ -90,7 +89,7 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
     return preventingCondition != null;
   }
 
-  Pair<PreventingHeuristicType, Long> getPreventingCondition() {
+  Pair<PreventingHeuristic, Long> getPreventingCondition() {
     return preventingCondition;
   }
 
@@ -105,7 +104,7 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
   public Formula getReasonFormula(FormulaManager manager) {
 
     if (mustDumpAssumptionForAvoidance()) {
-      String preventingHeuristicStringFormula = HeuristicToFormula.getFormulaStringForHeuristic(preventingCondition.getFirst(), preventingCondition.getSecond());
+      String preventingHeuristicStringFormula = preventingCondition.getFirst().getFormulaString(preventingCondition.getSecond());
       return manager.parse(preventingHeuristicStringFormula);
 
     } else {

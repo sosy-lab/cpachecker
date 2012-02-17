@@ -33,6 +33,7 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -180,7 +181,10 @@ class PredicateCPAStatistics implements Statistics {
       if (as.numCallsAbstraction > 0) {
         out.println("Number of abstraction cache hits:    " + as.numCallsAbstractionCached + " (" + toPercent(as.numCallsAbstractionCached, as.numCallsAbstraction) + ")");
       }
+
       out.println();
+      long smtTime = 0;
+
       out.println("Time for post operator:              " + trans.postTimer);
       out.println("  Time for path formula creation:    " + trans.pathFormulaTimer);
       if (pfMgr != null) {
@@ -188,16 +192,19 @@ class PredicateCPAStatistics implements Statistics {
       }
       if (trans.satCheckTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for satisfiability checks:    " + trans.satCheckTimer);
+        smtTime += trans.satCheckTimer.getSumTime();
       }
       out.println("Time for strengthen operator:        " + trans.strengthenTimer);
       if (trans.strengthenCheckTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for satisfiability checks:    " + trans.strengthenCheckTimer);
+        smtTime += trans.strengthenCheckTimer.getSumTime();
       }
       out.println("Time for prec operator:              " + prec.totalPrecTime);
       if (prec.numAbstractions > 0) {
         out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
         out.println("    Solving time:                    " + as.abstractionTime.printOuterSumTime() + " (Max: " + as.abstractionTime.printOuterMaxTime() + ")");
         out.println("    Time for BDD construction:       " + as.abstractionTime.printInnerSumTime()   + " (Max: " + as.abstractionTime.printInnerMaxTime() + ")");
+        smtTime += as.abstractionTime.getOuterSumTime();
       }
 
       MergeOperator merge = cpa.getMergeOperator();
@@ -210,7 +217,8 @@ class PredicateCPAStatistics implements Statistics {
         out.println("  Time for BDD entailment checks:    " + domain.bddCoverageCheckTimer);
       }
       if (domain.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
-        out.println("  Time for symbolic coverage checks: " + domain.bddCoverageCheckTimer);
+        out.println("  Time for symbolic coverage checks: " + domain.symbolicCoverageCheckTimer);
+        smtTime += domain.symbolicCoverageCheckTimer.getSumTime();
       }
       if (refiner != null && refiner.totalRefinement.getSumTime() > 0) {
         InterpolationManager.Stats bs = refiner.getStats2();
@@ -221,6 +229,7 @@ class PredicateCPAStatistics implements Statistics {
           out.println("    Cex.focusing:                    " + bs.cexAnalysisGetUsefulBlocksTimer + " (Max: " + bs.cexAnalysisGetUsefulBlocksTimer.printMaxTime() + ")");
         }
         out.println("    Solving time only:               " + bs.cexAnalysisSolverTimer + " (Max: " + bs.cexAnalysisSolverTimer.printMaxTime() + ", Calls: " + bs.cexAnalysisSolverTimer.getNumberOfIntervals() + ")");
+        smtTime += bs.cexAnalysisSolverTimer.getSumTime();
         if (bs.interpolantVerificationTimer.getNumberOfIntervals() > 0) {
           out.println("    Interpolant verification:        " + bs.interpolantVerificationTimer);
         }
@@ -230,6 +239,8 @@ class PredicateCPAStatistics implements Statistics {
         }
         out.println("  Error path post-processing:        " + refiner.errorPathProcessing);
       }
+
+      out.println("Total time for SMT solver:           " + Timer.formatTime(smtTime));
 
       if(trans.pathFormulaCheckTimer.getNumberOfIntervals() > 0 || trans.abstractionCheckTimer.getNumberOfIntervals() > 0) {
         out.println("Time for abstraction checks:       " + trans.abstractionCheckTimer);

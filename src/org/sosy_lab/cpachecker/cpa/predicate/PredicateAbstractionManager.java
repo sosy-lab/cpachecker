@@ -381,6 +381,7 @@ public class PredicateAbstractionManager {
     Formula symbFormula = buildFormula(p1.getFormula());
     Formula a = fmgr.makeAnd(absFormula, symbFormula);
 
+    // get formula of a2 with the indices of p1
     Formula b = fmgr.instantiate(fmgr.uninstantiate(a2.asFormula()), p1.getSsa());
 
     Formula toCheck = fmgr.makeAnd(a, fmgr.makeNot(b));
