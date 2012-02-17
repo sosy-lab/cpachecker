@@ -36,7 +36,8 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingEle
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionManager;
+import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -47,14 +48,14 @@ import com.google.common.base.Preconditions;
  */
 public class AssumptionStorageTransferRelation implements TransferRelation {
 
-  private final AssumptionManager manager;
+  private final CtoFormulaConverter converter;
   private final FormulaManager formulaManager;
 
   private final Collection<AbstractElement> topElementSet;
 
-  public AssumptionStorageTransferRelation(AssumptionManager pManager,
+  public AssumptionStorageTransferRelation(CtoFormulaConverter pConverter,
       FormulaManager pFormulaManager, AbstractElement pTopElement) {
-    manager = pManager;
+    converter = pConverter;
     formulaManager = pFormulaManager;
     topElementSet = Collections.singleton(pTopElement);
   }
@@ -88,7 +89,8 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
     for (AbstractElement element : AbstractElements.asIterable(others)) {
       if (element instanceof AssumptionReportingElement) {
         IASTExpression inv = ((AssumptionReportingElement)element).getAssumption();
-        assumption = formulaManager.makeAnd(assumption, manager.makePredicate(inv, edge, function));
+        Formula invFormula = converter.makePredicate(inv, edge, function, SSAMap.emptySSAMap().builder());
+        assumption = formulaManager.makeAnd(assumption, formulaManager.uninstantiate(invFormula));
       }
 
       if (element instanceof AvoidanceReportingElement) {

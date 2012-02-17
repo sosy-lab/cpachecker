@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionManager;
+import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
 
@@ -66,11 +66,11 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis {
   private AssumptionStorageCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
   {
     formulaManager = new ExtendedFormulaManager(MathsatFactory.createFormulaManager(config, logger), config, logger);
-    AssumptionManager manager = new AssumptionManager(formulaManager, config, logger);
+    CtoFormulaConverter converter = new CtoFormulaConverter(config, formulaManager, logger);
     abstractDomain = new AssumptionStorageDomain(formulaManager);
     stopOperator = new AssumptionStorageStop();
     topElement = new AssumptionStorageElement(formulaManager.makeTrue(), formulaManager.makeTrue());
-    transferRelation = new AssumptionStorageTransferRelation(manager, formulaManager, topElement);
+    transferRelation = new AssumptionStorageTransferRelation(converter, formulaManager, topElement);
   }
 
   public ExtendedFormulaManager getFormulaManager()
