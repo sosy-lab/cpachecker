@@ -375,7 +375,7 @@ public class CtoFormulaConverter {
   private static String removePointerMask(String pointerVariable) {
     assert (isPointerVariable(pointerVariable));
 
-    return pointerVariable.substring(2, pointerVariable.indexOf(','));
+    return pointerVariable.substring("__content_of__".length(), pointerVariable.indexOf("__at__"));
   }
 
   /** Returns the pointer variable name corresponding to a given IdExpression */
@@ -907,7 +907,7 @@ public class CtoFormulaConverter {
    * Returns whether the given variable name is a pointer variable name.
    */
   private static boolean isPointerVariable(String variableName) {
-    return variableName.matches("\\*<.*>");
+    return variableName.matches("\\Q__content_of__\\E.*\\Q__end\\E");
   }
 
   private boolean isMemoryLocation(IASTNode exp) {
