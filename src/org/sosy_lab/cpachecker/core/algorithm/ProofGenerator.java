@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.pcc.proof_gen;
+package org.sosy_lab.cpachecker.core.algorithm;
 
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
 
@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 @Options
-public class GenericProofGenerator {
+public class ProofGenerator {
 
   @Option(name = "pcc.proofgen.doPCC", description = "")
   private boolean doPCC = false;
@@ -58,7 +58,7 @@ public class GenericProofGenerator {
 
   private final LogManager logger;
 
-  public GenericProofGenerator(Configuration pConfig, LogManager pLogger)
+  public ProofGenerator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
