@@ -38,8 +38,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
-import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
-import de.uni_freiburg.informatik.ultimate.logic.Script;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
@@ -71,57 +69,33 @@ class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManager {
 
     final Sort sortType;
     if (useIntegers) {
-      script.setLogic(Logics.QF_UFLIA.toString());
-      sortType = script.getTheory().getSort(SMT_INTERPOL_INT);
+      env.setLogic(Logics.QF_UFLIA.toString());
+      sortType = env.sort(SMT_INTERPOL_INT);
     } else {
-      script.setLogic(Logics.QF_UFLRA.toString());
-      sortType = script.getTheory().getSort(SMT_INTERPOL_REAL);
+      env.setLogic(Logics.QF_UFLRA.toString());
+      sortType = env.sort(SMT_INTERPOL_INT);
     }
     super.sort = sortType.getName();
 
     final Sort[] sortArray1 = { sortType };
     final Sort[] sortArray2 = { sortType, sortType };
 
-    try {
-      script.declareFun(bitwiseAndUfDecl, sortArray2, sortType);
-      script.declareFun(bitwiseOrUfDecl, sortArray2, sortType);
-      script.declareFun(bitwiseXorUfDecl, sortArray2, sortType);
-      script.declareFun(bitwiseNotUfDecl, sortArray1, sortType);
-      script.declareFun(leftShiftUfDecl, sortArray2, sortType);
-      script.declareFun(rightShiftUfDecl, sortArray2, sortType);
-      script.declareFun(multUfDecl, sortArray2, sortType);
-      script.declareFun(divUfDecl, sortArray2, sortType);
-      script.declareFun(modUfDecl, sortArray2, sortType);
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-    }
-  }
-
-  @Override
-  Script getEnvironment() {
-    Script script = super.getEnvironment();
-
-    if (useIntegers) {
-      if (script.getTheory().getLogic() != Logics.QF_UFLIA) // TODO other logic?
-        script.setLogic(Logics.QF_UFLIA.toString());
-    } else {
-      if (script.getTheory().getLogic() != Logics.QF_UFLRA) // TODO other logic?
-        script.setLogic(Logics.QF_UFLRA.toString());
-    }
-
-    return script;
+    env.declareFun(bitwiseAndUfDecl, sortArray2, sortType);
+    env.declareFun(bitwiseOrUfDecl, sortArray2, sortType);
+    env.declareFun(bitwiseXorUfDecl, sortArray2, sortType);
+    env.declareFun(bitwiseNotUfDecl, sortArray1, sortType);
+    env.declareFun(leftShiftUfDecl, sortArray2, sortType);
+    env.declareFun(rightShiftUfDecl, sortArray2, sortType);
+    env.declareFun(multUfDecl, sortArray2, sortType);
+    env.declareFun(divUfDecl, sortArray2, sortType);
+    env.declareFun(modUfDecl, sortArray2, sortType);
   }
 
   // ----------------- Numeric formulas -----------------
 
   @Override
   public Formula makeNegate(Formula f) {
-    try {
-      return encapsulate(script.term("*", script.numeral("-1"), getTerm(f)));
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
-    }
+    return encapsulate(env.term("*", env.numeral("-1"), getTerm(f)));
   }
 
   @Override
@@ -131,48 +105,28 @@ class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManager {
 
   @Override
   public Formula makeNumber(String i) { // TODO test: only Integers or more?
-    try {
-      return encapsulate(script.numeral(i));
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
-    }
+    return encapsulate(env.numeral(i));
   }
 
   @Override
   public Formula makePlus(Formula f1, Formula f2) {
-    try {
-      return encapsulate(script.term("+", getTerm(f1), getTerm(f2)));
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
-    }
+    return encapsulate(env.term("+", getTerm(f1), getTerm(f2)));
   }
 
   @Override
   public Formula makeMinus(Formula f1, Formula f2) {
-    try {
-      return encapsulate(script.term("-", getTerm(f1), getTerm(f2)));
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
-    }
+    return encapsulate(env.term("-", getTerm(f1), getTerm(f2)));
   }
 
   @Override
   public Formula makeDivide(Formula f1, Formula f2) {
-    assert script.getTheory().getLogic() != Logics.QF_UFLIA :
-      "divisions not possible in integer-logic.";
+    assert !useIntegers : "divisions not possible in integer-logic.";
 
     Term t1 = getTerm(f1);
     Term t2 = getTerm(f2);
     Term result = null;
     if (isNumber(t2)) {
-      try {
-        result = script.term("/", t1, t2);
-      } catch (SMTLIBException e) {
-        e.printStackTrace();
-      }
+      result = env.term("/", t1, t2);
     } else {
       result = buildUF(divUfDecl, t1, t2);
     }
@@ -181,12 +135,7 @@ class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManager {
 
   @Override
   public Formula makeModulo(Formula f1, Formula f2) {
-    try {
-      return encapsulate(script.term(modUfDecl, getTerm(f1), getTerm(f2)));
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
-    }
+    return encapsulate(env.term(modUfDecl, getTerm(f1), getTerm(f2)));
   }
 
   @Override
@@ -196,11 +145,7 @@ class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManager {
 
     Term result = null;
     if (isNumber(t1) || isNumber(t2)) { // TODO: both not numeral?
-      try {
-        result = script.term("*", t1, t2);
-      } catch (SMTLIBException e) {
-        e.printStackTrace();
-      }
+      result = env.term("*", t1, t2);
     } else {
       result = buildUF(multUfDecl, t1, t2);
     }
@@ -212,47 +157,27 @@ class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManager {
 
   @Override
   public Formula makeEqual(Formula f1, Formula f2) {
-    return this.makeEquivalence(f1, f2); // TODO working?
+    return this.makeEquivalence(f1, f2);
   }
 
   @Override
   public Formula makeGt(Formula f1, Formula f2) {
-    try {
-      return encapsulate(script.term(">", getTerm(f1), getTerm(f2)));
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
-    }
+    return encapsulate(env.term(">", getTerm(f1), getTerm(f2)));
   }
 
   @Override
   public Formula makeGeq(Formula f1, Formula f2) {
-    try {
-      return encapsulate(script.term(">=", getTerm(f1), getTerm(f2)));
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
-    }
+    return encapsulate(env.term(">=", getTerm(f1), getTerm(f2)));
   }
 
   @Override
   public Formula makeLt(Formula f1, Formula f2) {
-    try {
-      return encapsulate(script.term("<", getTerm(f1), getTerm(f2)));
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
-    }
+    return encapsulate(env.term("<", getTerm(f1), getTerm(f2)));
   }
 
   @Override
   public Formula makeLeq(Formula f1, Formula f2) {
-    try {
-      return encapsulate(script.term("<=", getTerm(f1), getTerm(f2)));
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
-    }
+    return encapsulate(env.term("<=", getTerm(f1), getTerm(f2)));
   }
 
   // ----------------- Bit-manipulation functions -----------------
@@ -316,7 +241,7 @@ class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManager {
       if (isNumber(t)) {
         allLiterals.add(tt);
       }
-      if (isUIF(script, t)) {
+      if (uifs.contains(t)) {
         FunctionSymbol funcSym = ((ApplicationTerm) t).getFunction();
         andFound = bitwiseAndUfDecl.equals(funcSym.getName());
       }
@@ -330,27 +255,21 @@ class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManager {
       }
     }
 
-    try {
-      Term result = script.getTheory().TRUE;
-      if (andFound) {
-        Term z = script.numeral("0");
-        for (Formula nn : allLiterals) {
-          Term n = getTerm(nn);
-          Term u1 = buildUF(bitwiseAndUfDecl, n, z);
-          Term u2 = buildUF(bitwiseAndUfDecl, z, n);
-          Term e1;
-          e1 = script.term("=", u1, z);
-          Term e2 = script.term("=", u2, z);
-          Term a = script.term("and", e1, e2);
+    Term result = getTrueTerm();
+    if (andFound) {
+      Term z = env.numeral("0");
+      for (Formula nn : allLiterals) {
+        Term n = getTerm(nn);
+        Term u1 = buildUF(bitwiseAndUfDecl, n, z);
+        Term u2 = buildUF(bitwiseAndUfDecl, z, n);
+        Term e1;
+        e1 = env.term("=", u1, z);
+        Term e2 = env.term("=", u2, z);
+        Term a = env.term("and", e1, e2);
 
-          result = script.term("and", result, a);
-        }
+        result = env.term("and", result, a);
       }
-      return encapsulate(result);
-
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
     }
+    return encapsulate(result);
   }
 }

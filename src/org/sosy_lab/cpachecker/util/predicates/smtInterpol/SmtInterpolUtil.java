@@ -31,9 +31,6 @@ import com.google.common.collect.Sets;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ConstantTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
-import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
-import de.uni_freiburg.informatik.ultimate.logic.Script;
-import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 /** This is a Class similiar to Mathsat-NativeApi,
@@ -46,14 +43,13 @@ public class SmtInterpolUtil {
   msat_term_is_atom (msat_term t): nonzero if t is an atom,
   i.e. either a boolean variable or a relation between terms.
   TODO: what is atom?? */
-  public static boolean isAtom(Script script, Term t) {
-    boolean is = !isAnd(script, t) && !isOr(script, t) && !isNot(script, t);
+  public static boolean isAtom(Term t) {
+    boolean is = !isAnd(t) && !isOr(t) && !isNot(t);
     if (log) System.out.println("   isAtom (" + is +"): " + t);
     return is;
   }
 
-  public static boolean isVariable(Term t) { // TODO cpa-variable != smt-termvariable, working??
-    assert t != null;
+  public static boolean isVariable(Term t) {
     boolean is = (t instanceof ApplicationTerm)
         && ((ApplicationTerm) t).getParameters().length == 0;
     if (log) System.out.println("   isVariable (" + is +"): " + t);
@@ -121,61 +117,44 @@ public class SmtInterpolUtil {
     throw new NumberFormatException("unknown format of numeric term: " + t);
   }
 
-  public static boolean isBoolean(Script script, Term t) {
+  public static boolean isBoolean(Term t) {
     boolean is = (t instanceof ApplicationTerm)
-        && script.getTheory().getBooleanSort() == ((ApplicationTerm) t).getSort();
+          && t.getTheory().getBooleanSort() == ((ApplicationTerm) t).getSort();
     if (log) System.out.println("   isBoolean (" + is +"): " + t);
     return is;
   }
 
   /** t1 and t2
    * @param theory */
-  public static boolean isAnd(Script script, Term t) {
+  public static boolean isAnd(Term t) {
     boolean is = (t instanceof ApplicationTerm)
-        && script.getTheory().m_And == ((ApplicationTerm) t).getFunction();
+        && t.getTheory().m_And == ((ApplicationTerm) t).getFunction();
     if (log) System.out.println("   isAnd (" + is +"): " + t);
     return is;
   }
 
   /** t1 or t2 */
-  public static boolean isOr(Script script, Term t) {
+  public static boolean isOr(Term t) {
     boolean is = (t instanceof ApplicationTerm)
-        && script.getTheory().m_Or == ((ApplicationTerm) t).getFunction();
+        && t.getTheory().m_Or == ((ApplicationTerm) t).getFunction();
     if (log) System.out.println("   isOr (" + is +"): " + t);
     return is;
   }
 
   /** not t */
-  public static boolean isNot(Script script, Term t) {
+  public static boolean isNot(Term t) {
     boolean is = (t instanceof ApplicationTerm)
-        && script.getTheory().m_Not == ((ApplicationTerm) t).getFunction();
+        && t.getTheory().m_Not == ((ApplicationTerm) t).getFunction();
     if (log) System.out.println("   isNot (" + is +"): " + t);
     return is;
   }
 
   /** t1 = t2 */
-  public static boolean isEqual(Script script, Term t) {
+  public static boolean isEqual(Term t) {
     boolean is = (t instanceof ApplicationTerm)
-        && script.getTheory().m_Equals.toString().equals(
-            ((ApplicationTerm) t).getFunction().getTheory().toString()); // TODO easier way?
+        && "=".equals(((ApplicationTerm) t).getFunction().getName());
     if (log) System.out.println("   isEqual (" + is +"): " + t);
     return is;
-  }
-
-  public static boolean isUIF(Script script, Term t) {
-    if (t instanceof ApplicationTerm) {
-      ApplicationTerm at = (ApplicationTerm) t;
-      String name = at.getFunction().toString();
-      Term[] params = at.getParameters();
-      Sort[] sorts = new Sort[params.length];
-      for (int i = 0; i < params.length; i++) {
-        sorts[i] = params[i].getSort();
-      }
-      if (log) System.out.println("   isUIF (" + t +"): "
-          + script.getTheory().getFunction(name, sorts));
-      return script.getTheory().getFunction(name, sorts) != null;
-    } else
-      return false;
   }
 
   public static int getArity(Term t) {
@@ -192,31 +171,26 @@ public class SmtInterpolUtil {
       return null;
   }
 
-  public static boolean isTrue(Script script, Term t) {
-    boolean isTrue = script.getTheory().TRUE == t;
+  public static boolean isTrue(Term t) {
+    boolean isTrue = t.getTheory().TRUE == t;
     if (log) System.out.println("   isTrue (" + t +"): " + isTrue);
     return isTrue;
   }
 
-  public static boolean isFalse(Script script, Term t) {
-    boolean isFalse = script.getTheory().FALSE == t;
+  public static boolean isFalse(Term t) {
+    boolean isFalse = t.getTheory().FALSE == t;
     if (log) System.out.println("   isTrue (" + t +"): " + isFalse);
     return isFalse;
   }
 
   /** this function creates a new Term with the same function and new parameters. */
-  public static Term replaceArgs(Script script, Term t, Term[] newParams) {
+  public static Term replaceArgs(SmtInterpolEnvironment env, Term t, Term[] newParams) {
     if (t instanceof ApplicationTerm) {
       ApplicationTerm at = (ApplicationTerm) t;
       assert at.getParameters().length == newParams.length;
 
       FunctionSymbol funcSymb = at.getFunction();
-      try {
-        return script.term(funcSymb.getName(), newParams);
-      } catch (SMTLIBException e) {
-        e.printStackTrace();
-        return null;
-      }
+      return env.term(funcSymb.getName(), newParams);
     } else { // numeral
       return t;
     }
@@ -250,20 +224,20 @@ public class SmtInterpolUtil {
   /** This function simplifies a term and returns a shorter terms.
    * It factors out common children of the term.
    * Example:   (a&b)|(a&c)  -->   a&(b|c)   */
-  public static Term simplify(Script script, Term t) throws SMTLIBException {
+  public static Term simplify(SmtInterpolEnvironment env, Term t) {
     if (t instanceof ApplicationTerm) {
       ApplicationTerm at = (ApplicationTerm) t;
       FunctionSymbol function = at.getFunction();
       Term[] params = at.getParameters();
 
       // (a&b&c)|(a&d&e)   -->    a&((b&c)|(d&e))
-      if (script.getTheory().m_Or == function) {
+      if ("or".equals(function.getName())) {
         assert params.length >= 2;
         Set<Term>[] children = new Set[params.length];
         for (int i = 0; i < params.length; i++) {
           if (params[i] instanceof ApplicationTerm) {
             ApplicationTerm atChild = (ApplicationTerm) params[i];
-            if (script.getTheory().m_And == atChild.getFunction()) {
+            if ("and".equals(atChild.getFunction().getName())) {
               children[i] = Sets.newHashSet(atChild.getParameters());
             } else {
               return t; // if one child is no AND, there is no common child
@@ -278,27 +252,27 @@ public class SmtInterpolUtil {
         for (int i = 0; i < children.length; i++) {
           Set<Term> diff = Sets.difference(children[i], commonTerms);
           if (diff.size() == 0) {
-            newChildren[i] = script.getTheory().FALSE;
+            newChildren[i] = env.term("false");
           } else if (diff.size() == 1) {
             newChildren[i] = diff.toArray(new Term[1])[0];
           } else {
-            newChildren[i] = script.term("and", diff.toArray(new Term[0]));
+            newChildren[i] = env.term("and", diff.toArray(new Term[0]));
           }
         }
-        Term mergedChildren = script.term("or", newChildren);
+        Term mergedChildren = env.term("or", newChildren);
         Term[] ts = commonTerms.toArray(new Term[commonTerms.size()+2]);
-        ts[ts.length-2] = script.getTheory().TRUE; // one TRUE in AND does not matter
-        ts[ts.length-1] = mergedChildren;
-        return script.term("and", ts);
+        ts[commonTerms.size()] = env.term("true"); // one TRUE in AND does not matter
+        ts[commonTerms.size()+1] = mergedChildren;
+        return env.term("and", ts);
 
         // (a|b|c)&(a|d|e)   -->    a|((b|c)&(d|e))
-      } else if (script.getTheory().m_And == function) {
+      } else if ("and".equals(function.getName())) {
         assert params.length >= 2;
         Set<Term>[] children = new Set[params.length];
         for (int i = 0; i < params.length; i++) {
           if (params[i] instanceof ApplicationTerm) {
             ApplicationTerm atChild = (ApplicationTerm) params[i];
-            if (script.getTheory().m_Or == atChild.getFunction()) {
+            if ("or".equals(atChild.getFunction().getName())) {
               children[i] = Sets.newHashSet(atChild.getParameters());
             } else {
               return t; // if one child is no OR, there is no common child
@@ -313,18 +287,18 @@ public class SmtInterpolUtil {
         for (int i = 0; i < children.length; i++) {
           Set<Term> diff = Sets.difference(children[i], commonTerms);
           if (diff.size() == 0) {
-            newChildren[i] = script.getTheory().TRUE;
+            newChildren[i] = env.term("true");
           } else if (diff.size() == 1) {
             newChildren[i] = diff.toArray(new Term[1])[0];
           } else {
-            newChildren[i] = script.term("or", diff.toArray(new Term[0]));
+            newChildren[i] = env.term("or", diff.toArray(new Term[0]));
           }
         }
-        Term mergedChildren = script.term("and", newChildren);
+        Term mergedChildren = env.term("and", newChildren);
         Term[] ts = commonTerms.toArray(new Term[commonTerms.size()+2]);
-        ts[ts.length-2] = script.getTheory().FALSE; // one FALSE in OR does not matter
-        ts[ts.length-1] = mergedChildren;
-        return script.term("or", ts);
+        ts[commonTerms.size()] = env.term("false"); // one FALSE in OR does not matter
+        ts[commonTerms.size()+1] = mergedChildren;
+        return env.term("or", ts);
 
       } else {
         return t;

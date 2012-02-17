@@ -41,8 +41,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.base.Preconditions;
 
-import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
-import de.uni_freiburg.informatik.ultimate.logic.Script;
 import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.Valuation;
@@ -50,18 +48,17 @@ import de.uni_freiburg.informatik.ultimate.logic.Valuation;
 public class SmtInterpolTheoremProver implements TheoremProver {
 
   private final SmtInterpolFormulaManager mgr;
-  private Script script;
+  private SmtInterpolEnvironment env;
   private List<Term> assertedTerms;
 
   public SmtInterpolTheoremProver(SmtInterpolFormulaManager pMgr) {
     mgr = pMgr;
-    script = null;
+    env = null;
   }
 
   @Override
   public boolean isUnsat() {
-    LBool res = script.checkSat();
-    return res == LBool.UNSAT;
+    return env.checkSat() == LBool.UNSAT;
   }
 
   @Override
@@ -76,54 +73,38 @@ public class SmtInterpolTheoremProver implements TheoremProver {
 
   @Override
   public Model getModel() {
-    Preconditions.checkNotNull(script);
-
-    // model can only return values for keys, not for terms
-    Term[] keys = getVars(assertedTerms);
-    try {
-      return SmtInterpolModel.createSmtInterpolModel(script, keys);
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
-    }
+    Preconditions.checkNotNull(env);
+    return SmtInterpolModel.createSmtInterpolModel(env, assertedTerms);
   }
 
   @Override
   public void pop() {
-    Preconditions.checkNotNull(script);
+    Preconditions.checkNotNull(env);
     assertedTerms.remove(assertedTerms.size()-1); // remove last term
-    try {
-      script.pop(1);
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-    }
+    env.pop(1);
   }
 
   @Override
   public void push(Formula f) {
-    Preconditions.checkNotNull(script);
+    Preconditions.checkNotNull(env);
     final Term t = mgr.getTerm(f);
     assertedTerms.add(t);
-    script.push(1);
-    try {
-      script.assertTerm(t);
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-    }
+    env.push(1);
+    env.assertTerm(t);
   }
 
   @Override
   public void init() {
     Preconditions.checkNotNull(mgr);
-    assert (script == null);
+    assert (env == null);
     assertedTerms = new ArrayList<Term>();
-    script = mgr.getEnvironment();
+    env = mgr.getEnvironment();
   }
 
   @Override
   public void reset() {
-    Preconditions.checkNotNull(script);
-    script = null;
+    Preconditions.checkNotNull(env);
+    env = null;
   }
 
   @Override
@@ -132,8 +113,11 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     checkNotNull(amgr);
     checkNotNull(timer);
 
-    Script allsatEnv = mgr.getEnvironment(); //TODO do we need a new environment?
+    SmtInterpolEnvironment allsatEnv = mgr.getEnvironment(); //TODO do we need a new environment?
     checkNotNull(allsatEnv);
+
+    // create new allSatResult
+    SmtInterpolAllSatCallback result = new SmtInterpolAllSatCallback(amgr, timer);
 
     allsatEnv.push(1);
 
@@ -144,52 +128,52 @@ public class SmtInterpolTheoremProver implements TheoremProver {
       importantTerms[i++] = mgr.getTerm(impF);
     }
 
-    // create new allSatResult
-    SmtInterpolAllSatCallback result = new SmtInterpolAllSatCallback(amgr, timer);
-    try {
-      allsatEnv.assertTerm(mgr.getTerm(f));
-
-      int numModels = 0;
-      while(allsatEnv.checkSat() == LBool.SAT) {
-        numModels++;
-        if (numModels > 20) { // TODO remove limit, TODO handle infinity
-          System.out.println("i have found some models, making break in allsat()");
-          break;
-        }
-
-        Valuation val = allsatEnv.getValue(importantTerms);
-        Term[] model = new Term[importantTerms.length];
-        for (int j=0; j<importantTerms.length; j++) {
-          Term valueOfT = val.get(importantTerms[j]);
-          if (SmtInterpolUtil.isFalse(allsatEnv, valueOfT)) {
-            model[j] = allsatEnv.term("not", importantTerms[j]);
-          } else {
-            model[j] = importantTerms[j];
-          }
-        }
-        // add model to BDD
-        result.callback(model, allsatEnv);
-
-        // assert current model to get next model
-        assert model.length != 0 : "satCheck is SAT, but there is no model!";
-        Term notTerm;
-        if (model.length == 1) { // AND needs 2 or more terms
-          notTerm = allsatEnv.term("not", model[0]);
-        } else {
-          notTerm = allsatEnv.term("not", allsatEnv.term("and", model));
-        }
-        System.out.println(numModels + ", term to assert for next model: " + notTerm.toString());
-        allsatEnv.push(1);
-        allsatEnv.assertTerm(notTerm);
+    int numModels = 0;
+    allsatEnv.assertTerm(mgr.getTerm(f));
+    while (allsatEnv.checkSat() == LBool.SAT) {
+      if (numModels > 20) { // TODO remove limit, TODO handle infinity
+        System.out.println("i have found some models, making break in allsat()");
+        break;
       }
 
-      allsatEnv.pop(numModels + 1); // we pushed some levels on assertionStack, remove them
-    } catch (UnsupportedOperationException e) {
-      e.printStackTrace();
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
+      Term[] model = new Term[importantTerms.length];
+
+      if (importantTerms.length == 0) {
+        // assert current model to get next model
+        result.callback(model, allsatEnv);
+
+        System.out.println(
+            "satCheck is SAT, but there is no model for important terms!");
+        break;
+      }
+
+      assert importantTerms.length != 0 : "there is no valuation for zero important terms!";
+
+      Valuation val = allsatEnv.getValue(importantTerms);
+      for (int j = 0; j < importantTerms.length; j++) {
+        Term valueOfT = val.get(importantTerms[j]);
+        if (SmtInterpolUtil.isFalse(valueOfT)) {
+          model[j] = allsatEnv.term("not", importantTerms[j]);
+        } else {
+          model[j] = importantTerms[j];
+        }
+      }
+      // add model to BDD
+      result.callback(model, allsatEnv);
+
+      Term notTerm;
+      if (model.length == 1) { // AND needs 2 or more terms
+        notTerm = allsatEnv.term("not", model[0]);
+      } else {
+        notTerm = allsatEnv.term("not", allsatEnv.term("and", model));
+      }
+      System.out.println(numModels + ", term to assert for next model: " + notTerm.toString());
+      numModels++;
+      allsatEnv.push(1);
+      allsatEnv.assertTerm(notTerm);
     }
 
+    allsatEnv.pop(numModels + 1); // we pushed some levels on assertionStack, remove them
     return result;
   }
 
@@ -246,7 +230,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
       formula = cubes.remove();
     }
 
-    public void callback(Term[] model, Script script) { // TODO function needed for smtInterpol???
+    public void callback(Term[] model, SmtInterpolEnvironment env) { // TODO function needed for smtInterpol???
       totalTime.start();
 
       // the abstraction is created simply by taking the disjunction
@@ -256,7 +240,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
       Region m = rmgr.makeTrue();
       for (Term t : model) {
         Region region;
-        if (isNot(script, t)) {
+        if (isNot(t)) {
           t = getArg(t, 0);
           region = amgr.getPredicate(mgr.encapsulate(t)).getAbstractVariable();
           region = rmgr.makeNot(region);

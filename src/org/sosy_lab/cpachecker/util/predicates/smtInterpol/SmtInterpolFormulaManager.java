@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUtil.*;
 
-import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,9 +46,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
-import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
-import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
-import de.uni_freiburg.informatik.ultimate.logic.Script;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
@@ -57,8 +53,10 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
   // the environment in which all terms are created
-  final Script script;
+  final SmtInterpolEnvironment env;
   String sort; // sort is the type (i.e. INT, REAL), depends on logic
+
+  Set<Term> uifs = new HashSet<Term>();
 
   // the character for separating name and index of a value
   private final static String INDEX_SEPARATOR = "@";
@@ -71,16 +69,19 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   // cache for uninstantiating terms (see uninstantiate() below)
   private final Map<Formula, Formula> uninstantiateCache = new HashMap<Formula, Formula>();
 
+  Term falseTerm;
+  Term trueTerm;
+
   SmtInterpolFormulaManager(Configuration config, LogManager logger, String sort)
       throws InvalidConfigurationException {
     config.inject(this, SmtInterpolFormulaManager.class);
-    script = new SmtInterpolEnvironment();
+    env = new SmtInterpolEnvironment();
     this.sort = sort;
   }
 
-  Script getEnvironment() {
-    assert script != null;
-    return script; // TODO working?? correct??
+  SmtInterpolEnvironment getEnvironment() {
+    assert env != null;
+    return env; // TODO working?? correct??
   }
 
   // ----------------- Helper function -----------------
@@ -106,29 +107,38 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   }
 
   Formula encapsulate(Term t) {
-    return new SmtInterpolFormula(t, script);
+    return new SmtInterpolFormula(t);
   }
 
   FormulaList encapsulate(Term[] t) {
     return new SmtInterpolFormulaList(t);
   }
 
+  protected Term getTrueTerm() {
+    if (trueTerm == null) { trueTerm = env.term("true"); }
+    return trueTerm;
+  }
+
+  private Term getFalseTerm() {
+    if (falseTerm == null) { falseTerm = env.term("false"); }
+    return falseTerm;
+  }
+
   // ----------------- Boolean formulas -----------------
 
   @Override
   public boolean isBoolean(Formula f) {
-    // TODO "equals" checks same object, working??
-    return getTerm(f).getSort().equals(script.getTheory().getBooleanSort());
+    return SmtInterpolUtil.isBoolean(getTerm(f));
   }
 
   @Override
   public Formula makeTrue() {
-    return encapsulate(script.getTheory().TRUE);
+    return encapsulate(getTrueTerm());
   }
 
   @Override
   public Formula makeFalse() {
-    return encapsulate(script.getTheory().FALSE);
+    return encapsulate(getFalseTerm());
   }
 
   @Override
@@ -136,20 +146,10 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
     Term t = getTerm(f);
 
     // simplify term (not not t)
-    if (t instanceof ApplicationTerm) {
-      ApplicationTerm at = (ApplicationTerm) t;
-      if ("not".equals(at.getFunction().getName())
-          && at.getParameters().length == 1) {
-        return encapsulate(at.getParameters()[0]);
-      }
-    }
-
-    // make 'normal' not
-    try {
-      return encapsulate(script.term("not", t));
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
+    if (isNot(t)) {
+      return encapsulate(((ApplicationTerm) t).getParameters()[0]);
+    } else {
+      return encapsulate(env.term("not", t));
     }
   }
 
@@ -158,55 +158,35 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
     Term t1 = getTerm(f1);
     Term t2 = getTerm(f2);
     if (t1 == t2) { return f1;}
-    if (t1 == script.getTheory().TRUE) { return f2;}
-    if (t2 == script.getTheory().TRUE) { return f1;}
-    try {
-      Term t = script.term("and", t1, t2);
+    if (t1 == getTrueTerm()) { return f2;}
+    if (t2 == getTrueTerm()) { return f1;}
+    Term t = env.term("and", t1, t2);
      // System.out.println("old:\n" + prettyPrint(t) + "\n\n");
      // System.out.println(prettyPrint(simplify(script, t)) + "\n\n");
-      return encapsulate(simplify(script, t));
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
-    }
+    return encapsulate(simplify(env, t));
   }
 
   @Override
   public Formula makeOr(Formula f1, Formula f2) {
     Term t1 = getTerm(f1);
     Term t2 = getTerm(f2);
-    if (t1 == script.getTheory().FALSE) { return f2;}
-    if (t2 == script.getTheory().FALSE) { return f1;}
-    try {
-      Term t = script.term("or", t1, t2);
+    if (t1 == getFalseTerm()) { return f2;}
+    if (t2 == getFalseTerm()) { return f1;}
+    Term t = env.term("or", t1, t2);
      // System.out.println("old:\n" + prettyPrint(t) + "\n\n");
      // System.out.println(prettyPrint(simplify(script, t)) + "\n\n");
-      return encapsulate(simplify(script, t));
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
-    }
+    return encapsulate(simplify(env, t));
   }
 
   @Override
   public Formula makeEquivalence(Formula f1, Formula f2) {
-    try {
-      return encapsulate(script.term("=", getTerm(f1), getTerm(f2)));
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
-    }
+    return encapsulate(env.term("=", getTerm(f1), getTerm(f2)));
   }
 
   @Override
   public Formula makeIfThenElse(Formula condition, Formula f1, Formula f2) {
-    try {
-      return encapsulate(script.term("ite",
+    return encapsulate(env.term("ite",
           getTerm(condition), getTerm(f1), getTerm(f2)));
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
-    }
   }
 
   // ----------------- Uninterpreted functions -----------------
@@ -217,75 +197,50 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
       sorts[i] = args[i].getSort();
     }
 
-    FunctionSymbol func = script.getTheory().getFunction(name, sorts);
-    if (func == null) {
-      try {
-        script.declareFun(name, sorts, script.sort(sort));
-      } catch (SMTLIBException e) {
-        e.printStackTrace();
-      }
-    }
-    try {
-      return script.term(name, args);
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
-    }
+    env.declareFun(name, sorts, env.sort(sort));
+    return env.term(name, args);
   }
 
   @Override
   public Formula makeUIF(String name, FormulaList args) {
-    return encapsulate(buildUF(name, getTerm(args)));
+    Term uif = buildUF(name, getTerm(args));
+    uifs.add(uif);
+    return encapsulate(uif);
   }
 
   @Override
   public Formula makeUIF(String name, FormulaList args, int idx) {
-    return encapsulate(buildUF(makeName(name, idx), getTerm(args)));
+    Term uif = buildUF(makeName(name, idx), getTerm(args));
+    uifs.add(uif);
+    return encapsulate(uif);
   }
 
   // ----------------- Other formulas -----------------
 
   @Override
   public Formula makeString(int i) {
-    return encapsulate(script.getTheory().numeral(BigInteger.valueOf(i)));
-    // TODO String?? decimal??
+    return encapsulate(env.numeral(Integer.toString(i)));
   }
 
   private Term buildVariable(String var, Sort sort) {
-     var = var.replace("::", "_XX_"); //TODO this is only for printing
-
-     FunctionSymbol func = script.getTheory().getFunction(var);
-     if (func == null) {
-       try {
-         script.declareFun(var, new Sort[]{}, sort);
-       } catch (SMTLIBException e) {
-         e.printStackTrace();
-       }
-     }
-     try {
-       return script.term(var);
-     } catch (SMTLIBException e) {
-       e.printStackTrace();
-       return null;
-     }
+     env.declareFun(var, new Sort[]{}, sort);
+     return env.term(var);
   }
 
   @Override
   public Formula makeVariable(String var, int idx) {
-    // System.out.println("makeVar: " + var + " " + idx);
     return makeVariable(makeName(var, idx));
   }
 
   @Override
   public Formula makeVariable(String var) {
-    return encapsulate(buildVariable(var, script.getTheory().getSort(sort)));
+    return encapsulate(buildVariable(var, env.sort(sort)));
   }
 
   @Override
   public Formula makePredicateVariable(String var, int idx) {
-    // System.out.println("DEBUG: termvariable '" + var + " " + idx + "'- perhaps not working?");
     return encapsulate(buildVariable(makeName("PRED_" + var, idx),
-     								 script.getTheory().getBooleanSort()));
+       								 env.sort(SmtInterpolEnvironment.BOOLEAN_SORT)));
   }
 
   @Override
@@ -320,14 +275,14 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   public Formula createPredicateVariable(Formula f) {
     Term t = getTerm(f);
     // TODO is something better than hashcode??
-    String repr = (isAtom(script, t) ? t.toString() : ("#" + t.hashCode()));
+    String repr = (isAtom(t) ? t.toString() : ("#" + t.hashCode()));
     return encapsulate(buildVariable("\"PRED" + repr + "\"",
-          script.getTheory().getBooleanSort()));
+            env.sort(SmtInterpolEnvironment.BOOLEAN_SORT)));
   }
 
   @Override
   public String dumpFormula(Formula f) {
-    return getTerm(f).toString(); // creates prefix notation with brackets
+    return getTerm(f).toStringDirect(); // creates prefix notation with brackets
   }
 
   @Override
@@ -384,7 +339,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
         if (childrenDone) {
           toProcess.pop();
           Term newt;
-          if (isUIF(script, t)) {
+          if (uifs.contains(t)) {
             String name = ((ApplicationTerm)t).getFunction().toString();
             assert name != null;
 
@@ -394,13 +349,13 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
                 // ok, the variable has an instance in the SSA, replace it
                 newt = buildUF(makeName(name, idx), newargs);
               } else {
-                newt = replaceArgs(script, t, newargs);
+                newt = replaceArgs(env, t, newargs);
               }
             } else {
-              newt = replaceArgs(script, t, newargs);
+              newt = replaceArgs(env, t, newargs);
             }
           } else {
-            newt = replaceArgs(script, t, newargs);
+            newt = replaceArgs(env, t, newargs);
           }
 
           cache.put(tt, encapsulate(newt));
@@ -452,7 +407,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
         if (childrenDone) {
           toProcess.pop();
           Term newt;
-          if (isUIF(script, t)) {
+          if (uifs.contains(t)) {
             String name = ((ApplicationTerm)t).getFunction().toString();
             assert name != null;
 
@@ -461,10 +416,10 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
               newt = buildUF(name, newargs);
             } else {
-              newt = replaceArgs(script, t, newargs);
+              newt = replaceArgs(env, t, newargs);
             }
           } else {
-            newt = replaceArgs(script, t, newargs);
+            newt = replaceArgs(env, t, newargs);
           }
 
           cache.put(tt, encapsulate(newt));
@@ -496,22 +451,14 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
         continue;
       }
 
-      if (isAtom(script, t)) {
+      if (isAtom(t)) {
         tt = uninstantiate(tt);
         t = getTerm(tt);
 
-        if (splitArithEqualities && isEqual(script, t) && isPurelyArithmetic(tt)) {
+        if (splitArithEqualities && isEqual(t) && isPurelyArithmetic(tt)) {
           Term a1 = getArg(t, 0);
           Term a2 = getArg(t, 1);
-
-          Term t1 = null;
-          try {
-            t1 = script.term("<=", a1, a2); // TODO why "<="??
-          } catch (SMTLIBException e) {
-            e.printStackTrace();
-          }
-
-          Formula tt1 = encapsulate(t1);
+          Formula tt1 = encapsulate(env.term("<=", a1, a2)); // TODO why "<="??
           cache.add(tt1);
 
           atoms.add(tt1);
@@ -519,8 +466,8 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
         } else {
           atoms.add(tt);
         }
-      } else if (conjunctionsOnly && !isNot(script, t)
-                  && !isAnd(script, t)) {
+      } else if (conjunctionsOnly && !isNot(t)
+                  && !isAnd(t)) {
         // conjunctions only, but formula is neither "not" nor "and"
         // treat this as atomic
         atoms.add(uninstantiate(tt));
@@ -550,7 +497,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
     while (!toProcess.isEmpty()) {
       Term t = getTerm(toProcess.pop());
 
-      if (isTrue(script, t) || isFalse(script, t)) {
+      if (isTrue(t) || isFalse(t)) {
         continue;
       }
 
@@ -581,7 +528,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
       Term t = getTerm(f);
       boolean res = true;
-      if (isUIF(script, t)) {
+      if (uifs.contains(t)) {
         res = false;
 
       } else {

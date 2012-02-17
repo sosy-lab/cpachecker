@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.Model;
@@ -36,80 +38,52 @@ import com.google.common.base.Preconditions;
 
 import de.uni_freiburg.informatik.ultimate.logic.AnnotatedTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
-import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
-import de.uni_freiburg.informatik.ultimate.logic.Script;
 import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProver<Term> {
 
     private final SmtInterpolFormulaManager mgr;
-    private Script script;
+    private SmtInterpolEnvironment env;
     List<String> assertedFormulas; // Collection of termNames
-    List<Term> annotatedFormulas; // Collection of terms
+    Map<String, Term> annotatedTerms; // Collection of termNames
     private String prefix = "term_"; // for termnames
     static int counter = 0; // for different termnames // TODO static?
 
     public SmtInterpolInterpolatingProver(SmtInterpolFormulaManager pMgr, boolean shared) {
-        mgr = pMgr;
-        script = null;
+      mgr = pMgr;
+      env = null;
     }
-
 
     @Override
     public void init() {
-      script = mgr.getEnvironment();
+      env = mgr.getEnvironment();
+      env.push(1);
       assertedFormulas = new ArrayList<String>();
-      annotatedFormulas = new ArrayList<Term>();
+      annotatedTerms = new HashMap<String, Term>();
     }
 
     @Override
     public Term addFormula(Formula f) {
-      Preconditions.checkNotNull(script);
+      Preconditions.checkNotNull(env);
       Term t = ((SmtInterpolFormula)f).getTerm();
 
-      Term annotatedTerm = null;
       String termName = prefix + counter++;
-      try {
-        annotatedTerm = script.annotate(t, new Annotation(":named", termName));
-      } catch (SMTLIBException e) {
-        e.printStackTrace();
-      }
-      annotatedFormulas.add(annotatedTerm);
+      Term annotatedTerm = env.annotate(t, new Annotation(":named", termName));
+      env.assertTerm(annotatedTerm);
       assertedFormulas.add(termName);
+      annotatedTerms.put(termName, t);
       return annotatedTerm;
     }
 
     @Override
     public boolean isUnsat() {
-      LBool result = null;
-      try {
-
-        script.push(1);
-        for (Term t: annotatedFormulas) {
-          script.assertTerm(t);
-        }
-        result = script.checkSat();
-        script.pop(1);
-
-      } catch (SMTLIBException e) {
-        e.printStackTrace();
-      }
-      return result == LBool.UNSAT;
+      return env.checkSat() == LBool.UNSAT;
     }
 
     @Override
     public Formula getInterpolant(List<Term> formulasOfA) {
-        Preconditions.checkNotNull(script);
-
-        script.push(1);
-        try {
-          for (Term t: annotatedFormulas) {
-            script.assertTerm(t);
-          }
-        } catch (SMTLIBException e) {
-          e.printStackTrace();
-        }
+        Preconditions.checkNotNull(env);
 
         // wrap terms into annotated term, collect their names as "termNamesOfA"
         Set<String> termNamesOfA = new HashSet<String>();
@@ -131,58 +105,55 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
         }
 
         Term[] itp = null; // TODO why array? only itp[0] is used
-        try {
-          // get terms with names
-          Term[] groupOfA = new Term[termNamesOfA.size()];
-          int i=0;
-          for (String termName: termNamesOfA) {
-            groupOfA[i] = script.term(termName);
-            i++;
-          }
-          Term[] groupOfB = new Term[termNamesOfB.size()];
-          i=0;
-          for (String termName: termNamesOfB) {
-            groupOfB[i] = script.term(termName);
-            i++;
-          }
 
-          // build 2 groups:  (and A1 A2 A3...) , (and B1 B2 B3...)
-          assert groupOfA.length != 0;
-          Term termA = groupOfA[0];
-          if (groupOfA.length > 1) {
-            termA = script.term("and", groupOfA);
-          }
-          assert groupOfB.length != 0;
-          Term termB = groupOfB[0];
-          if (groupOfB.length > 1) {
-            termB = script.term("and", groupOfB);
-          }
-
-          itp = script.getInterpolants(new Term[] {termA, termB});
-          script.pop(1);
-        } catch (SMTLIBException e) {
-          e.printStackTrace();
+        // get terms with names
+        Term[] groupOfA = new Term[termNamesOfA.size()];
+        int i=0;
+        for (String termName: termNamesOfA) {
+          groupOfA[i] = env.term(termName);
+          i++;
         }
+        Term[] groupOfB = new Term[termNamesOfB.size()];
+        i=0;
+        for (String termName: termNamesOfB) {
+          groupOfB[i] = env.term(termName);
+          i++;
+        }
+
+        // build 2 groups:  (and A1 A2 A3...) , (and B1 B2 B3...)
+        assert groupOfA.length != 0;
+        Term termA = groupOfA[0];
+        if (groupOfA.length > 1) {
+          termA = env.term("and", groupOfA);
+        }
+        assert groupOfB.length != 0;
+        Term termB = groupOfB[0];
+        if (groupOfB.length > 1) {
+          termB = env.term("and", groupOfB);
+        }
+
+        itp = env.getInterpolants(new Term[] {termA, termB});
+
         // there are more interpolants, we only use the first one, TODO correct??
-        return new SmtInterpolFormula(itp[0], script);
+        return new SmtInterpolFormula(itp[0]);
     }
 
     @Override
     public void reset() {
-      Preconditions.checkNotNull(script);
+      Preconditions.checkNotNull(env);
+      env.pop(1);
       assertedFormulas = null;
-      script = null;
+      annotatedTerms = null;
+      env = null;
     }
 
     @Override
     public Model getModel() {
-      Preconditions.checkNotNull(script);
-      try {
-        return SmtInterpolModel.createSmtInterpolModel(script, assertedFormulas.toArray(new Term[0]));
-      } catch (SMTLIBException e) {
-        e.printStackTrace();
-        return null;
+      Preconditions.checkNotNull(env);
+      List<Term> terms = new ArrayList<Term>(assertedFormulas.size());
+      for (String termname : assertedFormulas) {
+        terms.add(annotatedTerms.get(termname));
       }
+      return SmtInterpolModel.createSmtInterpolModel(env, terms);
     }
-
 }

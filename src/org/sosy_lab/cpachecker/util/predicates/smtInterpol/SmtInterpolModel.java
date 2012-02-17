@@ -33,8 +33,6 @@ import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
 import com.google.common.collect.ImmutableMap;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
-import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
-import de.uni_freiburg.informatik.ultimate.logic.Script;
 import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
@@ -128,20 +126,23 @@ public class SmtInterpolModel {
     }
   }
 
-  static Model createSmtInterpolModel(Script script, Term[] keys) throws SMTLIBException {
+  static Model createSmtInterpolModel(SmtInterpolEnvironment env, Iterable<Term> terms) {
+    // model can only return values for keys, not for terms
+    Term[] keys = SmtInterpolUtil.getVars(terms);
+
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
 
-    assert script.checkSat() != LBool.UNSAT:
+    assert env.checkSat() != LBool.UNSAT:
             "model is not available for UNSAT"; // TODO expensive check?
-    Valuation val = script.getValue(keys);
+    Valuation val = env.getValue(keys);
 
-    Term modelFormula = script.term("true");
+    Term modelFormula = env.term("true");
 
     for (Term lKeyTerm : keys) {
       Term lValueTerm = val.get(lKeyTerm);
 
-      Term equivalence = script.term("=", lKeyTerm, lValueTerm);
-      modelFormula = script.term("and", modelFormula, equivalence);
+      Term equivalence = env.term("=", lKeyTerm, lValueTerm);
+      modelFormula = env.term("and", modelFormula, equivalence);
 
       AssignableTerm lAssignable = toAssignable(lKeyTerm);
 
@@ -149,7 +150,7 @@ public class SmtInterpolModel {
       // then read in values in a controlled way, e.g., size of bitvector
       // TODO we are assuming numbers as values
       if (!(SmtInterpolUtil.isNumber(lValueTerm)
-            || SmtInterpolUtil.isBoolean(script, lValueTerm))) {
+            || SmtInterpolUtil.isBoolean(lValueTerm))) {
         throw new IllegalArgumentException("term is not a number: " + lValueTerm);
       }
 
@@ -181,7 +182,7 @@ public class SmtInterpolModel {
       model.put(lAssignable, lValue);
     }
 
-    return new Model(model.build(), new SmtInterpolFormula(modelFormula, script));
+    return new Model(model.build(), new SmtInterpolFormula(modelFormula));
   }
 
 }

@@ -25,28 +25,25 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
-import de.uni_freiburg.informatik.ultimate.logic.Script;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 /** A Formula represented as a term. */
 public class SmtInterpolFormula implements Formula {
 
   private final Term term;
-  private final Script script;
 
-  public SmtInterpolFormula(Term term, Script script) {
+  public SmtInterpolFormula(Term term) {
     this.term = term;
-    this.script = script;
   }
 
   @Override
   public boolean isFalse() {
-    return SmtInterpolUtil.isFalse(script, term);
+    return SmtInterpolUtil.isFalse(term);
   }
 
   @Override
   public boolean isTrue() {
-    return SmtInterpolUtil.isTrue(script, term);
+    return SmtInterpolUtil.isTrue(term);
 
   }
 
