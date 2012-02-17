@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Preconditions;
@@ -66,10 +67,16 @@ public class ARTElement extends AbstractSingleWrapperElement {
   private ARTElement mergedWith = null;
 
   private final int elementId;
-  private boolean hasLocalChild = false;
-  private boolean byLocalEdge   = false;
-  private List<CFAEdge> envEdgesToBeApplied;
 
+  /**
+   * Has a local child been computed.
+   */
+  private boolean hasLocalChild = false;
+
+  /**
+   * Env transition that have been applied to this element. Null means none.
+   */
+  private Set<RGEnvTransition> envTrApplied;
 
   /**
    * equivalences class of each program counter
@@ -91,9 +98,8 @@ public class ARTElement extends AbstractSingleWrapperElement {
       parent.childMap.put(this, edge);
     }
 
-    envEdgesToBeApplied = null;
-
     this.locationClasses = locationClasses;
+    this.envTrApplied = null;
 
     this.rgElement = AbstractElements.extractElementByType(this, RGAbstractElement.class);
     assert this.rgElement != null;
@@ -147,16 +153,18 @@ public class ARTElement extends AbstractSingleWrapperElement {
     hasLocalChild = pHasLocalChild;
   }
 
-  public boolean isByLocalEdge() {
-    return byLocalEdge;
-  }
-
-  public void setByLocalEdge(boolean pByLocalEdge) {
-    byLocalEdge = pByLocalEdge;
-  }
-
   public ImmutableList<Integer> getLocationClasses() {
     return locationClasses;
+  }
+
+
+
+  public Set<RGEnvTransition> getEnvTrApplied() {
+    return envTrApplied;
+  }
+
+  public void setEnvTrApplied(Set<RGEnvTransition> pEnvTrApplied) {
+    envTrApplied = pEnvTrApplied;
   }
 
   protected void setCovered(ARTElement pCoveredBy) {
@@ -334,17 +342,6 @@ public class ARTElement extends AbstractSingleWrapperElement {
   public boolean isDestroyed() {
     return destroyed;
   }
-
-  public List<CFAEdge> getEnvEdgesToBeApplied() {
-    return envEdgesToBeApplied;
-  }
-
-  public void setEnvEdgesToBeApplied(List<CFAEdge> pEnvEdges) {
-    envEdgesToBeApplied = pEnvEdges;
-  }
-
-
-
 
 
 }

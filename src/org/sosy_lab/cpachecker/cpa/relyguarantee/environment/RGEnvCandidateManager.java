@@ -135,6 +135,13 @@ public class RGEnvCandidateManager {
       return false;
     }
 
+    ImmutableList<Integer> locCl1 = c1.getElement().getLocationClasses();
+    ImmutableList<Integer> locCl2 = c2.getElement().getLocationClasses();
+
+    if (!locCl1.equals(locCl2)){
+      return false;
+    }
+
     Formula f1 = c1.getRgElement().getPathFormula().getFormula();
     Formula f2 = c1.getRgElement().getPathFormula().getFormula();
 

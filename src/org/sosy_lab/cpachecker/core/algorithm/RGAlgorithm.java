@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -216,16 +218,6 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
       for (AbstractElement ae : relevant){
         if (AbstractElements.extractLocation(ae).equals(node)){
           if (!reachedSet.getWaitlist().contains(relevant)){
-            // set the env. edges as the only ones to be applied at this element
-            // if there are remaining unnaplied edges, then replace them
-            ARTElement artElement = (ARTElement) ae;
-            List<CFAEdge> envEdges = artElement.getEnvEdgesToBeApplied();
-            if (envEdges == null){
-              envEdges = new Vector<CFAEdge>();
-              artElement.setEnvEdgesToBeApplied(envEdges);
-            }
-
-            envEdges.addAll(pEnvEdgesMap.get(node));
             reachedSet.reAddToWaitlist(ae);
           }
         }
@@ -271,17 +263,33 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
       runStats.printStatistics(System.out, null, null);
     }
 
+    // clear the set of  unapplied env. edges
+    environment.clearUnappliedEnvEdgesForThread(i);
+
+
 
     if (sound) {
-      // clear the set of  unapplied env. edges
-
-      environment.clearUnappliedEnvEdgesForThread(i);
       // analyse error found only if the analysis is marked as sound
       ARTElement last = (ARTElement) reached.getLastElement();
       boolean isTarget = last.isTarget();
+      assert isTarget || threadCPA[i].getForcedStop().isEmpty();
       stats.errorCheckTimer.stop();
+      threadCPA[i].getForcedStop().clear();
       return isTarget;
+    } else {
+
+      // readd to waitlist elements that were forced to stop
+      for (Pair<AbstractElement, Precision> pair : threadCPA[i].getForcedStop()){
+        AbstractElement element = pair.getFirst();
+        Precision precision = pair.getSecond();
+        reached.add(element, precision);
+      }
+      threadCPA[i].getForcedStop().clear();
+
     }
+
+
+
     stats.errorCheckTimer.stop();
     return false;
   }
