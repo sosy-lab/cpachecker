@@ -76,7 +76,7 @@ public class GenericProofGenerator {
       return;
     }
     // saves the proof in specified file
-    logger.log(Level.INFO, "PCC Proof Generation started.");
+    logger.log(Level.INFO, "Proof Generation started.");
     Timer writingTimer = new Timer();
     writingTimer.start();
 
@@ -116,10 +116,6 @@ public class GenericProofGenerator {
       } catch (Exception e) {
       }
     }
-
-    /*try {
-      Files.writeFile(new File("ComputedART.dot"), ARTUtils.convertARTToDot((ARTElement)reached.getFirstElement(), Collections.<Pair<ARTElement, ARTElement>>emptySet()));
-    } catch (IOException e) { System.err.println(e); }*/
 
     writingTimer.stop();
     logger.log(Level.INFO, "Writing proof took " + writingTimer.printMaxTime());

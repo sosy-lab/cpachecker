@@ -638,14 +638,6 @@ public abstract class MathsatFormulaManager implements FormulaManager {
   }
 
   @Override
-  public Pair<Formula, Formula> splitBinOp(Formula f) {
-    final long t = getTerm(f);
-    assert msat_term_is_variable(t) == 0;
-    assert msat_term_arity(t) == 2;
-    return Pair.of(encapsulate(msat_term_get_arg(t, 0)), encapsulate(msat_term_get_arg(t, 1)));
-  }
-
-  @Override
   public boolean checkSyntacticEntails(Formula leftFormula, Formula rightFormula) {
     final long leftTerm = getTerm(leftFormula);
 

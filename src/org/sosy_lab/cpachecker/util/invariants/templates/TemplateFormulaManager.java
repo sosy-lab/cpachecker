@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.invariants.InfixReln;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -628,11 +627,6 @@ public class TemplateFormulaManager implements FormulaManager {
 	@Override
   public Set<String> extractVariables(Formula f) {
 	  return null;
-  }
-
-  @Override
-  public Pair<Formula, Formula> splitBinOp(Formula pF) {
-    return null;
   }
 
   @Override

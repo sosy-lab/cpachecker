@@ -80,9 +80,9 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Number of iterations:                     " + countIterations);
       out.println();
       out.println("Total time for proof check algorithm: " + totalTimer);
-      out.println("  Time for reading in proof           " + readTimer);
-      out.println("  Time for abstract successor check:  " + transferTimer + " (Calls: " + transferTimer.getNumberOfIntervals() + ")");
-      out.println("  Time for covering check:            " + stopTimer  + " (Calls: " + stopTimer.getNumberOfIntervals() + ")");
+      out.println("  Time for reading in proof:          " + readTimer);
+      out.println("  Time for abstract successor checks: " + transferTimer + " (Calls: " + transferTimer.getNumberOfIntervals() + ")");
+      out.println("  Time for covering checks:           " + stopTimer  + " (Calls: " + stopTimer.getNumberOfIntervals() + ")");
     }
   }
 

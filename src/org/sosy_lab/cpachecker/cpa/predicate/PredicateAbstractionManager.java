@@ -418,7 +418,7 @@ public class PredicateAbstractionManager {
     PathFormula mergedPathFormulae = pfmgr.makeOr(a1, a2);
 
     //quick syntactic check
-    Formula leftFormula = fmgr.splitBinOp(mergedPathFormulae.getFormula()).getFirst();
+    Formula leftFormula = fmgr.getArguments(mergedPathFormulae.getFormula())[0];
     Formula rightFormula = a2.getFormula();
     if(fmgr.checkSyntacticEntails(leftFormula, rightFormula)) {
       stats.numSyntacticEntailedPathFormulae++;
