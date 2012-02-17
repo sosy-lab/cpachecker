@@ -44,6 +44,7 @@ public class PivotRow2 implements Comparable<PivotRow2> {
     usable = new LinkedList<UsableColumn>();
   }
 
+  @Override
   public int compareTo(PivotRow2 other) {
     // We want that row to come first which has the greatest height.
     return other.rowNum - this.rowNum;

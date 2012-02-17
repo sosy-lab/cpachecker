@@ -118,8 +118,6 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
   private Integer previousPathHash = null;
 
-  private static int refinementCounter = 0;
-
   String lastPath;
 
   public static ExplicitRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {

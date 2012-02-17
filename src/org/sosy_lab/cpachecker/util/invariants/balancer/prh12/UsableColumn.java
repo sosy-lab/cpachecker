@@ -31,10 +31,10 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionSet;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Matrix;
 import org.sosy_lab.cpachecker.util.invariants.balancer.RationalFunction;
-import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 
 
 public class UsableColumn implements Comparable<UsableColumn> {
@@ -61,6 +61,7 @@ public class UsableColumn implements Comparable<UsableColumn> {
     logger.log(Level.ALL, "Constructed UsableColumn with entries:\n",entries);
   }
 
+  @Override
   public int compareTo(UsableColumn other) {
     return this.height - other.height;
   }

@@ -168,11 +168,6 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
     return logger;
   }
 
-  private boolean useCegar() {
-    return this.config.getProperty("analysis.useRefinement") != null
-      && this.config.getProperty("cegar.refiner").equals("cpa.explicit.ExplicitRefiner");
-  }
-
   @Override
   public Reducer getReducer() {
     return reducer;
