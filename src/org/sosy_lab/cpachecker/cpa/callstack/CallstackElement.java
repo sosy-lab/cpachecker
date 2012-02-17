@@ -25,17 +25,22 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
+import java.io.Serializable;
+
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-public final class CallstackElement implements AbstractElement, Partitionable, AbstractQueryableElement {
+public final class CallstackElement implements AbstractElement, Partitionable, AbstractQueryableElement, Serializable {
 
+  private static final long serialVersionUID = 3629687385150064994L;
   private final CallstackElement previousElement;
   private final String currentFunction;
-  private final CFANode callerNode;
+  private transient CFANode callerNode;
   private final int depth;
 
   CallstackElement(CallstackElement previousElement, String function, CFANode callerNode) {
@@ -125,5 +130,16 @@ public final class CallstackElement implements AbstractElement, Partitionable, A
   @Override
   public void modifyProperty(String pModification) throws InvalidQueryException {
     throw new InvalidQueryException("modifyProperty not implemented by " + this.getClass().getCanonicalName());
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    out.defaultWriteObject();
+    out.writeInt(callerNode.getNodeNumber());
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+    int nodeNumber = in.readInt();
+    callerNode = GlobalInfo.getInstance().getCFAInfo().getNodeByNodeNumber(nodeNumber);
   }
 }

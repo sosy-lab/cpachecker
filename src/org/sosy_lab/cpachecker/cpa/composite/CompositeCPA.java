@@ -30,6 +30,7 @@ import java.util.List;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithAB
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -49,12 +51,13 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.OmniscientCompositePrecisionAdjustment;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithABM
-{
+public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithABM, ProofChecker {
 
   @Options(prefix="cpa.composite")
   private static class CompositeOptions {
@@ -170,18 +173,18 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   private final AbstractDomain abstractDomain;
-  private final TransferRelation transferRelation;
+  private final CompositeTransferRelation transferRelation;
   private final MergeOperator mergeOperator;
-  private final StopOperator stopOperator;
+  private final CompositeStopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
   private final Reducer reducer;
 
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
 
   protected CompositeCPA (AbstractDomain abstractDomain,
-      TransferRelation transferRelation,
+      CompositeTransferRelation transferRelation,
       MergeOperator mergeOperator,
-      StopOperator stopOperator,
+      CompositeStopOperator stopOperator,
       PrecisionAdjustment precisionAdjustment,
       ImmutableList<ConfigurableProgramAnalysis> cpas)
   {
@@ -291,5 +294,15 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Override
   public ImmutableList<? extends ConfigurableProgramAnalysis> getWrappedCPAs() {
     return cpas;
+  }
+
+  @Override
+  public boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge, Collection<? extends AbstractElement> pSuccessors) throws CPATransferException, InterruptedException {
+    return transferRelation.areAbstractSuccessors(pElement, pCfaEdge, pSuccessors, cpas);
+  }
+
+  @Override
+  public boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement) throws CPAException {
+    return stopOperator.isCoveredBy(pElement, pOtherElement, cpas);
   }
 }

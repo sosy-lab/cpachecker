@@ -239,7 +239,14 @@ class PredicateCPAStatistics implements Statistics {
         }
         out.println("  Error path post-processing:        " + refiner.errorPathProcessing);
       }
+
       out.println("Total time for SMT solver:           " + Timer.formatTime(smtTime));
+
+      if(trans.pathFormulaCheckTimer.getNumberOfIntervals() > 0 || trans.abstractionCheckTimer.getNumberOfIntervals() > 0) {
+        out.println("Time for abstraction checks:       " + trans.abstractionCheckTimer);
+        out.println("Time for path formulae checks:     " + trans.pathFormulaCheckTimer + " (Num: " + as.numPathFormulaCoverageChecks + ", Equal: " + as.numEqualPathFormulae + ", Syn. entailed: " + as.numSyntacticEntailedPathFormulae + ", Sem. entailed: " + as.numSemanticEntailedPathFormulae + ")");
+        out.println("Time for unsat checks:             " + trans.satCheckTimer + " (Calls: " + trans.satCheckTimer.getNumberOfIntervals() + ")");
+      }
     }
 
     private String toPercent(double val, double full) {

@@ -29,8 +29,7 @@ import java.util.Map;
 
 /** Represents a State in the automaton.
  */
-class AutomatonInternalState {
-
+public class AutomatonInternalState {
   // the StateId is used to identify States in GraphViz
   private static int stateIdCounter = 0;
   // stateIdCounter is incremented every time an instance of AutomatonState is created.

@@ -165,7 +165,7 @@ public class CtoFormulaConverter {
   public static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
 
   /** The prefix used for variables representing memory locations. */
-  private static final String MEMORY_ADDRESS_VARIABLE_PREFIX = "&";
+  private static final String MEMORY_ADDRESS_VARIABLE_PREFIX = "__address_of__";
 
   /**
    * The prefix used for memory locations derived from malloc calls.
@@ -365,7 +365,7 @@ public class CtoFormulaConverter {
 
   /** Takes a (scoped) variable name and returns the pointer variable name. */
   private static String makePointerMask(String scopedId, SSAMapBuilder ssa) {
-    return "*<" + scopedId + "," + ssa.getIndex(scopedId) + ">";
+    return "__content_of__" + scopedId + "__at__" + ssa.getIndex(scopedId) + "__end";
   }
 
   /**

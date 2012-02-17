@@ -120,6 +120,10 @@ analysis.useFeatureVarsRestriction = false
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
+# use a proof check algorithm to validate a previously generated proof
+analysis.useProofCheckAlgorithm = false
+
+# whether or not to use refinement or not
 # use CEGAR algorithm for lazy counter-example guided analysis
 # You need to specify a refiner with the cegar.refiner option.
 # Currently all refiner require the use of the ARTCPA.
@@ -403,6 +407,14 @@ cpa.pointer.merge = "sep"
 # print warnings during analysis when unsafe pointer operations are found
 cpa.pointer.printWarnings = true
 
+# which merge operator to use for PointerACPA
+cpa.pointerA.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
+# which stop operator to use for PointerACPA
+cpa.pointerA.stop = "SEP"
+  allowed values: [SEP, JOIN, NEVER]
+
 # whether to use auxiliary predidates for reduction
 cpa.predicate.abm.auxiliaryPredicateComputer = true
 
@@ -411,7 +423,9 @@ cpa.predicate.abm.auxiliaryPredicateComputer = true
 cpa.predicate.abs.useCache = true
 
 # whether to use Boolean (false) or Cartesian (true) abstraction
+cpa.predicate.abstraction.cartesian = no default value
 cpa.predicate.abstraction.cartesian = false
+cpa.predicate.abstraction.cartesian = no default value
 
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
@@ -420,21 +434,31 @@ cpa.predicate.abstraction.dumpHardQueries = false
 cpa.predicate.abstraction.initialPredicates = no default value
 
 # which solver to use?
+cpa.predicate.abstraction.solver = no default value
+  allowed values: [MATHSAT, YICES]
 cpa.predicate.abstraction.solver = "MATHSAT"
+  allowed values: [MATHSAT, YICES]
+cpa.predicate.abstraction.solver = no default value
   allowed values: [MATHSAT, YICES]
 
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
+cpa.predicate.blk.alwaysAfterThreshold = no default value
 cpa.predicate.blk.alwaysAfterThreshold = true
+cpa.predicate.blk.alwaysAfterThreshold = no default value
 
 # abstraction always and only on explicitly computed abstraction nodes.
 cpa.predicate.blk.alwaysAndOnlyAtExplicitNodes = false
 
 # force abstractions at each function calls/returns, regardless of threshold
+cpa.predicate.blk.alwaysAtFunctions = no default value
 cpa.predicate.blk.alwaysAtFunctions = true
+cpa.predicate.blk.alwaysAtFunctions = no default value
 
 # force abstractions at loop heads, regardless of threshold
+cpa.predicate.blk.alwaysAtLoops = no default value
 cpa.predicate.blk.alwaysAtLoops = true
+cpa.predicate.blk.alwaysAtLoops = no default value
 
 # abstractions at function calls/returns if threshold has been reached (no
 # effect if threshold = 0)
@@ -445,11 +469,13 @@ cpa.predicate.blk.functions = false
 cpa.predicate.blk.loops = false
 
 # Switch to a LBE configuration after so many milliseconds (0 to disable)
-cpa.predicate.blk.switchToLBEAfter = 0
+cpa.predicate.blk.switchToLBEAfter = no default value
 
 # maximum blocksize before abstraction is forced
 # (non-negative number, special values: 0 = don't check threshold, 1 = SBE)
+cpa.predicate.blk.threshold = no default value
 cpa.predicate.blk.threshold = 0
+cpa.predicate.blk.threshold = no default value
 
 # use caching of path formulas
 cpa.predicate.blk.useCache = true
@@ -587,7 +613,9 @@ cpa.predicate.refinement.verifyInterpolants = false
 # maximum blocksize before a satisfiability check is done
 # (non-negative number, 0 means never, if positive should be smaller than
 # blocksize)
+cpa.predicate.satCheck = no default value
 cpa.predicate.satCheck = 0
+cpa.predicate.satCheck = no default value
 
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks
@@ -618,7 +646,7 @@ cpa.uninitvars.stop = "sep"
 # export ART representation needed for proof checking in PCC, if the error
 # location is not reached, the representation depends on the algorithm used
 # for proof checking
-file = "pccProof.txt"
+file = no default value
 
 # C dialect for parser
 parser.dialect = GNUC
@@ -630,24 +658,29 @@ parser.ignoreCasts = false
 # export ART representation needed for proof checking in PCC, if the error
 # location is not reached, the representation depends on the algorithm used
 # for proof checking
-pcc.profgen.file = "pccProof.txt"
+pcc.profgen.file = no default value
+
+# file in which ART representation needed for proof checking is stored
+pcc.proofFile = "art.obj"
 
 # Type of the algorithm which should be used for PCC
-pcc.proofgen.algorithm = SBENOINDART
+pcc.proofgen.algorithm = no default value
   enum:     [SBEINDART, SBENOINDART, SBEINDINVARIANT, SBENOINDINVARIANT,
              SBENOEDGENOINDINVARIANT, SBENOEDGENOINDINVARIANT2, ABENOINDART,
              LBENOINDART, ALBENOINDART, LBENOINDINVARIANT, ALBENOINDINVARIANT]
 
 # which solver to use?
-pcc.proofgen.cpa.predicate.abstraction.solver = "MATHSAT"
+pcc.proofgen.cpa.predicate.abstraction.solver = no default value
   allowed values: [MATHSAT, YICES]
 
+pcc.proofgen.doPCC = no default value
 pcc.proofgen.doPCC = false
+pcc.proofgen.doPCC = no default value
 
 # export ART representation needed for proof checking in PCC, if the error
 # location is not reached, the representation depends on the algorithm used
 # for proof checking
-pcc.proofgen.file = "pccProof.txt"
+pcc.proofgen.file = no default value
 
 # print reached set to text file
 reachedSet.export = true

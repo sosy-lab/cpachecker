@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.FeatureVarsRestrictionAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -80,6 +81,9 @@ class CoreComponentsFactory {
       description="restart the algorithm using a different CPA after unknown result")
   private boolean useRestartingAlgorithm = false;
 
+  @Option(description="use a proof check algorithm to validate a previously generated proof")
+  private boolean useProofCheckAlgorithm = false;
+
   private final Configuration config;
   private final LogManager logger;
 
@@ -103,7 +107,10 @@ class CoreComponentsFactory {
 
     Algorithm algorithm;
 
-    if (useRestartingAlgorithm) {
+    if(useProofCheckAlgorithm) {
+      logger.log(Level.INFO, "Using Proof Check Algorithm");
+      algorithm = new ProofCheckAlgorithm(cpa, config, logger);
+    } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = new RestartAlgorithm(config, logger, filename, cfa);
 

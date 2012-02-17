@@ -44,6 +44,7 @@ import com.google.common.primitives.Ints;
 
 public class ARTElement extends AbstractSingleWrapperElement implements Comparable<ARTElement> {
 
+  private static final long serialVersionUID = 2608287648397165040L;
   private final Set<ARTElement> children;
   private final Set<ARTElement> parents; // more than one parent if joining elements
 
