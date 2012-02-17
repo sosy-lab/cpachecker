@@ -478,11 +478,6 @@ public class ExplicitTransferRelation implements TransferRelation
       IASTExpression rVarInBinaryExp = pE.getOperand2();
 
       switch(binaryOperator) {
-      case MODULO:
-      case SHIFT_RIGHT:
-        // TODO check which cases can be handled (I think all)
-        return null;
-
       case PLUS:
       case MINUS:
       case DIVIDE:
@@ -583,8 +578,11 @@ public class ExplicitTransferRelation implements TransferRelation
         return (result ? 1L : 0L);
       }
 
+      case MODULO:
+      case SHIFT_RIGHT:
       default:
-        throw new UnrecognizedCCodeException("unsupported binary operator", edge, pE);
+        // TODO check which cases can be handled (I think all)
+        return null;
       }
     }
 
@@ -668,10 +666,10 @@ public class ExplicitTransferRelation implements TransferRelation
         return null;
 
       case SIZEOF:
-        return null;
-
+      case TILDE:
       default:
-        throw new UnrecognizedCCodeException("unknown unary operator", edge, unaryExpression);
+        // TODO handle unimplemented operators
+        return null;
       }
     }
 
