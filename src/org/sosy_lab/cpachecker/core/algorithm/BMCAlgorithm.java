@@ -403,9 +403,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private Formula createFormulaFor(Iterable<AbstractElement> elements) {
     Formula f = fmgr.makeFalse();
 
-    for (PredicateAbstractElement e : transform(elements, EXTRACT_PREDICATE_ELEMENT)) {
-      assert e != null : "PredicateCPA exists but did not produce elements!";
-
+    for (PredicateAbstractElement e : AbstractElements.projectToType(elements, PredicateAbstractElement.class)) {
       f = fmgr.makeOr(f, e.getPathFormula().getFormula());
     }
 

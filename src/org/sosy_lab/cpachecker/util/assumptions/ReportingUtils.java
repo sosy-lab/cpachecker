@@ -47,13 +47,9 @@ public class ReportingUtils {
     Formula result = manager.makeTrue();
 
     // traverse through all the sub-elements contained in this element
-    for (AbstractElement e : AbstractElements.asIterable(element)) {
+    for (FormulaReportingElement e :  AbstractElements.extractAllElementsOfType(element, FormulaReportingElement.class)) {
 
-      // If the element can be approximated by a formula, conjunct its approximation
-      if (e instanceof FormulaReportingElement) {
-        FormulaReportingElement repel = (FormulaReportingElement) e;
-        result = manager.makeAnd(result, repel.getFormulaApproximation(manager));
-      }
+      result = manager.makeAnd(result, e.getFormulaApproximation(manager));
     }
 
     return result;

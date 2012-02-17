@@ -81,6 +81,29 @@ public final class AbstractElements {
     return null;
   }
 
+  /**
+   * Apply {@link #extractElementByType(AbstractElement, Class)} to all elements
+   * of an Iterable.
+   * The returned Iterable does not contain nulls.
+   */
+  public static <T extends AbstractElement> Iterable<T> projectToType(Iterable<AbstractElement> elements, Class<T> pType) {
+    return Iterables.filter(
+              Iterables.transform(elements, extractElementByTypeFunction(pType)),
+              Predicates.notNull());
+  }
+
+  /**
+   * Retrieve all wrapped elements of a certain type, if there are any of them.
+   *
+   * The type does not need to match exactly, the returned elements have just to
+   * be of sub-types of the type passed as argument.
+   *
+   * The returned Iterable contains the elements in pre-order.
+   */
+  public static <T extends AbstractElement> Iterable<T> extractAllElementsOfType(AbstractElement pElement, Class<T> pType) {
+    return Iterables.filter(asIterable(pElement), pType);
+  }
+
   public static CFANode extractLocation(AbstractElement pElement) {
     AbstractElementWithLocation e = extractElementByType(pElement, AbstractElementWithLocation.class);
     return e == null ? null : e.getLocationNode();
