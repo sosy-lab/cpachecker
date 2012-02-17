@@ -21,11 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.assumptions;
+package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.math.BigInteger;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 
 public class NumericTypes {
 

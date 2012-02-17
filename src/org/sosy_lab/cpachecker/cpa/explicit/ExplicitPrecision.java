@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.explicit.precision")
@@ -46,54 +45,51 @@ public class ExplicitPrecision implements Precision {
   private final Pattern blackListPattern;
 
   /**
-   * the white-list which determines which variables are tracked at which location - if it is null, all variables are tracked
-   */
-  private SetMultimap<CFANode, String> whiteList = null;
-
-  /**
    * the current location, given by the ExplicitTransferRelation, needed for checking the white-list
    */
-  private CFANode currentLocation = null;
+  private CFANode currentLocation                   = null;
 
+  /**
+   * the component responsible for thresholds concerning the reached set
+   */
   private ReachedSetThresholds reachedSetThresholds = null;
 
-  private PathThresholds pathThresholds = null;
+  /**
+   * the component responsible for thresholds concerning paths
+   */
+  private PathThresholds pathThresholds             = null;
 
-  public ExplicitPrecision(String variableBlacklist, SetMultimap<CFANode, String> whiteList, Configuration config) throws InvalidConfigurationException {
+  /**
+   * the component responsible for variables that need to be tracked, according to refinement
+   */
+  private CegarPrecision cegarPrecision             = null;
+
+  public ExplicitPrecision(String variableBlacklist, Configuration config) throws InvalidConfigurationException {
     config.inject(this);
 
     blackListPattern = Pattern.compile(variableBlacklist);
 
-    if (whiteList != null) {
-      this.whiteList = HashMultimap.create(whiteList);
-    }
-
+    cegarPrecision        = new CegarPrecision(config);
     reachedSetThresholds  = new ReachedSetThresholds(config);
     pathThresholds        = new PathThresholds(config);
   }
 
-  public ExplicitPrecision(ExplicitPrecision precision, Multimap<CFANode, String> predicateInfo,
-      Multimap<CFANode, String> pathInfo) {
-
-    blackListPattern = precision.blackListPattern;
-
-    this.whiteList = HashMultimap.create(precision.whiteList);
-
-    this.whiteList.putAll(predicateInfo);
-    this.whiteList.putAll(pathInfo);
-
-    reachedSetThresholds  = new ReachedSetThresholds(precision.reachedSetThresholds);
-    pathThresholds        = new PathThresholds(precision.pathThresholds);
-  }
-
+  /**
+   * copy constructor
+   *
+   * @param original the ExplicitPrecision to copy
+   */
   public ExplicitPrecision(ExplicitPrecision original) {
 
     blackListPattern = original.blackListPattern;
 
-    this.whiteList = HashMultimap.create(original.whiteList);
-
+    cegarPrecision        = new CegarPrecision(original.cegarPrecision);
     reachedSetThresholds  = new ReachedSetThresholds(original.reachedSetThresholds);
     pathThresholds        = new PathThresholds(original.pathThresholds);
+  }
+
+  public CegarPrecision getCegarPrecision() {
+    return cegarPrecision;
   }
 
   public ReachedSetThresholds getReachedSetThresholds() {
@@ -102,11 +98,6 @@ public class ExplicitPrecision implements Precision {
 
   public PathThresholds getPathThresholds() {
     return pathThresholds;
-  }
-
-  @Override
-  public String toString() {
-    return whiteList != null ? whiteList.toString() : "whitelist disabled";
   }
 
   public void setLocation(CFANode node) {
@@ -118,17 +109,6 @@ public class ExplicitPrecision implements Precision {
   }
 
   /**
-   * This method determines if the given variable is on the white-list, i.e. if it is being tracked.
-   *
-   * @param variable the scoped name of the variable to check
-   * @return true, if the white-list is null or if variable is on the white-list, else false
-   */
-  boolean isOnWhitelist(String variable) {
-    return whiteList == null
-        || whiteList.containsEntry(currentLocation, variable);
-  }
-
-  /**
    * This method tells if the precision demands the given variable to be tracked.
    *
    * A variable is demanded to be tracked if it does not exceed a threshold (when given), it is on the white-list (when not null), and is not on the black-list.
@@ -137,10 +117,10 @@ public class ExplicitPrecision implements Precision {
    * @return true, if the variable has to be tracked, else false
    */
   public boolean isTracking(String variable) {
-    //System.out.println("thresholdPrecision.allowsTrackingOf(" + variable + ") = " + reachedSetThresholds.allowsTrackingOf(variable));
     return reachedSetThresholds.allowsTrackingOf(variable)
         && pathThresholds.allowsTrackingOf(variable)
-        && isOnWhitelist(variable) && !blackListPattern.matcher(variable).matches();
+        && cegarPrecision.allowsTrackingOf(variable)
+        && !blackListPattern.matcher(variable).matches();
   }
 
   public boolean isNotTracking(String variable) {
@@ -151,6 +131,54 @@ public class ExplicitPrecision implements Precision {
     return blackListPattern.pattern();
   }
 
+  @Options(prefix="analysis")
+  class CegarPrecision {
+    /**
+     * the collection that determines which variables are tracked at a specific location - if it is null, all variables are tracked
+     */
+    private SetMultimap<CFANode, String> mapping = null;
+
+    @Option(description="whether or not to use refinement or not")
+    private boolean useRefinement = false;
+
+    private CegarPrecision(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+
+      if(useRefinement) {
+        mapping = HashMultimap.create();
+      }
+    }
+
+    /**
+     * copy constructor
+     *
+     * @param original the CegarPrecison to copy
+     */
+    private CegarPrecision(CegarPrecision original) {
+      if(original.mapping != null)
+        mapping = HashMultimap.create(original.mapping);
+    }
+
+    /**
+     * This method decides whether or not a variable is being tracked by this precision.
+     *
+     * @param variable the scoped name of the variable for which to make the decision
+     * @return true, when the variable is allowed to be tracked, else false
+     */
+    boolean allowsTrackingOf(String variable) {
+      return mapping == null
+          || mapping.containsEntry(currentLocation, variable);
+    }
+
+    /**
+     * This methods add the addition mapping to the current mapping, i.e., this precision can only grow in size, and never may get smaller.
+     *
+     * @param additionalMapping the addition mapping to be added to the current mapping
+     */
+    void addToMapping(SetMultimap<CFANode, String> additionalMapping) {
+      mapping.putAll(additionalMapping);
+    }
+  }
 
   abstract class Thresholds {
     /**
@@ -163,7 +191,7 @@ public class ExplicitPrecision implements Precision {
     /**
      * This method decides whether or not a variable is being tracked by this precision.
      *
-     * @param variable the name of the variable for which to make the decision
+     * @param variable the scoped name of the variable for which to make the decision
      * @return true, when the variable is allowed to be tracked, else false
      */
     boolean allowsTrackingOf(String variable) {
@@ -194,6 +222,11 @@ public class ExplicitPrecision implements Precision {
       config.inject(this);
     }
 
+    /**
+     * copy constructor
+     *
+     * @param original the ReachedSetThresholds to copy
+     */
     private ReachedSetThresholds(ReachedSetThresholds original) {
       defaultThreshold  = original.defaultThreshold;
       thresholds        = new HashMap<String, Integer>(original.thresholds);
@@ -202,9 +235,9 @@ public class ExplicitPrecision implements Precision {
     /**
      * This method decides if the given variable with the given count exceeds the threshold.
      *
-     * @param variable the name of the variable to check
+     * @param variable the scoped name of the variable to check
      * @param count the value count to compare to the threshold
-     * @return true, if the  variable with the given count exceeds the threshold, else false
+     * @return true, if the variable with the given count exceeds the threshold, else false
      */
     boolean exceeds(String variable, Integer count) {
       if(defaultThreshold == -1) {
@@ -223,7 +256,6 @@ public class ExplicitPrecision implements Precision {
 
   @Options(prefix="cpa.explicit.precision.path")
   class PathThresholds extends Thresholds {
-
     /**
      * the default threshold
      */
@@ -235,6 +267,11 @@ public class ExplicitPrecision implements Precision {
       config.inject(this);
     }
 
+    /**
+     * copy constructor
+     *
+     * @param original the PathThresholds to copy
+     */
     private PathThresholds(PathThresholds original) {
       defaultThreshold  = original.defaultThreshold;
       thresholds        = new HashMap<String, Integer>(original.thresholds);
@@ -243,9 +280,9 @@ public class ExplicitPrecision implements Precision {
     /**
      * This method decides if the given variable with the given count exceeds the threshold.
      *
-     * @param variable the name of the variable to check
+     * @param variable the scoped name of the variable to check
      * @param count the value count to compare to the threshold
-     * @return true, if the  variable with the given count exceeds the threshold, else false
+     * @return true, if the variable with the given count exceeds the threshold, else false
      */
     boolean exceeds(String variable, Integer count) {
       if(defaultThreshold == -1) {

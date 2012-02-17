@@ -56,8 +56,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitElement;
-import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula;
-import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
+import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -276,7 +275,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
     @Override
     public Formula getReasonFormula(FormulaManager formuaManager) {
-      String formula = HeuristicToFormula.getFormulaStringForHeuristic(PreventingHeuristicType.ASSIGNMENTSINPATH, maximum);
+      String formula = PreventingHeuristic.ASSIGNMENTSINPATH.getFormulaString(maximum);
       return formuaManager.parse(formula);
     }
 

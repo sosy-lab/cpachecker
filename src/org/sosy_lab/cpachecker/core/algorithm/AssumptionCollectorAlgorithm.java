@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
-import org.sosy_lab.cpachecker.util.assumptions.ReportingUtils;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -244,7 +243,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    * Add a given assumption for the location and state of an element.
    */
   private void addAssumption(AssumptionWithLocation invariant, Formula assumption, AbstractElement state) {
-    Formula dataRegion = ReportingUtils.extractReportedFormulas(formulaManager, state);
+    Formula dataRegion = AbstractElements.extractReportedFormulas(formulaManager, state);
 
     CFANode loc = extractLocation(state);
     assert loc != null;

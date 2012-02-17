@@ -38,8 +38,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 
 
-public class PredicateMap
-{
+public class PredicateMap {
   /**
    * the mapping from program location to a collection of predicates
    */
@@ -48,8 +47,7 @@ public class PredicateMap
   /**
    * This method acts as the constructor of the class.
    *
-   * Given afor(AbstractionPredicate predicate : predicates)
-         list of sets of predicates and a program path, it creates the mapping from program location to a collection of predicates.
+   * Given a list of sets of predicates and a program path, it creates the mapping from program location to a collection of predicates.
    *
    * @param pathPredicates the predicates as returned from the refinement
    * @param pPath the path to the error location
@@ -62,11 +60,9 @@ public class PredicateMap
       if (predicates.size() > 0) {
         CFANode currentLocation = pPath.get(i).getSecond().getSuccessor();
 
-        // add each non-trivial predicate to the respective set of the predicate map
+        // add each predicate to the respective set of the predicate map
         for (AbstractionPredicate predicate : predicates) {
-          /*if (!predicate.getSymbolicAtom().isFalse())*/ {
-            builder.put(currentLocation, predicate);
-          }
+          builder.put(currentLocation, predicate);
         }
       }
 
@@ -81,7 +77,7 @@ public class PredicateMap
   }
 
   /**
-   * This method decides whether or not the given location is a interpolation point or not.
+   * This method decides whether or not the given location is a interpolation point.
    *
    * @param location the location for which to decide whether it is a interpolation point or not
    * @return true if it is a interpolation point, else false
@@ -91,7 +87,7 @@ public class PredicateMap
   }
 
   /**
-   * This method returns those variables that are reference in the predicates and groups them by program locations.
+   * This method returns those variables that are referenced in the predicates and groups them by program locations.
    *
    * @return a mapping from program locations to variables referenced in predicates at that program location
    */

@@ -21,13 +21,16 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.invariants.balancer;
+package org.sosy_lab.cpachecker.util.invariants.balancer.prh12;
 
 import java.util.List;
 import java.util.Vector;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption;
+import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionSet;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Matrix;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 
 /*

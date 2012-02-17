@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.invariants.balancer;
+package org.sosy_lab.cpachecker.util.invariants.balancer.prh12;
 
 import java.util.List;
 import java.util.Vector;

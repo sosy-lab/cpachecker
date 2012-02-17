@@ -847,7 +847,7 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  protected Formula makePredicate(IASTExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
+  public Formula makePredicate(IASTExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     Constraints constraints = new Constraints();
     Formula f = makePredicate(exp, true, edge, function, ssa, constraints);
     return fmgr.makeAnd(f, constraints.get());

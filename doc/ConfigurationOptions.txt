@@ -123,6 +123,7 @@ analysis.useGlobalVars = true
 # Use McMillans algorithm for lazy interpolation
 analysis.useMcMillan = false
 
+# whether or not to use refinement or not
 # use CEGAR algorithm for lazy counter-example guided analysis
 # You need to specify a refiner with the cegar.refiner option.
 # Currently all refiner require the use of the ARTCPA.
@@ -405,6 +406,14 @@ cpa.pointer.merge = "sep"
 
 # print warnings during analysis when unsafe pointer operations are found
 cpa.pointer.printWarnings = true
+
+# which merge operator to use for PointerACPA
+cpa.pointerA.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
+# which stop operator to use for PointerACPA
+cpa.pointerA.stop = "SEP"
+  allowed values: [SEP, JOIN, NEVER]
 
 # whether to use auxiliary predidates for reduction
 cpa.predicate.abm.auxiliaryPredicateComputer = true

@@ -21,10 +21,18 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.invariants.balancer;
+package org.sosy_lab.cpachecker.util.invariants.balancer.test;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.cpachecker.util.invariants.Rational;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Matrix;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Polynomial;
+import org.sosy_lab.cpachecker.util.invariants.balancer.RationalFunction;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Variable;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
+import org.sosy_lab.cpachecker.util.invariants.balancer.prh12.PivotRowHandler;
 
 
 public class TestMatrixSolver {
@@ -42,6 +50,8 @@ public class TestMatrixSolver {
     Variable p2 = new Variable("p2");
     Variable p3 = new Variable("p3");
     Variable p4 = new Variable("p4");
+
+    RationalFunction b = new RationalFunction(p1);
 
     RationalFunction a11 = new RationalFunction(-1);
     RationalFunction a12 = RationalFunction.multiply(new RationalFunction(-1), new RationalFunction(p4));
@@ -93,6 +103,8 @@ public class TestMatrixSolver {
     Matrix C = new Matrix(c);
     A = Matrix.augment(A, C);
 
+    test2(a22,b,a32);
+    // Next line to turn off warning!
     test1();
   }
 
@@ -100,6 +112,35 @@ public class TestMatrixSolver {
     System.out.println(A);
     PivotRowHandler ms = new PivotRowHandler(A,logger);
     System.out.println(ms);
+  }
+
+  private static void test2(RationalFunction a, RationalFunction b, RationalFunction c) {
+    Polynomial n = a.getNumerator();
+    Rational cn = n.getRationalContent();
+    Polynomial nn = n.cancelRationalContent();
+    boolean same = a.isRationalConstantMultipleOf(b);
+    same = a.isRationalConstantMultipleOf(c);
+
+    Rational r = new Rational(-3,27);
+    Variable p1 = new Variable("p1");
+    Variable p2 = new Variable("p2");
+    Polynomial f1 = new Polynomial(p1);
+    Polynomial f2 = new Polynomial(p2);
+    Polynomial pr = new Polynomial(r);
+    f1  = Polynomial.multiply(pr, f1);
+    f2  = Polynomial.multiply(pr, f2);
+    Polynomial f = Polynomial.add(f1,f2);
+    Polynomial g = f.cancelRationalContent();
+    RationalFunction h = new RationalFunction(f,g);
+    h.simplify();
+    Rational q = f.rationalConstantQuotientOver(g);
+    Assumption asn = new Assumption(a,AssumptionType.NONNEGATIVE);
+    // garbage to turn off warnings!
+    if (cn == null || nn == null || same || q == null) {
+      System.out.println(asn);
+    }
+    //
+    return;
   }
 
 }

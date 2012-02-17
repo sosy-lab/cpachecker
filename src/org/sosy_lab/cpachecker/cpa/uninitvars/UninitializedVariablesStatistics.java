@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
-import static com.google.common.collect.Iterables.*;
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByTypeFunction;
+import static com.google.common.collect.Iterables.filter;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -36,6 +35,7 @@ import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Predicates;
 
@@ -65,7 +65,7 @@ public class UninitializedVariablesStatistics implements Statistics {
     if (printWarnings) {
 
       Set<Pair<Integer, String>> warningsDisplayed = new HashSet<Pair<Integer, String>>();
-      Iterable<UninitializedVariablesElement> projectedReached = transform(pReached, extractElementByTypeFunction(UninitializedVariablesElement.class));
+      Iterable<UninitializedVariablesElement> projectedReached = AbstractElements.projectToType(pReached, UninitializedVariablesElement.class);
 
       //find all UninitializedVariablesElements and get their warnings
       for (UninitializedVariablesElement uninitElement : filter(projectedReached, Predicates.notNull())) {

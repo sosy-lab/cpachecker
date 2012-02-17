@@ -21,29 +21,42 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.assumptions;
+package org.sosy_lab.cpachecker.util.invariants.balancer.prh12;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import java.util.Stack;
 
-/**
- * Manager for assumptions.
- */
-public interface AssumptionManager {
 
-  /**
-   * Creates a formula representing an AND of the two argument
-   * @param f1 a Formula
-   * @param p an invariant predicate
-   * @param edge TODO
-   * @return The formula (f1 & e)
+
+public class ColumnChoiceStack {
+
+  Stack<ColumnChoiceFrame> stack;
+
+  ColumnChoiceStack(ColumnChoiceFrame cf) {
+    stack = new Stack<ColumnChoiceFrame>();
+    stack.push(cf);
+  }
+
+  boolean topFrameIsComplete() {
+    if (stack.empty()) {
+      return false;
+    }
+    ColumnChoiceFrame cf = stack.peek();
+    return cf.isComplete();
+  }
+
+  /*
+   * Ask the top frame to make its next choice. If it makes one, it produces a new frame, and we
+   * push that onto the stack. If it does not, then we do nothing.
    */
-  public Formula makeAnd(Formula f1, IASTNode p, CFAEdge edge, String function) throws UnrecognizedCCodeException;
+  void makeNextFrameChoice() {
+    if (stack.empty()) {
+      return;
+    }
+    ColumnChoiceFrame cf = stack.peek();
+    ColumnChoiceFrame next = cf.next();
+    if (next != null) {
+      stack.push(next);
+    }
+  }
 
-  /**
-   * @return a Formula representing logical truth
-   */
-  public Formula makeTrue();
 }
