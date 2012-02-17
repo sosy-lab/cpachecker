@@ -40,8 +40,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.assumptions.AssumptionManager;
+import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
 
 /**
  * CPA used to capture the assumptions that ought to be dumped.
@@ -59,19 +60,20 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis {
   private final AbstractDomain abstractDomain;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
-  private final FormulaManager formulaManager;
+  private final ExtendedFormulaManager formulaManager;
   private final AssumptionStorageElement topElement;
 
   private AssumptionStorageCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
   {
-    formulaManager = AssumptionManagerImpl.createFormulaManager(config, logger);
+    formulaManager = new ExtendedFormulaManager(MathsatFactory.createFormulaManager(config, logger), config, logger);
+    AssumptionManager manager = new AssumptionManager(formulaManager, config, logger);
     abstractDomain = new AssumptionStorageDomain(formulaManager);
     stopOperator = new AssumptionStorageStop();
     topElement = new AssumptionStorageElement(formulaManager.makeTrue(), formulaManager.makeTrue());
-    transferRelation = new AssumptionStorageTransferRelation(formulaManager, topElement);
+    transferRelation = new AssumptionStorageTransferRelation(manager, formulaManager, topElement);
   }
 
-  public FormulaManager getFormulaManager()
+  public ExtendedFormulaManager getFormulaManager()
   {
     return formulaManager;
   }

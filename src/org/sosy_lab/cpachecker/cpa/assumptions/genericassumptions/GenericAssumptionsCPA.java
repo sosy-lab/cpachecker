@@ -41,8 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionManager;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionManagerImpl;
+import org.sosy_lab.cpachecker.util.assumptions.NumericTypes;
 
 public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
 
@@ -55,9 +54,8 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
   private final TransferRelation transferRelation;
 
   private GenericAssumptionsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    AssumptionManager manager = new AssumptionManagerImpl(config, logger);
-    transferRelation = new GenericAssumptionsTransferRelation(manager);
-    topElement = new GenericAssumptionsElement(manager.makeTrue());
+    transferRelation = new GenericAssumptionsTransferRelation();
+    topElement = new GenericAssumptionsElement(NumericTypes.TRUE);
     abstractDomain = new GenericAssumptionsDomain(topElement);
   }
 

@@ -23,27 +23,56 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 
 /**
  * Manager for assumptions.
  */
-public interface AssumptionManager {
+public class AssumptionManager extends CtoFormulaConverter {
 
   /**
-   * Creates a formula representing an AND of the two argument
-   * @param f1 a Formula
-   * @param p an invariant predicate
-   * @param edge TODO
-   * @return The formula (f1 & e)
+   * Dummy SSA map that always return 1 as index. Only used here
+   * to circumvent the assumptions of FormulaManager
    */
-  public Formula makeAnd(Formula f1, IASTExpression p, CFAEdge edge, String function) throws UnrecognizedCCodeException;
+  private static class DummySSAMap extends SSAMapBuilder {
+    public DummySSAMap() {
+      super(SSAMap.emptySSAMap());
+    }
 
-  /**
-   * @return a Formula representing logical truth
-   */
-  public Formula makeTrue();
+    @Override
+    public int getIndex(String pName, FormulaList pArgs) {
+      return 1;
+    }
+
+    @Override
+    public int getIndex(String pVariable) {
+      return 1;
+    }
+  }
+
+  public AssumptionManager(ExtendedFormulaManager pFmgr, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+    super(pConfig, pFmgr, pLogger);
+  }
+
+  public Formula makePredicate(IASTExpression p, CFAEdge edge, String function) throws UnrecognizedCCodeException {
+
+    DummySSAMap mapBuilder = new DummySSAMap();
+
+    // previously, instead of directly calling makePredicate, a function was
+    // called that used De Morgan's law to transform any occurrence of
+    // (!(a && b)) into (!a && !b)
+    // I don't see a point in doing this, so I removed it.
+    return makePredicate(p, edge, function, mapBuilder);
+  }
 }
