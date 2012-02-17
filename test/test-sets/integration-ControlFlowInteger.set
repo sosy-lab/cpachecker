@@ -41,4 +41,14 @@
 ../../test/programs/benchmarks/ssh/s3_srvr.blast.15.i.cil.c
 ../../test/programs/benchmarks/ssh/s3_srvr.blast.16.i.cil.c
 ../../test/programs/benchmarks/locks/*.BUG.c
-../../test/programs/benchmarks/locks/*[!G].c
+../../test/programs/benchmarks/locks/test_locks_11.c
+../../test/programs/benchmarks/locks/test_locks_12.c
+../../test/programs/benchmarks/locks/test_locks_13.c
+../../test/programs/benchmarks/locks/test_locks_14.c
+../../test/programs/benchmarks/locks/test_locks_15.c
+../../test/programs/benchmarks/locks/test_locks_5.c
+../../test/programs/benchmarks/locks/test_locks_6.c
+../../test/programs/benchmarks/locks/test_locks_7.c
+../../test/programs/benchmarks/locks/test_locks_8.c
+../../test/programs/benchmarks/locks/test_locks_9.c
+
