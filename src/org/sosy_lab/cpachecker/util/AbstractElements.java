@@ -32,8 +32,11 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingElement;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -201,5 +204,22 @@ public final class AbstractElements {
 
   public static Iterable<AbstractElement> asIterable(final Iterable<AbstractElement> pElements) {
     return Iterables.concat(transform(pElements, AS_ITERABLE));
+  }
+
+  /**
+   * Returns a predicate representing states represented by
+   * the given abstract element, according to reported
+   * formulas
+   */
+  public static Formula extractReportedFormulas(FormulaManager manager, AbstractElement element) {
+    Formula result = manager.makeTrue();
+
+    // traverse through all the sub-elements contained in this element
+    for (FormulaReportingElement e :  extractAllElementsOfType(element, FormulaReportingElement.class)) {
+
+      result = manager.makeAnd(result, e.getFormulaApproximation(manager));
+    }
+
+    return result;
   }
 }

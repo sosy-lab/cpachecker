@@ -28,7 +28,6 @@ import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.Iterables.*;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.FILTER_ABSTRACTION_ELEMENTS;
 import static org.sosy_lab.cpachecker.util.AbstractElements.*;
-import static org.sosy_lab.cpachecker.util.assumptions.ReportingUtils.extractReportedFormulas;
 
 import java.io.File;
 import java.io.IOException;
@@ -590,7 +589,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     Formula invariant = fmgr.makeFalse();
 
     for (AbstractElement locState : AbstractElements.filterLocation(reached, loc)) {
-      Formula f = extractReportedFormulas(fmgr, locState);
+      Formula f = AbstractElements.extractReportedFormulas(fmgr, locState);
       logger.log(Level.ALL, "Invariant:", f);
 
       invariant = fmgr.makeOr(invariant, f);
