@@ -23,39 +23,33 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
-
 /**
- * Creates a predicate as an UIF for a heuristic using the
- * type of the heuristic and the threshold for it.
+ * Enum listing several possible reasons for giving up analysis at a certain point.
  */
-public class HeuristicToFormula {
-
-  public enum PreventingHeuristicType {
-    PATHLENGTH("PL"),
-    SUCCESSORCOMPTIME("SCT"),
-    PATHCOMPTIME("PCT"),
-    ASSUMEEDGESINPATH("AEIP"),
-    ASSIGNMENTSINPATH("ASIP"),
-    REPETITIONSINPATH("RIP"),
-    MEMORYUSED("MU"),
-    MEMORYOUT("MO"),
-    TIMEOUT("TO"),
-    LOOPITERATIONS("LI"),
-    EDGECOUNT("EC");
+public enum PreventingHeuristic {
+  PATHLENGTH("PL"),
+  SUCCESSORCOMPTIME("SCT"),
+  PATHCOMPTIME("PCT"),
+  ASSUMEEDGESINPATH("AEIP"),
+  ASSIGNMENTSINPATH("ASIP"),
+  REPETITIONSINPATH("RIP"),
+  MEMORYUSED("MU"),
+  MEMORYOUT("MO"),
+  TIMEOUT("TO"),
+  LOOPITERATIONS("LI"),
+  EDGECOUNT("EC");
 
   private final String predicateString;
 
-    private PreventingHeuristicType(String predicateStr) {
-      predicateString = predicateStr;
-    }
-
-    private String getPredicateString(){
-      return predicateString;
-    }
+  private PreventingHeuristic(String predicateStr) {
+    predicateString = predicateStr;
   }
 
-  public static String getFormulaStringForHeuristic(PreventingHeuristicType type, long thresholdValue) {
-    return "VAR " + type.getPredicateString() + ": INTEGER -> BOOLEAN \n\n " + "FORMULA (" + type.getPredicateString() + "(" + thresholdValue + "))";
+  /**
+   * Returns a formula representation of this reason, which includes the
+   * threshold value which was exceeded.
+   */
+  public String getFormulaString(long thresholdValue) {
+    return "VAR " + predicateString + ": INTEGER -> BOOLEAN \n\n " + "FORMULA (" + predicateString + "(" + thresholdValue + "))";
   }
-
 }
