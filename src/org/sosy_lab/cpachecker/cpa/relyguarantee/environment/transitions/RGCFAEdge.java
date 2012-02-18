@@ -110,7 +110,7 @@ public class RGCFAEdge implements CFAEdge {
   public boolean equals(Object o){
     if (o instanceof RGCFAEdge){
       RGCFAEdge oe = (RGCFAEdge) o;
-      return oe.equals(et);
+      return et.equals(oe.et);
     }
 
     return false;

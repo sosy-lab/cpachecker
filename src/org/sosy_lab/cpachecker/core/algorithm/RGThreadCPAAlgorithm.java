@@ -369,10 +369,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
    */
   private List<CFAEdge> getEdgesForElement(ARTElement aElem, List<RGEnvTransition> validEnvEdges) {
 
-    if (aElem.getElementId() == 127){
-      System.out.println(this.getClass());
-    }
-
     List<CFAEdge> edges = new Vector<CFAEdge>();
     CFANode loc = aElem.retrieveLocationElement().getLocationNode();
 

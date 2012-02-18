@@ -408,10 +408,6 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     // remove old environmental edges
     removeRGEdges(i, applyEnv[i]);
 
-    if (debug){
-      dumpDot(i, "test/output/revertedCFA"+i+".dot");
-    }
-
     // sum up all valid edges from other threads
     List<RGEnvTransition> valid = new Vector<RGEnvTransition>();
     for (int j=0; j<threadNo; j++){
@@ -425,18 +421,8 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     }
 
 
-    if(combineEnvEdges){
-      // valid env. edges are merged into one edge
-      envEdgesMap = null;
-          //addCombinedEnvTransitionsToCFA(i, toApply, valid, unapplied);
-    } else {
-      // valid env. edges are applied separately
-      envEdgesMap = addSeparateEnvTransitionsToCFA(i, applyEnv[i], valid);
-    }
 
-    if (debug){
-      dumpDot(i, "test/output/newCFA"+i+".dot");
-    }
+    envEdgesMap = addSeparateEnvTransitionsToCFA(i, applyEnv[i], valid);
 
     return envEdgesMap;
   }
@@ -616,8 +602,11 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
   public static class Stats implements Statistics {
 
+
     private final Timer applyEnvTimer = new Timer();
     private final Timer errorCheckTimer = new Timer();
+    private final Timer waitListTimer   = new Timer();
+    private final Timer test   = new Timer();
 
     @Override
     public String getName() {
@@ -627,7 +616,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
       out.println("time for error check:            " + errorCheckTimer);
-      out.println("time for setting env. trans.:    " + applyEnvTimer);
+      out.println("time for changing CFAs and waitlist:" + applyEnvTimer);
     }
   }
 
