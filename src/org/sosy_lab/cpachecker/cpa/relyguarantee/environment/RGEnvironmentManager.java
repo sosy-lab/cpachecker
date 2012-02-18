@@ -214,26 +214,31 @@ public class RGEnvironmentManager implements StatisticsProvider{
     candidates.clear();
   }
 
-  public void clearUnappliedEnvEdgesForThread(int i) {
-    unappliedEnvEdgesForThread[i].removeAllElements();
-  }
+
 
   public Vector<RGEnvCandidate> getUnprocessedTransitions(){
     return candidates;
   }
 
+  /*
   public void addNewEnvEgde(int j, RGEnvTransition edge) {
     unappliedEnvEdgesForThread[j].add(edge);
   }
+
+  public void clearUnappliedEnvEdgesForThread(int i) {
+    unappliedEnvEdgesForThread[i].removeAllElements();
+  }
+
+  public  List<RGEnvTransition> getUnappliedEnvEdgesForThread(int i) {
+    return Collections.unmodifiableList(unappliedEnvEdgesForThread[i]);
+  }*/
+
 
 
   public  List<RGEnvTransition> getValidEnvEdgesFromThread(int i) {
     return Collections.unmodifiableList(validEnvEdgesFromThread[i]);
   }
 
-  public  List<RGEnvTransition> getUnappliedEnvEdgesForThread(int i) {
-    return Collections.unmodifiableList(unappliedEnvEdgesForThread[i]);
-  }
 
 
 
@@ -263,7 +268,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
    * The most general transitions are remebered as valid and unapplied for other threads.
    * @param i   thread that generated the transitions
    */
-  public void processCandidates(int i) {
+  public Collection<RGEnvTransition> processCandidates(int i) {
     if (processStats == null){
       processStats = new RelyGuaranteeEnvironmentProcessStatistics();
     }
@@ -320,6 +325,8 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
     stats.totalTimer.stop();
     processStats.totalTimer.stop();
+
+    return newValid;
   }
 
   /**

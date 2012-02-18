@@ -106,4 +106,16 @@ public class RGCFAEdge implements CFAEdge {
     return false;
   }
 
+  @Override
+  public boolean equals(Object o){
+    if (o instanceof RGCFAEdge){
+      RGCFAEdge oe = (RGCFAEdge) o;
+      return oe.equals(et);
+    }
+
+    return false;
+  }
+
+
+
 }

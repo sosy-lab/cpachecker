@@ -435,6 +435,13 @@ cpa.rg.abstraction.solver = "MATHSAT"
 # use caching of abstractions
 cpa.rg.abstraction.useCache = true
 
+# Where to apply env. edges:
+# ALL - to every non-atomic location,
+# GLOBAL - to non-atomic locations that after global writes, reads or are the
+# inital state.
+cpa.rg.applyEnvEdges = "GLOBAL"
+  allowed values: [ALL, GLOBAL]
+
 # maximum number of atoms in a path formula before abstraction is forced
 # (non-negative number, special values: 0 = don't check threshold, 1 = SBE)
 cpa.rg.blk.atomThreshold = 0
@@ -460,7 +467,7 @@ cpa.rg.blk.threshold = 0
 cpa.rg.blk.useCache = true
 
 # If true, then change treads after successors for a state were computed.
-cpa.rg.changeThread = false
+cpa.rg.changeThread = true
 
 # always check satisfiability at end of block, even if precision is empty
 cpa.rg.checkBlockFeasibility = true

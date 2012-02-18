@@ -134,7 +134,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
     final StopOperator stopOperator = cpa.getStopOperator();
     final PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
 
-    List<RGEnvTransition> newEnvEdges = environment.getUnappliedEnvEdgesForThread(tid);
+    //List<RGEnvTransition> newEnvEdges = environment.getUnappliedEnvEdgesForThread(tid);
     int otherTid = tid == 0 ? 1 : 0;
     List<RGEnvTransition> validEnvEdges = environment.getValidEnvEdgesFromThread(otherTid);
 
@@ -165,7 +165,11 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       stats.transferTimer.start();
       runStats.transferTimer.start();
 
-      List<CFAEdge> edges = getEdgesForElement(aElement, validEnvEdges);
+      Collection<CFAEdge> edges = getEdgesForElement(aElement, validEnvEdges);
+
+      if (edges.size() > (validEnvEdges.size()+2)){
+        System.out.println();
+      }
 
       if (debug && edges.isEmpty()){
         System.out.println();
@@ -365,6 +369,10 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
    */
   private List<CFAEdge> getEdgesForElement(ARTElement aElem, List<RGEnvTransition> validEnvEdges) {
 
+    if (aElem.getElementId() == 127){
+      System.out.println(this.getClass());
+    }
+
     List<CFAEdge> edges = new Vector<CFAEdge>();
     CFANode loc = aElem.retrieveLocationElement().getLocationNode();
 
@@ -372,7 +380,10 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
       for (int i=0; i<loc.getNumLeavingEdges(); i++){
         CFAEdge edge = loc.getLeavingEdge(i);
-        edges.add(edge);
+        if (edge.getEdgeType() != CFAEdgeType.RelyGuaranteeCFAEdge){
+          edges.add(edge);
+        }
+
       }
 
       aElem.setHasLocalChild(true);
@@ -385,8 +396,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       for (RGEnvTransition template : validEnvEdges){
-
-        Collection<RGEnvTransition> newApplied = new Vector<RGEnvTransition>();
 
         if (!aElem.getEnvTrApplied().contains(template)){
             aElem.getEnvTrApplied().add(template);
