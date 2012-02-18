@@ -70,7 +70,6 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCa
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -91,15 +90,17 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   private final LogManager                  logger;
   private RGEnvironmentManager environment;
   private int tid;
-
-  private MathsatFormulaManager fManager;
-
   private ImmutableSet<CFANode> applyEnv;
 
   private List<Pair<AbstractElement, Precision>> forcedStop = new Vector<Pair<AbstractElement, Precision>>();
 
+  /** Unprocessed candidates for env transitions. */
+  private final List<RGEnvCandidate> candidates;
 
-  public RGThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, ThreadCFA cfa, RGEnvironmentManager environment, ImmutableSet<CFANode> applyEnv, Configuration config, LogManager logger,  int tid) {
+  private List<RGEnvTransition>[] validEnvEdgesFromThread;
+
+
+  public RGThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, ThreadCFA cfa, RGEnvironmentManager environment, ImmutableSet<CFANode> applyEnv, List<RGEnvTransition>[] pValidEnvEdgesFromThread, Configuration config, LogManager logger,  int tid) {
     this.cpa = cpa;
     this.cfa = cfa;
     this.environment = environment;
@@ -110,7 +111,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
     try {
       config.inject(this, RGThreadCPAAlgorithm.class);
-      fManager = MathsatFormulaManager.getInstance(config, logger);
     } catch (InvalidConfigurationException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
@@ -118,6 +118,10 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
     // check where to apply env. edges
     this.applyEnv = applyEnv;
+
+    this.candidates = new Vector<RGEnvCandidate>();
+
+    this.validEnvEdgesFromThread = pValidEnvEdgesFromThread;
   }
 
   @Override
@@ -129,6 +133,8 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
     stats.totalTimer.start();
     runStats.totalTimer.start();
 
+    assert candidates.isEmpty();
+
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
     final StopOperator stopOperator = cpa.getStopOperator();
@@ -136,7 +142,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
     //List<RGEnvTransition> newEnvEdges = environment.getUnappliedEnvEdgesForThread(tid);
     int otherTid = tid == 0 ? 1 : 0;
-    List<RGEnvTransition> validEnvEdges = environment.getValidEnvEdgesFromThread(otherTid);
+    List<RGEnvTransition> validEnvEdges = validEnvEdgesFromThread[otherTid];
 
     assert forcedStop.isEmpty();
 
@@ -254,7 +260,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         stats.envGenTimer.start();
         if (createsEnvTransition(edge)){
           RGEnvCandidate candidate = new RGEnvCandidate((ARTElement)element, (ARTElement)successor, edge, tid);
-          environment.addEnvTransition(candidate);
+          candidates.add(candidate);
         }
         stats.envGenTimer.stop();
 
@@ -461,6 +467,12 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       return false;
     }
 
+  }
+
+
+
+  public List<RGEnvCandidate> getCandidates() {
+    return candidates;
   }
 
   @Override

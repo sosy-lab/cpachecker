@@ -66,7 +66,7 @@ public class RGCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvide
 
     pConfig.inject(this, RGCEGARAlgorithm.class);
     // TODO for now only rg refiner is available
-    refiner = RGRefiner.getInstance(algorithm.getCPAs(), this.algorithm.getRelyGuaranteeEnvironment(),pConfig);
+    refiner = RGRefiner.getInstance(algorithm, algorithm.getCPAs(), this.algorithm.getRelyGuaranteeEnvironment(),pConfig);
   }
 
 

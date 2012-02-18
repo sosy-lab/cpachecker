@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.RGAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -95,24 +96,28 @@ public class RGRefiner implements StatisticsProvider{
   private final ARTCPA[] artCpas;
 
   private final  RGEnvironmentManager environment;
+
+  // TODO remove
+  private RGAlgorithm algorithm;
   private static RGRefiner singleton;
 
   /**
    * Singleton instance of RelyGuaranteeRefiner.
+   * @param algorithm
    * @param cpas
    * @param rgEnvironment
    * @param pConfig
    * @return
    * @throws InvalidConfigurationException
    */
-  public static RGRefiner getInstance(final ConfigurableProgramAnalysis[] cpas, RGEnvironmentManager rgEnvironment, Configuration pConfig) throws InvalidConfigurationException {
+  public static RGRefiner getInstance(RGAlgorithm algorithm, final ConfigurableProgramAnalysis[] cpas, RGEnvironmentManager rgEnvironment, Configuration pConfig) throws InvalidConfigurationException {
     if (singleton == null){
-      singleton = new RGRefiner(cpas, rgEnvironment, pConfig);
+      singleton = new RGRefiner(algorithm, cpas, rgEnvironment, pConfig);
     }
     return singleton;
   }
 
-  public RGRefiner(final ConfigurableProgramAnalysis[] cpas, RGEnvironmentManager rgEnvironment, Configuration pConfig) throws InvalidConfigurationException{
+  public RGRefiner(RGAlgorithm pAlgorithm, final ConfigurableProgramAnalysis[] cpas, RGEnvironmentManager rgEnvironment, Configuration pConfig) throws InvalidConfigurationException{
     pConfig.inject(this, RGRefiner.class);
     artCpas = new ARTCPA[cpas.length];
     for (int i=0; i<cpas.length; i++){
@@ -123,6 +128,7 @@ public class RGRefiner implements StatisticsProvider{
       }
     }
 
+    this.algorithm = pAlgorithm;
     this.environment = rgEnvironment;
     this.stats = new Stats();
 
@@ -223,10 +229,9 @@ public class RGRefiner implements StatisticsProvider{
 
       System.out.println();
       System.out.println("\t\t\t --- Dropping all env transitions ---");
-      environment.resetEnvironment();
+      this.algorithm.resetEnvironment();
       stats.restartingTimer.stop();
 
-      environment.resetEnvironment();
       for (int i=0; i<reachedSets.length;i++){
         assert reachedSets[i].getReached().size()==1;
       }
