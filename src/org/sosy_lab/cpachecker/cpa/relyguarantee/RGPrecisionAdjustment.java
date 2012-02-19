@@ -112,8 +112,8 @@ public class RGPrecisionAdjustment implements PrecisionAdjustment {
     numAbstractions++;
     logger.log(Level.FINEST, "Computing abstraction on node", loc);
 
-    Collection<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(precision.getPredicates(loc));
-    preds.addAll(precision.getGlobalPredicates());
+    Collection<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(precision.getARTPredicates(loc));
+    preds.addAll(precision.getARTGlobalPredicates());
 
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
     maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());

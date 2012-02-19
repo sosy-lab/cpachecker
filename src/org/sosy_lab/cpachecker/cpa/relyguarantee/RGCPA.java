@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.YicesTheoremProver;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 
 
 
@@ -215,17 +216,20 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
   public void setData(int tid, ParallelCFAS pcfa, RGEnvironmentManager envManager) throws InvalidConfigurationException{
     this.tid = tid;
     this.pcfa = pcfa;
-    Collection<AbstractionPredicate> predicates = null;
+    ImmutableSet<AbstractionPredicate> predicates = null;
 
     if (checkBlockFeasibility) {
       AbstractionPredicate p = absManager.makeFalsePredicate();
       predicates = ImmutableSet.of(p);
+    } else {
+      predicates = ImmutableSet.of();
     }
     // TODO make-shift solution
     this.topElement = new RGAbstractElement.AbstractionElement(pfManager.makeEmptyPathFormula(), absManager.makeTrueAbstractionFormula(null),  tid, pfManager.makeEmptyPathFormula(), null);
     this.transfer.setData(pcfa.getCfa(tid));
-    this.initialPrecision= new RGPrecision(predicates);
-
+    ImmutableSetMultimap<CFANode,AbstractionPredicate> emptyMultimap =
+        ImmutableSetMultimap.<CFANode, AbstractionPredicate>of();
+    this.initialPrecision= new RGPrecision(emptyMultimap, predicates, emptyMultimap, ImmutableSet.<AbstractionPredicate>of());
     this.envManager = envManager;
 
     this.locrefManager = RGLocationRefinementManager.getInstance(fManager, pfManager, etManager, absManager, ssaManager, thmProver, rManager, envManager, pcfa, config, logger);

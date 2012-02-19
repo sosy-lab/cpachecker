@@ -31,6 +31,7 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -65,9 +66,10 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSetMultimap.Builder;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
@@ -96,6 +98,7 @@ public class RGRefiner implements StatisticsProvider{
   private final ARTCPA[] artCpas;
 
   private final  RGEnvironmentManager environment;
+  private final int threadNo;
 
   // TODO remove
   private RGAlgorithm algorithm;
@@ -128,6 +131,7 @@ public class RGRefiner implements StatisticsProvider{
       }
     }
 
+    this.threadNo = cpas.length;
     this.algorithm = pAlgorithm;
     this.environment = rgEnvironment;
     this.stats = new Stats();
@@ -214,14 +218,10 @@ public class RGRefiner implements StatisticsProvider{
           artReachedSets[tid].removeSubtree(root, precision);
 
           if (debug){
-            System.out.println();
             for (ARTElement parent : parents){
               RGPrecision prec = Precisions.extractPrecisionByType(artReachedSets[tid].getPrecision(parent), RGPrecision.class);
               System.out.println("Precision for thread "+tid+":");
-              System.out.println("\t-ART local "  + prec.getPredicateMap());
-              System.out.println("\t-ART global " + prec.getGlobalPredicates());
-              System.out.println("\t-Env local "  +  environment.getEnvPrecision()[tid]);
-              System.out.println("\t-Env global " + environment.getEnvGlobalPrecision()[tid]);
+              System.out.println("\t-"+prec);
             }
           }
         }
@@ -248,29 +248,22 @@ public class RGRefiner implements StatisticsProvider{
 
 
   /**
-   * For each thread adds new interpolants to the initial element.
+   * Computes new precision for the inital elements.
    * @param reachedSets
    * @param info
-   * @param errorThr
    * @return
    */
-  private Multimap<Integer, Pair<ARTElement, RGPrecision>> restartingRefinement(ReachedSet[] reachedSets, InterpolationTreeResult info) {
-    // TODO rewrite - a bit sloopy
-    Multimap<Integer, Pair<ARTElement, RGPrecision>> refinementMap = HashMultimap.create();
-    // multimap : thread no -> (ART element)
-    Multimap<Integer, ARTElement> artMap = HashMultimap.create();
+  private Multimap<Integer, Pair<ARTElement, RGPrecision>> restartingRefinement(ReachedSet[] reachedSets, InterpolationTreeResult info){
 
-
-
-    boolean newPredicates = false;
+    boolean newPred = false;
     boolean newLM = false;
 
-
+    // set location mapping
     RGLocationMapping lm = info.getRefinedLocationMapping();
     if (lm != null){
       newLM = true;
 
-      if (true){
+      if (debug){
         System.out.println("New "+lm);
       }
 
@@ -281,116 +274,197 @@ public class RGRefiner implements StatisticsProvider{
         artCpa.setLocationMapping(lm);
       }
     }
-    else if (debug){
-        System.out.println("New predicates:");
-      }
 
-    // add env. predicates to precision
-    for (ARTElement aElement : info.getEnvPredicatesForRefinmentKeys()){
-      ARTElement artElement = aElement;
-      RGAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RGAbstractElement.class);
-      int tid = rgElement.getTid();
-      CFANode loc = AbstractElements.extractLocation(artElement);
-      Collection<AbstractionPredicate> preds = info.getEnvPredicatesForRefinement(aElement);
 
-      if (!this.addEnvPredicatesGlobally){
-        SetMultimap<CFANode, AbstractionPredicate> tPrec = environment.getEnvPrecision()[tid];
-        if (!tPrec.get(loc).containsAll(preds)){
-          newPredicates = true;
-          Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(preds);
-          cNewPreds.removeAll(tPrec.get(loc));
-          if (debug){
-            System.out.println("\t- env: "+loc+" -> "+cNewPreds);
-          }
-        }
-        tPrec.putAll(loc, preds);
-      } else {
-        Set<AbstractionPredicate> tPrec = environment.getEnvGlobalPrecision()[tid];
-        if (!tPrec.containsAll(preds)){
-          newPredicates = true;
-          Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(preds);
-          cNewPreds.removeAll(tPrec);
-          if (debug){
-            System.out.println("\t- env: "+loc+" -> "+cNewPreds);
-          }
-        }
-        tPrec.addAll(preds);
+    Multimap<Integer, Pair<ARTElement, RGPrecision>> refMap = LinkedHashMultimap.create();
+
+    // for every thread gather all new predicates in a single precision, which be added to the root
+    for (int i=0; i<threadNo; i++){
+      ARTElement initial = (ARTElement) reachedSets[i].getFirstElement();
+      Precision prec = reachedSets[i].getPrecision(initial);
+      RGPrecision oldPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
+      Pair<RGPrecision, Boolean> pair = gatherAllPredicatesForThread(info, oldPrec, i);
+      RGPrecision newPrec = pair.getFirst();
+
+      newPred = newPred || pair.getSecond();
+
+      for (ARTElement child : initial.getChildARTs()){
+        refMap.put(i, Pair.of(child, newPrec));
       }
     }
 
-    // group interpolation elements  by threads
-    for (ARTElement aElement : info.getPredicatesForRefinmentKeys()){
-      //Collection<AbstractionPredicate> newpreds = info.getPredicatesForRefinement(aElement);
+    assert newPred || newLM;
+
+    return refMap;
+  }
+
+
+  /**
+   * Combine all predicates for thread i into a single precision. Return a pair of new precision
+   * and a boolean value that is true if some new predicate was found (this is checked only in debugging mode).
+   * @param pInfo
+   * @param oldPrec
+   * @param pI
+   * @return
+   */
+  private Pair<RGPrecision, Boolean> gatherAllPredicatesForThread(InterpolationTreeResult itpResult, RGPrecision oldPrec, int i) {
+
+    ImmutableSetMultimap<CFANode, AbstractionPredicate> artPredicateMap;
+    ImmutableSet<AbstractionPredicate> artGlobalPredicates;
+    ImmutableSetMultimap<CFANode, AbstractionPredicate> envPredicateMap;
+    ImmutableSet<AbstractionPredicate> envGlobalPredicates;
+
+    /* predicates that didn't appear before, useful for debugging */
+    Multimap<CFANode, AbstractionPredicate> dARTPred = null;
+    Set<AbstractionPredicate> dARTGlobal = null;
+    Multimap<CFANode, AbstractionPredicate> dEnvPred = null;
+    Set<AbstractionPredicate> dEnvGlobal = null;
+
+    /* gather ART predicates */
+    Multimap<CFANode, AbstractionPredicate> newArtPredicates = gatherARTPredicates(itpResult, i);
+
+    if (addPredicatesGlobally){
+      artPredicateMap = oldPrec.getARTPredicateMap();
+
+      com.google.common.collect.ImmutableSet.Builder<AbstractionPredicate> artGlobalBldr = ImmutableSet.builder();
+      artGlobalBldr = artGlobalBldr.addAll(oldPrec.getARTGlobalPredicates());
+      artGlobalBldr = artGlobalBldr.addAll(newArtPredicates.values());
+      artGlobalPredicates = artGlobalBldr.build();
+
+      if (debug){
+        dARTGlobal = new HashSet<AbstractionPredicate>(newArtPredicates.values());
+        dARTGlobal.removeAll(oldPrec.getARTGlobalPredicates());
+      }
+
+    } else {
+      artGlobalPredicates = oldPrec.getARTGlobalPredicates();
+
+      Builder<CFANode, AbstractionPredicate> artPredicateBldr = ImmutableSetMultimap.builder();
+      artPredicateBldr = artPredicateBldr.putAll(oldPrec.getARTPredicateMap());
+      artPredicateBldr = artPredicateBldr.putAll(newArtPredicates);
+      artPredicateMap = artPredicateBldr.build();
+
+      if (debug){
+        newArtPredicates.removeAll(oldPrec.getARTPredicateMap());
+        dARTPred = newArtPredicates;
+      }
+    }
+
+    /* gather env. predicates */
+    Multimap<CFANode, AbstractionPredicate> newEnvPredicates = gatherEnvPredicates(itpResult, i);
+
+    if (addEnvPredicatesGlobally){
+      envPredicateMap = oldPrec.getEnvPredicateMap();
+
+      com.google.common.collect.ImmutableSet.Builder<AbstractionPredicate> envGlobalBldr = ImmutableSet.builder();
+      envGlobalBldr = envGlobalBldr.addAll(oldPrec.getEnvGlobalPredicates());
+      envGlobalBldr = envGlobalBldr.addAll(newEnvPredicates.values());
+      envGlobalPredicates = envGlobalBldr.build();
+
+      environment.addPredicatesToEnvPrecision(i, null, newEnvPredicates.values());
+
+      if (debug){
+        dEnvGlobal = new HashSet<AbstractionPredicate>(newEnvPredicates.values());
+        dEnvGlobal.removeAll(oldPrec.getEnvGlobalPredicates());
+      }
+    } else {
+      envGlobalPredicates = oldPrec.getEnvGlobalPredicates();
+
+      Builder<CFANode, AbstractionPredicate> envPredicateBldr = ImmutableSetMultimap.builder();
+      envPredicateBldr = envPredicateBldr.putAll(oldPrec.getEnvPredicateMap());
+      envPredicateBldr = envPredicateBldr.putAll(newEnvPredicates);
+      envPredicateMap = envPredicateBldr.build();
+
+      if (debug){
+        newEnvPredicates.removeAll(oldPrec.getEnvPredicateMap());
+        dEnvPred = newEnvPredicates;
+      }
+    }
+
+    boolean newPred = false;
+
+    if (debug){
+      System.out.println("new predicates for thread "+i+":");
+
+      if (dARTGlobal != null){
+        for (AbstractionPredicate pred : dARTGlobal){
+          System.out.println("\t- global ART: "+pred);
+        }
+
+        newPred = newPred || !dARTGlobal.isEmpty();
+      }
+
+      if (dARTPred != null){
+        for (Entry<CFANode, AbstractionPredicate> entry : dARTPred.entries()){
+          System.out.println("\t- local ART: "+entry.getKey() + "->" + entry.getValue());
+        }
+
+        newPred = newPred || !dARTPred.isEmpty();
+      }
+
+      if (dEnvGlobal != null){
+        for (AbstractionPredicate pred : dEnvGlobal){
+          System.out.println("\t- global env: "+pred);
+        }
+
+        newPred = newPred || !dEnvGlobal.isEmpty();
+      }
+
+      if (dEnvPred != null){
+        for (Entry<CFANode, AbstractionPredicate> entry : dEnvPred.entries()){
+          System.out.println("\t- local env: "+entry.getKey() + "->" + entry.getValue());
+        }
+
+        newPred = newPred || !dEnvPred.isEmpty();
+      }
+
+      System.out.println();
+    }
+
+    RGPrecision newPrec = new RGPrecision(artPredicateMap, artGlobalPredicates, envPredicateMap, envGlobalPredicates);
+
+    return Pair.of(newPrec, newPred);
+  }
+
+
+
+  private Multimap<CFANode, AbstractionPredicate> gatherEnvPredicates(InterpolationTreeResult result, int i) {
+    Multimap<CFANode, AbstractionPredicate> map = LinkedHashMultimap.create();
+
+    SetMultimap<ARTElement, AbstractionPredicate> envMap = result.getEnvMap();
+    for (ARTElement aElement : envMap.keySet()){
       RGAbstractElement rgElement = AbstractElements.extractElementByType(aElement, RGAbstractElement.class);
       int tid = rgElement.getTid();
-      if (!info.getPredicatesForRefinement(aElement).isEmpty()){
-        artMap.put(tid, aElement);
-      }
-    }
 
-
-    // for every thread sum up interpolants and add it to the initial element
-    for (int tid=0 ; tid < reachedSets.length; tid++){
-      ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
-      // add the precision of the initial element
-      ARTElement inital  = (ARTElement) reachedSets[tid].getFirstElement();
-      Precision prec = reachedSets[tid].getPrecision(inital);
-      RGPrecision rgPrecision = Precisions.extractPrecisionByType(prec, RGPrecision.class);
-      SetMultimap<CFANode, AbstractionPredicate> oldPreds = rgPrecision.getPredicateMap();
-
-      pmapBuilder.putAll(oldPreds);
-
-      for (ARTElement artElement : artMap.get(tid)){
-        // add the new interpolants
-
-        Collection<AbstractionPredicate> newpreds = info.getPredicatesForRefinement(artElement);
-        CFANode loc = AbstractElements.extractLocation(artElement);
-        if (addPredicatesGlobally){
-          Set<AbstractionPredicate> gpreds  = rgPrecision.getGlobalPredicates();
-          if (!gpreds.containsAll(newpreds)){
-            newPredicates = true;
-            if (debug){
-              Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(newpreds);
-              cNewPreds.removeAll(gpreds);
-              System.out.println("\t- ART: "+loc+" -> "+cNewPreds);
-            }
-
-          }
-          Set<AbstractionPredicate> ngpreds = new HashSet<AbstractionPredicate>(gpreds);
-          ngpreds.addAll(newpreds);
-          rgPrecision.setGlobalPredicates(ImmutableSet.copyOf(ngpreds));
-        } else {
-          pmapBuilder.putAll(loc, newpreds);
-          if (!oldPreds.get(loc).containsAll(newpreds)){
-            newPredicates = true;
-            if (debug){
-              Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(newpreds);
-              cNewPreds.removeAll(oldPreds.get(loc));
-              System.out.println("\t- ART: "+loc+" -> "+cNewPreds);
-            }
-          }
-        }
-
-
-      }
-
-      ImmutableSetMultimap<CFANode, AbstractionPredicate> newPredMap = pmapBuilder.build();
-      RGPrecision newPrecision = new RGPrecision(newPredMap, rgPrecision.getGlobalPredicates());
-
-      // for statistics check the number of predicates per location
-      for (CFANode node : newPredMap.keySet()){
-        stats.maxPredicatesPerLoc = Math.max(stats.maxPredicatesPerLoc, newPredMap.get(node).size());
-      }
-
-      for (ARTElement initChild : inital.getChildARTs()){
-        refinementMap.put(tid, Pair.of(initChild, newPrecision));
+      if (i == tid){
+        CFANode loc = aElement.retrieveLocationElement().getLocationNode();
+        map.putAll(loc, envMap.get(aElement));
       }
 
     }
-    assert newPredicates || newLM;
 
-    return refinementMap;
+    return map;
   }
+
+  private Multimap<CFANode, AbstractionPredicate> gatherARTPredicates(InterpolationTreeResult result, int i) {
+    Multimap<CFANode, AbstractionPredicate> map = LinkedHashMultimap.create();
+
+    SetMultimap<ARTElement, AbstractionPredicate> artMap = result.getArtMap();
+
+    for (ARTElement aElement : artMap.keySet()){
+      RGAbstractElement rgElement = AbstractElements.extractElementByType(aElement, RGAbstractElement.class);
+      int tid = rgElement.getTid();
+
+      if (i == tid){
+        CFANode loc = aElement.retrieveLocationElement().getLocationNode();
+        map.putAll(loc, artMap.get(aElement));
+      }
+
+    }
+
+    return map;
+  }
+
 
   @Override
   public void collectStatistics(Collection<Statistics> scoll) {

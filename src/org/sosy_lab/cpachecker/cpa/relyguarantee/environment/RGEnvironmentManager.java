@@ -596,8 +596,12 @@ public class RGEnvironmentManager implements StatisticsProvider{
    * @param preds
    */
   public void addPredicatesToEnvPrecision(Integer tid, CFANode loc, Collection<AbstractionPredicate> preds){
-    this.envPrecision[tid].putAll(loc, preds);
+    //this.envPrecision[tid].putAll(loc, preds);
+    this.envGlobalPrecision[tid].addAll(preds);
   }
+
+
+
 
   public Set<AbstractionPredicate>[] getEnvGlobalPrecision() {
     return envGlobalPrecision;

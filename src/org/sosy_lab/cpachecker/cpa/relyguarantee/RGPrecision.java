@@ -23,33 +23,32 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import java.util.Collection;
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.SetMultimap;
 
   public class RGPrecision implements Precision {
 
-    //private final int id = idCounter++;
-    //private static int idCounter = 0;
-    private final ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap;
-    private ImmutableSet<AbstractionPredicate> globalPredicates;
+    /* predicates for constructing ART */
+    private final ImmutableSetMultimap<CFANode, AbstractionPredicate> artPredicateMap;
+    private final ImmutableSet<AbstractionPredicate> artGlobalPredicates;
+    /* predicates for appling env. transitinos */
+    private final ImmutableSetMultimap<CFANode, AbstractionPredicate> envPredicateMap;
+    private final ImmutableSet<AbstractionPredicate> envGlobalPredicates;
 
-    public RGPrecision(ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap, Collection<AbstractionPredicate> globalPredicates) {
+    public RGPrecision(ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap, ImmutableSet<AbstractionPredicate> globalPredicates,
+        ImmutableSetMultimap<CFANode, AbstractionPredicate> envPredicateMap, ImmutableSet<AbstractionPredicate> envGlobalPredicates) {
       assert predicateMap != null;
-      this.predicateMap = predicateMap;
-      this.globalPredicates = ImmutableSet.copyOf(globalPredicates);
-    }
-
-    public RGPrecision(Collection<AbstractionPredicate> globalPredicates) {
-      predicateMap = ImmutableSetMultimap.of();
-      this.globalPredicates = (globalPredicates == null ? ImmutableSet.<AbstractionPredicate>of() : ImmutableSet.copyOf(globalPredicates));
+      assert globalPredicates != null;
+      assert envPredicateMap != null;
+      assert envGlobalPredicates != null;
+      this.artPredicateMap = predicateMap;
+      this.artGlobalPredicates = globalPredicates;
+      this.envPredicateMap = envPredicateMap;
+      this.envGlobalPredicates = envGlobalPredicates;
     }
 
     @Override
@@ -58,36 +57,59 @@ import com.google.common.collect.SetMultimap;
         return true;
       } else if (!(pObj instanceof RGPrecision)) {
         return false;
-      } else {
-        return predicateMap.equals(((RGPrecision)pObj).predicateMap);
       }
+
+      RGPrecision other = (RGPrecision) pObj;
+      return other.artPredicateMap.equals(artPredicateMap) &&
+          other.artGlobalPredicates.equals(artGlobalPredicates) &&
+          other.envPredicateMap.equals(envPredicateMap) &&
+          other.envGlobalPredicates.equals(envGlobalPredicates);
     }
 
     @Override
     public String toString(){
-      if (this.globalPredicates.isEmpty()){
-        return predicateMap.toString();
-      } else {
-        return predicateMap + " global: "+this.globalPredicates;
+      StringBuilder bldr = new StringBuilder();
+      bldr.append("RGPrecision ");
+
+      if (!artGlobalPredicates.isEmpty()){
+        bldr.append("global ART: "+artGlobalPredicates+", ");
       }
+
+      if (!artPredicateMap.isEmpty()){
+        bldr.append("local ART: "+artPredicateMap+", ");
+      }
+
+      if (!envGlobalPredicates.isEmpty()){
+        bldr.append("global env.: "+envGlobalPredicates+", ");
+      }
+
+      if (!envPredicateMap.isEmpty()){
+        bldr.append("local env: "+envPredicateMap);
+      }
+
+      return bldr.toString();
     }
 
-    public SetMultimap<CFANode, AbstractionPredicate> getPredicateMap() {
-      return this.predicateMap;
+    public ImmutableSetMultimap<CFANode, AbstractionPredicate> getARTPredicateMap() {
+      return this.artPredicateMap;
     }
 
-    public Set<AbstractionPredicate> getGlobalPredicates() {
-      return this.globalPredicates;
+    public ImmutableSet<AbstractionPredicate> getARTGlobalPredicates() {
+      return this.artGlobalPredicates;
     }
 
-    public Set<AbstractionPredicate> getPredicates(CFANode pLoc) {
-      return this.predicateMap.get(pLoc);
+    public ImmutableSet<AbstractionPredicate> getARTPredicates(CFANode pLoc) {
+      return this.artPredicateMap.get(pLoc);
     }
 
-    public void setGlobalPredicates(ImmutableSet<AbstractionPredicate> newGlob) {
-      this.globalPredicates = newGlob;
-
+    public ImmutableSetMultimap<CFANode, AbstractionPredicate> getEnvPredicateMap() {
+      return envPredicateMap;
     }
+
+    public ImmutableSet<AbstractionPredicate> getEnvGlobalPredicates() {
+      return envGlobalPredicates;
+    }
+
 
 
   }

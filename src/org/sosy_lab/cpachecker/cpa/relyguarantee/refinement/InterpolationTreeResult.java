@@ -118,5 +118,15 @@ public class InterpolationTreeResult {
     this.refinedLocationMapping = refinedLocationMapping;
   }
 
+  public SetMultimap<ARTElement, AbstractionPredicate> getArtMap() {
+    return artMap;
+  }
+
+  public SetMultimap<ARTElement, AbstractionPredicate> getEnvMap() {
+    return envMap;
+  }
+
+
+
 
 }
