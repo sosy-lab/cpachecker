@@ -69,6 +69,8 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManage
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
@@ -118,6 +120,9 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   private final LogManager logger;
   private final Stats stats;
 
+  /** Nodes that always have to belong to the first location class, i.e. all global nodes and execution start. */
+  private final Set<CFANode> nodesAlwaysInClassOne;
+
   /* for non-monotonic refinement only */
   private final Multimap<Path, Pair<CFANode, CFANode>> globalInqMap;
   private final Map<String, CFANode> nodeMap;
@@ -151,6 +156,13 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     this.logger  = pLogger;
     this.stats = new Stats();
 
+    this.nodesAlwaysInClassOne = new HashSet<CFANode>();
+
+    for (ThreadCFA cfa : pcfa){
+      this.nodesAlwaysInClassOne.addAll(cfa.globalDeclNodes);
+      this.nodesAlwaysInClassOne.add(cfa.executionStart);
+    }
+
     if (locationRefinement.equals("NONMONOTONIC")){
       globalInqMap = LinkedHashMultimap.create();
       nodeMap = initializeNodeMap(this.pcfa);
@@ -159,7 +171,6 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       nodeMap = null;
     }
   }
-
 
 
   private Map<String, CFANode> initializeNodeMap(ParallelCFAS pcfa) {
@@ -182,8 +193,9 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @param counterexample
    * @return
    * @throws CPATransferException
+   * @throws RefinementFailedException
    */
-  public InterpolationTreeResult refine(InterpolationTreeResult counterexample) throws CPATransferException {
+  public InterpolationTreeResult refine(InterpolationTreeResult counterexample) throws CPATransferException, RefinementFailedException {
     stats.locRefTimer.start();
     stats.iterations++;
 
@@ -229,8 +241,9 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @param counterexample
    * @return
    * @throws CPATransferException
+   * @throws RefinementFailedException
    */
-  private InterpolationTreeResult monotonicRefinement(InterpolationTreeResult counterexample) throws CPATransferException {
+  private InterpolationTreeResult monotonicRefinement(InterpolationTreeResult counterexample) throws CPATransferException, RefinementFailedException {
     Collection<Path> paths = getErrorPathsForTrunk(counterexample.getTree());
 
     /* Map: tid -> pair of unequal nodes */
@@ -484,6 +497,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @return
    */
   private RGLocationMapping RGLocationMappingSAT(Model model) {
+    // TODO ensure that execution start is always in class one.
     Map<CFANode, Integer> locMapping = new HashMap<CFANode, Integer>();
     Set<CFANode> allNodes = new HashSet<CFANode>(nodeMap.values());
 
@@ -565,15 +579,27 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @param oldLM
    * @param inqColl
    * @return
+   * @throws RefinementFailedException
    */
-  private RGLocationMapping monotonicLocationMapping(RGLocationMapping oldLM, Collection<Pair<CFANode, CFANode>> inqColl) {
+  private RGLocationMapping monotonicLocationMapping(RGLocationMapping oldLM, Collection<Pair<CFANode, CFANode>> inqColl) throws RefinementFailedException {
     Integer topCl = oldLM.getClassNo();
 
     HashMap<CFANode, Integer> newLM = new HashMap<CFANode, Integer>(oldLM.getMap());
 
     // put one of the mistmatching nodes in a new classe
     for (Pair<CFANode, CFANode> inq : inqColl){
-      newLM.put(inq.getSecond(), ++topCl);
+      // make sure that global decl. nodes and execution start always belong to class 1
+      CFANode node = inq.getSecond();
+
+      if (nodesAlwaysInClassOne.contains(node)){
+        node = inq.getFirst();
+
+        if (this.nodesAlwaysInClassOne.contains(node)){
+          throw new RefinementFailedException(Reason.LocationRefinementFailed, null);
+        }
+      }
+
+      newLM.put(node, ++topCl);
     }
 
     return RGLocationMapping.copyOf(newLM);

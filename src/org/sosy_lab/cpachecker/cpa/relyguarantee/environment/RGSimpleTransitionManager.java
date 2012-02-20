@@ -32,7 +32,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -57,7 +56,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multimap;
 
 public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
 
@@ -83,7 +81,7 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
   }
 
   @Override
-  public RGSimpleTransition generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> pGlobalPreds, Multimap<CFANode, AbstractionPredicate> pLocalPreds) {
+  public RGSimpleTransition generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> preds) {
     // TODO Auto-generated method stub
     AbstractionFormula abs = cand.getRgElement().getAbstractionFormula();
     Formula absF = abs.asFormula();

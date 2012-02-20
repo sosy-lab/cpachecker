@@ -106,11 +106,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
   private RGLocationMapping locationMapping;
 
-
-
-
-
-
   public RGEnvironmentManager(ParallelCFAS pcfa, Configuration config, LogManager logger) throws InvalidConfigurationException{
     // TODO add option for caching
     config.inject(this, RGEnvironmentManager.class);
@@ -144,8 +139,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
   }
 
-
-
   public int getThreadNo() {
     return threadNo;
   }
@@ -175,20 +168,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
   }
 
 
-  /*
-  public void addNewEnvEgde(int j, RGEnvTransition edge) {
-    unappliedEnvEdgesForThread[j].add(edge);
-  }
-
-  public void clearUnappliedEnvEdgesForThread(int i) {
-    unappliedEnvEdgesForThread[i].removeAllElements();
-  }
-
-  public  List<RGEnvTransition> getUnappliedEnvEdgesForThread(int i) {
-    return Collections.unmodifiableList(unappliedEnvEdgesForThread[i]);
-  }*/
-
-
   public void printUnprocessedTransitions(Collection<RGEnvCandidate> candidates) {
     printTransitions("Enviornmental transitions generated:", candidates);
   }
@@ -210,11 +189,176 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
 
   /**
+   * Returns most general candidates from the previous m.g. candidates and some new ones.
+   * @param oldMGCandidates
+   * @param newCandidates
+   * @return
+   */
+  public List<RGEnvCandidate> getMostGeneralCandidates(Collection<RGEnvCandidate> oldMGCandidates, Collection<RGEnvCandidate> newCandidates){
+    stats.candidateTimer.start();
+
+    Vector<RGEnvCandidate> newToProcess = new Vector<RGEnvCandidate>(newCandidates);
+    Vector<RGEnvCandidate> newCovered = new Vector<RGEnvCandidate>(newCandidates.size());
+
+    /* remove candidates whose application wouldn't make sense */
+    for (RGEnvCandidate cnd : newToProcess){
+      if (candManager.isBottom(cnd)){
+        newCovered.add(cnd);
+
+        if (debug){
+          System.out.println("\t-bottom: "+cnd);
+        }
+      }
+    }
+
+    newToProcess.removeAll(newCovered);
+    newCovered.clear();
+
+    /* find the most general candidates among the remaning new */
+    for (RGEnvCandidate cnd1 : newToProcess){
+      if (!newCovered.contains(cnd1)){
+        for (RGEnvCandidate cnd2 : newToProcess){
+          if (cnd1 !=cnd2 && !newCovered.contains(cnd2)){
+            if (candManager.isLessOrEqual(cnd1, cnd2)){
+              // edge1 => edge2
+              if (debug){
+                System.out.println("\t-covered: "+cnd1+" => "+cnd2);
+              }
+              newCovered.add(cnd1);
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    newToProcess.removeAll(newCovered);
+    newCovered.clear();
+
+    /* find the most general candidates among old m.g. and the remaning new */
+    List<RGEnvCandidate> oldCovered = new Vector<RGEnvCandidate>();
+
+    for (RGEnvCandidate nCnd : newToProcess){
+      for (RGEnvCandidate oCnd : oldMGCandidates){
+
+        if (oldCovered.contains(oCnd)){
+          continue;
+        }
+
+        if (candManager.isLessOrEqual(nCnd, oCnd)){
+          // new <= old
+          newCovered.add(nCnd);
+
+          if (debug){
+            System.out.println("\t- new covered: "+nCnd+ " => "+oCnd);
+          }
+          break;
+        }
+        else if (candManager.isLessOrEqual(oCnd, nCnd)){
+          // new > old
+          oldCovered.add(oCnd);
+
+          if (debug){
+            System.out.println("\t- old covered: "+oCnd+ " => "+nCnd);
+          }
+          break;
+        }
+      }
+    }
+
+    List<RGEnvCandidate> newMGCandidates = new Vector<RGEnvCandidate>(newToProcess);
+    newMGCandidates.removeAll(newCovered);
+    newMGCandidates.addAll(oldMGCandidates);
+    newMGCandidates.removeAll(oldCovered);
+
+    /* sanity check on request */
+    if (debug){
+      checkMostGeneralCandidates(oldMGCandidates, newCandidates, newMGCandidates);
+    }
+
+    stats.candidateTimer.stop();
+    return  newMGCandidates;
+  }
+
+  /**
+   * Checks result of {@link #getMostGeneralCandidates()}.
+   * @param oldMGCandidates
+   * @param newCandidates
+   * @param newMGCandidates
+   */
+  private void checkMostGeneralCandidates(Collection<RGEnvCandidate> oldMGCandidates, Collection<RGEnvCandidate> newCandidates, Collection<RGEnvCandidate> newMGCandidates){
+    stats.checkingTimer.start();
+
+    // new m.g. candidates are incomperable
+    for (RGEnvCandidate cand1 : newMGCandidates){
+      for (RGEnvCandidate cand2 : newMGCandidates){
+        if (cand1 != cand2){
+          assert !candManager.isLessOrEqual(cand2, cand1);
+          assert !candManager.isLessOrEqual(cand1, cand2);
+        }
+      }
+    }
+
+    // for every candidate in oldMGCandidates there exist greater of equal candidate in newMGCandidates
+    for (RGEnvCandidate oCand : oldMGCandidates){
+      boolean existsGeq = false;
+      for (RGEnvCandidate mgCand : newMGCandidates){
+        if (candManager.isLessOrEqual(oCand, mgCand)){
+          existsGeq = true;
+          break;
+        }
+      }
+      assert existsGeq || candManager.isBottom(oCand);
+    }
+
+    // for every candidate in newCandidates there exist greater of equal candidate in newMGCandidates
+    for (RGEnvCandidate nCand : newCandidates){
+      boolean existsGeq = false;
+      for (RGEnvCandidate mgCand : newMGCandidates){
+        if (candManager.isLessOrEqual(nCand, mgCand)){
+          existsGeq = true;
+          break;
+        }
+      }
+
+      assert existsGeq || candManager.isBottom(nCand);
+    }
+    stats.checkingTimer.stop();
+  }
+
+
+  /**
+   * Returns the most general env. transitions generated from the candidates using the precision.
+   * @param candidates
+   * @param preds
+   * @return
+   */
+  public List<RGEnvTransition> getMostGeneralEnvTransitions(Collection<RGEnvCandidate> candidates, Collection<AbstractionPredicate> preds){
+    stats.etransitionsTimer.start();
+
+    /* abstract the candidates */
+    Vector<RGEnvTransition> newEt   = new Vector<RGEnvTransition>(candidates.size());
+    for (RGEnvCandidate cand : candidates){
+      RGEnvTransition et = etManager.generateEnvTransition(cand, preds);
+      newEt.add(et);
+    }
+
+    newEt = findMostGeneralTransitions(newEt);
+
+    stats.maxValid = Math.max(stats.maxValid, newEt.size());
+    stats.etransitionsTimer.stop();
+    return newEt;
+  }
+
+
+
+
+  /**
    * Converts  unprocessed candidates from thread i into environmental transitions.
    * The most general transitions are remebered as valid and unapplied for other threads.
    * @param i   thread that generated the transitions
    */
-  public List<RGEnvTransition> processCandidates(int i, Collection<RGEnvCandidate> candidates, List<RGEnvTransition> oldValid) {
+  /*public List<RGEnvTransition> processCandidates(int i, Collection<RGEnvCandidate> candidates, List<RGEnvTransition> oldValid) {
     if (processStats == null){
       processStats = new RelyGuaranteeEnvironmentProcessStatistics();
     }
@@ -270,7 +414,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
     processStats.totalTimer.stop();
 
     return validPrime;
-  }
+  }*/
 
   /**
    * Print env. edges with a title.
@@ -383,14 +527,14 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
 
   /**
-   * Find the most general elements from the set of candidates using the comparator.
-   * @param newEnv
+   * Find the most general environmental transitions from the set.
+   * @param transitions
    * @return
    */
-  private Vector<RGEnvTransition> findMostGeneralTransitions(Vector<RGEnvTransition> newEnv) {
+  private Vector<RGEnvTransition> findMostGeneralTransitions(Collection<RGEnvTransition> transitions) {
 
     // candidates to be inspected
-    Vector<RGEnvTransition> etToProcess = new Vector<RGEnvTransition>(newEnv);
+    Vector<RGEnvTransition> etToProcess = new Vector<RGEnvTransition>(transitions);
     // candidate that are covered or false
     Vector<RGEnvTransition> etCovered = new Vector<RGEnvTransition>();
 
@@ -429,19 +573,30 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
     /* sanity check on request */
     if (debug){
-      for (RGEnvTransition edge1 : newEnv){
-        for (RGEnvTransition edge2 : etToProcess){
-          assert edge1 == edge2 || !etManager.isLessOrEqual(edge2,edge1)  ||  etManager.isLessOrEqual(edge2,edge1);
-        }
-      }
-      for (RGEnvTransition edge1 : etToProcess){
-        for (RGEnvTransition edge2 : etToProcess){
-          assert edge1 == edge2 || !etManager.isLessOrEqual(edge2,edge1);
-        }
-      }
+      checkMostGeneralTransitions(transitions, etToProcess);
     }
 
     return  etToProcess;
+  }
+
+  /**
+   * Checks result of {@link #findMostGeneralTransitions()}.
+   * @param allTransitions
+   * @param mostGeneral
+   */
+  private void checkMostGeneralTransitions(Collection<RGEnvTransition> allTransitions, Collection<RGEnvTransition> mostGeneral){
+    stats.checkingTimer.start();
+    for (RGEnvTransition edge1 : allTransitions){
+      for (RGEnvTransition edge2 : mostGeneral){
+        assert edge1 == edge2 || !etManager.isLessOrEqual(edge2,edge1)  ||  etManager.isLessOrEqual(edge2,edge1);
+      }
+    }
+    for (RGEnvTransition edge1 : mostGeneral){
+      for (RGEnvTransition edge2 : mostGeneral){
+        assert edge1 == edge2 || !etManager.isLessOrEqual(edge2,edge1);
+      }
+    }
+    stats.checkingTimer.stop();
   }
 
 
@@ -500,40 +655,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
       }
     }
     return Pair.of(newValid, oldCovered);
-  }
-
-
-  /**
-   * Finds the next descendant in the ART that is a rely-guarantee abstraction.
-   * Returns the argument if it is an abstraction.
-   * @param element
-   * @return
-   */
-  private ARTElement findNextAbstractionARTElement(ARTElement element) {
-
-    ARTElement naARTElement = null;
-    Deque<ARTElement> toProcess = new LinkedList<ARTElement>();
-    Set<ARTElement> visisted = new HashSet<ARTElement>();
-    toProcess.add(element);
-
-    while (!toProcess.isEmpty()){
-      ARTElement elem = toProcess.poll();
-      visisted.add(elem);
-
-      AbstractionElement aElement = AbstractElements.extractElementByType(elem, AbstractionElement.class);
-      if (aElement != null){
-        naARTElement = elem;
-        break;
-      }
-
-      for (ARTElement parent : elem.getChildARTs()){
-        if (!visisted.contains(parent)){
-          toProcess.addLast(parent);
-        }
-      }
-    }
-
-    return naARTElement;
   }
 
 
@@ -615,6 +736,9 @@ public class RGEnvironmentManager implements StatisticsProvider{
   public static class Stats implements Statistics {
 
     private final Timer totalTimer       = new Timer();
+    private final Timer candidateTimer   = new Timer();
+    private final Timer etransitionsTimer = new Timer();
+    private final Timer checkingTimer    = new Timer();
     private int allCandidates   = 0;
     private int allNew          = 0;
     private int maxValid        = 0;
@@ -626,6 +750,9 @@ public class RGEnvironmentManager implements StatisticsProvider{
       out.println("valid env. transitions generated:  " + this.allNew);
       out.println("max. valid env. transitions:       " + this.maxValid);
       out.println("time on env. processing:           " + totalTimer);
+      out.println("time on most general candidates:   " + candidateTimer);
+      out.println("time on finding env. transitions:  " + etransitionsTimer);
+      out.println("time on result checking:           " + checkingTimer);
     }
 
     @Override

@@ -293,7 +293,10 @@ public class RGRefiner implements StatisticsProvider{
       }
     }
 
-    assert newPred || newLM;
+    if (debug){
+      assert newPred || newLM : "No new predicates nor location mapping found.";
+    }
+
 
     return refMap;
   }

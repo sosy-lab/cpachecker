@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Vector;
 import java.util.logging.Level;
 
@@ -63,6 +64,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTTransferRelation;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGTransferRelation;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
@@ -70,6 +72,8 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCa
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -80,7 +84,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   private boolean debug = false;
 
   @Option(description="If true, then change treads after successors for a state were computed.")
-  private boolean changeThread = true;
+  private boolean changeThread = false;
 
 
   public final Stats stats;
@@ -96,11 +100,14 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
   /** Unprocessed candidates for env transitions. */
   private final List<RGEnvCandidate> candidates;
+  /** Candidates for env. transitions from all threads */
+  private List<RGEnvCandidate>[] candidatesFromThread;
 
-  private List<RGEnvTransition>[] validEnvEdgesFromThread;
+
+  private int otherTid;
 
 
-  public RGThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, ThreadCFA cfa, RGEnvironmentManager environment, ImmutableSet<CFANode> applyEnv, List<RGEnvTransition>[] pValidEnvEdgesFromThread, Configuration config, LogManager logger,  int tid) {
+  public RGThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, ThreadCFA cfa, RGEnvironmentManager environment, ImmutableSet<CFANode> applyEnv, List<RGEnvCandidate>[] candidatesFromThread, Configuration config, LogManager logger,  int tid) {
     this.cpa = cpa;
     this.cfa = cfa;
     this.environment = environment;
@@ -121,7 +128,9 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
     this.candidates = new Vector<RGEnvCandidate>();
 
-    this.validEnvEdgesFromThread = pValidEnvEdgesFromThread;
+    this.candidatesFromThread = candidatesFromThread;
+
+    this.otherTid = tid == 0 ? 1 : 0;
   }
 
   @Override
@@ -141,8 +150,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
     final PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
 
     //List<RGEnvTransition> newEnvEdges = environment.getUnappliedEnvEdgesForThread(tid);
-    int otherTid = tid == 0 ? 1 : 0;
-    List<RGEnvTransition> validEnvEdges = validEnvEdgesFromThread[otherTid];
+
 
     assert forcedStop.isEmpty();
 
@@ -162,6 +170,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       final Precision precision = reachedSet.getPrecision(element);
 
       ARTElement aElement = (ARTElement) element;
+      RGPrecision rgPrec = Precisions.extractPrecisionByType(precision, RGPrecision.class);
       CFANode loc = aElement.retrieveLocationElement().getLocationNode();
 
       if (debug){
@@ -171,11 +180,11 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       stats.transferTimer.start();
       runStats.transferTimer.start();
 
-      Collection<CFAEdge> edges = getEdgesForElement(aElement, validEnvEdges);
-
-      if (edges.size() > (validEnvEdges.size()+2)){
-        System.out.println();
+      if (aElement.getElementId() == 5344){
+        System.out.println(this.getClass());
       }
+
+      Collection<CFAEdge> edges = getEdgesForElement(aElement, rgPrec);
 
       if (debug && edges.isEmpty()){
         System.out.println();
@@ -368,14 +377,18 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   /**
-   * Returns eges that should be applied for the element.
+   * Returns local and environmental edges to be applied at the element.
    * @param aElem
-   * @param validEnvEdges
+   * @param rgPrec
    * @return
    */
-  private List<CFAEdge> getEdgesForElement(ARTElement aElem, List<RGEnvTransition> validEnvEdges) {
+  private List<CFAEdge> getEdgesForElement(ARTElement aElem, RGPrecision rgPrec) {
+    assert aElem != null;
+    assert rgPrec != null;
 
     List<CFAEdge> edges = new Vector<CFAEdge>();
+
+    /* get local edges */
     CFANode loc = aElem.retrieveLocationElement().getLocationNode();
 
     if (!aElem.hasLocalChild()){
@@ -385,42 +398,34 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         if (edge.getEdgeType() != CFAEdgeType.RelyGuaranteeCFAEdge){
           edges.add(edge);
         }
-
       }
 
       aElem.setHasLocalChild(true);
     }
 
-    if (this.applyEnv.contains(loc)){
-
-      if (aElem.getEnvTrApplied() == null){
-        aElem.setEnvTrApplied(new HashSet<RGEnvTransition>());
-      }
-
-      for (RGEnvTransition template : validEnvEdges){
-
-        if (!aElem.getEnvTrApplied().contains(template)){
-            aElem.getEnvTrApplied().add(template);
-
-            // find the edge matching the template
-            RGCFAEdge rgEdge = null;
-            for (int i=0; i<loc.getNumLeavingEdges(); i++){
-              CFAEdge edge = loc.getLeavingEdge(i);
-              if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
-                rgEdge = (RGCFAEdge) edge;
-                if (rgEdge.getRgEnvTransition() == template){
-                  break;
-                }
-              }
-            }
-
-            assert rgEdge != null;
-            edges.add(rgEdge);
-        }
-      }
+    /* no env. transitions are applied at the location */
+    if (!applyEnv.contains(loc)){
+      return edges;
     }
 
+    /* get environmental edges */
+    Set<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(rgPrec.getEnvGlobalPredicates());
+    preds.addAll(rgPrec.getEnvPredicateMap().get(loc));
 
+    List<RGEnvTransition> mgEnvTransitions = this.environment.getMostGeneralEnvTransitions(this.candidatesFromThread[otherTid], preds);
+
+    if (aElem.getEnvTrApplied() == null){
+      aElem.setEnvTrApplied(new HashSet<RGEnvTransition>());
+    }
+
+    for (RGEnvTransition et : mgEnvTransitions){
+
+      if (!aElem.getEnvTrApplied().contains(et)){
+        aElem.getEnvTrApplied().add(et);
+        RGCFAEdge rgEdge = new RGCFAEdge(et, loc, loc);
+        edges.add(rgEdge);
+      }
+    }
 
     return edges;
   }

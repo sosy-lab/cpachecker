@@ -211,7 +211,7 @@ public class ARTStatistics implements Statistics {
 
       for (ARTElement child : currentElement.getChildARTs()) {
         boolean colored = pathEdges.contains(Pair.of(currentElement, child));
-        CFAEdge edge = currentElement.getEdgeToChild(child);
+        CFAEdge edge = currentElement.getChildMap().get(child);
         edges.append(currentElement.getElementId());
         edges.append(" -> ");
         edges.append(child.getElementId());

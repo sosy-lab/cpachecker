@@ -50,6 +50,11 @@ public class LocationTransferRelation implements TransferRelation {
     LocationElement inputElement = (LocationElement) element;
     CFANode node = inputElement.getLocationNode ();
 
+    // for rely-guarantee
+    if (cfaEdge.getSuccessor().equals(node)){
+      return Collections.singleton(inputElement);
+    }
+
     int numLeavingEdges = node.getNumLeavingEdges ();
     for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++)
     {

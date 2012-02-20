@@ -158,10 +158,6 @@ public class RGAbstractionManager implements StatisticsProvider {
     Formula f = fmgr.makeAnd(absFormula, symbFormula);
     PathFormula pf = new PathFormula(f, pathFormula.getSsa(), pathFormula.getLength());
 
-    if (absFormula.toString().contains("start_main@2")){
-      System.out.println();
-    }
-
     // caching
     Pair<PathFormula, Collection<AbstractionPredicate>> absKey = null;
     if (useCache) {

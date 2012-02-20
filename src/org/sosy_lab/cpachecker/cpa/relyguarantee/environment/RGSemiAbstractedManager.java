@@ -26,19 +26,15 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.environment;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
@@ -58,7 +54,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multimap;
 
 /**
  * Manager for semi-abstracted environmental transitions.
@@ -92,13 +87,7 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
 
 
   @Override
-  public RGSemiAbstracted generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> globalPreds, Multimap<CFANode, AbstractionPredicate> localPreds) {
-    ARTElement sourceART = cand.getSuccessor();
-    CFANode loc = sourceART.retrieveLocationElement().getLocationNode();
-
-    // get predicates for abstraction
-    Set<AbstractionPredicate> preds = new LinkedHashSet<AbstractionPredicate>(globalPreds);
-    preds.addAll(localPreds.get(loc));
+  public RGSemiAbstracted generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> preds) {
 
     // abstract
     AbstractionFormula abs = cand.getRgElement().getAbstractionFormula();

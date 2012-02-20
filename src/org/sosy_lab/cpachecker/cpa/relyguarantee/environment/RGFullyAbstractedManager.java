@@ -27,19 +27,17 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
@@ -60,7 +58,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multimap;
 
 /**
  * Manager for fully-abstracted environmental transitions.
@@ -71,7 +68,6 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
   private final PathFormulaManager pfManager;
   private final RGAbstractionManager absManager;
   private final SSAMapManager ssaManager;
-  private final TheoremProver thmProver;
   private final RegionManager rManager;
   private final ParallelCFAS pcfas;
 
@@ -84,7 +80,6 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
     this.pfManager = pfManager;
     this.absManager  = absManager;
     this.ssaManager = ssaManager;
-    this.thmProver = thmProver;
     this.rManager  = rManager;
     this.pcfas = pPcfa;
     this.logger = logger;
@@ -94,13 +89,8 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
 
 
   @Override
-  public RGFullyAbstracted generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> globalPreds, Multimap<CFANode, AbstractionPredicate> localPreds)  {
-    ARTElement sourceART = cand.getSuccessor();
-    CFANode loc = sourceART.retrieveLocationElement().getLocationNode();
-
-    // get predicates for abstraction
-    Set<AbstractionPredicate> preds = new LinkedHashSet<AbstractionPredicate>(globalPreds);
-    preds.addAll(localPreds.get(loc));
+  public RGFullyAbstracted generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> preds)  {
+    stats.generationPrepTimer.start();
 
     // get the predicates for the transition
     int sourceTid = cand.getTid();
@@ -125,6 +115,8 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
     Pair<Pair<Formula, Formula>, SSAMap> equivs = ssaManager.mergeSSAMaps(newPf.getSsa(), newSsa);
     Formula newF = fManager.makeAnd(newPf.getFormula(), equivs.getFirst().getFirst());
     newPf = new PathFormula(newF, newSsa, newPf.getLength());
+
+    stats.generationPrepTimer.stop();
 
     // abstract
     AbstractionFormula newAbs = absManager.buildNextValueAbstraction(oldAbs, oldPf, newPf, preds, sourceTid);
@@ -260,10 +252,12 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
 
   public static class Stats implements Statistics {
 
+    public final Timer generationPrepTimer   =  new Timer();
     public int falseByBDD = 0;
 
     @Override
     public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached) {
+      out.println("time on prep. for et. generation:" + generationPrepTimer);
       out.println("env. app. falsified by BDD:      " + formatInt(falseByBDD));
     }
 

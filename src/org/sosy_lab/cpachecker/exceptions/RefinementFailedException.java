@@ -33,6 +33,7 @@ public class RefinementFailedException extends CPAException {
 
   public static enum Reason {
     InterpolationFailed("Interpolation failed"),
+    LocationRefinementFailed("Location refinement failed"),
     NoNewPredicates("No new predicates"),
     TooMuchUnrolling("Too much unrolling"),
     InfeasibleCounterexample("External tool verified counterexample as infeasible"),

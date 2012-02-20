@@ -25,15 +25,12 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.environment;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-
-import com.google.common.collect.Multimap;
 
 
 /**
@@ -44,11 +41,10 @@ public interface RGEnvTransitionManager {
   /**
    * Generate an environmental transition from the candidate using the given precision.
    * @param cand
-   * @param globalPreds
-   * @param localPreds
+   * @param predicates
    * @return
    */
-  RGEnvTransition generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> globalPreds, Multimap<CFANode, AbstractionPredicate> localPreds);
+  RGEnvTransition generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> predicates);
 
   /**
    * Returns a path formula representing the effect of applying the transition on the element.
