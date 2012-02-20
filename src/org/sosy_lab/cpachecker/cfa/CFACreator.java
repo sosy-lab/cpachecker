@@ -271,8 +271,12 @@ public class CFACreator {
     } catch (ParserException e) {
       // don't abort here, because if the analysis doesn't need the loop information, we can continue
       logger.logUserException(Level.WARNING, e, "Could not analyze loop structure of program.");
-      return Optional.absent();
+
+    } catch (OutOfMemoryError e) {
+      logger.logUserException(Level.WARNING, e,
+          "Could not analyze loop structure of program due to memory problems");
     }
+    return Optional.absent();
   }
 
   /**
