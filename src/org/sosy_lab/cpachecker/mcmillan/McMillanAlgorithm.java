@@ -219,7 +219,8 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
 
         Formula stateFormula = w.getStateFormula();
         if (!implies(stateFormula, itp)) {
-          w.setStateFormula(fmgr.makeAnd(stateFormula, itp)); // automatically uncovers nodes as needed
+          w.setStateFormula(fmgr.makeAnd(stateFormula, itp));
+          w.cleanCoverage();
           changedElements.add(w);
         }
       }
@@ -227,6 +228,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
       // itp of last element is always false, set it
       if (!v.getStateFormula().isFalse()) {
         v.setStateFormula(fmgr.makeFalse());
+        v.cleanCoverage();
         changedElements.add(v);
       }
 
@@ -343,7 +345,8 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
 
       Formula stateFormula = p.getStateFormula();
       if (!implies(stateFormula, itp)) {
-        p.setStateFormula(fmgr.makeAnd(stateFormula, itp)); // automatically uncovers nodes as needed
+        p.setStateFormula(fmgr.makeAnd(stateFormula, itp));
+        p.cleanCoverage();
         changedElements.add(p);
       }
     }

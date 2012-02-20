@@ -113,7 +113,6 @@ class Vertex implements AbstractElement, Targetable, AbstractWrapperElement {
 
   public void setStateFormula(Formula pStateFormula) {
     stateFormula = checkNotNull(pStateFormula);
-    cleanCoverage();
   }
 
   public Vertex getParent() {
