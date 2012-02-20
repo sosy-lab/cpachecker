@@ -87,6 +87,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -287,9 +289,12 @@ class CFAFunctionBuilder extends ASTVisitor {
               + cfa.getFunctionName() + ": " + gotoLabelNeeded.keySet());
       }
 
+      NodeCollectingCFAVisitor visitor = new NodeCollectingCFAVisitor();
+      CFATraversal.dfs().traverse(cfa, visitor);
+      Set<CFANode> reachableNodes = visitor.getVisitedNodes();
+
       for (CFALabelNode n : labelMap.values()) {
-        if (   (n.getNumEnteringEdges() == 0)
-            || !isPathFromTo(cfa, n)) {
+        if (!reachableNodes.contains(n)) {
           logDeadLabel(n);
 
           // remove all entering edges
@@ -302,12 +307,11 @@ class CFAFunctionBuilder extends ASTVisitor {
         }
       }
 
-      labelMap.clear();
-
       Iterator<CFANode> it = cfaNodes.iterator();
       while (it.hasNext()) {
         CFANode n = it.next();
-        if (n.getNumEnteringEdges() == 0 && n.getNumLeavingEdges() == 0) {
+
+        if (!reachableNodes.contains(n)) {
           // node was created but isn't part of CFA (e.g. because of dead code)
           it.remove(); // remove n from currentCFANodes
         }
