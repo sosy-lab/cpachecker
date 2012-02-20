@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.mcmillan;
+package org.sosy_lab.cpachecker.mcmillan.waitlist;
 
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;

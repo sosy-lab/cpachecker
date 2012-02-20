@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.mcmillan.McMillanAlgorithm;
-import org.sosy_lab.cpachecker.mcmillan.McMillanAlgorithmWithWaitlist;
+import org.sosy_lab.cpachecker.mcmillan.waitlist.McMillanAlgorithmWithWaitlist;
 
 /**
  * Factory class for the three core components of CPAchecker:

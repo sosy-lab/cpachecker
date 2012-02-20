@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.mcmillan.McMillanAlgorithm;
-import org.sosy_lab.cpachecker.mcmillan.McMillanAlgorithmWithWaitlist;
+import org.sosy_lab.cpachecker.mcmillan.waitlist.McMillanAlgorithmWithWaitlist;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
