@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.io.Serializable;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
@@ -34,9 +36,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
  *
  * Abstractions are not considered equal even if they have the same formula.
  */
-public class AbstractionFormula {
+public class AbstractionFormula implements Serializable {
 
-  private final Region region;
+  private static final long serialVersionUID = -7756517128231447936L;
+  private transient final Region region;
   private final Formula formula;
 
   /**

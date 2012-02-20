@@ -76,6 +76,8 @@ public class PredicateTransferRelation implements TransferRelation {
   final Timer pathFormulaTimer = new Timer();
   final Timer strengthenTimer = new Timer();
   final Timer strengthenCheckTimer = new Timer();
+  final Timer abstractionCheckTimer = new Timer();
+  final Timer pathFormulaCheckTimer = new Timer();
 
   int numSatChecksFalse = 0;
   int numStrengthenChecksFalse = 0;
@@ -320,5 +322,63 @@ public class PredicateTransferRelation implements TransferRelation {
 
       return PredicateAbstractElement.abstractionElement(newPathFormula, abs);
     }
+  }
+
+  boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge, Collection<? extends AbstractElement> pSuccessors) throws CPATransferException, InterruptedException {
+    PredicateAbstractElement predicateElement = (PredicateAbstractElement)pElement;
+    boolean result = true;
+
+    if(pSuccessors.isEmpty()) {
+      satCheckTimer.start();
+      Collection<? extends AbstractElement> foundSuccessors = getAbstractSuccessors(pElement, null, pCfaEdge);
+      //if we found successors, they all have to be unsat
+      for(AbstractElement e : foundSuccessors) {
+        PredicateAbstractElement successor = (PredicateAbstractElement)e;
+        if(!formulaManager.unsat(successor.getAbstractionFormula(), successor.getPathFormula())) {
+          result = false;
+        }
+      }
+      satCheckTimer.stop();
+      return result;
+    }
+
+    for(AbstractElement e : pSuccessors) {
+      PredicateAbstractElement successor = (PredicateAbstractElement)e;
+
+      if(successor.isAbstractionElement()) {
+        //check abstraction
+        abstractionCheckTimer.start();
+        if(!formulaManager.checkCoverage(predicateElement.getAbstractionFormula(), predicateElement.getPathFormula(), successor.getAbstractionFormula())) {
+          result = false;
+        }
+        abstractionCheckTimer.stop();
+
+        //check path formula
+        pathFormulaCheckTimer.start();
+        if(!successor.getPathFormula().equals(pathFormulaManager.makeEmptyPathFormula(predicateElement.getPathFormula()))) {
+          result = false;
+        }
+        pathFormulaCheckTimer.stop();
+      }
+      else {
+        //check abstraction
+        abstractionCheckTimer.start();
+        if(!successor.getAbstractionFormula().equals(predicateElement.getAbstractionFormula())) {
+          result = false;
+        }
+        abstractionCheckTimer.stop();
+
+        //check path formula
+        pathFormulaCheckTimer.start();
+        PathFormula successorPathFormula = successor.getPathFormula();
+        PathFormula computedPathFormula = convertEdgeToPathFormula(predicateElement.getPathFormula(), pCfaEdge);
+        if(!formulaManager.checkCoverage(computedPathFormula, successorPathFormula, pathFormulaManager)) {
+          result = false;
+        }
+        pathFormulaCheckTimer.stop();
+      }
+    }
+
+    return result;
   }
 }

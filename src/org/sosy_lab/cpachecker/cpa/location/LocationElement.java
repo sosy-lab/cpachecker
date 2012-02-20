@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.location;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.ObjectStreamException;
+import java.io.Serializable;
 import java.util.SortedSet;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -33,13 +35,17 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 
-public class LocationElement implements AbstractElementWithLocation, AbstractQueryableElement, Partitionable {
+public class LocationElement implements AbstractElementWithLocation, AbstractQueryableElement, Partitionable, Serializable {
 
-  static class LocationElementFactory {
+  private static final long serialVersionUID = -801176497691618779L;
+
+  public static class LocationElementFactory {
     private final LocationElement[] elements;
 
     public LocationElementFactory(CFA pCfa) {
@@ -63,7 +69,7 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     }
   }
 
-    private final CFANode locationNode;
+    private transient CFANode locationNode;
 
     private LocationElement(CFANode locationNode) {
         this.locationNode = locationNode;
@@ -126,4 +132,23 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     }
 
     // no equals and hashCode because there is always only one element per CFANode
+
+    private Object writeReplace() throws ObjectStreamException {
+      return new SerialProxy(locationNode.getNodeNumber());
+    }
+
+    private static class SerialProxy implements Serializable {
+      private static final long serialVersionUID = 6889568471468710163L;
+      private final int nodeNumber;
+
+      public SerialProxy(int nodeNumber) {
+        this.nodeNumber = nodeNumber;
+      }
+
+      private Object readResolve() throws ObjectStreamException {
+        CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo();
+        return cfaInfo.getLocationElementFactory().getElement(cfaInfo.getNodeByNodeNumber(nodeNumber));
+      }
+    }
+
 }

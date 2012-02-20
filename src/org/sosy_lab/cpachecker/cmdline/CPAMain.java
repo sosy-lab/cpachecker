@@ -40,7 +40,7 @@ import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.pcc.proof_gen.ProofGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
 
 import com.google.common.collect.Iterables;
 
@@ -91,10 +91,12 @@ import com.google.common.collect.Iterables;
 	    CPAchecker cpachecker = null;
 	    ShutdownHook shutdownHook = null;
 	    File cFile = null;
+	    ProofGenerator proofGenerator = null;
 	    try {
 	      shutdownHook = new ShutdownHook(cpaConfig, logManager, outputDirectory);
 	      cpachecker = new CPAchecker(cpaConfig, logManager);
 	      cFile = getCodeFile(cpaConfig);
+	      proofGenerator = new ProofGenerator(cpaConfig, logManager);
 	    } catch (InvalidConfigurationException e) {
 	      logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
 	      System.exit(1);
@@ -112,15 +114,8 @@ import com.google.common.collect.Iterables;
 
 	    // statistics are displayed by shutdown hook
 
-	    // create PCC proof (if enabled)
-	    try {
-	      ProofGenerator pccProofGenerator = new ProofGenerator(cpaConfig, logManager);
-	      // generate PCC proof
-	      pccProofGenerator.generateProof(result);
-	    } catch (InvalidConfigurationException e) {
-	      logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
-	      System.exit(1);
-	    }
+	    // generated proof (if enabled)
+	    proofGenerator.generateProof(result);
 	  }
 
 	  @Options

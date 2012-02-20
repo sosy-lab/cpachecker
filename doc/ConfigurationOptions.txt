@@ -120,8 +120,8 @@ analysis.useFeatureVarsRestriction = false
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
-# Use McMillans algorithm for lazy interpolation
-analysis.useMcMillan = false
+# use a proof check algorithm to validate a previously generated proof
+analysis.useProofCheckAlgorithm = false
 
 # whether or not to use refinement or not
 # use CEGAR algorithm for lazy counter-example guided analysis
@@ -456,9 +456,6 @@ cpa.predicate.blk.functions = false
 # threshold = 0)
 cpa.predicate.blk.loops = false
 
-# Switch to a LBE configuration after so many milliseconds (0 to disable)
-cpa.predicate.blk.switchToLBEAfter = 0
-
 # maximum blocksize before abstraction is forced
 # (non-negative number, special values: 0 = don't check threshold, 1 = SBE)
 cpa.predicate.blk.threshold = 0
@@ -627,11 +624,6 @@ cpa.uninitvars.printWarnings = "true"
 cpa.uninitvars.stop = "sep"
   allowed values: [sep, join]
 
-# export ART representation needed for proof checking in PCC, if the error
-# location is not reached, the representation depends on the algorithm used
-# for proof checking
-file = "pccProof.txt"
-
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
@@ -639,27 +631,10 @@ parser.dialect = GNUC
 # Ignore all casts that appear in the source code.
 parser.ignoreCasts = false
 
-# export ART representation needed for proof checking in PCC, if the error
-# location is not reached, the representation depends on the algorithm used
-# for proof checking
-pcc.profgen.file = "pccProof.txt"
-
-# Type of the algorithm which should be used for PCC
-pcc.proofgen.algorithm = SBENOINDART
-  enum:     [SBEINDART, SBENOINDART, SBEINDINVARIANT, SBENOINDINVARIANT,
-             SBENOEDGENOINDINVARIANT, SBENOEDGENOINDINVARIANT2, ABENOINDART,
-             LBENOINDART, ALBENOINDART, LBENOINDINVARIANT, ALBENOINDINVARIANT]
-
-# which solver to use?
-pcc.proofgen.cpa.predicate.abstraction.solver = "MATHSAT"
-  allowed values: [MATHSAT, YICES]
+# file in which ART representation needed for proof checking is stored
+pcc.proofFile = "art.obj"
 
 pcc.proofgen.doPCC = false
-
-# export ART representation needed for proof checking in PCC, if the error
-# location is not reached, the representation depends on the algorithm used
-# for proof checking
-pcc.proofgen.file = "pccProof.txt"
 
 # print reached set to text file
 reachedSet.export = true

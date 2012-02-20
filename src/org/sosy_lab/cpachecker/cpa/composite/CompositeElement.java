@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 
@@ -34,9 +35,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public class CompositeElement implements AbstractWrapperElement, Targetable, Partitionable {
+public class CompositeElement implements AbstractWrapperElement, Targetable, Partitionable, Serializable {
+  private static final long serialVersionUID = -5143296331663510680L;
   private final ImmutableList<AbstractElement> elements;
-  private Object partitionKey; // lazily initialized
+  private transient Object partitionKey; // lazily initialized
 
   public CompositeElement(List<AbstractElement> elements)
   {

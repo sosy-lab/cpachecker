@@ -274,4 +274,24 @@ public class ForwardingFormulaManager implements FormulaManager {
     return delegate.createPredicateVariable(pAtom);
   }
 
+  @Override
+  public boolean checkSyntacticEntails(Formula pLeftFormula, Formula pRightFormula) {
+    return delegate.checkSyntacticEntails(pLeftFormula, pRightFormula);
+  }
+
+  @Override
+  public Formula[] getArguments(Formula pF) {
+    return delegate.getArguments(pF);
+  }
+
+  @Override
+  public Formula makeUIP(String pName, FormulaList pArgs) {
+    return delegate.makeUIP(pName, pArgs);
+  }
+
+  @Override
+  public void declareUIP(String pName, int pArgCount) {
+    delegate.declareUIP(pName, pArgCount);
+  }
+
 }

@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.Optional;
@@ -54,16 +55,20 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithAB
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 /**
  * This class implements an AutomatonAnalysis as described in the related Documentation.
  */
 @Options(prefix="cpa.automaton")
-public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ConfigurableProgramAnalysisWithABM {
+public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ConfigurableProgramAnalysisWithABM, ProofChecker {
 
   @Option(name="dotExport",
       description="export automaton to file")
@@ -128,6 +133,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
         logger.log(Level.WARNING, "Could not create/write to the Automaton DOT file \"" + exportFile + "\"");
       }
     }
+
+    GlobalInfo.getInstance().storeAutomaton(automaton);
   }
 
   Automaton getAutomaton() {
@@ -185,5 +192,15 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
+  }
+
+  @Override
+  public boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge, Collection<? extends AbstractElement> pSuccessors) throws CPATransferException, InterruptedException {
+    return pSuccessors.equals(getTransferRelation().getAbstractSuccessors(pElement, null, pCfaEdge));
+  }
+
+  @Override
+  public boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement) throws CPAException {
+    return getAbstractDomain().isLessOrEqual(pElement, pOtherElement);
   }
 }

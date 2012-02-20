@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.mcmillan.McMillanAlgorithm;
 import org.sosy_lab.cpachecker.mcmillan.McMillanAlgorithmWithWaitlist;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
@@ -167,6 +168,7 @@ public class CPAchecker {
 
       } else {
         CFA cfa = parse(filename, stats);
+        GlobalInfo.getInstance().storeCFA(cfa);
         stopIfNecessary();
 
         ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, stats);

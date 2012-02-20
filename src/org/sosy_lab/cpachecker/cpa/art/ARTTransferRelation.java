@@ -29,10 +29,16 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractElements;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 public class ARTTransferRelation implements TransferRelation {
 
@@ -67,5 +73,31 @@ public class ARTTransferRelation implements TransferRelation {
                          List<AbstractElement> otherElements, CFAEdge cfaEdge,
                          Precision precision) {
     return null;
+  }
+
+  boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge, Collection<? extends AbstractElement> pSuccessors, ProofChecker wrappedProofChecker) throws CPATransferException, InterruptedException {
+    ARTElement element = (ARTElement)pElement;
+
+    assert element.getChildren().equals(pSuccessors);
+
+    AbstractElement wrappedElement = element.getWrappedElement();
+    Multimap<CFAEdge, AbstractElement> wrappedSuccessors = HashMultimap.create();
+    for (AbstractElement absElement : pSuccessors) {
+      ARTElement successorElem = (ARTElement)absElement;
+      wrappedSuccessors.put(element.getEdgeToChild(successorElem), successorElem.getWrappedElement());
+    }
+
+    if(pCfaEdge != null) {
+      return wrappedProofChecker.areAbstractSuccessors(wrappedElement, pCfaEdge, wrappedSuccessors.get(pCfaEdge));
+    }
+
+    CFANode loc = AbstractElements.extractLocation(element);
+    for(int i = 0; i < loc.getNumLeavingEdges(); ++i) {
+      CFAEdge edge = loc.getLeavingEdge(i);
+      if(!wrappedProofChecker.areAbstractSuccessors(wrappedElement, edge, wrappedSuccessors.get(edge))) {
+        return false;
+      }
+    }
+    return true;
   }
 }

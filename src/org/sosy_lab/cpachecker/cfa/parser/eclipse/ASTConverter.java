@@ -170,8 +170,8 @@ class ASTConverter {
       return addSideassignmentsForExpressionsWithoutSideEffects(node, e);
 
     } else if (node instanceof IASTAssignment) {
-        sideAssigment.add(node);
-        return ((IASTAssignment) node).getLeftHandSide();
+      sideAssigment.add(node);
+      return ((IASTAssignment) node).getLeftHandSide();
 
     } else {
       throw new AssertionError("unknown expression " + node);
@@ -207,7 +207,6 @@ class ASTConverter {
                                                               (IASTFunctionCallExpression) node));
     return tmp;
   }
-
 
   protected IASTNode convertExpressionWithSideEffects(org.eclipse.cdt.core.dom.ast.IASTExpression e) {
     assert !(e instanceof IASTExpression);
@@ -634,35 +633,86 @@ class ASTConverter {
     IASTFileLocation fileLoc = convert(e.getFileLocation());
     IType type = convert(e.getExpressionType());
 
+
     switch (e.getOperator()) {
     case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_prefixIncr:
-    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_postFixIncr:
     case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_prefixDecr:
-    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_postFixDecr:
-      // instead of x++, create "x = x+1"
+      // instead of ++x, create "x = x+1"
 
-      BinaryOperator op;
+      BinaryOperator preOp;
       switch (e.getOperator()) {
       case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_prefixIncr:
-      case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_postFixIncr:
-        op = BinaryOperator.PLUS;
+        preOp = BinaryOperator.PLUS;
         break;
       case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_prefixDecr:
+        preOp = BinaryOperator.MINUS;
+        break;
+      default: throw new AssertionError();
+      }
+      IASTExpression one = new IASTIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
+      IASTBinaryExpression preExp = new IASTBinaryExpression(fileLoc, type, operand, one, preOp);
+
+      return new IASTExpressionAssignmentStatement(fileLoc, operand, preExp);
+
+    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_postFixIncr:
+    case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_postFixDecr:
+      // instead of x++ create "x = x + 1"
+
+      BinaryOperator postOp;
+      switch (e.getOperator()) {
+      case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_postFixIncr:
+        postOp = BinaryOperator.PLUS;
+        break;
       case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_postFixDecr:
-        op = BinaryOperator.MINUS;
+        postOp = BinaryOperator.MINUS;
         break;
       default: throw new AssertionError();
       }
 
-      IASTExpression one = new IASTIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
-
-      IASTBinaryExpression exp = new IASTBinaryExpression(fileLoc, type, operand, one, op);
-
-      return new IASTExpressionAssignmentStatement(fileLoc, operand, exp);
+      if (e.getParent() instanceof org.eclipse.cdt.core.dom.ast.IASTExpression) {
+        return addSideAssignmentsForUnaryExpressions(operand, fileLoc, type, postOp);
+      } else {
+        IASTExpression postOne = new IASTIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
+        IASTBinaryExpression postExp = new IASTBinaryExpression(fileLoc, type, operand, postOne, postOp);
+        return new IASTExpressionAssignmentStatement(fileLoc, operand, postExp);
+      }
 
     default:
       return new IASTUnaryExpression(fileLoc, type, operand, convertUnaryOperator(e));
     }
+  }
+
+  private IASTIdExpression addSideAssignmentsForUnaryExpressions(IASTExpression exp,
+                                                                 IASTFileLocation fileLoc,
+                                                                 IType type,
+                                                                 BinaryOperator op) {
+    String name = "__CPAchecker_TMP_";
+    int i = 0;
+    while (scope.variableNameInUse(name + i, name + i)) {
+      i++;
+    }
+    name += i;
+
+    IASTVariableDeclaration decl = new IASTVariableDeclaration(fileLoc,
+                                                               false,
+                                                               StorageClass.AUTO,
+                                                               type,
+                                                               name,
+                                                               name,
+                                                               null);
+
+    scope.registerDeclaration(decl);
+    sideAssigment.add(decl);
+    IASTIdExpression tmp = new IASTIdExpression(fileLoc,
+                                                type,
+                                                name,
+                                                decl);
+    sideAssigment.add(new IASTExpressionAssignmentStatement(fileLoc, tmp, exp));
+
+    IASTExpression one = new IASTIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
+    IASTBinaryExpression postExp = new IASTBinaryExpression(fileLoc, type, exp, one, op);
+    sideAssigment.add(new IASTExpressionAssignmentStatement(fileLoc, exp, postExp));
+    return tmp;
   }
 
   private UnaryOperator convertUnaryOperator(org.eclipse.cdt.core.dom.ast.IASTUnaryExpression e) {
@@ -1280,6 +1330,9 @@ class ASTConverter {
       if(initializer != null && initializer instanceof IASTAssignment){
         sideAssigment.add(initializer);
         return new IASTInitializerExpression(convert(e.getFileLocation()), ((IASTAssignment)initializer).getLeftHandSide());
+      } else if (initializer != null && initializer instanceof IASTFunctionCallExpression) {
+        IASTExpression exp = addSideassignmentsForExpressionsWithoutSideEffects(initializer, e);
+        return new IASTInitializerExpression(convert(e.getFileLocation()), exp);
       }
 
       if (initializer != null && !(initializer instanceof IASTExpression)) {

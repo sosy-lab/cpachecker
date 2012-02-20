@@ -165,7 +165,7 @@ public class CtoFormulaConverter {
   public static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
 
   /** The prefix used for variables representing memory locations. */
-  private static final String MEMORY_ADDRESS_VARIABLE_PREFIX = "&";
+  private static final String MEMORY_ADDRESS_VARIABLE_PREFIX = "__address_of__";
 
   /**
    * The prefix used for memory locations derived from malloc calls.
@@ -365,7 +365,7 @@ public class CtoFormulaConverter {
 
   /** Takes a (scoped) variable name and returns the pointer variable name. */
   private static String makePointerMask(String scopedId, SSAMapBuilder ssa) {
-    return "*<" + scopedId + "," + ssa.getIndex(scopedId) + ">";
+    return "__content_of__" + scopedId + "__at__" + ssa.getIndex(scopedId) + "__end";
   }
 
   /**
@@ -375,7 +375,7 @@ public class CtoFormulaConverter {
   private static String removePointerMask(String pointerVariable) {
     assert (isPointerVariable(pointerVariable));
 
-    return pointerVariable.substring(2, pointerVariable.indexOf(','));
+    return pointerVariable.substring("__content_of__".length(), pointerVariable.indexOf("__at__"));
   }
 
   /** Returns the pointer variable name corresponding to a given IdExpression */
@@ -907,7 +907,7 @@ public class CtoFormulaConverter {
    * Returns whether the given variable name is a pointer variable name.
    */
   private static boolean isPointerVariable(String variableName) {
-    return variableName.matches("\\*<.*>");
+    return variableName.matches("\\Q__content_of__\\E.*\\Q__end\\E");
   }
 
   private boolean isMemoryLocation(IASTNode exp) {
