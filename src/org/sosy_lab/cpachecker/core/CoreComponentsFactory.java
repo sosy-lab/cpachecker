@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.mcmillan.McMillanAlgorithm;
+import org.sosy_lab.cpachecker.mcmillan.McMillanAlgorithmWithWaitlist;
 
 /**
  * Factory class for the three core components of CPAchecker:
@@ -81,6 +82,9 @@ class CoreComponentsFactory {
       description="Use McMillans algorithm for lazy interpolation")
   private boolean useMcMillan = false;
 
+  @Option(description="Use alternate implementation of McMillans algorithm for lazy interpolation")
+  private boolean useMcMillanWithWaitlist = false;
+
   @Option(name="restartAfterUnknown",
       description="restart the algorithm using a different CPA after unknown result")
   private boolean useRestartingAlgorithm = false;
@@ -113,7 +117,16 @@ class CoreComponentsFactory {
       algorithm = new RestartAlgorithm(config, logger, filename, cfa);
 
     } else if (useMcMillan) {
+      if (useMcMillanWithWaitlist) {
+        throw new InvalidConfigurationException("Cannot use both implementations of McMillan's algorithm");
+      }
       algorithm = new McMillanAlgorithm(config, logger, cpa);
+
+    } else if (useMcMillanWithWaitlist) {
+      if (useMcMillan) {
+        throw new InvalidConfigurationException("Cannot use both implementations of McMillan's algorithm");
+      }
+      algorithm = new McMillanAlgorithmWithWaitlist(config, logger, cpa);
 
     } else {
       algorithm = new CPAAlgorithm(cpa, logger);
