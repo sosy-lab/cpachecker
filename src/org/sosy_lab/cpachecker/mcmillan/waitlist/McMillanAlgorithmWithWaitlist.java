@@ -30,10 +30,8 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -58,7 +56,6 @@ import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
@@ -89,7 +86,6 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
 
 
   private final Timer expandTime = new Timer();
-  private final Timer forceCoverTime = new Timer();
   private final Timer refinementTime = new Timer();
   private final Timer coverTime = new Timer();
   private final Timer closeTime = new Timer();
@@ -97,7 +93,6 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
   private int implicationChecks = 0;
   private int trivialImplicationChecks = 0;
   private int cachedImplicationChecks = 0;
-  private int successfulForcedCovering = 0;
 
   private class Stats implements Statistics {
 
@@ -109,7 +104,6 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
       out.println("Time for expand:                    " + expandTime);
-      out.println("  Time for forced covering:         " + forceCoverTime);
       out.println("Time for refinement:                " + refinementTime);
       out.println("Time for close:                     " + closeTime);
       out.println("  Time for cover:                   " + coverTime);
@@ -119,8 +113,6 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
       out.println("  trivial:                          " + trivialImplicationChecks);
       out.println("  cached:                           " + cachedImplicationChecks);
       out.println("Number of refinements:              " + refinementTime.getNumberOfIntervals());
-      out.println("Number of forced coverings:         " + forceCoverTime.getNumberOfIntervals());
-      out.println("  Successful:                       " + successfulForcedCovering);
     }
   }
 
@@ -301,91 +293,6 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     });
   }
 
-  /**
-   * Preconditions:
-   * v may be covered by w ({@link #mayCover(Vertex, Vertex, Precision)}).
-   * v is not coverable by w in its current state.
-   *
-   * @param v
-   * @param w
-   * @return
-   * @throws CPAException
-   * @throws InterruptedException
-   */
-  private boolean forceCover(Vertex v, Vertex w, Precision prec, ReachedSet reached) throws CPAException, InterruptedException {
-    List<Vertex> path = new ArrayList<Vertex>();
-    Vertex x = v;
-    {
-      Set<Vertex> parentsOfW = new HashSet<Vertex>(getPathFromRootTo(w));
-
-      while (!parentsOfW.contains(x)) {
-        path.add(x);
-
-        assert x.hasParent();
-        x = x.getParent();
-      }
-    }
-    path = Lists.reverse(path);
-
-    // x is common ancestor
-    // path is ]x; v] (path from x to v, excluding x, including v)
-
-    List<Formula> formulas = new ArrayList<Formula>(path.size()+2);
-    {
-      PathFormula pf = pfmgr.makeEmptyPathFormula();
-      formulas.add(fmgr.instantiate(x.getStateFormula(), SSAMap.emptySSAMap().withDefault(1)));
-
-      for (Vertex w1 : path) {
-        pf = pfmgr.makeAnd(pf, w1.getIncomingEdge());
-        formulas.add(pf.getFormula());
-        pf = pfmgr.makeEmptyPathFormula(pf); // reset formula, keep SSAMap
-      }
-
-      formulas.add(fmgr.makeNot(fmgr.instantiate(w.getStateFormula(), pf.getSsa().withDefault(1))));
-    }
-
-    path.add(0, x); // now path is [x; v] (including x and v)
-    assert formulas.size() == path.size() + 1;
-
-    CounterexampleTraceInfo<Formula> interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARTElement>emptySet());
-
-    if (!interpolantInfo.isSpurious()) {
-      logger.log(Level.FINER, "Forced covering unsuccessful.");
-      return false; // forced covering not possible
-    }
-
-    successfulForcedCovering++;
-    logger.log(Level.FINER, "Forced covering successful.");
-
-
-    List<Formula> interpolants = interpolantInfo.getPredicatesForRefinement();
-    assert interpolants.size() == formulas.size() - 1;
-    assert interpolants.size() ==  path.size();
-
-    List<Vertex> changedElements = new ArrayList<Vertex>();
-
-    for (Pair<Formula, Vertex> interpolationPoint : Pair.zipList(interpolants, path)) {
-      Formula itp = interpolationPoint.getFirst();
-      Vertex p = interpolationPoint.getSecond();
-
-      if (itp.isTrue()) {
-        continue;
-      }
-
-      Formula stateFormula = p.getStateFormula();
-      if (!implies(stateFormula, itp)) {
-        p.setStateFormula(fmgr.makeAnd(stateFormula, itp));
-        removeCoverageOf(p, reached);
-        changedElements.add(p);
-      }
-    }
-
-    boolean covered = cover(v, w, prec, reached);
-    assert covered;
-
-    return true;
-  }
-
   private boolean close(Vertex v, ReachedSet reached) throws CPAException {
     closeTime.start();
     try {
@@ -431,23 +338,6 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
       assert v.getStateFormula().isFalse();
       reached.remove(v);
       return true; // no need to expand further
-    }
-
-    forceCoverTime.start();
-    try {
-      // TODO: don't force cover nodes at sink nodes
-      Precision prec = reached.getPrecision(v);
-      for (AbstractElement ae : reached.getReached(v)) {
-        Vertex w = (Vertex)ae;
-        if (mayCover(v, w, prec)) {
-          if (forceCover(v, w, prec, reached)) {
-            assert v.isCovered();
-            return true; // no need to expand
-          }
-        }
-      }
-    } finally {
-      forceCoverTime.stop();
     }
 
     expand(v, reached);
