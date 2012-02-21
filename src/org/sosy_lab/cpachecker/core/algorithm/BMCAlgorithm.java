@@ -384,7 +384,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.INFO, "Starting assertions check...");
 
       stats.assertionsCheck.start();
-      boolean sound = prover.isUnsat(assertions);
+      prover.push(assertions);
+      boolean sound = prover.isUnsat();
+      prover.pop();
       stats.assertionsCheck.stop();
 
       logger.log(Level.FINER, "Soundness after assertion checks:", sound);
@@ -547,7 +549,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // Create (A & B)
       PathFormula pathFormulaAB = extractElementByType(lastcutPointState, PredicateAbstractElement.class).getPathFormula();
       Formula formulaAB = fmgr.makeAnd(invariants, pathFormulaAB.getFormula());
-      assert (!prover.isUnsat(formulaAB));
 
       // Create C
       PathFormula empty = pmgr.makeEmptyPathFormula(pathFormulaAB); // empty has correct SSAMap
@@ -570,7 +571,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     logger.log(Level.INFO, "Starting induction check...");
 
     stats.inductionCheck.start();
-    boolean sound = prover.isUnsat(inductions);
+    prover.push(inductions);
+    boolean sound = prover.isUnsat();
+    prover.pop();
     stats.inductionCheck.stop();
 
     if (!sound && logger.wouldBeLogged(Level.ALL)) {

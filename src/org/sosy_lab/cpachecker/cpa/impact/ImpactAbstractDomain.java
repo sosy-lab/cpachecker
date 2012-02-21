@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.impact;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.impact.ImpactAbstractElement.NonAbstractionElement;
-import org.sosy_lab.cpachecker.mcmillan.waitlist.Solver;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 
 class ImpactAbstractDomain implements AbstractDomain {
 

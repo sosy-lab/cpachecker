@@ -32,7 +32,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -59,6 +58,7 @@ import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
@@ -71,7 +71,6 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -82,10 +81,8 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
   private final ExtendedFormulaManager fmgr;
   private final PathFormulaManager pfmgr;
   private final TheoremProver prover;
+  private final Solver solver;
   private final InterpolationManager<Formula> imgr;
-
-  private final Map<Formula, Boolean> implicationCache = Maps.newHashMap();
-
 
   private final Timer expandTime = new Timer();
   private final Timer forceCoverTime = new Timer();
@@ -134,7 +131,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
     prover = new MathsatTheoremProver(mfmgr);
     imgr = new UninstantiatingInterpolationManager(fmgr, pfmgr, prover, config, logger);
 
-    prover.init();
+    solver = new Solver(fmgr, prover);
   }
 
   public AbstractElement getInitialElement(CFANode location) {
@@ -218,7 +215,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
         }
 
         Formula stateFormula = w.getStateFormula();
-        if (!implies(stateFormula, itp)) {
+        if (!solver.implies(stateFormula, itp)) {
           w.setStateFormula(fmgr.makeAnd(stateFormula, itp));
           w.cleanCoverage();
           changedElements.add(w);
@@ -256,7 +253,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
       assert !v.isCovered();
 
       if (mayCover(v, w, prec)
-          && implies(v.getStateFormula(), w.getStateFormula())) {
+          && solver.implies(v.getStateFormula(), w.getStateFormula())) {
 
         for (Vertex y : v.getSubtree()) {
           y.cleanCoverage();
@@ -344,7 +341,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       Formula stateFormula = p.getStateFormula();
-      if (!implies(stateFormula, itp)) {
+      if (!solver.implies(stateFormula, itp)) {
         p.setStateFormula(fmgr.makeAnd(stateFormula, itp));
         p.cleanCoverage();
         changedElements.add(p);
@@ -482,42 +479,6 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
     path.add(w); // root element
 
     return Lists.reverse(path);
-  }
-
-  private boolean implies(Formula a, Formula b) {
-    implicationChecks++;
-
-    if (a.isFalse() || b.isTrue()) {
-      trivialImplicationChecks++;
-      return true;
-    }
-    if (a.isTrue() || b.isFalse()) {
-      // "true" implies only "true", but b is not "true"
-      // "false" is implied only by "false", but a is not "false"
-      trivialImplicationChecks++;
-      return false;
-    }
-    if (a.equals(b)) {
-      trivialImplicationChecks++;
-      return true;
-    }
-
-    Formula f = fmgr.makeNot(fmgr.makeImplication(a, b));
-
-    Boolean result = implicationCache.get(f);
-    if (result != null) {
-      cachedImplicationChecks++;
-      return result;
-    }
-
-    solverTime.start();
-    try {
-      result = prover.isUnsat(f);
-    } finally {
-      solverTime.stop();
-    }
-    implicationCache.put(f, result);
-    return result;
   }
 
   @Override

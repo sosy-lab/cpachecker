@@ -21,18 +21,25 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.mcmillan.waitlist;
+package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.Map;
 
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.collect.Maps;
 
-
+/**
+ * Alternative to {@link TheoremProver} which provides not basic calls to the
+ * solver but more high-level queries.
+ *
+ * All methods of this class may only be called when the backing prover is in
+ * its default state (i.e., a call to {@link TheoremProver#init()} would not fail.
+ * It is guaranteed that after using methods of this class, the solver is again
+ * in the same state.
+ */
 public class Solver {
 
   private final ExtendedFormulaManager fmgr;
@@ -40,16 +47,37 @@ public class Solver {
 
   private final Map<Formula, Boolean> implicationCache = Maps.newHashMap();
 
-  final Timer solverTime = new Timer();
-  int implicationChecks = 0;
-  int trivialImplicationChecks = 0;
-  int cachedImplicationChecks = 0;
+  // stats
+  public final Timer solverTime = new Timer();
+  public int implicationChecks = 0;
+  public int trivialImplicationChecks = 0;
+  public int cachedImplicationChecks = 0;
 
   public Solver(ExtendedFormulaManager pFmgr, TheoremProver pProver) {
     fmgr = pFmgr;
     prover = pProver;
   }
 
+  /**
+   * Checks whether a formula is unsat.
+   */
+  public boolean isUnsat(Formula f) {
+    prover.init();
+    solverTime.start();
+    try {
+      prover.push(f);
+      return prover.isUnsat();
+
+    } finally {
+      prover.reset();
+      solverTime.stop();
+    }
+  }
+
+  /**
+   * Checks whether a => b.
+   * The result is cached.
+   */
   public boolean implies(Formula a, Formula b) {
     implicationChecks++;
 
@@ -76,16 +104,9 @@ public class Solver {
       return result;
     }
 
-    solverTime.start();
-    prover.init();
-    try {
-      result = prover.isUnsat(f);
-    } finally {
-      prover.reset();
-      solverTime.stop();
-    }
+    result = isUnsat(f);
+
     implicationCache.put(f, result);
     return result;
   }
-
 }

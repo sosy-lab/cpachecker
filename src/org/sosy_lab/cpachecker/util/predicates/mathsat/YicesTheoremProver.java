@@ -374,14 +374,6 @@ public class YicesTheoremProver implements TheoremProver {
     }
 
     @Override
-    public boolean isUnsat(Formula f) {
-        push(f);
-        boolean res = yicesInconsistent();
-        pop();
-        return res;
-    }
-
-    @Override
     public void pop() {
         yicesCommand("(pop)");
         --curLevel;

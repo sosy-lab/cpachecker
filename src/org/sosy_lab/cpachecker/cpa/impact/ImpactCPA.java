@@ -41,9 +41,9 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockOperator;
-import org.sosy_lab.cpachecker.mcmillan.waitlist.Solver;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
@@ -83,7 +83,7 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
     abstractDomain = new ImpactAbstractDomain(solver);
     mergeOperator = new ImpactMergeOperator(logger, pfmgr);
     stopOperator = new StopSepOperator(abstractDomain);
-    transferRelation = new ImpactTransferRelation(logger, blk, fmgr, pfmgr, prover);
+    transferRelation = new ImpactTransferRelation(logger, blk, fmgr, pfmgr, solver);
   }
 
   LogManager getLogManager() {
