@@ -77,9 +77,11 @@ public class Solver {
     }
 
     solverTime.start();
+    prover.init();
     try {
       result = prover.isUnsat(f);
     } finally {
+      prover.reset();
       solverTime.stop();
     }
     implicationCache.put(f, result);

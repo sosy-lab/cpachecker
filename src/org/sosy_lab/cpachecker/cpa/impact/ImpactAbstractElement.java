@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.base.Preconditions;
 
-abstract class ImpactAbstractElement implements AbstractElement {
+public abstract class ImpactAbstractElement implements AbstractElement {
 
   private final PathFormula pathFormula;
 
@@ -55,12 +55,12 @@ abstract class ImpactAbstractElement implements AbstractElement {
     }
   }
 
-  static class AbstractionElement extends ImpactAbstractElement {
+  public static class AbstractionElement extends ImpactAbstractElement {
 
     private final PathFormula blockFormula;
     private Formula stateFormula;
 
-    public AbstractionElement(PathFormula pPathFormula, Formula pStateFormula, PathFormula pBlockFormula) {
+    AbstractionElement(PathFormula pPathFormula, Formula pStateFormula, PathFormula pBlockFormula) {
       super(pPathFormula);
 
       assert pPathFormula.getFormula().isTrue();

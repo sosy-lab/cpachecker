@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockOperator;
+import org.sosy_lab.cpachecker.mcmillan.waitlist.Solver;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -61,6 +62,7 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
   private final ExtendedFormulaManager fmgr;
   private final PathFormulaManager pfmgr;
   private final TheoremProver prover;
+  private final Solver solver;
 
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
@@ -76,8 +78,9 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
 
     pfmgr = new PathFormulaManagerImpl(fmgr, config, logger);
     prover = new MathsatTheoremProver(msatFmgr);
+    solver = new Solver(fmgr, prover);
 
-    abstractDomain = new ImpactAbstractDomain(fmgr, prover);
+    abstractDomain = new ImpactAbstractDomain(solver);
     mergeOperator = new ImpactMergeOperator(logger, pfmgr);
     stopOperator = new StopSepOperator(abstractDomain);
     transferRelation = new ImpactTransferRelation(logger, blk, fmgr, pfmgr, prover);
@@ -91,7 +94,7 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
     return config;
   }
 
-  ExtendedFormulaManager getFormulaManager() {
+  public ExtendedFormulaManager getFormulaManager() {
     return fmgr;
   }
 
@@ -99,8 +102,12 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
     return pfmgr;
   }
 
-  TheoremProver getTheoremProver() {
+  public TheoremProver getTheoremProver() {
     return prover;
+  }
+
+  public Solver getSolver() {
+    return solver;
   }
 
   @Override

@@ -50,10 +50,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.impact.ImpactAbstractElement;
+import org.sosy_lab.cpachecker.cpa.impact.ImpactCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.mcmillan.waitlist.cpa.McMillanAbstractElement;
-import org.sosy_lab.cpachecker.mcmillan.waitlist.cpa.McMillanCPA;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
@@ -113,12 +113,12 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     logger = pLogger;
     cpa = (ARTCPA)pCpa;
 
-    McMillanCPA mcmillanCpa = Iterables.getOnlyElement(Iterables.filter(CPAs.asIterable(pCpa), McMillanCPA.class));
+    ImpactCPA impactCpa = Iterables.getOnlyElement(Iterables.filter(CPAs.asIterable(pCpa), ImpactCPA.class));
 
-    fmgr = mcmillanCpa.getFormulaManager();
-    solver = mcmillanCpa.getSolver();
+    fmgr = impactCpa.getFormulaManager();
+    solver = impactCpa.getSolver();
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger));
-    imgr = new UninstantiatingInterpolationManager(fmgr, pfmgr, mcmillanCpa.getTheoremProver(), config, logger);
+    imgr = new UninstantiatingInterpolationManager(fmgr, pfmgr, impactCpa.getTheoremProver(), config, logger);
   }
 
   @Override
@@ -380,11 +380,11 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
   }
 
   private static Formula getStateFormula(ARTElement pARTElement) {
-    return AbstractElements.extractElementByType(pARTElement, McMillanAbstractElement.class).getStateFormula();
+    return AbstractElements.extractElementByType(pARTElement, ImpactAbstractElement.AbstractionElement.class).getStateFormula();
   }
 
   private static void setStateFormula(ARTElement pARTElement, Formula pFormula) {
-    AbstractElements.extractElementByType(pARTElement, McMillanAbstractElement.class).setStateFormula(pFormula);
+    AbstractElements.extractElementByType(pARTElement, ImpactAbstractElement.AbstractionElement.class).setStateFormula(pFormula);
   }
 
   /**
