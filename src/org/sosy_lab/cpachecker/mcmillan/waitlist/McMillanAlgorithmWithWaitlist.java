@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -52,24 +51,23 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.mcmillan.waitlist.cpa.McMillanAbstractElement;
+import org.sosy_lab.cpachecker.mcmillan.waitlist.cpa.McMillanCPA;
+import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.UninstantiatingInterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvider {
 
@@ -79,20 +77,13 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
 
   private final ExtendedFormulaManager fmgr;
   private final PathFormulaManager pfmgr;
-  private final TheoremProver prover;
+  private final Solver solver;
   private final InterpolationManager<Formula> imgr;
-
-  private final Map<Formula, Boolean> implicationCache = Maps.newHashMap();
-
 
   private final Timer expandTime = new Timer();
   private final Timer refinementTime = new Timer();
   private final Timer coverTime = new Timer();
   private final Timer closeTime = new Timer();
-  private final Timer solverTime = new Timer();
-  private int implicationChecks = 0;
-  private int trivialImplicationChecks = 0;
-  private int cachedImplicationChecks = 0;
 
   private class Stats implements Statistics {
 
@@ -107,11 +98,11 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
       out.println("Time for refinement:                " + refinementTime);
       out.println("Time for close:                     " + closeTime);
       out.println("  Time for cover:                   " + coverTime);
-      out.println("Time spent by solver for reasoning: " + solverTime);
+      out.println("Time spent by solver for reasoning: " + solver.solverTime);
       out.println();
-      out.println("Number of implication checks:       " + implicationChecks);
-      out.println("  trivial:                          " + trivialImplicationChecks);
-      out.println("  cached:                           " + cachedImplicationChecks);
+      out.println("Number of implication checks:       " + solver.implicationChecks);
+      out.println("  trivial:                          " + solver.trivialImplicationChecks);
+      out.println("  cached:                           " + solver.cachedImplicationChecks);
       out.println("Number of refinements:              " + refinementTime.getNumberOfIntervals());
     }
   }
@@ -121,17 +112,16 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     logger = pLogger;
     cpa = pCpa;
 
-    MathsatFormulaManager mfmgr = MathsatFactory.createFormulaManager(config, logger);
-    fmgr = new ExtendedFormulaManager(mfmgr, config, logger);
-    pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger));
-    prover = new MathsatTheoremProver(mfmgr);
-    imgr = new UninstantiatingInterpolationManager(fmgr, pfmgr, prover, config, logger);
+    McMillanCPA mcmillanCpa = Iterables.getOnlyElement(Iterables.filter(CPAs.asIterable(pCpa), McMillanCPA.class));
 
-    prover.init();
+    fmgr = mcmillanCpa.getFormulaManager();
+    solver = mcmillanCpa.getSolver();
+    pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger));
+    imgr = new UninstantiatingInterpolationManager(fmgr, pfmgr, mcmillanCpa.getTheoremProver(), config, logger);
   }
 
   public AbstractElement getInitialElement(CFANode location) {
-    return new Vertex(fmgr.makeTrue(), cpa.getInitialElement(location));
+    return new Vertex(cpa.getInitialElement(location));
   }
 
   public Precision getInitialPrecision(CFANode location) {
@@ -163,7 +153,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
         }
         assert successors.size() == 1;
 
-        Vertex w = new Vertex(v, fmgr.makeTrue(), edge, Iterables.getOnlyElement(successors));
+        Vertex w = new Vertex(v, edge, Iterables.getOnlyElement(successors));
         reached.add(w, precision);
       }
     } finally {
@@ -174,7 +164,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
   private List<Vertex> refine(final Vertex v, ReachedSet reached) throws CPAException, InterruptedException {
     refinementTime.start();
     try {
-      assert (v.isTarget() && !v.getStateFormula().isFalse());
+      assert (v.isTarget() && !getStateFormula(v).isFalse());
 
       logger.log(Level.FINER, "Refinement on " + v);
 
@@ -207,17 +197,17 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
           continue;
         }
 
-        Formula stateFormula = w.getStateFormula();
-        if (!implies(stateFormula, itp)) {
-          w.setStateFormula(fmgr.makeAnd(stateFormula, itp));
+        Formula stateFormula = getStateFormula(w);
+        if (!solver.implies(stateFormula, itp)) {
+          setStateFormula(w, fmgr.makeAnd(stateFormula, itp));
           removeCoverageOf(w, reached);
           changedElements.add(w);
         }
       }
 
       // itp of last element is always false, set it
-      if (!v.getStateFormula().isFalse()) {
-        v.setStateFormula(fmgr.makeFalse());
+      if (!getStateFormula(v).isFalse()) {
+        setStateFormula(v, fmgr.makeFalse());
         removeCoverageOf(v, reached);
         changedElements.add(v);
       }
@@ -232,7 +222,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
    * Check if a vertex v may potentially be covered by another vertex w.
    * It checks everything except their state formulas.
    */
-  private boolean mayCover(Vertex v, Vertex w, Precision prec) throws CPAException {
+  private boolean covers(Vertex v, Vertex w, Precision prec) throws CPAException {
     return (v != w)
         && !w.isCovered() // ???
         && w.isOlderThan(v)
@@ -245,8 +235,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     try {
       assert !v.isCovered();
 
-      if (mayCover(v, w, prec)
-          && implies(v.getStateFormula(), w.getStateFormula())) {
+      if (covers(v, w, prec)) {
 
         for (Vertex childOfV : v.getSubtree()) {
           // each child of v is now covered
@@ -288,10 +277,11 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
       @Override
       public boolean apply(Vertex pInput) {
         // TODO don't count nodes at sink nodes
-        return pInput.getChildren().isEmpty() && !pInput.getStateFormula().isFalse();
+        return pInput.getChildren().isEmpty() && !getStateFormula(pInput).isFalse();
       }
     });
   }
+
 
   private boolean close(Vertex v, ReachedSet reached) throws CPAException {
     closeTime.start();
@@ -335,14 +325,14 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
         }
       }
 
-      assert v.getStateFormula().isFalse();
+      assert getStateFormula(v).isFalse();
       reached.remove(v);
       return true; // no need to expand further
     }
 
     expand(v, reached);
     for (Vertex w : v.getChildren()) {
-      if (!w.getStateFormula().isFalse()) {
+      if (!McMillanAlgorithmWithWaitlist.getStateFormula(w).isFalse()) {
         dfs(w, reached);
       }
     }
@@ -396,40 +386,12 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     return Lists.reverse(path);
   }
 
-  private boolean implies(Formula a, Formula b) {
-    implicationChecks++;
+  static Formula getStateFormula(Vertex pVertex) {
+    return AbstractElements.extractElementByType(pVertex, McMillanAbstractElement.class).getStateFormula();
+  }
 
-    if (a.isFalse() || b.isTrue()) {
-      trivialImplicationChecks++;
-      return true;
-    }
-    if (a.isTrue() || b.isFalse()) {
-      // "true" implies only "true", but b is not "true"
-      // "false" is implied only by "false", but a is not "false"
-      trivialImplicationChecks++;
-      return false;
-    }
-    if (a.equals(b)) {
-      trivialImplicationChecks++;
-      return true;
-    }
-
-    Formula f = fmgr.makeNot(fmgr.makeImplication(a, b));
-
-    Boolean result = implicationCache.get(f);
-    if (result != null) {
-      cachedImplicationChecks++;
-      return result;
-    }
-
-    solverTime.start();
-    try {
-      result = prover.isUnsat(f);
-    } finally {
-      solverTime.stop();
-    }
-    implicationCache.put(f, result);
-    return result;
+  static void setStateFormula(Vertex pVertex, Formula pFormula) {
+    AbstractElements.extractElementByType(pVertex, McMillanAbstractElement.class).setStateFormula(pFormula);
   }
 
   @Override

@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.util.AbstractElements;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 
 class Vertex implements AbstractElement, Targetable, AbstractWrapperElement {
@@ -48,31 +47,22 @@ class Vertex implements AbstractElement, Targetable, AbstractWrapperElement {
 
   private final AbstractElement wrappedElement;
 
-  private Formula stateFormula;
   private final CFAEdge edge; // the edge to the predecessor
 
   private Vertex coveredBy = null;
   private List<Vertex> coveredNodes = new ArrayList<Vertex>(0);
 
-  public Vertex(Formula pStateFormula, AbstractElement pElement) {
+  public Vertex(AbstractElement pElement) {
     parent = null;
     wrappedElement = checkNotNull(pElement);
-    assert pStateFormula.isTrue();
-    stateFormula = pStateFormula;
     edge = null;
   }
 
-  public Vertex(Vertex pParent, Formula pStateFormula, CFAEdge pEdge, AbstractElement pElement) {
+  public Vertex(Vertex pParent, CFAEdge pEdge, AbstractElement pElement) {
     parent = checkNotNull(pParent);
     parent.children.add(this);
-    wrappedElement = pElement;
-    stateFormula = checkNotNull(pStateFormula);
+    wrappedElement = checkNotNull(pElement);
     edge = checkNotNull(pEdge);
-  }
-
-
-  public Formula getStateFormula() {
-    return stateFormula;
   }
 
   public AbstractElement getWrappedElement() {
@@ -109,10 +99,6 @@ class Vertex implements AbstractElement, Targetable, AbstractWrapperElement {
     }
 
     return result;
-  }
-
-  public void setStateFormula(Formula pStateFormula) {
-    stateFormula = checkNotNull(pStateFormula);
   }
 
   public Vertex getParent() {
@@ -190,6 +176,6 @@ class Vertex implements AbstractElement, Targetable, AbstractWrapperElement {
 
   @Override
   public String toString() {
-    return "Id: " + id + " " + stateFormula.toString() + "\n" + wrappedElement;
+    return "Id: " + id + "\n" + wrappedElement;
   }
 }
