@@ -150,7 +150,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   }
 
   @Override
-  public ARTElement getInitialElement (CFANode pNode) {
+  public AbstractElement getInitialElement (CFANode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ART
     return new ARTElement(getWrappedCpa().getInitialElement(pNode), null);
   }
