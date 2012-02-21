@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -122,7 +121,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   }
 
   @Override
-  public TransferRelation getTransferRelation ()
+  public ARTTransferRelation getTransferRelation ()
   {
     return transferRelation;
   }
@@ -150,7 +149,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   }
 
   @Override
-  public AbstractElement getInitialElement (CFANode pNode) {
+  public ARTElement getInitialElement (CFANode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ART
     return new ARTElement(getWrappedCpa().getInitialElement(pNode), null);
   }

@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.mcmillan.McMillanAlgorithm;
-import org.sosy_lab.cpachecker.mcmillan.waitlist.McMillanAlgorithmWithWaitlist;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
@@ -177,9 +176,6 @@ public class CPAchecker {
 
         if (algorithm instanceof McMillanAlgorithm) {
           McMillanAlgorithm mcmillan = (McMillanAlgorithm)algorithm;
-          reached.add(mcmillan.getInitialElement(cfa.getMainFunction()), mcmillan.getInitialPrecision(cfa.getMainFunction()));
-        } else if (algorithm instanceof McMillanAlgorithmWithWaitlist) {
-          McMillanAlgorithmWithWaitlist mcmillan = (McMillanAlgorithmWithWaitlist)algorithm;
           reached.add(mcmillan.getInitialElement(cfa.getMainFunction()), mcmillan.getInitialPrecision(cfa.getMainFunction()));
         } else {
           initializeReachedSet(reached, cpa, cfa.getMainFunction());

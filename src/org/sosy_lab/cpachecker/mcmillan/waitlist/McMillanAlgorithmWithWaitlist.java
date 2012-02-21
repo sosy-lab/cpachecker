@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -73,7 +74,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
 
   private final LogManager logger;
 
-  private final ConfigurableProgramAnalysis cpa;
+  private final ARTCPA cpa;
 
   private final ExtendedFormulaManager fmgr;
   private final PathFormulaManager pfmgr;
@@ -110,7 +111,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
 
   public McMillanAlgorithmWithWaitlist(Configuration config, LogManager pLogger, ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, CPAException {
     logger = pLogger;
-    cpa = pCpa;
+    cpa = (ARTCPA)pCpa;
 
     McMillanCPA mcmillanCpa = Iterables.getOnlyElement(Iterables.filter(CPAs.asIterable(pCpa), McMillanCPA.class));
 
@@ -120,40 +121,31 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     imgr = new UninstantiatingInterpolationManager(fmgr, pfmgr, mcmillanCpa.getTheoremProver(), config, logger);
   }
 
-  public AbstractElement getInitialElement(CFANode location) {
-    return new Vertex(cpa.getInitialElement(location));
-  }
-
-  public Precision getInitialPrecision(CFANode location) {
-    return cpa.getInitialPrecision(location);
-  }
-
   @Override
   public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     unwind(pReachedSet);
     return true;
   }
 
-  private void expand(Vertex v, ReachedSet reached) throws CPAException, InterruptedException {
+  private void expand(ARTElement v, ReachedSet reached) throws CPAException, InterruptedException {
     expandTime.start();
     try {
       assert v.getChildren().isEmpty() && !v.isCovered();
       reached.removeOnlyFromWaitlist(v);
 
-      AbstractElement predecessor = v.getWrappedElement();
       Precision precision = reached.getPrecision(v);
 
       CFANode loc = extractLocation(v);
       for (CFAEdge edge : leavingEdges(loc)) {
 
-        Collection<? extends AbstractElement> successors = cpa.getTransferRelation().getAbstractSuccessors(predecessor, precision, edge);
+        Collection<ARTElement> successors = cpa.getTransferRelation().getAbstractSuccessors(v, precision, edge);
         if (successors.isEmpty()) {
           // edge not feasible
           continue;
         }
         assert successors.size() == 1;
 
-        Vertex w = new Vertex(v, edge, Iterables.getOnlyElement(successors));
+        ARTElement w = Iterables.getOnlyElement(successors);
         reached.add(w, precision);
       }
     } finally {
@@ -161,7 +153,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     }
   }
 
-  private List<Vertex> refine(final Vertex v, ReachedSet reached) throws CPAException, InterruptedException {
+  private List<ARTElement> refine(final ARTElement v, ReachedSet reached) throws CPAException, InterruptedException {
     refinementTime.start();
     try {
       assert (v.isTarget() && !getStateFormula(v).isFalse());
@@ -169,7 +161,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
       logger.log(Level.FINER, "Refinement on " + v);
 
       // build list of path elements in bottom-to-top order and reverse
-      List<Vertex> path = getPathFromRootTo(v);
+      List<ARTElement> path = getPathFromRootTo(v);
       path = path.subList(1, path.size()); // skip root element, it has no formula
 
       // build list of formulas for edges
@@ -187,11 +179,11 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
       path = path.subList(0, path.size()-1); // skip last element, itp is always false there
       assert cex.getPredicatesForRefinement().size() ==  path.size();
 
-      List<Vertex> changedElements = new ArrayList<Vertex>();
+      List<ARTElement> changedElements = new ArrayList<ARTElement>();
 
-      for (Pair<Formula, Vertex> interpolationPoint : Pair.zipList(cex.getPredicatesForRefinement(), path)) {
+      for (Pair<Formula, ARTElement> interpolationPoint : Pair.zipList(cex.getPredicatesForRefinement(), path)) {
         Formula itp = interpolationPoint.getFirst();
-        Vertex w = interpolationPoint.getSecond();
+        ARTElement w = interpolationPoint.getSecond();
 
         if (itp.isTrue()) {
           continue;
@@ -219,32 +211,31 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
   }
 
   /**
-   * Check if a vertex v may potentially be covered by another vertex w.
+   * Check if a ARTElement v may potentially be covered by another ARTElement w.
    * It checks everything except their state formulas.
    */
-  private boolean covers(Vertex v, Vertex w, Precision prec) throws CPAException {
+  private boolean covers(ARTElement v, ARTElement w, Precision prec) throws CPAException {
     return (v != w)
         && !w.isCovered() // ???
         && w.isOlderThan(v)
-        && !v.isAncestorOf(w)
-        && cpa.getStopOperator().stop(v.getWrappedElement(), Collections.singleton(w.getWrappedElement()), prec);
+        && !isAncestorOf(v, w)
+        && cpa.getStopOperator().stop(v, Collections.<AbstractElement>singleton(w), prec);
   }
 
-  private boolean cover(Vertex v, Vertex w, Precision prec, ReachedSet reached) throws CPAException {
+  private boolean cover(ARTElement v, ARTElement w, Precision prec, ReachedSet reached) throws CPAException {
     coverTime.start();
     try {
       assert !v.isCovered();
 
       if (covers(v, w, prec)) {
 
-        for (Vertex childOfV : v.getSubtree()) {
+        for (ARTElement childOfV : v.getSubtree()) {
           // each child of v is now covered
           reached.removeOnlyFromWaitlist(childOfV);
 
           // each child of v now doesn't cover anything anymore
           removeCoverageOf(childOfV, reached);
         }
-        v.setCoveredBy(w);
 
         return true;
       }
@@ -260,22 +251,22 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
    * any other node anymore.
    * Also adds any now uncovered lead nodes to the waitlist.
    */
-  private static void removeCoverageOf(Vertex v, ReachedSet reached) {
-    for (Vertex coveredByChildOfV : v.cleanCoverage()) {
-      for (Vertex leaf : findLeafChildrenOf(coveredByChildOfV)) {
+  private static void removeCoverageOf(ARTElement v, ReachedSet reached) {
+    for (ARTElement coveredByChildOfV : v.clearCoverage()) {
+      for (ARTElement leaf : findLeafChildrenOf(coveredByChildOfV)) {
         reached.reAddToWaitlist(leaf);
       }
     }
   }
 
-  private static Iterable<Vertex> findLeafChildrenOf(Vertex v) {
+  private static Iterable<ARTElement> findLeafChildrenOf(ARTElement v) {
     return filterLeafs(v.getSubtree());
   }
 
-  private static Iterable<Vertex> filterLeafs(Iterable<Vertex> vertices) {
-    return Iterables.filter(vertices, new Predicate<Vertex>() {
+  private static Iterable<ARTElement> filterLeafs(Iterable<ARTElement> vertices) {
+    return Iterables.filter(vertices, new Predicate<ARTElement>() {
       @Override
-      public boolean apply(Vertex pInput) {
+      public boolean apply(ARTElement pInput) {
         // TODO don't count nodes at sink nodes
         return pInput.getChildren().isEmpty() && !getStateFormula(pInput).isFalse();
       }
@@ -283,7 +274,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
   }
 
 
-  private boolean close(Vertex v, ReachedSet reached) throws CPAException {
+  private boolean close(ARTElement v, ReachedSet reached) throws CPAException {
     closeTime.start();
     try {
       if (v.isCovered()) {
@@ -292,7 +283,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
 
       Precision prec = reached.getPrecision(v);
       for (AbstractElement ae : reached.getReached(v)) {
-        Vertex w = (Vertex)ae;
+        ARTElement w = (ARTElement)ae;
 
         if (cover(v, w, prec, reached)) {
           return true; // v is now covered
@@ -306,20 +297,20 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     }
   }
 
-  private boolean dfs(Vertex v, ReachedSet reached) throws CPAException, InterruptedException {
+  private boolean dfs(ARTElement v, ReachedSet reached) throws CPAException, InterruptedException {
     if (close(v, reached)) {
       return true; // no need to expand
     }
 
     if (v.isTarget()) {
-      List<Vertex> changedElements = refine(v, reached);
+      List<ARTElement> changedElements = refine(v, reached);
       if (changedElements.isEmpty()) {
         return false; // real counterexample
       }
 
       // optimization: instead of closing all ancestors of v,
       // close only those that were strengthened during refine
-      for (Vertex w : changedElements) {
+      for (ARTElement w : changedElements) {
         if (close(w, reached)) {
           break; // all further elements are covered anyway
         }
@@ -331,7 +322,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     }
 
     expand(v, reached);
-    for (Vertex w : v.getChildren()) {
+    for (ARTElement w : v.getChildren()) {
       if (!McMillanAlgorithmWithWaitlist.getStateFormula(w).isFalse()) {
         dfs(w, reached);
       }
@@ -344,14 +335,14 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
 
     outer:
     while (reached.hasWaitingElement()) {
-      Vertex v = (Vertex)reached.popFromWaitlist();
+      ARTElement v = (ARTElement)reached.popFromWaitlist();
       assert v.getChildren().isEmpty();
       assert !v.isCovered();
 
       // close parents of v
-      List<Vertex> path = getPathFromRootTo(v);
+      List<ARTElement> path = getPathFromRootTo(v);
       path = path.subList(0, path.size()-1); // skip v itself
-      for (Vertex w : path) {
+      for (ARTElement w : path) {
         if (close(w, reached)) {
           continue outer; // v is now covered
         }
@@ -364,34 +355,53 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     }
   }
 
-  private void addPathFormulasToList(List<Vertex> path, List<Formula> pathFormulas) throws CPATransferException {
+  private void addPathFormulasToList(List<ARTElement> path, List<Formula> pathFormulas) throws CPATransferException {
     PathFormula pf = pfmgr.makeEmptyPathFormula();
-    for (Vertex w : path) {
-      pf = pfmgr.makeAnd(pf, w.getIncomingEdge());
+    for (ARTElement w : path) {
+      ARTElement parent = Iterables.getOnlyElement(w.getParents());
+
+      pf = pfmgr.makeAnd(pf, parent.getEdgeToChild(w));
       pathFormulas.add(pf.getFormula());
       pf = pfmgr.makeEmptyPathFormula(pf); // reset formula, keep SSAMap
     }
   }
 
-  private List<Vertex> getPathFromRootTo(Vertex v) {
-    List<Vertex> path = new ArrayList<Vertex>();
+  private static List<ARTElement> getPathFromRootTo(ARTElement v) {
+    List<ARTElement> path = new ArrayList<ARTElement>();
 
-    Vertex w = v;
-    while (w.hasParent()) {
+    ARTElement w = v;
+    while (!w.getParents().isEmpty()) {
       path.add(w);
-      w = w.getParent();
+      w = Iterables.getOnlyElement(w.getParents());
     }
     path.add(w); // root element
 
     return Lists.reverse(path);
   }
 
-  static Formula getStateFormula(Vertex pVertex) {
-    return AbstractElements.extractElementByType(pVertex, McMillanAbstractElement.class).getStateFormula();
+  private static Formula getStateFormula(ARTElement pARTElement) {
+    return AbstractElements.extractElementByType(pARTElement, McMillanAbstractElement.class).getStateFormula();
   }
 
-  static void setStateFormula(Vertex pVertex, Formula pFormula) {
-    AbstractElements.extractElementByType(pVertex, McMillanAbstractElement.class).setStateFormula(pFormula);
+  private static void setStateFormula(ARTElement pARTElement, Formula pFormula) {
+    AbstractElements.extractElementByType(pARTElement, McMillanAbstractElement.class).setStateFormula(pFormula);
+  }
+
+  /**
+   * Checks if the first element is ancestor of the second element.
+   */
+  private static boolean isAncestorOf(ARTElement ancestor, ARTElement v) {
+    if (ancestor == v) {
+      return true;
+    }
+
+    while (!v.getParents().isEmpty()) {
+      v = Iterables.getOnlyElement(v.getParents());
+      if (ancestor == v) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override

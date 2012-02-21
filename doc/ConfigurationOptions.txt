@@ -120,6 +120,12 @@ analysis.useFeatureVarsRestriction = false
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
+# Use McMillans algorithm for lazy interpolation
+analysis.useMcMillan = false
+
+# Use alternate implementation of McMillans algorithm for lazy interpolation
+analysis.useMcMillanWithWaitlist = false
+
 # use a proof check algorithm to validate a previously generated proof
 analysis.useProofCheckAlgorithm = false
 
