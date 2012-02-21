@@ -56,13 +56,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.UninstantiatingInterpolationManager;
@@ -78,7 +74,6 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
   private final ARTCPA cpa;
 
   private final ExtendedFormulaManager fmgr;
-  private final PathFormulaManager pfmgr;
   private final Solver solver;
   private final InterpolationManager<Formula> imgr;
 
@@ -118,8 +113,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
 
     fmgr = impactCpa.getFormulaManager();
     solver = impactCpa.getSolver();
-    pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger));
-    imgr = new UninstantiatingInterpolationManager(fmgr, pfmgr, impactCpa.getTheoremProver(), config, logger);
+    imgr = new UninstantiatingInterpolationManager(fmgr, impactCpa.getPathFormulaManager(), impactCpa.getTheoremProver(), config, logger);
   }
 
   @Override
@@ -357,13 +351,9 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
   }
 
   private void addPathFormulasToList(List<ARTElement> path, List<Formula> pathFormulas) throws CPATransferException {
-    PathFormula pf = pfmgr.makeEmptyPathFormula();
     for (ARTElement w : path) {
-      ARTElement parent = Iterables.getOnlyElement(w.getParents());
-
-      pf = pfmgr.makeAnd(pf, parent.getEdgeToChild(w));
-      pathFormulas.add(pf.getFormula());
-      pf = pfmgr.makeEmptyPathFormula(pf); // reset formula, keep SSAMap
+      ImpactAbstractElement.AbstractionElement element = AbstractElements.extractElementByType(w, ImpactAbstractElement.AbstractionElement.class);
+      pathFormulas.add(element.getBlockFormula().getFormula());
     }
   }
 

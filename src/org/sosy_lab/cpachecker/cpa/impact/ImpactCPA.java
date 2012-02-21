@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockOperator;
+import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -76,7 +77,7 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
     MathsatFormulaManager msatFmgr = MathsatFactory.createFormulaManager(config, logger);
     fmgr = new ExtendedFormulaManager(msatFmgr, pConfig, pLogger);
 
-    pfmgr = new PathFormulaManagerImpl(fmgr, config, logger);
+    pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger));
     prover = new MathsatTheoremProver(msatFmgr);
     solver = new Solver(fmgr, prover);
 
@@ -98,7 +99,7 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
     return fmgr;
   }
 
-  PathFormulaManager getPathFormulaManager() {
+  public PathFormulaManager getPathFormulaManager() {
     return pfmgr;
   }
 
