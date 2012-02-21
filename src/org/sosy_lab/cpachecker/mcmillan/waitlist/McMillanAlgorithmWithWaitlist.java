@@ -148,7 +148,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     }
   }
 
-  private List<ARTElement> refine(final ARTElement v, ReachedSet reached) throws CPAException, InterruptedException {
+  private boolean refine(final ARTElement v, ReachedSet reached) throws CPAException, InterruptedException {
     refinementTime.start();
     try {
       assert (v.isTarget() && !getStateFormula(v).isFalse());
@@ -166,7 +166,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
       CounterexampleTraceInfo<Formula> cex = imgr.buildCounterexampleTrace(pathFormulas, Collections.<ARTElement>emptySet());
 
       if (!cex.isSpurious()) {
-        return Collections.emptyList(); // real counterexample
+        return false; // real counterexample
       }
 
       logger.log(Level.FINER, "Refinement successful");
@@ -199,7 +199,19 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
         changedElements.add(v);
       }
 
-      return changedElements;
+
+      // optimization: instead of closing all ancestors of v,
+      // close only those that were strengthened during refine
+      for (ARTElement w : changedElements) {
+        if (close(w, reached)) {
+          break; // all further elements are covered anyway
+        }
+      }
+
+      assert getStateFormula(v).isFalse();
+      reached.remove(v);
+
+      return true; // refinement successful
     } finally {
       refinementTime.stop();
     }
@@ -298,22 +310,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     }
 
     if (v.isTarget()) {
-      List<ARTElement> changedElements = refine(v, reached);
-      if (changedElements.isEmpty()) {
-        return false; // real counterexample
-      }
-
-      // optimization: instead of closing all ancestors of v,
-      // close only those that were strengthened during refine
-      for (ARTElement w : changedElements) {
-        if (close(w, reached)) {
-          break; // all further elements are covered anyway
-        }
-      }
-
-      assert getStateFormula(v).isFalse();
-      reached.remove(v);
-      return true; // no need to expand further
+      return refine(v, reached);
     }
 
     expand(v, reached);
