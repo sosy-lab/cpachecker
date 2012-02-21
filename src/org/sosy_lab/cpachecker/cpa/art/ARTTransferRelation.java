@@ -53,6 +53,7 @@ public class ARTTransferRelation implements TransferRelation {
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
     ARTElement element = (ARTElement)pElement;
+    element.markExpanded();
 
     AbstractElement wrappedElement = element.getWrappedElement();
     Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, pCfaEdge);
@@ -65,6 +66,7 @@ public class ARTTransferRelation implements TransferRelation {
       ARTElement successorElem = new ARTElement(absElement, element);
       wrappedSuccessors.add(successorElem);
     }
+
     return wrappedSuccessors;
   }
 

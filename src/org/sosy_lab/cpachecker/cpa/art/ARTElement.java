@@ -51,6 +51,8 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
   private ARTElement mCoveredBy = null;
   private Set<ARTElement> mCoveredByThis = null; // lazy initialization because rarely needed
 
+  // boolean which keeps track of which elements have already had their successors computed
+  private boolean wasExpanded = false;
   private boolean mayCover = true;
   private boolean destroyed = false;
 
@@ -120,6 +122,14 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     return result;
   }
 
+  public void uncover() {
+    assert isCovered();
+    assert mCoveredBy.mCoveredByThis.contains(this);
+
+    mCoveredBy.mCoveredByThis.remove(this);
+    mCoveredBy = null;
+  }
+
   public boolean isCovered() {
     assert !destroyed : "Don't use destroyed ARTElements!";
     return mCoveredBy != null;
@@ -157,6 +167,14 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
   public void setNotCovering() {
     assert !destroyed : "Don't use destroyed ARTElements!";
     mayCover = false;
+  }
+
+  public boolean wasExpanded() {
+    return wasExpanded;
+  }
+
+  void markExpanded() {
+    wasExpanded = true;
   }
 
   @Override

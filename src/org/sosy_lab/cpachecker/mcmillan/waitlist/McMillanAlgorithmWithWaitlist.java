@@ -59,9 +59,9 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.UninstantiatingInterpolationManager;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvider {
 
@@ -100,11 +100,6 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     }
   }
 
-
-  // This set tracks all elements which were not yet expanded.
-  // These are the candidates which might get re-added to the waitlist at some point.
-  private final Set<AbstractElement> leafs = Sets.newHashSet();
-
   public McMillanAlgorithmWithWaitlist(Configuration config, LogManager pLogger, ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, CPAException {
     logger = pLogger;
     cpa = (ARTCPA)pCpa;
@@ -118,9 +113,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
 
   @Override
   public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    leafs.addAll(pReachedSet.getWaitlist());
     run2(pReachedSet);
-    assert leafs.containsAll(pReachedSet.getWaitlist());
     return true;
   }
 
@@ -128,9 +121,8 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     expandTime.start();
     try {
       assert v.getChildren().isEmpty() && !isCovered(v);
-      assert leafs.contains(v);
+      assert !v.wasExpanded();
       reached.removeOnlyFromWaitlist(v);
-      leafs.remove(v);
 
       Precision precision = reached.getPrecision(v);
 
@@ -141,10 +133,9 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
 
         if (close((ARTElement)successor, reached)) {
           reached.remove(successor);
+          ((ARTElement)successor).removeFromART();
           continue; // no need to expand
         }
-
-        leafs.add(successor);
 
         if (((ARTElement)successor).isTarget()) {
           break;
@@ -159,6 +150,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     refinementTime.start();
     try {
       assert (v.isTarget() && !getStateFormula(v).isFalse());
+      assert !isCovered(v);
 
       logger.log(Level.FINER, "Refinement on " + v);
 
@@ -215,7 +207,6 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
         removedNode.removeFromART();
       }
       reached.removeAll(subtree);
-      leafs.removeAll(subtree);
 
       // optimization: instead of closing all ancestors of v,
       // close only those that were strengthened during refine
@@ -249,16 +240,27 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
       assert !isCovered(v);
 
       if (covers(v, w, prec)) {
+        removeCoverageOf(v, reached);
 
-        for (ARTElement childOfV : v.getSubtree()) {
-          // each child of v is now covered
-          reached.removeOnlyFromWaitlist(childOfV);
-          // keep in "leafs" set
+        Set<ARTElement> subtree = v.getSubtree();
+        subtree.remove(v);
 
+        for (ARTElement childOfV : subtree) {
           // each child of v now doesn't cover anything anymore
           removeCoverageOf(childOfV, reached);
+
+          // each child of v is now not covered directly anymore
+          if (childOfV.isCovered()) {
+            childOfV.uncover();
+          }
         }
 
+        // now remove all of them from the waitlist
+        // this has to be done after cleaning the coverage relations
+        reached.removeOnlyFromWaitlist(v);
+        for (ARTElement child : v.getSubtree()) {
+          reached.removeOnlyFromWaitlist(child);
+        }
         return true;
       }
       return false;
@@ -282,9 +284,13 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
   }
 
   private Iterable<ARTElement> findLeafChildrenOf(ARTElement v) {
-    Set<ARTElement> result = v.getSubtree();
-    result.retainAll(leafs);
-    return result;
+    return Iterables.filter(v.getSubtree(), new Predicate<ARTElement>() {
+        @Override
+        public boolean apply(ARTElement pInput) {
+          assert !pInput.isCovered();
+          return !pInput.wasExpanded();
+        }
+      });
   }
 
   private boolean close(ARTElement v, ReachedSet reached) throws CPAException {
@@ -361,11 +367,17 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
   private void run2(ReachedSet reached) throws CPAException, InterruptedException {
 
     while (reached.hasWaitingElement()) {
+      for (AbstractElement e : reached.getWaitlist()) {
+        assert !((ARTElement)e).isCovered();
+        assert !isCovered((ARTElement)e) : reached.size();
+      }
+
       ARTElement v = (ARTElement)reached.popFromWaitlist();
       assert !v.isDestroyed();
       assert v.getChildren().isEmpty();
+      assert !v.isCovered();
       assert !isCovered(v);
-      assert leafs.contains(v);
+      assert !v.wasExpanded();
       assert !getStateFormula(v).isFalse();
 
       Precision precision = reached.getPrecision(v);
@@ -373,12 +385,14 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
       Collection<? extends AbstractElement> successors = cpa.getTransferRelation().getAbstractSuccessors(v, precision, null);
 
       for (AbstractElement successor : successors) {
-        if (cpa.getStopOperator().stop(successor, reached.getReached(successor), precision)) {
-          continue;
-        }
+        boolean stop = cpa.getStopOperator().stop(successor, reached.getReached(successor), precision);
 
         reached.add(successor, precision);
-        leafs.add(successor);
+
+        if (stop) {
+          reached.removeOnlyFromWaitlist(successor);
+          continue;
+        }
 
         if (AbstractElements.isTargetElement(successor)) {
           boolean safe = refine((ARTElement)successor, reached);
@@ -389,8 +403,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
         }
 
       }
-
-      leafs.remove(v);
+      assert v.wasExpanded();
     }
   }
 
