@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.mcmillan.waitlist;
 
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
-
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,8 +36,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -124,7 +119,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
   @Override
   public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     leafs.addAll(pReachedSet.getWaitlist());
-    unwind(pReachedSet);
+    run2(pReachedSet);
     assert leafs.containsAll(pReachedSet.getWaitlist());
     return true;
   }
@@ -132,21 +127,27 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
   private void expand(ARTElement v, ReachedSet reached) throws CPAException, InterruptedException {
     expandTime.start();
     try {
-      assert v.getChildren().isEmpty() && !v.isCovered();
+      assert v.getChildren().isEmpty() && !isCovered(v);
       assert leafs.contains(v);
       reached.removeOnlyFromWaitlist(v);
       leafs.remove(v);
 
       Precision precision = reached.getPrecision(v);
 
-      CFANode loc = extractLocation(v);
-      for (CFAEdge edge : leavingEdges(loc)) {
+      Collection<? extends AbstractElement> successors = cpa.getTransferRelation().getAbstractSuccessors(v, precision, null);
 
-        Collection<? extends AbstractElement> successors = cpa.getTransferRelation().getAbstractSuccessors(v, precision, edge);
+      for (AbstractElement successor : successors) {
+        reached.add(successor, precision);
 
-        for (AbstractElement successor : successors) {
-          reached.add(successor, precision);
-          leafs.add(successor);
+        if (close((ARTElement)successor, reached)) {
+          reached.remove(successor);
+          continue; // no need to expand
+        }
+
+        leafs.add(successor);
+
+        if (((ARTElement)successor).isTarget()) {
+          break;
         }
       }
     } finally {
@@ -181,6 +182,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
       assert cex.getPredicatesForRefinement().size() ==  path.size();
 
       List<ARTElement> changedElements = new ArrayList<ARTElement>();
+      ARTElement root = null;
 
       for (Pair<Formula, ARTElement> interpolationPoint : Pair.zipList(cex.getPredicatesForRefinement(), path)) {
         Formula itp = interpolationPoint.getFirst();
@@ -188,6 +190,11 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
 
         if (itp.isTrue()) {
           continue;
+        }
+
+        if (itp.isFalse()) {
+          root = w;
+          break;
         }
 
         Formula stateFormula = getStateFormula(w);
@@ -198,13 +205,17 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
         }
       }
 
-      // itp of last element is always false, set it
-      if (!getStateFormula(v).isFalse()) {
-        setStateFormula(v, fmgr.makeFalse());
-        removeCoverageOf(v, reached);
-        changedElements.add(v);
-      }
+      assert root != null;
+      Set<ARTElement> subtree = root.getSubtree();
+      assert subtree.contains(v);
 
+      for (ARTElement removedNode : subtree) {
+        setStateFormula(removedNode, fmgr.makeFalse());
+        removeCoverageOf(removedNode, reached);
+        removedNode.removeFromART();
+      }
+      reached.removeAll(subtree);
+      leafs.removeAll(subtree);
 
       // optimization: instead of closing all ancestors of v,
       // close only those that were strengthened during refine
@@ -213,10 +224,6 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
           break; // all further elements are covered anyway
         }
       }
-
-      assert getStateFormula(v).isFalse();
-      reached.remove(v);
-      leafs.remove(v);
 
       return true; // refinement successful
     } finally {
@@ -230,7 +237,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
    */
   private boolean covers(ARTElement v, ARTElement w, Precision prec) throws CPAException {
     return (v != w)
-        && !w.isCovered() // ???
+        && !isCovered(w)
         && w.isOlderThan(v)
         && !isAncestorOf(v, w)
         && cpa.getStopOperator().stop(v, Collections.<AbstractElement>singleton(w), prec);
@@ -239,14 +246,14 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
   private boolean cover(ARTElement v, ARTElement w, Precision prec, ReachedSet reached) throws CPAException {
     coverTime.start();
     try {
-      assert !v.isCovered();
+      assert !isCovered(v);
 
       if (covers(v, w, prec)) {
 
         for (ARTElement childOfV : v.getSubtree()) {
           // each child of v is now covered
           reached.removeOnlyFromWaitlist(childOfV);
-          // keap in "leafs" set
+          // keep in "leafs" set
 
           // each child of v now doesn't cover anything anymore
           removeCoverageOf(childOfV, reached);
@@ -283,7 +290,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
   private boolean close(ARTElement v, ReachedSet reached) throws CPAException {
     closeTime.start();
     try {
-      if (v.isCovered()) {
+      if (isCovered(v)) {
         return true;
       }
 
@@ -303,21 +310,23 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     }
   }
 
-  private boolean dfs(ARTElement v, ReachedSet reached) throws CPAException, InterruptedException {
-    if (close(v, reached)) {
-      return true; // no need to expand
-    }
 
-    if (v.isTarget()) {
-      return refine(v, reached);
+  private void dfs(ARTElement v, ReachedSet reached) throws CPAException, InterruptedException {
+    if (close(v, reached)) {
+      return;
     }
 
     expand(v, reached);
+
     for (ARTElement w : v.getChildren()) {
+      if (AbstractElements.isTargetElement(reached.getLastElement())) {
+        return;
+      }
+
       dfs(w, reached);
     }
 
-    return true;
+    return;
   }
 
   private void unwind(ReachedSet reached) throws CPAException, InterruptedException {
@@ -326,7 +335,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     while (reached.hasWaitingElement()) {
       ARTElement v = (ARTElement)reached.popFromWaitlist();
       assert v.getChildren().isEmpty();
-      assert !v.isCovered();
+      assert !isCovered(v);
 
       // close parents of v
       List<ARTElement> path = getPathFromRootTo(v);
@@ -337,10 +346,51 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
         }
       }
 
-      if (!dfs(v, reached)) {
-        logger.log(Level.INFO, "Bug found");
-        break outer;
+      dfs(v, reached);
+
+      if (AbstractElements.isTargetElement(reached.getLastElement())) {
+        if (!refine((ARTElement)reached.getLastElement(), reached)) {
+          logger.log(Level.INFO, "Bug found");
+          break outer;
+        }
       }
+    }
+  }
+
+
+  private void run2(ReachedSet reached) throws CPAException, InterruptedException {
+
+    while (reached.hasWaitingElement()) {
+      ARTElement v = (ARTElement)reached.popFromWaitlist();
+      assert !v.isDestroyed();
+      assert v.getChildren().isEmpty();
+      assert !isCovered(v);
+      assert leafs.contains(v);
+      assert !getStateFormula(v).isFalse();
+
+      Precision precision = reached.getPrecision(v);
+
+      Collection<? extends AbstractElement> successors = cpa.getTransferRelation().getAbstractSuccessors(v, precision, null);
+
+      for (AbstractElement successor : successors) {
+        if (cpa.getStopOperator().stop(successor, reached.getReached(successor), precision)) {
+          continue;
+        }
+
+        reached.add(successor, precision);
+        leafs.add(successor);
+
+        if (AbstractElements.isTargetElement(successor)) {
+          boolean safe = refine((ARTElement)successor, reached);
+          if (!safe) {
+            logger.log(Level.INFO, "Bug found");
+            return;
+          }
+        }
+
+      }
+
+      leafs.remove(v);
     }
   }
 
@@ -386,6 +436,23 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
         return true;
       }
     }
+    return false;
+  }
+
+  private static boolean isCovered(ARTElement pArtElement) {
+    if (pArtElement.isCovered()) {
+      return true;
+    }
+
+    ARTElement e = pArtElement;
+    while (!e.getParents().isEmpty()) {
+      e = Iterables.getOnlyElement(e.getParents());
+
+      if (e.isCovered()) {
+        return true;
+      }
+    }
+
     return false;
   }
 
