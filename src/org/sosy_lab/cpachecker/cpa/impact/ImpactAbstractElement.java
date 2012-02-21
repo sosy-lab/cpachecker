@@ -47,6 +47,11 @@ public abstract class ImpactAbstractElement implements AbstractElement {
 
   public abstract Formula getStateFormula();
 
+  @Override
+  public String toString() {
+    return getStateFormula().toString();
+  }
+
   static AbstractionElement getLastAbstraction(ImpactAbstractElement element) {
     if (element.isAbstractionElement()) {
       return (AbstractionElement)element;
