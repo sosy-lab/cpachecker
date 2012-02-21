@@ -34,6 +34,9 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -42,7 +45,6 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransitionType;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGFullyAbstracted;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
@@ -62,7 +64,11 @@ import com.google.common.collect.ImmutableList;
 /**
  * Manager for fully-abstracted environmental transitions.
  */
+@Options(prefix="cpa.rg")
 public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
+
+  @Option(description="Use caching for comparing environmental transitions.")
+  private boolean cacheLessOrEqual = true;
 
   private final FormulaManager fManager;
   private final PathFormulaManager pfManager;
@@ -74,8 +80,11 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
   private final LogManager logger;
   private final Stats stats;
 
+  private final Map<Pair<RGFullyAbstracted, RGFullyAbstracted>, Boolean> lessOrEqualCache;
 
-  protected RGFullyAbstractedManager(FormulaManager fManager, PathFormulaManager pfManager, RGAbstractionManager absManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, ParallelCFAS pPcfa, Configuration config, LogManager logger){
+  protected RGFullyAbstractedManager(FormulaManager fManager, PathFormulaManager pfManager, RGAbstractionManager absManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, ParallelCFAS pPcfa, Configuration config, LogManager logger) throws InvalidConfigurationException{
+    config.inject(this, RGFullyAbstractedManager.class);
+
     this.fManager = fManager;
     this.pfManager = pfManager;
     this.absManager  = absManager;
@@ -84,13 +93,19 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
     this.pcfas = pPcfa;
     this.logger = logger;
     this.stats = new Stats();
+
+    if (cacheLessOrEqual){
+      this.lessOrEqualCache = new HashMap<Pair<RGFullyAbstracted, RGFullyAbstracted>, Boolean>();
+    } else {
+      this.lessOrEqualCache = null;
+    }
   }
 
 
 
   @Override
   public RGFullyAbstracted generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> preds)  {
-    stats.generationPrepTimer.start();
+    stats.generationTimer.start();
 
     // get the predicates for the transition
     int sourceTid = cand.getTid();
@@ -116,13 +131,16 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
     Formula newF = fManager.makeAnd(newPf.getFormula(), equivs.getFirst().getFirst());
     newPf = new PathFormula(newF, newSsa, newPf.getLength());
 
-    stats.generationPrepTimer.stop();
+    stats.generationTimer.stop();
 
     // abstract
     AbstractionFormula newAbs = absManager.buildNextValueAbstraction(oldAbs, oldPf, newPf, preds, sourceTid);
     SSAMap highSSA = newAbs.asPathFormula().getSsa();
     //return new RGFullyAbstracted(newAbs.asFormula(), newAbs.asRegion(), oldSsa, highSSA, cand.getSuccessor(), sourceTid);
-    return new RGFullyAbstracted(newAbs.asFormula(), newAbs.asRegion(), oldSsa, highSSA, cand.getElement(), cand.getSuccessor(), sourceTid);
+    RGFullyAbstracted et = new RGFullyAbstracted(newAbs.asFormula(), newAbs.asRegion(), oldSsa, highSSA, cand.getElement(), cand.getSuccessor(), sourceTid);
+
+    stats.generationTimer.stop();
+    return et;
   }
 
 
@@ -211,26 +229,46 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
 
 
   @Override
-  public boolean isLessOrEqual(RGEnvTransition et1, RGEnvTransition et2) {
-    assert et1.getRGType() == RGEnvTransitionType.FullyAbstracted;
-    assert et1.getRGType() == RGEnvTransitionType.FullyAbstracted;
+  public boolean isLessOrEqual(RGEnvTransition et1, RGEnvTransition et2){
+    stats.lessOrEqualChecks++;
+    RGFullyAbstracted efa1 = (RGFullyAbstracted) et1;
+    RGFullyAbstracted efa2 = (RGFullyAbstracted) et2;
 
-    ImmutableList<Integer> locCl1 = et1.getSourceARTElement().getLocationClasses();
-    ImmutableList<Integer> locCl2 = et2.getSourceARTElement().getLocationClasses();
+    boolean leq;
+
+    if (cacheLessOrEqual){
+      Pair<RGFullyAbstracted, RGFullyAbstracted> key = Pair.of(efa1, efa2);
+      Boolean cacheRes = this.lessOrEqualCache.get(key);
+      if (cacheRes == null){
+        leq = isLessOrEqual(efa1, efa2);
+        lessOrEqualCache.put(key, leq);
+      } else {
+        leq = cacheRes.booleanValue();
+        stats.lessOrEqualCacheHits++;
+      }
+    } else {
+      leq = isLessOrEqual(efa1, efa2);
+    }
+
+    return leq;
+  }
+
+
+  private boolean isLessOrEqual(RGFullyAbstracted efa1, RGFullyAbstracted efa2) {
+    ImmutableList<Integer> locCl1 = efa1.getSourceARTElement().getLocationClasses();
+    ImmutableList<Integer> locCl2 = efa2.getSourceARTElement().getLocationClasses();
 
     if (!locCl1.equals(locCl2)){
       return false;
     }
 
-    ImmutableList<Integer> tlocCl1 = et1.getTargetARTElement().getLocationClasses();
-    ImmutableList<Integer> tlocCl2 = et2.getTargetARTElement().getLocationClasses();
+    ImmutableList<Integer> tlocCl1 = efa1.getTargetARTElement().getLocationClasses();
+    ImmutableList<Integer> tlocCl2 = efa2.getTargetARTElement().getLocationClasses();
 
     if (!tlocCl1.equals(tlocCl2)){
       return false;
     }
 
-    RGFullyAbstracted efa1 = (RGFullyAbstracted) et1;
-    RGFullyAbstracted efa2 = (RGFullyAbstracted) et2;
     Region r1 = efa1.getAbstractTransitionRegion();
     Region r2 = efa2.getAbstractTransitionRegion();
 
@@ -252,17 +290,24 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
 
   public static class Stats implements Statistics {
 
-    public final Timer generationPrepTimer   =  new Timer();
+    private int lessOrEqualChecks     = 0;
+    private int lessOrEqualCacheHits  = 0;
+    public final Timer generationTimer   =  new Timer();
     public int falseByBDD = 0;
 
     @Override
     public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached) {
-      out.println("time on prep. for et. generation:" + generationPrepTimer);
+      out.println("time on generating env. tran.:   " + generationTimer);
       out.println("env. app. falsified by BDD:      " + formatInt(falseByBDD));
+      out.println("lessOrEqual calls cached:        " + lessOrEqualCacheHits+"/"+lessOrEqualChecks+" ("+toPercent(lessOrEqualCacheHits, lessOrEqualChecks)+")");
     }
 
     private String formatInt(int val){
       return String.format("  %7d", val);
+    }
+
+    private String toPercent(double val, double full) {
+      return String.format("%1.0f", val/full*100) + "%";
     }
 
     @Override

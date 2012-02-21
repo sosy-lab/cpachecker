@@ -212,7 +212,6 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
       return true;
     }
 
-    // TODO add checking by thmProver
     return false;
   }
 
@@ -222,6 +221,10 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
 
     Formula fAbs = st.getAbstraction();
     Formula f = st.getPathFormula().getFormula();
+
+    if (fAbs.isFalse() || f.isFalse()){
+      return true;
+    }
 
     f = fManager.makeAnd(f, fAbs);
 
@@ -263,7 +266,7 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
 
     @Override
     public String getName() {
-      return "RGFullyAbstractedManager";
+      return "RGSimpleTransitionManager";
     }
   }
 }

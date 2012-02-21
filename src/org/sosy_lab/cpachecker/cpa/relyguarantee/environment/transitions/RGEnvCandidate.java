@@ -77,6 +77,4 @@ public class RGEnvCandidate {
   public String toString(){
     return "RGEnvCandidate: "+element.getElementId()+"--"+operation.getRawStatement()+"-->"+successor.getElementId();
   }
-
-
 }

@@ -29,7 +29,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -58,7 +63,18 @@ import com.google.common.collect.ImmutableList;
 /**
  * Manager for semi-abstracted environmental transitions.
  */
+@Options(prefix="cpa.rg")
 public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
+
+  /*
+   * Note: caching and no theorem prover seem to be the best setting for comparing e.t.
+   */
+
+  @Option(description="Use caching for comparing environmental transitions.")
+  private boolean cacheLessOrEqual = true;
+
+  @Option(description="Use a theorem prover for comparing environmental transitions.")
+  private boolean useProverForLessOrEqual = false;
 
   private final FormulaManager fManager;
   private final PathFormulaManager pfManager;
@@ -71,8 +87,11 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
   private final LogManager logger;
   private final Stats stats;
 
+  private final Map<Pair<RGSemiAbstracted, RGSemiAbstracted>, Boolean> lessOrEqualCache;
 
-  protected RGSemiAbstractedManager(FormulaManager fManager, PathFormulaManager pfManager, RGAbstractionManager absManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, ParallelCFAS pPcfa, Configuration config,  LogManager logger) {
+  protected RGSemiAbstractedManager(FormulaManager fManager, PathFormulaManager pfManager, RGAbstractionManager absManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, ParallelCFAS pPcfa, Configuration config,  LogManager logger) throws InvalidConfigurationException {
+    config.inject(this, RGSemiAbstractedManager.class);
+
     this.fManager = fManager;
     this.pfManager = pfManager;
     this.absManager  = absManager;
@@ -82,12 +101,19 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
     this.pcfas = pPcfa;
     this.logger = logger;
     this.stats = new Stats();
+
+    if (cacheLessOrEqual){
+      this.lessOrEqualCache = new HashMap<Pair<RGSemiAbstracted, RGSemiAbstracted>, Boolean>();
+    } else {
+      this.lessOrEqualCache = null;
+    }
   }
 
 
 
   @Override
   public RGSemiAbstracted generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> preds) {
+    stats.generationTimer.start();
 
     // abstract
     AbstractionFormula abs = cand.getRgElement().getAbstractionFormula();
@@ -99,6 +125,8 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
     SSAMap ssa = cand.getRgElement().getPathFormula().getSsa();
     CFAEdge operation = cand.getOperation();
     RGSemiAbstracted sa = new RGSemiAbstracted(aPred, aPredReg, ssa, operation, cand.getElement(), cand.getSuccessor(), cand.getTid());
+
+    stats.generationTimer.stop();
     return sa;
   }
 
@@ -167,8 +195,32 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
 
   @Override
   public boolean isLessOrEqual(RGEnvTransition et1, RGEnvTransition et2) {
+    stats.lessOrEqualChecks++;
+
     RGSemiAbstracted sa1 = (RGSemiAbstracted) et1;
     RGSemiAbstracted sa2 = (RGSemiAbstracted) et2;
+
+    boolean leq;
+
+    if (cacheLessOrEqual){
+      Pair<RGSemiAbstracted, RGSemiAbstracted> key = Pair.of(sa1, sa2);
+      Boolean cacheRes = this.lessOrEqualCache.get(key);
+      if (cacheRes == null){
+        leq = isLessOrEqual(sa1, sa2);
+        lessOrEqualCache.put(key, leq);
+      } else {
+        leq = cacheRes.booleanValue();
+        stats.lessOrEqualCacheHits++;
+      }
+    } else {
+      leq = isLessOrEqual(sa1, sa2);
+    }
+
+    return leq;
+  }
+
+  public boolean isLessOrEqual(RGSemiAbstracted sa1, RGSemiAbstracted sa2) {
+    stats.lessOrEqualChecks++;
 
     CFAEdge op1 = sa1.getOperation();
     CFAEdge op2 = sa2.getOperation();
@@ -177,15 +229,15 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
       return false;
     }
 
-    ImmutableList<Integer> locCl1 = et1.getSourceARTElement().getLocationClasses();
-    ImmutableList<Integer> locCl2 = et2.getSourceARTElement().getLocationClasses();
+    ImmutableList<Integer> locCl1 = sa1.getSourceARTElement().getLocationClasses();
+    ImmutableList<Integer> locCl2 = sa2.getSourceARTElement().getLocationClasses();
 
     if (!locCl1.equals(locCl2)){
       return false;
     }
 
-    ImmutableList<Integer> tlocCl1 = et1.getTargetARTElement().getLocationClasses();
-    ImmutableList<Integer> tlocCl2 = et2.getTargetARTElement().getLocationClasses();
+    ImmutableList<Integer> tlocCl1 = sa1.getTargetARTElement().getLocationClasses();
+    ImmutableList<Integer> tlocCl2 = sa2.getTargetARTElement().getLocationClasses();
 
     if (!tlocCl1.equals(tlocCl2)){
       return false;
@@ -198,12 +250,22 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
       return true;
     }
 
-    Formula fimpl = fManager.makeAnd(prec1, fManager.makeNot(prec2));
-    thmProver.init();
-    boolean valid = thmProver.isUnsat(fimpl);
-    thmProver.reset();
+    Region r1 = sa1.getAbstractPreconditionRegion();
+    Region r2 = sa2.getAbstractPreconditionRegion();
 
-    return valid;
+    if (rManager.entails(r1, r2)){
+      return true;
+    }
+
+    if (useProverForLessOrEqual){
+      Formula fimpl = fManager.makeAnd(prec1, fManager.makeNot(prec2));
+      thmProver.init();
+      boolean valid = thmProver.isUnsat(fimpl);
+      thmProver.reset();
+      return valid;
+    }
+
+    return false;
   }
 
   @Override
@@ -221,20 +283,30 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
 
   public static class Stats implements Statistics {
 
-    private int falseByBDD = 0;
+    private int falseByBDD            = 0;
+    private int lessOrEqualChecks     = 0;
+    private int lessOrEqualCacheHits  = 0;
+    private final Timer generationTimer     = new Timer();
 
     @Override
     public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached) {
+      out.println("time on generating env. tran.:   " + generationTimer);
       out.println("env. app. falsified by BDD:      " + formatInt(falseByBDD));
+      out.println("lessOrEqual calls cached:        " + lessOrEqualCacheHits+"/"+lessOrEqualChecks+" ("+toPercent(lessOrEqualCacheHits, lessOrEqualChecks)+")");
     }
 
     private String formatInt(int val){
       return String.format("  %7d", val);
     }
 
+    private String toPercent(double val, double full) {
+      return String.format("%1.0f", val/full*100) + "%";
+    }
+
+
     @Override
     public String getName() {
-      return "RGFullyAbstractedManager";
+      return "RGSemiAbstractedManager";
     }
   }
 

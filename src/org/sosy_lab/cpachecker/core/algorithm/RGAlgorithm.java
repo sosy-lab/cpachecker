@@ -111,7 +111,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     this.threadNo = pcfa.getThreadNo();
     this.cpas = pCpas;
     this.logger = logger;
-    this.stats = new Stats();
+    this.stats = new Stats(threadNo);
 
     this.threadCPA = new RGThreadCPAAlgorithm[threadNo];
     this.applyEnv = new ImmutableSet[threadNo];
@@ -159,8 +159,11 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
         }
 
         /* find the most general candidates from the thread */
+
+
         Pair<List<RGEnvCandidate>, Boolean> pair = processCandidates(threadCPA[i].getCandidates(), allCandidatesFrom[i]);
         allCandidatesFrom[i] = pair.getFirst();
+        stats.maxValidCandidates[i] = Math.max(stats.maxValidCandidates[i], allCandidatesFrom[i].size());
         boolean foundNewCand = pair.getSecond();
         threadCPA[i].getCandidates().clear();
 
@@ -193,7 +196,9 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
    */
   private Pair<List<RGEnvCandidate>, Boolean> processCandidates(List<RGEnvCandidate> newCandidates, List<RGEnvCandidate> mgCandidates) {
     environment.printUnprocessedTransitions(newCandidates);
-    List<RGEnvCandidate> newMG = environment.getMostGeneralCandidates(mgCandidates, newCandidates);
+    stats.allCandidates += newCandidates.size();
+
+    List<RGEnvCandidate> newMG = environment.findMostGeneralCandidates(mgCandidates, newCandidates);
     boolean foundNew = !mgCandidates.containsAll(newMG);
 
     return Pair.of(newMG, foundNew);
@@ -248,6 +253,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
    * @param pEnvEdgesMap
    */
   private void setWaitlist(ReachedSet reachedSet, Set<CFANode> toApply) {
+    stats.waitlistTimer.start();
     for (CFANode node : toApply){
       Set<AbstractElement> relevant = reachedSet.getReached(node);
 
@@ -260,6 +266,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
         }
       }
     }
+    stats.waitlistTimer.stop();
   }
 
 
@@ -403,14 +410,14 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     return ImmutableSet.copyOf(toApply);
   }
 
-  /**
+  /*
    * Applies environmental edges to CFA i. Returns a map with env. edges that haven't
    * been applied before.
    *
    * @param   i CFA number
    * @return  multimap CFA nodes -> CFA edges
-   */
- /* private ListMultimap<CFANode, CFAEdge> addEnvTransitionsToCFA(int i) {
+
+  private ListMultimap<CFANode, CFAEdge> addEnvTransitionsToCFA(int i) {
 
 
     ListMultimap<CFANode, CFAEdge> envEdgesMap = null;
@@ -444,7 +451,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
   }
 
 
-  /**
+  /*
    * Combine environmental edges from valid and apply them to the nodes of CFA i, which belong to toApply.
    * Returns Returns a map with env. edges that haven't been applied before.
    *
@@ -453,8 +460,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
    * @param pValid
    * @param pUnapplied
    * @return
-   */
- /* private ListMultimap<CFANode, CFAEdge> addCombinedEnvTransitionsToCFA(int i, Set<CFANode> toApply, List<RGEnvTransition> pValid, List<RGEnvTransition> pUnapplied) {
+    private ListMultimap<CFANode, CFAEdge> addCombinedEnvTransitionsToCFA(int i, Set<CFANode> toApply, List<RGEnvTransition> pValid, List<RGEnvTransition> pUnapplied) {
     // TODO finish
     RelyGuaranteeCFA cfa = cfas[i];
     ListMultimap<CFANode, CFAEdge> envEdgesMap = ArrayListMultimap.create();
@@ -619,8 +625,14 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
   public static class Stats implements Statistics {
 
 
-    private final Timer applyEnvTimer = new Timer();
+    private final Timer waitlistTimer = new Timer();
     private final Timer errorCheckTimer = new Timer();
+    private int allCandidates = 0;
+    private final int[] maxValidCandidates;
+
+    public Stats(int threadNo){
+      maxValidCandidates = new int[threadNo];
+    }
 
     @Override
     public String getName() {
@@ -629,8 +641,16 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      out.println("time for error check:            " + errorCheckTimer);
-      out.println("time for changing CFAs and waitlist:" + applyEnvTimer);
+      out.println("time on error check:             " + errorCheckTimer);
+      out.println("time on re-adding to waitlist:   " + waitlistTimer);
+      out.println("all candidates generated:        " + formatInt(allCandidates));
+      for (int i=0; i<maxValidCandidates.length; i++){
+        out.println("max valid candidates from "+i+":     " + formatInt(maxValidCandidates[i]));
+      }
+    }
+
+    private String formatInt(int val){
+      return String.format("  %7d", val);
     }
   }
 

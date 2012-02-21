@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.environment;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
@@ -41,7 +42,7 @@ public abstract class RGEnvTransitionManagerFactory implements RGEnvTransitionMa
 
   private static RGEnvTransitionManagerFactory singleton;
 
-  public static RGEnvTransitionManagerFactory getInstance(String abstractionLevel, FormulaManager fManager, PathFormulaManager pfManager, RGAbstractionManager absManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, ParallelCFAS pcfa, Configuration config, LogManager logger){
+  public static RGEnvTransitionManagerFactory getInstance(String abstractionLevel, FormulaManager fManager, PathFormulaManager pfManager, RGAbstractionManager absManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, ParallelCFAS pcfa, Configuration config, LogManager logger) throws InvalidConfigurationException{
     if (singleton == null){
 
       // instantiate to the appriorate manager

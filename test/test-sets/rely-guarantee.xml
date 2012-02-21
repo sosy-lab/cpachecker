@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="180">
+<benchmark tool="cpachecker" timelimit="300">
 
   <test name="global pred, SBE, Cartesian abst, fully abstracted env.">
     <sourcefiles>

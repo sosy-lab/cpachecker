@@ -86,7 +86,7 @@ public class RGRefiner implements StatisticsProvider{
         + "to all the locations in the abstract trace")
         private boolean addPredicatesGlobally = true;
 
-  @Option(name="refinement.addPredicatesGlobally",
+  @Option(name="refinement.addEnvPredicatesGlobally",
       description="refinement will add all discovered predicates "
         + "to all the locations in the abstract trace")
         private boolean addEnvPredicatesGlobally = true;

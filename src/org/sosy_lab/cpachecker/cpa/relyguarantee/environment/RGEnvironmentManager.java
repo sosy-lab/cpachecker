@@ -26,9 +26,11 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.environment;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -81,12 +83,18 @@ public class RGEnvironmentManager implements StatisticsProvider{
           + "ST - no abstraction, SA - precondition abstracted only, FA - precondition and operation abstracted")
   private String abstractEnvTransitions = "FA";
 
+  @Option(description="Use caching for generating environmental transitions.")
+  private boolean cacheGeneratingEnvTransition = true;
+
   /** Number of threads. */
   private int threadNo;
   /** envPrecision[i] are predicates for generating env. edges from thread i. */
   private final SetMultimap<CFANode, AbstractionPredicate>[] envPrecision;
   /** envGlobalPrecision[i] contains global env. predicates for thread i */
   private final Set<AbstractionPredicate>[] envGlobalPrecision;
+  private RGLocationMapping locationMapping;
+
+  private final Map<Pair<RGEnvCandidate, Set<AbstractionPredicate>>, RGEnvTransition> candidateToTransitionCache;
 
   /* Managers */
   private final PathFormulaManager pfManager;
@@ -104,7 +112,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
   /** General stats */
   public final Stats stats;
 
-  private RGLocationMapping locationMapping;
+
 
   public RGEnvironmentManager(ParallelCFAS pcfa, Configuration config, LogManager logger) throws InvalidConfigurationException{
     // TODO add option for caching
@@ -135,6 +143,12 @@ public class RGEnvironmentManager implements StatisticsProvider{
     for (int i=0; i< threadNo; i++){
       this.envPrecision[i] = HashMultimap.create();
       this.envGlobalPrecision[i] = new HashSet<AbstractionPredicate>();
+    }
+
+    if (cacheGeneratingEnvTransition){
+      candidateToTransitionCache = new HashMap<Pair<RGEnvCandidate, Set<AbstractionPredicate>>, RGEnvTransition>();
+    } else {
+      candidateToTransitionCache = null;
     }
 
   }
@@ -194,7 +208,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
    * @param newCandidates
    * @return
    */
-  public List<RGEnvCandidate> getMostGeneralCandidates(Collection<RGEnvCandidate> oldMGCandidates, Collection<RGEnvCandidate> newCandidates){
+  public List<RGEnvCandidate> findMostGeneralCandidates(Collection<RGEnvCandidate> oldMGCandidates, Collection<RGEnvCandidate> newCandidates){
     stats.candidateTimer.start();
 
     Vector<RGEnvCandidate> newToProcess = new Vector<RGEnvCandidate>(newCandidates);
@@ -261,7 +275,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
           if (debug){
             System.out.println("\t- old covered: "+oCnd+ " => "+nCnd);
           }
-          break;
         }
       }
     }
@@ -293,6 +306,9 @@ public class RGEnvironmentManager implements StatisticsProvider{
     for (RGEnvCandidate cand1 : newMGCandidates){
       for (RGEnvCandidate cand2 : newMGCandidates){
         if (cand1 != cand2){
+          if (candManager.isLessOrEqual(cand1, cand2)){
+            System.out.println(this.getClass());
+          }
           assert !candManager.isLessOrEqual(cand2, cand1);
           assert !candManager.isLessOrEqual(cand1, cand2);
         }
@@ -333,32 +349,53 @@ public class RGEnvironmentManager implements StatisticsProvider{
    * @param preds
    * @return
    */
-  public List<RGEnvTransition> getMostGeneralEnvTransitions(Collection<RGEnvCandidate> candidates, Collection<AbstractionPredicate> preds){
-    stats.etransitionsTimer.start();
+  private List<RGEnvTransition> findMostGeneralEnvTransitions(Collection<RGEnvCandidate> candidates, Set<AbstractionPredicate> preds){
 
     /* abstract the candidates */
     Vector<RGEnvTransition> newEt   = new Vector<RGEnvTransition>(candidates.size());
     for (RGEnvCandidate cand : candidates){
-      RGEnvTransition et = etManager.generateEnvTransition(cand, preds);
+      RGEnvTransition et = generateEnvTransition(cand, preds);
+      //RGEnvTransition et = etManager.generateEnvTransition(cand, preds);
       newEt.add(et);
     }
 
     newEt = findMostGeneralTransitions(newEt);
 
-    stats.maxValid = Math.max(stats.maxValid, newEt.size());
-    stats.etransitionsTimer.stop();
+    //stats.maxValid = Math.max(stats.maxValid, newEt.size());
+    stats.maxApplied = stats.maxApplied >= newEt.size() ? stats.maxApplied : newEt.size();
     return newEt;
   }
 
 
+  private RGEnvTransition generateEnvTransition(RGEnvCandidate cand, Set<AbstractionPredicate> preds) {
+    stats.etGenerated++;
+    RGEnvTransition et;
+
+    if (cacheGeneratingEnvTransition){
+      Pair<RGEnvCandidate, Set<AbstractionPredicate>> key = Pair.of(cand, preds);
+      et = candidateToTransitionCache.get(key);
+
+      if (et == null){
+        et = etManager.generateEnvTransition(cand, preds);
+        candidateToTransitionCache.put(key, et);
+      } else {
+        stats.cand2EtCacheHits++;
+      }
+    }
+    else {
+      et = etManager.generateEnvTransition(cand, preds);
+    }
+
+    return et;
+  }
 
 
-  /**
+
+  /*
    * Converts  unprocessed candidates from thread i into environmental transitions.
    * The most general transitions are remebered as valid and unapplied for other threads.
    * @param i   thread that generated the transitions
-   */
-  /*public List<RGEnvTransition> processCandidates(int i, Collection<RGEnvCandidate> candidates, List<RGEnvTransition> oldValid) {
+   *public List<RGEnvTransition> processCandidates(int i, Collection<RGEnvCandidate> candidates, List<RGEnvTransition> oldValid) {
     if (processStats == null){
       processStats = new RelyGuaranteeEnvironmentProcessStatistics();
     }
@@ -415,6 +452,8 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
     return validPrime;
   }*/
+
+
 
   /**
    * Print env. edges with a title.
@@ -532,6 +571,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
    * @return
    */
   private Vector<RGEnvTransition> findMostGeneralTransitions(Collection<RGEnvTransition> transitions) {
+    stats.etComparing.start();
 
     // candidates to be inspected
     Vector<RGEnvTransition> etToProcess = new Vector<RGEnvTransition>(transitions);
@@ -576,6 +616,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
       checkMostGeneralTransitions(transitions, etToProcess);
     }
 
+    stats.etComparing.stop();
     return  etToProcess;
   }
 
@@ -722,6 +763,44 @@ public class RGEnvironmentManager implements StatisticsProvider{
   }
 
 
+  /**
+   * Find new env. transitions that should be applied.
+   * @param appliedBefore env. transitions previously applied
+   * @param candidates all candidates from source thread
+   * @param preds predicates for env. transitions
+   * @return
+   */
+  public List<RGEnvTransition> getEnvironmentalTransitionsToApply(Set<RGEnvTransition> appliedBefore, List<RGEnvCandidate> candidates, Set<AbstractionPredicate> preds) {
+    stats.etToApplyTimer.start();
+
+    List<RGEnvTransition> newTransitions = findMostGeneralEnvTransitions(candidates, preds);
+    List<RGEnvTransition> newToApply = getDifference(newTransitions, appliedBefore);
+
+    stats.etToApplyTimer.stop();
+    return newToApply;
+  }
+
+  /**
+   * Returns new transitions that are not less or equal to any old transition.
+   * @param newEt
+   * @param oldEt
+   * @return
+   */
+  private List<RGEnvTransition> getDifference(Collection<RGEnvTransition> newEt, Collection<RGEnvTransition> oldEt) {
+    List<RGEnvTransition> diff = new Vector<RGEnvTransition>(newEt);
+
+    for (RGEnvTransition net : newEt){
+      for (RGEnvTransition oet : oldEt){
+
+        if (this.etManager.isLessOrEqual(net, oet)){
+          diff.remove(net);
+          break;
+        }
+      }
+    }
+
+    return diff;
+  }
 
 
   public Set<AbstractionPredicate>[] getEnvGlobalPrecision() {
@@ -735,24 +814,28 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
   public static class Stats implements Statistics {
 
-    private final Timer totalTimer       = new Timer();
-    private final Timer candidateTimer   = new Timer();
-    private final Timer etransitionsTimer = new Timer();
-    private final Timer checkingTimer    = new Timer();
-    private int allCandidates   = 0;
-    private int allNew          = 0;
-    private int maxValid        = 0;
+
+    //private final Timer totalTimer       = new Timer();
+    private final Timer candidateTimer    = new Timer();
+    private final Timer etToApplyTimer = new Timer();
+    private final Timer checkingTimer     = new Timer();
+    private final Timer etComparing       = new Timer();
+    private int maxApplied        = 0;
+    private int etGenerated       = 0;
+    private int cand2EtCacheHits  = 0;
 
     @Override
-    public void printStatistics(PrintStream out, Result pResult,
-        ReachedSet pReached) {
-      out.println("total candidates:                  " + this.allCandidates);
-      out.println("valid env. transitions generated:  " + this.allNew);
-      out.println("max. valid env. transitions:       " + this.maxValid);
-      out.println("time on env. processing:           " + totalTimer);
+    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
       out.println("time on most general candidates:   " + candidateTimer);
-      out.println("time on finding env. transitions:  " + etransitionsTimer);
-      out.println("time on result checking:           " + checkingTimer);
+      out.println("time on finding e.t. to apply.:    " + etToApplyTimer);
+      out.println("time on correctness checks:        " + checkingTimer);
+      out.println("time on comparing e.t.:            " + etComparing);
+      out.println("env. tr. generation cache hits:    " + cand2EtCacheHits+"/"+etGenerated+" ("+toPercent(cand2EtCacheHits, etGenerated)+")");
+      out.println("max env. transitions applied:      " + maxApplied);
+    }
+
+    private String toPercent(double val, double full) {
+      return String.format("%1.0f", val/full*100) + "%";
     }
 
     @Override
@@ -784,10 +867,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
     }
 
   }
-
-
-
-
 
 
 }

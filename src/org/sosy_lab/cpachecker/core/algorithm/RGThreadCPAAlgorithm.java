@@ -409,22 +409,20 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     /* get environmental edges */
-    Set<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(rgPrec.getEnvGlobalPredicates());
-    preds.addAll(rgPrec.getEnvPredicateMap().get(loc));
-
-    List<RGEnvTransition> mgEnvTransitions = this.environment.getMostGeneralEnvTransitions(this.candidatesFromThread[otherTid], preds);
-
     if (aElem.getEnvTrApplied() == null){
       aElem.setEnvTrApplied(new HashSet<RGEnvTransition>());
     }
 
-    for (RGEnvTransition et : mgEnvTransitions){
+    Set<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(rgPrec.getEnvGlobalPredicates());
+    preds.addAll(rgPrec.getEnvPredicateMap().get(loc));
 
-      if (!aElem.getEnvTrApplied().contains(et)){
+    List<RGEnvTransition> envTransitionToApply = environment.getEnvironmentalTransitionsToApply(aElem.getEnvTrApplied(), candidatesFromThread[otherTid], preds);
+
+
+    for (RGEnvTransition et : envTransitionToApply){
         aElem.getEnvTrApplied().add(et);
         RGCFAEdge rgEdge = new RGCFAEdge(et, loc, loc);
         edges.add(rgEdge);
-      }
     }
 
     return edges;

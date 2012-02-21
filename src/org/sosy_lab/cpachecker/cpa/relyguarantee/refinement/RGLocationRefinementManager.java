@@ -196,8 +196,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @throws RefinementFailedException
    */
   public InterpolationTreeResult refine(InterpolationTreeResult counterexample) throws CPATransferException, RefinementFailedException {
-    stats.locRefTimer.start();
-    stats.iterations++;
+
 
     InterpolationTreeResult result;
 
@@ -244,6 +243,8 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @throws RefinementFailedException
    */
   private InterpolationTreeResult monotonicRefinement(InterpolationTreeResult counterexample) throws CPATransferException, RefinementFailedException {
+    stats.locRefTimer.start();
+    stats.iterations++;
     Collection<Path> paths = getErrorPathsForTrunk(counterexample.getTree());
 
     /* Map: tid -> pair of unequal nodes */
@@ -279,6 +280,9 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @throws CPATransferException
    */
   private InterpolationTreeResult nonMonotonicRefinement(InterpolationTreeResult counterexample) throws CPATransferException {
+    stats.locRefTimer.start();
+    stats.iterations++;
+
     InterpolationTree tree = counterexample.getTree();
     Collection<Path> paths = getErrorPathsForTrunk(tree);
 
