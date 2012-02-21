@@ -160,13 +160,9 @@ class Vertex implements AbstractElement, Targetable, AbstractWrapperElement {
     return false;
   }
 
-  public boolean isLeaf() {
-    return children.isEmpty() && AbstractElements.extractLocation(wrappedElement).getNumLeavingEdges() > 0;
-  }
-
   @Override
   public boolean isTarget() {
-    return !stateFormula.isFalse() && AbstractElements.isTargetElement(wrappedElement);
+    return AbstractElements.isTargetElement(wrappedElement);
   }
 
   @Override

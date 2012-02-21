@@ -155,7 +155,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
   private void expand(Vertex v, ReachedSet reached) throws CPAException, InterruptedException {
     expandTime.start();
     try {
-      assert v.isLeaf() && !v.isCovered();
+      assert v.getChildren().isEmpty() && !v.isCovered();
       reached.removeOnlyFromWaitlist(v);
 
       AbstractElement predecessor = v.getWrappedElement();
@@ -167,17 +167,12 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
         Collection<? extends AbstractElement> successors = cpa.getTransferRelation().getAbstractSuccessors(predecessor, precision, edge);
         if (successors.isEmpty()) {
           // edge not feasible
-          // create fake vertex
-          new Vertex(v, fmgr.makeFalse(), edge, null);
           continue;
         }
         assert successors.size() == 1;
 
         Vertex w = new Vertex(v, fmgr.makeTrue(), edge, Iterables.getOnlyElement(successors));
         reached.add(w, precision);
-        if (!w.isLeaf()) {
-          reached.removeOnlyFromWaitlist(w);
-        }
       }
     } finally {
       expandTime.stop();
@@ -300,7 +295,8 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     return Iterables.filter(vertices, new Predicate<Vertex>() {
       @Override
       public boolean apply(Vertex pInput) {
-        return pInput.isLeaf();
+        // TODO don't count nodes at sink nodes
+        return pInput.getChildren().isEmpty() && !pInput.getStateFormula().isFalse();
       }
     });
   }
@@ -433,15 +429,13 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
       }
 
       assert v.getStateFormula().isFalse();
+      reached.remove(v);
       return true; // no need to expand further
-    }
-
-    if (!v.isLeaf()) {
-      return true; // no need to expand
     }
 
     forceCoverTime.start();
     try {
+      // TODO: don't force cover nodes at sink nodes
       Precision prec = reached.getPrecision(v);
       for (AbstractElement ae : reached.getReached(v)) {
         Vertex w = (Vertex)ae;
@@ -471,7 +465,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     outer:
     while (reached.hasWaitingElement()) {
       Vertex v = (Vertex)reached.popFromWaitlist();
-      assert v.isLeaf();
+      assert v.getChildren().isEmpty();
       assert !v.isCovered();
 
       // close parents of v
