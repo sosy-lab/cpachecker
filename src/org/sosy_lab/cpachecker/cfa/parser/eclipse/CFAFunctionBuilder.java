@@ -745,6 +745,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     // "counter = 0;"
     } else if (statement instanceof IASTExpressionStatement) {
       final CFANode nextNode = new CFANode(filelocStart, cfa.getFunctionName());
+      cfaNodes.add(nextNode);
+
       final StatementEdge initEdge = new StatementEdge(statement.getRawSignature(),
               astCreator.convert((IASTExpressionStatement) statement),
               filelocStart, loopInit, nextNode);
