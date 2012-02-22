@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class RGCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvider {
 
   @Option(description="If true, the analysis continues in the previous thread. If false, the first thread is analysed first.")
-  private boolean continueThread = false;
+  private boolean continueThread = true;
 
   private final Stats stats;
 
@@ -110,7 +110,7 @@ public class RGCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvide
     System.out.println("------------------------ Rely-guarantee analysis "+stats.countIterations+" -------------------------");
 
     stats.totalAnal.start();
-    int errorThread = continueThread ? startThread : 0;
+    int errorThread = continueThread ? stats.countIterations % 2 : 0;
     errorThread = algorithm.run(reachedSets, errorThread);
     long time = stats.totalAnal.stop();
 

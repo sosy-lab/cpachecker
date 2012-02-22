@@ -107,7 +107,6 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
   private String abstractEnvTransitions = "FA";
 
 
-
   @Option(description="Limit of nodes in an interpolation tree (0 - no limit).")
   private int itpTreeNodeLimit = 0;
 
@@ -782,6 +781,9 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
       }
     }
 
+    if (envApp == 0){
+      return;
+    }
     float s = (limit - trunk.size())/envApp;
     int nodePerApp = Math.round(s);
     nodePerApp = Math.max(nodePerApp, 1);

@@ -387,10 +387,28 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
     assert rgPrec != null;
 
     List<CFAEdge> edges = new Vector<CFAEdge>();
-
-    /* get local edges */
     CFANode loc = aElem.retrieveLocationElement().getLocationNode();
 
+    /* get environmental edges */
+    if (applyEnv.contains(loc)){
+      if (aElem.getEnvTrApplied() == null){
+        aElem.setEnvTrApplied(new HashSet<RGEnvTransition>());
+      }
+
+      Set<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(rgPrec.getEnvGlobalPredicates());
+      preds.addAll(rgPrec.getEnvPredicateMap().get(loc));
+
+      List<RGEnvTransition> envTransitionToApply = environment.getEnvironmentalTransitionsToApply(aElem.getEnvTrApplied(), candidatesFromThread[otherTid], preds);
+
+
+      for (RGEnvTransition et : envTransitionToApply){
+          aElem.getEnvTrApplied().add(et);
+          RGCFAEdge rgEdge = new RGCFAEdge(et, loc, loc);
+          edges.add(rgEdge);
+      }
+    }
+
+    /* get local edges */
     if (!aElem.hasLocalChild()){
 
       for (int i=0; i<loc.getNumLeavingEdges(); i++){
@@ -403,27 +421,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       aElem.setHasLocalChild(true);
     }
 
-    /* no env. transitions are applied at the location */
-    if (!applyEnv.contains(loc)){
-      return edges;
-    }
-
-    /* get environmental edges */
-    if (aElem.getEnvTrApplied() == null){
-      aElem.setEnvTrApplied(new HashSet<RGEnvTransition>());
-    }
-
-    Set<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(rgPrec.getEnvGlobalPredicates());
-    preds.addAll(rgPrec.getEnvPredicateMap().get(loc));
-
-    List<RGEnvTransition> envTransitionToApply = environment.getEnvironmentalTransitionsToApply(aElem.getEnvTrApplied(), candidatesFromThread[otherTid], preds);
-
-
-    for (RGEnvTransition et : envTransitionToApply){
-        aElem.getEnvTrApplied().add(et);
-        RGCFAEdge rgEdge = new RGCFAEdge(et, loc, loc);
-        edges.add(rgEdge);
-    }
 
     return edges;
   }

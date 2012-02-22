@@ -671,7 +671,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   private Collection<Path> getErrorPathsForTrunk(InterpolationTree tree) throws CPATransferException {
 
     List<InterpolationTreeNode> trunk = tree.getTrunk();
-    Collection<ARTElement> allElems = getAllARTElementsOnBranch(trunk);
+    Collection<ARTElement> allElems = getAllARTElementsOnBranch(trunk, tree);
     Map<Pair<ARTElement, CFAEdge>, Formula> predMap = getBranchingPredicates(allElems);
 
     // one model describes one path - no branching is specified by the empty model
@@ -889,9 +889,10 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   /**
    * Find all ART elements, local and environmental, on the branch.
    * @param tree
+   * @param tree
    * @return
    */
-  private Collection<ARTElement> getAllARTElementsOnBranch(List<InterpolationTreeNode> branch) {
+  private Collection<ARTElement> getAllARTElementsOnBranch(List<InterpolationTreeNode> branch, InterpolationTree tree) {
 
     if (branch.isEmpty()){
       return Collections.emptySet();
@@ -916,7 +917,26 @@ public class RGLocationRefinementManager implements StatisticsProvider{
         Map<Integer, RGEnvTransition> envMap = node.getAppInfo().envMap;
 
         for (RGEnvTransition et: envMap.values()){
-          allElems.addAll(et.getGeneratingARTElements());
+
+          /* The elements for this env. transiton could have been trimmed out.
+           * Add generating elements only if the last abstraction point for the transition's source
+           * is an ancestor of the node.
+           */
+          ARTElement sourceElem = et.getSourceARTElement();
+          ARTElement laElem = RGCPA.findLastAbstractionARTElement(sourceElem);
+
+          List<InterpolationTreeNode> ancestors = tree.getAncestorsOf(node);
+          InterpolationTreeNode laNode = null;
+          for (InterpolationTreeNode ancestor : ancestors){
+            if (ancestor.getArtElement().equals(laElem)){
+              laNode = ancestor;
+              break;
+            }
+          }
+
+          if (laNode != null){
+            allElems.addAll(et.getGeneratingARTElements());
+          }
         }
       }
     }
