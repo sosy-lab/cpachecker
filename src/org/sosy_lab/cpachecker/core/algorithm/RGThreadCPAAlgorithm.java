@@ -84,8 +84,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   private boolean debug = false;
 
   @Option(description="If true, then change treads after successors for a state were computed.")
-  private boolean changeThread = false;
-
+  private boolean changeThread = true;
 
   public final Stats stats;
   private RunStats runStats;
@@ -149,6 +148,8 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
     final StopOperator stopOperator = cpa.getStopOperator();
     final PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
 
+    int stepCount = 0;
+
     //List<RGEnvTransition> newEnvEdges = environment.getUnappliedEnvEdgesForThread(tid);
 
 
@@ -159,6 +160,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
       stats.countIterations++;
       runStats.countIterations++;
+      stepCount++;
 
       // Pick next element using strategy
       // BFS, DFS or top sort according to the configuration
@@ -179,10 +181,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
       stats.transferTimer.start();
       runStats.transferTimer.start();
-
-      if (aElement.getElementId() == 5344){
-        System.out.println(this.getClass());
-      }
 
       Collection<CFAEdge> edges = getEdgesForElement(aElement, rgPrec);
 
@@ -228,6 +226,9 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
           runStats.countEnvSuccessors++;
         }
 
+
+
+
         logger.log(Level.FINER, "Considering successor of current element");
         logger.log(Level.ALL, "Successor of", element, "\nis", successor);
 
@@ -250,9 +251,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
           printSuccessor(successor, edge);
         }
 
-        if (((ARTElement)successor).getElementId() == 6467){
-          System.out.println(this.getClass());
-        }
 
         if (action == Action.BREAK) {
           // re-add the old element to the waitlist, there may be unhandled
@@ -354,25 +352,29 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
             System.out.println();
           }
 
+          reachedSet.add(successor, successorPrecision);
           // if changeThread is true, then we stop expanding local successor
-          if (changeThread && !byEnvEdge){
-            forcedStop.add(Pair.of(successor, successorPrecision));
-          } else {
-            reachedSet.add(successor, successorPrecision);
-          }
+
         }
 
       }
+
+      if (changeThread && stepCount > 5){
+        return false;
+      }
+
+
 
     }
 
     stats.totalTimer.stop();
     runStats.totalTimer.stop();
-    if (changeThread && !forcedStop.isEmpty()){
+    return true;
+    /*if (changeThread && !forcedStop.isEmpty()){
       return false;
     } else {
       return true;
-    }
+    }*/
 
   }
 

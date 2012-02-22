@@ -205,10 +205,7 @@ public class CPAchecker {
       //RGVariables vars = new RGVariables(cfas);
 
       RGEnvironmentManager environment = new RGEnvironmentManager(pcfa, config, logger);
-
-      RGLocationMapping locMapping = RGLocationMapping.getEmpty(pcfa);
-
-      environment.setLocationMapping(locMapping);
+      RGLocationMapping locMapping = environment.getLocationMapping();
 
       // create a cpa for each thread
       for(int i=0; i<threadNo; i++){

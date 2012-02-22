@@ -86,6 +86,9 @@ public class RGEnvironmentManager implements StatisticsProvider{
   @Option(description="Use caching for generating environmental transitions.")
   private boolean cacheGeneratingEnvTransition = true;
 
+  @Option(description="Use exact locations instead of abstracted location classes.")
+  private boolean preciseLocations = false;
+
   /** Number of threads. */
   private int threadNo;
   /** envPrecision[i] are predicates for generating env. edges from thread i. */
@@ -151,6 +154,12 @@ public class RGEnvironmentManager implements StatisticsProvider{
       candidateToTransitionCache = null;
     }
 
+
+    if (preciseLocations){
+      this.locationMapping = RGLocationMapping.getIndentity(pcfa);
+    } else {
+      this.locationMapping = RGLocationMapping.getEmpty(pcfa);
+    }
   }
 
   public int getThreadNo() {

@@ -35,10 +35,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGSimpleTransition;
@@ -88,13 +86,13 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
     Region absReg = abs.asRegion();
     PathFormula pf = cand.getRgElement().getPathFormula();
 
-    ARTElement laElement = RGCPA.findLastAbstractionARTElement(cand.getElement());
+    /*ARTElement laElement = RGCPA.findLastAbstractionARTElement(cand.getElement());
     if (laElement == null){
       System.out.println(this.getClass());
     }
-    assert laElement != null;
+    assert laElement != null;*/
 
-    return new RGSimpleTransition(absF, absReg, pf, cand.getOperation(), laElement, cand.getSuccessor(), cand.getTid());
+    return new RGSimpleTransition(absF, absReg, pf, cand.getOperation(), cand.getElement(), cand.getSuccessor(), cand.getTid());
   }
 
   @Override

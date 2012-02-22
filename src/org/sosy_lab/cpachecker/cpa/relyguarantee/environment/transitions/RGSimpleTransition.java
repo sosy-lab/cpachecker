@@ -48,8 +48,8 @@ public class RGSimpleTransition implements RGEnvTransition{
   private final PathFormula pf;
   /** The operation */
   private final CFAEdge operation;
-  /** Last ART element that was an abstraction point before the operation was applied.  */
-  private final ARTElement lastAbstractionARTElement;
+  /** ART element where the concrete operation was applied */
+  private final ARTElement sourceARTElement;
   /** ART element created by the concrete operation */
   private final ARTElement targetARTElement;
   /** Source thread's id */
@@ -62,7 +62,7 @@ public class RGSimpleTransition implements RGEnvTransition{
     this.abstractionRegion = abstractionReg;
     this.pf = pf;
     this.operation = operation;
-    this.lastAbstractionARTElement = abstractionARTElem;
+    this.sourceARTElement = abstractionARTElem;
     this.targetARTElement  = targetARTElem;
     this.tid = tid;
 
@@ -71,10 +71,10 @@ public class RGSimpleTransition implements RGEnvTransition{
       reachedTarget = targetARTElement.getMergedWith();
     }
 
-    assert !this.lastAbstractionARTElement.isDestroyed();
+    assert !this.sourceARTElement.isDestroyed();
     assert !reachedTarget.isDestroyed();
 
-    Set<ARTElement> generating = ARTUtils.getAllElementsBetween(lastAbstractionARTElement, reachedTarget);
+    Set<ARTElement> generating = ARTUtils.getAllElementsBetween(sourceARTElement, reachedTarget);
     this.generatingARTElement = ImmutableSet.copyOf(generating);
   }
 
@@ -85,7 +85,7 @@ public class RGSimpleTransition implements RGEnvTransition{
 
   @Override
   public ARTElement getAbstractionElement() {
-    return lastAbstractionARTElement;
+    return sourceARTElement;
   }
 
   @Override
@@ -111,7 +111,7 @@ public class RGSimpleTransition implements RGEnvTransition{
   }
 
   public String toString() {
-    return "st: "+operation.getRawStatement()+", "+abstraction+", "+pf+", "+lastAbstractionARTElement.getLocationClasses()+"->"+targetARTElement.getLocationClasses();
+    return "st: "+operation.getRawStatement()+", "+abstraction+", "+pf+", "+sourceARTElement.getLocationClasses()+"->"+targetARTElement.getLocationClasses();
   }
 
   @Override
@@ -121,7 +121,7 @@ public class RGSimpleTransition implements RGEnvTransition{
 
   @Override
   public ARTElement getSourceARTElement() {
-    return lastAbstractionARTElement;
+    return sourceARTElement;
   }
 
   @Override

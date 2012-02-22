@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -64,6 +65,44 @@ public class RGLocationMapping {
         assert oldValue == null;
       }
     }
+    return new RGLocationMapping(map);
+  }
+
+  /**
+   * Returns location mapping where all nodes that are not global declarations are mapped to their own
+   * class.
+   * @param pcfa
+   * @return
+   */
+  public static RGLocationMapping getIndentity(ParallelCFAS pcfa){
+    Map<CFANode, Integer> map = new HashMap<CFANode, Integer>(100);
+
+    for (ThreadCFA cfa : pcfa){
+      // execution start is also mapped to class 1.
+      Set<CFANode> gdNodes = new HashSet<CFANode>(cfa.getGlobalDeclNodes());
+      gdNodes.add(cfa.getExecutionStart());
+      Set<CFANode> execNodes = new HashSet<CFANode>(cfa.getAllNodes());
+      execNodes.removeAll(gdNodes);
+
+      for (CFANode node : gdNodes){
+        Integer oldValue = map.put(node, 1);
+        if (oldValue != null){
+          assert false;
+        }
+        assert oldValue == null;
+      }
+
+      for (CFANode node : execNodes){
+        assert node.getNodeNumber() != 1;
+        Integer oldValue = map.put(node, node.getNodeNumber());
+        if (oldValue != null){
+          assert false;
+        }
+        assert oldValue == null;
+      }
+    }
+
+
     return new RGLocationMapping(map);
   }
 
