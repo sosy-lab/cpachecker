@@ -90,8 +90,8 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
     }
   }
 
-  private final ExtendedFormulaManager fmgr;
-  private final Solver solver;
+  protected final ExtendedFormulaManager fmgr;
+  protected final Solver solver;
 
   private final Stats stats = new Stats();
 
@@ -114,7 +114,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
     return new ImpactRefiner(config, logger, pCpa, manager, fmgr, impactCpa.getSolver());
   }
 
-  private ImpactRefiner(final Configuration config, final LogManager logger,
+  protected ImpactRefiner(final Configuration config, final LogManager logger,
       final ConfigurableProgramAnalysis pCpa,
       final InterpolationManager<Formula> pInterpolationManager,
       final ExtendedFormulaManager pFmgr, final Solver pSolver) throws InvalidConfigurationException, CPAException {
@@ -189,7 +189,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
 
       Formula stateFormula = getStateFormula(w);
       if (!solver.implies(stateFormula, itp)) {
-        setStateFormula(w, fmgr.makeAnd(stateFormula, itp));
+        addFormulaToState(itp, w);
         removeCoverageOf(w, reached);
         changedElements.add(w);
       }
@@ -304,13 +304,16 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
     }
   }
 
-  private static Formula getStateFormula(ARTElement pARTElement) {
+  protected Formula getStateFormula(ARTElement pARTElement) {
     return AbstractElements.extractElementByType(pARTElement, ImpactAbstractElement.AbstractionElement.class).getStateFormula();
   }
 
-  private static void setStateFormula(ARTElement pARTElement, Formula pFormula) {
-    AbstractElements.extractElementByType(pARTElement, ImpactAbstractElement.AbstractionElement.class).setStateFormula(pFormula);
+  protected void addFormulaToState(Formula f, ARTElement pARTElement) {
+    ImpactAbstractElement.AbstractionElement e = AbstractElements.extractElementByType(pARTElement, ImpactAbstractElement.AbstractionElement.class);
+
+    e.setStateFormula(fmgr.makeAnd(f, e.getStateFormula()));
   }
+
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
