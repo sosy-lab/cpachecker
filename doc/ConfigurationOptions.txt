@@ -466,6 +466,12 @@ cpa.rg.blk.threshold = 0
 # use caching of path formulas
 cpa.rg.blk.useCache = true
 
+# Use caching for generating environmental transitions.
+cpa.rg.cacheGeneratingEnvTransition = true
+
+# Use caching for comparing environmental transitions.
+cpa.rg.cacheLessOrEqual = true
+
 # If true, then change treads after successors for a state were computed.
 cpa.rg.changeThread = true
 
@@ -488,13 +494,17 @@ cpa.rg.interpolation.changesolverontimeout = false
 # Limit of nodes in an interpolation tree (0 - no limit).
 cpa.rg.itpTreeNodeLimit = 0
 
+# Use exact locations instead of abstracted location classes.
+cpa.rg.preciseLocations = false
+
 # refinement will add all discovered predicates to all the locations in the
 # abstract trace
+cpa.rg.refinement.addEnvPredicatesGlobally = true
 cpa.rg.refinement.addPredicatesGlobally = true
 
 # If true, the analysis continues in the previous thread. If false, the first
 # thread is analysed first.
-cpa.rg.refinement.continueThread = false
+cpa.rg.refinement.continueThread = true
 
 # Print debugging info?
 cpa.rg.refinement.debug = false
@@ -520,6 +530,9 @@ cpa.rg.symbolicCoverageCheck = false
 
 # check satisfiability when a target state has been found (should be true)
 cpa.rg.targetStateSatCheck = true
+
+# Use a theorem prover for comparing environmental transitions.
+cpa.rg.useProverForComparing = false
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
