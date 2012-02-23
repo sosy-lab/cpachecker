@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.cpa.impact.ImpactAbstractElement;
 import org.sosy_lab.cpachecker.cpa.impact.ImpactCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -182,9 +183,9 @@ public class McMillanRefiner implements Refiner, StatisticsProvider {
       Set<ARTElement> subtree = root.getSubtree();
       assert subtree.contains(v);
 
+      uncover(subtree, reached);
+
       for (ARTElement removedNode : subtree) {
-        setStateFormula(removedNode, fmgr.makeFalse());
-        removeCoverageOf(removedNode, reached);
         removedNode.removeFromART();
       }
       reached.removeAll(subtree);
@@ -228,11 +229,16 @@ public class McMillanRefiner implements Refiner, StatisticsProvider {
       assert !isCovered(v);
 
       if (covers(v, w, prec)) {
-        removeCoverageOf(v, reached);
         reached.removeOnlyFromWaitlist(v);
 
         Set<ARTElement> subtree = v.getSubtree();
-        subtree.remove(v);
+
+        // first, uncover all necessary states
+
+        uncover(subtree, reached);
+
+        // second, clean subtree of covered element
+        subtree.remove(v); // but no not clean v itself
 
         for (ARTElement childOfV : subtree) {
           // each child of v is now not covered directly anymore
@@ -247,7 +253,7 @@ public class McMillanRefiner implements Refiner, StatisticsProvider {
 
         for (ARTElement childOfV : subtree) {
           // each child of v now doesn't cover anything anymore
-          removeCoverageOf(childOfV, reached);
+          assert childOfV.getCoveredByThis().isEmpty();
         }
 
         assert !reached.getWaitlist().contains(v.getSubtree());
@@ -266,20 +272,35 @@ public class McMillanRefiner implements Refiner, StatisticsProvider {
    * Also adds any now uncovered lead nodes to the waitlist.
    */
   private void removeCoverageOf(ARTElement v, ReachedSet reached) {
-    for (ARTElement coveredByChildOfV : v.clearCoverage()) {
+    for (ARTElement coveredByChildOfV : v.getCoveredByThis()) {
+      uncover(coveredByChildOfV, reached);
+    }
+    assert v.getCoveredByThis().isEmpty();
+  }
 
-      // this is the subtree of elements which now becomes uncovered
-      Set<ARTElement> uncoveredSubTree = coveredByChildOfV.getSubtree();
+  private void uncover(Set<ARTElement> subtree, ReachedSet reached) {
+    Set<ARTElement> coveredStates = ARTUtils.getCoveredBy(subtree);
+    for (ARTElement coveredState : coveredStates) {
+      // uncover each previously covered state
+      uncover(coveredState, reached);
+    }
+    assert ARTUtils.getCoveredBy(subtree).isEmpty() : "Subtree of covered node still covers other elements";
+  }
 
-      for (ARTElement e : uncoveredSubTree) {
-        assert !e.isCovered();
+  private void uncover(ARTElement v, ReachedSet reached) {
+    v.uncover();
 
-        e.setCovering();
+    // this is the subtree of elements which now become uncovered
+    Set<ARTElement> uncoveredSubTree = v.getSubtree();
 
-        if (!e.wasExpanded()) {
-          // its a leaf
-          reached.reAddToWaitlist(e);
-        }
+    for (ARTElement e : uncoveredSubTree) {
+      assert !e.isCovered();
+
+      e.setCovering();
+
+      if (!e.wasExpanded()) {
+        // its a leaf
+        reached.reAddToWaitlist(e);
       }
     }
   }

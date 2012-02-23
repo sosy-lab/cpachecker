@@ -125,6 +125,25 @@ public class ARTUtils {
     return path;
   }
 
+  /**
+   * Get the set of all elements covered by any of the given elements,
+   * i.e., the union of calling {@link ARTElement#getCoveredByThis()} on all
+   * elements.
+   *
+   * However, elements in the given set are never in the returned set.
+   * If you pass in a subtree, this will return exactly the set of covering
+   * edges which enter the subtree.
+   */
+  public static Set<ARTElement> getCoveredBy(Set<ARTElement> elements) {
+    Set<ARTElement> result = new HashSet<ARTElement>();
+    for (ARTElement element : elements) {
+      result.addAll(element.getCoveredByThis());
+    }
+
+    result.removeAll(elements);
+    return result;
+  }
+
   private static String determineColor(ARTElement currentElement)
   {
     String color;
