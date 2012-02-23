@@ -72,7 +72,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
@@ -136,8 +135,6 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   }
 
   private static ExplicitRefiner initialiseExplicitRefiner(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws CPAException, InvalidConfigurationException {
-    MathsatFormulaManager mathsatFormulaManager = null;
-    RegionManager regionManager                 = null;
     ExtendedFormulaManager formulaManager       = null;
     PathFormulaManager pathFormulaManager       = null;
     TheoremProver theoremProver                 = null;
@@ -148,14 +145,13 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     boolean predicateCpaInUse = predicateCpa != null;
     if (predicateCpaInUse) {
-      regionManager         = predicateCpa.getRegionManager();
       formulaManager        = predicateCpa.getFormulaManager();
       pathFormulaManager    = predicateCpa.getPathFormulaManager();
       theoremProver         = predicateCpa.getTheoremProver();
       absManager            = predicateCpa.getPredicateManager();
     } else {
-      mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
-      regionManager         = BDDRegionManager.getInstance();
+      MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
+      RegionManager regionManager                 = BDDRegionManager.getInstance();
       formulaManager        = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
       pathFormulaManager    = new PathFormulaManagerImpl(formulaManager, config, logger);
       theoremProver         = new MathsatTheoremProver(mathsatFormulaManager);
@@ -230,24 +226,13 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   @Override
   protected List<Formula> getFormulasForPath(List<Pair<ARTElement, CFAEdge>> path, ARTElement initialElement) throws CPATransferException {
 
-    ExplicitCPA explicitCPA = this.getArtCpa().retrieveWrappedCpa(ExplicitCPA.class);
-
-    CtoFormulaConverter converter = null;
-
-    try {
-      converter = new CtoFormulaConverter(explicitCPA.getConfiguration(), fmgr, logger);
-    }
-    catch(InvalidConfigurationException e) {
-      System.out.println("error when configuring CtoFormulaConverter");
-    }
-
     PathFormula currentPathFormula = pathFormulaManager.makeEmptyPathFormula();
 
     List<Formula> formulas = new ArrayList<Formula>(path.size());
 
     // iterate over edges (not nodes)
     for (Pair<ARTElement, CFAEdge> pathElement : path) {
-      currentPathFormula = converter.makeAnd(currentPathFormula, pathElement.getSecond());
+      currentPathFormula = pathFormulaManager.makeAnd(currentPathFormula, pathElement.getSecond());
 
       formulas.add(currentPathFormula.getFormula());
 

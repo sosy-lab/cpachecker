@@ -461,11 +461,60 @@ public class PredicateAbstractionManager {
   /**
    * Build the symbolic representation (with indexed variables) of a region.
    */
-  public Formula toConcrete(Region pRegion, SSAMap ssa) {
+  private Formula toConcrete(Region pRegion, SSAMap ssa) {
     return fmgr.instantiate(amgr.toConcrete(pRegion), ssa);
   }
 
+  /**
+   * Remove a set of predicates from an abstraction.
+   * @param oldAbstraction The abstraction to start from.
+   * @param removePredicates The predicate to remove.
+   * @param ssaMap The SSAMap to use for instantiating the new abstraction.
+   * @return A new abstraction similar to the old one without the predicates.
+   */
+  public AbstractionFormula reduce(AbstractionFormula oldAbstraction,
+      Collection<AbstractionPredicate> removePredicates, SSAMap ssaMap) {
+    RegionManager rmgr = amgr.getRegionManager();
 
+    Region newRegion = oldAbstraction.asRegion();
+    for (AbstractionPredicate predicate : removePredicates) {
+      newRegion = rmgr.makeExists(newRegion, predicate.getAbstractVariable());
+    }
+
+    Formula newFormula = toConcrete(newRegion, ssaMap);
+
+    AbstractionFormula newAbstraction =
+          new AbstractionFormula(newRegion, newFormula, oldAbstraction.getBlockFormula());
+    return newAbstraction;
+  }
+
+  /**
+   * Extend an abstraction by a set of predicates.
+   * @param reducedAbstraction The abstraction to extend.
+   * @param sourceAbstraction The abstraction where to take the predicates from.
+   * @param relevantPredicates The predicates to add.
+   * @param newSSA The SSAMap to use for instantiating the new abstraction.
+   * @return A new abstraction similar to the old one with some more predicates.
+   */
+  public AbstractionFormula expand(AbstractionFormula reducedAbstraction, AbstractionFormula sourceAbstraction,
+      Collection<AbstractionPredicate> relevantPredicates, SSAMap newSSA) {
+    RegionManager rmgr = amgr.getRegionManager();
+
+    Region removedInformationRegion = sourceAbstraction.asRegion();
+    for (AbstractionPredicate predicate : relevantPredicates) {
+      removedInformationRegion = rmgr.makeExists(removedInformationRegion,
+                                                 predicate.getAbstractVariable());
+    }
+
+    Region expandedRegion = rmgr.makeAnd(reducedAbstraction.asRegion(), removedInformationRegion);
+
+    Formula newFormula = toConcrete(expandedRegion, newSSA);
+    Formula blockFormula = reducedAbstraction.getBlockFormula();
+
+    AbstractionFormula newAbstractionFormula =
+        new AbstractionFormula(expandedRegion, newFormula, blockFormula);
+    return newAbstractionFormula;
+  }
 
   // delegate methods
 
