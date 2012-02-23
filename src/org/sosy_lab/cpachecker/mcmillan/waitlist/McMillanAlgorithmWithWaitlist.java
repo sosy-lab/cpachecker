@@ -59,6 +59,8 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.UninstantiatingInterpolationManager;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -156,6 +158,12 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
       // build list of path elements in bottom-to-top order and reverse
       List<ARTElement> path = getPathFromRootTo(v);
       path = path.subList(1, path.size()); // skip root element, it has no formula
+      path = ImmutableList.copyOf(Iterables.filter(path, new Predicate<AbstractElement>() {
+          @Override
+          public boolean apply(AbstractElement pInput) {
+            return AbstractElements.extractElementByType(pInput, ImpactAbstractElement.class).isAbstractionElement();
+          }
+        }));
 
       // build list of formulas for edges
       List<Formula> pathFormulas = new ArrayList<Formula>(path.size());
@@ -380,7 +388,6 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
       assert !v.isCovered();
       assert !isCovered(v);
       assert !v.wasExpanded();
-      assert !getStateFormula(v).isFalse();
 
       if (close(v, reached)) {
         continue;
