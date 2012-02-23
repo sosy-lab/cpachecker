@@ -80,16 +80,16 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      out.println("Time for checking whether Itp is new:" + itpCheck);
-      out.println("Time for coverage checks:            " + coverTime);
-      out.println("Time spent by solver for reasoning:  " + solver.solverTime);
-      out.println("Time for ART update:                 " + artUpdate);
+      ImpactRefiner.this.printStatistics(out, pResult, pReached);
+      out.println("  Checking whether itp is new:    " + itpCheck);
+      out.println("  Coverage checks:                " + coverTime);
+      out.println("  Reasoning of solver:            " + solver.solverTime);
+      out.println("  ART update:                     " + artUpdate);
       out.println();
-      out.println("Number of non-new interpolants:     " + (itpCheck.getNumberOfIntervals() - newItpWasAdded));
-      out.println("Number of implication checks:       " + solver.implicationChecks);
-      out.println("  trivial:                          " + solver.trivialImplicationChecks);
-      out.println("  cached:                           " + solver.cachedImplicationChecks);
-      out.println();
+      out.println("Number of non-new interpolants:   " + (itpCheck.getNumberOfIntervals() - newItpWasAdded));
+      out.println("Number of implication checks:     " + solver.implicationChecks);
+      out.println("  trivial:                        " + solver.trivialImplicationChecks);
+      out.println("  cached:                         " + solver.cachedImplicationChecks);
     }
   }
 
