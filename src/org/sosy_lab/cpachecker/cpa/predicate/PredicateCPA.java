@@ -280,10 +280,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     pStatsCollection.add(stats);
   }
 
-  PredicateCPAStatistics getStats() {
-    return stats;
-  }
-
   @Override
   public boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge, Collection<? extends AbstractElement> pSuccessors) throws CPATransferException, InterruptedException {
     return getTransferRelation().areAbstractSuccessors(pElement, pCfaEdge, pSuccessors);

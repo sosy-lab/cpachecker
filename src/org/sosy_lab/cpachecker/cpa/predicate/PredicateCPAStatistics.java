@@ -47,8 +47,6 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
@@ -67,16 +65,11 @@ class PredicateCPAStatistics implements Statistics {
 
     private final PredicateCPA cpa;
     private final BlockOperator blk;
-    private AbstractInterpolationBasedRefiner<?, ?> refiner = null;
 
     public PredicateCPAStatistics(PredicateCPA cpa, BlockOperator blk) throws InvalidConfigurationException {
       this.cpa = cpa;
       this.blk = blk;
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
-    }
-
-    void addRefiner(AbstractInterpolationBasedRefiner<?, ?> ref) {
-      refiner = ref;
     }
 
     @Override
@@ -220,27 +213,7 @@ class PredicateCPAStatistics implements Statistics {
         out.println("  Time for symbolic coverage checks: " + domain.symbolicCoverageCheckTimer);
         smtTime += domain.symbolicCoverageCheckTimer.getSumTime();
       }
-      if (refiner != null && refiner.totalRefinement.getSumTime() > 0) {
-        InterpolationManager.Stats bs = refiner.getStats2();
-
-        out.println("Time for refinement:                 " + refiner.totalRefinement);
-        out.println("  Counterexample analysis:           " + bs.cexAnalysisTimer + " (Max: " + bs.cexAnalysisTimer.printMaxTime() + ", Calls: " + bs.cexAnalysisTimer.getNumberOfIntervals() + ")");
-        if (bs.cexAnalysisGetUsefulBlocksTimer.getMaxTime() != 0) {
-          out.println("    Cex.focusing:                    " + bs.cexAnalysisGetUsefulBlocksTimer + " (Max: " + bs.cexAnalysisGetUsefulBlocksTimer.printMaxTime() + ")");
-        }
-        out.println("    Solving time only:               " + bs.cexAnalysisSolverTimer + " (Max: " + bs.cexAnalysisSolverTimer.printMaxTime() + ", Calls: " + bs.cexAnalysisSolverTimer.getNumberOfIntervals() + ")");
-        smtTime += bs.cexAnalysisSolverTimer.getSumTime();
-        if (bs.interpolantVerificationTimer.getNumberOfIntervals() > 0) {
-          out.println("    Interpolant verification:        " + bs.interpolantVerificationTimer);
-        }
-        if (refiner instanceof PredicateRefiner) {
-          out.println("  Precision update:                  " + ((PredicateRefiner)refiner).precisionUpdate);
-          out.println("  ART update:                        " + ((PredicateRefiner)refiner).artUpdate);
-        }
-        out.println("  Error path post-processing:        " + refiner.errorPathProcessing);
-      }
-
-      out.println("Total time for SMT solver:           " + Timer.formatTime(smtTime));
+      out.println("Total time for SMT solver (w/o itp): " + Timer.formatTime(smtTime));
 
       if(trans.pathFormulaCheckTimer.getNumberOfIntervals() > 0 || trans.abstractionCheckTimer.getNumberOfIntervals() > 0) {
         out.println("Time for abstraction checks:       " + trans.abstractionCheckTimer);

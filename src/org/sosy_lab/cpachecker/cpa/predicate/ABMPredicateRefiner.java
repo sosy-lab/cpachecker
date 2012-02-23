@@ -48,6 +48,8 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.abm.AbstractABMBasedRefiner;
@@ -95,7 +97,7 @@ import com.google.common.collect.Lists;
  *
  * Here ^ means inheritance and -> means reference.
  */
-public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
+public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implements StatisticsProvider {
 
   private final ExtendedPredicateRefiner refiner;
 
@@ -334,5 +336,10 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
       }
       return abstractionFormulas;
     }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    refiner.collectStatistics(pStatsCollection);
   }
 }

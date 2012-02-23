@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,6 +51,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -77,14 +80,25 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 @Options(prefix="cpa.predicate.refinement")
 public abstract class InterpolationManager<I> {
 
-  public static class Stats {
-    public final Timer cexAnalysisTimer = new Timer();
-    public final Timer cexAnalysisSolverTimer = new Timer();
-    public final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
-    public final Timer interpolantVerificationTimer = new Timer();
+  static class Stats {
+    private final Timer cexAnalysisTimer = new Timer();
+    private final Timer cexAnalysisSolverTimer = new Timer();
+    private final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
+    private final Timer interpolantVerificationTimer = new Timer();
+
+    void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+      out.println("  Counterexample analysis:        " + cexAnalysisTimer + " (Max: " + cexAnalysisTimer.printMaxTime() + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
+      if (cexAnalysisGetUsefulBlocksTimer.getMaxTime() != 0) {
+        out.println("    Cex.focusing:                 " + cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.printMaxTime() + ")");
+      }
+      out.println("    Solving time only:            " + cexAnalysisSolverTimer + " (Max: " + cexAnalysisSolverTimer.printMaxTime() + ", Calls: " + cexAnalysisSolverTimer.getNumberOfIntervals() + ")");
+      if (interpolantVerificationTimer.getNumberOfIntervals() > 0) {
+        out.println("    Interpolant verification:     " + interpolantVerificationTimer);
+      }
+    }
   }
 
-  public final Stats refStats;
+  private final Stats stats = new Stats();
 
   protected final LogManager logger;
   protected final ExtendedFormulaManager fmgr;
@@ -155,7 +169,6 @@ public abstract class InterpolationManager<I> {
       LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, InterpolationManager.class);
 
-    refStats = new Stats();
     logger = pLogger;
     fmgr = pFmgr;
     pmgr = pPmgr;
