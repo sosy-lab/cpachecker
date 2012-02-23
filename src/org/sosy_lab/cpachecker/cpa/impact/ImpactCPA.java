@@ -87,11 +87,11 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
     transferRelation = new ImpactTransferRelation(logger, blk, fmgr, pfmgr, solver);
   }
 
-  LogManager getLogManager() {
+  public LogManager getLogManager() {
     return logger;
   }
 
-  Configuration getConfiguration() {
+  public Configuration getConfiguration() {
     return config;
   }
 

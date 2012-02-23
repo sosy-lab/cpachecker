@@ -37,10 +37,10 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -63,18 +63,16 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvider {
+public class McMillanRefiner implements Refiner, StatisticsProvider {
 
   private final LogManager logger;
 
-  private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
 
   private final ExtendedFormulaManager fmgr;
   private final Solver solver;
   private final InterpolationManager<Formula> imgr;
 
-  private final Timer expandTime = new Timer();
   private final Timer refinementTime = new Timer();
   private final Timer coverTime = new Timer();
   private final Timer closeTime = new Timer();
@@ -83,12 +81,11 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
 
     @Override
     public String getName() {
-      return "McMillan's algorithm";
+      return "McMillan Refiner";
     }
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      out.println("Time for expand:                    " + expandTime);
       out.println("Time for refinement:                " + refinementTime);
       out.println("Time for close:                     " + closeTime);
       out.println("  Time for cover:                   " + coverTime);
@@ -101,51 +98,27 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     }
   }
 
-  public McMillanAlgorithmWithWaitlist(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger) throws InvalidConfigurationException, CPAException {
-    logger = pLogger;
+  public static McMillanRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+    return new McMillanRefiner(pCpa);
+  }
+
+  public McMillanRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, CPAException {
     cpa = pCpa;
-    algorithm = pAlgorithm;
 
     ImpactCPA impactCpa = Iterables.getOnlyElement(Iterables.filter(CPAs.asIterable(pCpa), ImpactCPA.class));
 
+    Configuration config = impactCpa.getConfiguration();
+    logger = impactCpa.getLogManager();
     fmgr = impactCpa.getFormulaManager();
     solver = impactCpa.getSolver();
     imgr = new UninstantiatingInterpolationManager(fmgr, impactCpa.getPathFormulaManager(), impactCpa.getTheoremProver(), config, logger);
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    run3(pReachedSet);
-    return true;
-  }
-
-  private void expand(ARTElement v, ReachedSet reached) throws CPAException, InterruptedException {
-    expandTime.start();
-    try {
-      assert v.getChildren().isEmpty() && !isCovered(v);
-      assert !v.wasExpanded();
-      reached.removeOnlyFromWaitlist(v);
-
-      Precision precision = reached.getPrecision(v);
-
-      Collection<? extends AbstractElement> successors = cpa.getTransferRelation().getAbstractSuccessors(v, precision, null);
-
-      for (AbstractElement successor : successors) {
-        reached.add(successor, precision);
-
-        if (close((ARTElement)successor, reached)) {
-          reached.remove(successor);
-          ((ARTElement)successor).removeFromART();
-          continue; // no need to expand
-        }
-
-        if (((ARTElement)successor).isTarget()) {
-          break;
-        }
-      }
-    } finally {
-      expandTime.stop();
-    }
+  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+    ARTElement lastElement = (ARTElement)pReached.getLastElement();
+    assert lastElement.isTarget();
+    return refine(lastElement, pReached);
   }
 
   private boolean refine(final ARTElement v, ReachedSet reached) throws CPAException, InterruptedException {
@@ -334,115 +307,6 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     }
   }
 
-
-  private void dfs(ARTElement v, ReachedSet reached) throws CPAException, InterruptedException {
-    if (close(v, reached)) {
-      return;
-    }
-
-    expand(v, reached);
-
-    for (ARTElement w : v.getChildren()) {
-      if (AbstractElements.isTargetElement(reached.getLastElement())) {
-        return;
-      }
-
-      dfs(w, reached);
-    }
-
-    return;
-  }
-
-  private void unwind(ReachedSet reached) throws CPAException, InterruptedException {
-
-    outer:
-    while (reached.hasWaitingElement()) {
-      ARTElement v = (ARTElement)reached.popFromWaitlist();
-      assert v.getChildren().isEmpty();
-      assert !isCovered(v);
-
-      // close parents of v
-      List<ARTElement> path = getPathFromRootTo(v);
-      path = path.subList(0, path.size()-1); // skip v itself
-      for (ARTElement w : path) {
-        if (close(w, reached)) {
-          continue outer; // v is now covered
-        }
-      }
-
-      dfs(v, reached);
-
-      if (AbstractElements.isTargetElement(reached.getLastElement())) {
-        if (!refine((ARTElement)reached.getLastElement(), reached)) {
-          logger.log(Level.INFO, "Bug found");
-          break outer;
-        }
-      }
-    }
-  }
-
-
-  private void run2(ReachedSet reached) throws CPAException, InterruptedException {
-    while (reached.hasWaitingElement()) {
-      for (AbstractElement e : reached.getWaitlist()) {
-        assert !((ARTElement)e).isCovered();
-        assert !isCovered((ARTElement)e) : reached.size();
-      }
-
-      ARTElement v = (ARTElement)reached.popFromWaitlist();
-      assert !v.isDestroyed();
-      assert v.getChildren().isEmpty();
-      assert !v.isCovered();
-      assert !isCovered(v);
-      assert !v.wasExpanded();
-
-      if (close(v, reached)) {
-        continue;
-      }
-
-      Precision precision = reached.getPrecision(v);
-
-      Collection<? extends AbstractElement> successors = cpa.getTransferRelation().getAbstractSuccessors(v, precision, null);
-
-      for (AbstractElement successor : successors) {
-        boolean stop = cpa.getStopOperator().stop(successor, reached.getReached(successor), precision);
-
-        reached.add(successor, precision);
-
-        if (stop) {
-          reached.removeOnlyFromWaitlist(successor);
-          continue;
-        }
-
-        if (AbstractElements.isTargetElement(successor)) {
-          boolean safe = refine((ARTElement)successor, reached);
-          if (!safe) {
-            logger.log(Level.INFO, "Bug found");
-            return;
-          }
-        }
-
-      }
-      assert v.wasExpanded();
-    }
-  }
-
-  private void run3(ReachedSet reached) throws CPAException, InterruptedException {
-
-    while (reached.hasWaitingElement()) {
-      algorithm.run(reached);
-
-      ARTElement lastElement = (ARTElement)reached.getLastElement();
-      if (lastElement.isTarget()) {
-        boolean safe = refine(lastElement, reached);
-        if (!safe) {
-          logger.log(Level.INFO, "Bug found");
-          return;
-        }
-      }
-    }
-  }
-
   private void addPathFormulasToList(List<ARTElement> path, List<Formula> pathFormulas) throws CPATransferException {
     for (ARTElement w : path) {
       ImpactAbstractElement.AbstractionElement element = AbstractElements.extractElementByType(w, ImpactAbstractElement.AbstractionElement.class);
@@ -507,9 +371,6 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
-    }
     pStatsCollection.add(new Stats());
   }
 }
