@@ -26,12 +26,10 @@ package org.sosy_lab.cpachecker.cpa.art;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -39,7 +37,9 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
 
 public class ARTElement extends AbstractSingleWrapperElement implements Comparable<ARTElement> {
@@ -144,25 +144,37 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     if (destroyed) {
       sb.append("Destroyed ");
     }
+    if (mCoveredBy != null) {
+      sb.append("Covered ");
+    }
     sb.append("ART Element (Id: ");
     sb.append(elementId);
     if (!destroyed) {
       sb.append(", Parents: ");
-      List<Integer> list = new ArrayList<Integer>();
-      for (ARTElement e: parents) {
-        list.add(e.elementId);
-      }
-      sb.append(list);
+      sb.append(elementIdsOf(parents));
       sb.append(", Children: ");
-      list.clear();
-      for (ARTElement e: children) {
-        list.add(e.elementId);
+      sb.append(elementIdsOf(children));
+
+      if (mCoveredBy != null) {
+        sb.append(", Covered by: ");
+        sb.append(mCoveredBy.elementId);
+      } else {
+        sb.append(", Covering: ");
+        sb.append(elementIdsOf(getCoveredByThis()));
       }
-      sb.append(list);
     }
     sb.append(") ");
     sb.append(getWrappedElement());
     return sb.toString();
+  }
+
+  private final Iterable<Integer> elementIdsOf(Iterable<ARTElement> elements) {
+    return Iterables.transform(elements, new Function<ARTElement, Integer>() {
+      @Override
+      public Integer apply(ARTElement pInput) {
+        return pInput.elementId;
+      }
+    });
   }
 
   // TODO check
