@@ -28,18 +28,27 @@ import java.util.Collections;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+@Options(prefix="cpa.art")
 public class ARTStopSep implements StopOperator {
+
+  @Option(description="whether to keep covered states in the reached set as addition to keeping them in the ART")
+  private boolean keepCoveredStatesInReached = false;
 
   private final StopOperator wrappedStop;
   private final LogManager logger;
 
-  public ARTStopSep(StopOperator pWrappedStop, LogManager pLogger) {
+  public ARTStopSep(StopOperator pWrappedStop, LogManager pLogger, Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
     wrappedStop = pWrappedStop;
     logger = pLogger;
   }
@@ -67,6 +76,9 @@ public class ARTStopSep implements StopOperator {
           // merged and covered
           artElement.removeFromART();
           logger.log(Level.FINEST, "Element is covered by the element it was merged into");
+
+          // in this case, return true even if we should keep covered states
+          // because we should anyway not keep merged states
           return true;
 
         } else {
@@ -85,7 +97,8 @@ public class ARTStopSep implements StopOperator {
     for (AbstractElement reachedElement : pReached) {
       ARTElement artReachedElement = (ARTElement)reachedElement;
       if (stop(artElement, artReachedElement, pPrecision)) {
-        return true;
+        // if this option is true, we always return false here on purpose
+        return !keepCoveredStatesInReached;
       }
     }
     return false;
