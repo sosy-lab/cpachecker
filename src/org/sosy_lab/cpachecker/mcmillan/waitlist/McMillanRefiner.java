@@ -39,7 +39,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -125,8 +124,9 @@ public class McMillanRefiner implements Refiner, StatisticsProvider {
   private boolean refine(final ARTElement v, ReachedSet reached) throws CPAException, InterruptedException {
     refinementTime.start();
     try {
+
       assert (v.isTarget() && !getStateFormula(v).isFalse());
-      assert !isCovered(v);
+      assert v.mayCover();
 
       logger.log(Level.FINER, "Refinement on " + v);
 
@@ -193,7 +193,7 @@ public class McMillanRefiner implements Refiner, StatisticsProvider {
       // optimization: instead of closing all ancestors of v,
       // close only those that were strengthened during refine
       for (ARTElement w : changedElements) {
-        if (close(w, reached)) {
+        if (cover(w, reached)) {
           break; // all further elements are covered anyway
         }
       }
@@ -204,31 +204,15 @@ public class McMillanRefiner implements Refiner, StatisticsProvider {
     }
   }
 
-  /**
-   * Check if a ARTElement v may potentially be covered by another ARTElement w.
-   * It checks everything except their state formulas.
-   */
-  private boolean covers(ARTElement v, ARTElement w, Precision prec) throws CPAException {
-    if (  (v != w)
-        && !isCovered(w)
-        && w.isOlderThan(v)
-        && !isAncestorOf(v, w)) {
-
-      cpa.getStopOperator().stop(v, Collections.<AbstractElement>singleton(w), prec);
-      // ignore return value of stop, because it will always be false
-      return v.isCovered();
-
-    } else {
-      return false;
-    }
-  }
-
-  private boolean cover(ARTElement v, ARTElement w, Precision prec, ReachedSet reached) throws CPAException {
+  private boolean cover(ARTElement v, ReachedSet reached) throws CPAException {
     coverTime.start();
     try {
-      assert !isCovered(v);
+      assert v.mayCover();
 
-      if (covers(v, w, prec)) {
+      cpa.getStopOperator().stop(v, reached.getReached(v), reached.getPrecision(v));
+      // ignore return value of stop, because it will always be false
+
+      if (v.isCovered()) {
         reached.removeOnlyFromWaitlist(v);
 
         Set<ARTElement> subtree = v.getSubtree();
@@ -254,6 +238,7 @@ public class McMillanRefiner implements Refiner, StatisticsProvider {
         for (ARTElement childOfV : subtree) {
           // each child of v now doesn't cover anything anymore
           assert childOfV.getCoveredByThis().isEmpty();
+          assert !childOfV.mayCover();
         }
 
         assert !reached.getWaitlist().contains(v.getSubtree());
@@ -305,29 +290,6 @@ public class McMillanRefiner implements Refiner, StatisticsProvider {
     }
   }
 
-  private boolean close(ARTElement v, ReachedSet reached) throws CPAException {
-    closeTime.start();
-    try {
-      if (isCovered(v)) {
-        return true;
-      }
-
-      Precision prec = reached.getPrecision(v);
-      for (AbstractElement ae : reached.getReached(v)) {
-        ARTElement w = (ARTElement)ae;
-
-        if (cover(v, w, prec, reached)) {
-          return true; // v is now covered
-        }
-      }
-
-      return false;
-
-    } finally {
-      closeTime.stop();
-    }
-  }
-
   private void addPathFormulasToList(List<ARTElement> path, List<Formula> pathFormulas) throws CPATransferException {
     for (ARTElement w : path) {
       ImpactAbstractElement.AbstractionElement element = AbstractElements.extractElementByType(w, ImpactAbstractElement.AbstractionElement.class);
@@ -354,40 +316,6 @@ public class McMillanRefiner implements Refiner, StatisticsProvider {
 
   private static void setStateFormula(ARTElement pARTElement, Formula pFormula) {
     AbstractElements.extractElementByType(pARTElement, ImpactAbstractElement.AbstractionElement.class).setStateFormula(pFormula);
-  }
-
-  /**
-   * Checks if the first element is ancestor of the second element.
-   */
-  private static boolean isAncestorOf(ARTElement ancestor, ARTElement v) {
-    if (ancestor == v) {
-      return true;
-    }
-
-    while (!v.getParents().isEmpty()) {
-      v = Iterables.getOnlyElement(v.getParents());
-      if (ancestor == v) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private static boolean isCovered(ARTElement pArtElement) {
-    if (pArtElement.isCovered()) {
-      return true;
-    }
-
-    ARTElement e = pArtElement;
-    while (!e.getParents().isEmpty()) {
-      e = Iterables.getOnlyElement(e.getParents());
-
-      if (e.isCovered()) {
-        return true;
-      }
-    }
-
-    return false;
   }
 
   @Override

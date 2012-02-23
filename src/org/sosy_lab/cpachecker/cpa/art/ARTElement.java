@@ -160,7 +160,7 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     return mergedWith;
   }
 
-  boolean mayCover() {
+  public boolean mayCover() {
     return mayCover && !isCovered();
   }
 

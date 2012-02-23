@@ -111,6 +111,16 @@ public class ARTStopSep implements StopOperator {
     if (!pReachedElement.mayCover()) {
       return false;
     }
+    if (pElement == pReachedElement) {
+      return false;
+    }
+    if (pElement.isOlderThan(pReachedElement)) {
+      // This is never the case in usual predicate abstraction,
+      // but possibly with other algorithms
+      // Checking this also implies that pElement gets not covered by
+      // one of its children (because they are all newer than pElement).
+      return false;
+    }
 
     AbstractElement wrappedElement = pElement.getWrappedElement();
     AbstractElement wrappedReachedElement = pReachedElement.getWrappedElement();
