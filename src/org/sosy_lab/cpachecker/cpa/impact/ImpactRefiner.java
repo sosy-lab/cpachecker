@@ -170,7 +170,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
     assert cex.getPredicatesForRefinement().size() ==  path.size();
 
     List<ARTElement> changedElements = new ArrayList<ARTElement>();
-    ARTElement infeasiblePartOfART = null;
+    ARTElement infeasiblePartOfART = lastElement;
 
     for (Pair<Formula, ARTElement> interpolationPoint : Pair.zipList(cex.getPredicatesForRefinement(), path)) {
       Formula itp = interpolationPoint.getFirst();
@@ -195,7 +195,6 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
       }
     }
 
-    assert infeasiblePartOfART != null;
     Set<ARTElement> infeasibleSubtree = infeasiblePartOfART.getSubtree();
     assert infeasibleSubtree.contains(lastElement);
 
