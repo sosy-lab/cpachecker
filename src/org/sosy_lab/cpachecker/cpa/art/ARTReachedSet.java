@@ -37,8 +37,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
 
@@ -53,7 +51,7 @@ import com.google.common.collect.ImmutableList;
 public class ARTReachedSet {
 
   private final ReachedSet mReached;
-  private final UnmodifiableReachedSet mUnmodifiableReached;
+//  private final UnmodifiableReachedSet mUnmodifiableReached;
   private final ARTCPA mCpa;
 
   public ARTReachedSet(ReachedSet pReached) {
@@ -62,12 +60,12 @@ public class ARTReachedSet {
 
   public ARTReachedSet(ReachedSet pReached, ARTCPA pCpa) {
     mReached = checkNotNull(pReached);
-    mUnmodifiableReached = new UnmodifiableReachedSetWrapper(mReached);
+//    mUnmodifiableReached = new UnmodifiableReachedSetWrapper(mReached);
     mCpa = pCpa;
   }
 
-  public UnmodifiableReachedSet asReachedSet() {
-    return mUnmodifiableReached;
+  public ReachedSet asReachedSet() {
+    return mReached;
   }
 
   /**
@@ -310,7 +308,7 @@ public class ARTReachedSet {
     }
 
     @Override
-    public UnmodifiableReachedSet asReachedSet() {
+    public ReachedSet asReachedSet() {
       return delegate.asReachedSet();
     }
 
