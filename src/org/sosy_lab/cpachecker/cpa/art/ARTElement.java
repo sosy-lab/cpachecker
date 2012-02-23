@@ -161,7 +161,7 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
   }
 
   boolean mayCover() {
-    return mayCover;
+    return mayCover || isCovered();
   }
 
   public void setNotCovering() {
