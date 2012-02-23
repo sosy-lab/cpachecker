@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -155,7 +156,8 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       formulaManager        = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
       pathFormulaManager    = new PathFormulaManagerImpl(formulaManager, config, logger);
       theoremProver         = new MathsatTheoremProver(mathsatFormulaManager);
-      absManager            = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
+      Solver solver         = new Solver(formulaManager, theoremProver);
+      absManager            = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, solver, config, logger);
     }
 
     manager = new PredicateRefinementManager(formulaManager,

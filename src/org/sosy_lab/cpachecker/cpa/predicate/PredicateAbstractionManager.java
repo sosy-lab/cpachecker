@@ -101,6 +101,7 @@ public class PredicateAbstractionManager {
       RegionManager pRmgr,
       ExtendedFormulaManager pFmgr,
       TheoremProver pThmProver,
+      Solver pSolver,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
 
@@ -111,7 +112,7 @@ public class PredicateAbstractionManager {
     fmgr = pFmgr;
     amgr = new AbstractionManager(pRmgr, pFmgr, config, pLogger);
     thmProver = pThmProver;
-    solver = new Solver(fmgr, thmProver);
+    solver = pSolver;
 
     if (useCache) {
       abstractionCache = new HashMap<Pair<Formula, Collection<AbstractionPredicate>>, AbstractionFormula>();

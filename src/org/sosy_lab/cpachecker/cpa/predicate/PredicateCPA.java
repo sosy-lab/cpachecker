@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -117,6 +118,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final ExtendedFormulaManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
   private final TheoremProver theoremProver;
+  private final Solver solver;
   private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
   private final AbstractElement topElement;
@@ -149,8 +151,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
+    solver = new Solver(formulaManager, theoremProver);
 
-    predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
+    predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, solver, config, logger);
     transfer = new PredicateTransferRelation(this, blk);
 
     topElement = PredicateAbstractElement.abstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
@@ -243,6 +246,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   public TheoremProver getTheoremProver() {
     return theoremProver;
+  }
+
+  Solver getSolver() {
+    return solver;
   }
 
   Configuration getConfiguration() {
