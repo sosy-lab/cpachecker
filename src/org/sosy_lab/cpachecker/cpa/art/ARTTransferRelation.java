@@ -53,6 +53,12 @@ public class ARTTransferRelation implements TransferRelation {
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
     ARTElement element = (ARTElement)pElement;
+
+    // covered elements may be in the reached set, but should always be ignored
+    if (element.isCovered()) {
+      return Collections.emptySet();
+    }
+
     element.markExpanded();
 
     AbstractElement wrappedElement = element.getWrappedElement();

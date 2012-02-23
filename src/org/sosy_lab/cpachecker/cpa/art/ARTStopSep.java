@@ -49,6 +49,7 @@ public class ARTStopSep implements StopOperator {
       Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
 
     ARTElement artElement = (ARTElement)pElement;
+    assert !artElement.isCovered();
 
     // First check if we can take a shortcut:
     // If the new element was merged into an existing element,
