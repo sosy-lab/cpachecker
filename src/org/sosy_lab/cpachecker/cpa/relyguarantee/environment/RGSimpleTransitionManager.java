@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -186,6 +187,8 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
 
   @Override
   public boolean isLessOrEqual(RGEnvTransition et1, RGEnvTransition et2) {
+    stats.loeTimer.start();
+
     RGSimpleTransition st1 = (RGSimpleTransition) et1;
     RGSimpleTransition st2 = (RGSimpleTransition) et2;
 
@@ -193,6 +196,7 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
     CFAEdge op2 = st2.getOperation();
 
     if (!op1.equals(op2)){
+      stats.loeTimer.stop();
       return false;
     }
 
@@ -200,6 +204,7 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
     ImmutableList<Integer> locCl2 = et2.getSourceARTElement().getLocationClasses();
 
     if (!locCl1.equals(locCl2)){
+      stats.loeTimer.stop();
       return false;
     }
 
@@ -207,6 +212,7 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
     ImmutableList<Integer> tlocCl2 = et2.getTargetARTElement().getLocationClasses();
 
     if (!tlocCl1.equals(tlocCl2)){
+      stats.loeTimer.stop();
       return false;
     }
 
@@ -216,15 +222,19 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
     Formula f2 = st2.getPathFormula().getFormula();
 
     if (abs1.isFalse() || f1.isFalse() || (abs2.isTrue() && f2.isTrue())){
+      stats.loeTimer.stop();
       return true;
     }
 
     if (f1.isTrue() && f2.isTrue()){
       Region r1 = st1.getAbstractionRegion();
       Region r2 = st2.getAbstractionRegion();
-      return rManager.entails(r1, r2);
+      boolean imp = rManager.entails(r1, r2);
+      stats.loeTimer.stop();
+      return imp;
     }
 
+    stats.loeTimer.stop();
     return false;
 
   }
@@ -271,10 +281,12 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
   public static class Stats implements Statistics {
 
     private int falseByBDD = 0;
+    private final Timer loeTimer = new Timer();
 
     @Override
     public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached) {
       out.println("env. app. falsified by BDD:      " + formatInt(falseByBDD));
+      out.println("time on loe:                     " + loeTimer);
     }
 
     private String formatInt(int val){
