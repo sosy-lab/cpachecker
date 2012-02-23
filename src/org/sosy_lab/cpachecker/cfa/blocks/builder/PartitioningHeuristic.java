@@ -62,7 +62,7 @@ public abstract class PartitioningHeuristic {
       if(shouldBeCached(node)) {
         Set<CFANode> subtree = getBlockForNode(node);
         if(subtree != null) {
-          builder.addBlock(subtree);
+          builder.addBlock(subtree, mainFunction);
         }
       }
 
@@ -75,7 +75,7 @@ public abstract class PartitioningHeuristic {
       }
     }
 
-    return builder.build();
+    return builder.build(mainFunction);
   }
 
   /**

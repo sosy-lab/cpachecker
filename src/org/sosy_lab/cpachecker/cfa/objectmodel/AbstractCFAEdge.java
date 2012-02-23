@@ -57,7 +57,7 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   }
 
   @Override
-  public final String getRawStatement() {
+  public String getRawStatement() {
     return rawStatement;
   }
 

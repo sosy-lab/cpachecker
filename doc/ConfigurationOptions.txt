@@ -219,6 +219,9 @@ cfa.file = "cfa.dot"
 # remove paths from CFA that cannot lead to a error location
 cfa.removeIrrelevantForErrorLocations = false
 
+# combine sequences of simple edges into a single edge
+cfa.useMultiEdges = false
+
 # which model checker to use for verifying counterexamples as a second check
 # Currently CBMC or CPAchecker with a different config can be used.
 counterexample.checker = "CBMC"

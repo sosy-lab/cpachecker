@@ -58,7 +58,7 @@ public class BlockPartitioningBuilder {
     referenceCollector = new ReferencedVariablesCollector(mainFunctionBody);
   }
 
-  public BlockPartitioning build() {
+  public BlockPartitioning build(CFANode mainFunction) {
     //fixpoint iteration to take inner function calls into account for referencedVariables and callNodesMap
     boolean changed = true;
     outer: while(changed) {
@@ -97,17 +97,17 @@ public class BlockPartitioningBuilder {
     for(CFANode key : returnNodesMap.keySet()) {
       blocks.add(new Block(referencedVariablesMap.get(key), callNodesMap.get(key), returnNodesMap.get(key), blockNodesMap.get(key)));
     }
-    return new BlockPartitioning(blocks);
+    return new BlockPartitioning(blocks, mainFunction);
   }
 
   /**
    * @param nodes Nodes from which Block should be created; if the set of nodes contains inner function calls, the called function body should NOT be included
    */
 
-  public void addBlock(Set<CFANode> nodes) {
+  public void addBlock(Set<CFANode> nodes, CFANode mainFunction) {
     Set<ReferencedVariable> referencedVariables = collectReferencedVariables(nodes);
-    Set<CFANode> callNodes = collectCallNodes(nodes);
-    Set<CFANode> returnNodes = collectReturnNodes(nodes);
+    Set<CFANode> callNodes = collectCallNodes(nodes, mainFunction);
+    Set<CFANode> returnNodes = collectReturnNodes(nodes, mainFunction);
     Set<CFAFunctionDefinitionNode> innerFunctionCalls = collectInnerFunctionCalls(nodes);
 
     CFANode registerNode = null;
@@ -138,10 +138,11 @@ public class BlockPartitioningBuilder {
     return result;
   }
 
-  private Set<CFANode> collectCallNodes(Set<CFANode> pNodes) {
+  private Set<CFANode> collectCallNodes(Set<CFANode> pNodes, CFANode mainFunction) {
     Set<CFANode> result = new HashSet<CFANode>();
     for(CFANode node : pNodes) {
-      if(node instanceof CFAFunctionDefinitionNode && node.getFunctionName().equalsIgnoreCase("main")) {
+      if(node instanceof CFAFunctionDefinitionNode &&
+         node.getFunctionName().equalsIgnoreCase(mainFunction.getFunctionName())) {
         //main definition is always a call edge
         result.add(node);
         continue;
@@ -166,10 +167,11 @@ public class BlockPartitioningBuilder {
     return result;
   }
 
-  private Set<CFANode> collectReturnNodes(Set<CFANode> pNodes) {
+  private Set<CFANode> collectReturnNodes(Set<CFANode> pNodes, CFANode mainFunction) {
     Set<CFANode> result = new HashSet<CFANode>();
     for(CFANode node : pNodes) {
-      if(node instanceof CFAFunctionExitNode && node.getFunctionName().equalsIgnoreCase("main")) {
+      if(node instanceof CFAFunctionExitNode &&
+         node.getFunctionName().equalsIgnoreCase(mainFunction.getFunctionName())) {
         //main exit nodes are always return nodes
         result.add(node);
         continue;
