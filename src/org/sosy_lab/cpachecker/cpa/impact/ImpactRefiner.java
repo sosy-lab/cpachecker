@@ -23,134 +23,158 @@
  */
 package org.sosy_lab.cpachecker.cpa.impact;
 
-import static com.google.common.collect.Iterables.skip;
+import static com.google.common.collect.Iterables.*;
 import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
+import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.cpa.impact.ImpactAbstractElement.AbstractionElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.DefaultInterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.UninstantiatingInterpolationManager;
 
 import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.collect.Lists;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
-public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, Pair<ARTElement, CFANode>> {
+public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, ARTElement> implements StatisticsProvider {
 
-  private final FormulaManager fmgr;
+  private class Stats implements Statistics {
+
+    private final Timer refinementTime = new Timer();
+    private final Timer coverTime = new Timer();
+    private final Timer closeTime = new Timer();
+
+    @Override
+    public String getName() {
+      return "Impact Refiner";
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+      out.println("Time for refinement:                " + refinementTime);
+      out.println("Time for close:                     " + closeTime);
+      out.println("  Time for cover:                   " + coverTime);
+      out.println("Time spent by solver for reasoning: " + solver.solverTime);
+      out.println();
+      out.println("Number of implication checks:       " + solver.implicationChecks);
+      out.println("  trivial:                          " + solver.trivialImplicationChecks);
+      out.println("  cached:                           " + solver.cachedImplicationChecks);
+      out.println("Number of refinements:              " + refinementTime.getNumberOfIntervals());
+    }
+  }
+
+  private final ExtendedFormulaManager fmgr;
+  private final Solver solver;
+
+  private final Stats stats = new Stats();
 
   public static ImpactRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
-    if (!(pCpa instanceof WrapperCPA)) {
-      throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
-    }
-
-    ImpactCPA impactCpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(ImpactCPA.class);
+    ImpactCPA impactCpa = getFirst(filter(CPAs.asIterable(pCpa), ImpactCPA.class), null);
     if (impactCpa == null) {
-      throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " needs a PredicateCPA");
+      throw new InvalidConfigurationException(ImpactRefiner.class.getSimpleName() + " needs an ImpactCPA");
     }
 
+    Configuration config = impactCpa.getConfiguration();
     LogManager logger = impactCpa.getLogManager();
-    FormulaManager fmgr = impactCpa.getFormulaManager();
+    ExtendedFormulaManager fmgr = impactCpa.getFormulaManager();
 
-    InterpolationManager<Formula> manager = new DefaultInterpolationManager(impactCpa.getFormulaManager(),
+    InterpolationManager<Formula> manager = new UninstantiatingInterpolationManager(
+                                                  fmgr,
                                                   impactCpa.getPathFormulaManager(),
                                                   impactCpa.getTheoremProver(),
-                                                  impactCpa.getConfiguration(),
-                                                  logger);
+                                                  config, logger);
 
-    ImpactRefiner refiner = new ImpactRefiner(impactCpa.getConfiguration(), logger, pCpa, fmgr, manager);
-    return refiner;
+    return new ImpactRefiner(config, logger, pCpa, manager, fmgr, impactCpa.getSolver());
   }
 
   private ImpactRefiner(final Configuration config, final LogManager logger,
       final ConfigurableProgramAnalysis pCpa,
-      final FormulaManager pFmgr,
-      final InterpolationManager<Formula> pInterpolationManager) throws InvalidConfigurationException, CPAException {
+      final InterpolationManager<Formula> pInterpolationManager,
+      final ExtendedFormulaManager pFmgr, final Solver pSolver) throws InvalidConfigurationException, CPAException {
 
     super(config, logger, pCpa, pInterpolationManager);
 
+    solver = pSolver;
     fmgr = pFmgr;
   }
 
   @Override
-  protected List<Pair<ARTElement, CFANode>> transformPath(Path pPath) {
-    List<Pair<ARTElement, CFANode>> result = Lists.newArrayList();
+  protected List<ARTElement> transformPath(Path pPath) {
+    // filter abstraction elements
 
-    for (ARTElement ae : skip(transform(pPath, Pair.<ARTElement>getProjectionToFirst()), 1)) {
-      ImpactAbstractElement pe = extractElementByType(ae, ImpactAbstractElement.class);
-      if (pe.isAbstractionElement()) {
-        CFANode loc = AbstractElements.extractLocation(ae);
-        result.add(Pair.of(ae, loc));
-      }
-    }
+    List<ARTElement> result = ImmutableList.copyOf(
+        Iterables.filter(
+            Iterables.transform(
+                skip(pPath, 1),
+                Pair.<ARTElement>getProjectionToFirst()),
 
-    assert pPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
+            new Predicate<ARTElement>() {
+                @Override
+                public boolean apply(ARTElement pInput) {
+                  return extractElementByType(pInput, ImpactAbstractElement.class).isAbstractionElement();
+                }
+            }));
+
+    assert pPath.getLast().getFirst() == result.get(result.size()-1);
     return result;
   }
 
-  private static final Function<ImpactAbstractElement, Formula> GET_BLOCK_FORMULA
-                = new Function<ImpactAbstractElement, Formula>() {
-                    @Override
-                    public Formula apply(ImpactAbstractElement e) {
-                      assert e.isAbstractionElement();
-                      return ((ImpactAbstractElement.AbstractionElement)e).getBlockFormula().getFormula();
-                    };
-                  };
-
   @Override
-  protected List<Formula> getFormulasForPath(
-      List<Pair<ARTElement, CFANode>> pPath, ARTElement pInitialElement) {
+  protected List<Formula> getFormulasForPath(List<ARTElement> pPath, ARTElement pInitialElement) {
 
-    List<Formula> formulas = transform(pPath,
-        Functions.compose(
-            GET_BLOCK_FORMULA,
-        Functions.compose(
-            AbstractElements.extractElementByTypeFunction(ImpactAbstractElement.class),
-            Pair.<ARTElement>getProjectionToFirst())));
-
-    return formulas;
+    return transform(pPath,
+        new Function<ARTElement, Formula>() {
+          @Override
+          public Formula apply(ARTElement e) {
+            return extractElementByType(e, ImpactAbstractElement.AbstractionElement.class).getBlockFormula().getFormula();
+          }
+        });
   }
 
   @Override
-  protected void performRefinement(ARTReachedSet pReached,
-      List<Pair<ARTElement, CFANode>> pPath,
-      CounterexampleTraceInfo<Formula> pInfo, boolean pRepeatedCounterexample) throws CPAException {
+  protected void performRefinement(ARTReachedSet pReached, List<ARTElement> path,
+      CounterexampleTraceInfo<Formula> cex, boolean pRepeatedCounterexample) throws CPAException {
 
-    List<Formula> itps = pInfo.getPredicatesForRefinement();
-
-    // target element is not really an interpolation point, exclude it
-    List<Pair<ARTElement, CFANode>> interpolationPoints = pPath.subList(0, pPath.size()-1);
-    assert interpolationPoints.size() == itps.size();
-
-    final ARTElement lastElement = pPath.get(pPath.size()-1).getFirst();
+    ReachedSet reached = pReached.asReachedSet();
+    ARTElement lastElement = path.get(path.size()-1);
     assert lastElement.isTarget();
 
-    // the first element on the path which was discovered to be not reachable
-    // default to the target element
-    ARTElement infeasiblePartOfART = lastElement;
+    path = path.subList(0, path.size()-1); // skip last element, itp is always false there
+    assert cex.getPredicatesForRefinement().size() ==  path.size();
 
-    int i = 0;
-    for (Pair<ARTElement, CFANode> interpolationPoint : interpolationPoints) {
-      Formula itp = itps.get(i++);
+    List<ARTElement> changedElements = new ArrayList<ARTElement>();
+    ARTElement infeasiblePartOfART = null;
+
+    for (Pair<Formula, ARTElement> interpolationPoint : Pair.zipList(cex.getPredicatesForRefinement(), path)) {
+      Formula itp = interpolationPoint.getFirst();
+      ARTElement w = interpolationPoint.getSecond();
 
       if (itp.isTrue()) {
         // do nothing
@@ -158,37 +182,138 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, Pa
       }
 
       if (itp.isFalse()) {
-
         // we have reached the part of the path that is infeasible
-        infeasiblePartOfART = interpolationPoint.getFirst();
+        infeasiblePartOfART = w;
         break;
       }
 
-      ARTElement ae = interpolationPoint.getFirst();
-      ImpactAbstractElement e = extractElementByType(ae, ImpactAbstractElement.class);
-
-      assert e.isAbstractionElement();
-
-      Formula oldAbs = e.getStateFormula();
-      Formula newAbs = fmgr.makeAnd(oldAbs, itp);
-
-      if (!newAbs.equals(oldAbs)) {
-        ((AbstractionElement)e).setStateFormula(newAbs);
-
-        pReached.removeCoverage(ae);
-
-        // TODO not sure why this was here
-//        if (pReached.checkForCoveredBy(ae)) {
-//          // this element is now covered by another element
-//          // the whole subtree has been removed
-//
-//          return;
-//        }
+      Formula stateFormula = getStateFormula(w);
+      if (!solver.implies(stateFormula, itp)) {
+        setStateFormula(w, fmgr.makeAnd(stateFormula, itp));
+        removeCoverageOf(w, reached);
+        changedElements.add(w);
       }
     }
 
-    pReached.replaceWithBottom(infeasiblePartOfART);
+    assert infeasiblePartOfART != null;
+    Set<ARTElement> infeasibleSubtree = infeasiblePartOfART.getSubtree();
+    assert infeasibleSubtree.contains(lastElement);
 
-    assert !pReached.asReachedSet().contains(lastElement);
+    uncover(infeasibleSubtree, reached);
+
+    for (ARTElement removedNode : infeasibleSubtree) {
+      removedNode.removeFromART();
+    }
+    reached.removeAll(infeasibleSubtree);
+
+    // optimization: instead of closing all ancestors of v,
+    // close only those that were strengthened during refine
+    for (ARTElement w : changedElements) {
+      if (cover(w, reached)) {
+        break; // all further elements are covered anyway
+      }
+    }
+
+    assert !reached.contains(lastElement);
+  }
+
+
+  private boolean cover(ARTElement v, ReachedSet reached) throws CPAException {
+    stats.coverTime.start();
+    try {
+      assert v.mayCover();
+
+      getArtCpa().getStopOperator().stop(v, reached.getReached(v), reached.getPrecision(v));
+      // ignore return value of stop, because it will always be false
+
+      if (v.isCovered()) {
+        reached.removeOnlyFromWaitlist(v);
+
+        Set<ARTElement> subtree = v.getSubtree();
+
+        // first, uncover all necessary states
+
+        uncover(subtree, reached);
+
+        // second, clean subtree of covered element
+        subtree.remove(v); // but no not clean v itself
+
+        for (ARTElement childOfV : subtree) {
+          // each child of v is now not covered directly anymore
+          if (childOfV.isCovered()) {
+            childOfV.uncover();
+          }
+
+          reached.removeOnlyFromWaitlist(childOfV);
+
+          childOfV.setNotCovering();
+        }
+
+        for (ARTElement childOfV : subtree) {
+          // each child of v now doesn't cover anything anymore
+          assert childOfV.getCoveredByThis().isEmpty();
+          assert !childOfV.mayCover();
+        }
+
+        assert !reached.getWaitlist().contains(v.getSubtree());
+        return true;
+      }
+      return false;
+
+    } finally {
+      stats.coverTime.stop();
+    }
+  }
+
+  /**
+   * Remove all covering relations from a node so that this node does not cover
+   * any other node anymore.
+   * Also adds any now uncovered lead nodes to the waitlist.
+   */
+  private void removeCoverageOf(ARTElement v, ReachedSet reached) {
+    for (ARTElement coveredByChildOfV : ImmutableList.copyOf(v.getCoveredByThis())) {
+      uncover(coveredByChildOfV, reached);
+    }
+    assert v.getCoveredByThis().isEmpty();
+  }
+
+  private void uncover(Set<ARTElement> subtree, ReachedSet reached) {
+    Set<ARTElement> coveredStates = ARTUtils.getCoveredBy(subtree);
+    for (ARTElement coveredState : coveredStates) {
+      // uncover each previously covered state
+      uncover(coveredState, reached);
+    }
+    assert ARTUtils.getCoveredBy(subtree).isEmpty() : "Subtree of covered node still covers other elements";
+  }
+
+  private void uncover(ARTElement v, ReachedSet reached) {
+    v.uncover();
+
+    // this is the subtree of elements which now become uncovered
+    Set<ARTElement> uncoveredSubTree = v.getSubtree();
+
+    for (ARTElement e : uncoveredSubTree) {
+      assert !e.isCovered();
+
+      e.setCovering();
+
+      if (!e.wasExpanded()) {
+        // its a leaf
+        reached.reAddToWaitlist(e);
+      }
+    }
+  }
+
+  private static Formula getStateFormula(ARTElement pARTElement) {
+    return AbstractElements.extractElementByType(pARTElement, ImpactAbstractElement.AbstractionElement.class).getStateFormula();
+  }
+
+  private static void setStateFormula(ARTElement pARTElement, Formula pFormula) {
+    AbstractElements.extractElementByType(pARTElement, ImpactAbstractElement.AbstractionElement.class).setStateFormula(pFormula);
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 }
