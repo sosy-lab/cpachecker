@@ -67,9 +67,11 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
 
   private class Stats implements Statistics {
 
-    private final Timer refinementTime = new Timer();
+    private int newItpWasAdded = 0;
+
+    private final Timer itpCheck  = new Timer();
     private final Timer coverTime = new Timer();
-    private final Timer closeTime = new Timer();
+    private final Timer artUpdate = new Timer();
 
     @Override
     public String getName() {
@@ -78,15 +80,16 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      out.println("Time for refinement:                " + refinementTime);
-      out.println("Time for close:                     " + closeTime);
-      out.println("  Time for cover:                   " + coverTime);
-      out.println("Time spent by solver for reasoning: " + solver.solverTime);
+      out.println("Time for checking whether Itp is new:" + itpCheck);
+      out.println("Time for coverage checks:            " + coverTime);
+      out.println("Time spent by solver for reasoning:  " + solver.solverTime);
+      out.println("Time for ART update:                 " + artUpdate);
       out.println();
+      out.println("Number of non-new interpolants:     " + (itpCheck.getNumberOfIntervals() - newItpWasAdded));
       out.println("Number of implication checks:       " + solver.implicationChecks);
       out.println("  trivial:                          " + solver.trivialImplicationChecks);
       out.println("  cached:                           " + solver.cachedImplicationChecks);
-      out.println("Number of refinements:              " + refinementTime.getNumberOfIntervals());
+      out.println();
     }
   }
 
@@ -188,11 +191,22 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
       }
 
       Formula stateFormula = getStateFormula(w);
-      if (!solver.implies(stateFormula, itp)) {
+
+      stats.itpCheck.start();
+      boolean isNewItp = !solver.implies(stateFormula, itp);
+      stats.itpCheck.stop();
+
+      if (isNewItp) {
+        stats.newItpWasAdded++;
         addFormulaToState(itp, w);
-        removeCoverageOf(w, reached);
         changedElements.add(w);
       }
+    }
+
+
+    stats.artUpdate.start();
+    for (ARTElement w : changedElements) {
+      removeCoverageOf(w, reached);
     }
 
     Set<ARTElement> infeasibleSubtree = infeasiblePartOfART.getSubtree();
@@ -204,13 +218,19 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
       removedNode.removeFromART();
     }
     reached.removeAll(infeasibleSubtree);
+    stats.artUpdate.stop();
 
     // optimization: instead of closing all ancestors of v,
     // close only those that were strengthened during refine
-    for (ARTElement w : changedElements) {
-      if (cover(w, reached)) {
-        break; // all further elements are covered anyway
+    stats.coverTime.start();
+    try {
+      for (ARTElement w : changedElements) {
+        if (cover(w, reached)) {
+          break; // all further elements are covered anyway
+        }
       }
+    } finally {
+      stats.coverTime.stop();
     }
 
     assert !reached.contains(lastElement);
@@ -218,50 +238,44 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
 
 
   private boolean cover(ARTElement v, ReachedSet reached) throws CPAException {
-    stats.coverTime.start();
-    try {
-      assert v.mayCover();
+    assert v.mayCover();
 
-      getArtCpa().getStopOperator().stop(v, reached.getReached(v), reached.getPrecision(v));
-      // ignore return value of stop, because it will always be false
+    getArtCpa().getStopOperator().stop(v, reached.getReached(v), reached.getPrecision(v));
+    // ignore return value of stop, because it will always be false
 
-      if (v.isCovered()) {
-        reached.removeOnlyFromWaitlist(v);
+    if (v.isCovered()) {
+      reached.removeOnlyFromWaitlist(v);
 
-        Set<ARTElement> subtree = v.getSubtree();
+      Set<ARTElement> subtree = v.getSubtree();
 
-        // first, uncover all necessary states
+      // first, uncover all necessary states
 
-        uncover(subtree, reached);
+      uncover(subtree, reached);
 
-        // second, clean subtree of covered element
-        subtree.remove(v); // but no not clean v itself
+      // second, clean subtree of covered element
+      subtree.remove(v); // but no not clean v itself
 
-        for (ARTElement childOfV : subtree) {
-          // each child of v is now not covered directly anymore
-          if (childOfV.isCovered()) {
-            childOfV.uncover();
-          }
-
-          reached.removeOnlyFromWaitlist(childOfV);
-
-          childOfV.setNotCovering();
+      for (ARTElement childOfV : subtree) {
+        // each child of v is now not covered directly anymore
+        if (childOfV.isCovered()) {
+          childOfV.uncover();
         }
 
-        for (ARTElement childOfV : subtree) {
-          // each child of v now doesn't cover anything anymore
-          assert childOfV.getCoveredByThis().isEmpty();
-          assert !childOfV.mayCover();
-        }
+        reached.removeOnlyFromWaitlist(childOfV);
 
-        assert !reached.getWaitlist().contains(v.getSubtree());
-        return true;
+        childOfV.setNotCovering();
       }
-      return false;
 
-    } finally {
-      stats.coverTime.stop();
+      for (ARTElement childOfV : subtree) {
+        // each child of v now doesn't cover anything anymore
+        assert childOfV.getCoveredByThis().isEmpty();
+        assert !childOfV.mayCover();
+      }
+
+      assert !reached.getWaitlist().contains(v.getSubtree());
+      return true;
     }
+    return false;
   }
 
   /**
