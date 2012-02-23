@@ -272,7 +272,7 @@ public class McMillanRefiner implements Refiner, StatisticsProvider {
    * Also adds any now uncovered lead nodes to the waitlist.
    */
   private void removeCoverageOf(ARTElement v, ReachedSet reached) {
-    for (ARTElement coveredByChildOfV : v.getCoveredByThis()) {
+    for (ARTElement coveredByChildOfV : ImmutableList.copyOf(v.getCoveredByThis())) {
       uncover(coveredByChildOfV, reached);
     }
     assert v.getCoveredByThis().isEmpty();
