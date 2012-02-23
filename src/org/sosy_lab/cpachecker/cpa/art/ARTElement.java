@@ -169,6 +169,11 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     mayCover = false;
   }
 
+  public void setCovering() {
+    assert !destroyed : "Don't use destroyed ARTElements!";
+    mayCover = true;
+  }
+
   public boolean wasExpanded() {
     return wasExpanded;
   }

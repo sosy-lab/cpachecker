@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.UninstantiatingInterpolationManager;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -241,26 +240,28 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
 
       if (covers(v, w, prec)) {
         removeCoverageOf(v, reached);
+        reached.removeOnlyFromWaitlist(v);
 
         Set<ARTElement> subtree = v.getSubtree();
         subtree.remove(v);
 
         for (ARTElement childOfV : subtree) {
-          // each child of v now doesn't cover anything anymore
-          removeCoverageOf(childOfV, reached);
-
           // each child of v is now not covered directly anymore
           if (childOfV.isCovered()) {
             childOfV.uncover();
           }
+
+          reached.removeOnlyFromWaitlist(childOfV);
+
+          childOfV.setNotCovering();
         }
 
-        // now remove all of them from the waitlist
-        // this has to be done after cleaning the coverage relations
-        reached.removeOnlyFromWaitlist(v);
-        for (ARTElement child : v.getSubtree()) {
-          reached.removeOnlyFromWaitlist(child);
+        for (ARTElement childOfV : subtree) {
+          // each child of v now doesn't cover anything anymore
+          removeCoverageOf(childOfV, reached);
         }
+
+        assert !reached.getWaitlist().contains(v.getSubtree());
         return true;
       }
       return false;
@@ -277,20 +278,21 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
    */
   private void removeCoverageOf(ARTElement v, ReachedSet reached) {
     for (ARTElement coveredByChildOfV : v.clearCoverage()) {
-      for (ARTElement leaf : findLeafChildrenOf(coveredByChildOfV)) {
-        reached.reAddToWaitlist(leaf);
+
+      // this is the subtree of elements which now becomes uncovered
+      Set<ARTElement> uncoveredSubTree = coveredByChildOfV.getSubtree();
+
+      for (ARTElement e : uncoveredSubTree) {
+        assert !e.isCovered();
+
+        e.setCovering();
+
+        if (!e.wasExpanded()) {
+          // its a leaf
+          reached.reAddToWaitlist(e);
+        }
       }
     }
-  }
-
-  private Iterable<ARTElement> findLeafChildrenOf(ARTElement v) {
-    return Iterables.filter(v.getSubtree(), new Predicate<ARTElement>() {
-        @Override
-        public boolean apply(ARTElement pInput) {
-          assert !pInput.isCovered();
-          return !pInput.wasExpanded();
-        }
-      });
   }
 
   private boolean close(ARTElement v, ReachedSet reached) throws CPAException {
@@ -379,6 +381,10 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
       assert !isCovered(v);
       assert !v.wasExpanded();
       assert !getStateFormula(v).isFalse();
+
+      if (close(v, reached)) {
+        continue;
+      }
 
       Precision precision = reached.getPrecision(v);
 
