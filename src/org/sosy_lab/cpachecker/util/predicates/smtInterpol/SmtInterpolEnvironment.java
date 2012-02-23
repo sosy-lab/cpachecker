@@ -24,17 +24,15 @@
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
 import org.sosy_lab.common.Triple;
 
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
@@ -58,28 +56,24 @@ public class SmtInterpolEnvironment implements Script {
   /** the wrapped Script */
   private Script script;
 
+  /** This Set stores declared functions.
+   * It is used to guarantee, that functions are only declared once. */
   private Set<String> declaredFunctions = new HashSet<String>();
 
-  private List<List<Triple<String, Sort[], Sort>>> stack =
-      new ArrayList<List<Triple<String, Sort[], Sort>>>();
-  private List<Triple<String, Sort[], Sort>> currentDeclarations;
-  private int logCounter = 0;
+  /** The stack contains a List of Declarations for each levels on the assertion-stack.
+   * It is used to declare functions again, if stacklevels are popped. */
+  private List<Collection<Triple<String, Sort[], Sort>>> stack =
+      new ArrayList<Collection<Triple<String, Sort[], Sort>>>();
 
+  /** This Collection is the toplevel of the stack. */
+  private Collection<Triple<String, Sort[], Sort>> currentDeclarations;
+
+  /** The constructor sets some options and initializes the logger. */
   public SmtInterpolEnvironment() {
-    Logger logger = Logger.getRootLogger(); // TODO use SosyLAb-Logger
+    Logger logger = Logger.getRootLogger(); // TODO use SosyLab-Logger
     // levels: ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF:
     logger.setLevel(Level.OFF);
     // script = new Benchmark(logger);
-
-    try {
-      FileAppender fileAppender = new FileAppender(
-          new SimpleLayout(),
-          "output/smtinterpol" + (logCounter++) + ".log",
-          false);
-      logger.addAppender(fileAppender);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
 
     try {
       // create a thin wrapper around Benchmark,
@@ -91,7 +85,6 @@ public class SmtInterpolEnvironment implements Script {
     }
 
     try {
-
 //    script.setOption(":produce-assignments", true);
 //    script.setOption(":interactive-mode", true);
 
@@ -148,8 +141,14 @@ public class SmtInterpolEnvironment implements Script {
 
   @Override
   public void declareFun(String fun, Sort[] paramSorts, Sort resultSort) {
+    declareFun(fun, paramSorts, resultSort, true);
+  }
+
+  /** This function declares a function.
+   * It can check, if the function was declared before. */
+  private void declareFun(String fun, Sort[] paramSorts, Sort resultSort, boolean check) {
     String funRepr = functionToString(fun, paramSorts, resultSort);
-    if (!declaredFunctions.contains(funRepr)) {
+    if (check != declaredFunctions.contains(funRepr)) {
       try {
         script.declareFun(fun, paramSorts, resultSort);
         declaredFunctions.add(funRepr);
@@ -193,10 +192,13 @@ public class SmtInterpolEnvironment implements Script {
     }
   }
 
+  /** This function pops levels from the assertion-stack.
+   * It also declares popped functions on the lower level. */
   @Override
   public void pop(int levels) {
     assert stack.size() >= levels : "not enough levels to remove";
     try {
+     // for (int i=0;i<levels;i++) script.pop(1); // for old version of SmtInterpol
       script.pop(levels);
     } catch (SMTLIBException e) {
       e.printStackTrace();
@@ -209,13 +211,13 @@ public class SmtInterpolEnvironment implements Script {
     }
 
     for (int i = 0; i < levels; i++) {
-      final List<Triple<String, Sort[], Sort>> topDecl = stack.remove(stack.size() - 1);
+      final Collection<Triple<String, Sort[], Sort>> topDecl = stack.remove(stack.size() - 1);
 
       for (Triple<String, Sort[], Sort> function : topDecl) {
         final String fun = function.getFirst();
         final Sort[] paramSorts = function.getSecond();
         final Sort resultSort = function.getThird();
-        declareFun(fun, paramSorts, resultSort);
+        declareFun(fun, paramSorts, resultSort, false);
       }
     }
   }
