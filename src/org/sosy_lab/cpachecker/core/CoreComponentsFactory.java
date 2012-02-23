@@ -129,17 +129,15 @@ class CoreComponentsFactory {
       }
       algorithm = new McMillanAlgorithm(config, logger, cpa);
 
-    } else if (useMcMillanWithWaitlist) {
-      if (useMcMillan) {
-        throw new InvalidConfigurationException("Cannot use both implementations of McMillan's algorithm");
-      }
-      algorithm = new McMillanAlgorithmWithWaitlist(config, logger, cpa);
-
     } else {
       algorithm = new CPAAlgorithm(cpa, logger);
 
       if (useRefinement) {
         algorithm = new CEGARAlgorithm(algorithm, cpa, config, logger);
+      }
+
+      if (useMcMillanWithWaitlist) {
+        algorithm = new McMillanAlgorithmWithWaitlist(algorithm, cpa, config, logger);
       }
 
       if (useBMC) {

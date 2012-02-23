@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.impact.ImpactAbstractElement;
 import org.sosy_lab.cpachecker.cpa.impact.ImpactCPA;
@@ -68,7 +67,8 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
 
   private final LogManager logger;
 
-  private final ARTCPA cpa;
+  private final Algorithm algorithm;
+  private final ConfigurableProgramAnalysis cpa;
 
   private final ExtendedFormulaManager fmgr;
   private final Solver solver;
@@ -101,9 +101,10 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
     }
   }
 
-  public McMillanAlgorithmWithWaitlist(Configuration config, LogManager pLogger, ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, CPAException {
+  public McMillanAlgorithmWithWaitlist(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger) throws InvalidConfigurationException, CPAException {
     logger = pLogger;
-    cpa = (ARTCPA)pCpa;
+    cpa = pCpa;
+    algorithm = pAlgorithm;
 
     ImpactCPA impactCpa = Iterables.getOnlyElement(Iterables.filter(CPAs.asIterable(pCpa), ImpactCPA.class));
 
@@ -114,7 +115,7 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
 
   @Override
   public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    run2(pReachedSet);
+    run3(pReachedSet);
     return true;
   }
 
@@ -234,11 +235,18 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
    * It checks everything except their state formulas.
    */
   private boolean covers(ARTElement v, ARTElement w, Precision prec) throws CPAException {
-    return (v != w)
+    if (  (v != w)
         && !isCovered(w)
         && w.isOlderThan(v)
-        && !isAncestorOf(v, w)
-        && cpa.getStopOperator().stop(v, Collections.<AbstractElement>singleton(w), prec);
+        && !isAncestorOf(v, w)) {
+
+      cpa.getStopOperator().stop(v, Collections.<AbstractElement>singleton(w), prec);
+      // ignore return value of stop, because it will always be false
+      return v.isCovered();
+
+    } else {
+      return false;
+    }
   }
 
   private boolean cover(ARTElement v, ARTElement w, Precision prec, ReachedSet reached) throws CPAException {
@@ -375,7 +383,6 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
 
 
   private void run2(ReachedSet reached) throws CPAException, InterruptedException {
-
     while (reached.hasWaitingElement()) {
       for (AbstractElement e : reached.getWaitlist()) {
         assert !((ARTElement)e).isCovered();
@@ -417,6 +424,22 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
 
       }
       assert v.wasExpanded();
+    }
+  }
+
+  private void run3(ReachedSet reached) throws CPAException, InterruptedException {
+
+    while (reached.hasWaitingElement()) {
+      algorithm.run(reached);
+
+      ARTElement lastElement = (ARTElement)reached.getLastElement();
+      if (lastElement.isTarget()) {
+        boolean safe = refine(lastElement, reached);
+        if (!safe) {
+          logger.log(Level.INFO, "Bug found");
+          return;
+        }
+      }
     }
   }
 
@@ -484,6 +507,9 @@ public class McMillanAlgorithmWithWaitlist implements Algorithm, StatisticsProvi
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
+    }
     pStatsCollection.add(new Stats());
   }
 }
