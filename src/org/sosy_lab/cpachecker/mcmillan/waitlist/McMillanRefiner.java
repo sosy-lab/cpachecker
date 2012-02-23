@@ -131,7 +131,7 @@ public class McMillanRefiner implements Refiner, StatisticsProvider {
       logger.log(Level.FINER, "Refinement on " + v);
 
       // build list of path elements in bottom-to-top order and reverse
-      List<ARTElement> path = getPathFromRootTo(v);
+      List<ARTElement> path = Lists.transform(ARTUtils.getOnePathTo(v), Pair.<ARTElement>getProjectionToFirst());
       path = path.subList(1, path.size()); // skip root element, it has no formula
       path = ImmutableList.copyOf(Iterables.filter(path, new Predicate<AbstractElement>() {
           @Override
@@ -295,19 +295,6 @@ public class McMillanRefiner implements Refiner, StatisticsProvider {
       ImpactAbstractElement.AbstractionElement element = AbstractElements.extractElementByType(w, ImpactAbstractElement.AbstractionElement.class);
       pathFormulas.add(element.getBlockFormula().getFormula());
     }
-  }
-
-  private static List<ARTElement> getPathFromRootTo(ARTElement v) {
-    List<ARTElement> path = new ArrayList<ARTElement>();
-
-    ARTElement w = v;
-    while (!w.getParents().isEmpty()) {
-      path.add(w);
-      w = Iterables.getOnlyElement(w.getParents());
-    }
-    path.add(w); // root element
-
-    return Lists.reverse(path);
   }
 
   private static Formula getStateFormula(ARTElement pARTElement) {
