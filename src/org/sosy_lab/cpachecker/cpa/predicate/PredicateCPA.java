@@ -114,7 +114,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicatePrecisionAdjustment prec;
   private final StopOperator stop;
   private final PredicatePrecision initialPrecision;
-  private final RegionManager regionManager;
   private final ExtendedFormulaManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
   private final TheoremProver theoremProver;
@@ -133,7 +132,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       blk.setExplicitAbstractionNodes(blockComputer.computeAbstractionNodes(cfa));
     }
 
-    regionManager = BDDRegionManager.getInstance();
+    RegionManager regionManager = BDDRegionManager.getInstance();
     MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
     formulaManager = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
 
@@ -228,10 +227,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Override
   public StopOperator getStopOperator() {
     return stop;
-  }
-
-  public RegionManager getRegionManager() {
-    return regionManager;
   }
 
   public PredicateAbstractionManager getPredicateManager() {
