@@ -92,11 +92,11 @@ public class RGAbstractionManager implements StatisticsProvider {
   @Option(name="abstraction.useCache", description="use caching of abstractions")
   private boolean useCache = true;
 
-  private final Map<Pair<PathFormula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
+  private final Map<Pair<Formula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
   // 1: predicate is true
-  private final Map<Pair<PathFormula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
+  private final Map<Pair<Formula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
   private final Map<Formula, Boolean> feasibilityCache;
 
   private Map<Triple<PathFormula, PathFormula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionNextValueCache;
@@ -120,13 +120,13 @@ public class RGAbstractionManager implements StatisticsProvider {
     thmProver = pThmProver;
 
     if (useCache) {
-      abstractionCache = new HashMap<Pair<PathFormula, Collection<AbstractionPredicate>>, AbstractionFormula>();
+      abstractionCache = new HashMap<Pair<Formula, Collection<AbstractionPredicate>>, AbstractionFormula>();
       abstractionNextValueCache = new HashMap<Triple<PathFormula, PathFormula, Collection<AbstractionPredicate>>, AbstractionFormula>();
     } else {
       abstractionCache = null;
     }
     if (useCache && cartesianAbstraction) {
-      cartesianAbstractionCache = new HashMap<Pair<PathFormula, AbstractionPredicate>, Byte>();
+      cartesianAbstractionCache = new HashMap<Pair<Formula, AbstractionPredicate>, Byte>();
       feasibilityCache = new HashMap<Formula, Boolean>();
     } else {
       cartesianAbstractionCache = null;
@@ -159,9 +159,9 @@ public class RGAbstractionManager implements StatisticsProvider {
     PathFormula pf = new PathFormula(f, pathFormula.getSsa(), pathFormula.getLength());
 
     // caching
-    Pair<PathFormula, Collection<AbstractionPredicate>> absKey = null;
+    Pair<Formula, Collection<AbstractionPredicate>> absKey = null;
     if (useCache) {
-      absKey = Pair.of(pf, predicates);
+      absKey = Pair.of(pf.getFormula(), predicates);
       AbstractionFormula result = abstractionCache.get(absKey);
 
       if (result != null) {
@@ -285,7 +285,7 @@ public class RGAbstractionManager implements StatisticsProvider {
         // check whether each of the predicate is implied in the next state...
 
         for (AbstractionPredicate p : predicates) {
-          Pair<PathFormula, AbstractionPredicate> cacheKey = Pair.of(pf, p);
+          Pair<Formula, AbstractionPredicate> cacheKey = Pair.of(f, p);
           if (useCache && cartesianAbstractionCache.containsKey(cacheKey)) {
             byte predVal = cartesianAbstractionCache.get(cacheKey);
 
@@ -380,7 +380,7 @@ public class RGAbstractionManager implements StatisticsProvider {
               "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
 
           // instantiate the definition of the predicate
-          Formula predTrue = fmgr.instantiateNextValue(p.getSymbolicAtom(), lowPf.getSsa(), hiPf.getSsa());
+          Formula predTrue = fmgr.instantiateNextValue(p.getSymbolicAtom(), lowPf.getSsa(), hiPf.getSsa(), false);
           Formula predFalse = fmgr.makeNot(predTrue);
 
           // check whether this predicate has a truth value in the next
@@ -499,7 +499,7 @@ public class RGAbstractionManager implements StatisticsProvider {
         continue;
       }
       //def = fmgr.instantiate(def, ssa);
-      def = fmgr.instantiateNextValue(def, oldAbsPf.getSsa(), newAbsPf.getSsa());
+      def = fmgr.instantiateNextValue(def, oldAbsPf.getSsa(), newAbsPf.getSsa(), false);
 
       // build the formula (var <-> def) and add it to the list of definitions
       Formula equiv = fmgr.makeEquivalence(var, def);

@@ -413,7 +413,7 @@ class PredicateAbstractionManager implements StatisticsProvider {
               "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
 
           // instantiate the definition of the predicate
-          Formula predTrue = fmgr.instantiateNextValue(p.getSymbolicAtom(), lowPf.getSsa(), hiPf.getSsa());
+          Formula predTrue = fmgr.instantiateNextValue(p.getSymbolicAtom(), lowPf.getSsa(), hiPf.getSsa(), false);
           Formula predFalse = fmgr.makeNot(predTrue);
 
           // check whether this predicate has a truth value in the next
@@ -541,7 +541,7 @@ class PredicateAbstractionManager implements StatisticsProvider {
         continue;
       }
       //def = fmgr.instantiate(def, ssa);
-      def = fmgr.instantiateNextValue(def, oldAbsPf.getSsa(), newAbsPf.getSsa());
+      def = fmgr.instantiateNextValue(def, oldAbsPf.getSsa(), newAbsPf.getSsa(), false);
 
       // build the formula (var <-> def) and add it to the list of definitions
       Formula equiv = fmgr.makeEquivalence(var, def);

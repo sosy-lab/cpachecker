@@ -130,8 +130,12 @@ public class RGTransferRelation  implements TransferRelation {
   private ThreadCFA cfa;
 
 
-  /** Unique number for env. applications in this thread */
-  private int uniqueId;
+  /** Unique number for refinement formulas - it's needed to distinguish env. applications */
+  private int uniqueIdRef;
+  /** Primed number to rename apart the environmental part of env. application. The same number makes
+   * caching more efficient.
+   */
+  private final int idAbs = 1;
 
   public RGTransferRelation(RGCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this, RGTransferRelation.class);
@@ -144,7 +148,7 @@ public class RGTransferRelation  implements TransferRelation {
     aManager = AbstractionManagerImpl.getInstance(rManager, fManager, pfManager, cpa.getConfiguration(), logger);
     ssaManager = pCpa.ssaManager;
     etManager = pCpa.etManager;
-    uniqueId = 1;
+    uniqueIdRef = idAbs+1;
   }
 
   @Override
@@ -330,7 +334,7 @@ public class RGTransferRelation  implements TransferRelation {
     assert appInfo != null;
 
     // get abstraction & refinement formulas
-    PathFormula appPf = etManager.formulaForAbstraction(element, rgEdge.getRgEnvTransition(), uniqueId);
+    PathFormula appPf = etManager.formulaForAbstraction(element, rgEdge.getRgEnvTransition(), idAbs);
 
     PathFormula refPf = null;
     if (appPf.getFormula().isFalse()){
@@ -339,15 +343,15 @@ public class RGTransferRelation  implements TransferRelation {
       // TODO somehow using unique instead of 1 makes bakery.simple not stop
       refPf = etManager.formulaForRefinement(element, rgEdge.getRgEnvTransition(), 1);
       Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(1);
-      rMap.put(1, uniqueId);
+      rMap.put(1, uniqueIdRef);
       refPf = pfManager.changePrimedNo(refPf, rMap);
     }
 
     // remember the application
-    appInfo.putEnvApplication(uniqueId, rgEdge.getRgEnvTransition());
+    appInfo.putEnvApplication(uniqueIdRef, rgEdge.getRgEnvTransition());
 
     // increment unique number
-    uniqueId++;
+    uniqueIdRef++;
 
     return Pair.of(appPf, refPf);
   }

@@ -84,7 +84,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   private boolean debug = false;
 
   @Option(description="If true, then change treads after successors for a state were computed.")
-  private boolean changeThread = true;
+  private boolean changeThread = false;
 
   public final Stats stats;
   private RunStats runStats;
@@ -186,6 +186,10 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
       if (debug && edges.isEmpty()){
         System.out.println();
+      }
+
+      if (aElement.getElementId() == 365){
+        System.out.println(this.getClass());
       }
 
       Collection<Pair<AbstractElement,CFAEdge>> successors = new LinkedHashSet<Pair<AbstractElement,CFAEdge>>(edges.size());

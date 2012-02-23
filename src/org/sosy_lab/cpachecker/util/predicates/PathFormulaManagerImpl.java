@@ -150,8 +150,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   }
 
   @Override
-  public PathFormula instantiateNextValue(Formula f, SSAMap low, SSAMap high) {
-    f = fmgr.instantiateNextValue(f, low, high);
+  public PathFormula instantiateNextValue(Formula f, SSAMap low, SSAMap high, boolean createsDummy) {
+    f = fmgr.instantiateNextValue(f, low, high, createsDummy);
     return new PathFormula(f, high, 0);
   }
 

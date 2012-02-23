@@ -275,12 +275,15 @@ public interface FormulaManager {
 
   /**
    * Instantiates plain variables of f to the low SSA map and hashed variables to the high map.
+   * Optionally, a dummy formula will be added for every dummy formula in the high map that was not
+   * instantiated -- this enforces that the indexes of the result match the indexes in the high map.
    * @param f
    * @param low
    * @param high
+   * @param createDummy
    * @return instantiated formula
    */
-  Formula instantiateNextValue(Formula f, SSAMap low, SSAMap high);
+  Formula instantiateNextValue(Formula f, SSAMap oldSsa, SSAMap newSsa, boolean createDummy);
 
     /**
      * Extract atoms from the given formula and uninstantiate them. Variables with SSA index equal to the

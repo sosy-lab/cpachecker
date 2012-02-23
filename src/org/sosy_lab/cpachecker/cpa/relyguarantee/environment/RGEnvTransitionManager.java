@@ -48,7 +48,7 @@ public interface RGEnvTransitionManager {
 
   /**
    * Returns a path formula representing the effect of applying the transition on the element.
-   * The environmental part of the result is primed unique number of times.
+   * If necessary, the environmental part of the result is primed unique number of times.
    * The formula is meant for abstraction.
    * @param pf
    * @param et
@@ -59,7 +59,7 @@ public interface RGEnvTransitionManager {
 
   /**
    * Returns a path formula representing the effect of applying the transition on the element.
-   * The environmental part of the result is primed unique number of times.
+   * If necessary, the environmental part of the result is primed unique number of times.
    * The formula is meant for refinement.
    * @param pf
    * @param et

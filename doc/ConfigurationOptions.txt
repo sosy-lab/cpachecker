@@ -473,7 +473,7 @@ cpa.rg.cacheGeneratingEnvTransition = true
 cpa.rg.cacheLessOrEqual = true
 
 # If true, then change treads after successors for a state were computed.
-cpa.rg.changeThread = true
+cpa.rg.changeThread = false
 
 # always check satisfiability at end of block, even if precision is empty
 cpa.rg.checkBlockFeasibility = true

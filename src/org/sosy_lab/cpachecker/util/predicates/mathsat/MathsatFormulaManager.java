@@ -34,6 +34,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -105,6 +106,8 @@ public class MathsatFormulaManager implements FormulaManager, StatisticsProvider
   public static final String PRIME_SYMBOL   = "^";
   // prefix for "next value" variables
   public static final char NEXTVAL_SYMBOL = '#';
+  // prefxi for dummy variables
+  private static final String dummyPrefix = "__dummy__";
 
   // regural expression that groups proper variable name and the number of primes. Works on uninstantiated variables.
   private static Pattern primeRegex = Pattern.compile("(.+)\\^(\\d+)$");
@@ -125,6 +128,8 @@ public class MathsatFormulaManager implements FormulaManager, StatisticsProvider
 
   public final Stats stats;
   private final SSAMapManager ssaManager;
+
+
   private static MathsatFormulaManager    fManager;
 
   /**
@@ -1153,10 +1158,13 @@ public class MathsatFormulaManager implements FormulaManager, StatisticsProvider
 
 
   @Override
-  public Formula instantiateNextValue(Formula f, SSAMap oldSsa, SSAMap newSsa) {
+  public Formula instantiateNextValue(Formula f, SSAMap oldSsa, SSAMap newSsa, boolean createDummy) {
     stats.instatiateNextValueTimer.start();
     Deque<Formula> toProcess = new ArrayDeque<Formula>();
     Map<Formula, Formula> cache = new HashMap<Formula, Formula>();
+    // variables that haven't been hashed
+    Set<String> unhashedVars = new LinkedHashSet<String>();
+    unhashedVars.addAll(newSsa.allVariables());
 
     toProcess.push(f);
     while (!toProcess.isEmpty()) {
@@ -1175,6 +1183,10 @@ public class MathsatFormulaManager implements FormulaManager, StatisticsProvider
         int idx = uname == null ?  oldSsa.getIndex(name) : newSsa.getIndex(uname);
         // index should be at least 1
         idx = Math.max(idx, 1);
+
+        if (createDummy && uname != null){
+          unhashedVars.remove(uname);
+        }
 
         name = uname == null ? name : uname;
         long newt = buildMsatVariable(makeName(name, idx), msat_term_get_type(t));
@@ -1225,6 +1237,19 @@ public class MathsatFormulaManager implements FormulaManager, StatisticsProvider
     }
 
     Formula result = cache.get(f);
+
+    if (createDummy){
+    // create v@idx= v@idx for every unhashed variable
+      for (String var : unhashedVars){
+        int idx = newSsa.getIndex(var);
+        assert idx >= 1;
+        Formula fvar = makeVariable(var, idx);
+        Formula fdummyvar = makeVariable(dummyPrefix+var, idx);
+        Formula dummy = makeEqual(fdummyvar, fvar);
+        result = makeAnd(result, dummy);
+      }
+    }
+
     assert result != null;
     stats.instatiateNextValueTimer.stop();
     return result;

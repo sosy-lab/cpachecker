@@ -171,7 +171,7 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
     SSAMap highSSA = ssaManager.incrementMap(lowSSA, nlVars, 1);
 
     // instantiate the filter
-    Formula iFilter = fManager.instantiateNextValue(filter, lowSSA, highSSA);
+    Formula iFilter = fManager.instantiateNextValue(filter, lowSSA, highSSA, true);
     PathFormula appPf = new PathFormula(iFilter, highSSA, 1);
 
     return appPf;

@@ -95,12 +95,15 @@ public interface PathFormulaManager {
 
   /**
    * Instantiates plain variables of f to the low SSA map and hashed variables to the high map.
+   * Optionally, a dummy formula will be added for every dummy formula in the high map that was not
+   * instantiated -- this enforces that the indexes of the result match the indexes in the high map.
    * @param pf
    * @param low
    * @param high
+   * @param createDummy
    * @return instantiated formula
    */
-  PathFormula instantiateNextValue(Formula f, SSAMap low, SSAMap high);
+  PathFormula instantiateNextValue(Formula f, SSAMap low, SSAMap high, boolean createDummy);
 
 
 }

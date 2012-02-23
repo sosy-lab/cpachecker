@@ -187,9 +187,9 @@ public class CachingPathFormulaManager implements PathFormulaManager, Statistics
   }
 
   @Override
-  public PathFormula instantiateNextValue(Formula f, SSAMap low, SSAMap high) {
+  public PathFormula instantiateNextValue(Formula f, SSAMap low, SSAMap high, boolean createsDummy) {
     stats.instantiateNextValueTimer.start();
-    PathFormula result = delegate.instantiateNextValue(f, low, high);
+    PathFormula result = delegate.instantiateNextValue(f, low, high, createsDummy);
     stats.instantiateNextValueTimer.stop();
     return result;
   }
