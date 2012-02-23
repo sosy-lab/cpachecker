@@ -74,7 +74,7 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
   private boolean cacheLessOrEqual = true;
 
   @Option(description="Use a theorem prover for comparing environmental transitions.")
-  private boolean useProverForLessOrEqual = false;
+  private boolean useProverForComparing = false;
 
   private final FormulaManager fManager;
   private final PathFormulaManager pfManager;
@@ -257,7 +257,7 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
       return true;
     }
 
-    if (useProverForLessOrEqual){
+    if (useProverForComparing){
       Formula fimpl = fManager.makeAnd(prec1, fManager.makeNot(prec2));
       thmProver.init();
       boolean valid = thmProver.isUnsat(fimpl);

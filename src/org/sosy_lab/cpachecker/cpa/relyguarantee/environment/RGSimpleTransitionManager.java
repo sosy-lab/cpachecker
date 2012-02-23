@@ -30,6 +30,9 @@ import java.util.Map;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -55,7 +58,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.collect.ImmutableList;
 
+@Options(prefix="cpa.rg")
 public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
+
+  @Option(description="Use a theorem prover for comparing environmental transitions.")
+  private boolean useProverForComparing = false;
 
   private final FormulaManager fManager;
   private final PathFormulaManager pfManager;
@@ -66,7 +73,9 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
   private final LogManager logger;
   private final Stats stats;
 
-  public RGSimpleTransitionManager(FormulaManager pFManager, PathFormulaManager pPfManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver, RegionManager pRManager, ParallelCFAS pPcfa, Configuration pConfig, LogManager pLogger) {
+  public RGSimpleTransitionManager(FormulaManager pFManager, PathFormulaManager pPfManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver, RegionManager pRManager, ParallelCFAS pPcfa, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+    pConfig.inject(this, RGSimpleTransitionManager.class);
+
     this.fManager = pFManager;
     this.pfManager = pPfManager;
     this.absManager = absManager;
@@ -210,7 +219,14 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
       return true;
     }
 
+    if (f1.isTrue() && f2.isTrue()){
+      Region r1 = st1.getAbstractionRegion();
+      Region r2 = st2.getAbstractionRegion();
+      return rManager.entails(r1, r2);
+    }
+
     return false;
+
   }
 
   @Override
@@ -224,13 +240,16 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
       return true;
     }
 
-    f = fManager.makeAnd(f, fAbs);
+    if (this.useProverForComparing){
+      f = fManager.makeAnd(f, fAbs);
 
-    thmProver.init();
-    boolean unsat = thmProver.isUnsat(fAbs);
-    thmProver.reset();
+      thmProver.init();
+      boolean unsat = thmProver.isUnsat(fAbs);
+      thmProver.reset();
+      return unsat;
+    }
 
-    return unsat;
+    return false;
   }
 
   @Override
