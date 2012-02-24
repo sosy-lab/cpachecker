@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -51,7 +52,6 @@ class Vertex extends AbstractSingleWrapperElement {
   private final List<Vertex> children = new ArrayList<Vertex>(2);
 
   private Formula stateFormula;
-  private final CFAEdge edge; // the edge to the predecessor
 
   private Vertex coveredBy = null;
   private List<Vertex> coveredNodes = new ArrayList<Vertex>(0);
@@ -61,15 +61,13 @@ class Vertex extends AbstractSingleWrapperElement {
     parent = null;
     assert pStateFormula.isTrue();
     stateFormula = pStateFormula;
-    edge = null;
   }
 
-  public Vertex(Vertex pParent, Formula pStateFormula, CFAEdge pEdge, AbstractElement pElement) {
+  public Vertex(Vertex pParent, Formula pStateFormula, AbstractElement pElement) {
     super(pElement);
     parent = checkNotNull(pParent);
     parent.children.add(this);
     stateFormula = checkNotNull(pStateFormula);
-    edge = checkNotNull(pEdge);
   }
 
 
@@ -78,7 +76,9 @@ class Vertex extends AbstractSingleWrapperElement {
   }
 
   public CFAEdge getIncomingEdge() {
-    return edge;
+    CFANode thisLocation = AbstractElements.extractLocation(getWrappedElement());
+    CFANode parentLocation = AbstractElements.extractLocation(parent.getWrappedElement());
+    return parentLocation.getEdgeTo(thisLocation);
   }
 
   public void setCoveredBy(Vertex pCoveredBy) {

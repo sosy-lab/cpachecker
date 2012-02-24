@@ -167,12 +167,12 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
         if (successors.isEmpty()) {
           // edge not feasible
           // create fake vertex
-          new Vertex(v, fmgr.makeFalse(), edge, null);
+          new Vertex(v, fmgr.makeFalse(), null);
           continue;
         }
         assert successors.size() == 1;
 
-        Vertex w = new Vertex(v, fmgr.makeTrue(), edge, Iterables.getOnlyElement(successors));
+        Vertex w = new Vertex(v, fmgr.makeTrue(), Iterables.getOnlyElement(successors));
         reached.add(w, precision);
         reached.popFromWaitlist(); // we don't use the waitlist
       }
