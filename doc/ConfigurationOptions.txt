@@ -445,6 +445,10 @@ cpa.predicate.abstraction.initialPredicates = no default value
 cpa.predicate.abstraction.solver = "MATHSAT"
   allowed values: [MATHSAT, YICES]
 
+# What to use for storing abstractions
+cpa.predicate.abstraction.type = "BDD"
+  allowed values: [BDD, FORMULA]
+
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
 cpa.predicate.blk.alwaysAfterThreshold = true

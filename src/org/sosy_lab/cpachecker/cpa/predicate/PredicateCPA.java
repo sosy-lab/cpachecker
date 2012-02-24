@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -87,6 +88,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Option(name="abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"},
       description="which solver to use?")
   private String whichProver = "MATHSAT";
+
+  @Option(name="abstraction.type", toUppercase=true, values={"BDD", "FORMULA"},
+      description="What to use for storing abstractions")
+  private String abstractionType = "BDD";
 
   @Option(name="abstraction.initialPredicates",
       description="get an initial set of predicates from a file in MSAT format")
@@ -120,7 +125,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final Solver solver;
   private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
-  private final AbstractElement topElement;
+  private final PredicateAbstractElement topElement;
 
   protected PredicateCPA(Configuration config, LogManager logger, BlockOperator blk, CFA cfa) throws InvalidConfigurationException {
     config.inject(this, PredicateCPA.class);
@@ -133,7 +138,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       blk.setExplicitAbstractionNodes(blockComputer.computeAbstractionNodes(cfa));
     }
 
-    RegionManager regionManager = BDDRegionManager.getInstance();
     MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
     formulaManager = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
 
@@ -152,6 +156,14 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       throw new InternalError("Update list of allowed solvers!");
     }
     solver = new Solver(formulaManager, theoremProver);
+
+    RegionManager regionManager;
+    if (abstractionType.equals("FORMULA")) {
+      regionManager = new SymbolicRegionManager(formulaManager, solver);
+    } else {
+      assert abstractionType.equals("BDD");
+      regionManager = BDDRegionManager.getInstance();
+    }
 
     predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, solver, config, logger);
     transfer = new PredicateTransferRelation(this, blk);
@@ -257,7 +269,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public AbstractElement getInitialElement(CFANode node) {
+  public PredicateAbstractElement getInitialElement(CFANode node) {
     return topElement;
   }
 

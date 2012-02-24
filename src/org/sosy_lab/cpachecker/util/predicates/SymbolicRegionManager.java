@@ -21,19 +21,22 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util;
+package org.sosy_lab.cpachecker.util.predicates;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
-
+/**
+ * Adaptor from FormulaManager/Solver to RegionManager in order to use Formulas
+ * as Regions.
+ * This class implements only a minimal set of methods on purpose.
+ */
 public class SymbolicRegionManager implements RegionManager {
 
-  private static class SymbolicRegion implements Region {
+  public static class SymbolicRegion implements Region {
 
     private final Formula f;
 
@@ -52,12 +55,16 @@ public class SymbolicRegionManager implements RegionManager {
     }
   }
 
-  private final FormulaManager fmgr;
   private final Solver solver;
 
-  public SymbolicRegionManager(FormulaManager pFmgr, Solver pSolver) {
-    fmgr = pFmgr;
+  private final SymbolicRegion trueRegion;
+  private final SymbolicRegion falseRegion;
+
+  public SymbolicRegionManager(FormulaManager fmgr, Solver pSolver) {
     solver = pSolver;
+
+    trueRegion = new SymbolicRegion(fmgr.makeTrue());
+    falseRegion = new SymbolicRegion(fmgr.makeFalse());
   }
 
   @Override
@@ -69,33 +76,28 @@ public class SymbolicRegionManager implements RegionManager {
   }
 
   @Override
-  public Region makeTrue() {
-    return new SymbolicRegion(fmgr.makeTrue());
+  public SymbolicRegion makeTrue() {
+    return trueRegion;
   }
 
   @Override
-  public Region makeFalse() {
-    return new SymbolicRegion(fmgr.makeFalse());
+  public SymbolicRegion makeFalse() {
+    return falseRegion;
   }
 
   @Override
   public Region makeNot(Region pF) {
-    SymbolicRegion r = (SymbolicRegion)pF;
-    return new SymbolicRegion(fmgr.makeNot(r.f));
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Region makeAnd(Region pF1, Region pF2) {
-    SymbolicRegion r1 = (SymbolicRegion)pF1;
-    SymbolicRegion r2 = (SymbolicRegion)pF2;
-    return new SymbolicRegion(fmgr.makeAnd(r1.f, r2.f));
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Region makeOr(Region pF1, Region pF2) {
-    SymbolicRegion r1 = (SymbolicRegion)pF1;
-    SymbolicRegion r2 = (SymbolicRegion)pF2;
-    return new SymbolicRegion(fmgr.makeOr(r1.f, r2.f));
+    throw new UnsupportedOperationException();
   }
 
   @Override

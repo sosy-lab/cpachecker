@@ -42,7 +42,9 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.UninstantiatingInterpolationManager;
 
@@ -57,6 +59,11 @@ public class ImpactRefiner extends org.sosy_lab.cpachecker.cpa.impact.ImpactRefi
     PredicateCPA predicateCpa = getFirst(filter(CPAs.asIterable(pCpa), PredicateCPA.class), null);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(ImpactRefiner.class.getSimpleName() + " needs a PredicateCPA");
+    }
+
+    Region initialRegion = predicateCpa.getInitialElement(null).getAbstractionFormula().asRegion();
+    if (!(initialRegion instanceof SymbolicRegionManager.SymbolicRegion)) {
+      throw new InvalidConfigurationException(ImpactRefiner.class.getSimpleName() + " works only with a PredicateCPA configured to store abstractions as formulas (cpa.predicate.abstraction.type=FORMULA)");
     }
 
     Configuration config = predicateCpa.getConfiguration();
@@ -119,7 +126,7 @@ public class ImpactRefiner extends org.sosy_lab.cpachecker.cpa.impact.ImpactRefi
     AbstractionFormula af = predElement.getAbstractionFormula();
 
     Formula newFormula = fmgr.makeAnd(f, af.asFormula());
-    AbstractionFormula newAF = new AbstractionFormula(null, newFormula, af.getBlockFormula());
+    AbstractionFormula newAF = new AbstractionFormula(new SymbolicRegionManager.SymbolicRegion(newFormula), newFormula, af.getBlockFormula());
     predElement.setAbstraction(newAF);
   }
 
