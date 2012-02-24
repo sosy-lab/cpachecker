@@ -49,6 +49,8 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import com.google.common.collect.Iterables;
+
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CPAStatistics implements Statistics {
@@ -155,7 +157,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       stats.countSuccessors += numSuccessors;
       stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
 
-      for (AbstractElement successor : successors) {
+      for (AbstractElement successor : Iterables.consumingIterable(successors)) {
         logger.log(Level.FINER, "Considering successor of current element");
         logger.log(Level.ALL, "Successor of", element, "\nis", successor);
 
@@ -186,10 +188,14 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
             stats.countBreak++;
             logger.log(Level.FINER, "Break signalled, CPAAlgorithm will stop.");
 
-            // re-add the old element to the waitlist, there may be unhandled
-            // successors left that otherwise would be forgotten
-            reachedSet.reAddToWaitlist(element);
+            // add the new element
             reachedSet.add(successor, successorPrecision);
+
+            if (!successors.isEmpty()) {
+              // re-add the old element to the waitlist, there are unhandled
+              // successors left that otherwise would be forgotten
+              reachedSet.reAddToWaitlist(element);
+            }
 
             stats.totalTimer.stop();
             return true;

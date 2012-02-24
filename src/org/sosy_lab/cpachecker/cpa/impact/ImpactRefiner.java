@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
@@ -200,6 +201,15 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
       }
     }
 
+    if (changedElements.isEmpty() && pRepeatedCounterexample) {
+      // TODO One cause for this exception is that the CPAAlgorithm sometimes
+      // re-adds the parent of the error element to the waitlist, and thus the
+      // error element would get re-discovered immediately again.
+      // Currently the CPAAlgorithm does this only when there are siblings of
+      // the target element, which should rarely happen.
+      // We still need a better handling for this situation.
+      throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
+    }
 
     stats.artUpdate.start();
     for (ARTElement w : changedElements) {
