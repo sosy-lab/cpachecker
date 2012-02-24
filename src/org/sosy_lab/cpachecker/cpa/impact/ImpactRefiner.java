@@ -83,13 +83,10 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
       ImpactRefiner.this.printStatistics(out, pResult, pReached);
       out.println("  Checking whether itp is new:    " + itpCheck);
       out.println("  Coverage checks:                " + coverTime);
-      out.println("  Reasoning of solver:            " + solver.solverTime);
       out.println("  ART update:                     " + artUpdate);
       out.println();
+      out.println("Number of interpolants added:     " + newItpWasAdded);
       out.println("Number of non-new interpolants:   " + (itpCheck.getNumberOfIntervals() - newItpWasAdded));
-      out.println("Number of implication checks:     " + solver.implicationChecks);
-      out.println("  trivial:                        " + solver.trivialImplicationChecks);
-      out.println("  cached:                         " + solver.cachedImplicationChecks);
     }
   }
 

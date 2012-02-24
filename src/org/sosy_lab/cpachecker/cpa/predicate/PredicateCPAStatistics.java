@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
@@ -125,6 +126,7 @@ class PredicateCPAStatistics implements Statistics {
       PredicateAbstractDomain domain = cpa.getAbstractDomain();
       PredicateTransferRelation trans = cpa.getTransferRelation();
       PredicatePrecisionAdjustment prec = cpa.getPrecisionAdjustment();
+      Solver solver = cpa.getSolver();
 
       CachingPathFormulaManager pfMgr = null;
       if (cpa.getPathFormulaManager() instanceof CachingPathFormulaManager) {
@@ -153,6 +155,9 @@ class PredicateCPAStatistics implements Statistics {
       if (domain.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
         out.println("  Symbolic coverage check:         " + domain.symbolicCoverageCheckTimer.getNumberOfIntervals());
       }
+      out.println("Number of implication checks:      " + solver.implicationChecks);
+      out.println("  trivial:                         " + solver.trivialImplicationChecks);
+      out.println("  cached:                          " + solver.cachedImplicationChecks);
       out.println();
       out.println("Max ABE block size:                       " + prec.maxBlockSize);
       out.println("Number of predicates discovered:          " + allDistinctPreds);
@@ -176,7 +181,6 @@ class PredicateCPAStatistics implements Statistics {
       }
 
       out.println();
-      long smtTime = 0;
 
       out.println("Time for post operator:              " + trans.postTimer);
       out.println("  Time for path formula creation:    " + trans.pathFormulaTimer);
@@ -185,19 +189,16 @@ class PredicateCPAStatistics implements Statistics {
       }
       if (trans.satCheckTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for satisfiability checks:    " + trans.satCheckTimer);
-        smtTime += trans.satCheckTimer.getSumTime();
       }
       out.println("Time for strengthen operator:        " + trans.strengthenTimer);
       if (trans.strengthenCheckTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for satisfiability checks:    " + trans.strengthenCheckTimer);
-        smtTime += trans.strengthenCheckTimer.getSumTime();
       }
       out.println("Time for prec operator:              " + prec.totalPrecTime);
       if (prec.numAbstractions > 0) {
         out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
         out.println("    Solving time:                    " + as.abstractionTime.printOuterSumTime() + " (Max: " + as.abstractionTime.printOuterMaxTime() + ")");
         out.println("    Time for BDD construction:       " + as.abstractionTime.printInnerSumTime()   + " (Max: " + as.abstractionTime.printInnerMaxTime() + ")");
-        smtTime += as.abstractionTime.getOuterSumTime();
       }
 
       MergeOperator merge = cpa.getMergeOperator();
@@ -211,9 +212,8 @@ class PredicateCPAStatistics implements Statistics {
       }
       if (domain.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for symbolic coverage checks: " + domain.symbolicCoverageCheckTimer);
-        smtTime += domain.symbolicCoverageCheckTimer.getSumTime();
       }
-      out.println("Total time for SMT solver (w/o itp): " + Timer.formatTime(smtTime));
+      out.println("Total time for SMT solver (w/o itp): " + Timer.formatTime(solver.solverTime.getSumTime() + as.abstractionTime.getOuterSumTime()));
 
       if(trans.pathFormulaCheckTimer.getNumberOfIntervals() > 0 || trans.abstractionCheckTimer.getNumberOfIntervals() > 0) {
         out.println("Time for abstraction checks:       " + trans.abstractionCheckTimer);
