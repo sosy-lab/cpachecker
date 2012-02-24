@@ -98,7 +98,7 @@ public abstract class InterpolationManager<I> {
     }
   }
 
-  private final Stats stats = new Stats();
+  final Stats stats = new Stats();
 
   protected final LogManager logger;
   protected final ExtendedFormulaManager fmgr;
@@ -296,7 +296,7 @@ public abstract class InterpolationManager<I> {
       List<Formula> pFormulas, Set<ARTElement> elementsOnPath, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
 
     logger.log(Level.FINEST, "Building counterexample trace");
-    refStats.cexAnalysisTimer.start();
+    stats.cexAnalysisTimer.start();
     pItpProver.init();
     try {
 
@@ -326,7 +326,7 @@ public abstract class InterpolationManager<I> {
 
       // Check feasibility of counterexample
       logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
-      refStats.cexAnalysisSolverTimer.start();
+      stats.cexAnalysisSolverTimer.start();
 
       boolean spurious;
       List<T> itpGroupsIds;
@@ -353,7 +353,7 @@ public abstract class InterpolationManager<I> {
         assert !itpGroupsIds.contains(null); // has to be filled completely
 
       } finally {
-        refStats.cexAnalysisSolverTimer.stop();
+        stats.cexAnalysisSolverTimer.stop();
       }
 
       logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
@@ -380,7 +380,7 @@ public abstract class InterpolationManager<I> {
 
     } finally {
       pItpProver.reset();
-      refStats.cexAnalysisTimer.stop();
+      stats.cexAnalysisTimer.stop();
     }
   }
 
@@ -422,7 +422,7 @@ public abstract class InterpolationManager<I> {
    */
   private List<Formula> getUsefulBlocks(List<Formula> f, boolean suffixTrace, boolean zigZag) {
 
-    refStats.cexAnalysisGetUsefulBlocksTimer.start();
+    stats.cexAnalysisGetUsefulBlocksTimer.start();
 
     // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
 
@@ -528,7 +528,7 @@ public abstract class InterpolationManager<I> {
 
     logger.log(Level.ALL, "DEBUG_1", "Done getUsefulBlocks");
 
-    refStats.cexAnalysisGetUsefulBlocksTimer.stop();
+    stats.cexAnalysisGetUsefulBlocksTimer.stop();
 
     return f;
   }
@@ -662,9 +662,9 @@ public abstract class InterpolationManager<I> {
       logger.log(Level.ALL, "Looking for interpolant for formulas from",
           start_of_a, "to", i);
 
-      refStats.cexAnalysisSolverTimer.start();
+      stats.cexAnalysisSolverTimer.start();
       Formula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
-      refStats.cexAnalysisSolverTimer.stop();
+      stats.cexAnalysisSolverTimer.stop();
 
       if (dumpInterpolationProblems) {
         File dumpFile = formatFormulaOutputFile("interpolant", i);
@@ -693,7 +693,7 @@ public abstract class InterpolationManager<I> {
   }
 
   private <T> void verifyInterpolants(List<Formula> interpolants, List<Formula> formulas, InterpolatingTheoremProver<T> prover) throws SolverException, InterruptedException {
-    refStats.interpolantVerificationTimer.start();
+    stats.interpolantVerificationTimer.start();
     try {
 
       final int n = interpolants.size();;
@@ -756,7 +756,7 @@ public abstract class InterpolationManager<I> {
       }
 
     } finally {
-      refStats.interpolantVerificationTimer.stop();
+      stats.interpolantVerificationTimer.stop();
     }
   }
 
@@ -893,7 +893,7 @@ public abstract class InterpolationManager<I> {
 
   protected File formatFormulaOutputFile(String formula, int index) {
     if (dumpInterpolationProblems) {
-      return fmgr.formatFormulaOutputFile("interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), formula, index);
+      return fmgr.formatFormulaOutputFile("interpolation", stats.cexAnalysisTimer.getNumberOfIntervals(), formula, index);
     } else {
       return null;
     }
