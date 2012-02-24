@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.mcmillan;
+package org.sosy_lab.cpachecker.core.algorithm.impact;
 
 import static com.google.common.base.Preconditions.*;
 
@@ -36,7 +36,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
-
+/**
+ * This class represents the vertices/abstract states used by the
+ * {@link ImpactAlgorithm}.
+ * This class is basically similar to {@link AbstractElement},
+ * but allows only one parent and additionally stores a modifiable state formula.
+ */
 class Vertex implements AbstractElement, Targetable, AbstractWrapperElement {
 
   private static int nextId = 0;

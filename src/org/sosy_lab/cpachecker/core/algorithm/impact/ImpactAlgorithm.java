@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.mcmillan;
+package org.sosy_lab.cpachecker.core.algorithm.impact;
 
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
@@ -72,7 +72,11 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
+/**
+ * This is an implementation of McMillan's algorithm which was presented in the
+ * paper "Lazy Abstraction with Interpolants" and implemented in the tool IMPACT.
+ */
+public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
   private final LogManager logger;
 
@@ -99,7 +103,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
 
     @Override
     public String getName() {
-      return "McMillan's algorithm";
+      return "Impact Algorithm";
     }
 
     @Override
@@ -121,7 +125,7 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
   }
 
 
-  public McMillanAlgorithm(Configuration config, LogManager pLogger, ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, CPAException {
+  public ImpactAlgorithm(Configuration config, LogManager pLogger, ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, CPAException {
     logger = pLogger;
     cpa = pCpa;
 

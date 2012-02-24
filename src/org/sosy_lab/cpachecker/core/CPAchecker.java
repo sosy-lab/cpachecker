@@ -40,13 +40,13 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.mcmillan.McMillanAlgorithm;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
@@ -174,8 +174,8 @@ public class CPAchecker {
 
         algorithm = factory.createAlgorithm(cpa, filename, cfa, stats);
 
-        if (algorithm instanceof McMillanAlgorithm) {
-          McMillanAlgorithm mcmillan = (McMillanAlgorithm)algorithm;
+        if (algorithm instanceof ImpactAlgorithm) {
+          ImpactAlgorithm mcmillan = (ImpactAlgorithm)algorithm;
           reached.add(mcmillan.getInitialElement(cfa.getMainFunction()), mcmillan.getInitialPrecision(cfa.getMainFunction()));
         } else {
           initializeReachedSet(reached, cpa, cfa.getMainFunction());
