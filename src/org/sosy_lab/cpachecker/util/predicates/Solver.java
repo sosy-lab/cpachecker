@@ -62,8 +62,8 @@ public class Solver {
    * Checks whether a formula is unsat.
    */
   public boolean isUnsat(Formula f) {
-    prover.init();
     solverTime.start();
+    prover.init();
     try {
       prover.push(f);
       return prover.isUnsat();
