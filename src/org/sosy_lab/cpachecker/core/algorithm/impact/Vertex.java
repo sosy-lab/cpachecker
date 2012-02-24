@@ -30,9 +30,8 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
@@ -42,7 +41,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
  * This class is basically similar to {@link AbstractElement},
  * but allows only one parent and additionally stores a modifiable state formula.
  */
-class Vertex implements AbstractElement, Targetable, AbstractWrapperElement {
+class Vertex extends AbstractSingleWrapperElement {
 
   private static int nextId = 0;
   private final int id = nextId++;
@@ -51,8 +50,6 @@ class Vertex implements AbstractElement, Targetable, AbstractWrapperElement {
 
   private final List<Vertex> children = new ArrayList<Vertex>(2);
 
-  private final AbstractElement wrappedElement;
-
   private Formula stateFormula;
   private final CFAEdge edge; // the edge to the predecessor
 
@@ -60,17 +57,17 @@ class Vertex implements AbstractElement, Targetable, AbstractWrapperElement {
   private List<Vertex> coveredNodes = new ArrayList<Vertex>(0);
 
   public Vertex(Formula pStateFormula, AbstractElement pElement) {
+    super(pElement);
     parent = null;
-    wrappedElement = checkNotNull(pElement);
     assert pStateFormula.isTrue();
     stateFormula = pStateFormula;
     edge = null;
   }
 
   public Vertex(Vertex pParent, Formula pStateFormula, CFAEdge pEdge, AbstractElement pElement) {
+    super(pElement);
     parent = checkNotNull(pParent);
     parent.children.add(this);
-    wrappedElement = pElement;
     stateFormula = checkNotNull(pStateFormula);
     edge = checkNotNull(pEdge);
   }
@@ -78,10 +75,6 @@ class Vertex implements AbstractElement, Targetable, AbstractWrapperElement {
 
   public Formula getStateFormula() {
     return stateFormula;
-  }
-
-  public AbstractElement getWrappedElement() {
-    return wrappedElement;
   }
 
   public CFAEdge getIncomingEdge() {
@@ -166,17 +159,12 @@ class Vertex implements AbstractElement, Targetable, AbstractWrapperElement {
   }
 
   public boolean isLeaf() {
-    return children.isEmpty() && AbstractElements.extractLocation(wrappedElement).getNumLeavingEdges() > 0;
+    return children.isEmpty() && AbstractElements.extractLocation(getWrappedElement()).getNumLeavingEdges() > 0;
   }
 
   @Override
   public boolean isTarget() {
-    return !stateFormula.isFalse() && AbstractElements.isTargetElement(wrappedElement);
-  }
-
-  @Override
-  public Iterable<? extends AbstractElement> getWrappedElements() {
-    return Collections.singleton(wrappedElement);
+    return !stateFormula.isFalse() && super.isTarget();
   }
 
   public boolean isAncestorOf(Vertex v) {
@@ -199,6 +187,6 @@ class Vertex implements AbstractElement, Targetable, AbstractWrapperElement {
 
   @Override
   public String toString() {
-    return "Id: " + id + " " + stateFormula.toString() + "\n" + wrappedElement;
+    return "Id: " + id + " " + stateFormula.toString() + "\n" + super.toString();
   }
 }
