@@ -96,6 +96,15 @@ public class ComparatorWaitlist implements Waitlist {
       public Waitlist createWaitlistInstance() {
         return new ComparatorWaitlist(new ARTElementIdMin());
       }
+    },
+
+    ENVAPP_MIN {
+
+      @Override
+      public Waitlist createWaitlistInstance() {
+        return new ComparatorWaitlist(new EnvAppMin());
+      }
+
     }
   }
 
@@ -124,6 +133,31 @@ public class ComparatorWaitlist implements Waitlist {
     }
   }
 
+  public static class EnvAppMin implements Comparator<AbstractElement>{
+
+    @Override
+    public int compare(AbstractElement elem1, AbstractElement elem2) {
+      ARTElement aelem1 = (ARTElement) elem1;
+      ARTElement aelem2 = (ARTElement) elem2;
+
+      if (elem1.equals(elem2)){
+        return 0;
+      }
+
+      int id1 = aelem1.getEnvAppBefore();
+      int id2 = aelem2.getEnvAppBefore();
+
+
+      if (id1 < id2){
+        return 1;
+      }
+      else if (id1 > id2){
+        return -1;
+      }
+
+      return aelem1.getElementId() >  aelem2.getElementId() ? 1 : -1;
+    }
+  }
 
 
 

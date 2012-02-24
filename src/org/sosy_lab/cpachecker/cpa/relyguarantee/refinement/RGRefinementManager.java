@@ -261,25 +261,16 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
     // Is element is destroyed, it means that it has been merged into another one.
     // Use that one instead.
-    if (target == null){
-      System.out.println();
-    }
-
     while (target.isDestroyed()){
       target = target.getMergedWith();
     }
     assert !target.isDestroyed();
 
-    if (debug){
-      System.out.println();
-      System.out.println("Constructing DAG node for ("+tid+" ,"+target.getElementId()+")");
-    }
-
     // get the abstraction elements on the path from the root to the error element
     Path cfaPath = computePath(target);
     List<Triple<ARTElement, CFANode, RGAbstractElement>> path = transformFullPath(cfaPath);
 
-    // exit if the target has already been added to the target
+    // exit if the target has already been added to the DAG
     Triple<ARTElement, CFANode, RGAbstractElement> lastTriple = path.get(path.size()-1);
     ARTElement lastARTElem = lastTriple.getFirst();
     if (dag.getNodeMap().containsKey(Pair.of(tid, lastARTElem.getElementId()))){
@@ -295,7 +286,6 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
       assert rgElement.tid == tid;
 
       // create a node or use a cached one for this element
-      boolean newNode = false;
       InterpolationDagNode node = dag.getNode(tid, artElement.getElementId());
       if (node == null){
         RGApplicationInfo appInfo = rgElement.getBlockAppInfo();
@@ -308,7 +298,6 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
         node = new InterpolationDagNode(artElement, pf, appInfo, tid);
         dag.getNodeMap().put(node.getKey(), node);
-        newNode = true;
 
         if (lastNode == null){
           // add the root
@@ -426,6 +415,11 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
      */
 
    // get the full DAG for the error element
+    if (debug){
+      System.out.println("Constructing DAG node for ("+tid+" ,"+targetElement.getElementId()+")");
+      System.out.println();
+    }
+
    InterpolationDag dag = new InterpolationDag();
    constructDagForElement(reachedSets, targetElement, tid, dag);
 

@@ -83,6 +83,11 @@ public class ARTElement extends AbstractSingleWrapperElement {
    */
   private final ImmutableList<Integer> locationClasses;
 
+  /**
+   * maximum number of env. application on the path to this element.
+   */
+  private int envAppBefore = 0;
+
   private static int nextArtElementId = 0;
 
   public ARTElement(AbstractElement pWrappedElement, Map<ARTElement, CFAEdge> parentEdges, ImmutableList<Integer> locationClasses) {
@@ -268,6 +273,13 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
 
+  public int getEnvAppBefore() {
+    return envAppBefore;
+  }
+
+  public void setEnvAppBefore(int pEnvAppBefore) {
+    envAppBefore = pEnvAppBefore;
+  }
 
   public RGAbstractElement getRgElement() {
     return rgElement;

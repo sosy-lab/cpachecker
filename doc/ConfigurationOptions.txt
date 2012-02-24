@@ -24,6 +24,10 @@ analysis.restartAfterUnknown = false
 # stop after the first error has been found
 analysis.stopAfterError = true
 
+# Choose comparator for comparator waitlist.
+analysis.traversal.comparator = ENVAPP_MIN
+  enum:     [ART_ID_MAX, ART_ID_MIN, ENVAPP_MIN]
+
 # which strategy to adopt for visiting states?
 analysis.traversal.order = DFS
   enum:     [DFS, BFS, TOPSORT, RAND]
@@ -31,6 +35,9 @@ analysis.traversal.order = DFS
 # handle states with a deeper callstack first?
 # This needs the CallstackCPA to have any effect.
 analysis.traversal.useCallstack = false
+
+# Use comparator-based waitlist
+analysis.traversal.useComparatorWaitlist = false
 
 # handle more abstract states (with less information) first? (only for
 # ExplicitCPA)

@@ -83,21 +83,41 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
     AbstractElement wrappedElement = element.getWrappedElement();
     Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, edge);
 
-
     if (successors.isEmpty()) {
       return Collections.emptySet();
     }
+
+    int envAppBefore = getNumberEnvApp(element, edge);
 
     Map<ARTElement, CFAEdge> parents = new HashMap<ARTElement, CFAEdge>(1);
     parents.put(element, edge);
     Collection<ARTElement> wrappedSuccessors = new ArrayList<ARTElement>();
     for (AbstractElement absElement : successors) {
       ARTElement successorElem = new ARTElement(absElement, parents, succLocCl);
+      successorElem.setEnvAppBefore(envAppBefore);
       wrappedSuccessors.add(successorElem);
     }
     return wrappedSuccessors;
   }
 
+
+  /**
+   * Returns the number of env. application on the path to the successor element.
+   * @param pElement
+   * @param edge
+   * @return
+   */
+  private int getNumberEnvApp(ARTElement pElement, CFAEdge edge) {
+    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+      RGCFAEdge rgEdge = (RGCFAEdge) edge;
+      RGEnvTransition et = rgEdge.getRgEnvTransition();
+      int envAB = et.getSourceARTElement().getEnvAppBefore();
+      int elemAB = pElement.getEnvAppBefore();
+      return envAB+elemAB+1;
+    } else {
+      return pElement.getEnvAppBefore();
+    }
+  }
 
   /**
    * Returns the location class of the successor element or null if the edge predecessor's and

@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.ComparatorWaitlist.ComparatorWaitlistFactory;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.TopologicallySortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
@@ -60,6 +61,14 @@ public class ReachedSetFactory {
       description = "handle more abstract states (with less information) first? (only for ExplicitCPA)")
   boolean useExplicitInformation = false;
 
+  @Option(name = "traversal.useComparatorWaitlist",
+        description = "Use comparator-based waitlist")
+  boolean useComparatorWaitlist = false;
+
+  @Option(name = "traversal.comparator",
+        description = "Choose comparator for comparator waitlist.")
+  private ComparatorWaitlistFactory comparator = ComparatorWaitlistFactory.ENVAPP_MIN;
+
   @Option(name = "reachedSet",
       description = "which reached set implementation to use?"
       + "\nNORMAL: just a simple set"
@@ -82,6 +91,10 @@ public class ReachedSetFactory {
     }
     if (useExplicitInformation) {
       waitlistFactory = ExplicitSortedWaitlist.factory(waitlistFactory);
+    }
+
+    if (useComparatorWaitlist){
+      waitlistFactory = comparator;
     }
 
     switch (reachedSet) {

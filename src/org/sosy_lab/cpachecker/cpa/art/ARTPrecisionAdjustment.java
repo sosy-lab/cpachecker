@@ -72,6 +72,7 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
     Map<ARTElement, CFAEdge> parents = element.getParentMap();
 
     ARTElement resultElement = new ARTElement(newElement, parents, element.getLocationClasses());
+    resultElement.setEnvAppBefore(element.getEnvAppBefore());
 
     Map<ARTElement, CFAEdge> children = element.getChildMap();
 

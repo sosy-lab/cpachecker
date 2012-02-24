@@ -161,7 +161,7 @@ public class RGAbstractionManager implements StatisticsProvider {
     // caching
     Pair<Formula, Collection<AbstractionPredicate>> absKey = null;
     if (useCache) {
-      absKey = Pair.of(pf.getFormula(), predicates);
+      absKey = Pair.of(f, predicates);
       AbstractionFormula result = abstractionCache.get(absKey);
 
       if (result != null) {

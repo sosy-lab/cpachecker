@@ -115,6 +115,9 @@ public class ARTMergeJoin implements MergeOperator {
     // in rely-guarantee analysis, we need this info
     artElement2.setMergedWith(mergedElement);
 
+    // set the number of env. applications
+    mergedElement.setEnvAppBefore(artElement1.getEnvAppBefore()+artElement2.getEnvAppBefore());
+
     return mergedElement;
   }
 
