@@ -27,9 +27,9 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 /**
  * An interpolation manager that does nothing with the interpolatants except
@@ -38,10 +38,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 public class UninstantiatingInterpolationManager extends InterpolationManager<Formula> {
 
   public UninstantiatingInterpolationManager(ExtendedFormulaManager pFmgr,
-      PathFormulaManager pPmgr, TheoremProver pThmProver,
+      PathFormulaManager pPmgr, Solver pSolver,
       Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
-    super(pFmgr, pPmgr, pThmProver, pConfig, pLogger);
+    super(pFmgr, pPmgr, pSolver, pConfig, pLogger);
   }
 
   @SuppressWarnings("deprecation")

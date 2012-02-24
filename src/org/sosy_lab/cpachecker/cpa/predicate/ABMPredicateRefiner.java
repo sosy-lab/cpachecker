@@ -123,7 +123,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
 
     PredicateRefinementManager manager = new PredicateRefinementManager(predicateCpa.getFormulaManager(),
                                           predicateCpa.getPathFormulaManager(),
-                                          predicateCpa.getTheoremProver(),
+                                          predicateCpa.getSolver(),
                                           predicateCpa.getPredicateManager(),
                                           predicateCpa.getConfiguration(),
                                           logger);

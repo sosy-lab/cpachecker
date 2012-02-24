@@ -76,7 +76,6 @@ public class PredicateAbstractionManager {
   private final LogManager logger;
   private final ExtendedFormulaManager fmgr;
   private final AbstractionManager amgr;
-  private final TheoremProver thmProver;
   private final Solver solver;
 
   @Option(name="abstraction.cartesian",
@@ -100,7 +99,6 @@ public class PredicateAbstractionManager {
   public PredicateAbstractionManager(
       RegionManager pRmgr,
       ExtendedFormulaManager pFmgr,
-      TheoremProver pThmProver,
       Solver pSolver,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
@@ -111,7 +109,6 @@ public class PredicateAbstractionManager {
     logger = pLogger;
     fmgr = pFmgr;
     amgr = new AbstractionManager(pRmgr, pFmgr, config, pLogger);
-    thmProver = pThmProver;
     solver = pSolver;
 
     if (useCache) {
@@ -188,6 +185,7 @@ public class PredicateAbstractionManager {
 
     stats.abstractionTime.startOuter();
 
+    TheoremProver thmProver = solver.getTheoremProver();
     thmProver.init();
     try {
       thmProver.push(f);
@@ -344,6 +342,7 @@ public class PredicateAbstractionManager {
     logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
     stats.abstractionTime.startOuter();
+    TheoremProver thmProver = solver.getTheoremProver();
     AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr, stats.abstractionTime.getInnerTimer());
     long solveTime = stats.abstractionTime.stopOuter();
 

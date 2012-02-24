@@ -62,14 +62,14 @@ public class ImpactRefiner extends org.sosy_lab.cpachecker.cpa.impact.ImpactRefi
     Configuration config = predicateCpa.getConfiguration();
     LogManager logger = predicateCpa.getLogger();
     ExtendedFormulaManager fmgr = predicateCpa.getFormulaManager();
+    Solver solver = predicateCpa.getSolver();
 
     InterpolationManager<Formula> manager = new UninstantiatingInterpolationManager(
                                                   fmgr,
                                                   predicateCpa.getPathFormulaManager(),
-                                                  predicateCpa.getTheoremProver(),
-                                                  config, logger);
+                                                  solver, config, logger);
 
-    return new ImpactRefiner(config, logger, pCpa, manager, fmgr, predicateCpa.getSolver());
+    return new ImpactRefiner(config, logger, pCpa, manager, fmgr, solver);
   }
 
   private ImpactRefiner(final Configuration config, final LogManager logger,

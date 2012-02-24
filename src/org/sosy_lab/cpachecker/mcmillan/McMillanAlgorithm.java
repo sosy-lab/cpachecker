@@ -129,9 +129,8 @@ public class McMillanAlgorithm implements Algorithm, StatisticsProvider {
     fmgr = new ExtendedFormulaManager(mfmgr, config, logger);
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger));
     prover = new MathsatTheoremProver(mfmgr);
-    imgr = new UninstantiatingInterpolationManager(fmgr, pfmgr, prover, config, logger);
-
     solver = new Solver(fmgr, prover);
+    imgr = new UninstantiatingInterpolationManager(fmgr, pfmgr, solver, config, logger);
   }
 
   public AbstractElement getInitialElement(CFANode location) {

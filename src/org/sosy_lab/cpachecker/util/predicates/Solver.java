@@ -59,6 +59,13 @@ public class Solver {
   }
 
   /**
+   * Direct reference to the underlying SMT solver for more complicated queries.
+   */
+  public TheoremProver getTheoremProver() {
+    return prover;
+  }
+
+  /**
    * Checks whether a formula is unsat.
    */
   public boolean isUnsat(Formula f) {

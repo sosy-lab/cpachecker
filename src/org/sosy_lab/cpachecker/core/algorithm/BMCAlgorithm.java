@@ -208,7 +208,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
     fmgr = predCpa.getFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
-    prover = predCpa.getTheoremProver();
+    prover = predCpa.getSolver().getTheoremProver();
   }
 
   @Override

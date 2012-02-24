@@ -104,14 +104,14 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
     Configuration config = impactCpa.getConfiguration();
     LogManager logger = impactCpa.getLogManager();
     ExtendedFormulaManager fmgr = impactCpa.getFormulaManager();
+    Solver solver = impactCpa.getSolver();
 
     InterpolationManager<Formula> manager = new UninstantiatingInterpolationManager(
                                                   fmgr,
                                                   impactCpa.getPathFormulaManager(),
-                                                  impactCpa.getTheoremProver(),
-                                                  config, logger);
+                                                  solver, config, logger);
 
-    return new ImpactRefiner(config, logger, pCpa, manager, fmgr, impactCpa.getSolver());
+    return new ImpactRefiner(config, logger, pCpa, manager, fmgr, solver);
   }
 
   protected ImpactRefiner(final Configuration config, final LogManager logger,

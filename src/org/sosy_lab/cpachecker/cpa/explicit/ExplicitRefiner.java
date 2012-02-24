@@ -138,7 +138,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   private static ExplicitRefiner initialiseExplicitRefiner(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws CPAException, InvalidConfigurationException {
     ExtendedFormulaManager formulaManager       = null;
     PathFormulaManager pathFormulaManager       = null;
-    TheoremProver theoremProver                 = null;
+    Solver solver                               = null;
     PredicateAbstractionManager absManager      = null;
     PredicateRefinementManager manager          = null;
 
@@ -148,20 +148,20 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     if (predicateCpaInUse) {
       formulaManager        = predicateCpa.getFormulaManager();
       pathFormulaManager    = predicateCpa.getPathFormulaManager();
-      theoremProver         = predicateCpa.getTheoremProver();
+      solver                = predicateCpa.getSolver();
       absManager            = predicateCpa.getPredicateManager();
     } else {
       MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
+      TheoremProver theoremProver                 = new MathsatTheoremProver(mathsatFormulaManager);
       RegionManager regionManager                 = BDDRegionManager.getInstance();
       formulaManager        = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
       pathFormulaManager    = new PathFormulaManagerImpl(formulaManager, config, logger);
-      theoremProver         = new MathsatTheoremProver(mathsatFormulaManager);
-      Solver solver         = new Solver(formulaManager, theoremProver);
-      absManager            = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, solver, config, logger);
+      solver                = new Solver(formulaManager, theoremProver);
+      absManager            = new PredicateAbstractionManager(regionManager, formulaManager, solver, config, logger);
     }
 
     manager = new PredicateRefinementManager(formulaManager,
-        pathFormulaManager, theoremProver, absManager, config, logger);
+        pathFormulaManager, solver, absManager, config, logger);
 
     return new ExplicitRefiner(config, logger, pCpa, formulaManager, pathFormulaManager, manager, predicateCpaInUse);
   }

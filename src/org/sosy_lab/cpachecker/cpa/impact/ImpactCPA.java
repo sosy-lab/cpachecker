@@ -62,7 +62,6 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
 
   private final ExtendedFormulaManager fmgr;
   private final PathFormulaManager pfmgr;
-  private final TheoremProver prover;
   private final Solver solver;
 
   private final AbstractDomain abstractDomain;
@@ -78,7 +77,7 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
     fmgr = new ExtendedFormulaManager(msatFmgr, pConfig, pLogger);
 
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger));
-    prover = new MathsatTheoremProver(msatFmgr);
+    TheoremProver prover = new MathsatTheoremProver(msatFmgr);
     solver = new Solver(fmgr, prover);
 
     abstractDomain = new ImpactAbstractDomain(solver);
@@ -101,10 +100,6 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
 
   public PathFormulaManager getPathFormulaManager() {
     return pfmgr;
-  }
-
-  public TheoremProver getTheoremProver() {
-    return prover;
   }
 
   public Solver getSolver() {

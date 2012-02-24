@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
@@ -103,7 +104,7 @@ public abstract class InterpolationManager<I> {
   protected final LogManager logger;
   protected final ExtendedFormulaManager fmgr;
   protected final PathFormulaManager pmgr;
-  private final TheoremProver thmProver;
+  private final Solver solver;
 
   private final InterpolatingTheoremProver<?> firstItpProver;
   private final InterpolatingTheoremProver<?> secondItpProver;
@@ -164,7 +165,7 @@ public abstract class InterpolationManager<I> {
   public InterpolationManager(
       ExtendedFormulaManager pFmgr,
       PathFormulaManager pPmgr,
-      TheoremProver pThmProver,
+      Solver pSolver,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, InterpolationManager.class);
@@ -172,7 +173,7 @@ public abstract class InterpolationManager<I> {
     logger = pLogger;
     fmgr = pFmgr;
     pmgr = pPmgr;
-    thmProver = pThmProver;
+    solver = pSolver;
 
     // create solvers
     FormulaManager realFormulaManager = fmgr.getDelegate();
@@ -426,6 +427,7 @@ public abstract class InterpolationManager<I> {
 
     // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
 
+    TheoremProver thmProver = solver.getTheoremProver();
     thmProver.init();
 
     logger.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
@@ -867,6 +869,7 @@ public abstract class InterpolationManager<I> {
   public CounterexampleTraceInfo<I> checkPath(List<CFAEdge> pPath) throws CPATransferException {
     Formula f = pmgr.makeFormulaForPath(pPath).getFormula();
 
+    TheoremProver thmProver = solver.getTheoremProver();
     thmProver.init();
     try {
       thmProver.push(f);

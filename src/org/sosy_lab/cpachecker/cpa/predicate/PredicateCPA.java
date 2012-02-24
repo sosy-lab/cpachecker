@@ -117,7 +117,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicatePrecision initialPrecision;
   private final ExtendedFormulaManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
-  private final TheoremProver theoremProver;
   private final Solver solver;
   private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
@@ -144,6 +143,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     pathFormulaManager = pfMgr;
 
+    TheoremProver theoremProver;
     if (whichProver.equals("MATHSAT")) {
       theoremProver = new MathsatTheoremProver(mathsatFormulaManager);
     } else if (whichProver.equals("YICES")) {
@@ -153,7 +153,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     solver = new Solver(formulaManager, theoremProver);
 
-    predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, solver, config, logger);
+    predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, solver, config, logger);
     transfer = new PredicateTransferRelation(this, blk);
 
     topElement = PredicateAbstractElement.abstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
@@ -244,11 +244,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return pathFormulaManager;
   }
 
-  public TheoremProver getTheoremProver() {
-    return theoremProver;
-  }
-
-  Solver getSolver() {
+  public Solver getSolver() {
     return solver;
   }
 

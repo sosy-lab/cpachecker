@@ -111,7 +111,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
 
     PredicateRefinementManager manager = new PredicateRefinementManager(predicateCpa.getFormulaManager(),
                                           predicateCpa.getPathFormulaManager(),
-                                          predicateCpa.getTheoremProver(),
+                                          predicateCpa.getSolver(),
                                           predicateCpa.getPredicateManager(),
                                           predicateCpa.getConfiguration(),
                                           logger);
