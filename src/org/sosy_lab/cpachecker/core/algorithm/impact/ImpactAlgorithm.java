@@ -40,6 +40,8 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -76,6 +78,7 @@ import com.google.common.collect.Lists;
  * This is an implementation of McMillan's algorithm which was presented in the
  * paper "Lazy Abstraction with Interpolants" and implemented in the tool IMPACT.
  */
+@Options(prefix="impact")
 public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
   private final LogManager logger;
@@ -109,7 +112,9 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
       out.println("Time for expand:                    " + expandTime);
-      out.println("  Time for forced covering:         " + forceCoverTime);
+      if (useForcedCovering) {
+        out.println("  Time for forced covering:         " + forceCoverTime);
+      }
       out.println("Time for refinement:                " + refinementTime);
       out.println("Time for close:                     " + closeTime);
       out.println("  Time for cover:                   " + coverTime);
@@ -119,13 +124,19 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       out.println("  trivial:                          " + trivialImplicationChecks);
       out.println("  cached:                           " + cachedImplicationChecks);
       out.println("Number of refinements:              " + refinementTime.getNumberOfIntervals());
-      out.println("Number of forced coverings:         " + forceCoverTime.getNumberOfIntervals());
-      out.println("  Successful:                       " + successfulForcedCovering);
+      if (useForcedCovering) {
+        out.println("Number of forced coverings:         " + forceCoverTime.getNumberOfIntervals());
+        out.println("  Successful:                       " + successfulForcedCovering);
+      }
     }
   }
 
+  @Option(description="enable the Forced Covering optimization")
+  private boolean useForcedCovering = true;
+
 
   public ImpactAlgorithm(Configuration config, LogManager pLogger, ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, CPAException {
+    config.inject(this);
     logger = pLogger;
     cpa = pCpa;
 
@@ -407,20 +418,22 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       return true; // no need to expand
     }
 
-    forceCoverTime.start();
-    try {
-      Precision prec = reached.getPrecision(v);
-      for (AbstractElement ae : reached.getReached(v)) {
-        Vertex w = (Vertex)ae;
-        if (mayCover(v, w, prec)) {
-          if (forceCover(v, w, prec)) {
-            assert v.isCovered();
-            return true; // no need to expand
+    if (useForcedCovering) {
+      forceCoverTime.start();
+      try {
+        Precision prec = reached.getPrecision(v);
+        for (AbstractElement ae : reached.getReached(v)) {
+          Vertex w = (Vertex)ae;
+          if (mayCover(v, w, prec)) {
+            if (forceCover(v, w, prec)) {
+              assert v.isCovered();
+              return true; // no need to expand
+            }
           }
         }
+      } finally {
+        forceCoverTime.stop();
       }
-    } finally {
-      forceCoverTime.stop();
     }
 
     expand(v, reached);

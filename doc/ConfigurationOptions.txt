@@ -638,6 +638,9 @@ cpa.uninitvars.printWarnings = "true"
 cpa.uninitvars.stop = "sep"
   allowed values: [sep, join]
 
+# enable the Forced Covering optimization
+impact.useForcedCovering = true
+
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
