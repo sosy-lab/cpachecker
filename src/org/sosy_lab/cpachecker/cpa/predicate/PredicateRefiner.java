@@ -207,6 +207,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPrecision.getPredicateMap();
     Set<AbstractionPredicate> globalPredicates = oldPrecision.getGlobalPredicates();
 
+    boolean predicatesFound = false;
     boolean newPredicatesFound = false;
     Pair<ARTElement, CFANode> firstInterpolationPoint = null;
     ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
@@ -221,6 +222,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
 
       if (localPreds.size() > 0) {
         // found predicates
+        predicatesFound = true;
         CFANode loc = interpolationPoint.getSecond();
 
         if (firstInterpolationPoint == null) {
@@ -236,6 +238,12 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
         }
 
       }
+    }
+    if (!predicatesFound) {
+      // The only reason why this might appear is that the very last block is
+      // infeasible in itself, however, we check for such cases during strengthen,
+      // so they shouldn't appear here.
+      throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
     }
     assert firstInterpolationPoint != null;
 

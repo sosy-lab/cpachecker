@@ -782,13 +782,12 @@ public abstract class InterpolationManager<I> {
    * @throws RefinementFailedException If there were no predicates.
    */
   private <T> CounterexampleTraceInfo<I> extractPredicates(
-      List<Formula> interpolants) throws RefinementFailedException {
+      List<Formula> interpolants) {
 
     // the counterexample is spurious. Extract the predicates from
     // the interpolants
 
     CounterexampleTraceInfo<I> info = new CounterexampleTraceInfo<I>();
-    boolean foundPredicates = false;
 
     int i = 1;
     for (Formula itp : interpolants) {
@@ -800,17 +799,12 @@ public abstract class InterpolationManager<I> {
 
       } else {
         logger.log(Level.ALL, "For step", i, "got:", "interpolant", itp);
-        foundPredicates = true;
-
         preds = convertInterpolant(itp, i);
       }
       info.addPredicatesForRefinement(preds);
       i++;
     }
 
-    if (!foundPredicates) {
-      throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
-    }
     return info;
   }
 
