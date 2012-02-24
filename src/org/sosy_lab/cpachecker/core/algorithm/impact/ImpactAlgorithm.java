@@ -96,10 +96,6 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
   private final Timer refinementTime = new Timer();
   private final Timer coverTime = new Timer();
   private final Timer closeTime = new Timer();
-  private final Timer solverTime = new Timer();
-  private int implicationChecks = 0;
-  private int trivialImplicationChecks = 0;
-  private int cachedImplicationChecks = 0;
   private int successfulForcedCovering = 0;
 
   private class Stats implements Statistics {
@@ -118,11 +114,11 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Time for refinement:                " + refinementTime);
       out.println("Time for close:                     " + closeTime);
       out.println("  Time for cover:                   " + coverTime);
-      out.println("Time spent by solver for reasoning: " + solverTime);
+      out.println("Time spent by solver for reasoning: " + solver.solverTime);
       out.println();
-      out.println("Number of implication checks:       " + implicationChecks);
-      out.println("  trivial:                          " + trivialImplicationChecks);
-      out.println("  cached:                           " + cachedImplicationChecks);
+      out.println("Number of implication checks:       " + solver.implicationChecks);
+      out.println("  trivial:                          " + solver.trivialImplicationChecks);
+      out.println("  cached:                           " + solver.cachedImplicationChecks);
       out.println("Number of refinements:              " + refinementTime.getNumberOfIntervals());
       if (useForcedCovering) {
         out.println("Number of forced coverings:         " + forceCoverTime.getNumberOfIntervals());
