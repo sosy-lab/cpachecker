@@ -161,10 +161,13 @@ class PredicateCPAStatistics implements Statistics {
       out.println();
       out.println("Max ABE block size:                       " + prec.maxBlockSize);
       out.println("Number of predicates discovered:          " + allDistinctPreds);
-      out.println("Number of abstraction locations:          " + allLocs);
-      out.println("Max number of predicates per location:    " + maxPredsPerLocation);
-      out.println("Avg number of predicates per location:    " + avgPredsPerLocation);
-      if (as.numCallsAbstraction > 0) {
+      if (allDistinctPreds > 0) {
+        out.println("Number of abstraction locations:          " + allLocs);
+        out.println("Max number of predicates per location:    " + maxPredsPerLocation);
+        out.println("Avg number of predicates per location:    " + avgPredsPerLocation);
+      }
+      int numAbstractions = as.numCallsAbstraction-as.numSymbolicAbstractions;
+      if (numAbstractions > 0) {
         out.println("Max number of predicates per abstraction: " + prec.maxPredsPerAbstraction);
         out.println("Total number of models for allsat:        " + as.allSatCount);
         out.println("Max number of models for allsat:          " + as.maxAllSatCount);
@@ -176,8 +179,8 @@ class PredicateCPAStatistics implements Statistics {
         int totalPathFormulaComputations = pfMgr.pathFormulaComputationTimer.getNumberOfIntervals() + pathFormulaCacheHits;
         out.println("Number of path formula cache hits:   " + pathFormulaCacheHits + " (" + toPercent(pathFormulaCacheHits, totalPathFormulaComputations) + ")");
       }
-      if (as.numCallsAbstraction > 0) {
-        out.println("Number of abstraction cache hits:    " + as.numCallsAbstractionCached + " (" + toPercent(as.numCallsAbstractionCached, as.numCallsAbstraction) + ")");
+      if (numAbstractions > 0) {
+        out.println("Number of abstraction cache hits:    " + as.numCallsAbstractionCached + " (" + toPercent(as.numCallsAbstractionCached, numAbstractions) + ")");
       }
 
       out.println();
