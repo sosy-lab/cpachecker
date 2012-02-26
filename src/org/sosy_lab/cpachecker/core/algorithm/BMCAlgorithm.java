@@ -419,7 +419,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         ARTElement lastExitState = (ARTElement)Iterables.getLast(exitStates);
 
         // the states reachable from the exit edge
-        Set<ARTElement> outOfLoopStates = lastExitState.getSubtree();
+        Set<ARTElement> outOfLoopStates = lastExitState.getLocalSubtree();
         if (Iterables.isEmpty(filterTargetElements(outOfLoopStates))) {
           // no target state reachable
           continue;

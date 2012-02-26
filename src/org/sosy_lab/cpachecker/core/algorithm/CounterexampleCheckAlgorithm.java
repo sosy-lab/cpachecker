@@ -196,7 +196,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
         continue;
       }
 
-      for (ARTElement parentOfCovered : coveredElement.getParentARTs()) {
+      for (ARTElement parentOfCovered : coveredElement.getLocalParents()) {
         if (elementsOnErrorPath.contains(parentOfCovered)) {
           // this should never happen, but handle anyway
           // we may not re-add this parent, because otherwise
@@ -221,11 +221,11 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     Set<ARTElement> seen = new HashSet<ARTElement>();
     Deque<ARTElement> waitlist = new ArrayDeque<ARTElement>(); // use BFS
 
-    waitlist.addAll(potentialChild.getParentARTs());
+    waitlist.addAll(potentialChild.getLocalParents());
     while (!waitlist.isEmpty()) {
       ARTElement current = waitlist.pollFirst();
 
-      for (ARTElement currentParent : current.getParentARTs()) {
+      for (ARTElement currentParent : current.getLocalParents()) {
         if (currentParent.equals(potentialParent)) {
           return true;
         }
@@ -244,12 +244,12 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
     // remove re-added parent of errorElement to prevent computing
     // the same error element over and over
-    Set<ARTElement> parents = errorElement.getParentARTs();
+    Set<ARTElement> parents = errorElement.getLocalParents();
     assert parents.size() == 1 : "error element that was merged";
 
     ARTElement parent = Iterables.getOnlyElement(parents);
 
-    if (parent.getChildARTs().size() > 1) {
+    if (parent.getLocalChildren().size() > 1) {
       // The error element has a sibling, so the parent and the sibling
       // should stay in the reached set, but then the error element
       // would get re-discovered.
@@ -258,10 +258,10 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       sound = false;
     }
 
-    for (ARTElement toRemove : parent.getChildARTs()) {
+    for (ARTElement toRemove : parent.getLocalChildren()) {
       // this includes the errorElement and its siblings
 
-      assert toRemove.getChildARTs().isEmpty();
+      assert toRemove.getLocalChildren().isEmpty();
       assert toRemove.getCoveredByThis().isEmpty();
 
       reached.remove(toRemove);

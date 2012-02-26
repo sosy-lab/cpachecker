@@ -194,11 +194,11 @@ public class InterpolationTree implements Iterable<InterpolationTreeNode> {
 
 
   /**
-   * Returns a list of all ancestors of the node.
+   * Returns a list of all children of the node.
    * @param node
    * @return
    */
-  public List<InterpolationTreeNode> getAncestorsOf(InterpolationTreeNode node) {
+  public List<InterpolationTreeNode> getChildrenOf(InterpolationTreeNode node) {
 
     Deque<InterpolationTreeNode> queue = new LinkedList<InterpolationTreeNode>();
     List<InterpolationTreeNode>  cList = new Vector<InterpolationTreeNode>();

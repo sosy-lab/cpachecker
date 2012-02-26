@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.art;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -40,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
@@ -50,11 +50,17 @@ import com.google.common.collect.ImmutableSet;
 
 public class ARTElement extends AbstractSingleWrapperElement {
 
-  //private final Set<ARTElement> children;
-  //private final Set<ARTElement> parents; // more than one parent if joining elements
+  /** Parent ARTElement in the same thread and the edge between them. */
+  private final HashMap<ARTElement, CFAEdge> localParentMap;
+  /** Child ARTElement in the same thread and the edge between them. */
+  private final HashMap<ARTElement, CFAEdge> localChildMap;
 
-  private final HashMap<ARTElement, CFAEdge> parentMap;
-  private final HashMap<ARTElement, CFAEdge> childMap;
+  /** Parent ARTElement in another thread that created the env. edge */
+  private final HashMap<ARTElement, RGCFAEdge> envParentMap;
+  /** Child ARTElement in another thread that was created by the env. edge*/
+  private final HashMap<ARTElement, RGCFAEdge> envChildMap;
+  /** Thread id. */
+  private final int tid;
 
   private final RGAbstractElement rgElement;
 
@@ -90,17 +96,28 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   private static int nextArtElementId = 0;
 
-  public ARTElement(AbstractElement pWrappedElement, Map<ARTElement, CFAEdge> parentEdges, ImmutableList<Integer> locationClasses) {
+  public ARTElement(AbstractElement pWrappedElement, Map<ARTElement, CFAEdge> parentEdges, Map<ARTElement, RGCFAEdge> parentEnvEdges, ImmutableList<Integer> locationClasses, int tid) {
     super(pWrappedElement);
     assert parentEdges != null;
 
     this.elementId = ++nextArtElementId;
-    this.parentMap = new LinkedHashMap<ARTElement, CFAEdge>(parentEdges);
-    this.childMap = new LinkedHashMap<ARTElement, CFAEdge>();
+    this.localParentMap = new LinkedHashMap<ARTElement, CFAEdge>(parentEdges);
+    this.localChildMap = new LinkedHashMap<ARTElement, CFAEdge>();
+    this.envParentMap = new LinkedHashMap<ARTElement, RGCFAEdge>(parentEnvEdges);
+    this.envChildMap = new LinkedHashMap<ARTElement, RGCFAEdge>();
+    this.tid = tid;
+
+    // TODO move it somewhere
     // add this as a child
     for (ARTElement parent : parentEdges.keySet()){
       CFAEdge edge = parentEdges.get(parent);
-      parent.childMap.put(this, edge);
+      parent.localChildMap.put(this, edge);
+    }
+
+    for (ARTElement parent : this.envParentMap.keySet()){
+      RGCFAEdge edge = this.envParentMap.get(parent);
+      assert edge != null;
+      parent.envChildMap.put(this, edge);
     }
 
     this.locationClasses = locationClasses;
@@ -110,43 +127,49 @@ public class ARTElement extends AbstractSingleWrapperElement {
     assert this.rgElement != null;
   }
 
-  public ImmutableSet<ARTElement> getParentARTs(){
-    return ImmutableSet.copyOf(parentMap.keySet()) ;
+  public ImmutableSet<ARTElement> getLocalParents(){
+    return ImmutableSet.copyOf(localParentMap.keySet()) ;
   }
 
-  public ImmutableSet<ARTElement> getChildARTs() {
+  public ImmutableSet<ARTElement> getLocalChildren() {
     // note for rely-guarantee analysis we may need the children of a destroyed element
     //assert !destroyed;
-    return ImmutableSet.copyOf(childMap.keySet()) ;
+    return ImmutableSet.copyOf(localChildMap.keySet()) ;
   }
 
-  public Collection<CFAEdge> getParentEdges(){
-    return parentMap.values();
+
+  public ImmutableMap<ARTElement, CFAEdge> getLocalParentMap() {
+    return ImmutableMap.copyOf(localParentMap);
   }
 
-  public Collection<CFAEdge> getChildrenEdges(){
-    return parentMap.values();
+  public ImmutableMap<ARTElement, CFAEdge> getLocalChildMap() {
+    return ImmutableMap.copyOf(localChildMap);
   }
 
-  public ImmutableMap<ARTElement, CFAEdge> getParentMap() {
-    return ImmutableMap.copyOf(parentMap);
+  public ImmutableMap<ARTElement, RGCFAEdge> getEnvParentMap() {
+    return ImmutableMap.copyOf(envParentMap);
   }
 
-  public ImmutableMap<ARTElement, CFAEdge> getChildMap() {
-    return ImmutableMap.copyOf(childMap);
+  public ImmutableMap<ARTElement, RGCFAEdge> getEnvChildMap() {
+    return ImmutableMap.copyOf(envChildMap);
   }
 
-  public void addParents(Map<ARTElement, CFAEdge> parents) {
-    parentMap.putAll(parents);
+  public void addLocalParent(ARTElement element, CFAEdge edge) {
+    localParentMap.put(element, edge);
+    element.localChildMap.put(this, edge);
   }
 
-  public void addChildren(Map<ARTElement, CFAEdge> children) {
-    childMap.putAll(children);
+  public void addLocalChildren(Map<ARTElement, CFAEdge> children) {
+    localChildMap.putAll(children);
   }
 
-  public void addParent(ARTElement element, CFAEdge edge) {
-    parentMap.put(element, edge);
-    element.childMap.put(this, edge);
+  public void addEnvParent(ARTElement element, RGCFAEdge edge) {
+    envParentMap.put(element, edge);
+    element.envChildMap.put(this, edge);
+  }
+
+  public void addEnvChildren(Map<ARTElement, RGCFAEdge> children){
+    envChildMap.putAll(children);
   }
 
 
@@ -162,7 +185,9 @@ public class ARTElement extends AbstractSingleWrapperElement {
     return locationClasses;
   }
 
-
+  public int getTid() {
+    return tid;
+  }
 
   public Set<RGEnvTransition> getEnvTrApplied() {
     return envTrApplied;
@@ -204,7 +229,6 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
   protected void setMergedWith(ARTElement pMergedWith) {
-    //assert !destroyed;
     assert mergedWith == null;
 
     mergedWith = pMergedWith;
@@ -234,17 +258,34 @@ public class ARTElement extends AbstractSingleWrapperElement {
     }
     sb.append("ART Element (Id: ");
     sb.append(elementId);
+    sb.append(", tid: ");
+    sb.append(tid);
     sb.append(", Location: "+loc+" "+locationClasses);
     if (!destroyed) {
-      sb.append(", Parents: ");
+      sb.append(", Local parents: ");
       List<Integer> list = new ArrayList<Integer>();
-      for (ARTElement e: parentMap.keySet()) {
+      for (ARTElement e: localParentMap.keySet()) {
         list.add(e.elementId);
       }
       sb.append(list);
-      sb.append(", Children: ");
+
+      sb.append(", Env parents: ");
       list.clear();
-      for (ARTElement e: childMap.keySet()) {
+      for (ARTElement e : envParentMap.keySet()){
+        list.add(e.elementId);
+      }
+      sb.append(list);
+
+      sb.append(", Local children: ");
+      list.clear();
+      for (ARTElement e: localChildMap.keySet()) {
+        list.add(e.elementId);
+      }
+      sb.append(list);
+
+      sb.append(", Env children: ");
+      list.clear();
+      for (ARTElement e: envChildMap.keySet()) {
         list.add(e.elementId);
       }
       sb.append(list);
@@ -255,7 +296,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
   // TODO check
-  public Set<ARTElement> getSubtree() {
+  public Set<ARTElement> getLocalSubtree() {
     assert !destroyed;
     Set<ARTElement> result = new HashSet<ARTElement>();
     Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
@@ -266,7 +307,25 @@ public class ARTElement extends AbstractSingleWrapperElement {
       ARTElement currentElement = workList.removeFirst();
       if (result.add(currentElement)) {
         // currentElement was not in result
-        workList.addAll(currentElement.childMap.keySet());
+        workList.addAll(currentElement.localChildMap.keySet());
+      }
+    }
+    return result;
+  }
+
+  public Set<ARTElement> getAllSubtree() {
+    assert !destroyed;
+    Set<ARTElement> result = new HashSet<ARTElement>();
+    Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
+
+    workList.add(this);
+
+    while (!workList.isEmpty()) {
+      ARTElement currentElement = workList.removeFirst();
+      if (result.add(currentElement)) {
+        // currentElement was not in result
+        workList.addAll(currentElement.localChildMap.keySet());
+        workList.addAll(currentElement.envChildMap.keySet());
       }
     }
     return result;
@@ -285,6 +344,10 @@ public class ARTElement extends AbstractSingleWrapperElement {
     return rgElement;
   }
 
+  public int getElementId() {
+    return elementId;
+  }
+
   /**
    * This method removes this element from the ART by removing it from its
    * parents' children list and from its children's parents list.
@@ -300,24 +363,33 @@ public class ARTElement extends AbstractSingleWrapperElement {
     assert !destroyed;
 
     // clear children
-    for (ARTElement child : childMap.keySet()) {
-      if (!child.parentMap.containsKey(this)){
-        System.out.println(this.getClass().toString());
-      }
-      assert (child.parentMap.containsKey(this));
-      child.parentMap.remove(this);
+    for (ARTElement child : localChildMap.keySet()) {
+      assert child.localParentMap.containsKey(this);
+      child.localParentMap.remove(this);
     }
-    childMap.clear();
+    localChildMap.clear();
+
+    for (ARTElement child : envChildMap.keySet()){
+      if (!child.envParentMap.containsKey(this)){
+        System.out.println(this.getClass());
+      }
+      assert child.envParentMap.containsKey(this);
+      child.envParentMap.remove(this);
+    }
+    envChildMap.clear();
 
     // clear parents
-    for (ARTElement parent : parentMap.keySet()) {
-      if (!parent.childMap.containsKey(this)){
-        System.out.println(this.getClass().toString());
-      }
-      assert (parent.childMap.containsKey(this));
-      parent.childMap.remove(this);
+    for (ARTElement parent : localParentMap.keySet()) {
+      assert parent.localChildMap.containsKey(this);
+      parent.localChildMap.remove(this);
     }
-    parentMap.clear();
+    localParentMap.clear();
+
+    for (ARTElement parent : envParentMap.keySet()) {
+      assert parent.envChildMap.containsKey(this);
+      parent.envChildMap.remove(this);
+    }
+    envParentMap.clear();
 
     // clear coverage relation
     if (isCovered()) {
@@ -338,12 +410,10 @@ public class ARTElement extends AbstractSingleWrapperElement {
     destroyed = true;
   }
 
-  public int getElementId() {
-    return elementId;
-  }
+
 
   public CFAEdge getEdgeToChild(ARTElement pChild) {
-    Preconditions.checkArgument(childMap.containsKey(pChild));
+    Preconditions.checkArgument(localChildMap.containsKey(pChild));
 
     CFANode currentLoc = this.retrieveLocationElement().getLocationNode();
     CFANode childNode = pChild.retrieveLocationElement().getLocationNode();
@@ -354,6 +424,8 @@ public class ARTElement extends AbstractSingleWrapperElement {
   public boolean isDestroyed() {
     return destroyed;
   }
+
+
 
 
 }

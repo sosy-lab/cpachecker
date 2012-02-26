@@ -70,11 +70,19 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
 
   @Override
   public Collection<ARTElement> getAbstractSuccessors(AbstractElement pElement, Precision pPrecision, CFAEdge edge)throws CPATransferException, InterruptedException {
-
     assert edge != null;
+
     ARTElement element = (ARTElement)pElement;
+    int tid = element.getTid();
+    RGCFAEdge rgEdge = null;
+    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+      rgEdge = (RGCFAEdge) edge;
+    }
 
     ImmutableList<Integer> succLocCl = getSuccessorLocationClasses(element, edge);
+
+
+
     // TODO statistics
     if (succLocCl == null){
       return Collections.emptySet();
@@ -89,14 +97,23 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
 
     int envAppBefore = getNumberEnvApp(element, edge);
 
-    Map<ARTElement, CFAEdge> parents = new HashMap<ARTElement, CFAEdge>(1);
-    parents.put(element, edge);
+
+    Map<ARTElement, CFAEdge> localParents = new HashMap<ARTElement, CFAEdge>(1);
+    localParents.put(element, edge);
+
+    Map<ARTElement, RGCFAEdge> envParents = new HashMap<ARTElement, RGCFAEdge>(1);
+    if (rgEdge != null){
+      ARTElement abstraction = rgEdge.getRgEnvTransition().getAbstractionElement();
+      envParents.put(abstraction, rgEdge);
+    }
+
     Collection<ARTElement> wrappedSuccessors = new ArrayList<ARTElement>();
     for (AbstractElement absElement : successors) {
-      ARTElement successorElem = new ARTElement(absElement, parents, succLocCl);
+      ARTElement successorElem = new ARTElement(absElement, localParents, envParents, succLocCl, tid);
       successorElem.setEnvAppBefore(envAppBefore);
       wrappedSuccessors.add(successorElem);
     }
+
     return wrappedSuccessors;
   }
 

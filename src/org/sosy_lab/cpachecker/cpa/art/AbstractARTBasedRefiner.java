@@ -181,11 +181,11 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     workList.add(pReached.getFirstElement());
     while (!workList.isEmpty()) {
       ARTElement currentElement = (ARTElement)workList.removeFirst();
-      for (ARTElement parent : currentElement.getParentARTs()) {
-        assert parent.getChildARTs().contains(currentElement);
+      for (ARTElement parent : currentElement.getLocalParents()) {
+        assert parent.getLocalChildren().contains(currentElement);
       }
-      for (ARTElement child : currentElement.getChildARTs()) {
-        assert child.getParentARTs().contains(currentElement);
+      for (ARTElement child : currentElement.getLocalChildren()) {
+        assert child.getLocalParents().contains(currentElement);
       }
 
       // check if (e \in ART) => (e \in Reached ^ e.isCovered())
@@ -193,11 +193,11 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       // If the element is the sibling of the target element, it might have not
       // been added to the reached set if CPAAlgorithm stopped before.
       // But in this case its parent is in the waitlist.
-      assert (pReached.contains(currentElement) || pReached.getWaitlist().containsAll(currentElement.getParentARTs()))
+      assert (pReached.contains(currentElement) || pReached.getWaitlist().containsAll(currentElement.getLocalParents()))
             ^ currentElement.isCovered();
 
       if (art.add(currentElement)) {
-        workList.addAll(currentElement.getChildARTs());
+        workList.addAll(currentElement.getLocalChildren());
       }
     }
 

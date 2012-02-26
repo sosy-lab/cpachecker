@@ -327,7 +327,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     Path result = new Path();
     ARTElement currentElement = pPath.getFirst().getFirst();
     while (!currentElement.isTarget()) {
-      Set<ARTElement> children = currentElement.getChildARTs();
+      Set<ARTElement> children = currentElement.getLocalChildren();
 
       ARTElement child;
       CFAEdge edge;

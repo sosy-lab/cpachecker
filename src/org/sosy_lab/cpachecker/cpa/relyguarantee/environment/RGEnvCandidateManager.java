@@ -96,7 +96,7 @@ public class RGEnvCandidateManager {
 
     /* if abs1 or pf1 is false, then c is bottom */
     Formula absF = c.getRgElement().getAbstractionFormula().asFormula();
-    Formula f = c.getRgElement().getPathFormula().getFormula();
+    Formula f = c.getRgElement().getAbsPathFormula().getFormula();
 
     if (absF.isFalse() || f.isFalse()){
       return true;
@@ -142,8 +142,8 @@ public class RGEnvCandidateManager {
       return false;
     }
 
-    Formula f1 = c1.getRgElement().getPathFormula().getFormula();
-    Formula f2 = c1.getRgElement().getPathFormula().getFormula();
+    Formula f1 = c1.getRgElement().getAbsPathFormula().getFormula();
+    Formula f2 = c1.getRgElement().getAbsPathFormula().getFormula();
 
     if (f1.isTrue() && f2.isTrue()){
       // can compare BDDs

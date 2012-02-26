@@ -93,7 +93,7 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
     AbstractionFormula abs = cand.getRgElement().getAbstractionFormula();
     Formula absF = abs.asFormula();
     Region absReg = abs.asRegion();
-    PathFormula pf = cand.getRgElement().getPathFormula();
+    PathFormula pf = cand.getRgElement().getAbsPathFormula();
 
     /*ARTElement laElement = RGCPA.findLastAbstractionARTElement(cand.getElement());
     if (laElement == null){
@@ -109,7 +109,7 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
     RGSimpleTransition st = (RGSimpleTransition) et;
 
     AbstractionFormula lAbs = elem.getAbstractionFormula();
-    PathFormula lPf = elem.getPathFormula();
+    PathFormula lPf = elem.getAbsPathFormula();
     Formula eAbs = st.getAbstraction();
     PathFormula ePf = st.getPathFormula();
 
@@ -150,7 +150,7 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
     RGSimpleTransition st = (RGSimpleTransition) et;
 
     AbstractionFormula lAbs = elem.getAbstractionFormula();
-    PathFormula lPf = elem.getPathFormula();
+    PathFormula lPf = elem.getAbsPathFormula();
     PathFormula ePf = st.getPathFormula();
 
     /* if path formulas are true, then BDDs can detect unsatisfiable result */

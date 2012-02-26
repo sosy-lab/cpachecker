@@ -122,9 +122,9 @@ public class ARTReachedSet {
 
   private Set<ARTElement> removeSubtree0(ARTElement e) {
     Preconditions.checkNotNull(e);
-    Preconditions.checkArgument(!e.getParentARTs().isEmpty(), "May not remove the initial element from the ART/reached set");
+    Preconditions.checkArgument(!e.getLocalParents().isEmpty(), "May not remove the initial element from the ART/reached set");
 
-    Set<ARTElement> toUnreach = e.getSubtree();
+    Set<ARTElement> toUnreach = e.getLocalSubtree();
 
     // collect all elements covered by the subtree
     List<ARTElement> newToUnreach = new ArrayList<ARTElement>();
@@ -155,7 +155,7 @@ public class ARTReachedSet {
     Set<ARTElement> toWaitlist = new LinkedHashSet<ARTElement>();
     for (ARTElement ae : elements) {
 
-      for (ARTElement parent : ae.getParentARTs()) {
+      for (ARTElement parent : ae.getLocalParents()) {
         if (!elements.contains(parent)) {
           toWaitlist.add(parent);
         }
@@ -181,23 +181,23 @@ public class ARTReachedSet {
    */
   public void replaceWithBottom(ARTElement e) {
     Preconditions.checkNotNull(e);
-    Preconditions.checkArgument(!e.getParentARTs().isEmpty(), "May not remove the initial element from the ART/reached set");
+    Preconditions.checkArgument(!e.getLocalParents().isEmpty(), "May not remove the initial element from the ART/reached set");
 
     Set<ARTElement> removedElements = new HashSet<ARTElement>();
     Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
 
-    workList.addAll(e.getChildARTs());
+    workList.addAll(e.getLocalChildren());
     removedElements.add(e);
     e.removeFromART();
 
     while (!workList.isEmpty()) {
       ARTElement currentElement = workList.removeFirst();
-      if (currentElement.getParentARTs().isEmpty()) {
+      if (currentElement.getLocalParents().isEmpty()) {
         // no other paths to this element
 
         if (removedElements.add(currentElement)) {
           // not yet handled
-          workList.addAll(currentElement.getChildARTs());
+          workList.addAll(currentElement.getLocalChildren());
           currentElement.removeFromART();
         }
       }
@@ -226,7 +226,7 @@ public class ARTReachedSet {
    */
   public void removeCoverage(ARTElement element) {
     for (ARTElement covered : ImmutableList.copyOf(element.getCoveredByThis())) {
-      for (ARTElement parent : covered.getParentARTs()) {
+      for (ARTElement parent : covered.getLocalParents()) {
         mReached.reAddToWaitlist(parent);
       }
       covered.removeFromART(); // also removes from element.getCoveredByThis() set
@@ -256,7 +256,7 @@ public class ARTReachedSet {
 
     // get the reached set and remove the element itself and all its children
     Set<AbstractElement> localReached = new HashSet<AbstractElement>(mReached.getReached(element));
-    Set<ARTElement> subtree = element.getSubtree();
+    Set<ARTElement> subtree = element.getLocalSubtree();
     localReached.removeAll(subtree);
 
     StopOperator stopOp = mCpa.getStopOperator();

@@ -203,6 +203,7 @@ public class RGRefiner implements StatisticsProvider{
       System.out.println();
       System.out.println("\t\t\t ----- Restarting analysis -----");
       stats.restartingTimer.start();
+      refinementResult = lazyRefinement(reachedSets, counterexampleInfo);
       refinementResult = restartingRefinement(reachedSets, counterexampleInfo);
 
       // drop subtrees and change precision
@@ -211,7 +212,7 @@ public class RGRefiner implements StatisticsProvider{
           ARTElement root = pair.getFirst();
           // drop cut-off node in every thread
           RGPrecision precision = pair.getSecond();
-          Set<ARTElement> parents = new HashSet<ARTElement>(root.getParentARTs());
+          Set<ARTElement> parents = new HashSet<ARTElement>(root.getLocalParents());
 
 
           // TODO why does it take so long?
@@ -248,6 +249,129 @@ public class RGRefiner implements StatisticsProvider{
 
 
   /**
+   * Finds cut-off points and new precision for them.
+   * @param pReachedSets
+   * @param pCounterexampleInfo
+   * @return
+   */
+  private Multimap<Integer, Pair<ARTElement, RGPrecision>> lazyRefinement(ReachedSet[] reachedSets, InterpolationTreeResult info) {
+
+    boolean newPred = false;
+    boolean newLM = false;
+
+    // set location mapping
+    RGLocationMapping lm = info.getRefinedLocationMapping();
+    if (lm != null){
+      newLM = true;
+
+      if (debug){
+        System.out.println("New "+lm);
+      }
+
+      environment.setLocationMapping(lm);
+
+      for (int i=0; i<artCpas.length; i++){
+        ARTCPA artCpa = artCpas[i];
+        artCpa.setLocationMapping(lm);
+      }
+    }
+
+    // get ART elements that have a new precision
+    Collection<InterpolationTreeNode> newPrecElements = getNewPrecisionElements(reachedSets, info);
+
+    // find ART elements that are on the top of the DAG created by ARTs
+    Collection<InterpolationTreeNode> topElements = getTopDagElements(newPrecElements, info);
+
+    return null;
+
+  }
+
+
+
+
+  /**
+   * Find interpolation tree nodes elements that have new precision.
+   * @param reachedSets
+   * @param info
+   * @param allPrec
+   * @return
+   */
+  private Collection<InterpolationTreeNode> getNewPrecisionElements(ReachedSet[] reachedSets, InterpolationTreeResult info) {
+    Set<InterpolationTreeNode> newPrecElem = new HashSet<InterpolationTreeNode>();
+
+    SetMultimap<InterpolationTreeNode, AbstractionPredicate> artMap = info.getArtMap();
+
+    for (InterpolationTreeNode node : artMap.keySet()){
+      ARTElement aelem = node.getArtElement();
+      Set<AbstractionPredicate> itps = artMap.get(node);
+      CFANode loc = aelem.retrieveLocationElement().getLocationNode();
+      int tid = aelem.getTid();
+
+      Precision prec = reachedSets[tid].getPrecision(aelem);
+      RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
+      HashSet<AbstractionPredicate> artPredicates = new HashSet<AbstractionPredicate>(rgPrec.getARTGlobalPredicates());
+      artPredicates.addAll(rgPrec.getARTPredicateMap().get(loc));
+
+      // check if the new precision is contained in the old one
+      if (!artPredicates.containsAll(itps)){
+        newPrecElem.add(node);
+      }
+    }
+
+    SetMultimap<InterpolationTreeNode, AbstractionPredicate> envMap = info.getEnvMap();
+
+    for (InterpolationTreeNode node : envMap.keySet()){
+      ARTElement aelem = node.getArtElement();
+      Set<AbstractionPredicate> itps = envMap.get(node);
+      CFANode loc = aelem.retrieveLocationElement().getLocationNode();
+      int tid = aelem.getTid();
+
+      Precision prec = reachedSets[tid].getPrecision(aelem);
+      RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
+      HashSet<AbstractionPredicate> envPredicates = new HashSet<AbstractionPredicate>(rgPrec.getEnvGlobalPredicates());
+      envPredicates.addAll(rgPrec.getEnvPredicateMap().get(loc));
+
+      // check if the new precision is contained in the old one
+      if (!envPredicates.containsAll(itps)){
+        newPrecElem.add(node);
+      }
+    }
+
+    return newPrecElem;
+  }
+
+  /**
+   * Get the largest subset of interpolation nodes, such that their ART elements are not
+   * reachable by any other element.
+   * @param elements
+   * @param info
+   * @return
+   */
+  private Set<InterpolationTreeNode> getTopDagElements(Collection<InterpolationTreeNode> elements, InterpolationTreeResult info) {
+
+    Set<InterpolationTreeNode> topElems = new HashSet<InterpolationTreeNode>(elements);
+    InterpolationTree tree = info.getTree();
+
+    for (InterpolationTreeNode node : elements){
+      for (InterpolationTreeNode top : topElems){
+        if (node.equals(top)){
+          continue;
+        }
+
+        // ART node a reaches b if interpolation node a is ancestor of node b.
+        if (top.hasAncestor(node)){
+          topElems.remove(node);
+          break;
+        }
+      }
+    }
+
+    return topElems;
+  }
+
+
+
+  /**
    * Computes new precision for the inital elements.
    * @param reachedSets
    * @param info
@@ -273,7 +397,7 @@ public class RGRefiner implements StatisticsProvider{
         ARTCPA artCpa = artCpas[i];
         artCpa.setLocationMapping(lm);
       }
-    }
+     }
 
 
     Multimap<Integer, Pair<ARTElement, RGPrecision>> refMap = LinkedHashMultimap.create();
@@ -288,7 +412,7 @@ public class RGRefiner implements StatisticsProvider{
 
       newPred = newPred || pair.getSecond();
 
-      for (ARTElement child : initial.getChildARTs()){
+      for (ARTElement child : initial.getLocalChildren()){
         refMap.put(i, Pair.of(child, newPrec));
       }
     }
@@ -300,6 +424,8 @@ public class RGRefiner implements StatisticsProvider{
 
     return refMap;
   }
+
+
 
 
   /**
@@ -434,14 +560,14 @@ public class RGRefiner implements StatisticsProvider{
   private Multimap<CFANode, AbstractionPredicate> gatherEnvPredicates(InterpolationTreeResult result, int i) {
     Multimap<CFANode, AbstractionPredicate> map = LinkedHashMultimap.create();
 
-    SetMultimap<ARTElement, AbstractionPredicate> envMap = result.getEnvMap();
-    for (ARTElement aElement : envMap.keySet()){
-      RGAbstractElement rgElement = AbstractElements.extractElementByType(aElement, RGAbstractElement.class);
-      int tid = rgElement.getTid();
+    SetMultimap<InterpolationTreeNode, AbstractionPredicate> envMap = result.getEnvMap();
+    for (InterpolationTreeNode node : envMap.keySet()){
+      ARTElement aElement = node.getArtElement();
+      int tid = aElement.getTid();
 
       if (i == tid){
         CFANode loc = aElement.retrieveLocationElement().getLocationNode();
-        map.putAll(loc, envMap.get(aElement));
+        map.putAll(loc, envMap.get(node));
       }
 
     }
@@ -452,15 +578,15 @@ public class RGRefiner implements StatisticsProvider{
   private Multimap<CFANode, AbstractionPredicate> gatherARTPredicates(InterpolationTreeResult result, int i) {
     Multimap<CFANode, AbstractionPredicate> map = LinkedHashMultimap.create();
 
-    SetMultimap<ARTElement, AbstractionPredicate> artMap = result.getArtMap();
+    SetMultimap<InterpolationTreeNode, AbstractionPredicate> artMap = result.getArtMap();
 
-    for (ARTElement aElement : artMap.keySet()){
-      RGAbstractElement rgElement = AbstractElements.extractElementByType(aElement, RGAbstractElement.class);
-      int tid = rgElement.getTid();
+    for (InterpolationTreeNode node : artMap.keySet()){
+      ARTElement aElement = node.getArtElement();
+      int tid = aElement.getTid();
 
       if (i == tid){
         CFANode loc = aElement.retrieveLocationElement().getLocationNode();
-        map.putAll(loc, artMap.get(aElement));
+        map.putAll(loc, artMap.get(node));
       }
 
     }

@@ -62,8 +62,6 @@ public class RGPrecisionAdjustment implements PrecisionAdjustment {
   protected final FormulaManager fManager;
   protected final PathFormulaManager pfManager;
 
-
-
   public RGPrecisionAdjustment(RGCPA pCpa) {
     logger = pCpa.logger;
     absManager = pCpa.absManager;
@@ -105,9 +103,9 @@ public class RGPrecisionAdjustment implements PrecisionAdjustment {
       RGPrecision precision) {
 
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
-    PathFormula pathFormula = element.getPathFormula();
+    PathFormula absPf = element.getAbsPathFormula();
+    PathFormula refPf = element.getRefPathFormula();
     CFANode loc = element.getLocation();
-
 
     numAbstractions++;
     logger.log(Level.FINEST, "Computing abstraction on node", loc);
@@ -115,14 +113,14 @@ public class RGPrecisionAdjustment implements PrecisionAdjustment {
     Collection<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(precision.getARTPredicates(loc));
     preds.addAll(precision.getARTGlobalPredicates());
 
-    maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
+    maxBlockSize = Math.max(maxBlockSize, absPf.getLength());
     maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());
 
     computingAbstractionTime.start();
 
     // compute new abstraction
     AbstractionFormula newAbstractionFormula = computeAbstraction(
-        abstractionFormula, pathFormula, preds, loc);
+        abstractionFormula, absPf, preds, loc);
 
     computingAbstractionTime.stop();
 
@@ -133,11 +131,11 @@ public class RGPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     // create new empty path formula
-    PathFormula newPathFormula = pfManager.makeEmptyPathFormula(pathFormula);
+    PathFormula newAbsPf = pfManager.makeEmptyPathFormula(absPf);
+    PathFormula newRefPf = pfManager.makeEmptyPathFormula(refPf);
 
-    return new RGAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, this.cpa.getTid(), element.getPathFormula(), element.getAppInfo());
+    return new RGAbstractElement.AbstractionElement(newAbstractionFormula, newAbsPf, newRefPf, refPf, element.getEnvApplicationMap());
   }
-
 
   protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {
     return absManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);

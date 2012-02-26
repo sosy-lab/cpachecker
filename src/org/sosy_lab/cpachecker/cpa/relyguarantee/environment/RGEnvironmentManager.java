@@ -735,7 +735,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
         break;
       }
 
-      for (ARTElement parent : element.getParentARTs()){
+      for (ARTElement parent : element.getLocalParents()){
         if (!visisted.contains(parent)){
           toProcess.addLast(parent);
         }

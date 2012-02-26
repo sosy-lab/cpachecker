@@ -28,12 +28,14 @@ import java.util.Vector;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGApplicationInfo;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
+import com.google.common.collect.ImmutableMap;
+
 /**
- * Represents a abstraction point.
+ * Represents an abstraction point.
  */
 public class InterpolationDagNode{
 
@@ -44,7 +46,7 @@ public class InterpolationDagNode{
   protected PathFormula pathFormula;
 
   /** Information on applied env. edges */
-  protected final RGApplicationInfo appInfo;
+  protected final ImmutableMap<Integer, RGEnvTransition> envAppMap;
 
   /** Node directly affecting this node */
   protected final List<InterpolationDagNode> parents;
@@ -72,7 +74,7 @@ public class InterpolationDagNode{
   public InterpolationDagNode(InterpolationDagNode node){
     this.artElement   = node.artElement;
     this.pathFormula  = node.pathFormula;
-    this.appInfo      = node.appInfo;
+    this.envAppMap    = node.envAppMap;
     this.children     = new Vector<InterpolationDagNode>();
     this.parents      = new Vector<InterpolationDagNode>();
     this.tid          = node.tid;
@@ -80,13 +82,13 @@ public class InterpolationDagNode{
     this.isEnvAbstraction = node.isEnvAbstraction;
   }
 
-  public InterpolationDagNode(ARTElement artElement, PathFormula pathFormula, RGApplicationInfo appInfo, int tid){
+  public InterpolationDagNode(ARTElement artElement, PathFormula pathFormula, ImmutableMap<Integer, RGEnvTransition> envAppMap, int tid){
     assert artElement   != null;
     assert pathFormula  != null;
 
     this.artElement   = artElement;
     this.pathFormula  = pathFormula;
-    this.appInfo      = appInfo;
+    this.envAppMap    = envAppMap;
     this.children     = new Vector<InterpolationDagNode>();
     this.parents      = new Vector<InterpolationDagNode>();
     this.tid          = tid;
@@ -94,13 +96,13 @@ public class InterpolationDagNode{
     this.isEnvAbstraction = false;
   }
 
-  public InterpolationDagNode(ARTElement artElement, PathFormula pathFormula, RGApplicationInfo appInfo, int tid, boolean isEnvAbstraction, Integer uniqueId){
+  public InterpolationDagNode(ARTElement artElement, PathFormula pathFormula, ImmutableMap<Integer, RGEnvTransition> envAppMap, int tid, boolean isEnvAbstraction, Integer uniqueId){
     assert artElement   != null;
     assert pathFormula  != null;
 
     this.artElement   = artElement;
     this.pathFormula  = pathFormula;
-    this.appInfo      = appInfo;
+    this.envAppMap    = envAppMap;
     this.children     = new Vector<InterpolationDagNode>();
     this.parents      = new Vector<InterpolationDagNode>();
     this.tid          = tid;
@@ -109,25 +111,6 @@ public class InterpolationDagNode{
     this.uniqueId     = uniqueId;
   }
 
-
-
-  /*public InterpolationDagNode(PathFormula pf, int traceNo, ARTElement artElement, List<InterpolationDagNode> children, List<InterpolationDagNode> parents, int tid) {
-    super(pf, traceNo, artElement, null);
-    this.children = children;
-    this.parents  = parents;
-    this.tid      = tid;
-    this.envPrimes  = new HashMap<RelyGuaranteeCFAEdge, Integer>();
-    this.key        = new InterpolationDagNodeKey(tid, artElement.getElementId());
-  }
-
-  public InterpolationDagNode(PathFormula pf, int traceNo, ARTElement artElement, List<InterpolationDagNode> children, List<InterpolationDagNode> parents, int tid, Map<RelyGuaranteeCFAEdge, Integer> envPrimes) {
-    super(pf, traceNo, artElement, null);
-    this.children = children;
-    this.parents  = parents;
-    this.tid      = tid;
-    this.envPrimes  = envPrimes;
-    this.key        = new InterpolationDagNodeKey(tid, artElement.getElementId());
-  }*/
 
   public List<InterpolationDagNode> getChildren() {
     return children;
@@ -158,8 +141,10 @@ public class InterpolationDagNode{
     pathFormula = pPathFormula;
   }
 
-  public RGApplicationInfo getAppInfo() {
-    return appInfo;
+
+
+  public ImmutableMap<Integer, RGEnvTransition> getEnvAppMap() {
+    return envAppMap;
   }
 
   public ARTElement getArtElement() {

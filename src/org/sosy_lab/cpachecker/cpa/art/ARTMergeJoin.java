@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.collect.ImmutableList;
@@ -44,23 +45,24 @@ public class ARTMergeJoin implements MergeOperator {
   }
 
   @Override
-  public AbstractElement merge(AbstractElement pElement1,
-      AbstractElement pElement2, Precision pPrecision) throws CPAException {
+  public AbstractElement merge(AbstractElement pElement1, AbstractElement pElement2, Precision pPrecision) throws CPAException {
 
     ARTElement artElement1 = (ARTElement)pElement1;
     ARTElement artElement2 = (ARTElement)pElement2;
 
-
     // covered elements are not in the reached set
     assert !artElement1.isCovered();
     assert !artElement2.isCovered();
+
+    // can't merge element from different threads
+    assert artElement1.getTid() == artElement2.getTid();
 
     if (!artElement2.mayCover()) {
       // elements that may not cover should also not be used for merge
       return pElement2;
     }
 
-    // merged olny elements that have matching location classes
+    // merged elements that have matching location classes
     ImmutableList<Integer> locations1 = artElement1.getLocationClasses();
     ImmutableList<Integer> locations2 = artElement2.getLocationClasses();
 
@@ -75,37 +77,38 @@ public class ARTMergeJoin implements MergeOperator {
       return pElement2;
     }
 
-    ARTElement mergedElement = new ARTElement(retElement, Collections.<ARTElement, CFAEdge> emptyMap(), locations1);
+    ARTElement mergedElement = new ARTElement(retElement, Collections.<ARTElement, CFAEdge> emptyMap(), Collections.<ARTElement, RGCFAEdge> emptyMap(), locations1, artElement1.getTid());
 
-    // now replace artElement2 by mergedElement in ART
-
-    for ( Entry<ARTElement, CFAEdge> entry : artElement1.getParentMap().entrySet()){
-      mergedElement.addParent(entry.getKey(), entry.getValue());
+    // add local and environmental parents
+    for ( Entry<ARTElement, CFAEdge> entry : artElement1.getLocalParentMap().entrySet()){
+      mergedElement.addLocalParent(entry.getKey(), entry.getValue());
     }
 
-    for ( Entry<ARTElement, CFAEdge> entry : artElement2.getParentMap().entrySet()){
-      mergedElement.addParent(entry.getKey(), entry.getValue());
+    for ( Entry<ARTElement, CFAEdge> entry : artElement2.getLocalParentMap().entrySet()){
+      mergedElement.addLocalParent(entry.getKey(), entry.getValue());
+    }
+
+    for ( Entry<ARTElement, RGCFAEdge> entry : artElement1.getEnvParentMap().entrySet()){
+      mergedElement.addEnvParent(entry.getKey(), entry.getValue());
+    }
+
+    for ( Entry<ARTElement, RGCFAEdge> entry : artElement2.getEnvParentMap().entrySet()){
+      mergedElement.addEnvParent(entry.getKey(), entry.getValue());
     }
 
     // artElement1 is the current successor, it does not have any children yet
-    assert artElement1.getChildARTs().isEmpty();
+    assert artElement1.getLocalChildren().isEmpty();
+    assert artElement1.getEnvChildMap().isEmpty();
 
+    // add children
     // TODO check if correct - can get a loop in ARTby the two lines below
-    for (Entry<ARTElement, CFAEdge> entry : artElement2.getChildMap().entrySet()){
-      entry.getKey().addParent(mergedElement, entry.getValue());
+    for (Entry<ARTElement, CFAEdge> entry : artElement2.getLocalChildMap().entrySet()){
+      entry.getKey().addLocalParent(mergedElement, entry.getValue());
     }
 
-    // TODO delete this check
-    /*System.out.println("REMOVE ME: "+this.getClass());
-    this.checkParentChildCheck(mergedElement);
-
-    for (ARTElement parent : mergedElement.getParentARTs()){
-      this.checkParentChildCheck(parent);
+    for (Entry<ARTElement, RGCFAEdge> entry : artElement2.getEnvChildMap().entrySet()){
+      entry.getKey().addEnvParent(mergedElement, entry.getValue());
     }
-
-    for (ARTElement child : mergedElement.getChildARTs()){
-      this.checkParentChildCheck(child);
-    }*/
 
     // artElement1 will only be removed from ART if stop(e1, reached) returns true
     artElement2.removeFromART();
@@ -124,19 +127,19 @@ public class ARTMergeJoin implements MergeOperator {
 
   private void checkParentChildCheck(ARTElement elem){
 
-    ImmutableMap<ARTElement, CFAEdge> pMap = elem.getParentMap();
+    ImmutableMap<ARTElement, CFAEdge> pMap = elem.getLocalParentMap();
     for (ARTElement parent : pMap.keySet()){
       assert !parent.isDestroyed();
       CFAEdge edge = pMap.get(parent);
-      CFAEdge pEdge = parent.getChildMap().get(elem);
+      CFAEdge pEdge = parent.getLocalChildMap().get(elem);
       assert pEdge != null && edge != null && pEdge.equals(edge);
     }
 
-    ImmutableMap<ARTElement, CFAEdge> cMap = elem.getChildMap();
+    ImmutableMap<ARTElement, CFAEdge> cMap = elem.getLocalChildMap();
     for (ARTElement child : cMap.keySet()){
       assert !child.isDestroyed();
       CFAEdge edge = pMap.get(child);
-      CFAEdge cEdge = child.getParentMap().get(elem);
+      CFAEdge cEdge = child.getLocalParentMap().get(elem);
       assert cEdge != null && edge != null && cEdge.equals(edge);
     }
 

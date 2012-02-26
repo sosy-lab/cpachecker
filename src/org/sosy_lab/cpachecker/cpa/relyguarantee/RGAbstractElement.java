@@ -26,110 +26,102 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableMap;
 
-public class RGAbstractElement implements AbstractElement, Partitionable, FormulaReportingElement {
+public class RGAbstractElement implements AbstractElement, Partitionable {
 
-  public int tid;
+  private static final ImmutableMap<Integer, RGEnvTransition> emptyMap = ImmutableMap.of();
 
-  /** The path formula for the path from the last abstraction node to this node.
-   * it is set to true on a new abstraction location and updated with a new
-   * non-abstraction location */
-  private final PathFormula pathFormula;
+  /**
+   * Path formula for abstraction.
+   */
+  private final PathFormula absPathFormula;
+
+  /**
+   * Path formula for refinement. Every env. application has an unique prime number in the formula.
+   */
+  private final PathFormula refPathFormula;
 
   /** The abstraction which is updated only on abstraction locations */
   private final AbstractionFormula abstractionFormula;
 
   /**
-   * The abstract element this element was merged into.
-   * Used for fast coverage checks.
+   * Map from unique prime numbers to env. transition applied.
+   */
+  private final ImmutableMap<Integer, RGEnvTransition> envApplicationMap;
+
+  /**
+   * The element after merging this one.
    */
   private RGAbstractElement mergedInto = null;
 
+  public RGAbstractElement(PathFormula absPf, PathFormula refPf,  AbstractionFormula abs,  ImmutableMap<Integer, RGEnvTransition> envRefMap) {
+    this.absPathFormula = absPf;
+    this.refPathFormula = refPf;
+    this.abstractionFormula = abs;
+    this.envApplicationMap = envRefMap;
+  }
+
+
   /**
-   * Information on env. edges applied.
+   * Path formula for abstraction.
+   * @return
    */
-  private RGApplicationInfo appInfo;
-
-  public RGAbstractElement(PathFormula pf, AbstractionFormula a,  int tid) {
-    this.pathFormula = pf;
-    this.abstractionFormula = a;
-    this.tid = tid;
-    this.appInfo = null;
-  }
-
-  public RGAbstractElement(PathFormula pf, AbstractionFormula a, int tid, RGApplicationInfo appInfo) {
-    this.pathFormula = pf;
-    this.abstractionFormula = a;
-    this.tid = tid;
-    this.appInfo = appInfo;
+  public PathFormula getAbsPathFormula() {
+    return absPathFormula;
   }
 
 
-  public int getTid(){
-    return this.tid;
-  }
-
-  public RGApplicationInfo getAppInfo() {
-    return appInfo;
-  }
-
-  public void setAppInfo(RGApplicationInfo pAppInfo) {
-    appInfo = pAppInfo;
+  /**
+   * Path formula for refinement.
+   * @return
+   */
+  public PathFormula getRefPathFormula() {
+    return refPathFormula;
   }
 
 
-  public static Predicate<AbstractElement> FILTER_ABSTRACTION_ELEMENTS = new Predicate<AbstractElement>() {
-    @Override
-    public boolean apply(AbstractElement ae) {
-      return (ae instanceof AbstractionElement);
-    }
-  };
 
   public AbstractionFormula getAbstractionFormula() {
     return abstractionFormula;
   }
 
+
+
+  public ImmutableMap<Integer, RGEnvTransition> getEnvApplicationMap() {
+    return envApplicationMap;
+  }
+
+
   public RGAbstractElement getMergedInto() {
     return mergedInto;
   }
 
-  public PathFormula getPathFormula() {
-    return pathFormula;
-  }
 
-  void setMergedInto(RGAbstractElement pMergedInto) {
-    Preconditions.checkNotNull(pMergedInto);
+  public void setMergedInto(RGAbstractElement pMergedInto) {
     mergedInto = pMergedInto;
   }
 
+
   @Override
   public String toString() {
-    return "RG element (not-abs): "+abstractionFormula+", "+pathFormula;
+    return "RG element (not-abs): "+abstractionFormula+", absPf: "+this.absPathFormula+", refPf: "+this.refPathFormula;
   }
 
   @Override
   public Object getPartitionKey() {
-    //return abstractionFormula;
+    // TODO abstractionFormula;
     return null;
-  }
-
-  @Override
-  public Formula getFormulaApproximation(FormulaManager manager) {
-    return getAbstractionFormula().asFormula();
   }
 
 
   @Override
   public int hashCode() {
-    return (83 * abstractionFormula.hashCode()) +pathFormula.hashCode();
+    return (83 * abstractionFormula.hashCode()) +absPathFormula.hashCode() + 7*refPathFormula.hashCode();
     //return abstractionFormula.hashCode();
   }
 
@@ -139,18 +131,21 @@ public class RGAbstractElement implements AbstractElement, Partitionable, Formul
    */
   public static class AbstractionElement extends RGAbstractElement {
 
-    /** Path formula that generated this abstraction */
-    private final PathFormula blockPathFormula;
 
-    /** Information on env. app in the path formula that generated the block */
-    private final RGApplicationInfo blockAppInfo;
 
-    public AbstractionElement(PathFormula pf, AbstractionFormula pA,  int tid, PathFormula blockPF, RGApplicationInfo blockAppInfo) {
-      super(pf, pA, tid);
-      this.blockPathFormula = blockPF;
-      this.blockAppInfo     = blockAppInfo;
-      // Check whether the pathFormula of an abstraction element is just "true".
-      // partialOrder relies on this for optimization.
+    /** Refinement path formula in the path formula that generated the abstraction. */
+    private final PathFormula blockRefPathFormula;
+
+    /** Information on env. app in the path formula that generated the abstraction. */
+    private final ImmutableMap<Integer, RGEnvTransition> blockEnvApplicationMap;
+
+    public AbstractionElement(AbstractionFormula abs, PathFormula absPf, PathFormula refPf, PathFormula blockRefPf, ImmutableMap<Integer, RGEnvTransition> blockEnvAppMap) {
+      super(absPf, refPf, abs, emptyMap);
+      assert absPf.getFormula().isTrue();
+      assert refPf.getFormula().isTrue();
+
+      this.blockRefPathFormula = blockRefPf;
+      this.blockEnvApplicationMap = blockEnvAppMap;
     }
 
 
@@ -166,18 +161,19 @@ public class RGAbstractElement implements AbstractElement, Partitionable, Formul
     }
 
 
-    public PathFormula getBlockPathFormula() {
-      return blockPathFormula;
+    public PathFormula getBlockRefPathFormula() {
+      return blockRefPathFormula;
     }
 
-    public RGApplicationInfo getBlockAppInfo() {
-      return blockAppInfo;
+
+    public ImmutableMap<Integer, RGEnvTransition> getBlockEnvApplicationMap() {
+      return blockEnvApplicationMap;
     }
 
 
     @Override
     public String toString() {
-      return "RG element (abs): "+super.abstractionFormula+", "+super.pathFormula;
+      return "RG element (abs): "+super.abstractionFormula;
     }
   }
 
@@ -185,13 +181,10 @@ public class RGAbstractElement implements AbstractElement, Partitionable, Formul
 
     private final CFANode location;
 
-    /**
-     * Information on env. edges applied.
-     */
 
-    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc,  int tid,   RGApplicationInfo appInfo) {
-      super(pf, pA,  tid, appInfo);
-      location = pLoc;
+    public ComputeAbstractionElement(PathFormula absPf, PathFormula refPf,  AbstractionFormula abs,  ImmutableMap<Integer, RGEnvTransition> envRefMap, CFANode loc) {
+      super(absPf, refPf,  abs, envRefMap);
+      this.location = loc;
     }
 
 
@@ -202,7 +195,7 @@ public class RGAbstractElement implements AbstractElement, Partitionable, Formul
 
     @Override
     public String toString() {
-      return "RG element (compute): "+super.abstractionFormula+", "+super.pathFormula;
+      return "RG element (compute): "+super.abstractionFormula+", absPf: "+super.absPathFormula+", refPf"+super.refPathFormula;
     }
 
     public CFANode getLocation() {
@@ -210,5 +203,9 @@ public class RGAbstractElement implements AbstractElement, Partitionable, Formul
     }
 
   }
+
+
+
+
 
 }

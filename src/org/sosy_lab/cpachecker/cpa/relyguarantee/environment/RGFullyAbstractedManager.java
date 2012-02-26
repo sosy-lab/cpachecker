@@ -109,7 +109,7 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
 
     // get the predicates for the transition
     int sourceTid = cand.getTid();
-    PathFormula oldPf = cand.getRgElement().getPathFormula();
+    PathFormula oldPf = cand.getRgElement().getAbsPathFormula();
     AbstractionFormula oldAbs = cand.getRgElement().getAbstractionFormula();
     PathFormula newPf = null;
 
@@ -149,7 +149,7 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
 
     RGFullyAbstracted fa = (RGFullyAbstracted) et;
     AbstractionFormula abs = elem.getAbstractionFormula();
-    PathFormula pf = elem.getPathFormula();
+    PathFormula pf = elem.getAbsPathFormula();
 
     /* if path formula is true, then BDDs can detect unsatisfiable result */
     if (pf.getFormula().isTrue()){
@@ -182,7 +182,7 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
   public PathFormula formulaForRefinement(RGAbstractElement elem, RGEnvTransition et, int unique) {
       RGFullyAbstracted fa = (RGFullyAbstracted) et;
       AbstractionFormula abs = elem.getAbstractionFormula();
-      PathFormula pf = elem.getPathFormula();
+      PathFormula pf = elem.getAbsPathFormula();
 
       /* if path formula is true, then BDDs can detect unsatisfiable result */
       if (pf.getFormula().isTrue()){
@@ -211,10 +211,10 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
       SSAMap fSsa = ssaManager.changePrimeNo(fa.getHighSSA(), rMap);
 
       // build equalities between the highest indexes of the instantiated filter
-      PathFormula hiPf = pfManager.makePrimedEqualities(highSSA, -1, fSsa, unique);
+      Formula hiF =  fManager.makePrimedEqualities(highSSA, -1, fSsa, unique);
 
-      Formula appF = fManager.makeAnd(hiPf.getFormula(), lowPf.getFormula());
-      PathFormula appPf = new PathFormula(appF, hiPf.getSsa(), 0);
+      Formula appF = fManager.makeAnd(hiF, lowPf.getFormula());
+      PathFormula appPf = new PathFormula(appF, highSSA, 0);
 
 
     return appPf;

@@ -117,12 +117,12 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
 
     // abstract
     AbstractionFormula abs = cand.getRgElement().getAbstractionFormula();
-    PathFormula pf = cand.getRgElement().getPathFormula();
+    PathFormula pf = cand.getRgElement().getAbsPathFormula();
     AbstractionFormula aFilter = absManager.buildAbstraction(abs, pf, preds);
     Formula aPred = fManager.uninstantiate(aFilter.asFormula());
     Region aPredReg = aFilter.asRegion();
 
-    SSAMap ssa = cand.getRgElement().getPathFormula().getSsa();
+    SSAMap ssa = cand.getRgElement().getAbsPathFormula().getSsa();
     CFAEdge operation = cand.getOperation();
     RGSemiAbstracted sa = new RGSemiAbstracted(aPred, aPredReg, ssa, operation, cand.getElement(), cand.getSuccessor(), cand.getTid());
 
@@ -133,7 +133,7 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
   @Override
   public PathFormula formulaForAbstraction(RGAbstractElement elem ,RGEnvTransition et, int unique) throws CPATransferException {
     RGSemiAbstracted sa = (RGSemiAbstracted) et;
-    PathFormula pf = elem.getPathFormula();
+    PathFormula pf = elem.getAbsPathFormula();
     AbstractionFormula abs = elem.getAbstractionFormula();
 
     /* if path formula is true, then BDDs can detect unsatisfiable result */
@@ -158,7 +158,7 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
   @Override
   public PathFormula formulaForRefinement(RGAbstractElement elem, RGEnvTransition et, int unique) throws CPATransferException {
     RGSemiAbstracted sa = (RGSemiAbstracted) et;
-    PathFormula pf = elem.getPathFormula();
+    PathFormula pf = elem.getAbsPathFormula();
     AbstractionFormula abs = elem.getAbstractionFormula();
     SSAMap lSSA = pf.getSsa();
     SSAMap etSSA = sa.getSsa();
@@ -178,7 +178,8 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
     etSSA = ssaManager.changePrimeNo(etSSA, rMap);
 
     // build equalities over the local path formula and the precondition
-    PathFormula eqPf = pfManager.makePrimedEqualities(lSSA, -1, etSSA, unique);
+    Formula eqF = fManager.makePrimedEqualities(lSSA, -1, etSSA, unique);
+    PathFormula eqPf = new PathFormula(eqF, pf.getSsa(), pf.getLength());
 
     // apply the operation
     PathFormula appPf = pfManager.makeAnd(eqPf, sa.getOperation());

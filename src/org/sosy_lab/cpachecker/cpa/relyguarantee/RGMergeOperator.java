@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import java.util.logging.Level;
+import java.util.Map;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
@@ -33,8 +33,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.rg")
 public class RGMergeOperator implements MergeOperator {
@@ -101,14 +106,19 @@ public class RGMergeOperator implements MergeOperator {
         totalMergeTime.start();
         // create a new element
 
-        logger.log(Level.FINEST, "Merging two non-abstraction nodes.");
+        PathFormula mergedAbsPf = formulaManager.makeOr(elem1.getAbsPathFormula(), elem2.getAbsPathFormula());
+        PathFormula mergedRefPf = formulaManager.makeOr(elem1.getRefPathFormula(), elem2.getRefPathFormula());
 
-        PathFormula pathFormula = formulaManager.makeOr(elem1.getPathFormula(), elem2.getPathFormula());
+        // merge keys
+        Map<Integer, RGEnvTransition> map1 = elem1.getEnvApplicationMap();
+        Map<Integer, RGEnvTransition> map2 = elem2.getEnvApplicationMap();
+        // the keys should be unique
+        assert Sets.intersection(map1.keySet(), map2.keySet()).isEmpty();
 
-        logger.log(Level.ALL, "New path formula is", pathFormula);
+        Builder<Integer, RGEnvTransition> bldr = ImmutableMap.builder();
+        ImmutableMap<Integer, RGEnvTransition> mergedMap = bldr.putAll(map1).putAll(map2).build();
 
-        // TODO the edge map is not correct if don't abstract after merging
-        merged = new RGAbstractElement(pathFormula, elem1.getAbstractionFormula(), cpa.getTid());
+        merged = new RGAbstractElement(mergedAbsPf, mergedRefPf, elem1.getAbstractionFormula(), mergedMap);
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

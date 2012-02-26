@@ -119,7 +119,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       CFANode loc = AbstractElements.extractLocation(e);
       sb.append("STATE USEFIRST ART" + e.getElementId() + " :\n");
 
-      for (ARTElement child : e.getChildARTs()) {
+      for (ARTElement child : e.getLocalChildren()) {
         if (child.isCovered()) {
           child = child.getCoveringElement();
           assert !child.isCovered();

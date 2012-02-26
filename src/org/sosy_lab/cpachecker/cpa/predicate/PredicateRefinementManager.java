@@ -704,14 +704,14 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
     Formula branchingFormula = fmgr.makeTrue();
     for (final ARTElement pathElement : elementsOnPath) {
 
-      if (pathElement.getChildARTs().size() > 1) {
-        if (pathElement.getChildARTs().size() > 2) {
+      if (pathElement.getLocalChildren().size() > 1) {
+        if (pathElement.getLocalChildren().size() > 2) {
           // can't create branching formula
           logger.log(Level.WARNING, "ART branching with more than two outgoing edges");
           return fmgr.makeTrue();
         }
 
-        Iterable<CFAEdge> outgoingEdges = Iterables.transform(pathElement.getChildARTs(),
+        Iterable<CFAEdge> outgoingEdges = Iterables.transform(pathElement.getLocalChildren(),
             new Function<ARTElement, CFAEdge>() {
               @Override
               public CFAEdge apply(ARTElement child) {

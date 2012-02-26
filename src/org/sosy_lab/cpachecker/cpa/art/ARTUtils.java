@@ -62,7 +62,7 @@ public class ARTUtils {
 
     while (!waitList.isEmpty()) {
       ARTElement currentElement = waitList.poll();
-      for (ARTElement parent : currentElement.getParentARTs()) {
+      for (ARTElement parent : currentElement.getLocalParents()) {
         if (result.add(parent)) {
           waitList.push(parent);
         }
@@ -78,7 +78,6 @@ public class ARTUtils {
    * @param target
    * @return
    */
-
   public static Set<ARTElement> getAllElementsBetween(ARTElement source, ARTElement target){
     Collection<Path> paths = getAllPathsBetween(source, target);
 
@@ -116,7 +115,7 @@ public class ARTUtils {
         continue;
       }
 
-      for (ARTElement parent : currentElement.getParentARTs()){
+      for (ARTElement parent : currentElement.getLocalParents()){
         if (currentElement == parent){
           continue;
         }
@@ -170,12 +169,6 @@ public class ARTUtils {
     return pathTo;
   }
 
-
-
-
-
-
-
   /**
    * Create a path in the ART from root to the given element.
    * If there are several such paths, one is chosen randomly.
@@ -204,8 +197,8 @@ public class ARTUtils {
     path.addFirst(Pair.of(currentARTElement, lastEdge));
     seenElements.add(currentARTElement);
 
-    while (!currentARTElement.getParentARTs().isEmpty()) {
-      Iterator<ARTElement> parents = currentARTElement.getParentARTs().iterator();
+    while (!currentARTElement.getLocalParents().isEmpty()) {
+      Iterator<ARTElement> parents = currentARTElement.getLocalParents().iterator();
 
 
       ARTElement parentElement = parents.next();
@@ -228,7 +221,7 @@ public class ARTUtils {
       }
 
       //CFAEdge edge = parentElement.getEdgeToChild(currentARTElement);
-      CFAEdge edge = parentElement.getChildMap().get(currentARTElement);
+      CFAEdge edge = parentElement.getLocalChildMap().get(currentARTElement);
       assert edge != null;
       path.addFirst(Pair.of(parentElement, edge));
 
@@ -236,7 +229,6 @@ public class ARTUtils {
     }
     return path;
   }
-
 
 
 

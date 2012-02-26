@@ -53,7 +53,7 @@ public class ARTReducer implements Reducer {
     }
 
     ARTElement aElement = (ARTElement) pExpandedElement;
-    reducedElement = new ARTElement(wrappedReducer.getVariableReducedElement(aElement.getWrappedElement(), pContext, pLocation), null, null);
+    reducedElement = new ARTElement(wrappedReducer.getVariableReducedElement(aElement.getWrappedElement(), pContext, pLocation), null, null, null, 0);
 
     expandedToReducedCache.put(pExpandedElement, reducedElement);
 
@@ -65,7 +65,7 @@ public class ARTReducer implements Reducer {
       AbstractElement pRootElement, Block pReducedContext,
       AbstractElement pReducedElement) {
 
-    AbstractElement expandedElement = new ARTElement(wrappedReducer.getVariableExpandedElement(((ARTElement)pRootElement).getWrappedElement(), pReducedContext, ((ARTElement)pReducedElement).getWrappedElement()), null, null);
+    AbstractElement expandedElement = new ARTElement(wrappedReducer.getVariableExpandedElement(((ARTElement)pRootElement).getWrappedElement(), pReducedContext, ((ARTElement)pReducedElement).getWrappedElement()), null, null, null, 0);
 
     expandedToReducedCache.put(expandedElement, pReducedElement);
 

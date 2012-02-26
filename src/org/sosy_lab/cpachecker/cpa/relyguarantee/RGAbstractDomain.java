@@ -62,8 +62,8 @@ public class RGAbstractDomain implements AbstractDomain {
 
       RGAbstractElement e1 = (RGAbstractElement)element1;
       RGAbstractElement e2 = (RGAbstractElement)element2;
-      Formula f1 = e1.getPathFormula().getFormula();
-      Formula f2 = e2.getPathFormula().getFormula();
+      Formula f1 = e1.getAbsPathFormula().getFormula();
+      Formula f2 = e2.getAbsPathFormula().getFormula();
 
       if (f1.isTrue() && f2.isTrue()) {
         bddCoverageCheckTimer.start();
@@ -78,7 +78,7 @@ public class RGAbstractDomain implements AbstractDomain {
         if (symbolicCoverageCheck) {
           symbolicCoverageCheckTimer.start();
 
-          boolean result = mgr.checkCoverage(e1.getAbstractionFormula(), e1.getPathFormula(), e2.getAbstractionFormula());
+          boolean result = mgr.checkCoverage(e1.getAbstractionFormula(), e1.getAbsPathFormula(), e2.getAbstractionFormula());
 
           symbolicCoverageCheckTimer.stop();
           return result;
@@ -90,10 +90,10 @@ public class RGAbstractDomain implements AbstractDomain {
       } else if (e1 instanceof RGAbstractElement.AbstractionElement) {
         return false;
 
-      } else {
-        // only the fast check which returns true if a merge occurred for this element
+      } else{
         return e1.getMergedInto() == e2;
       }
+
 
     } finally {
       coverageCheckTimer.stop();

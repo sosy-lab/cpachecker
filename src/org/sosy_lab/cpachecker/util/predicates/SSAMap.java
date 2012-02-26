@@ -77,6 +77,9 @@ public class SSAMap {
         varsBuilder = LinkedHashMultiset.create(ssa.vars);
       }
 
+      if (idx < varsBuilder.count(var)){
+        System.out.println(this.getClass());
+      }
       Preconditions.checkArgument(idx >= varsBuilder.count(var), "SSAMap updates need to be strictly monotone!");
       varsBuilder.setCount(var, idx);
     }

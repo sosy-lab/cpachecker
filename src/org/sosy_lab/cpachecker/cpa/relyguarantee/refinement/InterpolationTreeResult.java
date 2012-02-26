@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -42,8 +41,8 @@ import com.google.common.collect.SetMultimap;
 public class InterpolationTreeResult {
 
   private final boolean isSpurious;
-  private final SetMultimap<ARTElement, AbstractionPredicate> artMap;
-  private final SetMultimap<ARTElement, AbstractionPredicate> envMap;
+  private final SetMultimap<InterpolationTreeNode, AbstractionPredicate> artMap;
+  private final SetMultimap<InterpolationTreeNode, AbstractionPredicate> envMap;
   private final InterpolationTree tree;
   /** witness path for a feasible counterexample */
   private Path path;
@@ -71,29 +70,14 @@ public class InterpolationTreeResult {
     return isSpurious;
   }
 
-  public void addPredicatesForRefinement(ARTElement e, Collection<AbstractionPredicate> preds) {
+  public void addPredicatesForRefinement(InterpolationTreeNode e, Collection<AbstractionPredicate> preds) {
     artMap.putAll(e, preds);
   }
 
-  public void addEnvPredicatesForRefinement(ARTElement e,  Collection<AbstractionPredicate> preds) {
+  public void addEnvPredicatesForRefinement(InterpolationTreeNode e,  Collection<AbstractionPredicate> preds) {
     envMap.putAll(e, preds);
   }
 
-  public Collection<ARTElement> getEnvPredicatesForRefinmentKeys() {
-    return envMap.keySet();
-  }
-
-  public Collection<ARTElement> getPredicatesForRefinmentKeys() {
-    return artMap.keySet();
-  }
-
-  public Collection<AbstractionPredicate> getPredicatesForRefinement(ARTElement e) {
-    return artMap.get(e);
-  }
-
-  public Collection<AbstractionPredicate> getEnvPredicatesForRefinement(ARTElement e) {
-    return envMap.get(e);
-  }
 
   public InterpolationTree getTree() {
     return tree;
@@ -118,11 +102,11 @@ public class InterpolationTreeResult {
     this.refinedLocationMapping = refinedLocationMapping;
   }
 
-  public SetMultimap<ARTElement, AbstractionPredicate> getArtMap() {
+  public SetMultimap<InterpolationTreeNode, AbstractionPredicate> getArtMap() {
     return artMap;
   }
 
-  public SetMultimap<ARTElement, AbstractionPredicate> getEnvMap() {
+  public SetMultimap<InterpolationTreeNode, AbstractionPredicate> getEnvMap() {
     return envMap;
   }
 

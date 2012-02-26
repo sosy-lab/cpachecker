@@ -25,14 +25,12 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -44,10 +42,9 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.ComputeAbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -56,11 +53,13 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
@@ -99,14 +98,6 @@ public class RGTransferRelation  implements TransferRelation {
   @Option(description="check satisfiability when a target state has been found (should be true)")
   private boolean targetStateSatCheck = true;
 
-
-
-  // statistics
-  /*public final Timer postTimer = new Timer();
-  public final Timer satCheckTimer = new Timer();
-  public final Timer pathFormulaTimer = new Timer();
-  public final Timer strengthenTimer = new Timer();
-  public final Timer strengthenCheckTimer = new Timer();*/
   public final Timer pfConstructionTimer = new Timer();
 
   public int numBlkFunctions = 0;
@@ -130,11 +121,10 @@ public class RGTransferRelation  implements TransferRelation {
   private ThreadCFA cfa;
 
 
-  /** Unique number for refinement formulas - it's needed to distinguish env. applications */
+  /** Globally unique number for refinement formulas - it's needed to distinguish env. applications */
   private int uniqueIdRef;
   /** Primed number to rename apart the environmental part of env. application. The same number makes
-   * caching more efficient.
-   */
+   * caching more efficient.c */
   private final int idAbs = 1;
 
   public RGTransferRelation(RGCPA pCpa) throws InvalidConfigurationException {
@@ -164,21 +154,22 @@ public class RGTransferRelation  implements TransferRelation {
       return Collections.emptySet();
     }
 
-
     // calculate strongest post
-    Pair<PathFormula, RGApplicationInfo> pair = convertEdgeToPathFormula(element, edge);
-    PathFormula newPF = pair.getFirst();
-    logger.log(Level.ALL, "New path formula is", newPF);
+    Triple<PathFormula, PathFormula, ImmutableMap<Integer, RGEnvTransition>> triple = convertEdgeToPathFormula(element, edge);
+    PathFormula newAbsPf = triple.getFirst();
+    PathFormula newRefPf = triple.getSecond();
+    ImmutableMap<Integer, RGEnvTransition> newMap = triple.getThird();
+    AbstractionFormula abstraction = element.getAbstractionFormula();
+
 
     // check whether to do abstraction
-    boolean doAbstraction = isBlockEnd(loc, newPF, edge);
+    boolean doAbstraction = isBlockEnd(loc, newAbsPf, edge);
 
     RGAbstractElement succ;
     if (doAbstraction) {
-      succ = new RGAbstractElement.ComputeAbstractionElement(pair.getFirst(), element.getAbstractionFormula(), loc, cpa.getTid(), pair.getSecond());
-
+      succ = new RGAbstractElement.ComputeAbstractionElement(newAbsPf, newRefPf, abstraction, newMap, loc);
     } else {
-      succ = new RGAbstractElement(pair.getFirst(), element.getAbstractionFormula(), cpa.getTid(), pair.getSecond());
+      succ = new RGAbstractElement(newAbsPf, newRefPf, abstraction, newMap);
     }
 
     return Collections.singleton(succ);
@@ -187,79 +178,71 @@ public class RGTransferRelation  implements TransferRelation {
 
   /**
    * Converts an edge into a formula and creates a conjunction of it with the
-   * previous pathFormula. Returns null the the transitions has been appleid before
+   * previous path formula.
    *
    * This method implements the strongest post operator.
    *
    * @param pathFormula The previous pathFormula.
    * @param edge  The edge to analyze.
-   * @return  The new pathFormula.
+   * @return  pair of new abstraction and refinement formula
    * @throws UnrecognizedCFAEdgeException
    */
-  public Pair<PathFormula, RGApplicationInfo> convertEdgeToPathFormula(RGAbstractElement element, CFAEdge edge) throws CPATransferException {
+  public Triple<PathFormula, PathFormula, ImmutableMap<Integer, RGEnvTransition>> convertEdgeToPathFormula(RGAbstractElement element, CFAEdge edge) throws CPATransferException {
 
     pfConstructionTimer.start();
 
-    Pair<PathFormula, RGApplicationInfo> pair = null;
+    Triple<PathFormula, PathFormula, ImmutableMap<Integer, RGEnvTransition>> triple;
     if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
       // single edge
       RGCFAEdge rgEdge = (RGCFAEdge) edge;
-      pair = handleEnvFormula(element, rgEdge);
-    }
-    else if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
-      // combined edges
-     // RGCombinedCFAEdge rgEdge = (RGCombinedCFAEdge) edge;
-     // pair = handleCombinedEnvFormula(oldPathFormula, rgEdge, element);
+      triple = handleEnvFormula(element, rgEdge);
     }
     else {
       // local application
-      PathFormula oldPf = element.getPathFormula();
-      PathFormula newPf = pfManager.makeAnd(oldPf, edge);
-      pair = Pair.of(newPf, null);
+      PathFormula oldAbsPf = element.getAbsPathFormula();
+      PathFormula oldRefPf = element.getRefPathFormula();
+      PathFormula newAbsPf = pfManager.makeAnd(oldAbsPf, edge);
+      PathFormula newRefPf = pfManager.makeAnd(oldRefPf, edge);
+      triple = Triple.of(newAbsPf, newRefPf, element.getEnvApplicationMap());
     }
 
     pfConstructionTimer.stop();
-    return pair;
+    return triple;
   }
 
   /**
-   * Create a path formula from an env. edge and a local pathFormula.
+   * Create a path formula from an env. edge and a local pathFormula. Update the map with env. applications.
    * @param localPf
    * @param rgEdge
    * @param element
    * @return
    * @throws CPATransferException
    */
-  private Pair<PathFormula, RGApplicationInfo>  handleEnvFormula(RGAbstractElement element, RGCFAEdge rgEdge) throws CPATransferException {
+  private Triple<PathFormula, PathFormula, ImmutableMap<Integer, RGEnvTransition>>  handleEnvFormula(RGAbstractElement element, RGCFAEdge rgEdge) throws CPATransferException {
 
-    RGApplicationInfo appInfo = element.getAppInfo();
-    if (appInfo == null){
-      appInfo = new RGApplicationInfo();
-    }
-
-    // check if the transition has been applied before
-    if (appInfo.envMap.containsValue(rgEdge.getRgEnvTransition())){
-      assert false;
-    }
+    // the same transition shouldn't be applied twice
+    assert !element.getEnvApplicationMap().containsValue(rgEdge.getRgEnvTransition());
 
     // renamed & apply env transition
-    Pair<PathFormula, PathFormula> pair = renamedEnvApplication(element, rgEdge, appInfo);
-    PathFormula appPf = pair.getFirst();
-    PathFormula refPf = pair.getSecond();
+    Triple<PathFormula, PathFormula, Integer> triple = renamedEnvApplication(element, rgEdge);
+    PathFormula appPf = triple.getFirst();
+    PathFormula refPf = triple.getSecond();
 
     // add local formula
-    PathFormula localPf = element.getPathFormula();
+    PathFormula localAbsPf = element.getAbsPathFormula();
+    PathFormula localRefPf = element.getRefPathFormula();
+
     if (!appPf.getFormula().isFalse()){
-      appPf = pfManager.makeAnd(appPf, localPf);
-      refPf = pfManager.makeAnd(refPf, localPf);
-      appInfo.setRefinementFormula(refPf);
+      appPf = pfManager.makeAnd(appPf, localAbsPf);
+      refPf = pfManager.makeAnd(refPf, localRefPf);
     }
 
-    /*if (debug){
-      System.out.println("\tby pf '"+appPf+"'");
-    }*/
+    // remember the env. application number
+    Integer unique = triple.getThird();
+    Builder<Integer, RGEnvTransition> bldr = ImmutableMap.builder();
+    ImmutableMap<Integer, RGEnvTransition> newMap = bldr.putAll(element.getEnvApplicationMap()).put(unique, rgEdge.getRgEnvTransition()).build();
 
-    return Pair.of(appPf, appInfo);
+    return Triple.of(appPf, refPf, newMap);
   }
 
   /**
@@ -320,8 +303,9 @@ public class RGTransferRelation  implements TransferRelation {
 
 
   /**
-   * Returns a two path formulas representing the effect of an applying env.
-   * The first one is meant for abstraction and the second one for refinement.
+   * Returns a two path formulas representing the effect of an applying env. and a number.
+   * The first path formula one is meant for abstraction and the second one for refinement.
+   * The the number is the prime number of the env. application in the refinement formula.
    * @param localPf
    * @param rgEdge
    * @param pAppInfo
@@ -330,8 +314,7 @@ public class RGTransferRelation  implements TransferRelation {
    * @return
    * @throws CPATransferException
    */
-  private Pair<PathFormula, PathFormula> renamedEnvApplication(RGAbstractElement element, RGCFAEdge rgEdge, RGApplicationInfo appInfo) throws CPATransferException {
-    assert appInfo != null;
+  private Triple<PathFormula, PathFormula, Integer> renamedEnvApplication(RGAbstractElement element, RGCFAEdge rgEdge) throws CPATransferException {
 
     // get abstraction & refinement formulas
     PathFormula appPf = etManager.formulaForAbstraction(element, rgEdge.getRgEnvTransition(), idAbs);
@@ -341,19 +324,14 @@ public class RGTransferRelation  implements TransferRelation {
       refPf = pfManager.makeFalsePathFormula();
     } else {
       // TODO somehow using unique instead of 1 makes bakery.simple not stop
-      refPf = etManager.formulaForRefinement(element, rgEdge.getRgEnvTransition(), 1);
-      Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(1);
+      refPf = etManager.formulaForRefinement(element, rgEdge.getRgEnvTransition(), uniqueIdRef);
+      /*Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(1);
       rMap.put(1, uniqueIdRef);
-      refPf = pfManager.changePrimedNo(refPf, rMap);
+      refPf = pfManager.changePrimedNo(refPf, rMap);*/
     }
 
-    // remember the application
-    appInfo.putEnvApplication(uniqueIdRef, rgEdge.getRgEnvTransition());
-
     // increment unique number
-    uniqueIdRef++;
-
-    return Pair.of(appPf, refPf);
+    return Triple.of(appPf, refPf, uniqueIdRef++);
   }
 
 
@@ -434,9 +412,9 @@ public class RGTransferRelation  implements TransferRelation {
 
       boolean errorFound = false;
       for (AbstractElement lElement : otherElements) {
-        if (lElement instanceof AssumptionStorageElement) {
+     /*   if (lElement instanceof AssumptionStorageElement) {
           element = strengthen(element, (AssumptionStorageElement)lElement);
-        }
+        }*/
 
         /*     if (lElement instanceof ConstrainedAssumeElement) {
           element = strengthen(edge.getSuccessor(), element, (ConstrainedAssumeElement)lElement);
@@ -464,39 +442,8 @@ public class RGTransferRelation  implements TransferRelation {
     }
   }
 
- /* private PredicateAbstractElement strengthen(CFANode pNode, PredicateAbstractElement pElement, GuardedEdgeAutomatonPredicateElement pAutomatonElement) throws CPATransferException {
-    PathFormula pf = pElement.getPathFormula();
 
-    for (ECPPredicate lPredicate : pAutomatonElement) {
-      AssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
-
-      pf = convertEdgeToPathFormula(pf, lEdge);
-    }
-
-    return replacePathFormula(pElement, pf);
-  }
-
-  private PredicateAbstractElement strengthen(CFANode pNode, PredicateAbstractElement pElement, ProductAutomatonElement.PredicateElement pAutomatonElement) throws CPATransferException {
-    PathFormula pf = pElement.getPathFormula();
-
-    for (ECPPredicate lPredicate : pAutomatonElement.getPredicates()) {
-      AssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
-
-      pf = convertEdgeToPathFormula(pf, lEdge);
-    }
-
-    return replacePathFormula(pElement, pf);
-  }*/
-  /*
-  private PredicateAbstractElement strengthen(CFANode pNode, RelyGuaranteeAbstractElement pElement, ConstrainedAssumeElement pAssumeElement) throws CPATransferException {
-    AssumeEdge lEdge = new AssumeEdge(pAssumeElement.getExpression().getRawSignature(), pNode.getLineNumber(), pNode, pNode, pAssumeElement.getExpression(), true);
-
-    PathFormula pf = convertEdgeToPathFormula(pElement.getPathFormula(), lEdge);
-
-    return replacePathFormula(pElement, pf);
-  }*/
-
-  private RGAbstractElement strengthen(RGAbstractElement pElement,
+  /*private RGAbstractElement strengthen(RGAbstractElement pElement,
       AssumptionStorageElement pElement2) {
 
     Formula asmpt = pElement2.getAssumption();
@@ -507,15 +454,15 @@ public class RGTransferRelation  implements TransferRelation {
       return pElement;
     }
 
-    PathFormula pf = pfManager.makeAnd(pElement.getPathFormula(), asmpt);
+    PathFormula pf = pfManager.makeAnd(pElement.getAbsPathFormula(), asmpt);
 
     //TODO the template is wrong
     return replacePathFormula(pElement, pf);
-  }
+  }*/
 
-  /**
+  /*
    * Returns a new element with a given pathFormula. All other fields stay equal.
-   */
+
   private RGAbstractElement replacePathFormula(RGAbstractElement oldElement, PathFormula newPathFormula) {
     if (oldElement instanceof ComputeAbstractionElement) {
       ComputeAbstractionElement cOldElement = (ComputeAbstractionElement) oldElement;
@@ -525,15 +472,13 @@ public class RGTransferRelation  implements TransferRelation {
       assert !(oldElement instanceof RGAbstractElement.AbstractionElement);
       return new RGAbstractElement(newPathFormula, oldElement.getAbstractionFormula(), cpa.getTid());
     }
-  }
+  }*/
 
   protected RGAbstractElement strengthenSatCheck(RGAbstractElement pElement) {
     logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");
 
-
-
     //strengthenCheckTimer.start();
-    PathFormula pathFormula = pElement.getPathFormula();
+    PathFormula pathFormula = pElement.getAbsPathFormula();
     boolean unsat = absManager.unsat(pElement.getAbstractionFormula(), pathFormula);
     //strengthenCheckTimer.stop();
 
@@ -549,10 +494,11 @@ public class RGTransferRelation  implements TransferRelation {
       // set abstraction to true (we don't know better)
       AbstractionFormula abs = absManager.makeTrueAbstractionFormula(pathFormula);
 
-      PathFormula newPathFormula = pfManager.makeEmptyPathFormula(pathFormula);
+      PathFormula newAbsPf = pfManager.makeEmptyPathFormula(pathFormula);
+      PathFormula newRefPf = pfManager.makeEmptyPathFormula(pElement.getRefPathFormula());
 
       // TODO check if correct
-      return new RGAbstractElement.AbstractionElement(newPathFormula, abs , cpa.getTid(), pElement.getPathFormula(), pElement.getAppInfo());
+      return new RGAbstractElement.AbstractionElement(abs, newAbsPf, newRefPf, pElement.getRefPathFormula(), pElement.getEnvApplicationMap());
     }
   }
 

@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 
 import com.google.common.collect.ImmutableList;
 
@@ -161,7 +162,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     }
 
     ImmutableList<Integer> locationClasses = ImmutableList.copyOf(locVector);
-    return new ARTElement(getWrappedCpa().getInitialElement(pNode), Collections.<ARTElement, CFAEdge> emptyMap(), locationClasses);
+    return new ARTElement(getWrappedCpa().getInitialElement(pNode), Collections.<ARTElement, CFAEdge> emptyMap(), Collections.<ARTElement, RGCFAEdge> emptyMap(), locationClasses, tid);
   }
 
   protected LogManager getLogger() {

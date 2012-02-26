@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGApplicationInfo;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManager;
@@ -622,9 +621,8 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    Collection<Pair<CFANode, CFANode>> inqColl = new Vector<Pair<CFANode, CFANode>>();
 
     ARTElement first = pi.get(0).getFirst();
-    RGAbstractElement firstRg = first.getRgElement();
     // tid of the ART where the path begins
-    int stid = firstRg.getTid();
+    int stid = first.getTid();
 
     // expected locations
     CFANode[] pc = new CFANode[tidNo];
@@ -645,8 +643,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       ARTElement element = pair.getFirst();
       CFAEdge edge = pair.getSecond();
 
-      RGAbstractElement rgElement = AbstractElements.extractElementByType(element, RGAbstractElement.class);
-      int tid = rgElement.getTid();
+      int tid = element.getTid();
       CFANode loc = element.retrieveLocationElement().getLocationNode();
 
       if (pc[tid].equals(loc)){
@@ -803,9 +800,9 @@ public class RGLocationRefinementManager implements StatisticsProvider{
 
       // find children that are in elems
       Map<ARTElement, CFAEdge> childMap = new HashMap<ARTElement, CFAEdge>();
-      for (ARTElement child : elem.getChildARTs()){
+      for (ARTElement child : elem.getLocalChildren()){
         if (elems.contains(child)){
-          CFAEdge edge = elem.getChildMap().get(child);
+          CFAEdge edge = elem.getLocalChildMap().get(child);
           childMap.put(child, edge);
         }
       }
@@ -881,7 +878,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @return
    */
   private CFAEdge getParentChildEdge(ARTElement start, ARTElement child) {
-    CFAEdge edge = start.getChildMap().get(child);
+    CFAEdge edge = start.getLocalChildMap().get(child);
     return edge;
   }
 
@@ -911,32 +908,29 @@ public class RGLocationRefinementManager implements StatisticsProvider{
 
     // add generating nodes for env. applications
     for (InterpolationTreeNode node : branch){
-      RGApplicationInfo appInfo = node.getAppInfo();
 
-      if (appInfo != null){
-        Map<Integer, RGEnvTransition> envMap = node.getAppInfo().envMap;
+      Map<Integer, RGEnvTransition> envMap = node.getEnvMap();
 
-        for (RGEnvTransition et: envMap.values()){
+      for (RGEnvTransition et: envMap.values()){
 
-          /* The elements for this env. transiton could have been trimmed out.
-           * Add generating elements only if the last abstraction point for the transition's source
-           * is an ancestor of the node.
-           */
-          ARTElement sourceElem = et.getSourceARTElement();
-          ARTElement laElem = RGCPA.findLastAbstractionARTElement(sourceElem);
+        /* The elements for this env. transiton could have been trimmed out.
+         * Add generating elements only if the last abstraction point for the transition's source
+         * is an ancestor of the node.
+         */
+        ARTElement sourceElem = et.getSourceARTElement();
+        ARTElement laElem = RGCPA.findLastAbstractionARTElement(sourceElem);
 
-          List<InterpolationTreeNode> ancestors = tree.getAncestorsOf(node);
-          InterpolationTreeNode laNode = null;
-          for (InterpolationTreeNode ancestor : ancestors){
-            if (ancestor.getArtElement().equals(laElem)){
-              laNode = ancestor;
-              break;
-            }
+        List<InterpolationTreeNode> ancestors = tree.getChildrenOf(node);
+        InterpolationTreeNode laNode = null;
+        for (InterpolationTreeNode ancestor : ancestors){
+          if (ancestor.getArtElement().equals(laElem)){
+            laNode = ancestor;
+            break;
           }
+        }
 
-          if (laNode != null){
-            allElems.addAll(et.getGeneratingARTElements());
-          }
+        if (laNode != null){
+          allElems.addAll(et.getGeneratingARTElements());
         }
       }
     }
@@ -957,11 +951,11 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     for (final ARTElement pathElement : elementsOnPath) {
       assert !pathElement.isDestroyed();
 
-      Set<ARTElement> children = new LinkedHashSet<ARTElement>(pathElement.getChildMap().size());
+      Set<ARTElement> children = new LinkedHashSet<ARTElement>(pathElement.getLocalChildMap().size());
       int localChildren = 0;
 
       // consider only the children that are on the path
-      for (ARTElement child : pathElement.getChildARTs()){
+      for (ARTElement child : pathElement.getLocalChildren()){
         if (elementsOnPath.contains(child)){
           children.add(child);
         }
@@ -1030,7 +1024,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       else if (edge.getEdgeType() == CFAEdgeType.AssumeEdge){
         ARTElement laElement = RGCPA.findLastAbstractionARTElement(elem);
         elemId = laElement.getElementId();
-        tid = rgElem.getTid();
+        tid = elem.getTid();
       }
       else {
         throw new UnsupportedOperationException("branching must be either Assume or RelyGuarantee type. Problem: "+edge);
@@ -1047,7 +1041,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
         edgeF = etManager.formulaForRefinement(rgElem, rgEdge.getRgEnvTransition(), uniqueId).getFormula();
       }
       else if (edge.getEdgeType() == CFAEdgeType.AssumeEdge){
-        PathFormula pf = rgElem.getPathFormula();
+        PathFormula pf = rgElem.getAbsPathFormula();
         pf = pfManager.makeEmptyPathFormula(pf);
         edgeF = pfManager.makeAnd(pf, edge).getFormula();
       }
@@ -1080,10 +1074,9 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     System.out.println();
     for (Pair<ARTElement, CFAEdge> pair : pi){
       ARTElement element = pair.getFirst();
-      RGAbstractElement rgElement = AbstractElements.extractElementByType(element, RGAbstractElement.class);
       CFANode loc = element.retrieveLocationElement().getLocationNode();
       CFAEdge edge = pair.getSecond();
-      System.out.println("("+rgElement.getTid()+","+element.getElementId()+","+loc+")\t"+edge.getRawStatement());
+      System.out.println("("+element.getTid()+","+element.getElementId()+","+loc+")\t"+edge.getRawStatement());
     }
   }
 

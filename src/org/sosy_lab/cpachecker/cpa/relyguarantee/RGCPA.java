@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionEl
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManagerFactory;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.RGLocationRefinementManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.RGRefinementManager;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -77,6 +78,7 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatInterpolatingProve
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.YicesTheoremProver;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 
@@ -225,7 +227,7 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
       predicates = ImmutableSet.of();
     }
     // TODO make-shift solution
-    this.topElement = new RGAbstractElement.AbstractionElement(pfManager.makeEmptyPathFormula(), absManager.makeTrueAbstractionFormula(null),  tid, pfManager.makeEmptyPathFormula(), null);
+    this.topElement = new RGAbstractElement.AbstractionElement(absManager.makeTrueAbstractionFormula(null), pfManager.makeEmptyPathFormula(), pfManager.makeEmptyPathFormula(), pfManager.makeEmptyPathFormula(), ImmutableMap.<Integer, RGEnvTransition>of());
     this.transfer.setData(pcfa.getCfa(tid));
     ImmutableSetMultimap<CFANode,AbstractionPredicate> emptyMultimap =
         ImmutableSetMultimap.<CFANode, AbstractionPredicate>of();
@@ -356,7 +358,7 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
         break;
       }
 
-      for (ARTElement parent : element.getParentARTs()){
+      for (ARTElement parent : element.getLocalParents()){
         if (!visisted.contains(parent)){
           toProcess.addFirst(parent);
         }

@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement;
 import java.util.Vector;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGApplicationInfo;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+
+import com.google.common.collect.ImmutableMap;
 
 public class InterpolationTreeNode  {
 
@@ -38,7 +40,7 @@ public class InterpolationTreeNode  {
   protected PathFormula pathFormula;
 
   /** Information on applied env. edges */
-  protected final RGApplicationInfo appInfo;
+  protected final ImmutableMap<Integer, RGEnvTransition> envMap;
 
   /** Node directly affecting this node */
   protected  InterpolationTreeNode parent;
@@ -69,7 +71,7 @@ public class InterpolationTreeNode  {
   public InterpolationTreeNode(InterpolationDagNode node, int uniqueId) {
     this.artElement   = node.artElement;
     this.pathFormula  = node.pathFormula;
-    this.appInfo      = node.appInfo;
+    this.envMap       = node.envAppMap;
     this.children     = new Vector<InterpolationTreeNode>();
     this.parent       = null;
     this.tid          = node.tid;
@@ -82,7 +84,7 @@ public class InterpolationTreeNode  {
   public InterpolationTreeNode(InterpolationDagNode node, int uniqueId, boolean isARTAbstraction, boolean isEnvAbstraction) {
     this.artElement   = node.artElement;
     this.pathFormula  = node.pathFormula;
-    this.appInfo      = node.appInfo;
+    this.envMap       = node.envAppMap;
     this.children     = new Vector<InterpolationTreeNode>();
     this.parent       = null;
     this.tid          = node.tid;
@@ -92,13 +94,13 @@ public class InterpolationTreeNode  {
     this.isEnvAbstraction = isEnvAbstraction;
   }
 
-  public InterpolationTreeNode(ARTElement artElement, PathFormula pathFormula, RGApplicationInfo appInfo, int tid, int uniqueId, boolean isARTAbstraction, boolean isEnvAbstraction){
+  public InterpolationTreeNode(ARTElement artElement, PathFormula pathFormula, ImmutableMap<Integer, RGEnvTransition> envMap, int tid, int uniqueId, boolean isARTAbstraction, boolean isEnvAbstraction){
     assert artElement   != null;
     assert pathFormula  != null;
 
     this.artElement   = artElement;
     this.pathFormula  = pathFormula;
-    this.appInfo      = appInfo;
+    this.envMap       = envMap;
     this.children     = new Vector<InterpolationTreeNode>();
     this.parent       = null;
     this.tid          = tid;
@@ -128,8 +130,8 @@ public class InterpolationTreeNode  {
     return artElement;
   }
 
-  public RGApplicationInfo getAppInfo() {
-    return appInfo;
+  public ImmutableMap<Integer, RGEnvTransition> getEnvMap() {
+    return envMap;
   }
 
   public InterpolationTreeNode getParent() {
@@ -167,6 +169,23 @@ public class InterpolationTreeNode  {
   @Override
   public int hashCode(){
     return this.key.hashCode();
+  }
+
+
+  /**
+   * Returns true iff the argument is an ancestor of this node.
+   * @param pNode
+   * @return
+   */
+  public boolean hasAncestor(InterpolationTreeNode pNode) {
+    assert pNode != null;
+    InterpolationTreeNode ancestor = parent;
+
+    while(ancestor != null && !ancestor.equals(pNode)){
+      ancestor = ancestor.parent;
+    }
+
+    return ancestor != null;
   }
 
 
