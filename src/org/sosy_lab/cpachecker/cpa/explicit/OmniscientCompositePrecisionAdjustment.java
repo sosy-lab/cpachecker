@@ -31,6 +31,7 @@ import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
@@ -96,7 +97,8 @@ public class OmniscientCompositePrecisionAdjustment implements PrecisionAdjustme
     AbstractElement outElement = modified ? new CompositeElement(outElements.build())     : pElement;
     Precision outPrecision     = modified ? new CompositePrecision(outPrecisions.build()) : pPrecision;
 
-    return new Triple<AbstractElement, Precision, Action>(outElement, outPrecision, Action.CONTINUE);
+    return new Triple<AbstractElement, Precision, Action>(outElement, outPrecision, ((Targetable)pElement).isTarget()
+        ? Action.BREAK : Action.CONTINUE);
   }
 
   private ExplicitElement enforceReachedSetThreshold(ExplicitElement element, ExplicitPrecision precision, Collection<AbstractElement> reachedSetAtLocation) {
