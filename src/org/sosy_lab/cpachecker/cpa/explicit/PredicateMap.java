@@ -44,6 +44,8 @@ public class PredicateMap {
    */
   private ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap;
 
+  public Pair<ARTElement, CFAEdge> firstInterpolationPoint = null;
+
   /**
    * This method acts as the constructor of the class.
    *
@@ -64,6 +66,9 @@ public class PredicateMap {
         for (AbstractionPredicate predicate : predicates) {
           builder.put(currentLocation, predicate);
         }
+
+        if(firstInterpolationPoint == null)
+          firstInterpolationPoint = Pair.of(pPath.get(i).getFirst(), pPath.get(i).getSecond());
       }
 
       i++;
