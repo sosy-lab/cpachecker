@@ -167,7 +167,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
       } else {
         notTerm = allsatEnv.term("not", allsatEnv.term("and", model));
       }
-      System.out.println(numModels + ", term to assert for next model: " + notTerm.toString());
+
       numModels++;
       allsatEnv.push(1);
       allsatEnv.assertTerm(notTerm);

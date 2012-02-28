@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -34,6 +35,11 @@ import java.util.Set;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
 import de.uni_freiburg.informatik.ultimate.logic.Assignments;
@@ -49,9 +55,12 @@ import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.Benchmark;
 
 /** This is a Wrapper around the SmtInterpolScript.
  * It guarantees the stack-behavior towards the wrapped Script */
+@Options(prefix="cpa.predicate.smtinterpol")
 public class SmtInterpolEnvironment implements Script {
 
-  static String BOOLEAN_SORT = "Bool";
+  @Option(name="logfile", description="export solverqueries in smtlib-format")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private File smtLogfile = new File("smtinterpol.smt");
 
   /** the wrapped Script */
   private Script script;
@@ -69,19 +78,29 @@ public class SmtInterpolEnvironment implements Script {
   private Collection<Triple<String, Sort[], Sort>> currentDeclarations;
 
   /** The constructor sets some options and initializes the logger. */
-  public SmtInterpolEnvironment() {
+  public SmtInterpolEnvironment(Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
+
     Logger logger = Logger.getRootLogger(); // TODO use SosyLab-Logger
     // levels: ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF:
     logger.setLevel(Level.OFF);
-    // script = new Benchmark(logger);
+    //
 
-    try {
-      // create a thin wrapper around Benchmark,
-      // this allows to write most formulas of the solver to outputfile
-      // TODO how much faster is SmtInterpol without this Wrapper?
-      script = new LoggingScript(new Benchmark(logger), "interpol.smt2", true);
-    } catch (FileNotFoundException e1) {
-      e1.printStackTrace();
+    if (smtLogfile == null) { // option -noout
+      script = new Benchmark(logger);
+
+    } else {
+      try {
+        // create a thin wrapper around Benchmark,
+        // this allows to write most formulas of the solver to outputfile
+        // TODO how much faster is SmtInterpol without this Wrapper?
+
+        // create directories of file, then use its name
+        smtLogfile.getParentFile().mkdirs();
+        script = new LoggingScript(new Benchmark(logger), smtLogfile.getAbsolutePath(), true);
+      } catch (FileNotFoundException e) {
+        e.printStackTrace();
+      }
     }
 
     try {
@@ -126,7 +145,7 @@ public class SmtInterpolEnvironment implements Script {
 
   @Override
   public void setInfo(String info, Object value) {
-    script.setInfo(info, value);
+    throw new UnsupportedOperationException();
   }
 
   @Override

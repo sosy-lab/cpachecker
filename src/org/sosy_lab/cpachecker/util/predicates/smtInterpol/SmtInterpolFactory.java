@@ -26,14 +26,25 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 
 public class SmtInterpolFactory {
+
+  @Options(prefix="cpa.predicate.smtinterpol")
+  private static class SmtInterpolOptions {
+
+    @Option(description="encode program variables as INTEGERs in SmtInterpol, "
+        + "instead of using REALs.")
+    private boolean useIntegers = false;
+  }
 
   /** only a thin wrapper, perhaps we need some code in it later */
   public static SmtInterpolFormulaManager createFormulaManager(
         Configuration config, LogManager logger)
           throws InvalidConfigurationException {
-    // TODO code, options??
-      return new ArithmeticSmtInterpolFormulaManager(config, logger);
+      SmtInterpolOptions options = new SmtInterpolOptions();
+      config.inject(options);
+      return new ArithmeticSmtInterpolFormulaManager(config, logger, options.useIntegers);
   }
 }

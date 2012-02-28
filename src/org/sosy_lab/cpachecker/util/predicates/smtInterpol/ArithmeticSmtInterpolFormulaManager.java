@@ -47,7 +47,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
  */
 class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManager {
 
-  private final static boolean useIntegers = true; // TODO set value with option?
+  private final boolean useIntegers;
   private final static String SMT_INTERPOL_INT = "Int";
   private final static String SMT_INTERPOL_REAL = "Real";
 
@@ -64,18 +64,18 @@ class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManager {
   private final String divUfDecl = "_/_";
   private final String modUfDecl = "_%_";
 
-  ArithmeticSmtInterpolFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    super(config, logger, useIntegers ? SMT_INTERPOL_INT : SMT_INTERPOL_REAL);
+  ArithmeticSmtInterpolFormulaManager(Configuration config, LogManager logger, boolean pUseIntegers) throws InvalidConfigurationException {
+    super(config, logger, pUseIntegers ? SMT_INTERPOL_INT : SMT_INTERPOL_REAL);
+    useIntegers = pUseIntegers;
 
     final Sort sortType;
     if (useIntegers) {
-      env.setLogic(Logics.QF_UFLIA.toString());
+      env.setLogic(Logics.QF_UFLIA);
       sortType = env.sort(SMT_INTERPOL_INT);
     } else {
-      env.setLogic(Logics.QF_UFLRA.toString());
-      sortType = env.sort(SMT_INTERPOL_INT);
+      env.setLogic(Logics.QF_UFLRA);
+      sortType = env.sort(SMT_INTERPOL_REAL);
     }
-    super.sort = sortType.getName();
 
     final Sort[] sortArray1 = { sortType };
     final Sort[] sortArray2 = { sortType, sortType };
