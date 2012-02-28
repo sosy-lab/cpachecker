@@ -24,6 +24,8 @@ path *  CPAchecker is a tool for configurable software verification.
 package org.sosy_lab.cpachecker.cpa.explicit;
 
 import static com.google.common.collect.Iterables.skip;
+import static com.google.common.collect.Lists.transform;
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -87,6 +89,7 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -95,12 +98,12 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.predicate")
-public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARTElement, CFAEdge>> {
+public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARTElement, CFANode>> {
 
   final Timer precisionUpdate = new Timer();
   final Timer artUpdate = new Timer();
 
-  private Pair<ARTElement, CFAEdge> firstInterpolationPoint = null;
+  private Pair<ARTElement, CFANode> firstInterpolationPoint = null;
 
   private Set<String> allReferencedVariables                = new HashSet<String>();
 
@@ -183,7 +186,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   }
 
   @Override
-  protected void performRefinement(ARTReachedSet pReached, List<Pair<ARTElement, CFAEdge>> errorPath,
+  protected void performRefinement(ARTReachedSet pReached, List<Pair<ARTElement, CFANode>> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> counterexampleTraceInfo,
       boolean pRepeatedCounterexample) throws CPAException {
 
@@ -215,53 +218,81 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   }
 
   @Override
-  protected final List<Pair<ARTElement, CFAEdge>> transformPath(Path errorPath) {
-
+  protected final List<Pair<ARTElement, CFANode>> transformPath(Path errorPath) {
     path = errorPath;
 
     // determine whether to refine explicit or predicate precision
     refinePredicatePrecision = determineRefinementStrategy();
-//System.out.println("\nrefinePredicatePrecision = " + refinePredicatePrecision);
-    List<Pair<ARTElement, CFAEdge>> result = Lists.newArrayList();
 
-    if(refinePredicatePrecision) {
-      for (Pair<ARTElement, CFAEdge> pair : skip(errorPath, 1)) {
-        ARTElement ae = pair.getFirst();
-        PredicateAbstractElement pe = AbstractElements.extractElementByType(ae, PredicateAbstractElement.class);
+    List<Pair<ARTElement, CFANode>> result = Lists.newArrayList();
+
+    for (ARTElement ae : skip(transform(errorPath, Pair.<ARTElement>getProjectionToFirst()), 1)) {
+      if(refinePredicatePrecision) {
+        PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
         if (pe.isAbstractionElement()) {
-          result.add(Pair.of(ae, pair.getSecond()));
+          CFANode location = AbstractElements.extractLocation(ae);
+          result.add(Pair.of(ae, location));
         }
       }
-    } else {
-      for(Pair<ARTElement, CFAEdge> element : skip(errorPath, 1))
-        result.add(Pair.of(element.getFirst(), element.getSecond()));
+      else {
+        result.add(Pair.of(ae, AbstractElements.extractLocation(ae)));
+      }
     }
 
+    assert errorPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
     return result;
   }
 
+
+  private static final Function<PredicateAbstractElement, Formula> GET_BLOCK_FORMULA
+                = new Function<PredicateAbstractElement, Formula>() {
+                    @Override
+                    public Formula apply(PredicateAbstractElement e) {
+                      assert e.isAbstractionElement();
+                      return e.getAbstractionFormula().getBlockFormula();
+                    };
+                  };
+
   @Override
-  protected List<Formula> getFormulasForPath(List<Pair<ARTElement, CFAEdge>> path, ARTElement initialElement) throws CPATransferException {
+  protected List<Formula> getFormulasForPath(List<Pair<ARTElement, CFANode>> errorPath, ARTElement initialElement) throws CPATransferException {
 
-    PathFormula currentPathFormula = pathFormulaManager.makeEmptyPathFormula();
+    if(refinePredicatePrecision) {
+      List<Formula> formulas = transform(errorPath,
+          Functions.compose(
+              GET_BLOCK_FORMULA,
+          Functions.compose(
+              AbstractElements.extractElementByTypeFunction(PredicateAbstractElement.class),
+              Pair.<ARTElement>getProjectionToFirst())));
 
-    List<Formula> formulas = new ArrayList<Formula>(path.size());
-
-    // iterate over edges (not nodes)
-    for (Pair<ARTElement, CFAEdge> pathElement : path) {
-      currentPathFormula = pathFormulaManager.makeAnd(currentPathFormula, pathElement.getSecond());
-
-      formulas.add(currentPathFormula.getFormula());
-
-      // reset the formula
-      currentPathFormula = pathFormulaManager.makeEmptyPathFormula(currentPathFormula);
+      return formulas;
     }
 
-    return formulas;
+    else {
+      PathFormula currentPathFormula = pathFormulaManager.makeEmptyPathFormula();
+
+      List<Formula> formulas = new ArrayList<Formula>(path.size());
+
+      // iterate over edges (not nodes)
+      int i = 0;
+      for (Pair<ARTElement, CFAEdge> pathElement : path) {
+        i++;
+
+        if(i == 1)
+          continue;
+        currentPathFormula = pathFormulaManager.makeAnd(currentPathFormula, pathElement.getSecond());
+
+        formulas.add(currentPathFormula.getFormula());
+
+        // reset the formula
+        currentPathFormula = pathFormulaManager.makeEmptyPathFormula(currentPathFormula);
+      }
+
+      return formulas;
+    }
   }
 
   private Pair<ARTElement, Precision> performRefinement(Precision oldPrecision,
-      List<Pair<ARTElement, CFAEdge>> errorPath,
+      List<Pair<ARTElement, CFANode>> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException {
 
     // create the mapping of CFA nodes to predicates, based on the counter example trace info
@@ -404,15 +435,15 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
    * @param predicates the predicates from the refinement
    * @return the variables on the error path, on which the variables referenced by predicates depend on
    */
-  private Multimap<CFANode, String> getRelevantVariablesOnPath(List<Pair<ARTElement, CFAEdge>> errorPath, PredicateMap predicates) {
+  private Multimap<CFANode, String> getRelevantVariablesOnPath(List<Pair<ARTElement, CFANode>> errorPath, PredicateMap predicates) {
     CollectVariablesVisitor visitor = new CollectVariablesVisitor(allReferencedVariables);
 
     for (int i = errorPath.size() - 1; i >= 0; --i) {
-      Pair<ARTElement, CFAEdge> element = errorPath.get(i);
+      Pair<ARTElement, CFANode> element = errorPath.get(i);
 
-      CFAEdge edge = element.getSecond();
+      CFAEdge edge = element.getSecond().getEnteringEdge(0);
 
-      if (extractVariables(edge, visitor) || predicates.isInterpolationPoint(edge.getPredecessor())) {
+      if (extractVariables(edge, visitor) || predicates.isInterpolationPoint(edge.getSuccessor())) {
         firstInterpolationPoint = element;
       }
     }
