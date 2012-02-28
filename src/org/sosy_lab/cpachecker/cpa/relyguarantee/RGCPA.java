@@ -368,6 +368,30 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
     return laARTElement;
   }
 
+  /**
+   * Get all childen of the element (including the element itself), that belong to the same abstraction.
+   * @param abs
+   * @return
+   */
+  public static Set<ARTElement> getAbstractionSubtree(ARTElement abs) {
+    Deque<ARTElement> worklist = new LinkedList<ARTElement>();
+    Set<ARTElement> children = new HashSet<ARTElement>();
+
+    children.add(abs);
+    worklist.addAll(abs.getLocalChildren());
+
+    while (!worklist.isEmpty()){
+      ARTElement child = worklist.poll();
+
+      if (AbstractElements.extractElementByType(child, AbstractionElement.class) == null){
+        children.add(child);
+        worklist.addAll(child.getLocalChildren());
+      }
+    }
+
+    return children;
+  }
+
 
 
 }
