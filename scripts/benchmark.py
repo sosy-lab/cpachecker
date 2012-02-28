@@ -1393,7 +1393,7 @@ def run_cbmc(options, sourcefile, columns, rlimits, file):
                 else:
                     status = "SAFE"
                 
-        except Exception, e: # catch all exceptions
+        except Exception as e: # catch all exceptions
             if isTimeout(cpuTimeDelta, rlimits):
                 # in this case an exception is expected as the XML is invaliddd
                 status = 'TIMEOUT'
