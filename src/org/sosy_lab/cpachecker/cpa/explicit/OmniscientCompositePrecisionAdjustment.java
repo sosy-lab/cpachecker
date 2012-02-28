@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.AssignmentsInPathConditionElement;
+import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionElement;
 import org.sosy_lab.cpachecker.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -109,7 +110,6 @@ public class OmniscientCompositePrecisionAdjustment implements PrecisionAdjustme
     // forget the value for all variables that exceed their threshold
     for(String variable : valueMapping.keySet()) {
       if(precision.getReachedSetThresholds().exceeds(variable, valueMapping.get(variable).size())) {
-        //System.out.println("reachedSet: forgetting var " + variable);
         precision.getReachedSetThresholds().setExceeded(variable);
         element.forget(variable);
       }
@@ -119,12 +119,17 @@ public class OmniscientCompositePrecisionAdjustment implements PrecisionAdjustme
   }
 
   private Pair<ExplicitElement, ExplicitPrecision> enforcePathThreshold(ExplicitElement element, ExplicitPrecision precision, AssignmentsInPathConditionElement assigns) {
-
     if(assigns != null) {
+      if(assigns instanceof UniqueAssignmentsInPathConditionElement) {
+        UniqueAssignmentsInPathConditionElement unique = (UniqueAssignmentsInPathConditionElement)assigns;
+        unique.addAssignment(element);
+      }
+
       // forget the value for all variables that exceed their threshold
       for(Map.Entry<String, Integer> entry : assigns.getAssignmentCounts().entrySet()) {
         if(precision.getPathThresholds().exceeds(entry.getKey(), entry.getValue())) {
-          //System.out.println("path: forgetting var " + entry.getKey());
+          /*System.out.println((assigns instanceof AllAssignmentsInPathConditionElement) ? "non-" : "" +
+              "unique path: forgetting var " + entry.getKey());*/
 
           // the path threshold precision is path sensitive, therefore, mutating a clone is mandatory
           if(modified == false) {
