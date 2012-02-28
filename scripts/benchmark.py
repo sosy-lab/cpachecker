@@ -27,7 +27,10 @@ CPAchecker web page:
 from datetime import date
 
 import threading
-import Queue
+try:
+  import Queue
+except ImportError: # Queue was renamed to queue in Python 3
+  import queue as Queue
 
 import time
 import glob
