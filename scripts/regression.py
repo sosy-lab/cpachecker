@@ -211,10 +211,10 @@ def compareResults(xmlFiles, options):
         print ("\n---> NO DIFFERENCE FOUND IN COLUMN 'STATUS'")
 
     if options.dump_counts:
-        print "STATS"
+        print ("STATS")
         for elem in statusList:
             correct, wrong, unknown = elem.count("correct"), elem.count("wrong"), elem.count("unknown")
-            print correct, wrong, unknown
+            print (str(correct) + " " + str(wrong) + " " + str(unknown))
 
 
 def copyXMLElem(elem):

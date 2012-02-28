@@ -34,7 +34,11 @@ import sys
 
 from datetime import date
 from decimal import *
-from urllib import quote
+try:
+  from urllib import quote
+except ImportError: # 'quote' was moved into 'parse' in Python 3
+  from urllib.parse import quote
+
 
 OUTPUT_PATH = "test/results/"
 
@@ -79,7 +83,6 @@ class Template():
                 matcher = "{{{" + key + "}}}"
                 if matcher in line:
                     line = line.replace(matcher, kws[key])
-                    
             self.outfile.write(line)
 
 
