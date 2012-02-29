@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE ivysettings> <!-- generic AcceptAllDTD to make the Eclipse Warning go away -->
 <ivysettings>
-    <settings defaultResolver="Sosy-Lab"/>
+    <settings defaultResolver="sosy-and-scala"/>
     <resolvers>
+      <chain name="sosy-and-scala">
         <url name="Sosy-Lab" descriptor="required">
             <ivy pattern="${ivy.repo.url}/[organisation]/[module]/ivy-[revision].xml" />
             <artifact pattern="${ivy.repo.url}/[organisation]/[module]/[artifact]-[revision](-[classifier]).[ext]" />
         </url>
+        <ibiblio name="scalatools" root="http://scala-tools.org/repo-releases" m2compatible="true"/>
+        <ibiblio name="maven" root="http://repo1.maven.org/maven2" m2compatible="true"/>
+      </chain>
     </resolvers>
 </ivysettings>

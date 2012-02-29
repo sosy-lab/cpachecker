@@ -155,10 +155,10 @@ public class ARTUtils {
    */
   public static String convertARTToDot(ReachedSet pReached, Set<Pair<ARTElement, ARTElement>> pathEdges) {
     ARTElement firstElement = (ARTElement)pReached.getFirstElement();
-    return convertARTToDot(firstElement, pathEdges);
+    return convertARTToDot(firstElement, pathEdges, pReached);
   }
 
-  public static String convertARTToDot(ARTElement firstElement, Set<Pair<ARTElement, ARTElement>> pathEdges) {
+  public static String convertARTToDot(ARTElement firstElement, Set<Pair<ARTElement, ARTElement>> pathEdges, ReachedSet pReached) {
     Deque<ARTElement> worklist = new LinkedList<ARTElement>();
     Set<Integer> nodesList = new HashSet<Integer>();
     Set<ARTElement> processed = new HashSet<ARTElement>();
@@ -190,6 +190,7 @@ public class ARTUtils {
           sb.append("fillcolor=\"" + color + "\" ");
         }
         sb.append("label=\"" + label +"\" ");
+        sb.append("shape=\"" + ((pReached != null) ? (pReached.getWaitlist().contains(currentElement) ? "octagon" : "box") : "box") + "\" ");
         sb.append("id=\"" + currentElement.getElementId() + "\"");
         sb.append("]");
         sb.append("\n");
@@ -201,7 +202,7 @@ public class ARTUtils {
         edges.append(covered.getElementId());
         edges.append(" -> ");
         edges.append(currentElement.getElementId());
-        edges.append(" [style=\"dashed\" label=\"covered by\"]\n");
+        edges.append(" [style=\"dashed\" color=\"red\" label=\"covered by\"]\n");
       }
 
       for (ARTElement child : currentElement.getChildren()) {
@@ -212,7 +213,7 @@ public class ARTUtils {
 
         boolean colored = pathEdges.contains(Pair.of(currentElement, child));
         CFAEdge edge = currentElement.getEdgeToChild(child);
-        if(colored) {
+        if (colored || edge.getSuccessor().isLoopStart()) {
           edges.append("color=\"red\"");
         }
 
@@ -368,7 +369,6 @@ public class ARTUtils {
       result.add(Pair.of(currentElement, edge));
       currentElement = child;
     }
-
 
     // need to add another pair with target element and one (arbitrary) outgoing edge
     CFANode loc = extractLocation(currentElement);

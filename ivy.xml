@@ -65,5 +65,9 @@
         <!-- Eclipse CDT
              Used for parsing C code. -->
         <dependency org="org.eclipse.cdt" name="core" rev="5.3.1.201109151620" conf="runtime->default; contrib->sources"/>
+        <!-- Parboiled for seplogic parsing -->
+        <dependency org="org.parboiled" name="parboiled-java" rev="1.0.1" conf="runtime->default" />
+        <dependency org="org.parboiled" name="parboiled-core" rev="1.0.1" conf="runtime->default" />
+        <dependency org="asm" name="asm-all" rev="3.3.1" />
     </dependencies>
 </ivy-module>

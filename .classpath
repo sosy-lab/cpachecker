@@ -20,5 +20,13 @@
 	<classpathentry kind="lib" path="lib/edu.cmu.sei.rtss.jldd.jar"/>
 	<classpathentry kind="lib" path="lib/yicesapijava.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="lib/java/runtime/asm-all-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/asm-all.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/asm-analysis.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/asm-tree.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/asm-util.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/asm.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/parboiled-core.jar" sourcepath="/home/xoraxax/vcs/parboiled/parboiled-core/src"/>
+	<classpathentry kind="lib" path="lib/java/runtime/parboiled-java.jar" sourcepath="/home/xoraxax/vcs/parboiled/parboiled-java/src"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

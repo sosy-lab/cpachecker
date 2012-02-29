@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.BiabductionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
@@ -83,6 +84,10 @@ class CoreComponentsFactory {
 
   @Option(description="use a proof check algorithm to validate a previously generated proof")
   private boolean useProofCheckAlgorithm = false;
+
+  @Option(name="analysis.useBiabduction",
+      description="use biabduction in seperation logic cpa")
+  boolean useBiabduction = false;
 
   private final Configuration config;
   private final LogManager logger;
@@ -139,6 +144,10 @@ class CoreComponentsFactory {
 
       if (useAdjustableConditions) {
         algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
+      }
+
+      if (useBiabduction) {
+        algorithm = new BiabductionAlgorithm(algorithm, cpa, config, logger);
       }
     }
 
