@@ -67,6 +67,8 @@ public interface RGEnvTransitionManager {
    */
   PathFormula formulaForRefinement(RGAbstractElement elem, RGEnvTransition et, int unique) throws CPATransferException;
 
+
+
   /**
    * Returns true only if et1 is less or equal to et2.
    * @param c1
@@ -81,5 +83,7 @@ public interface RGEnvTransitionManager {
    * @return
    */
   boolean isBottom(RGEnvTransition et);
+
+
 
 }

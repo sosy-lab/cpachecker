@@ -770,7 +770,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
 
   /**
    * Constructs the paths between start and stop, whose elements belong to the set of elements.
-   * Branches are resolved using the map, which should specify exactly one path.<
+   * Branches are resolved using the map, which should specify exactly one path.
    * @param start
    * @param stop
    * @param elems

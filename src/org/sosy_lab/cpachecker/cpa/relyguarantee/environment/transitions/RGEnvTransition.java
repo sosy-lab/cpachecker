@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 import com.google.common.collect.ImmutableCollection;
 
@@ -68,6 +69,14 @@ public interface RGEnvTransition {
    * @return
    */
   ImmutableCollection<ARTElement> getGeneratingARTElements();
+
+  /**
+   * Returns the formula added to the source's elements path formula
+   * to generate the abstraction. Return null if this transition was not
+   * abstracted.
+   * @return
+   */
+  PathFormula getFormulaAddedForAbstraction();
 
 }
 

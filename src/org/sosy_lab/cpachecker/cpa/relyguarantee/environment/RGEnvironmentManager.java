@@ -318,6 +318,9 @@ public class RGEnvironmentManager implements StatisticsProvider{
           if (candManager.isLessOrEqual(cand1, cand2)){
             System.out.println(this.getClass());
           }
+          if (candManager.isLessOrEqual(cand2, cand1)){
+            System.out.println();
+          }
           assert !candManager.isLessOrEqual(cand2, cand1);
           assert !candManager.isLessOrEqual(cand1, cand2);
         }

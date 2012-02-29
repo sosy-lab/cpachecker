@@ -74,17 +74,18 @@ public class RGEnvCandidateManager {
    */
   public boolean isBottom(RGEnvCandidate c){
 
-    /* Destroyed element is covered by some other. */
+    /*
+     * if c's starting element is covered or
+     * op is not an assignment and locationClass(c) = locationClass(SP_op(c)),
+     * then c is bottom
+     */
+
     if (c.getElement().isDestroyed()){
       return true;
     }
 
     CFAEdge op = c.getOperation();
 
-    /*
-     * if op is not an assignment and locationClass(c) = locationClass(SP_op(c)),
-     * then c is bottom
-     */
     if (!op.isGlobalWrite() && !op.isLocalWrite()){
       ImmutableList<Integer> locCl1 = c.getElement().getLocationClasses();
       ImmutableList<Integer> locCl2 = c.getSuccessor().getLocationClasses();

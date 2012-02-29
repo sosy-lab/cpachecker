@@ -139,13 +139,6 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
   @Override
   public int run(ReachedSet[] reached, int startThread) {
 
-    for (int i=0; i<reached.length; i++){
-      ReachedSet rs = reached[i];
-      ARTElement aElement = (ARTElement) rs.getFirstElement();
-      aElement.setHasLocalChild(false);
-      removeRGEdges(i, applyEnv[i]);
-    }
-
     boolean error = false;
 
     try{
@@ -283,7 +276,8 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
     System.out.println();
     System.out.println("\t\t\t----- Running thread "+i+" -----");
-    assert threadCPA[i].getCandidates().isEmpty();
+
+    //assert threadCPA[i].getCandidates().isEmpty();
 
     if (debug){
       threadCPA[i].restRunStats();
@@ -304,7 +298,8 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     if (sound) {
       // analyse error found only if the analysis is marked as sound
       ARTElement last = (ARTElement) reached.getLastElement();
-      boolean isTarget = last.isTarget();
+      // if error is found then last is not null
+      boolean isTarget = last != null && last.isTarget();
       assert isTarget || threadCPA[i].getForcedStop().isEmpty();
       stats.errorCheckTimer.stop();
       threadCPA[i].getForcedStop().clear();
@@ -410,39 +405,9 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     return ImmutableSet.copyOf(toApply);
   }
 
-  /*
-   * Applies environmental edges to CFA i. Returns a map with env. edges that haven't
-   * been applied before.
-   *
-   * @param   i CFA number
-   * @return  multimap CFA nodes -> CFA edges
-
-  private ListMultimap<CFANode, CFAEdge> addEnvTransitionsToCFA(int i) {
-
-
-    ListMultimap<CFANode, CFAEdge> envEdgesMap = null;
-    ThreadCFA cfa = pcfa.getCfa(i);
-
-    // remove old environmental edges
-    removeRGEdges(i, applyEnv[i]);
-
-    // sum up all valid edges from other threads
-    List<RGEnvTransition> valid = new Vector<RGEnvTransition>();
-    for (int j=0; j<threadNo; j++){
-      if (j!=i){
-        valid.addAll(validEnvEdgesFromThread[j]);
-      }
-    }
-
-    if (valid.isEmpty()){
-      return ArrayListMultimap.create();
-    }
-
-    envEdgesMap = addSeparateEnvTransitionsToCFA(i, applyEnv[i], valid);
-
-    return envEdgesMap;
-  }*/
-
+  /**
+   * Removes all candidates.
+   */
   public void resetEnvironment(){
     for (int i=0; i<threadNo; i++){
       this.allCandidatesFrom[i].clear();
@@ -450,51 +415,29 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     }
   }
 
+  /**
+   * Removes destroyed candidates.
+   */
+  public void removeDestroyedCandidates() {
+    for (int i=0; i<threadNo; i++){
+      List<RGEnvCandidate> toRemove = new Vector<RGEnvCandidate>();
 
-  /*
-   * Combine environmental edges from valid and apply them to the nodes of CFA i, which belong to toApply.
-   * Returns Returns a map with env. edges that haven't been applied before.
-   *
-   * @param i
-   * @param toApply
-   * @param pValid
-   * @param pUnapplied
-   * @return
-    private ListMultimap<CFANode, CFAEdge> addCombinedEnvTransitionsToCFA(int i, Set<CFANode> toApply, List<RGEnvTransition> pValid, List<RGEnvTransition> pUnapplied) {
-    // TODO finish
-    RelyGuaranteeCFA cfa = cfas[i];
-    ListMultimap<CFANode, CFAEdge> envEdgesMap = ArrayListMultimap.create();
-
-    // someUnapplied  iff some env. edges hasn't been applied before
-    boolean someUnapplied = !pUnapplied.isEmpty();
-
-    if (debug){
-      System.out.println();
-      System.out.println("Env edges applied at CFA "+i+" :");
-    }
-
-    // apply env. edges
-    for(Entry<String, CFANode> entry :   cfa.getCFANodes().entries()){
-      CFANode node = entry.getValue();
-
-      if (toApply.contains(node)){
-        // combine all valid edges into one
-        RGCombinedCFAEdge combined = null;
-            //new RGCFAEdge(pValid, node, node);
-        addEnvTransitionToNode(combined);
-
-        if (debug){
-          System.out.println("\t-node "+node+" applied "+combined);
-        }
-
-        if (someUnapplied){
-          envEdgesMap.put(node, combined);
+      for (RGEnvCandidate cand : allCandidatesFrom[i]){
+        if (cand.getElement().isDestroyed()){
+          toRemove.add(cand);
         }
       }
-    }
+      allCandidatesFrom[i].removeAll(toRemove);
 
-    return envEdgesMap;
-  }*/
+      toRemove.clear();
+      for (RGEnvCandidate cand : threadCPA[i].getCandidates()){
+        if (cand.getElement().isDestroyed()){
+          toRemove.add(cand);
+        }
+      }
+      threadCPA[i].getCandidates().removeAll(toRemove);
+    }
+  }
 
 
   /**
@@ -653,5 +596,8 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
       return String.format("  %7d", val);
     }
   }
+
+
+
 
 }

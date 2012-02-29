@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionMana
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGFullyAbstracted;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -694,41 +693,62 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
         // create a sub-tree for the the element that generated the transition
         ARTElement sARTElement = rgEdge.getAbstractionElement();
-
+        ARTElement tARTElement = rgEdge.getTargetARTElement();
         int sTid = rgEdge.getTid();
         Pair<InterpolationTree, Integer> pair = unwindDag(dag, sARTElement, appUniqueId);
-        InterpolationTree appTree = pair.getFirst();
-        InterpolationTreeNode appNode = appTree.getNode(sTid, sARTElement.getElementId(), appUniqueId);
-        assert appNode != null && appNode.parent == null;
+        InterpolationTree genTree = pair.getFirst();
+        InterpolationTreeNode genNode = genTree.getRoot();
+        assert genNode.getTid() == sTid && genNode.getArtElement().getElementId() == sARTElement.getElementId() && genNode.getUniqueId() == appUniqueId;
 
-        if (abstractEnvTransitions.equals("FA")){
+        // add node for env. transition abstraction
+
+        PathFormula appPf = rgEdge.getFormulaAddedForAbstraction();
+        if (appPf != null){
+          // the formula was abstracted, so create an env. abstraction node
+          HashMap<Integer, Integer> auxMap = new HashMap<Integer, Integer>(1);
+          auxMap.put(-1, appUniqueId);
+          appPf = this.pmgr.changePrimedNo(appPf, auxMap);
+          InterpolationTreeNode appNode = new InterpolationTreeNode(tARTElement, appPf, genNode.getEnvMap(), sTid, appUniqueId, false, true);
+
+          appNode.getChildren().add(genNode);
+          genNode.setParent(appNode);
+          genTree.addNode(appNode);
+          treeNode.getChildren().add(appNode);
+          appNode.setParent(treeNode);
+        } else {
+          // no abstraction for env. transition
+          treeNode.getChildren().add(genNode);
+          genNode.setParent(treeNode);
+        }
+
+
+
+        /*if (abstractEnvTransitions.equals("FA")){
           // TODO make more elegant
           RGFullyAbstracted fa = (RGFullyAbstracted) rgEdge;
-          PathFormula newPf = appNode.getPathFormula();
+          PathFormula newPf = genNode.getPathFormula();
           // rename filter SSAMap
           SSAMap fSsa = fa.getHighSSA();
-          HashMap<Integer, Integer> rMap2 = new HashMap<Integer, Integer>(1);
-          rMap2.put(-1, appUniqueId);
-          SSAMap rfSsa = ssaManager.changePrimeNo(fSsa, rMap2);
+          HashMap<Integer, Integer> auxMap = new HashMap<Integer, Integer>(1);
+          auxMap.put(-1, appUniqueId);
+          SSAMap rfSsa = ssaManager.changePrimeNo(fSsa, auxMap);
 
           // add equivalences so the path formula's indexes match the filter
           Pair<Pair<Formula, Formula>, SSAMap> equivs = ssaManager.mergeSSAMaps(newPf.getSsa(), rfSsa);
           Formula newrF = this.fmgr.makeAnd(newPf.getFormula(), equivs.getFirst().getFirst());
           newPf = new PathFormula(newrF, equivs.getSecond(), 0);
 
-          appNode.setPathFormula(newPf);
+          genNode.setPathFormula(newPf);
         }
 
         // the root of the subtree is an environmental abstraction only
         if (abstractEnvTransitions.equals("SA") || abstractEnvTransitions.equals("FA")){
-          appNode.setEnvAbstraction(true);
-          appNode.setARTAbstraction(false);
-        }
+          genNode.setEnvAbstraction(true);
+          genNode.setARTAbstraction(false);
+        }*/
 
         // add the sub tree to the main tree
-        treeNode.children.add(appNode);
-        appNode.parent = treeNode;
-        tree.addSubTree(appTree);
+        tree.addSubTree(genTree);
 
         renameMap.put(id, appUniqueId);
 
@@ -856,7 +876,6 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
   private Set<AbstractionPredicate> getPredicates(Formula itp, InterpolationTreeNode node, Map<Integer, Integer> rMap) {
 
     assert !abstractEnvTransitions.equals("ST") || !node.isEnvAbstraction;
-    assert abstractEnvTransitions.equals("ST") || node.isARTAbstraction || node.isEnvAbstraction;
     assert !node.isARTAbstraction || !node.isEnvAbstraction;
 
     Formula rItp = fmgr.changePrimedNo(itp, rMap);

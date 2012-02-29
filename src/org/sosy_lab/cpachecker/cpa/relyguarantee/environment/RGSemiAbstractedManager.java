@@ -124,7 +124,7 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
 
     SSAMap ssa = cand.getRgElement().getAbsPathFormula().getSsa();
     CFAEdge operation = cand.getOperation();
-    RGSemiAbstracted sa = new RGSemiAbstracted(aPred, aPredReg, ssa, operation, cand.getElement(), cand.getSuccessor(), cand.getTid());
+    RGSemiAbstracted sa = new RGSemiAbstracted(aPred, aPredReg, ssa, operation, cand.getElement(), cand.getSuccessor(), cand.getTid(), pfManager.makeEmptyPathFormula());
 
     stats.generationTimer.stop();
     return sa;

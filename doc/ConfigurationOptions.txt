@@ -511,7 +511,7 @@ cpa.rg.refinement.addPredicatesGlobally = true
 
 # If true, the analysis continues in the previous thread. If false, the first
 # thread is analysed first.
-cpa.rg.refinement.continueThread = true
+cpa.rg.refinement.continueThread = false
 
 # Print debugging info?
 cpa.rg.refinement.debug = false
@@ -522,6 +522,9 @@ cpa.rg.refinement.dumpDAGfile = "test/output/itpDAG"
 # which interpolating solver to use for interpolant generation?
 cpa.rg.refinement.interpolatingProver = "MATHSAT"
   allowed values: [MATHSAT, CSISAT]
+
+# Use lazy refinement rather than restart the analysis.
+cpa.rg.refinement.lazy = true
 
 # Perform refinement of control locations if a feasible counterexample is
 # found.

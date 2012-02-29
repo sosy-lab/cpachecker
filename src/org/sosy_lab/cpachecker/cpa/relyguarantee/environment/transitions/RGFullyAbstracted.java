@@ -23,10 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
+import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
+import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -51,32 +53,31 @@ public class RGFullyAbstracted implements RGEnvTransition {
   private final ARTElement targetARTElement;
   /** ART element where the concrete operation was applied */
   private final ARTElement sourceARTElement;
+  /** Operation that generated the transition */
+  private final CFAEdge operation;
   /** Source thred's id */
   private final int tid;
+  /** Additional formula used for the abstraction of this transition. */
+  private final PathFormula formulaForAbstraction;
   /** ART elements that generated this transition */
   private ImmutableSet<ARTElement> generatingARTElement;
 
-  public RGFullyAbstracted(Formula abstractTransition, Region abstractTransitionRegion, SSAMap lowSSA, SSAMap highSSA, ARTElement sourceARTElement, ARTElement targetARTElement,  int tid){
+  public RGFullyAbstracted(Formula abstractTransition, Region abstractTransitionRegion, SSAMap lowSSA, SSAMap highSSA, ARTElement sourceARTElement, ARTElement targetARTElement,  CFAEdge op, int tid, PathFormula abstractionFormula){
+    assert !sourceARTElement.isDestroyed();
+
     this.abstractTransition = abstractTransition;
     this.abstractTransitionRegion = abstractTransitionRegion;
     this.lowSSA  = lowSSA;
     this.highSSA = highSSA;
     this.sourceARTElement = sourceARTElement;
     this.targetARTElement = targetARTElement;
+    this.operation = op;
     this.tid = tid;
+    this.formulaForAbstraction = abstractionFormula;
 
-    ARTElement reachedTarget = targetARTElement;
-    while (reachedTarget.isDestroyed()){
-      reachedTarget = targetARTElement.getMergedWith();
-    }
-
-    assert !this.sourceARTElement.isDestroyed();
-    if (reachedTarget.isDestroyed()){
-      System.out.println(this.getClass());
-    }
-    assert !reachedTarget.isDestroyed();
-
-    Set<ARTElement> generating = ARTUtils.getAllElementsBetween(sourceARTElement, reachedTarget);
+    Set<ARTElement> generating = new HashSet<ARTElement>(2);
+    generating.add(sourceARTElement);
+    generating.add(targetARTElement);
     this.generatingARTElement = ImmutableSet.copyOf(generating);
   }
 
@@ -103,7 +104,7 @@ public class RGFullyAbstracted implements RGEnvTransition {
 
   @Override
   public ARTElement getAbstractionElement() {
-    return targetARTElement;
+    return sourceARTElement;
   }
 
   @Override
@@ -129,6 +130,15 @@ public class RGFullyAbstracted implements RGEnvTransition {
   @Override
   public ARTElement getTargetARTElement() {
     return targetARTElement;
+  }
+
+  public CFAEdge getOperation() {
+    return operation;
+  }
+
+  @Override
+  public PathFormula getFormulaAddedForAbstraction() {
+    return formulaForAbstraction;
   }
 
 

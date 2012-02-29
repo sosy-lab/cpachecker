@@ -141,7 +141,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
     stats.totalTimer.start();
     runStats.totalTimer.start();
 
-    assert candidates.isEmpty();
+    //assert candidates.isEmpty();
 
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();

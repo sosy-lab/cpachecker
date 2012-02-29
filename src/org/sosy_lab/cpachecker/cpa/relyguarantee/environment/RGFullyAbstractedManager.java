@@ -137,7 +137,7 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
     AbstractionFormula newAbs = absManager.buildNextValueAbstraction(oldAbs, oldPf, newPf, preds, sourceTid);
     SSAMap highSSA = newAbs.asPathFormula().getSsa();
     //return new RGFullyAbstracted(newAbs.asFormula(), newAbs.asRegion(), oldSsa, highSSA, cand.getSuccessor(), sourceTid);
-    RGFullyAbstracted et = new RGFullyAbstracted(newAbs.asFormula(), newAbs.asRegion(), oldSsa, highSSA, cand.getElement(), cand.getSuccessor(), sourceTid);
+    RGFullyAbstracted et = new RGFullyAbstracted(newAbs.asFormula(), newAbs.asRegion(), oldSsa, highSSA, cand.getElement(), cand.getSuccessor(), cand.getOperation(), sourceTid, newPf);
 
     stats.generationTimer.stop();
     return et;

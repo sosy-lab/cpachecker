@@ -44,6 +44,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.RGAlgorithm;
@@ -70,6 +72,7 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSetMultimap.Builder;
@@ -77,7 +80,6 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 
 
 @Options(prefix="cpa.rg")
@@ -102,7 +104,7 @@ public class RGRefiner implements StatisticsProvider{
 
 
   private final Stats stats;
-  private final RGRefinementManager refManager;
+  private final RGRefinementManager<?, ?> refManager;
   private final RGLocationRefinementManager locrefManager;
   private final ARTCPA[] artCpas;
 
@@ -209,7 +211,7 @@ public class RGRefiner implements StatisticsProvider{
     if (counterexampleInfo.isSpurious()) {
 
       if (lazy){
-        performLazyRefinement(artReachedSets, counterexampleInfo);
+        performLazyRefinement(artReachedSets, counterexampleInfo, algorithm);
       } else {
         performRestartingRefinement(artReachedSets, counterexampleInfo, algorithm);
 
@@ -229,11 +231,30 @@ public class RGRefiner implements StatisticsProvider{
   }
 
 
-  private void performLazyRefinement(ARTReachedSet[] reachedSets, InterpolationTreeResult cexample) {
+  private void performLazyRefinement(ARTReachedSet[] reachedSets, InterpolationTreeResult cexample, RGAlgorithm algorithm) {
     System.out.println();
     System.out.println("\t\t\t ----- Lazy refinement -----");
     Multimap<Integer, Pair<ARTElement, RGPrecision>> pivots = getLazyRefinement(reachedSets, cexample);
+
+    // TODO make it nicer
+    // the parents of the dropped elements can have local transitions again.
+    for (int tid : pivots.keySet()){
+      for (Pair<ARTElement, RGPrecision> pair : pivots.get(tid)){
+        ARTElement aelem = pair.getFirst();
+        ImmutableMap<ARTElement, CFAEdge> map = aelem.getLocalParentMap();
+        for (ARTElement parent : aelem.getLocalParentMap().keySet()){
+          CFAEdge edge = map.get(parent);
+          if (edge.getEdgeType() != CFAEdgeType.RelyGuaranteeCFAEdge){
+            parent.setHasLocalChild(false);
+          }
+        }
+
+      }
+    }
+
     dropPivots(reachedSets, pivots);
+    algorithm.removeDestroyedCandidates();
+
 
   }
 
@@ -245,6 +266,12 @@ public class RGRefiner implements StatisticsProvider{
     Multimap<Integer, Pair<ARTElement, RGPrecision>> pivots = getRestartingPrecision(reachedSets, cexample);
     dropPivots(reachedSets, pivots);
     algorithm.resetEnvironment();
+
+    for (int i=0; i<reachedSets.length; i++){
+      ARTElement aElement = reachedSets[i].getFirstElement();
+      aElement.setHasLocalChild(false);
+      //removeRGEdges(i, applyEnv[i]);
+    }
   }
 
   private void dropPivots(ARTReachedSet[] reachedSets, Multimap<Integer, Pair<ARTElement, RGPrecision>> pivots) {
@@ -279,13 +306,13 @@ public class RGRefiner implements StatisticsProvider{
    */
   private Multimap<Integer, Pair<ARTElement, RGPrecision>> getLazyRefinement(ARTReachedSet[] reachedSets, InterpolationTreeResult info) {
 
-    boolean newPred = false;
-    boolean newLM = false;
+    //boolean newPred = false;
+    //boolean newLM = false;
 
     // set location mapping
     RGLocationMapping lm = info.getRefinedLocationMapping();
     if (lm != null){
-      newLM = true;
+      //newLM = true;
 
       if (debug){
         System.out.println("New "+lm);
@@ -351,16 +378,7 @@ public class RGRefiner implements StatisticsProvider{
       System.out.println();
     }
 
-
-
-    // get ART elements that have a new precision
-    /*Collection<InterpolationTreeNode> newPrecElements = getNewPrecisionElements(reachedSets, info);
-
-    // find ART elements that are on the top of the DAG created by ARTs
-    Collection<InterpolationTreeNode> topElements = getTopDagElements(newPrecElements, info);*/
-
-    return null;
-
+    return result;
   }
 
 
@@ -566,44 +584,6 @@ public class RGRefiner implements StatisticsProvider{
     return allPivots;
   }
 
-  /**
-   * For each thread find ART element that are not reachable by the others by local transitions.
-   * @param elements
-   * @return
-   */
-  private SetMultimap<Integer, ARTElement> findMostGeneral(SetMultimap<Integer, ARTElement> elements) {
-    LinkedHashMultimap<Integer, ARTElement> mgPivots = LinkedHashMultimap.create(elements);
-    Multimap<Integer, ARTElement> toRemove = LinkedHashMultimap.create();
-
-    // in every thread find elements that are covered by subtrees of other elements
-    for (Integer tid : mgPivots.keySet()){
-
-      if (mgPivots.get(tid).size() == 1){
-        continue;
-      }
-
-      for (ARTElement elem : mgPivots.get(tid)){
-        if (toRemove.containsEntry(tid, elem)){
-          continue;
-        }
-
-        Set<ARTElement> subtree = elem.getLocalSubtree();
-
-        for (ARTElement other : mgPivots.get(tid)){
-          if (other.equals(elem) || toRemove.containsEntry(tid, other)){
-            continue;
-          }
-
-          if (subtree.contains(other)){
-            toRemove.put(tid, other);
-          }
-        }
-      }
-    }
-
-    mgPivots.removeAll(toRemove);
-    return mgPivots;
-  }
 
 
   /**
@@ -613,7 +593,6 @@ public class RGRefiner implements StatisticsProvider{
    * @return
    */
   private Pivots getNewPrecisionElements(ARTReachedSet[] reachedSets, InterpolationTreeResult info) {
-    int threadNo = reachedSets.length;
 
     Pivots pivots = new Pivots();
 
@@ -659,36 +638,6 @@ public class RGRefiner implements StatisticsProvider{
 
     return pivots;
   }
-
-  /**
-   * Get the largest subset of interpolation nodes, such that their ART elements are not
-   * reachable by any other element.
-   * @param elements
-   * @param info
-   * @return
-   */
-  private Set<InterpolationTreeNode> getTopDagElements(Collection<InterpolationTreeNode> elements, InterpolationTreeResult info) {
-
-    Set<InterpolationTreeNode> topElems = new HashSet<InterpolationTreeNode>(elements);
-    InterpolationTree tree = info.getTree();
-
-    for (InterpolationTreeNode node : elements){
-      for (InterpolationTreeNode top : topElems){
-        if (node.equals(top)){
-          continue;
-        }
-
-        // ART node a reaches b if interpolation node a is ancestor of node b.
-        if (top.hasAncestor(node)){
-          topElems.remove(node);
-          break;
-        }
-      }
-    }
-
-    return topElems;
-  }
-
 
 
   /**
@@ -988,12 +937,16 @@ public class RGRefiner implements StatisticsProvider{
 
 
     public Set<Integer> getTids() {
-      return Sets.union(artPivots.keySet(), envPivots.keySet());
+      Set<Integer> tids = new HashSet<Integer>(artPivots.keySet());
+      tids.addAll(envPivots.keySet());
+      tids.addAll(noPreds.keySet());
+
+      return tids;
     }
 
 
     public boolean isEmpty() {
-      return artPivots.isEmpty() && envPivots.isEmpty();
+      return artPivots.isEmpty() && envPivots.isEmpty() && noPreds.isEmpty();
     }
 
 

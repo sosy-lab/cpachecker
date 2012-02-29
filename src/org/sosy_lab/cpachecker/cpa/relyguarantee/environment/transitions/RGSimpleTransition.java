@@ -23,11 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -57,25 +54,18 @@ public class RGSimpleTransition implements RGEnvTransition{
   /** ART elements that generated this transition */
   private final ImmutableCollection<ARTElement> generatingARTElement;
 
-  public RGSimpleTransition(Formula abstraction, Region abstractionReg, PathFormula pf, CFAEdge operation, ARTElement abstractionARTElem, ARTElement targetARTElem, int tid){
+  public RGSimpleTransition(Formula abstraction, Region abstractionReg, PathFormula pf, CFAEdge operation, ARTElement sourceElem, ARTElement targetARTElem, int tid){
+    assert !sourceElem.isDestroyed();
+
     this.abstraction = abstraction;
     this.abstractionRegion = abstractionReg;
     this.pf = pf;
     this.operation = operation;
-    this.sourceARTElement = abstractionARTElem;
+    this.sourceARTElement = sourceElem;
     this.targetARTElement  = targetARTElem;
     this.tid = tid;
 
-    ARTElement reachedTarget = targetARTElement;
-    if (targetARTElement.isDestroyed()){
-      reachedTarget = targetARTElement.getMergedWith();
-    }
-
-    assert !this.sourceARTElement.isDestroyed();
-    assert !reachedTarget.isDestroyed();
-
-    Set<ARTElement> generating = ARTUtils.getAllElementsBetween(sourceARTElement, reachedTarget);
-    this.generatingARTElement = ImmutableSet.copyOf(generating);
+    this.generatingARTElement = ImmutableSet.of(sourceARTElement, targetARTElement);
   }
 
   @Override
@@ -127,6 +117,11 @@ public class RGSimpleTransition implements RGEnvTransition{
   @Override
   public ARTElement getTargetARTElement() {
     return targetARTElement;
+  }
+
+  @Override
+  public PathFormula getFormulaAddedForAbstraction() {
+    return null;
   }
 
 

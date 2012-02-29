@@ -23,11 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
+import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -54,28 +52,26 @@ public class RGSemiAbstracted implements RGEnvTransition{
   private final ARTElement sourceARTElement;
   /** Source thred's id */
   private final int tid;
+  /** Additional formula used for the abstraction of this transition - should be true */
+  private final PathFormula formulaForAbstraction;
   /** ART elements that generated this transition */
   private ImmutableSet<ARTElement> generatingARTElement;
 
-  public RGSemiAbstracted(Formula precondition, Region preconditionRegion, SSAMap ssa, CFAEdge operation, ARTElement sourceElem, ARTElement targetElem, int tid){
+
+  public RGSemiAbstracted(Formula precondition, Region preconditionRegion, SSAMap ssa, CFAEdge operation, ARTElement sourceElem, ARTElement targetElem, int tid, PathFormula formulaForAbs){
+    assert !sourceElem.isDestroyed();
+    assert formulaForAbs.getFormula().isTrue();
+
     this.abstractPrecondition = precondition;
     this.abstractPreconditionRegion = preconditionRegion;
     this.ssa = ssa;
     this.operation = operation;
     this.sourceARTElement = sourceElem;
     this.targetARTElement = targetElem;
+    this.formulaForAbstraction = formulaForAbs;
     this.tid = tid;
 
-    ARTElement reachedTarget = targetARTElement;
-    if (targetARTElement.isDestroyed()){
-      reachedTarget = targetARTElement.getMergedWith();
-    }
-
-    assert !this.sourceARTElement.isDestroyed();
-    assert !reachedTarget.isDestroyed();
-
-    Set<ARTElement> generating = ARTUtils.getAllElementsBetween(sourceARTElement, reachedTarget);
-    this.generatingARTElement = ImmutableSet.copyOf(generating);
+    this.generatingARTElement = ImmutableSet.of(sourceARTElement, targetARTElement);
   }
 
   @Override
@@ -85,7 +81,7 @@ public class RGSemiAbstracted implements RGEnvTransition{
 
   @Override
   public ARTElement getAbstractionElement() {
-    return targetARTElement;
+    return sourceARTElement;
   }
 
   @Override
@@ -126,6 +122,11 @@ public class RGSemiAbstracted implements RGEnvTransition{
   @Override
   public ARTElement getTargetARTElement() {
     return targetARTElement;
+  }
+
+  @Override
+  public PathFormula getFormulaAddedForAbstraction() {
+    return formulaForAbstraction;
   }
 
 
