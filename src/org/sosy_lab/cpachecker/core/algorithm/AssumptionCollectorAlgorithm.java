@@ -295,7 +295,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     childrenOfRelevantElements.add(rootElement);
     for (ARTElement e : relevantElements) {
       childrenOfRelevantElements.addAll(e.getChildren());
-      childrenOfRelevantElements.addAll(e.getCoveredByThis());
+      if (e.isCovered()) {
+        childrenOfRelevantElements.add(e.getCoveringElement());
+      }
     }
 
     return writeAutomaton(rootElement, childrenOfRelevantElements, relevantElements, falseAssumptionElements);
@@ -384,9 +386,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         // so we need to handle its parents
 
         toAdd.addAll(current.getParents());
-        if (current.isCovered()) {
-          toAdd.add(current.getCoveringElement());
-        }
+        toAdd.addAll(current.getCoveredByThis());
       }
     }
   }
