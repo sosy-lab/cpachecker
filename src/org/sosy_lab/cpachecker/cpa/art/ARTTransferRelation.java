@@ -137,8 +137,7 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
   }
 
   /**
-   * Returns the location class of the successor element or null if the edge predecessor's and
-   * element's classes don't match.
+   * Returns the location class of the successor element.
    * @param element
    * @param edge
    * @return
@@ -157,21 +156,13 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
 
       // check if the location classes of the predecessor and the element match
       ImmutableList<Integer> predClass = et.getSourceARTElement().getLocationClasses();
-      if (!locCl.equals(predClass)){
-        stats.locNegNo++;
-        succLocCl = null;
-      } else {
-        succLocCl = et.getTargetARTElement().getLocationClasses();
-      }
+      assert locCl.equals(predClass);
+      succLocCl = et.getTargetARTElement().getLocationClasses();
+
     } else {
       // local edge can always be applied; change the class for this thread
       List<Integer> list = new Vector<Integer>(locCl);
       Integer newClass = locationMapping.get(edge.getSuccessor());
-
-      if (newClass == null){
-        System.out.println(this.getClass());
-      }
-
       assert newClass != null;
       list.set(tid, newClass);
       succLocCl = ImmutableList.copyOf(list);

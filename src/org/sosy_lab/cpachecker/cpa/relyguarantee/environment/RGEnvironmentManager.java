@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.SetMultimap;
 
 /**
@@ -777,16 +778,28 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
   /**
    * Find new env. transitions that should be applied.
-   * @param appliedBefore env. transitions previously applied
-   * @param candidates all candidates from source thread
+   * @param elem env. transitions previously applied
+   * @param allCandidates all candidates from source thread
    * @param preds predicates for env. transitions
    * @return
    */
-  public List<RGEnvTransition> getEnvironmentalTransitionsToApply(Set<RGEnvTransition> appliedBefore, List<RGEnvCandidate> candidates, Set<AbstractionPredicate> preds) {
+  public List<RGEnvTransition> getEnvironmentalTransitionsToApply(ARTElement elem, List<RGEnvCandidate> allCandidates, Set<AbstractionPredicate> preds) {
     stats.etToApplyTimer.start();
 
+    // filter out candidates with mistmatching location classes
+    ImmutableList<Integer> locCl = elem.getLocationClasses();
+
+    Vector<RGEnvCandidate> candidates = new Vector<RGEnvCandidate>(allCandidates);
+    for (RGEnvCandidate cand : allCandidates){
+      ImmutableList<Integer> cndLocCl = cand.getElement().getLocationClasses();
+      if (!locCl.equals(cndLocCl)){
+        candidates.remove(cand);
+      }
+    }
+
     List<RGEnvTransition> newTransitions = findMostGeneralEnvTransitions(candidates, preds);
-    List<RGEnvTransition> newToApply = getDifference(newTransitions, appliedBefore);
+    Set<RGEnvTransition> oldTransitions = elem.getEnvTransitionsApplied();
+    List<RGEnvTransition> newToApply = getDifference(newTransitions, oldTransitions);
 
     stats.etToApplyTimer.stop();
     return newToApply;

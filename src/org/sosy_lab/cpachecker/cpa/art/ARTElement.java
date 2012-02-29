@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -75,16 +76,6 @@ public class ARTElement extends AbstractSingleWrapperElement {
   private final int elementId;
 
   /**
-   * Has a local child been computed.
-   */
-  private boolean hasLocalChild = false;
-
-  /**
-   * Env transition that have been applied to this element. Null means none.
-   */
-  private Set<RGEnvTransition> envTrApplied;
-
-  /**
    * equivalences class of each program counter
    */
   private final ImmutableList<Integer> locationClasses;
@@ -121,7 +112,6 @@ public class ARTElement extends AbstractSingleWrapperElement {
     }
 
     this.locationClasses = locationClasses;
-    this.envTrApplied = null;
 
     this.rgElement = AbstractElements.extractElementByType(this, RGAbstractElement.class);
     assert this.rgElement != null;
@@ -174,12 +164,15 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
 
   public boolean hasLocalChild() {
-    return hasLocalChild;
+    for (CFAEdge edge : this.localChildMap.values()){
+      if (edge.getEdgeType() != CFAEdgeType.RelyGuaranteeCFAEdge){
+        return true;
+      }
+    }
+
+    return false;
   }
 
-  public void setHasLocalChild(boolean pHasLocalChild) {
-    hasLocalChild = pHasLocalChild;
-  }
 
   public ImmutableList<Integer> getLocationClasses() {
     return locationClasses;
@@ -187,14 +180,6 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   public int getTid() {
     return tid;
-  }
-
-  public Set<RGEnvTransition> getEnvTrApplied() {
-    return envTrApplied;
-  }
-
-  public void setEnvTrApplied(Set<RGEnvTransition> pEnvTrApplied) {
-    envTrApplied = pEnvTrApplied;
   }
 
   protected void setCovered(ARTElement pCoveredBy) {
@@ -423,6 +408,23 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   public boolean isDestroyed() {
     return destroyed;
+  }
+
+  /**
+   * Returns env transitions that created a child of this element.
+   * @return
+   */
+  public Set<RGEnvTransition> getEnvTransitionsApplied() {
+    HashSet<RGEnvTransition> envTr = new HashSet<RGEnvTransition>();
+
+    for (CFAEdge edge : this.localChildMap.values()){
+      if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+        RGCFAEdge rgEdge = (RGCFAEdge) edge;
+        envTr.add(rgEdge.getRgEnvTransition());
+      }
+    }
+
+    return envTr;
   }
 
 

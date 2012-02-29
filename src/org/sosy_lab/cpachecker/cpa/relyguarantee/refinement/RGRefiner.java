@@ -44,8 +44,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.RGAlgorithm;
@@ -72,7 +70,6 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSetMultimap.Builder;
@@ -235,23 +232,6 @@ public class RGRefiner implements StatisticsProvider{
     System.out.println();
     System.out.println("\t\t\t ----- Lazy refinement -----");
     Multimap<Integer, Pair<ARTElement, RGPrecision>> pivots = getLazyRefinement(reachedSets, cexample);
-
-    // TODO make it nicer
-    // the parents of the dropped elements can have local transitions again.
-    for (int tid : pivots.keySet()){
-      for (Pair<ARTElement, RGPrecision> pair : pivots.get(tid)){
-        ARTElement aelem = pair.getFirst();
-        ImmutableMap<ARTElement, CFAEdge> map = aelem.getLocalParentMap();
-        for (ARTElement parent : aelem.getLocalParentMap().keySet()){
-          CFAEdge edge = map.get(parent);
-          if (edge.getEdgeType() != CFAEdgeType.RelyGuaranteeCFAEdge){
-            parent.setHasLocalChild(false);
-          }
-        }
-
-      }
-    }
-
     dropPivots(reachedSets, pivots);
     algorithm.removeDestroyedCandidates();
 
@@ -266,12 +246,6 @@ public class RGRefiner implements StatisticsProvider{
     Multimap<Integer, Pair<ARTElement, RGPrecision>> pivots = getRestartingPrecision(reachedSets, cexample);
     dropPivots(reachedSets, pivots);
     algorithm.resetEnvironment();
-
-    for (int i=0; i<reachedSets.length; i++){
-      ARTElement aElement = reachedSets[i].getFirstElement();
-      aElement.setHasLocalChild(false);
-      //removeRGEdges(i, applyEnv[i]);
-    }
   }
 
   private void dropPivots(ARTReachedSet[] reachedSets, Multimap<Integer, Pair<ARTElement, RGPrecision>> pivots) {

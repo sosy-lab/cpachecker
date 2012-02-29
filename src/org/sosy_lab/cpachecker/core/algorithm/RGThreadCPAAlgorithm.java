@@ -188,10 +188,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         System.out.println();
       }
 
-      if (aElement.getElementId() == 365){
-        System.out.println(this.getClass());
-      }
-
       Collection<Pair<AbstractElement,CFAEdge>> successors = new LinkedHashSet<Pair<AbstractElement,CFAEdge>>(edges.size());
 
 
@@ -397,18 +393,14 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
     /* get environmental edges */
     if (applyEnv.contains(loc)){
-      if (aElem.getEnvTrApplied() == null){
-        aElem.setEnvTrApplied(new HashSet<RGEnvTransition>());
-      }
+
 
       Set<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(rgPrec.getEnvGlobalPredicates());
       preds.addAll(rgPrec.getEnvPredicateMap().get(loc));
 
-      List<RGEnvTransition> envTransitionToApply = environment.getEnvironmentalTransitionsToApply(aElem.getEnvTrApplied(), candidatesFromThread[otherTid], preds);
-
+      List<RGEnvTransition> envTransitionToApply = environment.getEnvironmentalTransitionsToApply(aElem, candidatesFromThread[otherTid], preds);
 
       for (RGEnvTransition et : envTransitionToApply){
-          aElem.getEnvTrApplied().add(et);
           RGCFAEdge rgEdge = new RGCFAEdge(et, loc, loc);
           edges.add(rgEdge);
       }
@@ -423,8 +415,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
           edges.add(edge);
         }
       }
-
-      aElem.setHasLocalChild(true);
     }
 
 

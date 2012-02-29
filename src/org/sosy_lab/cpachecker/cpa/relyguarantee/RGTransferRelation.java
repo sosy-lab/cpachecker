@@ -305,7 +305,7 @@ public class RGTransferRelation  implements TransferRelation {
   /**
    * Returns a two path formulas representing the effect of an applying env. and a number.
    * The first path formula one is meant for abstraction and the second one for refinement.
-   * The the number is the prime number of the env. application in the refinement formula.
+   * The number is the prime number of the env. application in the refinement formula.
    * @param localPf
    * @param rgEdge
    * @param pAppInfo
@@ -323,11 +323,7 @@ public class RGTransferRelation  implements TransferRelation {
     if (appPf.getFormula().isFalse()){
       refPf = pfManager.makeFalsePathFormula();
     } else {
-      // TODO somehow using unique instead of 1 makes bakery.simple not stop
       refPf = etManager.formulaForRefinement(element, rgEdge.getRgEnvTransition(), uniqueIdRef);
-      /*Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(1);
-      rMap.put(1, uniqueIdRef);
-      refPf = pfManager.changePrimedNo(refPf, rMap);*/
     }
 
     // increment unique number
