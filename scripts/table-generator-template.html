@@ -197,7 +197,7 @@ function createColumnToggleButtons() {
         var columnTitles = $("#columnTitles > td");
         var testNums = headerArray[4];
         var testNum = testNums[1];
-        var testName = tableHead.children[3].cells[testNum].textContent + " " + 
+        var testName = tableHead.children[3].cells[headerArray[3][1]].textContent + " " + 
                        tableHead.children[4].cells[testNum].textContent;
     
         // TODO can we make next block more OO-like?
@@ -205,7 +205,7 @@ function createColumnToggleButtons() {
         for (var i=1; i<columnTitles.length; i++) { // do not use first column (i!=0)
             if (testNum != testNums[i]) {
                 testNum = testNums[i];
-                testName = tableHead.children[3].cells[testNum].textContent + " " + 
+                testName = tableHead.children[3].cells[headerArray[3][i]].textContent + " " + 
                            tableHead.children[4].cells[testNum].textContent;
                 buttonList += '</ul><ul>' + testName;
             }
