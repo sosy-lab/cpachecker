@@ -43,15 +43,11 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5Factory;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5TheoremProver;
 
 public class ImpactCPA implements ConfigurableProgramAnalysis {
 
@@ -75,20 +71,11 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
     config = pConfig;
     logger = pLogger;
 
-    String solver = pConfig.getProperty("abstraction.solver", "MATHSAT");
-    FormulaManager msatFmgr;
-    if (solver.equals("MATHSAT5")) {
-      msatFmgr = Mathsat5Factory.createFormulaManager(config, logger);
-      prover = new Mathsat5TheoremProver((Mathsat5FormulaManager) msatFmgr);
-    } else {
-
-      msatFmgr = MathsatFactory.createFormulaManager(config, logger);
-      prover = new MathsatTheoremProver((MathsatFormulaManager) msatFmgr);
-    }
-
+    MathsatFormulaManager msatFmgr = MathsatFactory.createFormulaManager(config, logger);
     fmgr = new ExtendedFormulaManager(msatFmgr, pConfig, pLogger);
 
     pfmgr = new PathFormulaManagerImpl(fmgr, config, logger);
+    prover = new MathsatTheoremProver(msatFmgr);
 
     abstractDomain = new ImpactAbstractDomain(fmgr, prover);
     mergeOperator = new ImpactMergeOperator(logger, pfmgr);

@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5Factory;
 
 /**
  * CPA used to capture the assumptions that ought to be dumped.
@@ -66,14 +65,7 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis {
 
   private AssumptionStorageCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
   {
-
-    String solver = config.getProperty("abstraction.solver", "MATHSAT");
-
-    if (solver.equals("MATHSAT5")) {
-    formulaManager = new ExtendedFormulaManager(Mathsat5Factory.createFormulaManager(config, logger), config, logger);
-    } else {
-      formulaManager = new ExtendedFormulaManager(MathsatFactory.createFormulaManager(config, logger), config, logger);
-    }
+    formulaManager = new ExtendedFormulaManager(MathsatFactory.createFormulaManager(config, logger), config, logger);
     CtoFormulaConverter converter = new CtoFormulaConverter(config, formulaManager, logger);
     abstractDomain = new AssumptionStorageDomain(formulaManager);
     stopOperator = new AssumptionStorageStop();

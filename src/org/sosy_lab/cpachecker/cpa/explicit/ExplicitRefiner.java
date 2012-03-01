@@ -84,9 +84,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5Factory;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -153,11 +153,11 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       theoremProver         = predicateCpa.getTheoremProver();
       absManager            = predicateCpa.getPredicateManager();
     } else {
-      Mathsat5FormulaManager mathsatFormulaManager = Mathsat5Factory.createFormulaManager(config, logger);
+      MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
       RegionManager regionManager                 = BDDRegionManager.getInstance();
       formulaManager        = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
       pathFormulaManager    = new PathFormulaManagerImpl(formulaManager, config, logger);
-      theoremProver         = new Mathsat5TheoremProver(mathsatFormulaManager);
+      theoremProver         = new MathsatTheoremProver(mathsatFormulaManager);
       absManager            = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
     }
 
