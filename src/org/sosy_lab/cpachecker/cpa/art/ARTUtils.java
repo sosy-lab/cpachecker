@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
@@ -149,16 +148,14 @@ public class ARTUtils {
 
   /**
    * Create String with ART in the DOT format of Graphviz.
-   * @param pReached the reached set
-   * @param pathEdges the edges of the error path (may be empty)
+   * @param rootElement the root element of the ART
+   * @param displayedElements An optional set of elements. If given, all other elements are ignored. If null, all elements are dumped.
+   * @param highlightedEdges Set of edges to highlight in the graph.
    * @return the ART as DOT graph
    */
-  public static String convertARTToDot(ReachedSet pReached, Set<Pair<ARTElement, ARTElement>> pathEdges) {
-    ARTElement firstElement = (ARTElement)pReached.getFirstElement();
-    return convertARTToDot(firstElement, pathEdges);
-  }
-
-  public static String convertARTToDot(ARTElement firstElement, Set<Pair<ARTElement, ARTElement>> pathEdges) {
+  public static String convertARTToDot(final ARTElement rootElement,
+      final Set<ARTElement> displayedElements,
+      final Set<Pair<ARTElement, ARTElement>> highlightedEdges) {
     Deque<ARTElement> worklist = new LinkedList<ARTElement>();
     Set<Integer> nodesList = new HashSet<Integer>();
     Set<ARTElement> processed = new HashSet<ARTElement>();
@@ -169,11 +166,14 @@ public class ARTUtils {
     // default style for nodes
     sb.append("node [style=\"filled\" shape=\"box\" color=\"white\"]\n");
 
-    worklist.add(firstElement);
+    worklist.add(rootElement);
 
     while(worklist.size() != 0){
       ARTElement currentElement = worklist.removeLast();
       if(processed.contains(currentElement)){
+        continue;
+      }
+      if (displayedElements != null && !displayedElements.contains(currentElement)) {
         continue;
       }
 
@@ -210,7 +210,7 @@ public class ARTUtils {
         edges.append(child.getElementId());
         edges.append(" [");
 
-        boolean colored = pathEdges.contains(Pair.of(currentElement, child));
+        boolean colored = highlightedEdges.contains(Pair.of(currentElement, child));
         CFAEdge edge = currentElement.getEdgeToChild(child);
         if(colored) {
           edges.append("color=\"red\"");

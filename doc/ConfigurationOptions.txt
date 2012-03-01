@@ -259,6 +259,7 @@ cpa.art.errorPath.assignment = "ErrorPathAssignment.txt"
 cpa.art.errorPath.core = "ErrorPathCore.txt"
 cpa.art.errorPath.export = true
 cpa.art.errorPath.file = "ErrorPath.txt"
+cpa.art.errorPath.graph = "ErrorPath.dot"
 cpa.art.errorPath.json = "ErrorPath.json"
 cpa.art.errorPath.source = "ErrorPath.c"
 
