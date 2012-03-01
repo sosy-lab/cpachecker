@@ -39,15 +39,12 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
-
-import com.google.common.base.Optional;
 
 @Options(prefix="cpa.art")
 public class ARTStatistics implements Statistics {
@@ -157,7 +154,7 @@ public class ARTStatistics implements Statistics {
           if (counterexample != null && counterexample.getTargetPath() != null) {
             // precise error path
             pathElements = targetPath.getElementSet();
-            pathProgram = PathToCTranslator.translateSinglePath(Optional.<CFA>absent(), targetPath);
+            pathProgram = PathToCTranslator.translateSinglePath(targetPath);
 
           } else {
             // Imprecise error path.
@@ -166,7 +163,7 @@ public class ARTStatistics implements Statistics {
             // to avoid this problem.
             ARTElement lastElement = (ARTElement)pReached.getLastElement();
             pathElements = ARTUtils.getAllElementsOnPathsTo(lastElement);
-            pathProgram = PathToCTranslator.translatePaths(Optional.<CFA>absent(), rootElement, pathElements);
+            pathProgram = PathToCTranslator.translatePaths(rootElement, pathElements);
           }
 
           writeErrorPathFile(errorPathFile, targetPath);

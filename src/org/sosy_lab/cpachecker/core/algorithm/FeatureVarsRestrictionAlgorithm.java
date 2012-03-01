@@ -98,7 +98,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
     logger.log(Level.INFO, "using the FeatureVars Restriction Algorithm");
 
     if (checkerName.equals("CBMC")) {
-      checker = new CBMCChecker(config, logger, cfa);
+      checker = new CBMCChecker(config, logger);
     } else if (checkerName.equals("CPACHECKER")) {
       checker = new CounterexampleCPAChecker(config, logger, reachedSetFactory, cfa);
     } else {

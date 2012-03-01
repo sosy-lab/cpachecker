@@ -122,7 +122,17 @@ class CFABuilder extends ASTVisitor {
       return handleSimpleDeclaration((IASTSimpleDeclaration)declaration, fileloc);
 
     } else if (declaration instanceof IASTFunctionDefinition) {
-      functionDeclarations.add((IASTFunctionDefinition) declaration);
+      IASTFunctionDefinition fd = (IASTFunctionDefinition) declaration;
+      functionDeclarations.add(fd);
+
+      // add forward declaration to list of global declarations
+      org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration functionDefinition = astCreator.convert(fd);
+      if (astCreator.existsSideAssignment()) {
+        throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
+      }
+
+      globalDeclarations.add(Pair.of(functionDefinition, fd.getRawSignature()));
+
       return PROCESS_SKIP;
 
     } else if (declaration instanceof IASTProblemDeclaration) {
