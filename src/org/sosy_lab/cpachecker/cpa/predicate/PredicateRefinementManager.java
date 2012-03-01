@@ -82,6 +82,7 @@ public class PredicateRefinementManager extends InterpolationManager<Collection<
   protected Collection<AbstractionPredicate> convertInterpolant(Formula interpolant, int index) {
 
     Collection<AbstractionPredicate> preds;
+
     if (interpolant.isFalse()) {
       preds = ImmutableSet.of(amgr.makeFalsePredicate());
     } else {

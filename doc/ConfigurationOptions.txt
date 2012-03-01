@@ -437,7 +437,7 @@ cpa.predicate.abstraction.initialPredicates = no default value
 
 # which solver to use?
 cpa.predicate.abstraction.solver = "MATHSAT"
-  allowed values: [MATHSAT, YICES]
+  allowed values: [MATHSAT, MATHSAT5, YICES]
 
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
@@ -566,7 +566,7 @@ cpa.predicate.refinement.getUsefulBlocks = false
 
 # which interpolating solver to use for interpolant generation?
 cpa.predicate.refinement.interpolatingProver = "MATHSAT"
-  allowed values: [MATHSAT, CSISAT]
+  allowed values: [MATHSAT, CSISAT, MATHSAT5]
 
 # skip refinement if input formula is larger than this amount of bytes
 # (ignored if 0)

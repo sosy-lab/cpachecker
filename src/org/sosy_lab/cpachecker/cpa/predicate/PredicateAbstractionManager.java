@@ -332,37 +332,48 @@ public class PredicateAbstractionManager {
 
     // the formula is (abstractionFormula & pathFormula & predDef)
     Formula fm = fmgr.makeAnd(f, predDef);
+    Region result;
 
-    logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
+    if (predVars.isEmpty()) {
+      thmProver.init();
+      boolean satResult = !thmProver.isUnsat(fm);
+      thmProver.reset();
 
-    stats.abstractionTime.startOuter();
-    AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr, stats.abstractionTime.getInnerTimer());
-    long solveTime = stats.abstractionTime.stopOuter();
+      RegionManager rMgr = amgr.getRegionManager();
 
-    // update statistics
-    int numModels = allSatResult.getCount();
-    if (numModels < Integer.MAX_VALUE) {
-      stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
-      stats.allSatCount += numModels;
+      result = (satResult) ? rMgr.makeTrue() : rMgr.makeFalse();
+    } else {
+      logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
+
+      stats.abstractionTime.startOuter();
+      AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr, stats.abstractionTime.getInnerTimer());
+      long solveTime = stats.abstractionTime.stopOuter();
+
+      // update statistics
+      int numModels = allSatResult.getCount();
+      if (numModels < Integer.MAX_VALUE) {
+        stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
+        stats.allSatCount += numModels;
+      }
+
+      // TODO dump hard abst
+      if (solveTime > 10000 && dumpHardAbstractions) {
+        // we want to dump "hard" problems...
+        File dumpFile;
+
+        dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "input", 0);
+        fmgr.dumpFormulaToFile(f, dumpFile);
+
+        dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predDef", 0);
+        fmgr.dumpFormulaToFile(predDef, dumpFile);
+
+        dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predVars", 0);
+        fmgr.printFormulasToFile(predVars, dumpFile);
+      }
+
+      result = allSatResult.getResult();
+      logger.log(Level.ALL, "Abstraction computed, result is", result);
     }
-
-    // TODO dump hard abst
-    if (solveTime > 10000 && dumpHardAbstractions) {
-      // we want to dump "hard" problems...
-      File dumpFile;
-
-      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "input", 0);
-      fmgr.dumpFormulaToFile(f, dumpFile);
-
-      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predDef", 0);
-      fmgr.dumpFormulaToFile(predDef, dumpFile);
-
-      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predVars", 0);
-      fmgr.printFormulasToFile(predVars, dumpFile);
-    }
-
-    Region result = allSatResult.getResult();
-    logger.log(Level.ALL, "Abstraction computed, result is", result);
     return result;
   }
 
