@@ -58,16 +58,12 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatInterpolatingProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5InterpolatingProver;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -96,9 +92,10 @@ public abstract class InterpolationManager<I> {
   private final InterpolatingTheoremProver<?> firstItpProver;
   private final InterpolatingTheoremProver<?> secondItpProver;
 
-  @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT", "MATHSAT5"},
-      description="which interpolating solver to use for interpolant generation?")
-  private String whichItpProver = "MATHSAT";
+  @Option(name="interpolatingProver", toUppercase=true, values={"DEFAULT", "CSISAT"},
+      description="Which interpolating solver to use for interpolant generation?\n"
+          + "DEFAULT means to use the solver used for everything else as well.")
+  private String whichItpProver = "DEFAULT";
 
   @Option(description="apply deletion-filter to the abstract counterexample, to get "
     + "a minimal set of blocks, before applying interpolation-based refinement")
@@ -153,6 +150,7 @@ public abstract class InterpolationManager<I> {
       ExtendedFormulaManager pFmgr,
       PathFormulaManager pPmgr,
       TheoremProver pThmProver,
+      FormulaManagerFactory pFmgrFactory,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, InterpolationManager.class);
@@ -164,34 +162,20 @@ public abstract class InterpolationManager<I> {
     thmProver = pThmProver;
 
 
-    String ipProver = config.getProperty("interpolatingProver", "MATHSAT");
     // create solvers
-    FormulaManager realFormulaManager = fmgr.getDelegate();
-    if (ipProver.equals("MATHSAT5")) {
-      if (!(realFormulaManager instanceof Mathsat5FormulaManager)) {
-        throw new InvalidConfigurationException("Need to use Mathsat5 as solver if Mathsat5 should be used for interpolation");
-      }
-      firstItpProver = new Mathsat5InterpolatingProver((Mathsat5FormulaManager) realFormulaManager, false);
-    } else if (ipProver.equals("MATHSAT")) {
-	    if (!(realFormulaManager instanceof MathsatFormulaManager)) {
-        throw new InvalidConfigurationException("Need to use Mathsat as solver if Mathsat should be used for interpolation");
-      }
-      firstItpProver = new MathsatInterpolatingProver((MathsatFormulaManager) realFormulaManager, false);
-    } else if (ipProver.equals("CSISAT")) {
-      firstItpProver = new CSIsatInterpolatingProver(pFmgr, logger);
-
+    if (whichItpProver.equals("CSISAT")) {
+      firstItpProver = new CSIsatInterpolatingProver(fmgr, logger);
     } else {
-      throw new InternalError("Update list of allowed solvers!");
+      assert whichItpProver.equals("DEFAULT");
+      firstItpProver = pFmgrFactory.createInterpolatingTheoremProver(false);
     }
 
     if (changeItpSolveOTF) {
-      if (ipProver.equals("MATHSAT") || ipProver.equals("MATHSAT5")) {
-        secondItpProver = new CSIsatInterpolatingProver(pFmgr, logger);
+      if (whichItpProver.equals("CSISAT")) {
+        secondItpProver = pFmgrFactory.createInterpolatingTheoremProver(false);
       } else {
-        if (!(realFormulaManager instanceof Mathsat5FormulaManager || realFormulaManager instanceof MathsatFormulaManager )) {
-          throw new InvalidConfigurationException("Need to use Mathsat as solver if Mathsat should be used for interpolation");
-        }
-        secondItpProver = new Mathsat5InterpolatingProver((Mathsat5FormulaManager) realFormulaManager, false);
+        assert whichItpProver.equals("DEFAULT");
+        secondItpProver = new CSIsatInterpolatingProver(fmgr, logger);
       }
     } else {
       secondItpProver = null;

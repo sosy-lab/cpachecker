@@ -76,6 +76,7 @@ public class McMillanRefiner extends AbstractInterpolationBasedRefiner<Formula, 
     DefaultInterpolationManager manager = new DefaultInterpolationManager(predicateCpa.getFormulaManager(),
                                           predicateCpa.getPathFormulaManager(),
                                           predicateCpa.getTheoremProver(),
+                                          predicateCpa.getFormulaManagerFactory(),
                                           predicateCpa.getConfiguration(),
                                           logger);
 

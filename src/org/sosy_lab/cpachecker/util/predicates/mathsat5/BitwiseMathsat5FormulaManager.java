@@ -48,7 +48,7 @@ public class BitwiseMathsat5FormulaManager extends Mathsat5FormulaManager {
 
   private static Pattern BITVECTOR_PATTERN = Pattern.compile("^0d\\d+_(\\d+)$");
 
-  BitwiseMathsat5FormulaManager(Configuration config, LogManager logger, int pBitWidth) throws InvalidConfigurationException {
+  public BitwiseMathsat5FormulaManager(Configuration config, LogManager logger, int pBitWidth) throws InvalidConfigurationException {
     super(config, logger, MSAT_BV + pBitWidth);
     config.inject(this, BitwiseMathsat5FormulaManager.class);
 

@@ -74,6 +74,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, Pa
     InterpolationManager<Formula> manager = new DefaultInterpolationManager(impactCpa.getFormulaManager(),
                                                   impactCpa.getPathFormulaManager(),
                                                   impactCpa.getTheoremProver(),
+                                                  impactCpa.getFormulaManagerFactory(),
                                                   impactCpa.getConfiguration(),
                                                   logger);
 

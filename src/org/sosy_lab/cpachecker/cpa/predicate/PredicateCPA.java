@@ -59,20 +59,13 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.YicesTheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5Factory;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5TheoremProver;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
@@ -86,10 +79,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
   }
-
-  @Option(name="abstraction.solver", toUppercase=true, values={"MATHSAT", "MATHSAT5", "YICES"},
-      description="which solver to use?")
-  private String whichProver = "MATHSAT";
 
   @Option(name="abstraction.initialPredicates",
       description="get an initial set of predicates from a file in MSAT format")
@@ -119,6 +108,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final StopOperator stop;
   private final PredicatePrecision initialPrecision;
   private final ExtendedFormulaManager formulaManager;
+  private final FormulaManagerFactory formulaManagerFactory;
   private final PathFormulaManager pathFormulaManager;
   private final TheoremProver theoremProver;
   private final PredicateAbstractionManager predicateManager;
@@ -130,7 +120,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     this.config = config;
     this.logger = logger;
-    whichProver = config.getProperty("abstraction.solver", "MATHSAT");
 
     if (enableBlockreducer) {
       BlockComputer blockComputer = new BlockedCFAReducer(config);
@@ -138,17 +127,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
 
     RegionManager regionManager = BDDRegionManager.getInstance();
-    FormulaManager mathsatFormulaManager;
-    if (whichProver.equals("MATHSAT")) {
-      mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
-    } else if (whichProver.equals("MATHSAT5")) {
-      mathsatFormulaManager = Mathsat5Factory.createFormulaManager(config, logger);
-    } else {
-      throw new InternalError("Update list of allowed formula managers!");
-    }
+    formulaManagerFactory = new FormulaManagerFactory(config, logger);
 
-
-    formulaManager = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
+    formulaManager = new ExtendedFormulaManager(formulaManagerFactory.getFormulaManager(), config, logger);
 
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger);
     if (useCache) {
@@ -156,15 +137,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     pathFormulaManager = pfMgr;
 
-    if (whichProver.equals("MATHSAT")) {
-      theoremProver = new MathsatTheoremProver((MathsatFormulaManager) mathsatFormulaManager);
-    } else if (whichProver.equals("YICES")) {
-      theoremProver = new YicesTheoremProver(formulaManager, logger);
-    } else if (whichProver.equals("MATHSAT5")) {
-      theoremProver = new Mathsat5TheoremProver((Mathsat5FormulaManager) mathsatFormulaManager);
-    } else {
-      throw new InternalError("Update list of allowed solvers!");
-    }
+    theoremProver = formulaManagerFactory.createTheoremProver();
 
     predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
     transfer = new PredicateTransferRelation(this, blk);
@@ -267,6 +240,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   LogManager getLogger() {
     return logger;
+  }
+
+  public FormulaManagerFactory getFormulaManagerFactory() {
+    return formulaManagerFactory;
   }
 
   @Override

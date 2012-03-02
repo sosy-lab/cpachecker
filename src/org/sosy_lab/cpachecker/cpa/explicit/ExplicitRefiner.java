@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
@@ -84,9 +85,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -138,6 +136,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   }
 
   private static ExplicitRefiner initialiseExplicitRefiner(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws CPAException, InvalidConfigurationException {
+    FormulaManagerFactory factory               = null;
     ExtendedFormulaManager formulaManager       = null;
     PathFormulaManager pathFormulaManager       = null;
     TheoremProver theoremProver                 = null;
@@ -148,21 +147,22 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     boolean predicateCpaInUse = predicateCpa != null;
     if (predicateCpaInUse) {
+      factory               = predicateCpa.getFormulaManagerFactory();
       formulaManager        = predicateCpa.getFormulaManager();
       pathFormulaManager    = predicateCpa.getPathFormulaManager();
       theoremProver         = predicateCpa.getTheoremProver();
       absManager            = predicateCpa.getPredicateManager();
     } else {
-      MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
+      factory               = new FormulaManagerFactory(config, logger);
       RegionManager regionManager                 = BDDRegionManager.getInstance();
-      formulaManager        = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
+      formulaManager        = new ExtendedFormulaManager(factory.getFormulaManager(), config, logger);
       pathFormulaManager    = new PathFormulaManagerImpl(formulaManager, config, logger);
-      theoremProver         = new MathsatTheoremProver(mathsatFormulaManager);
+      theoremProver         = factory.createTheoremProver();
       absManager            = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
     }
 
     manager = new PredicateRefinementManager(formulaManager,
-        pathFormulaManager, theoremProver, absManager, config, logger);
+        pathFormulaManager, theoremProver, absManager, factory, config, logger);
 
     return new ExplicitRefiner(config, logger, pCpa, formulaManager, pathFormulaManager, manager, predicateCpaInUse);
   }
