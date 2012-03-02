@@ -35,7 +35,6 @@ public interface TheoremProver {
   void push(Formula f);
   void pop();
   boolean isUnsat();
-  boolean isUnsat(Formula f);
   Model getModel();
   void reset();
 

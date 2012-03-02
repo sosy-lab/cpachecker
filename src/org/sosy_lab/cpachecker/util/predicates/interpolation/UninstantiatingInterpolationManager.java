@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,9 +32,13 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
-public class DefaultInterpolationManager extends InterpolationManager<Formula> {
+/**
+ * An interpolation manager that does nothing with the interpolatants except
+ * removing the indices from the formulas.
+ */
+public class UninstantiatingInterpolationManager extends InterpolationManager<Formula> {
 
-  public DefaultInterpolationManager(ExtendedFormulaManager pFmgr,
+  public UninstantiatingInterpolationManager(ExtendedFormulaManager pFmgr,
       PathFormulaManager pPmgr, Solver pSolver,
       FormulaManagerFactory pFmgrFactory,
       Configuration pConfig, LogManager pLogger)
@@ -42,9 +46,10 @@ public class DefaultInterpolationManager extends InterpolationManager<Formula> {
     super(pFmgr, pPmgr, pSolver, pFmgrFactory, pConfig, pLogger);
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   protected Formula convertInterpolant(Formula pItp, int pStep) {
-    return pItp;
+    return fmgr.uninstantiate(pItp);
   }
 
   @Override

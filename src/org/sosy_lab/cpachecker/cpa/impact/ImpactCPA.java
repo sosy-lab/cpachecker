@@ -41,9 +41,11 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockOperator;
+import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
@@ -58,7 +60,7 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
 
   private final ExtendedFormulaManager fmgr;
   private final PathFormulaManager pfmgr;
-  private final TheoremProver prover;
+  private final Solver solver;
   private final FormulaManagerFactory factory;
 
   private final AbstractDomain abstractDomain;
@@ -73,33 +75,34 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
     factory = new FormulaManagerFactory(pConfig, pLogger);
     fmgr = new ExtendedFormulaManager(factory.getFormulaManager(), pConfig, pLogger);
 
-    pfmgr = new PathFormulaManagerImpl(fmgr, config, logger);
-    prover = factory.createTheoremProver();
+    pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger));
+    TheoremProver prover = factory.createTheoremProver();
+    solver = new Solver(fmgr, prover);
 
-    abstractDomain = new ImpactAbstractDomain(fmgr, prover);
+    abstractDomain = new ImpactAbstractDomain(solver);
     mergeOperator = new ImpactMergeOperator(logger, pfmgr);
     stopOperator = new StopSepOperator(abstractDomain);
-    transferRelation = new ImpactTransferRelation(logger, blk, fmgr, pfmgr, prover);
+    transferRelation = new ImpactTransferRelation(logger, blk, fmgr, pfmgr, solver);
   }
 
-  LogManager getLogManager() {
+  public LogManager getLogManager() {
     return logger;
   }
 
-  Configuration getConfiguration() {
+  public Configuration getConfiguration() {
     return config;
   }
 
-  ExtendedFormulaManager getFormulaManager() {
+  public ExtendedFormulaManager getFormulaManager() {
     return fmgr;
   }
 
-  PathFormulaManager getPathFormulaManager() {
+  public PathFormulaManager getPathFormulaManager() {
     return pfmgr;
   }
 
-  TheoremProver getTheoremProver() {
-    return prover;
+  public Solver getSolver() {
+    return solver;
   }
 
   FormulaManagerFactory getFormulaManagerFactory() {

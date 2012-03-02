@@ -51,6 +51,8 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
   private ARTElement mCoveredBy = null;
   private Set<ARTElement> mCoveredByThis = null; // lazy initialization because rarely needed
 
+  // boolean which keeps track of which elements have already had their successors computed
+  private boolean wasExpanded = false;
   private boolean mayCover = true;
   private boolean destroyed = false;
 
@@ -86,7 +88,7 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     return children;
   }
 
-  protected void setCovered(ARTElement pCoveredBy) {
+  public void setCovered(ARTElement pCoveredBy) {
     assert !isCovered();
     assert pCoveredBy != null;
     assert pCoveredBy.mayCover;
@@ -97,6 +99,14 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
       pCoveredBy.mCoveredByThis = new HashSet<ARTElement>(2);
     }
     pCoveredBy.mCoveredByThis.add(this);
+  }
+
+  public void uncover() {
+    assert isCovered();
+    assert mCoveredBy.mCoveredByThis.contains(this);
+
+    mCoveredBy.mCoveredByThis.remove(this);
+    mCoveredBy = null;
   }
 
   public boolean isCovered() {
@@ -129,13 +139,26 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     return mergedWith;
   }
 
-  boolean mayCover() {
-    return mayCover;
+  public boolean mayCover() {
+    return mayCover && !isCovered();
   }
 
   public void setNotCovering() {
     assert !destroyed : "Don't use destroyed ARTElements!";
     mayCover = false;
+  }
+
+  public void setCovering() {
+    assert !destroyed : "Don't use destroyed ARTElements!";
+    mayCover = true;
+  }
+
+  public boolean wasExpanded() {
+    return wasExpanded;
+  }
+
+  void markExpanded() {
+    wasExpanded = true;
   }
 
   @Override
@@ -317,5 +340,9 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
   @Override
   public int compareTo(ARTElement pO) {
     return Ints.compare(this.elementId, pO.elementId);
+  }
+
+  public boolean isOlderThan(ARTElement other) {
+    return (elementId < other.elementId);
   }
 }

@@ -120,6 +120,9 @@ analysis.useFeatureVarsRestriction = false
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
+# Use McMillan's Impact algorithm for lazy interpolation
+analysis.useImpactAlgorithm = false
+
 # use a proof check algorithm to validate a previously generated proof
 analysis.useProofCheckAlgorithm = false
 
@@ -266,6 +269,10 @@ cpa.art.errorPath.source = "ErrorPath.c"
 # export final ART as .dot file
 cpa.art.export = true
 cpa.art.file = "ART.dot"
+
+# whether to keep covered states in the reached set as addition to keeping
+# them in the ART
+cpa.art.keepCoveredStatesInReached = false
 
 # signal the analysis to break in case of reached error state
 cpa.automaton.breakOnTargetState = true
@@ -434,6 +441,10 @@ cpa.predicate.abstraction.dumpHardQueries = false
 
 # get an initial set of predicates from a file in MSAT format
 cpa.predicate.abstraction.initialPredicates = no default value
+
+# What to use for storing abstractions
+cpa.predicate.abstraction.type = "BDD"
+  allowed values: [BDD, FORMULA]
 
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
@@ -629,6 +640,9 @@ cpa.uninitvars.printWarnings = "true"
 # which stop operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.stop = "sep"
   allowed values: [sep, join]
+
+# enable the Forced Covering optimization
+impact.useForcedCovering = true
 
 # C dialect for parser
 parser.dialect = GNUC

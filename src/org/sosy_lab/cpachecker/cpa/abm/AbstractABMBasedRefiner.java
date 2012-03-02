@@ -147,17 +147,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
     }
 
     @Override
-    public void removeCoverage(ARTElement pElement) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
     public void removeSubtree(ARTElement pE) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void replaceWithBottom(ARTElement pE) {
       throw new UnsupportedOperationException();
     }
   }

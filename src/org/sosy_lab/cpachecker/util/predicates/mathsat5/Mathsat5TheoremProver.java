@@ -60,17 +60,6 @@ public class Mathsat5TheoremProver implements TheoremProver {
   }
 
   @Override
-  public boolean isUnsat(Formula f) {
-    push(f);
-    try {
-      return isUnsat();
-
-    } finally {
-      pop();
-    }
-  }
-
-  @Override
   public Model getModel() {
     Preconditions.checkState(curEnv != 0);
 

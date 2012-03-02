@@ -61,6 +61,8 @@ import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -79,6 +81,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
   }
+
+  @Option(name="abstraction.type", toUppercase=true, values={"BDD", "FORMULA"},
+      description="What to use for storing abstractions")
+  private String abstractionType = "BDD";
 
   @Option(name="abstraction.initialPredicates",
       description="get an initial set of predicates from a file in MSAT format")
@@ -110,10 +116,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final ExtendedFormulaManager formulaManager;
   private final FormulaManagerFactory formulaManagerFactory;
   private final PathFormulaManager pathFormulaManager;
-  private final TheoremProver theoremProver;
+  private final Solver solver;
   private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
-  private final AbstractElement topElement;
+  private final PredicateAbstractElement topElement;
 
   protected PredicateCPA(Configuration config, LogManager logger, BlockOperator blk, CFA cfa) throws InvalidConfigurationException {
     config.inject(this, PredicateCPA.class);
@@ -126,7 +132,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       blk.setExplicitAbstractionNodes(blockComputer.computeAbstractionNodes(cfa));
     }
 
-    RegionManager regionManager = BDDRegionManager.getInstance();
     formulaManagerFactory = new FormulaManagerFactory(config, logger);
 
     formulaManager = new ExtendedFormulaManager(formulaManagerFactory.getFormulaManager(), config, logger);
@@ -137,9 +142,18 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     pathFormulaManager = pfMgr;
 
-    theoremProver = formulaManagerFactory.createTheoremProver();
+    TheoremProver theoremProver = formulaManagerFactory.createTheoremProver();
+    solver = new Solver(formulaManager, theoremProver);
 
-    predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
+    RegionManager regionManager;
+    if (abstractionType.equals("FORMULA")) {
+      regionManager = new SymbolicRegionManager(formulaManager, solver);
+    } else {
+      assert abstractionType.equals("BDD");
+      regionManager = BDDRegionManager.getInstance();
+    }
+
+    predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, solver, config, logger);
     transfer = new PredicateTransferRelation(this, blk);
 
     topElement = PredicateAbstractElement.abstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
@@ -230,8 +244,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return pathFormulaManager;
   }
 
-  public TheoremProver getTheoremProver() {
-    return theoremProver;
+  public Solver getSolver() {
+    return solver;
   }
 
   Configuration getConfiguration() {
@@ -247,7 +261,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public AbstractElement getInitialElement(CFANode node) {
+  public PredicateAbstractElement getInitialElement(CFANode node) {
     return topElement;
   }
 
@@ -264,10 +278,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
-  }
-
-  PredicateCPAStatistics getStats() {
-    return stats;
   }
 
   @Override
