@@ -41,7 +41,8 @@ import org.sosy_lab.ccvisu.graph.GraphEdge;
 import org.sosy_lab.ccvisu.graph.GraphVertex;
 import org.sosy_lab.ccvisu.graph.Group;
 import org.sosy_lab.ccvisu.graph.Group.GroupKind;
-import org.sosy_lab.ccvisu.layout.TwoPhaseMinimizer;
+import org.sosy_lab.ccvisu.layout.Minimizer;
+import org.sosy_lab.ccvisu.layout.MinimizerBarnesHut;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -307,8 +308,12 @@ public class CallgraphClusterer extends AbstractGraphClusterer {
     writeGraph(options, graph, callGraphFile);
 
     // Run the minimizer to get a layout.
-    TwoPhaseMinimizer minimizer = new TwoPhaseMinimizer(options);
-    minimizer.minimizeEnergy();
+    Minimizer minimizer = new MinimizerBarnesHut(options);
+    try {
+      minimizer.minimizeEnergy();
+    } catch (InterruptedException e1) {
+      // Interruption should not occur in this case.
+    }
 
     // Maybe we should write the layout to a file.
     writeGraphLayout(options, graph, graphLayoutFile);
