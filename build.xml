@@ -15,7 +15,9 @@
 
     <path id="CPAchecker.classpath">
         <pathelement location="${class.dir}"/>
+        <pathelement location="lib/source/ccvisu/src"/>
         <fileset dir="lib" includes="*.jar"/>
+        <fileset dir="lib/source/ccvisu/lib" includes="*.jar"/>
         <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar"/>
     </path>
     <condition property="architecture" value="x86_64" else="x86">
@@ -100,6 +102,7 @@
 
     <target depends="build-dependencies" name="build-project">
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
+        <depend srcdir="lib/source/ccvisu/src" destdir="${class.dir}"/>
         <javac debug="true"
                debuglevel="${debuglevel}"
                includeAntRuntime="false"
@@ -108,6 +111,7 @@
                target="${class.format}"
                encoding="UTF-8">
             <src path="${source.dir}"/>
+            <src path="lib/source/ccvisu/src"/>
             <classpath refid="CPAchecker.classpath"/>
         </javac>
     </target>
