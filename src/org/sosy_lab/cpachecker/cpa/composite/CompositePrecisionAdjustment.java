@@ -36,9 +36,9 @@ import com.google.common.collect.ImmutableList;
 
 public class CompositePrecisionAdjustment implements PrecisionAdjustment {
 
-  private final ImmutableList<PrecisionAdjustment> precisionAdjustments;
-  private final ImmutableList<ElementProjectionFunction> elementProjectionFunctions;
-  private final ImmutableList<PrecisionProjectionFunction> precisionProjectionFunctions;
+  protected final ImmutableList<PrecisionAdjustment> precisionAdjustments;
+  protected final ImmutableList<ElementProjectionFunction> elementProjectionFunctions;
+  protected final ImmutableList<PrecisionProjectionFunction> precisionProjectionFunctions;
 
   public CompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments) {
     this.precisionAdjustments = precisionAdjustments;
@@ -54,7 +54,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     this.precisionProjectionFunctions = precisionProjectionFunctions.build();
   }
 
-  private static class ElementProjectionFunction
+  protected static class ElementProjectionFunction
     implements Function<AbstractElement, AbstractElement>
   {
     private final int dimension;
@@ -69,7 +69,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     }
   }
 
-  private static class PrecisionProjectionFunction
+  protected static class PrecisionProjectionFunction
   implements Function<Precision, Precision>
   {
     private final int dimension;
