@@ -602,17 +602,17 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
   @Override
   public Collection<Formula> extractAtoms(Formula f,
       boolean splitArithEqualities, boolean conjunctionsOnly) {
-    Set<Formula> cache = new HashSet<Formula>();
+    Set<Formula> handled = new HashSet<Formula>();
     List<Formula> atoms = new ArrayList<Formula>();
 
     Deque<Formula> toProcess = new ArrayDeque<Formula>();
     toProcess.push(f);
+    handled.add(f);
 
     while (!toProcess.isEmpty()) {
       Formula tt = toProcess.pop();
       long t = getTerm(tt);
-      assert !cache.contains(tt);
-      cache.add(tt);
+      assert handled.contains(tt);
 
       if (msat_term_is_true(msatEnv, t) != 0 || msat_term_is_false(msatEnv, t) != 0) {
         continue;
@@ -634,7 +634,7 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
           //long t2 = msat_make_leq(msatEnv, a2, a1);
           Formula tt1 = encapsulate(t1);
           //SymbolicFormula tt2 = encapsulate(t2);
-          cache.add(tt1);
+          handled.add(tt1);
           //cache.add(tt2);
           atoms.add(tt1);
           //atoms.add(tt2);
@@ -655,7 +655,7 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
           long newt = msat_term_get_arg(t, i);
           assert (!MSAT_ERROR_TERM(newt));
           Formula c = encapsulate(newt);
-          if (!cache.contains(c)) {
+          if (handled.add(c)) {
             toProcess.push(c);
           }
         }
