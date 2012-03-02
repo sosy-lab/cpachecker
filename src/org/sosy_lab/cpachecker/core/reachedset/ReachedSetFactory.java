@@ -32,7 +32,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
-import org.sosy_lab.cpachecker.core.waitlist.TopologicallySortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.SparseTopoSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.StrictTopoSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
@@ -59,7 +60,12 @@ public class ReachedSetFactory {
       + "a secondary strategy that is used if there are two elements with the same topsort id. "
       + "The secondary strategy is selected with 'analysis.traversal.order'. "
       + "The secondary strategy may not be TOPSORT.")
-  boolean useTopSort = false;
+  boolean useStrictTopoSort = false;
+
+  @Option(name = "traversal.useSparseTopsort",
+      description = "Use an implementation of topsort strategy that computes sparser ids. "
+      + "This leaves the second strategy more choices 'analysis.traversal.order'. ")
+  boolean useSparseTopoSort = false;
 
   @Option(name = "traversal.useExplicitInformation",
       description = "handle more abstract states (with less information) first? (only for ExplicitCPA)")
@@ -80,7 +86,7 @@ public class ReachedSetFactory {
     if (traversalMethod == TraversalMethod.TOPSORT) {
       logger.log(Level.WARNING, "Using the option 'analysis.traversal.order = TOPSORT' is deprecated, please switch to 'analysis.traversal.useTopSort = true'");
 
-      if (useTopSort) {
+      if (useStrictTopoSort || useSparseTopoSort) {
         throw new InvalidConfigurationException("Cannot use both 'analysis.traversal.order = TOPSORT' and 'analysis.traversal.useTopSort = true'");
       }
     }
@@ -88,8 +94,11 @@ public class ReachedSetFactory {
 
   public ReachedSet create() {
     WaitlistFactory waitlistFactory = traversalMethod;
-    if (useTopSort) {
-      waitlistFactory = TopologicallySortedWaitlist.factory(waitlistFactory);
+    if (useStrictTopoSort) {
+      waitlistFactory = StrictTopoSortedWaitlist.factory(waitlistFactory);
+    }
+    if (useSparseTopoSort) {
+      waitlistFactory = SparseTopoSortedWaitlist.factory(waitlistFactory);
     }
     if (useCallstack) {
       waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);

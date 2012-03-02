@@ -53,7 +53,11 @@ public class CFANode implements Comparable<CFANode> {
   private CallToReturnEdge enteringSummaryEdge = null;
 
   // topological sort id, smaller if it appears later in sorting
-  private int topologicalSortId = 0;
+  private int strictTopoSortId = 0;
+  private int sparseTopoSortId = 0;
+
+  // Cluster membership
+  private int clusterId = 0;
 
   public CFANode(int pLineNumber, String pFunctionName) {
     assert !pFunctionName.isEmpty();
@@ -71,12 +75,28 @@ public class CFANode implements Comparable<CFANode> {
     return nodeNumber;
   }
 
-  public int getTopologicalSortId() {
-    return topologicalSortId;
+  public int getStrictTopoSortId() {
+    return this.strictTopoSortId;
   }
 
-  public void setTopologicalSortId(int pId) {
-    topologicalSortId = pId;
+  public void setStrictTopoSortId(int pId) {
+    this.strictTopoSortId = pId;
+  }
+
+  public int getSparseTopoSortId() {
+    return this.sparseTopoSortId;
+  }
+
+  public void setSparseTopoSortId(int pId) {
+    this.sparseTopoSortId = pId;
+  }
+
+  public int getClusterId() {
+    return clusterId;
+  }
+
+  public void setClusterId(int clusterId) {
+    this.clusterId = clusterId;
   }
 
   public void addLeavingEdge(CFAEdge pNewLeavingEdge) {
@@ -194,4 +214,5 @@ public class CFANode implements Comparable<CFANode> {
   public int compareTo(CFANode pOther) {
     return Ints.compare(this.nodeNumber, pOther.nodeNumber);
   }
+
 }

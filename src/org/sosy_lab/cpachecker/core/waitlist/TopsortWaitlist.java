@@ -50,10 +50,10 @@ public class TopsortWaitlist extends AbstractWaitlist<LinkedList<AbstractElement
     int resultTopSortId = Integer.MIN_VALUE;
     for (AbstractElement currentElement : waitlist) {
       if ((result == null)
-          || (extractLocation(currentElement).getTopologicalSortId() >
+          || (extractLocation(currentElement).getStrictTopoSortId() >
               resultTopSortId)) {
         result = currentElement;
-        resultTopSortId = extractLocation(result).getTopologicalSortId();
+        resultTopSortId = extractLocation(result).getStrictTopoSortId();
       }
     }
     waitlist.remove(result);

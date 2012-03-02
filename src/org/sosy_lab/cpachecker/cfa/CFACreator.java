@@ -167,9 +167,12 @@ public class CFACreator {
       processingTime.start();
 
       // annotate CFA nodes with topological information for later use
+      CFATopologicalSortStrict strictTopoSorter = new CFATopologicalSortStrict();
+      CFATopologicalSortSparse sparseTopoSorter = new CFATopologicalSortSparse();
+
       for(CFAFunctionDefinitionNode function : cfa.getAllFunctionHeads()){
-        CFATopologicalSort topSort = new CFATopologicalSort();
-        topSort.topologicalSort(function);
+        strictTopoSorter.assignSorting(function);
+        //sparseTopoSorter.assignSorting(function);
       }
 
       // get loop information
