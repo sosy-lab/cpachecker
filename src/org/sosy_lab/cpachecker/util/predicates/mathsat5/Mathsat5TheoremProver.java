@@ -96,7 +96,7 @@ public class Mathsat5TheoremProver implements TheoremProver {
     Preconditions.checkState(curEnv == 0);
 
     cfg = msat_create_config();
-    //msat_set_option(cfg, "model_generation", "true");
+    msat_set_option(cfg, "model_generation", "true");
     curEnv = mgr.createEnvironment(cfg, true, true);
   }
 

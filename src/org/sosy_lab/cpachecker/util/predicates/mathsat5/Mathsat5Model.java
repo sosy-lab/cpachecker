@@ -132,7 +132,7 @@ public class Mathsat5Model {
     long lModelIterator = Mathsat5NativeApi.msat_create_model_iterator(lMathsatEnvironmentID);
 
     if (Mathsat5NativeApi.MSAT_ERROR_MODEL_ITERATOR(lModelIterator)) {
-      throw new RuntimeException("Erroneous model iterator! (" + lModelIterator + ")");
+      throw new RuntimeException("Erroneous model iterator! (" + Mathsat5NativeApi.msat_last_error_message(lMathsatEnvironmentID) + ")");
     }
 
     while (Mathsat5NativeApi.msat_model_iterator_has_next(lModelIterator) != 0) {
@@ -169,11 +169,18 @@ public class Mathsat5Model {
 
       switch (lAssignable.getType()) {
       case Boolean:
-        lValue = Boolean.valueOf(lTermRepresentation);
+        if (lTermRepresentation.equals("`true`")) {
+          lValue = true;
+        } else if (lTermRepresentation.equals("`false`")) {
+          lValue = false;
+        } else {
+          throw new IllegalAccessError("Mathsat unhandled boolean value " + lTermRepresentation);
+        }
         break;
       case Real:
         try {
           lValue = Double.valueOf(lTermRepresentation);
+          System.out.println(lTermRepresentation);
         }
         catch (NumberFormatException e) {
           // lets try special case for mathsat
