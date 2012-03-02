@@ -61,15 +61,13 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatInterpolatingProver;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -109,9 +107,10 @@ public abstract class InterpolationManager<I> {
   private final InterpolatingTheoremProver<?> firstItpProver;
   private final InterpolatingTheoremProver<?> secondItpProver;
 
-  @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"},
-      description="which interpolating solver to use for interpolant generation?")
-  private String whichItpProver = "MATHSAT";
+  @Option(name="interpolatingProver", toUppercase=true, values={"DEFAULT", "CSISAT"},
+      description="Which interpolating solver to use for interpolant generation?\n"
+          + "DEFAULT means to use the solver used for everything else as well.")
+  private String whichItpProver = "DEFAULT";
 
   @Option(description="apply deletion-filter to the abstract counterexample, to get "
     + "a minimal set of blocks, before applying interpolation-based refinement")
@@ -166,6 +165,7 @@ public abstract class InterpolationManager<I> {
       ExtendedFormulaManager pFmgr,
       PathFormulaManager pPmgr,
       Solver pSolver,
+      FormulaManagerFactory pFmgrFactory,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, InterpolationManager.class);
@@ -175,29 +175,21 @@ public abstract class InterpolationManager<I> {
     pmgr = pPmgr;
     solver = pSolver;
 
+
     // create solvers
-    FormulaManager realFormulaManager = fmgr.getDelegate();
-    if (whichItpProver.equals("MATHSAT")) {
-      if (!(realFormulaManager instanceof MathsatFormulaManager)) {
-        throw new InvalidConfigurationException("Need to use Mathsat as solver if Mathsat should be used for interpolation");
-      }
-      firstItpProver = new MathsatInterpolatingProver((MathsatFormulaManager) realFormulaManager, false);
-
-    } else if (whichItpProver.equals("CSISAT")) {
-      firstItpProver = new CSIsatInterpolatingProver(pFmgr, logger);
-
+    if (whichItpProver.equals("CSISAT")) {
+      firstItpProver = new CSIsatInterpolatingProver(fmgr, logger);
     } else {
-      throw new InternalError("Update list of allowed solvers!");
+      assert whichItpProver.equals("DEFAULT");
+      firstItpProver = pFmgrFactory.createInterpolatingTheoremProver(false);
     }
 
     if (changeItpSolveOTF) {
-      if (whichItpProver.equals("MATHSAT")) {
-        secondItpProver = new CSIsatInterpolatingProver(pFmgr, logger);
+      if (whichItpProver.equals("CSISAT")) {
+        secondItpProver = pFmgrFactory.createInterpolatingTheoremProver(false);
       } else {
-        if (!(realFormulaManager instanceof MathsatFormulaManager)) {
-          throw new InvalidConfigurationException("Need to use Mathsat as solver if Mathsat should be used for interpolation");
-        }
-        secondItpProver = new MathsatInterpolatingProver((MathsatFormulaManager) realFormulaManager, false);
+        assert whichItpProver.equals("DEFAULT");
+        secondItpProver = new CSIsatInterpolatingProver(fmgr, logger);
       }
     } else {
       secondItpProver = null;

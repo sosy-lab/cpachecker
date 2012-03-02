@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -64,9 +65,10 @@ public class PredicateRefinementManager extends InterpolationManager<Collection<
       PathFormulaManager pPmgr,
       Solver pSolver,
       PredicateAbstractionManager pAmgr,
+      FormulaManagerFactory pFmgrFactory,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
-    super(pFmgr, pPmgr, pSolver, config, pLogger);
+    super(pFmgr, pPmgr, pSolver, pFmgrFactory, config, pLogger);
     config.inject(this, PredicateRefinementManager.class);
 
     amgr = pAmgr;
@@ -82,6 +84,7 @@ public class PredicateRefinementManager extends InterpolationManager<Collection<
   protected Collection<AbstractionPredicate> convertInterpolant(Formula interpolant, int index) {
 
     Collection<AbstractionPredicate> preds;
+
     if (interpolant.isFalse()) {
       preds = ImmutableSet.of(amgr.makeFalsePredicate());
     } else {

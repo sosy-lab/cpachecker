@@ -144,7 +144,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
           compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build());
         }
       } else {
-        compositePrecisionAdjustment = new OmniscientCompositePrecisionAdjustment();
+        compositePrecisionAdjustment = new OmniscientCompositePrecisionAdjustment(precisionAdjustments.build());
       }
 
       return new CompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
@@ -271,6 +271,9 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
         ((StatisticsProvider)cpa).collectStatistics(pStatsCollection);
       }
     }
+
+    if(precisionAdjustment instanceof StatisticsProvider)
+      ((StatisticsProvider)precisionAdjustment).collectStatistics(pStatsCollection);
   }
 
   @Override

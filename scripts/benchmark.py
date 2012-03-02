@@ -27,7 +27,10 @@ CPAchecker web page:
 from datetime import date
 
 import threading
-import Queue
+try:
+  import Queue
+except ImportError: # Queue was renamed to queue in Python 3
+  import queue as Queue
 
 import time
 import glob
@@ -682,6 +685,7 @@ class OutputHandler:
             try:
                 versionHelpStr = subprocess.Popen([exe, '-help'],
                     stdout=subprocess.PIPE).communicate()[0]
+                versionHelpStr = Util.decodeToString(versionHelpStr)
                 version = ' '.join(versionHelpStr.splitlines()[0].split()[1:])  # first word is 'CPAchecker'
             except IndexError:
                 logging.critical('IndexError! Have you built CPAchecker?\n') # TODO better message
@@ -1393,7 +1397,7 @@ def run_cbmc(options, sourcefile, columns, rlimits, file):
                 else:
                     status = "SAFE"
                 
-        except Exception, e: # catch all exceptions
+        except Exception as e: # catch all exceptions
             if isTimeout(cpuTimeDelta, rlimits):
                 # in this case an exception is expected as the XML is invaliddd
                 status = 'TIMEOUT'

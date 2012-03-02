@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -44,6 +43,8 @@ public class PredicateMap {
    */
   private ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap;
 
+  public Pair<ARTElement, CFANode> firstInterpolationPoint = null;
+
   /**
    * This method acts as the constructor of the class.
    *
@@ -52,18 +53,21 @@ public class PredicateMap {
    * @param pathPredicates the predicates as returned from the refinement
    * @param pPath the path to the error location
    */
-  public PredicateMap(List<Collection<AbstractionPredicate>> pathPredicates, List<Pair<ARTElement, CFAEdge>> pPath) {
+  public PredicateMap(List<Collection<AbstractionPredicate>> pathPredicates, List<Pair<ARTElement, CFANode>> pPath) {
     ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> builder = ImmutableSetMultimap.builder();
 
     int i = 0;
     for (Collection<AbstractionPredicate> predicates : pathPredicates) {
       if (predicates.size() > 0) {
-        CFANode currentLocation = pPath.get(i).getSecond().getSuccessor();
+        CFANode currentLocation = pPath.get(i).getSecond();
 
         // add each predicate to the respective set of the predicate map
         for (AbstractionPredicate predicate : predicates) {
           builder.put(currentLocation, predicate);
         }
+
+        if(firstInterpolationPoint == null)
+          firstInterpolationPoint = Pair.of(pPath.get(i).getFirst(), pPath.get(i).getSecond());
       }
 
       i++;

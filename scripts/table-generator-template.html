@@ -40,7 +40,7 @@
 </style>
 
 
-<script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+<script type="text/javascript" src="http://www.sosy-lab.org/lib/jquery-1.7.1.min.js"></script>
 
 
 <script type="text/javascript">
@@ -53,12 +53,18 @@ function debug(logInfo) {
 function showContentPane() {
     // add function for cleanup, first unbind any old function
     $('#contentPaneBackground').unbind().click(hideContentPane).show();
-    $('#contentPane').show();
+    $('#contentPane').keydown(hideContentPane);
+    $('#contentPane').show().focus();
 }
 
-function hideContentPane() {
-    $('#contentPaneBackground').hide();
-    $('#contentPane').hide().empty();
+function hideContentPane(event) {
+	// hide the content pane on mouse click outside the content pane
+	// or when pressing the "Esc" or "c" key with the content pane focused
+    if(event.keyCode == undefined
+		|| event.keyCode == 27 || event.keyCode == 67) {
+      $('#contentPaneBackground').hide();
+      $('#contentPane').hide().empty();
+  }
 }
 
 var headerArray = [];
@@ -191,7 +197,7 @@ function createColumnToggleButtons() {
         var columnTitles = $("#columnTitles > td");
         var testNums = headerArray[4];
         var testNum = testNums[1];
-        var testName = tableHead.children[3].cells[testNum].textContent + " " + 
+        var testName = tableHead.children[3].cells[headerArray[3][1]].textContent + " " + 
                        tableHead.children[4].cells[testNum].textContent;
     
         // TODO can we make next block more OO-like?
@@ -199,7 +205,7 @@ function createColumnToggleButtons() {
         for (var i=1; i<columnTitles.length; i++) { // do not use first column (i!=0)
             if (testNum != testNums[i]) {
                 testNum = testNums[i];
-                testName = tableHead.children[3].cells[testNum].textContent + " " + 
+                testName = tableHead.children[3].cells[headerArray[3][i]].textContent + " " + 
                            tableHead.children[4].cells[testNum].textContent;
                 buttonList += '</ul><ul>' + testName;
             }
@@ -230,13 +236,13 @@ $(document).ready(function(){
 </script>
 
 
-<script type="text/javascript" src="http://www.jqplot.com/src/jquery.jqplot.min.js"></script>
-<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.highlighter.min.js"></script>
-<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.cursor.min.js"></script>
-<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.canvasTextRenderer.min.js"></script>
-<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.canvasAxisTickRenderer.min.js"></script>
-<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.enhancedLegendRenderer.min.js"></script>
-
+<script type="text/javascript" src="http://www.sosy-lab.org/lib/jquery.jqplot-1.0.0b2_r1012/jquery.jqplot.min.js"></script>
+<script type="text/javascript" src="http://www.sosy-lab.org/lib/jquery.jqplot-1.0.0b2_r1012/jqplot.highlighter.min.js"></script>
+<script type="text/javascript" src="http://www.sosy-lab.org/lib/jquery.jqplot-1.0.0b2_r1012/jqplot.cursor.min.js"></script>
+<script type="text/javascript" src="http://www.sosy-lab.org/lib/jquery.jqplot-1.0.0b2_r1012/jqplot.canvasTextRenderer.min.js"></script>
+<script type="text/javascript" src="http://www.sosy-lab.org/lib/jquery.jqplot-1.0.0b2_r1012/jqplot.canvasAxisTickRenderer.min.js"></script>
+<script type="text/javascript" src="http://www.sosy-lab.org/lib/jquery.jqplot-1.0.0b2_r1012/jqplot.enhancedLegendRenderer.min.js"></script>
+<link rel="stylesheet" type="text/css" href="http://www.sosy-lab.org/lib/jquery.jqplot-1.0.0b2_r1012/jquery.jqplot.min.css"/>
 
 <style type="text/css">
     .jqplot-title {font-family:arial, sans serif; font-size:large }
@@ -550,7 +556,7 @@ $(document).ready(function(){
 <body>
 
 <div id="contentPaneBackground"></div>
-<div id="contentPane"></div>
+<div id="contentPane" tabindex="0"></div>
 
 <table id="dataTable">
 {{{table}}}

@@ -332,26 +332,35 @@ public class PredicateAbstractionManager {
 
       predVars.add(var);
     }
-    if (predVars.isEmpty()) {
-      stats.numSatCheckAbstractions++;
-    }
 
     // the formula is (abstractionFormula & pathFormula & predDef)
     Formula fm = fmgr.makeAnd(f, predDef);
-
-    logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
-
+    Region result;
     stats.abstractionTime.startOuter();
-    TheoremProver thmProver = solver.getTheoremProver();
-    AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr, stats.abstractionTime.getInnerTimer());
-    long solveTime = stats.abstractionTime.stopOuter();
 
-    // update statistics
-    int numModels = allSatResult.getCount();
-    if (numModels < Integer.MAX_VALUE) {
-      stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
-      stats.allSatCount += numModels;
+    if (predVars.isEmpty()) {
+      stats.numSatCheckAbstractions++;
+
+      boolean satResult = !solver.isUnsat(fm);
+
+      RegionManager rmgr = amgr.getRegionManager();
+
+      result = (satResult) ? rmgr.makeTrue() : rmgr.makeFalse();
+
+    } else {
+      logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
+      TheoremProver thmProver = solver.getTheoremProver();
+      AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr, stats.abstractionTime.getInnerTimer());
+      result = allSatResult.getResult();
+
+      // update statistics
+      int numModels = allSatResult.getCount();
+      if (numModels < Integer.MAX_VALUE) {
+        stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
+        stats.allSatCount += numModels;
+      }
     }
+    long solveTime = stats.abstractionTime.stopOuter();
 
     // TODO dump hard abst
     if (solveTime > 10000 && dumpHardAbstractions) {
@@ -368,7 +377,6 @@ public class PredicateAbstractionManager {
       fmgr.printFormulasToFile(predVars, dumpFile);
     }
 
-    Region result = allSatResult.getResult();
     logger.log(Level.ALL, "Abstraction computed, result is", result);
     return result;
   }

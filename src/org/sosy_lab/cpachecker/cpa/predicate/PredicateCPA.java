@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
@@ -67,10 +68,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.YicesTheoremProver;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
@@ -84,10 +81,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
   }
-
-  @Option(name="abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"},
-      description="which solver to use?")
-  private String whichProver = "MATHSAT";
 
   @Option(name="abstraction.type", toUppercase=true, values={"BDD", "FORMULA"},
       description="What to use for storing abstractions")
@@ -121,6 +114,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final StopOperator stop;
   private final PredicatePrecision initialPrecision;
   private final ExtendedFormulaManager formulaManager;
+  private final FormulaManagerFactory formulaManagerFactory;
   private final PathFormulaManager pathFormulaManager;
   private final Solver solver;
   private final PredicateAbstractionManager predicateManager;
@@ -138,8 +132,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       blk.setExplicitAbstractionNodes(blockComputer.computeAbstractionNodes(cfa));
     }
 
-    MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
-    formulaManager = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
+    formulaManagerFactory = new FormulaManagerFactory(config, logger);
+
+    formulaManager = new ExtendedFormulaManager(formulaManagerFactory.getFormulaManager(), config, logger);
 
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger);
     if (useCache) {
@@ -147,14 +142,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     pathFormulaManager = pfMgr;
 
-    TheoremProver theoremProver;
-    if (whichProver.equals("MATHSAT")) {
-      theoremProver = new MathsatTheoremProver(mathsatFormulaManager);
-    } else if (whichProver.equals("YICES")) {
-      theoremProver = new YicesTheoremProver(formulaManager, logger);
-    } else {
-      throw new InternalError("Update list of allowed solvers!");
-    }
+    TheoremProver theoremProver = formulaManagerFactory.createTheoremProver();
     solver = new Solver(formulaManager, theoremProver);
 
     RegionManager regionManager;
@@ -266,6 +254,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   LogManager getLogger() {
     return logger;
+  }
+
+  public FormulaManagerFactory getFormulaManagerFactory() {
+    return formulaManagerFactory;
   }
 
   @Override

@@ -262,6 +262,7 @@ cpa.art.errorPath.assignment = "ErrorPathAssignment.txt"
 cpa.art.errorPath.core = "ErrorPathCore.txt"
 cpa.art.errorPath.export = true
 cpa.art.errorPath.file = "ErrorPath.txt"
+cpa.art.errorPath.graph = "ErrorPath.dot"
 cpa.art.errorPath.json = "ErrorPath.json"
 cpa.art.errorPath.source = "ErrorPath.c"
 
@@ -441,10 +442,6 @@ cpa.predicate.abstraction.dumpHardQueries = false
 # get an initial set of predicates from a file in MSAT format
 cpa.predicate.abstraction.initialPredicates = no default value
 
-# which solver to use?
-cpa.predicate.abstraction.solver = "MATHSAT"
-  allowed values: [MATHSAT, YICES]
-
 # What to use for storing abstractions
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, FORMULA]
@@ -574,9 +571,10 @@ cpa.predicate.refinement.dumpInterpolationProblems = false
 # of blocks, before applying interpolation-based refinement
 cpa.predicate.refinement.getUsefulBlocks = false
 
-# which interpolating solver to use for interpolant generation?
-cpa.predicate.refinement.interpolatingProver = "MATHSAT"
-  allowed values: [MATHSAT, CSISAT]
+# Which interpolating solver to use for interpolant generation?
+# DEFAULT means to use the solver used for everything else as well.
+cpa.predicate.refinement.interpolatingProver = "DEFAULT"
+  allowed values: [DEFAULT, CSISAT]
 
 # skip refinement if input formula is larger than this amount of bytes
 # (ignored if 0)
@@ -611,6 +609,11 @@ cpa.predicate.refinement.verifyInterpolants = false
 # (non-negative number, 0 means never, if positive should be smaller than
 # blocksize)
 cpa.predicate.satCheck = 0
+
+# Whether to use MathSAT 4, MathSAT 5 or YICES (in combination with Mathsat
+# 4) as SMT solver
+cpa.predicate.solver = "MATHSAT4"
+  allowed values: [MATHSAT4, MATHSAT5, YICES]
 
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks

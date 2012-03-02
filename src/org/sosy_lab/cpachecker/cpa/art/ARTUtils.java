@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
@@ -157,9 +156,9 @@ public class ARTUtils {
     } else {
       PredicateAbstractElement abselem = AbstractElements.extractElementByType(currentElement, PredicateAbstractElement.class);
       if (abselem != null && abselem.isAbstractionElement()) {
-        color = "blue";
+        color = "cornflowerblue";
       } else {
-        color = "white";
+        color = null;
       }
     }
 
@@ -168,16 +167,14 @@ public class ARTUtils {
 
   /**
    * Create String with ART in the DOT format of Graphviz.
-   * @param pReached the reached set
-   * @param pathEdges the edges of the error path (may be empty)
+   * @param rootElement the root element of the ART
+   * @param displayedElements An optional set of elements. If given, all other elements are ignored. If null, all elements are dumped.
+   * @param highlightedEdges Set of edges to highlight in the graph.
    * @return the ART as DOT graph
    */
-  public static String convertARTToDot(ReachedSet pReached, Set<Pair<ARTElement, ARTElement>> pathEdges) {
-    ARTElement firstElement = (ARTElement)pReached.getFirstElement();
-    return convertARTToDot(firstElement, pathEdges);
-  }
-
-  public static String convertARTToDot(ARTElement firstElement, Set<Pair<ARTElement, ARTElement>> pathEdges) {
+  public static String convertARTToDot(final ARTElement rootElement,
+      final Set<ARTElement> displayedElements,
+      final Set<Pair<ARTElement, ARTElement>> highlightedEdges) {
     Deque<ARTElement> worklist = new LinkedList<ARTElement>();
     Set<Integer> nodesList = new HashSet<Integer>();
     Set<ARTElement> processed = new HashSet<ARTElement>();
@@ -185,13 +182,17 @@ public class ARTUtils {
     StringBuilder edges = new StringBuilder();
 
     sb.append("digraph ART {\n");
-    sb.append("style=\"filled\" fontsize=\"10.0\" fontname=\"Courier New\"\n");
+    // default style for nodes
+    sb.append("node [style=\"filled\" shape=\"box\" color=\"white\"]\n");
 
-    worklist.add(firstElement);
+    worklist.add(rootElement);
 
     while(worklist.size() != 0){
       ARTElement currentElement = worklist.removeLast();
       if(processed.contains(currentElement)){
+        continue;
+      }
+      if (displayedElements != null && !displayedElements.contains(currentElement)) {
         continue;
       }
 
@@ -203,9 +204,10 @@ public class ARTUtils {
 
         sb.append(currentElement.getElementId());
         sb.append(" [");
-        sb.append("shape=\"diamond\" ");
-        sb.append("color=\"" + determineColor(currentElement) + "\" ");
-        sb.append("style=\"filled\" ");
+        String color = determineColor(currentElement);
+        if (color != null) {
+          sb.append("fillcolor=\"" + color + "\" ");
+        }
         sb.append("label=\"" + label +"\" ");
         sb.append("id=\"" + currentElement.getElementId() + "\"");
         sb.append("]");
@@ -227,7 +229,7 @@ public class ARTUtils {
         edges.append(child.getElementId());
         edges.append(" [");
 
-        boolean colored = pathEdges.contains(Pair.of(currentElement, child));
+        boolean colored = highlightedEdges.contains(Pair.of(currentElement, child));
         CFAEdge edge = currentElement.getEdgeToChild(child);
         if(colored) {
           edges.append("color=\"red\"");
@@ -238,7 +240,10 @@ public class ARTUtils {
             edges.append(" ");
           }
           edges.append("label=\"");
-          edges.append(edge.toString().replace('"', '\''));
+          edges.append("Line ");
+          edges.append(edge.getLineNumber());
+          edges.append(": ");
+          edges.append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''));
           edges.append("\"");
           edges.append(" id=\"");
           edges.append(currentElement.getElementId());
@@ -262,51 +267,34 @@ public class ARTUtils {
     StringBuilder builder = new StringBuilder();
 
     builder.append(currentElement.getElementId());
-    builder.append(" (");
-
-    boolean first = true;
 
     CFANode loc = AbstractElements.extractLocation(currentElement);
     if(loc != null) {
-      if(first) {
-        first = false;
-      } else {
-        builder.append(", ");
-      }
+      builder.append(" @ ");
       builder.append(loc.toString());
     }
 
-    AutomatonState state = AbstractElements.extractElementByType(currentElement, AutomatonState.class);
-    if(state != null) {
-      if(first) {
-        first = false;
-      } else {
-        builder.append(", ");
+    Iterable<AutomatonState> states = AbstractElements.extractAllElementsOfType(currentElement, AutomatonState.class);
+    for (AutomatonState state : states) {
+      if (!state.getInternalStateName().equals("Init")) {
+        builder.append("\\n");
+        builder.append(state.getCPAName().replaceFirst("AutomatonAnalysis_", ""));
+        builder.append(": ");
+        builder.append(state.getInternalStateName());
       }
-      builder.append(state.getInternalStateName());
     }
 
     PredicateAbstractElement abstraction = AbstractElements.extractElementByType(currentElement, PredicateAbstractElement.class);
     if(abstraction != null && abstraction.isAbstractionElement()) {
-      if(first) {
-        first = false;
-      } else {
-        builder.append(", ");
-      }
+      builder.append("\\n");
       builder.append(abstraction.getAbstractionFormula().asFormula().toString());
     }
 
     ExplicitElement explicit = AbstractElements.extractElementByType(currentElement, ExplicitElement.class);
     if(explicit != null) {
-      if(first) {
-        first = false;
-      } else {
-        builder.append(", ");
-      }
+      builder.append("\\n");
       builder.append(explicit.toCompactString());
     }
-
-    builder.append(")");
 
     return builder.toString();
   }

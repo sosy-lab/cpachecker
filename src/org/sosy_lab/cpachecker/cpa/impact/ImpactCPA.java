@@ -43,13 +43,11 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 public class ImpactCPA implements ConfigurableProgramAnalysis {
 
@@ -63,6 +61,7 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
   private final ExtendedFormulaManager fmgr;
   private final PathFormulaManager pfmgr;
   private final Solver solver;
+  private final FormulaManagerFactory factory;
 
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
@@ -73,11 +72,11 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
     config = pConfig;
     logger = pLogger;
 
-    MathsatFormulaManager msatFmgr = MathsatFactory.createFormulaManager(config, logger);
-    fmgr = new ExtendedFormulaManager(msatFmgr, pConfig, pLogger);
+    factory = new FormulaManagerFactory(pConfig, pLogger);
+    fmgr = new ExtendedFormulaManager(factory.getFormulaManager(), pConfig, pLogger);
 
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger));
-    TheoremProver prover = new MathsatTheoremProver(msatFmgr);
+    TheoremProver prover = factory.createTheoremProver();
     solver = new Solver(fmgr, prover);
 
     abstractDomain = new ImpactAbstractDomain(solver);
@@ -104,6 +103,10 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
 
   public Solver getSolver() {
     return solver;
+  }
+
+  FormulaManagerFactory getFormulaManagerFactory() {
+    return factory;
   }
 
   @Override

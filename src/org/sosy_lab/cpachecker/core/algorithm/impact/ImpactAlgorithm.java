@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
@@ -67,9 +68,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.UninstantiatingInterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -136,12 +134,12 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     logger = pLogger;
     cpa = pCpa;
 
-    MathsatFormulaManager mfmgr = MathsatFactory.createFormulaManager(config, logger);
-    fmgr = new ExtendedFormulaManager(mfmgr, config, logger);
+    FormulaManagerFactory factory = new FormulaManagerFactory(config, pLogger);
+    fmgr = new ExtendedFormulaManager(factory.getFormulaManager(), config, logger);
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger));
-    prover = new MathsatTheoremProver(mfmgr);
+    prover = factory.createTheoremProver();
     solver = new Solver(fmgr, prover);
-    imgr = new UninstantiatingInterpolationManager(fmgr, pfmgr, solver, config, logger);
+    imgr = new UninstantiatingInterpolationManager(fmgr, pfmgr, solver, factory, config, logger);
   }
 
   public AbstractElement getInitialElement(CFANode location) {

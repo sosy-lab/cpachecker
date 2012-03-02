@@ -74,7 +74,9 @@ public class ImpactRefiner extends org.sosy_lab.cpachecker.cpa.impact.ImpactRefi
     InterpolationManager<Formula> manager = new UninstantiatingInterpolationManager(
                                                   fmgr,
                                                   predicateCpa.getPathFormulaManager(),
-                                                  solver, config, logger);
+                                                  solver,
+                                                  predicateCpa.getFormulaManagerFactory(),
+                                                  config, logger);
 
     return new ImpactRefiner(config, logger, pCpa, manager, fmgr, solver);
   }

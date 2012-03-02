@@ -110,7 +110,9 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
     InterpolationManager<Formula> manager = new UninstantiatingInterpolationManager(
                                                   fmgr,
                                                   impactCpa.getPathFormulaManager(),
-                                                  solver, config, logger);
+                                                  solver,
+                                                  impactCpa.getFormulaManagerFactory(),
+                                                  config, logger);
 
     return new ImpactRefiner(config, logger, pCpa, manager, fmgr, solver);
   }
