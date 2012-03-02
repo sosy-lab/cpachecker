@@ -101,27 +101,6 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     pCoveredBy.mCoveredByThis.add(this);
   }
 
-  /**
-   * Uncover all nodes covered by this node.
-   * @return a list of all nodes that were previously covered by this node
-   */
-  public Set<ARTElement> clearCoverage() {
-    if (mCoveredByThis == null || mCoveredByThis.isEmpty()) {
-      return Collections.emptySet();
-    }
-    assert !isCovered();
-
-    Set<ARTElement> result = mCoveredByThis;
-    mCoveredByThis = null;
-
-    for (ARTElement element : result) {
-      assert element.mCoveredBy == this;
-      element.mCoveredBy = null; // uncover
-    }
-
-    return result;
-  }
-
   public void uncover() {
     assert isCovered();
     assert mCoveredBy.mCoveredByThis.contains(this);
