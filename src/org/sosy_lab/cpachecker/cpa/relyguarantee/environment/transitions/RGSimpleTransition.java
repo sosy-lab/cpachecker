@@ -96,10 +96,12 @@ public class RGSimpleTransition implements RGEnvTransition{
     return pf;
   }
 
+  @Override
   public CFAEdge getOperation() {
     return operation;
   }
 
+  @Override
   public String toString() {
     return "st: "+operation.getRawStatement()+", "+abstraction+", "+pf+", "+sourceARTElement.getLocationClasses()+"->"+targetARTElement.getLocationClasses();
   }

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
@@ -77,6 +78,12 @@ public interface RGEnvTransition {
    * @return
    */
   PathFormula getFormulaAddedForAbstraction();
+
+  /**
+   * Get the CFA edge that create the transition.
+   * @return
+   */
+  CFAEdge getOperation();
 
 }
 

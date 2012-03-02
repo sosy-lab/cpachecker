@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -368,7 +367,6 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
    */
   void dagAssertions(List<InterpolationDagNode> roots){
     for (InterpolationDagNode node : roots){
-      PathFormula pf = node.getPathFormula();
       // check if the traceNo is OK
       // check parent - children relationships
       for (InterpolationDagNode child : node.getChildren()){
@@ -383,7 +381,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
 
   // TODO For testing
-  private void printEnvEdgesApplied(ARTElement artElement, Collection<RGCFAEdge>  set) {
+ /*private void printEnvEdgesApplied(ARTElement artElement, Collection<RGCFAEdge>  set) {
 
     if (!set.isEmpty()){
       System.out.println("Env edges applied at id:"+artElement.getElementId());
@@ -391,7 +389,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
         System.out.println("- edge "+edge );
       }
     }
-  }
+  }*/
 
 
 

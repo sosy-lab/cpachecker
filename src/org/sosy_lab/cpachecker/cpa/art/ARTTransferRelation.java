@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
@@ -75,8 +76,10 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
     ARTElement element = (ARTElement)pElement;
     int tid = element.getTid();
     RGCFAEdge rgEdge = null;
+    Pair<ARTElement, RGEnvTransition> application = null;
     if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
       rgEdge = (RGCFAEdge) edge;
+      application = Pair.of(element, rgEdge.getRgEnvTransition());
     }
 
     ImmutableList<Integer> succLocCl = getSuccessorLocationClasses(element, edge);
@@ -95,8 +98,6 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
       return Collections.emptySet();
     }
 
-    int envAppBefore = getNumberEnvApp(element, edge);
-
 
     Map<ARTElement, CFAEdge> localParents = new HashMap<ARTElement, CFAEdge>(1);
     localParents.put(element, edge);
@@ -110,30 +111,13 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
     Collection<ARTElement> wrappedSuccessors = new ArrayList<ARTElement>();
     for (AbstractElement absElement : successors) {
       ARTElement successorElem = new ARTElement(absElement, localParents, envParents, succLocCl, tid);
-      successorElem.setEnvAppBefore(envAppBefore);
+      if (application != null){
+        successorElem.addEnvApplied(application);
+      }
       wrappedSuccessors.add(successorElem);
     }
 
     return wrappedSuccessors;
-  }
-
-
-  /**
-   * Returns the number of env. application on the path to the successor element.
-   * @param pElement
-   * @param edge
-   * @return
-   */
-  private int getNumberEnvApp(ARTElement pElement, CFAEdge edge) {
-    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
-      RGCFAEdge rgEdge = (RGCFAEdge) edge;
-      RGEnvTransition et = rgEdge.getRgEnvTransition();
-      int envAB = et.getSourceARTElement().getEnvAppBefore();
-      int elemAB = pElement.getEnvAppBefore();
-      return envAB+elemAB+1;
-    } else {
-      return pElement.getEnvAppBefore();
-    }
   }
 
   /**

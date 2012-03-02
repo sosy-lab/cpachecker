@@ -120,8 +120,44 @@ public class ARTReachedSet {
     return Precisions.replaceByType(lOldPrecision, pNewPrecision, pNewPrecision.getClass());
   }
 
+
+  /**
+   * Returns elements that would be readded to the waitlist if the argument was removed from the ART.
+   * @param pAelem
+   * @return
+   */
+  public Set<ARTElement> readdedElements(ARTElement elem) {
+
+    Set<ARTElement> toUnreach = elem.getLocalSubtree();
+
+    // collect all elements covered by the subtree
+    List<ARTElement> newToUnreach = new ArrayList<ARTElement>();
+
+    for (ARTElement ae : toUnreach) {
+      newToUnreach.addAll(ae.getCoveredByThis());
+    }
+    toUnreach.addAll(newToUnreach);
+
+    Set<ARTElement> toWaitlist = new LinkedHashSet<ARTElement>();
+    for (ARTElement ae : toUnreach) {
+
+      for (ARTElement parent : ae.getLocalParents()) {
+        if (!toUnreach.contains(parent)) {
+          toWaitlist.add(parent);
+        }
+      }
+    }
+
+    return toWaitlist;
+  }
+
   private Set<ARTElement> removeSubtree0(ARTElement e) {
     Preconditions.checkNotNull(e);
+    if (e.getLocalParents().isEmpty()){
+      System.out.println(this.getClass());
+    }
+
+
     Preconditions.checkArgument(!e.getLocalParents().isEmpty(), "May not remove the initial element from the ART/reached set");
 
     Set<ARTElement> toUnreach = e.getLocalSubtree();
@@ -344,4 +380,6 @@ public class ARTReachedSet {
       delegate.replaceWithBottom(pE);
     }
   }
+
+
 }

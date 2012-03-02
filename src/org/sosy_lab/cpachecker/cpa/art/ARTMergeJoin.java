@@ -24,17 +24,20 @@
 package org.sosy_lab.cpachecker.cpa.art;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 public class ARTMergeJoin implements MergeOperator {
 
@@ -69,6 +72,16 @@ public class ARTMergeJoin implements MergeOperator {
     if (!locations1.equals(locations2)){
       return pElement2;
     }
+
+    // merge elements only with the same env. applications
+    List<Pair<ARTElement, RGEnvTransition>> eapp1 = artElement1.getEnvApplied();
+    List<Pair<ARTElement, RGEnvTransition>> eapp2 = artElement2.getEnvApplied();
+
+    // merge only if eapp1 and eapp2 are equal or are both null
+    if (eapp1 != eapp2 && (eapp1 == null || eapp2 == null || !eapp1.equals(eapp2))){
+      return pElement2;
+    }
+
 
     AbstractElement wrappedElement1 = artElement1.getWrappedElement();
     AbstractElement wrapppedElement2 = artElement2.getWrappedElement();
@@ -119,7 +132,7 @@ public class ARTMergeJoin implements MergeOperator {
     artElement2.setMergedWith(mergedElement);
 
     // set the number of env. applications
-    mergedElement.setEnvAppBefore(artElement1.getEnvAppBefore()+artElement2.getEnvAppBefore());
+    mergedElement.setEnvApplied(eapp1);
 
     return mergedElement;
   }
@@ -127,7 +140,7 @@ public class ARTMergeJoin implements MergeOperator {
 
   private void checkParentChildCheck(ARTElement elem){
 
-    ImmutableMap<ARTElement, CFAEdge> pMap = elem.getLocalParentMap();
+    Map<ARTElement, CFAEdge> pMap = elem.getLocalParentMap();
     for (ARTElement parent : pMap.keySet()){
       assert !parent.isDestroyed();
       CFAEdge edge = pMap.get(parent);
@@ -135,7 +148,7 @@ public class ARTMergeJoin implements MergeOperator {
       assert pEdge != null && edge != null && pEdge.equals(edge);
     }
 
-    ImmutableMap<ARTElement, CFAEdge> cMap = elem.getLocalChildMap();
+    Map<ARTElement, CFAEdge> cMap = elem.getLocalChildMap();
     for (ARTElement child : cMap.keySet()){
       assert !child.isDestroyed();
       CFAEdge edge = pMap.get(child);

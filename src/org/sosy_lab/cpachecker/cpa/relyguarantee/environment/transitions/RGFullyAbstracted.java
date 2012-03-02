@@ -132,6 +132,7 @@ public class RGFullyAbstracted implements RGEnvTransition {
     return targetARTElement;
   }
 
+  @Override
   public CFAEdge getOperation() {
     return operation;
   }

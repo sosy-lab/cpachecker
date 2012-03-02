@@ -25,10 +25,13 @@ package org.sosy_lab.cpachecker.core.waitlist;
 
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.TreeSet;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 
 /**
  * Waitlist where elements are sorted using the provided comparator.
@@ -106,6 +109,8 @@ public class ComparatorWaitlist implements Waitlist {
       }
 
     }
+
+
   }
 
 
@@ -140,25 +145,71 @@ public class ComparatorWaitlist implements Waitlist {
       ARTElement aelem1 = (ARTElement) elem1;
       ARTElement aelem2 = (ARTElement) elem2;
 
-      if (elem1.equals(elem2)){
+      if (elem1 == elem2){
         return 0;
       }
 
-      int id1 = aelem1.getEnvAppBefore();
-      int id2 = aelem2.getEnvAppBefore();
+      List<Pair<ARTElement, RGEnvTransition>> eapp1 = aelem1.getEnvApplied();
+      List<Pair<ARTElement, RGEnvTransition>> eapp2 = aelem2.getEnvApplied();
 
-
-      if (id1 < id2){
+      // compare the number of env. applications
+      if (eapp1.size() < eapp2.size()){
         return 1;
       }
-      else if (id1 > id2){
+
+      if (eapp1.size() > eapp2.size()){
         return -1;
       }
 
-      return aelem1.getElementId() >  aelem2.getElementId() ? 1 : -1;
+      // compare applications recursivly
+      for (int i=0; i<eapp1.size(); i++){
+        Pair<ARTElement, RGEnvTransition> app1 = eapp1.get(i);
+        Pair<ARTElement, RGEnvTransition> app2 = eapp2.get(i);
+
+        // choose the one with lower topological application point
+        int apptop1 = app1.getFirst().retrieveLocationElement().getLocationNode()
+            .getTopologicalSortId();
+        int apptop2 = app2.getFirst().retrieveLocationElement().getLocationNode()
+            .getTopologicalSortId();
+
+        if (apptop1 < apptop2){
+          return 1;
+        }
+
+        if (apptop1 > apptop2){
+          return -1;
+        }
+
+        // compare the sources of env. transitions
+        ARTElement source1 = app1.getSecond().getSourceARTElement();
+        ARTElement source2 = app2.getSecond().getSourceARTElement();
+
+        int result = compare(source1, source2);
+        if (result != 0){
+          return result;
+        }
+      }
+
+
+      // env. applications are equivalent, compare topological id
+      int top1 = aelem1.retrieveLocationElement().getLocationNode().getTopologicalSortId();
+      int top2 = aelem2.retrieveLocationElement().getLocationNode().getTopologicalSortId();
+
+      if (top1 < top2){
+        return 1;
+      }
+
+      if (top2 < top1){
+        return -1;
+      }
+
+      // compre ART element ids
+      int id1 = aelem1.getElementId();
+      int id2 = aelem2.getElementId();
+
+      return id1 > id2 ? 1 : (id1 < id2) ? -1 : 0;
     }
   }
-
 
 
 }

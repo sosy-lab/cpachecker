@@ -778,6 +778,9 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @return
    */
   private Path getPathBetween(ARTElement start, ARTElement stop, Collection<ARTElement> elems, RGBranchingModel bModel) {
+    if (stop == null){
+      return null;
+    }
     assert !stop.isDestroyed();
 
     // paths for elements
@@ -853,14 +856,9 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       // environmental edge
       RGCFAEdge rgEdge = (RGCFAEdge) edge;
       RGEnvTransition et = rgEdge.getRgEnvTransition();
-
-      // if the target element is covered, then use the covering element
-      ARTElement reachedTarget = et.getTargetARTElement();
-      if (reachedTarget.isDestroyed()){
-        reachedTarget = reachedTarget.getMergedWith();
-      }
-
-      return getPathBetween(et.getSourceARTElement(), reachedTarget, et.getGeneratingARTElements(), bModel);
+      Path pi = new Path();
+      pi.push(Pair.of(elem, et.getOperation()));
+      return pi;
     }
     else {
       // local edge
@@ -949,7 +947,9 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     Map<Pair<ARTElement, CFAEdge>, Formula> predMap = new HashMap<Pair<ARTElement, CFAEdge>, Formula>();
 
     for (final ARTElement pathElement : elementsOnPath) {
-      assert !pathElement.isDestroyed();
+      if (pathElement.isDestroyed()){
+        continue;
+      }
 
       Set<ARTElement> children = new LinkedHashSet<ARTElement>(pathElement.getLocalChildMap().size());
       int localChildren = 0;

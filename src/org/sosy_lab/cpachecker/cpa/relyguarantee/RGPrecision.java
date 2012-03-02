@@ -23,12 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
+import java.util.List;
+import java.util.Vector;
+
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSetMultimap.Builder;
 
   public class RGPrecision implements Precision {
 
@@ -90,6 +94,8 @@ import com.google.common.collect.ImmutableSetMultimap;
       return bldr.toString();
     }
 
+
+
     public ImmutableSetMultimap<CFANode, AbstractionPredicate> getARTPredicateMap() {
       return this.artPredicateMap;
     }
@@ -108,6 +114,106 @@ import com.google.common.collect.ImmutableSetMultimap;
 
     public ImmutableSet<AbstractionPredicate> getEnvGlobalPredicates() {
       return envGlobalPredicates;
+    }
+
+    /**
+     * Constructs a precision that contains all predicates from both precisions.
+     * @return
+     */
+    public static RGPrecision merge(List<RGPrecision> precs){
+
+      if (precs.size() == 1){
+        return precs.get(0);
+      }
+
+      ImmutableSetMultimap<CFANode, AbstractionPredicate> mARTMap =
+          mergeARTMaps(precs);
+
+      ImmutableSet<AbstractionPredicate> mARTGlob =
+          mergeARTGlobals(precs);
+
+      ImmutableSetMultimap<CFANode, AbstractionPredicate> mEnvMap =
+          mergeEnvMaps(precs);
+
+      ImmutableSet<AbstractionPredicate> mEnvGlob =
+          mergeEnvGlobals(precs);
+
+      return new RGPrecision(mARTMap, mARTGlob, mEnvMap, mEnvGlob);
+    }
+
+
+    private static ImmutableSetMultimap<CFANode, AbstractionPredicate> mergeARTMaps(List<RGPrecision> precs) {
+
+      List<ImmutableSetMultimap<CFANode, AbstractionPredicate>> artMaps =
+          new Vector<ImmutableSetMultimap<CFANode, AbstractionPredicate>>(precs.size());
+
+      for (RGPrecision prec : precs){
+        artMaps.add(prec.getARTPredicateMap());
+      }
+
+      return mergeMaps(artMaps);
+    }
+
+    private static ImmutableSet<AbstractionPredicate> mergeARTGlobals(List<RGPrecision> precs) {
+
+      List<ImmutableSet<AbstractionPredicate>> artGlobals =
+         new Vector<ImmutableSet<AbstractionPredicate>>(precs.size());
+
+      for (RGPrecision prec : precs){
+        artGlobals.add(prec.getARTGlobalPredicates());
+      }
+
+      return mergeSets(artGlobals);
+    }
+
+    private static ImmutableSetMultimap<CFANode, AbstractionPredicate> mergeEnvMaps(List<RGPrecision> precs) {
+
+      List<ImmutableSetMultimap<CFANode, AbstractionPredicate>> envMaps =
+          new Vector<ImmutableSetMultimap<CFANode, AbstractionPredicate>>(precs.size());
+
+      for (RGPrecision prec : precs){
+        envMaps.add(prec.getEnvPredicateMap());
+      }
+
+      return mergeMaps(envMaps);
+    }
+
+    private static ImmutableSet<AbstractionPredicate> mergeEnvGlobals(List<RGPrecision> precs) {
+
+      List<ImmutableSet<AbstractionPredicate>> envGlobals =
+         new Vector<ImmutableSet<AbstractionPredicate>>(precs.size());
+
+      for (RGPrecision prec : precs){
+        envGlobals.add(prec.getEnvGlobalPredicates());
+      }
+
+      return mergeSets(envGlobals);
+    }
+
+    private static  ImmutableSetMultimap<CFANode, AbstractionPredicate> mergeMaps(
+        List<ImmutableSetMultimap<CFANode, AbstractionPredicate>> maps){
+
+      Builder<CFANode, AbstractionPredicate> bldr = ImmutableSetMultimap.<CFANode, AbstractionPredicate>builder();
+
+      for (ImmutableSetMultimap<CFANode, AbstractionPredicate> map : maps){
+        bldr = bldr.putAll(map);
+      }
+
+      return bldr.build();
+    }
+
+
+    private static ImmutableSet<AbstractionPredicate> mergeSets(
+        List<ImmutableSet<AbstractionPredicate>> sets){
+
+      com.google.common.collect.ImmutableSet.Builder<AbstractionPredicate> bldr =
+          ImmutableSet.<AbstractionPredicate>builder();
+
+      for (ImmutableSet<AbstractionPredicate> set : sets){
+        bldr = bldr.addAll(set);
+      }
+
+      return bldr.build();
     }
 
 

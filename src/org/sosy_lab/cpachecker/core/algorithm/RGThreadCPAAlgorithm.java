@@ -176,7 +176,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       CFANode loc = aElement.retrieveLocationElement().getLocationNode();
 
       if (debug){
-        System.out.println("Successors of "+aElement);
+        System.out.println("Successors of "+aElement+" "+rgPrec);
       }
 
       stats.transferTimer.start();
@@ -195,7 +195,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         Collection<? extends AbstractElement> newSucc = transferRelation.getAbstractSuccessors(element, precision, edge);
 
         if (newSucc.isEmpty()){
-          this.printSuccessor(null, edge);
+          this.printSuccessor(null, edge, null);
         }
 
         for (AbstractElement successor : newSucc){
@@ -248,7 +248,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         stats.envPrecisionTimer.stop();
 
         if (debug){
-          printSuccessor(successor, edge);
+          printSuccessor(successor, edge, successorPrecision);
         }
 
 
@@ -433,14 +433,15 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   // pretty-printing of successors
-  private void printSuccessor(AbstractElement pSuccessor, CFAEdge edge) {
+  private void printSuccessor(AbstractElement pSuccessor, CFAEdge edge, Precision prec) {
     System.out.println("\t-by edge "+edge.getRawStatement()+":");
 
     if (pSuccessor == null){
       System.out.println("\t none");
       System.out.println();
     } else {
-      System.out.println("\t "+pSuccessor);
+      RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
+      System.out.println("\t "+pSuccessor+" "+rgPrec);
     }
   }
 

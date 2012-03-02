@@ -32,10 +32,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Vector;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
@@ -69,7 +71,6 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSetMultimap.Builder;
@@ -97,7 +98,7 @@ public class RGRefiner implements StatisticsProvider{
 
   @Option(name="refinement.lazy",
       description="Use lazy refinement rather than restart the analysis.")
-  private boolean lazy = false;
+  private boolean lazy = true;
 
 
   private final Stats stats;
@@ -231,8 +232,8 @@ public class RGRefiner implements StatisticsProvider{
   private void performLazyRefinement(ARTReachedSet[] reachedSets, InterpolationTreeResult cexample, RGAlgorithm algorithm) {
     System.out.println();
     System.out.println("\t\t\t ----- Lazy refinement -----");
-    Multimap<Integer, Pair<ARTElement, RGPrecision>> pivots = getLazyRefinement(reachedSets, cexample);
-    dropPivots(reachedSets, pivots);
+    Map<Integer, Map<ARTElement, RGPrecision>> refMap = getLazyRefinement(reachedSets, cexample);
+    dropPivots(reachedSets, refMap);
     algorithm.removeDestroyedCandidates();
 
 
@@ -243,20 +244,20 @@ public class RGRefiner implements StatisticsProvider{
     System.out.println();
     System.out.println("\t\t\t ----- Restarting refinement -----");
 
-    Multimap<Integer, Pair<ARTElement, RGPrecision>> pivots = getRestartingPrecision(reachedSets, cexample);
-    dropPivots(reachedSets, pivots);
+    Map<Integer, Map<ARTElement, RGPrecision>> refMap = getRestartingPrecision(reachedSets, cexample);
+    dropPivots(reachedSets, refMap);
     algorithm.resetEnvironment();
   }
 
-  private void dropPivots(ARTReachedSet[] reachedSets, Multimap<Integer, Pair<ARTElement, RGPrecision>> pivots) {
-    // drop subtrees and change precision
-    for(int tid : pivots.keySet()){
-      for(Pair<ARTElement, RGPrecision> pair : pivots.get(tid)){
-        ARTElement root = pair.getFirst();
-        // drop cut-off node in every thread
-        RGPrecision precision = pair.getSecond();
-        Set<ARTElement> parents = new HashSet<ARTElement>(root.getLocalParents());
+  private void dropPivots(ARTReachedSet[] reachedSets, Map<Integer, Map<ARTElement, RGPrecision>> refMap) {
 
+
+    // drop subtrees and change precision
+    for(int tid : refMap.keySet()){
+      for(ARTElement root : refMap.get(tid).keySet()){
+        // drop cut-off node in every thread
+        RGPrecision precision = refMap.get(tid).get(root);
+        Set<ARTElement> parents = new HashSet<ARTElement>(root.getLocalParents());
 
         // TODO why does it take so long?
         reachedSets[tid].removeSubtree(root, precision);
@@ -272,21 +273,68 @@ public class RGRefiner implements StatisticsProvider{
     }
   }
 
+  private Map<Integer, Map<ARTElement, RGPrecision>> findCommonPrecision(ARTReachedSet[] reachedSets, Map<Integer, Map<ARTElement, RGPrecision>> refMap) {
+
+    Map<Integer, Map<ARTElement, RGPrecision>> newRefMap = new HashMap<Integer, Map<ARTElement, RGPrecision>>(refMap);
+
+    for (int tid : refMap.keySet()){
+
+      if (refMap.get(tid).size() <=1 ){
+        continue;
+      }
+
+      // readMap: elements that will readded -> pivots that cause it
+      Multimap<ARTElement, ARTElement> readdMap = LinkedHashMultimap.create();
+
+      for (ARTElement aelem : refMap.get(tid).keySet()){
+        Set<ARTElement> readdSet = reachedSets[tid].readdedElements(aelem);
+        for (ARTElement readded : readdSet){
+          readdMap.put(readded, aelem);
+        }
+      }
+
+      // merge precision for elements that readded the same pivot
+       Map<ARTElement, RGPrecision> threadNewPivots = newRefMap.get(tid);
+
+      for (ARTElement elem : readdMap.keySet()){
+
+        Collection<ARTElement> pivs = readdMap.get(elem);
+        if (pivs.size() == 1){
+          continue;
+        }
+
+        List<RGPrecision> precs = new Vector<RGPrecision>(pivs.size());
+
+        for (ARTElement aelem : pivs){
+          precs.add(threadNewPivots.get(aelem));
+        }
+
+        RGPrecision mPrec = RGPrecision.merge(precs);
+
+        for (ARTElement aelem : pivs){
+          threadNewPivots.put(aelem, mPrec);
+        }
+      }
+    }
+
+    return newRefMap;
+  }
+
   /**
    * Finds cut-off points and new precision for them.
    * @param pReachedSets
    * @param pCounterexampleInfo
    * @return
    */
-  private Multimap<Integer, Pair<ARTElement, RGPrecision>> getLazyRefinement(ARTReachedSet[] reachedSets, InterpolationTreeResult info) {
+  private Map<Integer, Map<ARTElement, RGPrecision>> getLazyRefinement(ARTReachedSet[] reachedSets, InterpolationTreeResult info) {
 
     //boolean newPred = false;
-    //boolean newLM = false;
+    boolean newLM = false;
 
     // set location mapping
     RGLocationMapping lm = info.getRefinedLocationMapping();
     if (lm != null){
-      //newLM = true;
+      newLM = true;
 
       if (debug){
         System.out.println("New "+lm);
@@ -311,6 +359,10 @@ public class RGRefiner implements StatisticsProvider{
       System.out.println();
     }
 
+
+    assert newLM || !pivots.isEmpty() : "No new predicates nor location mapping found.";
+
+
     pivots = getInterthreadImpact(pivots);
 
     if (debug){
@@ -329,7 +381,7 @@ public class RGRefiner implements StatisticsProvider{
         System.out.println("Thread "+tid+":");
         System.out.print("\t-top pivots: ");
 
-        Set<Integer> topIds = new HashSet<Integer>();
+        Vector<Integer> topIds = new Vector<Integer>();
         for (ARTElement elem : topElems.get(tid).keySet()){
           topIds.add(elem.getElementId());
         }
@@ -339,20 +391,39 @@ public class RGRefiner implements StatisticsProvider{
       System.out.println();
     }
 
-    Multimap<Integer, Pair<ARTElement, RGPrecision>> result = gatherPrecision(topElems, pivots, reachedSets);
+   Map<Integer, Map<ARTElement, RGPrecision>> refMap = gatherPrecision(topElems, pivots, reachedSets);
 
     if (debug){
       for (int tid : pivots.getTids()){
         System.out.println("Thread "+tid+":");
 
-        for (Pair<ARTElement, RGPrecision>  pair : result.get(tid)){
-          System.out.println("\t-"+pair.getFirst().getElementId()+" : "+pair.getSecond());
+        for (ARTElement  aelem : refMap.get(tid).keySet()){
+          RGPrecision prec = refMap.get(tid).get(aelem);
+          System.out.println("\t-"+aelem.getElementId()+" : "+prec);
         }
       }
       System.out.println();
     }
 
-    return result;
+    //
+    refMap = findCommonPrecision(reachedSets, refMap);
+
+    if (debug){
+      System.out.println("with common precision:\n");
+      for (int tid : pivots.getTids()){
+        System.out.println("Thread "+tid+":");
+
+        for (ARTElement  aelem : refMap.get(tid).keySet()){
+          RGPrecision prec = refMap.get(tid).get(aelem);
+          System.out.println("\t-"+aelem.getElementId()+" : "+prec);
+        }
+      }
+      System.out.println();
+    }
+
+    assert newLM || !refMap.isEmpty();
+
+    return refMap;
   }
 
 
@@ -365,17 +436,24 @@ public class RGRefiner implements StatisticsProvider{
    * @param reachedSets
    * @return
    */
-  private Multimap<Integer, Pair<ARTElement, RGPrecision>> gatherPrecision(Map<Integer, SetMultimap<ARTElement, ARTElement>> topElems,
+  private Map<Integer, Map<ARTElement, RGPrecision>> gatherPrecision(Map<Integer, SetMultimap<ARTElement, ARTElement>> topElems,
       Pivots pivots, ARTReachedSet[] reachedSets) {
 
-    Multimap<Integer, Pair<ARTElement, RGPrecision>> cutoff = HashMultimap.create();
+    Map<Integer, Map<ARTElement, RGPrecision>> cutoff = new HashMap<Integer, Map<ARTElement, RGPrecision>>(pivots.getTids().size());
 
     for (int tid : topElems.keySet()){
       SetMultimap<ARTElement, ARTElement> coverMap = topElems.get(tid);
 
       for (ARTElement topElem : coverMap.keySet()){
         RGPrecision prec = gatherPrecisionForElement(topElem, coverMap.get(topElem), pivots, reachedSets[tid]);
-        cutoff.put(tid, Pair.of(topElem, prec));
+
+        Map<ARTElement, RGPrecision> threadCutoff = cutoff.get(tid);
+        if (threadCutoff == null){
+          threadCutoff = new HashMap<ARTElement, RGPrecision>();
+          cutoff.put(tid, threadCutoff);
+        }
+
+        threadCutoff.put(topElem, prec);
       }
     }
 
@@ -536,7 +614,7 @@ public class RGRefiner implements StatisticsProvider{
           Set<ARTElement> absElems = abs.getLocalSubtree();
 
           for (ARTElement aElem : absElems){
-            ImmutableSet<ARTElement> envChildren = aElem.getEnvChildMap().keySet();
+            Set<ARTElement> envChildren = aElem.getEnvChildMap().keySet();
 
             for (ARTElement child : envChildren){
               int cTid = child.getTid();
@@ -620,7 +698,7 @@ public class RGRefiner implements StatisticsProvider{
    * @param info
    * @return
    */
-  private Multimap<Integer, Pair<ARTElement, RGPrecision>> getRestartingPrecision(ARTReachedSet[] reachedSets, InterpolationTreeResult info){
+  private Map<Integer, Map<ARTElement, RGPrecision>> getRestartingPrecision(ARTReachedSet[] reachedSets, InterpolationTreeResult info){
     stats.restartingTimer.start();
 
     boolean newPred = false;
@@ -644,7 +722,7 @@ public class RGRefiner implements StatisticsProvider{
      }
 
 
-    Multimap<Integer, Pair<ARTElement, RGPrecision>> refMap = LinkedHashMultimap.create();
+    Map<Integer, Map<ARTElement, RGPrecision>> refMap = new HashMap<Integer, Map<ARTElement, RGPrecision>>(threadNo);
 
     // for every thread gather all new predicates in a single precision, which be added to the root
     for (int i=0; i<threadNo; i++){
@@ -656,8 +734,11 @@ public class RGRefiner implements StatisticsProvider{
 
       newPred = newPred || pair.getSecond();
 
+      HashMap<ARTElement, RGPrecision> threadRefMap = new HashMap<ARTElement, RGPrecision>();
+      refMap.put(i, threadRefMap);
+
       for (ARTElement child : initial.getLocalChildren()){
-        refMap.put(i, Pair.of(child, newPrec));
+        threadRefMap.put(child, newPrec);
       }
     }
 
@@ -851,7 +932,7 @@ public class RGRefiner implements StatisticsProvider{
    */
   public static class Pivots  {
 
-    // map : tid -> pivot state -> (new art predicates, new env predicates)
+    // map : tid -> pivot state -> (new art predicates, new env pred.create();icates)
     private final Map<Integer, SetMultimap<ARTElement, AbstractionPredicate>> artPivots;
     private final Map<Integer, SetMultimap<ARTElement, AbstractionPredicate>> envPivots;
     private final SetMultimap<Integer, ARTElement> noPreds;
@@ -988,7 +1069,7 @@ public class RGRefiner implements StatisticsProvider{
     }
 
     public Set<ARTElement> getPivotsForThread(int tid){
-      Set<ARTElement> pivots = new HashSet<ARTElement>();
+      Set<ARTElement> pivots = new LinkedHashSet<ARTElement>();
 
       SetMultimap<ARTElement, AbstractionPredicate> artSet = artPivots.get(tid);
       if (artSet != null){

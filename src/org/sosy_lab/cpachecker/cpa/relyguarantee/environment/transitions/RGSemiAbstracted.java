@@ -101,10 +101,12 @@ public class RGSemiAbstracted implements RGEnvTransition{
     return ssa;
   }
 
+  @Override
   public CFAEdge getOperation() {
     return operation;
   }
 
+  @Override
   public String toString(){
     return "sa: "+operation.getRawStatement()+", "+abstractPrecondition+", "+sourceARTElement.getLocationClasses()+"->"+targetARTElement.getLocationClasses();
   }

@@ -33,7 +33,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -46,7 +48,6 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public class ARTElement extends AbstractSingleWrapperElement {
@@ -80,10 +81,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
    */
   private final ImmutableList<Integer> locationClasses;
 
-  /**
-   * maximum number of env. application on the path to this element.
-   */
-  private int envAppBefore = 0;
+  private List<Pair<ARTElement, RGEnvTransition>> envApplied = new Vector<Pair<ARTElement, RGEnvTransition>>();
 
   private static int nextArtElementId = 0;
 
@@ -128,20 +126,20 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
 
-  public ImmutableMap<ARTElement, CFAEdge> getLocalParentMap() {
-    return ImmutableMap.copyOf(localParentMap);
+  public Map<ARTElement, CFAEdge> getLocalParentMap() {
+    return Collections.unmodifiableMap(localParentMap);
   }
 
-  public ImmutableMap<ARTElement, CFAEdge> getLocalChildMap() {
-    return ImmutableMap.copyOf(localChildMap);
+  public Map<ARTElement, CFAEdge> getLocalChildMap() {
+    return Collections.unmodifiableMap(localChildMap);
   }
 
-  public ImmutableMap<ARTElement, RGCFAEdge> getEnvParentMap() {
-    return ImmutableMap.copyOf(envParentMap);
+  public Map<ARTElement, RGCFAEdge> getEnvParentMap() {
+    return Collections.unmodifiableMap(envParentMap);
   }
 
-  public ImmutableMap<ARTElement, RGCFAEdge> getEnvChildMap() {
-    return ImmutableMap.copyOf(envChildMap);
+  public Map<ARTElement, RGCFAEdge> getEnvChildMap() {
+    return Collections.unmodifiableMap(envChildMap);
   }
 
   public void addLocalParent(ARTElement element, CFAEdge edge) {
@@ -232,6 +230,22 @@ public class ARTElement extends AbstractSingleWrapperElement {
     mayCover = false;
   }
 
+
+
+  public List<Pair<ARTElement, RGEnvTransition>> getEnvApplied() {
+    return envApplied;
+  }
+
+
+  public void setEnvApplied(List<Pair<ARTElement, RGEnvTransition>> pEnvApplied) {
+    envApplied = pEnvApplied;
+  }
+
+  public void addEnvApplied(Pair<ARTElement, RGEnvTransition> application) {
+    assert application != null;
+    envApplied.add(application);
+  }
+
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
@@ -316,14 +330,6 @@ public class ARTElement extends AbstractSingleWrapperElement {
     return result;
   }
 
-
-  public int getEnvAppBefore() {
-    return envAppBefore;
-  }
-
-  public void setEnvAppBefore(int pEnvAppBefore) {
-    envAppBefore = pEnvAppBefore;
-  }
 
   public RGAbstractElement getRgElement() {
     return rgElement;
