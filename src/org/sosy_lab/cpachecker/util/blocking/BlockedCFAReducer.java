@@ -33,7 +33,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -45,14 +47,14 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.blocking.container.ItemTree;
+import org.sosy_lab.cpachecker.util.blocking.container.ReducedEdge;
+import org.sosy_lab.cpachecker.util.blocking.container.ReducedFunction;
+import org.sosy_lab.cpachecker.util.blocking.container.ReducedNode;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
-
-import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="blockreducer")
 public class BlockedCFAReducer implements BlockComputer {
-
-  public enum AbstractionMode {REDUCTION_REMAINDER_TS, FUNCTIONENTRY_ON_TS};
 
   @Option(description="Do at most n summarizations on a node.")
   private int reductionThreshold = 100;
@@ -66,19 +68,35 @@ public class BlockedCFAReducer implements BlockComputer {
   @Option(description="Allow reduction of function exits; calculate abstractions alwasy at function exits?")
   private boolean allowReduceFunctionExits = true;
 
+  @Option(description="Allow generic nodes to be abstraction nodes?")
+  private boolean allowAbstOnGenericNodes = true;
+
+  @Option(description="Allow function-entry nodes to be abstraction nodes?")
+  private boolean allowAbstOnFunctionEntry = true;
+
+  @Option(description="Allow function-exit nodes to be abstraction nodes?")
+  private boolean allowAbstOnFunctionExit = true;
+
+  @Option(description="Allow loop-head nodes to be abstraction nodes?")
+  private boolean allowAbstOnLoopHeads = true;
+
   @Option(name="reducedCfaFile", description="write the reduced cfa to the specified file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File reducedCfaFile = new File("ReducedCfa.rsf");
 
   private int functionCallSeq = 0;
   private final Deque<CFAFunctionDefinitionNode> inliningStack;
+  private final ControlFlowStatistics controlFlowStatistics;
+  private final LogManager logger;
 
-  public BlockedCFAReducer(Configuration pConfig) throws InvalidConfigurationException {
+  public BlockedCFAReducer(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     if (pConfig != null) {
       pConfig.inject(this);
     }
 
+    this.controlFlowStatistics = new ControlFlowStatistics(pConfig, pLogger);
     this.inliningStack = new ArrayDeque<CFAFunctionDefinitionNode>();
+    this.logger = pLogger;
   }
 
   private boolean isAbstractionNode(ReducedNode pNode) {
@@ -241,20 +259,32 @@ public class BlockedCFAReducer implements BlockComputer {
   private static class FunctionNodeManager {
     private Map<CFANode, ReducedNode> nodeMapping = new HashMap<CFANode, ReducedNode>();
     private int functionCallId;
+    private String[] callstack;
 
     public ReducedNode getWrapper(CFANode pNode) {
       ReducedNode result = nodeMapping.get(pNode);
       if (result == null) {
-        result = new ReducedNode(pNode);
+        result = new ReducedNode(pNode, this.callstack);
         result.setFunctionCallId(this.functionCallId);
         this.nodeMapping.put(pNode, result);
       }
       return result;
     }
 
-    public FunctionNodeManager(int pFunctionCallId) {
+    public FunctionNodeManager(int pFunctionCallId, String[] pCallstack) {
       this.functionCallId = pFunctionCallId;
+      this.callstack = pCallstack;
     }
+  }
+
+  private String[] getInliningStackAsArray() {
+    String[] result = new String[this.inliningStack.size()];
+    int i=0;
+    for (CFAFunctionDefinitionNode fnNode: this.inliningStack) {
+      result[i] = fnNode.getFunctionName();
+      i++;
+    }
+    return result;
   }
 
 
@@ -263,13 +293,13 @@ public class BlockedCFAReducer implements BlockComputer {
    * and the outgoing function calls that get inlined.
    *
    */
-  private ReducedFunction inlineAndSummarize(CFAFunctionDefinitionNode pFunctionNode) {
+  public ReducedFunction inlineAndSummarize(CFAFunctionDefinitionNode pFunctionNode) {
     this.functionCallSeq++;
     this.inliningStack.push(pFunctionNode);
 
     Set<CFAEdge> traversed = new HashSet<CFAEdge>();
     Deque<ReducedNode> openEndpoints = new ArrayDeque<ReducedNode>();
-    FunctionNodeManager functionNodes = new FunctionNodeManager(this.functionCallSeq);
+    FunctionNodeManager functionNodes = new FunctionNodeManager(this.functionCallSeq, this.getInliningStackAsArray());
 
     ReducedNode entryNode = functionNodes.getWrapper(pFunctionNode);
     ReducedNode exitNode = functionNodes.getWrapper(pFunctionNode.getExitNode());
@@ -344,10 +374,11 @@ public class BlockedCFAReducer implements BlockComputer {
     } while (sequenceApplied || choiceApplied);
   }
 
-  private String getRsfEntryFor(ReducedNode pNode) {
-    return String.format("%s_%s_%d_%d",
+  private String getRsfEntryFor(ReducedNode pNode, boolean pIsAbstractionNode) {
+    return String.format("%s_%s_%s_%d_%d",
         pNode.getWrapped().getFunctionName(),
         pNode.getNodeKindText(),
+        pIsAbstractionNode ? "ABST" : "NOABST",
         pNode.getFunctionCallId(),
         pNode.getWrapped().getLineNumber());
   }
@@ -358,14 +389,56 @@ public class BlockedCFAReducer implements BlockComputer {
    * @param pInlinedCfa
    * @param pOut
    */
-  public void printInlinedCfa (Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> pInlinedCfa, PrintStream pOut) {
+  public void printInlinedCfa (Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> pInlinedCfa, PrintStream pOut, ItemTree<String, CFANode> pAbstractionNodes) {
     for (ReducedNode u: pInlinedCfa.keySet()) {
       Map<ReducedNode, Set<ReducedEdge>> uTarget = pInlinedCfa.get(u);
       for (ReducedNode v: uTarget.keySet()) {
         for (int i=0; i<uTarget.get(v).size(); i++) {
-          pOut.println(String.format("REL\t%s\t%s", getRsfEntryFor(u), getRsfEntryFor(v)));
+          pOut.println(String.format("REL\t%s\t%s",
+              getRsfEntryFor(u, pAbstractionNodes.containsLeaf(u.getCallstack(), u.getWrapped())),
+              getRsfEntryFor(v, pAbstractionNodes.containsLeaf(v.getCallstack(), v.getWrapped()))
+          ));
         }
       }
+    }
+  }
+
+  private ItemTree<String, CFANode> filterAbstractionNodes(ReducedFunction pInlined) {
+    assert(pInlined != null);
+
+    Set<ReducedNode> activeNodes = pInlined.getAllActiveNodes();
+    ItemTree<String, CFANode> result = new ItemTree<String, CFANode>();
+
+    for (ReducedNode rn : activeNodes) {
+      String[] cs = rn.getCallstack();
+      CFANode cn = rn.getWrapped();
+      switch (rn.getNodeKind()) {
+        case FUNCTIONENTRY: if (allowAbstOnFunctionEntry) result.put(cs).addLeaf(cn, true); break;
+        case FUNCTIONEXIT: if (allowAbstOnFunctionExit) result.put(cs).addLeaf(cn, true); break;
+        case GENERIC: if (allowAbstOnGenericNodes) result.put(cs).addLeaf(cn, true); break;
+        case LOOPHEAD: if (allowAbstOnLoopHeads) result.put(cs).addLeaf(cn, true); break;
+
+        default: throw new RuntimeException("Invalid kind of ReducedNode!");
+      }
+    }
+
+    return result;
+  }
+
+  private void writeReducedCfaRsf (File pTargetFile, ReducedFunction pInlined, ItemTree<String, CFANode> pAbstractionNodes) {
+    assert(pInlined != null);
+    assert(pTargetFile != null);
+
+    try {
+      Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = pInlined.getInlinedCfa();
+
+      PrintStream out = new PrintStream (pTargetFile);
+      printInlinedCfa(inlinedCfa, out, pAbstractionNodes);
+
+      out.flush();
+      out.close();
+    } catch (IOException e) {
+      logger.logException(Level.WARNING, e, "Writing the rsf-file describing the reduced CFA failed!");
     }
   }
 
@@ -373,36 +446,24 @@ public class BlockedCFAReducer implements BlockComputer {
    * Compute the nodes of the given CFA that should be abstraction-nodes.
    */
   @Override
-  public synchronized ImmutableSet<CFANode> computeAbstractionNodes(final CFA pCfa) {
+  public synchronized ItemTree<String, CFANode> computeAbstractionNodes(final CFA pCfa) throws InvalidConfigurationException{
     assert(pCfa != null);
     assert(this.inliningStack.size() == 0);
     assert(this.functionCallSeq == 0);
 
     this.functionCallSeq = 0;
     ReducedFunction reducedProgram = inlineAndSummarize(pCfa.getMainFunction());
+    ItemTree<String, CFANode> result = filterAbstractionNodes(reducedProgram);
 
     if (reducedCfaFile != null) {
-      try {
-        Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = reducedProgram.getInlinedCfa();
-
-        PrintStream out = new PrintStream (reducedCfaFile);
-        printInlinedCfa(inlinedCfa, out);
-        out.flush();
-        out.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
+      writeReducedCfaRsf(reducedCfaFile, reducedProgram, result);
     }
 
-    Set<ReducedNode> abstractionNodes = reducedProgram.getAllActiveNodes();
-    Set<CFANode> result = new HashSet<CFANode>(abstractionNodes.size());
-    for (ReducedNode n : abstractionNodes) {
-      result.add(n.getWrapped());
-    }
+    // TODO: The following should be moved to a more general position in CPAchecker.
+    controlFlowStatistics.writeStatistics(pCfa);
 
-    System.out.println(String.format("CFANodes: %d, AbstNodes: %d, summarizationThresold: %d", pCfa.getAllNodes().size(), result.size(), reductionThreshold));
-
-    return ImmutableSet.copyOf(result);
+    System.out.println(String.format("CFANodes: %d, AbstNodes: %d, summarizationThresold: %d", pCfa.getAllNodes().size(), result.getNumberOfLeafs(), reductionThreshold));
+    return result;
   }
 }
 

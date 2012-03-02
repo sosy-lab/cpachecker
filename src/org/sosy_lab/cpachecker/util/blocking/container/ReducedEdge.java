@@ -21,14 +21,30 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.blocking.interfaces;
+package org.sosy_lab.cpachecker.util.blocking.container;
 
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.blocking.container.ItemTree;
+import java.util.HashSet;
+
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
 
-public interface BlockComputer {
-  public ItemTree<String, CFANode> computeAbstractionNodes(final CFA pCfa) throws InvalidConfigurationException;
+public class ReducedEdge {
+  private HashSet<CFAEdge> summarizes = new HashSet<CFAEdge>();
+  private ReducedNode pointsTo;
+
+  public void addEdge(CFAEdge pEdge) {
+    this.summarizes.add(pEdge);
+  }
+
+  public void addEdge(ReducedEdge pEdge) {
+    this.summarizes.addAll(pEdge.summarizes);
+  }
+
+  public ReducedEdge(ReducedNode pPointsTo) {
+    this.pointsTo = pPointsTo;
+  }
+
+  public ReducedNode getPointsTo() {
+    return this.pointsTo;
+  }
 }
