@@ -41,9 +41,11 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.ComputeAbstractionElement;
+import org.sosy_lab.cpachecker.cpa.predicate.interfaces.BlockOperator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.fshell.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
@@ -118,7 +120,7 @@ public class PredicateTransferRelation implements TransferRelation {
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
       // check whether to do abstraction
-      boolean doAbstraction = blk.isBlockEnd(edge, pathFormula);
+      boolean doAbstraction = blk.isBlockEnd(pElement, edge, pathFormula);
 
       if (doAbstraction) {
         return Collections.singleton(
@@ -215,6 +217,11 @@ public class PredicateTransferRelation implements TransferRelation {
           element = strengthen(edge.getSuccessor(), element, (ConstrainedAssumeElement)lElement);
         }
 
+        if (lElement instanceof CallstackElement) {
+
+          element = strengthen(edge, element, (CallstackElement)lElement);
+        }
+
         if (AbstractElements.isTargetElement(lElement)) {
           errorFound = true;
         }
@@ -247,6 +254,16 @@ public class PredicateTransferRelation implements TransferRelation {
     }
 
     return replacePathFormula(pElement, pf);
+  }
+
+  private PredicateAbstractElement strengthen(CFAEdge pEdge, PredicateAbstractElement pElement, CallstackElement pCallstackElement) throws CPATransferException {
+    boolean doAbstraction = blk.isBlockEndStrengthened(pElement, pEdge, pElement.getPathFormula(), pCallstackElement);
+    if (doAbstraction) {
+        CFANode loc = pEdge.getSuccessor();
+        return new ComputeAbstractionElement(pElement.getPathFormula(), pElement.getAbstractionFormula(), loc);
+    } else {
+       return pElement;
+    }
   }
 
   private PredicateAbstractElement strengthen(CFANode pNode, PredicateAbstractElement pElement, ProductAutomatonElement.PredicateElement pAutomatonElement) throws CPATransferException {

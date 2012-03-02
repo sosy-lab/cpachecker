@@ -79,7 +79,7 @@ public class GoalReordering {
             int lTopSortId = Integer.MAX_VALUE;
 
             for (CFAEdge lTmpCFAEdge : lEdgeSet) {
-              lTopSortId = Math.min(lTmpCFAEdge.getPredecessor().getTopologicalSortId(), lTmpCFAEdge.getSuccessor().getTopologicalSortId());
+              lTopSortId = Math.min(lTmpCFAEdge.getPredecessor().getStrictTopoSortId(), lTmpCFAEdge.getSuccessor().getStrictTopoSortId());
             }
 
             //lGoalWeight = Math.min(lGoalWeight, lTopSortId);

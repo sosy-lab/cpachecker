@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.predicate.BlockOperator;
+import org.sosy_lab.cpachecker.cpa.predicate.blocking.DefaultBlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 public class ImpactCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(ImpactCPA.class).withOptions(BlockOperator.class);
+    return AutomaticCPAFactory.forType(ImpactCPA.class).withOptions(DefaultBlockOperator.class);
   }
 
   private final Configuration config;
@@ -66,7 +66,7 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
 
-  private ImpactCPA(Configuration pConfig, LogManager pLogger, BlockOperator blk) throws InvalidConfigurationException {
+  private ImpactCPA(Configuration pConfig, LogManager pLogger, DefaultBlockOperator blk) throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
 

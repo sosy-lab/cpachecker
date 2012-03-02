@@ -46,10 +46,10 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   final Timer totalPrecTime = new Timer();
   final Timer computingAbstractionTime = new Timer();
 
-  int numAbstractions = 0;
-  int numAbstractionsFalse = 0;
-  int maxBlockSize = 0;
-  int maxPredsPerAbstraction = 0;
+  public int numAbstractions = 0;
+  public int numAbstractionsFalse = 0;
+  public int maxBlockSize = 0;
+  public int maxPredsPerAbstraction = 0;
 
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;

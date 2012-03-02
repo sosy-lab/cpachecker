@@ -30,7 +30,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -51,10 +53,10 @@ import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.cpa.predicate.blocking.DefaultBlockOperator;
+import org.sosy_lab.cpachecker.cpa.predicate.interfaces.BlockOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
-import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
@@ -77,7 +79,7 @@ import com.google.common.io.Files;
 public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
+    return AutomaticCPAFactory.forType(PredicateCPA.class);
   }
 
   @Option(name="abstraction.initialPredicates",
@@ -91,15 +93,19 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Option(name="blk.useCache", description="use caching of path formulas")
   private boolean useCache = true;
 
-  @Option(name="enableBlockreducer", description="Enable the possibility to precompute explicit abstraction locations.")
-  private boolean enableBlockreducer = false;
-
   @Option(name="merge", values={"SEP", "ABE"}, toUppercase=true,
       description="which merge operator to use for predicate cpa (usually ABE should be used)")
   private String mergeType = "ABE";
 
-  private final Configuration config;
-  private final LogManager logger;
+  @Option(name="blockOperator", description="Type of the block-operator (any class that implements the interface BlockOperator).")
+  @ClassOption(packagePrefix="org.sosy_lab.cpachecker.cpa.predicate.blocking")
+  protected Class<? extends BlockOperator> blockOperatorClass = DefaultBlockOperator.class;
+
+  protected final BlockOperator blockOperator;
+
+  protected final Configuration config;
+  protected final LogManager logger;
+  protected final CFA cfa;
 
   private final PredicateAbstractDomain domain;
   private final PredicateTransferRelation transfer;
@@ -115,16 +121,14 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateCPAStatistics stats;
   private final AbstractElement topElement;
 
-  protected PredicateCPA(Configuration config, LogManager logger, BlockOperator blk, CFA cfa) throws InvalidConfigurationException {
+  protected PredicateCPA(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
     config.inject(this, PredicateCPA.class);
 
     this.config = config;
     this.logger = logger;
+    this.cfa = cfa;
 
-    if (enableBlockreducer) {
-      BlockComputer blockComputer = new BlockedCFAReducer(config);
-      blk.setExplicitAbstractionNodes(blockComputer.computeAbstractionNodes(cfa));
-    }
+    this.blockOperator = createBlockOperator();
 
     RegionManager regionManager = BDDRegionManager.getInstance();
     formulaManagerFactory = new FormulaManagerFactory(config, logger);
@@ -140,7 +144,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     theoremProver = formulaManagerFactory.createTheoremProver();
 
     predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
-    transfer = new PredicateTransferRelation(this, blk);
+    transfer = new PredicateTransferRelation(this, blockOperator);
 
     topElement = PredicateAbstractElement.abstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
     domain = new PredicateAbstractDomain(this);
@@ -168,9 +172,15 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     initialPrecision = new PredicatePrecision(predicates);
 
-    stats = new PredicateCPAStatistics(this, blk);
+    stats = new PredicateCPAStatistics(this, blockOperator);
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
+  }
+
+  protected BlockOperator createBlockOperator() throws InvalidConfigurationException {
+    Class<?>[] argumentTypes = { Configuration.class, LogManager.class, CFA.class };
+    Object[] argumentValues = { config, logger, cfa };
+    return Classes.createInstance(BlockOperator.class, blockOperatorClass, argumentTypes, argumentValues);
   }
 
   private Collection<AbstractionPredicate> readPredicatesFromFile() {

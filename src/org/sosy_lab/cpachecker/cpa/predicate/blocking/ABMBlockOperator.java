@@ -21,31 +21,40 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.predicate;
+package org.sosy_lab.cpachecker.cpa.predicate.blocking;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 @Options
-public class ABMBlockOperator extends BlockOperator {
+public class ABMBlockOperator extends DefaultBlockOperator {
+
+  public ABMBlockOperator(Configuration pConfig, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
+    super(pConfig, pLogger, pCFA);
+  }
 
   private BlockPartitioning partitioning = null;
 
-  void setPartitioning(BlockPartitioning pPartitioning) {
+  public void setPartitioning(BlockPartitioning pPartitioning) {
     checkState(partitioning == null);
     partitioning = pPartitioning;
   }
 
   @Override
-  public boolean isBlockEnd(CFAEdge pEdge, PathFormula pPf) {
+  public boolean isBlockEnd(AbstractElement pElement, CFAEdge pEdge, PathFormula pPf) {
     CFANode succLoc = pEdge.getSuccessor();
 
-    return super.isBlockEnd(pEdge, pPf) || partitioning.isCallNode(succLoc) || partitioning.isReturnNode(succLoc);
+    return super.isBlockEnd(pElement, pEdge, pPf) || partitioning.isCallNode(succLoc) || partitioning.isReturnNode(succLoc);
   }
 
   public BlockPartitioning getPartitioning() {

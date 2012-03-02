@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.impact.ImpactAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.impact.ImpactAbstractElement.NonAbstractionElement;
-import org.sosy_lab.cpachecker.cpa.predicate.BlockOperator;
+import org.sosy_lab.cpachecker.cpa.predicate.blocking.DefaultBlockOperator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -48,12 +48,12 @@ class ImpactTransferRelation implements TransferRelation {
 
   private final LogManager logger;
 
-  private final BlockOperator blk;
+  private final DefaultBlockOperator blk;
   private final FormulaManager fmgr;
   private final PathFormulaManager pfmgr;
   private final TheoremProver prover;
 
-  public ImpactTransferRelation(LogManager pLogger, BlockOperator pBlk,
+  public ImpactTransferRelation(LogManager pLogger, DefaultBlockOperator pBlk,
       FormulaManager pFmgr, PathFormulaManager pPfmgr, TheoremProver pProver) {
     logger = pLogger;
     blk = pBlk;
@@ -73,7 +73,7 @@ class ImpactTransferRelation implements TransferRelation {
 
     ImpactAbstractElement newElement;
 
-    if (blk.isBlockEnd(pCfaEdge, newPathFormula)) {
+    if (blk.isBlockEnd(pElement, pCfaEdge, newPathFormula)) {
       PathFormula blockFormula = newPathFormula;
       newPathFormula = pfmgr.makeEmptyPathFormula(blockFormula);
 

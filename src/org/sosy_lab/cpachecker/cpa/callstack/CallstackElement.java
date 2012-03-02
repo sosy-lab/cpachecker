@@ -70,6 +70,30 @@ public final class CallstackElement implements AbstractElement, Partitionable, A
     return depth;
   }
 
+  public String[] getCallstackFunctions(String pLastFunction) {
+    int stackSize = getDepth();
+    if (pLastFunction != "") {
+      if (pLastFunction != this.getCurrentFunction()) {
+        stackSize += 1;
+      }
+    }
+    String[] result =  new String[stackSize];
+
+    int countDown = getDepth()-1;
+    CallstackElement prevElement = this;
+    do {
+      result[countDown] = prevElement.getCurrentFunction();
+      prevElement = prevElement.getPreviousElement();
+      countDown--;
+    } while (prevElement != null);
+
+    if (stackSize != getDepth()) {
+      result[result.length-1] = pLastFunction;
+    }
+
+    return result;
+  }
+
   @Override
   public Object getPartitionKey() {
     return this;

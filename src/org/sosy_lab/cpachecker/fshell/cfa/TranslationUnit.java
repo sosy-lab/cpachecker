@@ -33,7 +33,7 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
-import org.sosy_lab.cpachecker.cfa.CFATopologicalSort;
+import org.sosy_lab.cpachecker.cfa.CFATopologicalSortStrict;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
@@ -109,8 +109,8 @@ class TranslationUnit {
 
     // annotate CFA nodes with topological information for later use
     for(CFAFunctionDefinitionNode cfa : cfas.values()){
-      CFATopologicalSort topSort = new CFATopologicalSort();
-      topSort.topologicalSort(cfa);
+      CFATopologicalSortStrict topSort = new CFATopologicalSortStrict();
+      topSort.assignSorting(cfa);
     }
 
     TranslationUnit lTranslationUnit = new TranslationUnit(cfas, c.getGlobalDeclarations());

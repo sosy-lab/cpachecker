@@ -37,6 +37,8 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.cpa.predicate.blocking.ABMBlockOperator;
+import org.sosy_lab.cpachecker.cpa.predicate.interfaces.BlockOperator;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.AuxiliaryComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.CachingRelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableOccurrenceComputer;
@@ -50,7 +52,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicat
 public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgramAnalysisWithABM {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(ABMPredicateCPA.class).withOptions(ABMBlockOperator.class);
+    return AutomaticCPAFactory.forType(ABMPredicateCPA.class);
   }
 
   private final ABMPredicateReducer reducer;
@@ -61,9 +63,8 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   @Option(description="whether to use auxiliary predidates for reduction")
   private boolean auxiliaryPredicateComputer = true;
 
-
-  private ABMPredicateCPA(Configuration config, LogManager logger, ABMBlockOperator pBlk, CFA pCfa) throws InvalidConfigurationException {
-    super(config, logger, pBlk, pCfa);
+  private ABMPredicateCPA(Configuration config, LogManager logger, CFA pCfa) throws InvalidConfigurationException {
+    super(config, logger, pCfa);
 
     config.inject(this, ABMPredicateCPA.class);
 
@@ -77,9 +78,15 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
     this.relevantPredicatesComputer = relevantPredicatesComputer;
 
     reducer = new ABMPredicateReducer(this, relevantPredicatesComputer);
-    blk = pBlk;
+    assert (this.blockOperator instanceof ABMBlockOperator);
+    blk = (ABMBlockOperator) this.blockOperator;
     stats = new ABMPredicateCPAStatistics();
   }
+
+  @Override
+  protected BlockOperator createBlockOperator() throws InvalidConfigurationException {
+    return new ABMBlockOperator(config, logger, cfa);
+  };
 
   RelevantPredicatesComputer getRelevantPredicatesComputer() {
     return relevantPredicatesComputer;
