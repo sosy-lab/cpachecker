@@ -442,6 +442,9 @@ cpa.predicate.blk.alwaysAfterThreshold = true
 # abstraction always and only on explicitly computed abstraction nodes.
 cpa.predicate.blk.alwaysAndOnlyAtExplicitNodes = false
 
+# force abstractions at each assume edge
+cpa.predicate.blk.alwaysAtAssumes = false
+
 # force abstractions at each function calls/returns, regardless of threshold
 cpa.predicate.blk.alwaysAtFunctions = true
 
@@ -483,6 +486,7 @@ cpa.predicate.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
 
 # With of the bitvectors if useBitwise is true.
+cpa.predicate.mathsat.bitWidth = no default value
 cpa.predicate.mathsat.bitWidth = 32
 
 # use uninterpreted functions for *, & and array access
@@ -493,6 +497,7 @@ cpa.predicate.mathsat.signed = true
 
 # Encode program variables of bitvectors of a fixed size,instead of using
 # REALS. No interpolation and thus no refinement issupported in this case.
+cpa.predicate.mathsat.useBitwise = no default value
 cpa.predicate.mathsat.useBitwise = false
 
 # use a combination of theories (this is incomplete)
@@ -503,6 +508,7 @@ cpa.predicate.mathsat.useDtc = false
 # computing interpolants we still use the LA solver, but encoding variables
 # as ints might still be a good idea: we can tighten strict inequalities, and
 # split negated equalities
+cpa.predicate.mathsat.useIntegers = no default value
 cpa.predicate.mathsat.useIntegers = false
 
 # Use UIFs (recommended because its more precise)

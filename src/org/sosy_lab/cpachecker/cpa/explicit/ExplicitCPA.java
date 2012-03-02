@@ -29,6 +29,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
+import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCPAChecker;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -46,6 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 
 @Options(prefix="cpa.explicit")
 public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
@@ -78,6 +81,8 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
   private final Configuration config;
   private final LogManager logger;
 
+  static CounterexampleCPAChecker checker;
+
   private ExplicitCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     this.config = config;
     this.logger = logger;
@@ -91,6 +96,8 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
     stopOperator        = initializeStopOperator();
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     reducer             = new ExplicitReducer();
+
+    checker = new CounterexampleCPAChecker(config, logger, new ReachedSetFactory(config, logger), CoreComponentsFactory.static_cfa);
   }
 
   private MergeOperator initializeMergeOperator() {

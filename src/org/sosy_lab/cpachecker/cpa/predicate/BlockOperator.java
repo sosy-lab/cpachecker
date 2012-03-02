@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 import com.google.common.collect.ImmutableSet;
@@ -65,6 +66,9 @@ public class BlockOperator {
   @Option(description="force abstractions at each function calls/returns, regardless of threshold")
   private boolean alwaysAtFunctions = true;
 
+  @Option(description="force abstractions at each assume edge")
+  private boolean alwaysAtAssumes = false;
+
   @Option(description="abstraction always and only on explicitly computed abstraction nodes.")
   private boolean alwaysAndOnlyAtExplicitNodes = false;
 
@@ -101,6 +105,10 @@ public class BlockOperator {
 
     if (alwaysAtLoops && isLoopHead(succLoc)) {
       numBlkLoops++;
+      return true;
+    }
+
+    if (alwaysAtAssumes && isAssume(succLoc)) {
       return true;
     }
 
@@ -155,6 +163,10 @@ public class BlockOperator {
   protected boolean isFunctionCall(CFANode succLoc) {
     return (succLoc instanceof CFAFunctionDefinitionNode) // function call edge
         || (succLoc.getEnteringSummaryEdge() != null); // function return edge
+  }
+
+  protected boolean isAssume(CFANode succLoc) {
+    return (succLoc.getNumLeavingEdges() > 0 && succLoc.getLeavingEdge(0) instanceof AssumeEdge); // assume
   }
 
   public void setExplicitAbstractionNodes(ImmutableSet<CFANode> pNodes) {

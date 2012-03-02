@@ -78,14 +78,14 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
 
     String automaton =
         produceGuidingAutomaton(pRootElement, pErrorPathElements);
-
+System.out.println(automaton);
     File automatonFile;
     try {
       automatonFile = Files.createTempFile("automaton", ".txt", automaton);
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed("Could not write path automaton to file " + e.getMessage(), e);
     }
-
+System.out.println(automatonFile.getAbsolutePath());
     CFAFunctionDefinitionNode entryNode = (CFAFunctionDefinitionNode)extractLocation(pRootElement);
 
     try {
@@ -109,7 +109,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       }
 
     } catch (InvalidConfigurationException e) {
-      throw new CounterexampleAnalysisFailed("Invalid configuration in counterexample-check config: " + e.getMessage(), e);
+      throw new CounterexampleAnalysisFailed("Invalid co nfigu rat ion in counterexample-check config: " + e.getMessage(), e);
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed(e.getMessage(), e);
     }

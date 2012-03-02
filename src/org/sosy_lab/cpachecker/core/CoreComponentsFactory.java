@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * algorithm, cpa and reached set.
  */
 @Options(prefix="analysis")
-class CoreComponentsFactory {
+public class CoreComponentsFactory {
 
   @Option(description="use assumption collecting algorithm")
   private boolean useAssumptionCollector = false;
@@ -99,12 +99,12 @@ class CoreComponentsFactory {
     reachedSetFactory = new ReachedSetFactory(config, logger);
     cpaFactory = new CPABuilder(config, logger, reachedSetFactory);
   }
-
+public static CFA static_cfa;
   public Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
       final String filename, final CFA cfa, final MainCPAStatistics stats)
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
-
+    static_cfa = cfa;
     Algorithm algorithm;
 
     if(useProofCheckAlgorithm) {

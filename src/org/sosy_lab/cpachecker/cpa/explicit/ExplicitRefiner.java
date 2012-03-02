@@ -190,6 +190,25 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> counterexampleTraceInfo,
       boolean pRepeatedCounterexample) throws CPAException {
 
+    Set<ARTElement> elems = new HashSet<ARTElement>();
+
+    int i = 0;
+    for(Pair<ARTElement, CFANode> el : errorPath){
+      System.out.println(el.getSecond());
+      elems.add(el.getFirst());
+    }
+
+    try {
+      System.out.println("checking ...");
+      boolean feasible = ExplicitCPA.checker.checkCounterexample((ARTElement)pReached.asReachedSet().getFirstElement(),
+          (ARTElement)pReached.asReachedSet().getLastElement(), elems);
+
+      System.out.println("precise counter examlple check says: " + (feasible ? "" : "in") + "feasible");
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+
     precisionUpdate.start();
 
     // check if there was progress
