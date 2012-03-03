@@ -42,16 +42,13 @@ public final class IASTPointerTypeSpecifier extends IType {
   public String toASTString(String pDeclarator) {
     // ugly hack but it works:
     // We need to insert the "*" between the type and the name (e.g. "int *var").
-    String decl = type.toASTString("*" + pDeclarator);
+    String decl;
 
-    return (isConst() ? "const " : "")
-        + (isVolatile() ? "volatile " : "")
-        + decl;
-  }
-
-
-  protected String toParenthesizedASTString(String pDeclarator) {
-    String decl = type.toASTString("(*" + pDeclarator + ")");
+    if (type instanceof IASTArrayTypeSpecifier) {
+      decl = type.toASTString("(*" + pDeclarator + ")");
+    } else {
+      decl = type.toASTString("*" + pDeclarator);
+    }
 
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")

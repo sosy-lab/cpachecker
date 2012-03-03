@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -93,6 +94,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 @SuppressWarnings("deprecation") // several methods are deprecated in CDT 7 but still working
 class ASTConverter {
@@ -999,24 +1001,33 @@ class ASTConverter {
 
     } else {
       if (d.getNestedDeclarator() != null) {
-        if (d.getName().getRawSignature().isEmpty()
-            && (d.getInitializer() == null)) {
+        if (d.getName().getRawSignature().isEmpty()) {
 
-          if (d.getPointerOperators().length == 0) {
+          if ((d.getInitializer() == null) && (d.getPointerOperators().length == 0)) {
             // d is a declarator that contains nothing interesting,
             // except the nested declarator, so we can ignore it.
             // This occurs for example with the following C code:
             // int ( __attribute__((__stdcall__)) (*func))(int x)
             return convert(d.getNestedDeclarator(), specifier);
-          } else {
-            // d contains only pointer operators
-            // this occurs for example with the C code "int *(i[1])"
 
-            Triple<IType, IASTInitializer, String> nested = convert(d.getNestedDeclarator(), specifier);
-            return Triple.of(
-                convertPointerOperators(d.getPointerOperators(), nested.getFirst()),
-                nested.getSecond(),
-                nested.getThird());
+          } else if (d.getNestedDeclarator() instanceof IASTArrayDeclarator) {
+            // This is code like "int *(i[1])", which actually is an array of pointers
+            // (so the other way round).
+
+            IASTArrayDeclarator a = (IASTArrayDeclarator)d.getNestedDeclarator();
+
+            assert a.getInitializer() == null : d.getRawSignature();
+            assert a.getPointerOperators().length == 0 : d.getRawSignature();
+            assert a.getNestedDeclarator() == null : d.getRawSignature();
+
+            IType type = specifier;
+            type = convertPointerOperators(d.getPointerOperators(), type);
+            type = convertArrayModifiers(a.getArrayModifiers(), type);
+
+            IASTInitializer init = convert(d.getInitializer());
+            String name = convert(a.getName());
+
+            return Triple.of(type, init, name);
           }
         }
 
@@ -1048,6 +1059,7 @@ class ASTConverter {
 
   private Triple<IType, IASTInitializer, String> convert(org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator d, IType type)  {
     String name;
+    List<IASTPointerTypeSpecifier> addPointers = new ArrayList<IASTPointerTypeSpecifier>();
     if (d.getNestedDeclarator() != null) {
       Triple<? extends IType, IASTInitializer, String> nestedDeclarator = convert(d.getNestedDeclarator(), type);
 
@@ -1057,14 +1069,38 @@ class ASTConverter {
       type = nestedDeclarator.getFirst();
       name = nestedDeclarator.getThird();
 
+      // The C code "int (*j)[2]" is weird because it actually declares
+      // a pointer of array of int (and not the other way round).
+      // However, the nested declarator will have the pointer operators.
+      // So we strip them, and re-add them after adding the array modifiers.
+
+      for (int i = 0; i < d.getNestedDeclarator().getPointerOperators().length; i++) {
+        assert type instanceof IASTPointerTypeSpecifier;
+        addPointers.add((IASTPointerTypeSpecifier)type);
+        type = ((IASTPointerTypeSpecifier)type).getType();
+      }
+
     } else {
       name = convert(d.getName());
     }
 
+    // first pointer, then array modifiers
+    // The code "int *i[2]" declares an array of pointers.
     type = convertPointerOperators(d.getPointerOperators(), type);
+    type = convertArrayModifiers(d.getArrayModifiers(), type);
 
-    // TODO check order of pointer operators and array modifiers
-    for (org.eclipse.cdt.core.dom.ast.IASTArrayModifier a : d.getArrayModifiers()) {
+    // Now re-add the inner pointer modifiers, but in reverse order of course
+    // (inner to outer).
+    for (IASTPointerTypeSpecifier p : Lists.reverse(addPointers)) {
+      type = new IASTPointerTypeSpecifier(p.isConst(), p.isVolatile(), type);
+    }
+
+    return Triple.of(type, convert(d.getInitializer()), name);
+  }
+
+  private IType convertArrayModifiers(org.eclipse.cdt.core.dom.ast.IASTArrayModifier[] modifiers, IType type)
+      throws CFAGenerationRuntimeException {
+    for (org.eclipse.cdt.core.dom.ast.IASTArrayModifier a : modifiers) {
 
       if (a instanceof org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier) {
         type = convert((org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier)a, type);
@@ -1073,7 +1109,7 @@ class ASTConverter {
         throw new CFAGenerationRuntimeException("Unknown array modifier", a);
       }
     }
-    return Triple.of(type, convert(d.getInitializer()), name);
+    return type;
   }
 
   private IASTArrayTypeSpecifier convert(org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier a, IType type) {

@@ -46,16 +46,9 @@ public class IASTArrayTypeSpecifier extends IType {
 
   @Override
   public String toASTString(String pDeclarator) {
-    String decl;
-    if (type instanceof IASTPointerTypeSpecifier) {
-      decl = ((IASTPointerTypeSpecifier) type).toParenthesizedASTString(pDeclarator);
-    } else {
-      decl = type.toASTString(pDeclarator);
-    }
-
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
-        + decl
-        + "[" + (length != null ? length.toASTString() : "") + "]";
+        +  type.toASTString(pDeclarator)
+        + ("[" + (length != null ? length.toASTString() : "") + "]");
   }
 }
