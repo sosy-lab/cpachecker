@@ -28,13 +28,13 @@ import static java.lang.Character.isDigit;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -93,6 +93,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
@@ -993,127 +994,102 @@ class ASTConverter {
   }
 
   private Triple<IType, IASTInitializer, String> convert(org.eclipse.cdt.core.dom.ast.IASTDeclarator d, IType specifier) {
-    if (d instanceof org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator) {
-      return convert((org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator)d, specifier);
-
-    } else if (d instanceof org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator) {
+    if (d instanceof org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator)d, specifier);
 
     } else {
-      if (d.getNestedDeclarator() != null) {
-        if (d.getName().getRawSignature().isEmpty()) {
+      // Parsing type declarations in C is complex.
+      // For example, array modifiers and pointer operators are declared in the
+      // "wrong" way:
+      // "int (*drives[4])[6]" is "array 4 of pointer to array 6 of int"
+      // (The inner most modifiers are the highest-level ones.)
+      // So we don't do this recursively, but instead collect all modifiers
+      // and apply them after we have reached the inner-most declarator.
 
-          if ((d.getInitializer() == null) && (d.getPointerOperators().length == 0)) {
-            // d is a declarator that contains nothing interesting,
-            // except the nested declarator, so we can ignore it.
-            // This occurs for example with the following C code:
-            // int ( __attribute__((__stdcall__)) (*func))(int x)
-            return convert(d.getNestedDeclarator(), specifier);
+      // Collection of all modifiers (outermost modifier is first).
+      List<org.eclipse.cdt.core.dom.ast.IASTNode> modifiers = Lists.newArrayListWithExpectedSize(1);
 
-          } else if (d.getNestedDeclarator() instanceof IASTArrayDeclarator) {
-            // This is code like "int *(i[1])", which actually is an array of pointers
-            // (so the other way round).
+      IASTInitializer initializer = null;
+      String name = null;
 
-            IASTArrayDeclarator a = (IASTArrayDeclarator)d.getNestedDeclarator();
+      // Descend into the nested chain of declators.
+      // Find out the name and the initializer, and collect all modifiers.
+      org.eclipse.cdt.core.dom.ast.IASTDeclarator currentDecl = d;
+      while (currentDecl != null) {
+        // TODO handle bitfields by checking for instanceof org.eclipse.cdt.core.dom.ast.IASTFieldDeclarator
 
-            assert a.getInitializer() == null : d.getRawSignature();
-            assert a.getPointerOperators().length == 0 : d.getRawSignature();
-            assert a.getNestedDeclarator() == null : d.getRawSignature();
-
-            IType type = specifier;
-            type = convertPointerOperators(d.getPointerOperators(), type);
-            type = convertArrayModifiers(a.getArrayModifiers(), type);
-
-            IASTInitializer init = convert(d.getInitializer());
-            String name = convert(a.getName());
-
-            return Triple.of(type, init, name);
-          }
+        if (currentDecl instanceof org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator) {
+          throw new CFAGenerationRuntimeException("Unsupported declaration nested function declarations", d);
         }
 
-        throw new CFAGenerationRuntimeException("Nested declarator where not expected", d);
+        modifiers.addAll(Arrays.asList(currentDecl.getPointerOperators()));
+
+        if (currentDecl instanceof org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator) {
+          modifiers.addAll(Arrays.asList(((org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator) currentDecl).getArrayModifiers()));
+        }
+
+        if (currentDecl.getInitializer() != null) {
+          if (initializer != null) {
+            throw new CFAGenerationRuntimeException("Unsupported declaration with two initializers", d);
+          }
+          initializer = convert(currentDecl.getInitializer());
+        }
+
+        if (!currentDecl.getName().toString().isEmpty()) {
+          if (name != null) {
+            throw new CFAGenerationRuntimeException("Unsupported declaration with two names", d);
+          }
+          name = convert(currentDecl.getName());
+        }
+
+        currentDecl = currentDecl.getNestedDeclarator();
       }
-      return Triple.of(
-             convertPointerOperators(d.getPointerOperators(), specifier),
-             convert(d.getInitializer()),
-             convert(d.getName()));
+
+      name = Strings.nullToEmpty(name); // there may be no name at all, for example in parameter declarations
+
+      // Add the modifiers to the type.
+      IType type = specifier;
+      for (org.eclipse.cdt.core.dom.ast.IASTNode modifier : modifiers) {
+        if (modifier instanceof org.eclipse.cdt.core.dom.ast.IASTArrayModifier) {
+          type = convert((org.eclipse.cdt.core.dom.ast.IASTArrayModifier)modifier, type);
+
+        } else if (modifier instanceof org.eclipse.cdt.core.dom.ast.IASTPointerOperator) {
+          type = convert((org.eclipse.cdt.core.dom.ast.IASTPointerOperator)modifier, type);
+
+        } else {
+          assert false;
+        }
+      }
+
+      return Triple.of(type, initializer, name);
     }
   }
 
   private IType convertPointerOperators(org.eclipse.cdt.core.dom.ast.IASTPointerOperator[] ps, IType type) {
     for (org.eclipse.cdt.core.dom.ast.IASTPointerOperator p : ps) {
-
-      if (p instanceof org.eclipse.cdt.core.dom.ast.IASTPointer) {
-        type = convert((org.eclipse.cdt.core.dom.ast.IASTPointer)p, type);
-
-      } else {
-        throw new CFAGenerationRuntimeException("Unknown pointer operator", p);
-      }
+      type = convert(p, type);
     }
     return type;
   }
 
-  private IASTPointerTypeSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTPointer p, IType type) {
-    return new IASTPointerTypeSpecifier(p.isConst(), p.isVolatile(), type);
-  }
-
-  private Triple<IType, IASTInitializer, String> convert(org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator d, IType type)  {
-    String name;
-    List<IASTPointerTypeSpecifier> addPointers = new ArrayList<IASTPointerTypeSpecifier>();
-    if (d.getNestedDeclarator() != null) {
-      Triple<? extends IType, IASTInitializer, String> nestedDeclarator = convert(d.getNestedDeclarator(), type);
-
-      assert d.getName().getRawSignature().isEmpty() : d;
-      assert nestedDeclarator.getSecond() == null;
-
-      type = nestedDeclarator.getFirst();
-      name = nestedDeclarator.getThird();
-
-      // The C code "int (*j)[2]" is weird because it actually declares
-      // a pointer of array of int (and not the other way round).
-      // However, the nested declarator will have the pointer operators.
-      // So we strip them, and re-add them after adding the array modifiers.
-
-      for (int i = 0; i < d.getNestedDeclarator().getPointerOperators().length; i++) {
-        assert type instanceof IASTPointerTypeSpecifier;
-        addPointers.add((IASTPointerTypeSpecifier)type);
-        type = ((IASTPointerTypeSpecifier)type).getType();
-      }
+  private IASTPointerTypeSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTPointerOperator po, IType type) {
+    if (po instanceof org.eclipse.cdt.core.dom.ast.IASTPointer) {
+      org.eclipse.cdt.core.dom.ast.IASTPointer p = (org.eclipse.cdt.core.dom.ast.IASTPointer)po;
+      return new IASTPointerTypeSpecifier(p.isConst(), p.isVolatile(), type);
 
     } else {
-      name = convert(d.getName());
+      throw new CFAGenerationRuntimeException("Unknown pointer operator", po);
     }
-
-    // first pointer, then array modifiers
-    // The code "int *i[2]" declares an array of pointers.
-    type = convertPointerOperators(d.getPointerOperators(), type);
-    type = convertArrayModifiers(d.getArrayModifiers(), type);
-
-    // Now re-add the inner pointer modifiers, but in reverse order of course
-    // (inner to outer).
-    for (IASTPointerTypeSpecifier p : Lists.reverse(addPointers)) {
-      type = new IASTPointerTypeSpecifier(p.isConst(), p.isVolatile(), type);
-    }
-
-    return Triple.of(type, convert(d.getInitializer()), name);
   }
 
-  private IType convertArrayModifiers(org.eclipse.cdt.core.dom.ast.IASTArrayModifier[] modifiers, IType type)
-      throws CFAGenerationRuntimeException {
-    for (org.eclipse.cdt.core.dom.ast.IASTArrayModifier a : modifiers) {
+  private IType convert(org.eclipse.cdt.core.dom.ast.IASTArrayModifier am, IType type) {
+    if (am instanceof org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier) {
+      org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier a = (org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier)am;
+      return new IASTArrayTypeSpecifier(a.isConst(), a.isVolatile(), type, convertExpressionWithoutSideEffects(a.getConstantExpression()));
 
-      if (a instanceof org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier) {
-        type = convert((org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier)a, type);
-
-      } else {
-        throw new CFAGenerationRuntimeException("Unknown array modifier", a);
-      }
+    } else {
+      throw new CFAGenerationRuntimeException("Unknown array modifier", am);
     }
-    return type;
-  }
-
-  private IASTArrayTypeSpecifier convert(org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier a, IType type) {
-    return new IASTArrayTypeSpecifier(a.isConst(), a.isVolatile(), type, convertExpressionWithoutSideEffects(a.getConstantExpression()));
   }
 
   private Triple<IType, IASTInitializer, String> convert(org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator d, IType returnType) {
