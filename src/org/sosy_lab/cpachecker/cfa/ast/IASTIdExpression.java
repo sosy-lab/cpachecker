@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public class IASTIdExpression extends IASTExpression {
+public final class IASTIdExpression extends IASTExpression {
 
   private final String name;
   private final IASTSimpleDeclaration declaration;
@@ -61,5 +61,11 @@ public class IASTIdExpression extends IASTExpression {
   @Override
   public String toASTString() {
     return name;
+  }
+
+  @Override
+  protected String toParenthesizedASTString() {
+    // id expression never need parentheses
+    return toASTString();
   }
 }

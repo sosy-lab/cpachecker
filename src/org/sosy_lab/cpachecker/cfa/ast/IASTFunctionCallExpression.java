@@ -75,11 +75,7 @@ public class IASTFunctionCallExpression extends IASTRightHandSide {
   public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
 
-    String func = functionName.toASTString();
-    if (!func.matches("[a-zA-Z0-9_]")) {
-      func = "(" + func + ")";
-    }
-    lASTString.append(func);
+    lASTString.append(functionName.toParenthesizedASTString());
     lASTString.append("(");
     Joiner.on(", ").appendTo(lASTString, new ASTStringIterable(parameters));
     lASTString.append(")");

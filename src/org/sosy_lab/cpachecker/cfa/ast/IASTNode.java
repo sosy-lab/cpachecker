@@ -36,4 +36,8 @@ public abstract class IASTNode {
   }
 
   public abstract String toASTString();
+
+  protected String toParenthesizedASTString() {
+    return "(" + toASTString() + ")";
+  }
 }
