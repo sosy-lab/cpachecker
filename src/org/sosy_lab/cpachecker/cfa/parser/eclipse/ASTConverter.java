@@ -1000,14 +1000,24 @@ class ASTConverter {
     } else {
       if (d.getNestedDeclarator() != null) {
         if (d.getName().getRawSignature().isEmpty()
-            && (d.getInitializer() == null)
-            && (d.getPointerOperators().length == 0)) {
+            && (d.getInitializer() == null)) {
 
-          // d is a declarator that contains nothing interesting,
-          // except the nested declarator, so we can ignore it.
-          // This occurs for example with the following C code:
-          // int ( __attribute__((__stdcall__)) (*func))(int x)
-          return convert(d.getNestedDeclarator(), specifier);
+          if (d.getPointerOperators().length == 0) {
+            // d is a declarator that contains nothing interesting,
+            // except the nested declarator, so we can ignore it.
+            // This occurs for example with the following C code:
+            // int ( __attribute__((__stdcall__)) (*func))(int x)
+            return convert(d.getNestedDeclarator(), specifier);
+          } else {
+            // d contains only pointer operators
+            // this occurs for example with the C code "int *(i[1])"
+
+            Triple<IType, IASTInitializer, String> nested = convert(d.getNestedDeclarator(), specifier);
+            return Triple.of(
+                convertPointerOperators(d.getPointerOperators(), nested.getFirst()),
+                nested.getSecond(),
+                nested.getThird());
+          }
         }
 
         throw new CFAGenerationRuntimeException("Nested declarator where not expected", d);
