@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
@@ -1512,7 +1511,7 @@ public class PointerTransferRelation implements TransferRelation {
       // pointer variable declaration
       String functionName = cfaEdge.getSuccessor().getFunctionName();
       if (missing.typeInformationEdge instanceof DeclarationEdge
-          && ((IASTDeclaration) missing.typeInformationEdge).isGlobal()) {
+          && ((DeclarationEdge) missing.typeInformationEdge).getDeclaration().isGlobal()) {
         functionName = null;
       }
 

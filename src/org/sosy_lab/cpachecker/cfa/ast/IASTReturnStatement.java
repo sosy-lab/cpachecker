@@ -40,7 +40,7 @@ public class IASTReturnStatement extends IASTNode {
   @Override
   public String toASTString() {
     return "return"
-        + (expression != null ? " (" + expression.toASTString() + ")" : "")
+        + (expression != null ? " " + expression.toASTString() : "")
         + ";";
   }
 }

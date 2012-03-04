@@ -63,7 +63,7 @@ public class ProductAutomatonTransferRelation extends CompositeTransferRelation 
     CompositePrecision lCompositePrecision = (CompositePrecision)pPrecision;
 
     int resultCount = 1;
-    List<AbstractElement> componentElements = lCompositeElement.getElements();
+    List<AbstractElement> componentElements = lCompositeElement.getWrappedElements();
     List<Collection<? extends AbstractElement>> allComponentsSuccessors = new ArrayList<Collection<? extends AbstractElement>>(size);
 
     for (int i = 0; i < size; i++) {
@@ -106,7 +106,7 @@ public class ProductAutomatonTransferRelation extends CompositeTransferRelation 
       ProductAutomatonElement.PredicateElement lElement = (ProductAutomatonElement.PredicateElement)pElement;
       List<AbstractElement> lSubelements = new ArrayList<AbstractElement>(lElement.getNumberofElements());
 
-      for (AbstractElement lSubelement : lElement.getElements()) {
+      for (AbstractElement lSubelement : lElement.getWrappedElements()) {
         if (lSubelement instanceof GuardedEdgeAutomatonPredicateElement) {
           GuardedEdgeAutomatonPredicateElement lPredicateElement = (GuardedEdgeAutomatonPredicateElement)lSubelement;
           lSubelements.add(lPredicateElement.getStandardElement());

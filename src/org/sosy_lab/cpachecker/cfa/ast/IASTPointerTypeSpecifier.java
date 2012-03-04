@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+
 public final class IASTPointerTypeSpecifier extends IType {
 
   private final IType type;
@@ -38,12 +39,19 @@ public final class IASTPointerTypeSpecifier extends IType {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(String pDeclarator) {
+    // ugly hack but it works:
+    // We need to insert the "*" between the type and the name (e.g. "int *var").
+    String decl;
+
+    if (type instanceof IASTArrayTypeSpecifier) {
+      decl = type.toASTString("(*" + pDeclarator + ")");
+    } else {
+      decl = type.toASTString("*" + pDeclarator);
+    }
+
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
-        + (type instanceof IASTFunctionTypeSpecifier
-            ? ((IASTFunctionTypeSpecifier)type).toASTStringFunctionPointer()
-            : type.toASTString() + "*");
-
+        + decl;
   }
 }

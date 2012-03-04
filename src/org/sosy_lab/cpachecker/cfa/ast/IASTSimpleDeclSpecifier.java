@@ -23,6 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+
 public final class IASTSimpleDeclSpecifier extends IType {
 
   private final BasicType type;
@@ -83,40 +89,40 @@ public final class IASTSimpleDeclSpecifier extends IType {
   }
 
   @Override
-  public String toASTString() {
-    StringBuilder lASTString = new StringBuilder();
+  public String toASTString(String pDeclarator) {
+    List<String> parts = new ArrayList<String>();
 
     if (isConst()) {
-      lASTString.append("const ");
+      parts.add("const");
     }
     if (isVolatile()) {
-      lASTString.append("volatile ");
+      parts.add("volatile");
     }
 
     if (isUnsigned) {
-      lASTString.append("unsigned ");
+      parts.add("unsigned");
     } else if (isSigned) {
-      lASTString.append("signed ");
+      parts.add("signed");
     }
 
     if (isLongLong) {
-      lASTString.append("long long");
+      parts.add("long long");
     } else if (isLong) {
-      lASTString.append("long ");
+      parts.add("long");
     } else if (isShort) {
-      lASTString.append("short ");
+      parts.add("short");
     }
 
     if (isImaginary) {
-      lASTString.append("_Imaginary ");
+      parts.add("_Imaginary");
     }
     if (isComplex) {
-      lASTString.append("_Complex ");
+      parts.add("_Complex");
     }
 
-    lASTString.append(type.toASTString());
-    lASTString.append(" ");
-    return lASTString.toString();
-  }
+    parts.add(Strings.emptyToNull(type.toASTString()));
+    parts.add(Strings.emptyToNull(pDeclarator));
 
+    return Joiner.on(' ').skipNulls().join(parts);
+  }
 }

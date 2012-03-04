@@ -81,9 +81,10 @@ public class BasicBalancer implements Balancer {
     strategy = s;
   }
 
+  @Override
   public boolean balance(TemplateNetwork tnet) throws RefinementFailedException {
     //int[] methods = {0,1};
-    int[] methods = {0};
+    int[] methods = {1};
     boolean succeed = false;
     for (int i = 0; i < methods.length; i++) {
       int method = methods[i];

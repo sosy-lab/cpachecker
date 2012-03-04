@@ -35,16 +35,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
-import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
@@ -56,7 +55,6 @@ import org.sosy_lab.cpachecker.cpa.art.Path;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -79,42 +77,20 @@ public class PathToCTranslator {
 
   private PathToCTranslator() { }
 
-  public static String translatePaths(Optional<CFA> cfa, ARTElement artRoot, Set<ARTElement> elementsOnErrorPath) {
+  public static String translatePaths(ARTElement artRoot, Set<ARTElement> elementsOnErrorPath) {
     PathToCTranslator translator = new PathToCTranslator();
 
-    if (cfa.isPresent()) {
-      translator.addFunctionDeclarations(cfa.get());
-    }
-
-    translator.translatePath(artRoot, elementsOnErrorPath);
+    translator.translatePaths0(artRoot, elementsOnErrorPath);
 
     return translator.generateCCode();
   }
 
-  public static String translateSinglePath(Optional<CFA> cfa, Path pPath) {
+  public static String translateSinglePath(Path pPath) {
     PathToCTranslator translator = new PathToCTranslator();
 
-    if (cfa.isPresent()) {
-      translator.addFunctionDeclarations(cfa.get());
-    }
-
-    translator.translateSinglePath(pPath);
+    translator.translateSinglePath0(pPath);
 
     return translator.generateCCode();
-  }
-
-  private void addFunctionDeclarations(CFA cfa) {
-    // Add the original function declarations to enable read-only use of function pointers;
-    // there will be no code for these functions, so they can never be called via the function
-    // pointer properly; a real solution requires function pointer support within the CPA
-    // providing location/successor information
-    for (CFAFunctionDefinitionNode node : cfa.getAllFunctionHeads()) {
-      FunctionDefinitionNode pNode = (FunctionDefinitionNode)node;
-
-      String lFunctionHeader = pNode.getFunctionDefinition().toASTString();
-
-      mFunctionDecls.add(lFunctionHeader);
-    }
   }
 
   private String generateCCode() {
@@ -133,7 +109,7 @@ public class PathToCTranslator {
   }
 
 
-  private void translatePath(final ARTElement firstElement, Set<ARTElement> elementsOnPath) {
+  private void translatePaths0(final ARTElement firstElement, Set<ARTElement> elementsOnPath) {
     // waitlist for the edges to be processed
     List<Edge> waitlist = new ArrayList<Edge>();
 
@@ -167,10 +143,7 @@ public class PathToCTranslator {
     FunctionDefinitionNode functionStartNode = (FunctionDefinitionNode)extractLocation(firstFunctionElement);
     String freshFunctionName = getFreshFunctionName(functionStartNode);
 
-    String lFunctionHeader = functionStartNode.getFunctionDefinition().getDeclSpecifier().toASTString();
-    lFunctionHeader = lFunctionHeader.replaceFirst(
-          Pattern.quote(functionStartNode.getFunctionName() + "("),
-          freshFunctionName + "(");
+    String lFunctionHeader = functionStartNode.getFunctionDefinition().getDeclSpecifier().toASTString(freshFunctionName);
     // lFunctionHeader is for example "void foo_99(int a)"
 
     // create a new function
@@ -184,7 +157,7 @@ public class PathToCTranslator {
     return freshFunctionName;
   }
 
-  private void translateSinglePath(Path pPath) {
+  private void translateSinglePath0(Path pPath) {
     assert pPath.size() >= 1;
     Iterator<Pair<ARTElement, CFAEdge>> pathIt = pPath.iterator();
     Pair<ARTElement, CFAEdge> parentPair = pathIt.next();
@@ -399,6 +372,15 @@ public class PathToCTranslator {
       }
 
       return lDeclarationEdge.getCode();
+    }
+
+    case MultiEdge: {
+      StringBuilder sb = new StringBuilder();
+
+      for (CFAEdge edge : (MultiEdge)pCFAEdge) {
+        sb.append(processSimpleEdge(edge));
+      }
+      return sb.toString();
     }
 
     default:

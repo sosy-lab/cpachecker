@@ -34,7 +34,11 @@ import sys
 
 from datetime import date
 from decimal import *
-from urllib import quote
+try:
+  from urllib import quote
+except ImportError: # 'quote' was moved into 'parse' in Python 3
+  from urllib.parse import quote
+
 
 OUTPUT_PATH = "test/results/"
 
@@ -79,8 +83,100 @@ class Template():
                 matcher = "{{{" + key + "}}}"
                 if matcher in line:
                     line = line.replace(matcher, kws[key])
-                    
             self.outfile.write(line)
+
+
+class Util:
+    """
+    This Class contains some useful functions for Strings, Files and Lists.
+    """
+
+    @staticmethod
+    def getFileList(shortFile):
+        """
+        The function getFileList expands a short filename to a sorted list
+        of filenames. The short filename can contain variables and wildcards.
+        """
+
+        # expand tilde and variables
+        expandedFile = os.path.expandvars(os.path.expanduser(shortFile))
+
+        # expand wildcards
+        fileList = glob.glob(expandedFile)
+
+        # sort alphabetical,
+        # if list is emtpy, sorting returns None, so better do not sort
+        if len(fileList) != 0:
+            fileList.sort()
+        else:
+            print ('\nWarning: no file matches "{0}".'.format(shortFile))
+
+        return fileList
+
+    
+    @staticmethod    
+    def extendFileList(filelist):
+        '''
+        This function takes a list of files, expands wildcards
+        and returns a new list of files.
+        '''
+        return [file for wildcardFile in filelist for file in Util.getFileList(wildcardFile)]
+
+
+    @staticmethod
+    def containsAny(text, list):
+        """
+        This function returns True, iff any string in list is a substring of text.
+        """
+        for elem in list:
+            if elem in text:
+                return True
+        return False
+
+
+    @staticmethod
+    def formatNumber(value, numberOfDigits):
+        """
+        If the value is a number (or number plus one char),
+        this function returns a string-representation of the number
+        with a number of digits after the decimal separator.
+        If the number has more digits, it is rounded, else zeros are added.
+        
+        If the value is no number, it is returned unchanged.
+        """
+        lastChar = ""
+        # if the number ends with "s" or another letter, remove it
+        if (not value.isdigit()) and value[-2:-1].isdigit():
+            lastChar = value[-1]
+            value = value[:-1]
+        try:
+            floatValue = float(value)
+            value = "%.{0}f".format(numberOfDigits) % floatValue
+        except ValueError: # if value is no float, don't format it
+            pass
+        return value + lastChar
+
+
+    @staticmethod
+    def toDecimal(s):
+        s = s.strip()
+        if s.endswith('s'): # '1.23s'
+            s = s[:-1].strip() # remove last char
+        elif s == '-':
+            s = 0
+        return Decimal(s)
+
+
+class Column:
+    """
+    The class Column contains title, text (to identify a line in logFile), 
+    and numberOfDigits of a column.
+    It does NOT contain the value of a column.
+    """
+    def __init__(self, title, text, numOfDigits):
+        self.title = title
+        self.text = text
+        self.numberOfDigits = numOfDigits
 
 
 def getListOfTests(file, filesFromXML=False):
@@ -112,17 +208,22 @@ def getListOfTests(file, filesFromXML=False):
             exit()
 
         for test in tableGenFile.findall('test'):
-            columns = test.findall('column')
-            filelist = getFileList(test.get('filename')) # expand wildcards
-            appendTests(listOfTests, filelist, columns)
+            columnsToShow = test.findall('column')
+            filelist = Util.getFileList(test.get('filename')) # expand wildcards
+            appendTests(listOfTests, filelist, columnsToShow)
 
     else:
-        appendTests(listOfTests, extendFileList(file)) # expand wildcards
+        appendTests(listOfTests, Util.extendFileList(file)) # expand wildcards
 
     return listOfTests
 
 
-def appendTests(listOfTests, filelist, columns=None):
+def appendTests(listOfTests, filelist, columnsToShow=None):
+    '''
+    This function parses the resultfile to a resultElem and collects
+    all columntitles from the resultfile, that should be part of the table.
+    The resultElem and the list with the titles are appended to the listOfTests.
+    '''
     for resultFile in filelist:
         if os.path.exists(resultFile) and os.path.isfile(resultFile):
             print ('    ' + resultFile)
@@ -139,17 +240,15 @@ def appendTests(listOfTests, filelist, columns=None):
 
             resultElem.set("filename", resultFile)
 
-            availableColumnTitles = [column.get("title") for column in
-                                resultElem.find('sourcefile').findall('column')]
-            if columns: # not None
-                    columnTitles = [column.get("title") for column in columns
-                                    if column.get('title') in availableColumnTitles]
-            else:
-                columnTitles = availableColumnTitles
+            if columnsToShow: # not None
+                columns = [Column(c.get("title"), c.text, c.get("numberOfDigits"))
+                           for c in columnsToShow]
+            else: # show all available columns
+                columns = [Column(c.get("title"), None, None)
+                           for c in resultElem.find('sourcefile').findall('column')]
 
             insertLogFileNames(resultFile, resultElem)
-
-            listOfTests.append((resultElem, columnTitles))
+            listOfTests.append((resultElem, columns))
         else:
             print ('File {0} is not found.'.format(repr(resultFile)))
             exit()
@@ -183,7 +282,7 @@ def insertLogFileNames(resultFile, resultElem):
     # for each file: append original filename and insert logFileName into sourcefileElement
     for sourcefile in resultElem.findall('sourcefile'):
         logFileName = os.path.basename(sourcefile.get('name')) + ".log"
-        sourcefile.set('logfileForHtml', logFolder + logFileName)
+        sourcefile.logfile = logFolder + logFileName
 
 
 def mergeFilelists(listOfTests):
@@ -204,36 +303,6 @@ def mergeFilelists(listOfTests):
                         format(testResult.get("filename")))
             continue
     return mergedListOfTests
-
-
-def getFileList(shortFile):
-    """
-    The function getFileList expands a short filename to a sorted list
-    of filenames. The short filename can contain variables and wildcards.
-    """
-
-    # expand tilde and variables
-    expandedFile = os.path.expandvars(os.path.expanduser(shortFile))
-
-    # expand wildcards
-    fileList = glob.glob(expandedFile)
-
-    # sort alphabetical,
-    # if list is emtpy, sorting returns None, so better do not sort
-    if len(fileList) != 0:
-        fileList.sort()
-    else:
-        print ('\nWarning: no file matches "{0}".'.format(shortFile))
-
-    return fileList
-
-
-def extendFileList(filelist):
-    '''
-    This function takes a list of files, expands wildcards
-    and returns a new list of files.
-    '''
-    return [file for wildcardFile in filelist for file in getFileList(wildcardFile)]
 
 
 def getTableHead(listOfTests):
@@ -271,17 +340,8 @@ def getColumnsRowAndTestWidths(listOfTests):
     columnsTitles = [commonPrefix]
     testWidths = []
     for testResult, columns in listOfTests:
-        numberOfColumns = 0
-        for columnTitle in columns:
-            for column in testResult.find('columns').findall('column'):
-
-                if columnTitle == column.get('title'):
-                    numberOfColumns += 1
-                    columnsTitles.append(columnTitle)
-                    break
-
-        testWidths.append(numberOfColumns)
-
+        for column in columns: columnsTitles.append(column.title)
+        testWidths.append(len(columns))
 
     return ('<tr id="columnTitles"><td>' + \
                 '</td><td>'.join(columnsTitles) + \
@@ -359,7 +419,7 @@ def getSystemRow(listOfTests, testWidths):
     systemTag = listOfTests[0][0].find('systeminfo')
     system = getSystem(systemTag)
 
-    for (testResult, columns), numberOfColumns in zip(listOfTests, testWidths):
+    for (testResult, _), numberOfColumns in zip(listOfTests, testWidths):
         systemTag = testResult.find('systeminfo')
         newSystem = getSystem(systemTag)
         if newSystem != system:
@@ -413,7 +473,8 @@ def getBranchRow(listOfTests, testWidths):
     '''
     create branchRow, each cell spans over the columns of a test
     '''
-    testBranches = [os.path.basename(testResult.get('filename', '?')) for (testResult, _) in listOfTests]
+    testBranches = [os.path.basename(testResult.get('filename', '?'))
+                    for (testResult, _) in listOfTests]
     if not any("#" in branch for branch in testBranches):
         return ""
     testBranches = [testBranch.split("#", 1)[0] for testBranch in testBranches]
@@ -440,8 +501,8 @@ def getTableBody(listOfTests):
     The foot contains some statistics.
     '''
 
-    listsOfFiles = [test.findall('sourcefile') for test, columns in listOfTests]
-    listsOfColumns = [columns for test, columns in listOfTests]
+    listsOfFiles = [test.findall('sourcefile') for test, _ in listOfTests]
+    listsOfColumns = [columns for _, columns in listOfTests]
 
     # get filenames
     fileNames = [file.get("name") for file in listsOfFiles[0]]
@@ -554,75 +615,91 @@ def getPathOfSourceFile(filename):
 
 def getValuesOfFileXTest(currentFile, listOfColumns):
     '''
-    This function collects the values from all tests for one file.
+    This function collects the values from one tests for one file.
     Only columns, that should be part of the table, are collected.
     '''
 
     currentFile.status = 'unknown'
+    logfileContent = None
 
     valuesForHTML = []
     valuesForCSV = []
-    for columnTitle in listOfColumns: # for all columns that should be shown
-        for column in currentFile.findall('column'):
-            if columnTitle == column.get('title'):
 
-                value = column.get('value')
+    for column in listOfColumns: # for all columns that should be shown
+        value = '-' # default value
 
-                valuesForCSV.append(value)
-
-                if columnTitle == 'status':
-                    # different colors for correct and incorrect results
-                    status = value.lower()
-                    fileName = currentFile.get('name').lower()
-                    isSafeFile = not containsAny(fileName, BUG_SUBSTRING_LIST)
-
-                    if status == 'safe':
-                        if isSafeFile:
-                            currentFile.status = 'correctSafe'
-                        else:
-                            currentFile.status = 'wrongSafe'
-                    elif status == 'unsafe':
-                        if isSafeFile:
-                            currentFile.status = 'wrongUnsafe'
-                        else:
-                            currentFile.status = 'correctUnsafe'
-                    elif status == 'unknown':
-                        currentFile.status = 'unknown'
-                    else:
-                        currentFile.status = 'error'
-
-                    valuesForHTML.append('<td class="{0}"><a href="{1}">{2}</a></td>'
-                            .format(currentFile.status, quote(str(currentFile.get('logfileForHtml'))), status))
-
-                else:
-                    valuesForHTML.append('<td>{0}</td>'.format(value))
+        if column.text == None: # collect values from XML
+           for xmlColumn in currentFile.findall('column'):
+              if column.title == xmlColumn.get('title'):
+                value = xmlColumn.get('value')
                 break
+
+        else: # collect values from logfile
+            if logfileContent == None: # cache content
+                logfileContent = open(OUTPUT_PATH + currentFile.logfile).read()
+
+            value = getValueFromLogfile(logfileContent, column.text)
+
+        if column.numberOfDigits is not None:
+            value = Util.formatNumber(value, column.numberOfDigits)
+
+        valuesForHTML.append(formatHTML(currentFile, value, column.title))
+        valuesForCSV.append(value)
 
     return (valuesForHTML, valuesForCSV)
 
 
-def containsAny(text, list):
-    '''
-    This function returns True, iff any string in list is a substring of text.
-    '''
-    for elem in list:
-        if text.find(elem) != -1:
-            return True
-    return False
+def getValueFromLogfile(content, identifier):
+    """
+    This method searches for values in lines of the content.
+    The format of such a line must be:    "identifier:  value  (rest)".
+
+    If a value is not found, the value is set to "-".
+    """
+    # stop after the first line, that contains the searched text
+    value = "-" # default value
+    for line in content.splitlines():
+        if identifier in line:
+            startPosition = line.find(':') + 1
+            endPosition = line.find('(') # bracket maybe not found -> (-1)
+            if (endPosition == -1):
+                value = line[startPosition:].strip()
+            else:
+                value = line[startPosition: endPosition].strip()
+            break
+    return value
 
 
-def toDecimal(s):
-    s = s.strip()
-    if s.endswith('s'): # '1.23s'
-        s = s[:-1].strip() # remove last char
-    elif s == '-':
-        s = 0
-    return Decimal(s)
+def formatHTML(currentFile, value, columnTitle):
+    """
+    This function returns a String for HTML.
+    If the columnTitle is 'status', different colors are used,
+    else the value is only wrapped in a table-cell.
+    """
+    if columnTitle == 'status':
+        # different colors for correct and incorrect results
+        status = value.lower()
+        fileName = currentFile.get('name').lower()
+        isSafeFile = not Util.containsAny(fileName, BUG_SUBSTRING_LIST)
+
+        if status == 'safe':
+            currentFile.status = 'correctSafe' if isSafeFile else 'wrongSafe'
+        elif status == 'unsafe':
+            currentFile.status = 'wrongUnsafe' if isSafeFile else 'correctUnsafe'
+        elif status == 'unknown':
+            currentFile.status = 'unknown'
+        else:
+            currentFile.status = 'error'
+        return '<td class="{0}"><a href="{1}">{2}</a></td>'.format(
+                    currentFile.status, quote(currentFile.logfile), status)
+
+    else:
+        return '<td>{0}</td>'.format(value)
 
 
 def getStatsHTML(listsOfFiles, fileNames, listsOfColumns, valuesList):
     maxScore = sum([SCORE_CORRECT_UNSAFE
-                    if containsAny(name.lower(), BUG_SUBSTRING_LIST)
+                    if Util.containsAny(name.lower(), BUG_SUBSTRING_LIST)
                     else SCORE_CORRECT_SAFE
                         for name in fileNames])
     rowsForStats = [['<td>total files</td>'],
@@ -664,10 +741,10 @@ def getStatsOfTest(fileResult, columns, valuesList):
     wrongUnsafeRow = []
     scoreRow = []
 
-    for columnTitle, column in zip(columns, listsOfValues):
+    for column, values in zip(columns, listsOfValues):
 
         # count different elems in statusList
-        if columnTitle == 'status':
+        if column.title == 'status':
             correctSafeNr = statusList.count('correctSafe')
             correctUnsafeNr = statusList.count('correctUnsafe')
             wrongSafeNr = statusList.count('wrongSafe')
@@ -686,7 +763,7 @@ def getStatsOfTest(fileResult, columns, valuesList):
         # get sums for correct, wrong, etc
         else:
             (sum, correctSum, wrongSafeNumber, wrongUnsafeNumber) \
-                = getStatsOfNumber(column, statusList)
+                = getStatsOfNumber(values, statusList)
             sumRow.append('<td>{0}</td>'.format(sum))
             sumCorrectRow.append('<td>{0}</td>'.format(correctSum))
             wrongSafeRow.append('<td>{0}</td>'.format(wrongSafeNumber))
@@ -697,10 +774,10 @@ def getStatsOfTest(fileResult, columns, valuesList):
     return (sumRow, sumCorrectRow, wrongSafeRow, wrongUnsafeRow, scoreRow)
 
 
-def getStatsOfNumber(column, statusList):
-    assert len(column) == len(statusList)
+def getStatsOfNumber(values, statusList):
+    assert len(values) == len(statusList)
     try:
-        valueList = [toDecimal(v) for v in column]
+        valueList = [Util.toDecimal(v) for v in values]
     except InvalidOperation:
         print ("Warning: NumberParseException. Statistics may be wrong.")
         return (0, 0, 0, 0)
@@ -727,7 +804,7 @@ def createTable(file, filesFromXML=False):
 
     if filesFromXML:
         listOfTests = getListOfTests(file, True)
-        prefix = OUTPUT_PATH + os.path.basename(file)[:-3]
+        prefix = OUTPUT_PATH + os.path.basename(file)[:-4] # remove ending '.xml'
     else:
         listOfTests = getListOfTests(file)
         timestamp = time.strftime("%y%m%d-%H%M", time.localtime())

@@ -25,19 +25,22 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public enum BasicType {
 
-  UNSPECIFIED,
-  VOID,
-  BOOL,
-  CHAR,
-  INT,
-  FLOAT,
-  DOUBLE,
+  UNSPECIFIED(""),
+  VOID("void"),
+  BOOL("_Bool"),
+  CHAR("char"),
+  INT("int"),
+  FLOAT("float"),
+  DOUBLE("double"),
   ;
 
+  private final String code;
+
+  private BasicType(String pCode) {
+    code = pCode;
+  }
+
   public String toASTString() {
-    if(this == UNSPECIFIED){
-      return "";
-    }
-    return name().toLowerCase();
+    return code;
   }
 }

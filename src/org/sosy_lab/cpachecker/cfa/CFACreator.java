@@ -74,6 +74,10 @@ public class CFACreator {
       description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
 
+  @Option(name="cfa.useMultiEdges",
+      description="combine sequences of simple edges into a single edge")
+  private boolean useMultiEdges = false;
+
   @Option(name="cfa.removeIrrelevantForErrorLocations",
       description="remove paths from CFA that cannot lead to a error location")
   private boolean removeIrrelevantForErrorLocations = false;
@@ -201,6 +205,9 @@ public class CFACreator {
         }
       }
 
+      if (useMultiEdges) {
+        MultiEdgeCreator.createMultiEdges(cfa);
+      }
 
       final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure);
 
@@ -271,8 +278,12 @@ public class CFACreator {
     } catch (ParserException e) {
       // don't abort here, because if the analysis doesn't need the loop information, we can continue
       logger.logUserException(Level.WARNING, e, "Could not analyze loop structure of program.");
-      return Optional.absent();
+
+    } catch (OutOfMemoryError e) {
+      logger.logUserException(Level.WARNING, e,
+          "Could not analyze loop structure of program due to memory problems");
     }
+    return Optional.absent();
   }
 
   /**
@@ -340,7 +351,7 @@ public class CFACreator {
     if (exportCfaPerFunction) {
       try {
         File outdir = exportCfaFile.getParentFile();
-        DOTBuilder2.writeReport(cfa.getMainFunction(), outdir);
+        DOTBuilder2.writeReport(cfa, outdir);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
           "Could not write CFA to dot and json file.");

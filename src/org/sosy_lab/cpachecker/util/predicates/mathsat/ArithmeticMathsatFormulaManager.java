@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
  * Implementation of MathsatFormulaManager for formulas with the theories of
  * real or integer linear arithmetic.
  */
-class ArithmeticMathsatFormulaManager extends MathsatFormulaManager {
+public class ArithmeticMathsatFormulaManager extends MathsatFormulaManager {
 
   private final boolean useIntegers;
 
@@ -54,7 +54,7 @@ class ArithmeticMathsatFormulaManager extends MathsatFormulaManager {
   private final long divUfDecl;
   private final long modUfDecl;
 
-  ArithmeticMathsatFormulaManager(Configuration config, LogManager logger, boolean pUseIntegers) throws InvalidConfigurationException {
+  public ArithmeticMathsatFormulaManager(Configuration config, LogManager logger, boolean pUseIntegers) throws InvalidConfigurationException {
     super(config, logger, pUseIntegers ? MSAT_INT : MSAT_REAL);
 
     useIntegers = pUseIntegers;

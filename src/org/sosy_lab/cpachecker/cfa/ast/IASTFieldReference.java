@@ -64,7 +64,8 @@ public final class IASTFieldReference extends IASTExpression {
 
   @Override
   public String toASTString() {
-    return owner.toASTString() + (isPointerDereference ? "->" : ".")
-        + name;
+    String left = (owner instanceof IASTFieldReference) ? owner.toASTString() : owner.toParenthesizedASTString();
+    String op = isPointerDereference ? "->" : ".";
+    return left + op  + name;
   }
 }

@@ -55,6 +55,10 @@ public class IASTCharLiteralExpression extends IASTLiteralExpression {
 
   @Override
   public String toASTString() {
-    return String.valueOf(character);
+    if (character >= ' ' && character < 128) {
+      return "'" + character + "'";
+    } else {
+      return "'\\x" + Integer.toHexString(character) + "'";
+    }
   }
 }

@@ -42,17 +42,13 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockOperator;
+import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFactory;
-import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolTheoremProver;
 
 public class ImpactCPA implements ConfigurableProgramAnalysis {
 
@@ -69,7 +65,8 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
 
   private final ExtendedFormulaManager fmgr;
   private final PathFormulaManager pfmgr;
-  private final TheoremProver prover;
+  private final Solver solver;
+  private final FormulaManagerFactory factory;
 
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
@@ -81,41 +78,41 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
     config = pConfig;
     logger = pLogger;
 
-    FormulaManager simpleFmgr;
-    if (satsolver.equals("MATHSAT")) {
-      simpleFmgr = MathsatFactory.createFormulaManager(config, logger);
-      prover = new MathsatTheoremProver((MathsatFormulaManager) simpleFmgr);
-    } else { // if (satsolver.equals("SMTINTERPOL")) {
-      simpleFmgr = SmtInterpolFactory.createFormulaManager(config, logger);
-      prover = new SmtInterpolTheoremProver((SmtInterpolFormulaManager) simpleFmgr);
-    }
-    fmgr = new ExtendedFormulaManager(simpleFmgr, pConfig, pLogger);
-    pfmgr = new PathFormulaManagerImpl(fmgr, config, logger);
+    factory = new FormulaManagerFactory(pConfig, pLogger);
+    fmgr = new ExtendedFormulaManager(factory.getFormulaManager(), pConfig, pLogger);
 
-    abstractDomain = new ImpactAbstractDomain(fmgr, prover);
+    pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger));
+    TheoremProver prover = factory.createTheoremProver();
+    solver = new Solver(fmgr, prover);
+
+    abstractDomain = new ImpactAbstractDomain(solver);
     mergeOperator = new ImpactMergeOperator(logger, pfmgr);
     stopOperator = new StopSepOperator(abstractDomain);
-    transferRelation = new ImpactTransferRelation(logger, blk, fmgr, pfmgr, prover);
+    transferRelation = new ImpactTransferRelation(logger, blk, fmgr, pfmgr, solver);
   }
 
-  LogManager getLogManager() {
+  public LogManager getLogManager() {
     return logger;
   }
 
-  Configuration getConfiguration() {
+  public Configuration getConfiguration() {
     return config;
   }
 
-  ExtendedFormulaManager getFormulaManager() {
+  public ExtendedFormulaManager getFormulaManager() {
     return fmgr;
   }
 
-  PathFormulaManager getPathFormulaManager() {
+  public PathFormulaManager getPathFormulaManager() {
     return pfmgr;
   }
 
-  TheoremProver getTheoremProver() {
-    return prover;
+  public Solver getSolver() {
+    return solver;
+  }
+
+  FormulaManagerFactory getFormulaManagerFactory() {
+    return factory;
   }
 
   @Override

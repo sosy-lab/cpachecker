@@ -41,5 +41,16 @@ public abstract class IType {
     return isVolatile;
   }
 
-  public abstract String toASTString();
+  /**
+   * Return a string representation of a variable declaration with a given name
+   * and this type.
+   *
+   * Example:
+   * If this type is array of int, and we call <code>toASTString("foo")</code>,
+   * the result is <pre>int foo[]</pre>.
+   *
+   * @param declarator The name of the variable to declare.
+   * @return A string representation of this type.
+   */
+  public abstract String toASTString(String declarator);
 }

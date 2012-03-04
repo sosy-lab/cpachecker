@@ -166,6 +166,7 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
       balancing.start();
       boolean balanced = balancer.balance(tnet);
       balancing.stop();
+      logger.log(Level.FINEST, "Balancer took",balancing.getSumTime(),"miliseconds.");
 
       if (balanced) {
         // If the network balanced, then, since all NetworkBuilders put 'false' at the error

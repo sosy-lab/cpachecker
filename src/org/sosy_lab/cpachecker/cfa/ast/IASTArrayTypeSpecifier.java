@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+
 public class IASTArrayTypeSpecifier extends IType {
 
   private final IType type;
@@ -44,16 +45,10 @@ public class IASTArrayTypeSpecifier extends IType {
   }
 
   @Override
-  public String toASTString() {
-    if(length == null){
-      return (isConst() ? "const " : "")
-          + (isVolatile() ? "volatile " : "")
-          + type.toASTString()
-          + "[] ";
-    }
+  public String toASTString(String pDeclarator) {
     return (isConst() ? "const " : "")
-      + (isVolatile() ? "volatile " : "")
-      + type.toASTString()
-      + "[" + length.toASTString() + "] ";
+        + (isVolatile() ? "volatile " : "")
+        +  type.toASTString(pDeclarator+ ("[" + (length != null ? length.toASTString() : "") + "]"))
+        ;
   }
 }

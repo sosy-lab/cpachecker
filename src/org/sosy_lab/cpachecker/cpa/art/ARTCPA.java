@@ -30,12 +30,14 @@ import java.util.Collection;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -43,12 +45,17 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM {
+import com.google.common.base.Preconditions;
+
+public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM, ProofChecker {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ARTCPA.class);
@@ -57,12 +64,13 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final LogManager logger;
 
   private final AbstractDomain abstractDomain;
-  private final TransferRelation transferRelation;
+  private final ARTTransferRelation transferRelation;
   private final MergeOperator mergeOperator;
-  private final StopOperator stopOperator;
+  private final ARTStopSep stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
   private final Reducer reducer;
   private final Statistics stats;
+  private final ProofChecker wrappedProofChecker;
 
   private CounterexampleInfo lastCounterexample = null;
 
@@ -72,7 +80,14 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     this.logger = logger;
     abstractDomain = new FlatLatticeDomain();
     transferRelation = new ARTTransferRelation(cpa.getTransferRelation());
-    precisionAdjustment = new ARTPrecisionAdjustment(cpa.getPrecisionAdjustment());
+
+    PrecisionAdjustment wrappedPrec = cpa.getPrecisionAdjustment();
+    if (wrappedPrec instanceof SimplePrecisionAdjustment) {
+      precisionAdjustment = new ARTSimplePrecisionAdjustment((SimplePrecisionAdjustment) wrappedPrec);
+    } else {
+      precisionAdjustment = new ARTPrecisionAdjustment(cpa.getPrecisionAdjustment());
+    }
+
     if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
       Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM)cpa).getReducer();
       if (wrappedReducer != null) {
@@ -84,13 +99,19 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
       reducer = null;
     }
 
+    if(cpa instanceof ProofChecker) {
+      this.wrappedProofChecker = (ProofChecker)cpa;
+    } else {
+      this.wrappedProofChecker = null;
+    }
+
     MergeOperator wrappedMerge = getWrappedCpa().getMergeOperator();
     if (wrappedMerge == MergeSepOperator.getInstance()) {
       mergeOperator = MergeSepOperator.getInstance();
     } else {
       mergeOperator = new ARTMergeJoin(wrappedMerge);
     }
-    stopOperator = new ARTStopSep(getWrappedCpa().getStopOperator(), logger);
+    stopOperator = new ARTStopSep(getWrappedCpa().getStopOperator(), logger, config);
     stats = new ARTStatistics(config, this);
   }
 
@@ -155,5 +176,18 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   public void setCounterexample(CounterexampleInfo pCounterexample) {
     checkArgument(!pCounterexample.isSpurious());
     lastCounterexample = pCounterexample;
+  }
+
+  @Override
+  public boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge,
+      Collection<? extends AbstractElement> pSuccessors) throws CPATransferException, InterruptedException {
+    Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
+    return transferRelation.areAbstractSuccessors(pElement, pCfaEdge, pSuccessors, wrappedProofChecker);
+  }
+
+  @Override
+  public boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement) throws CPAException {
+    Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
+    return stopOperator.isCoveredBy(pElement, pOtherElement, wrappedProofChecker);
   }
 }

@@ -71,6 +71,6 @@ public final class IASTTypeIdExpression extends IASTExpression {
 
   @Override
   public String toASTString() {
-    return operator.getOperator() + "(" + type.toASTString() + ")";
+    return operator.getOperator() + "(" + type.toASTString("") + ")";
   }
 }

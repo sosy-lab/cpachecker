@@ -40,7 +40,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
@@ -123,6 +124,25 @@ public class ARTUtils {
     return path;
   }
 
+  /**
+   * Get the set of all elements covered by any of the given elements,
+   * i.e., the union of calling {@link ARTElement#getCoveredByThis()} on all
+   * elements.
+   *
+   * However, elements in the given set are never in the returned set.
+   * If you pass in a subtree, this will return exactly the set of covering
+   * edges which enter the subtree.
+   */
+  public static Set<ARTElement> getCoveredBy(Set<ARTElement> elements) {
+    Set<ARTElement> result = new HashSet<ARTElement>();
+    for (ARTElement element : elements) {
+      result.addAll(element.getCoveredByThis());
+    }
+
+    result.removeAll(elements);
+    return result;
+  }
+
   private static String determineColor(ARTElement currentElement)
   {
     String color;
@@ -136,9 +156,9 @@ public class ARTUtils {
     } else {
       PredicateAbstractElement abselem = AbstractElements.extractElementByType(currentElement, PredicateAbstractElement.class);
       if (abselem != null && abselem.isAbstractionElement()) {
-        color = "blue";
+        color = "cornflowerblue";
       } else {
-        color = "white";
+        color = null;
       }
     }
 
@@ -147,13 +167,14 @@ public class ARTUtils {
 
   /**
    * Create String with ART in the DOT format of Graphviz.
-   * @param pReached the reached set
-   * @param pathEdges the edges of the error path (may be empty)
+   * @param rootElement the root element of the ART
+   * @param displayedElements An optional set of elements. If given, all other elements are ignored. If null, all elements are dumped.
+   * @param highlightedEdges Set of edges to highlight in the graph.
    * @return the ART as DOT graph
    */
-  static String convertARTToDot(ReachedSet pReached, Set<Pair<ARTElement, ARTElement>> pathEdges) {
-    ARTElement firstElement = (ARTElement)pReached.getFirstElement();
-
+  public static String convertARTToDot(final ARTElement rootElement,
+      final Set<ARTElement> displayedElements,
+      final Set<Pair<ARTElement, ARTElement>> highlightedEdges) {
     Deque<ARTElement> worklist = new LinkedList<ARTElement>();
     Set<Integer> nodesList = new HashSet<Integer>();
     Set<ARTElement> processed = new HashSet<ARTElement>();
@@ -161,13 +182,17 @@ public class ARTUtils {
     StringBuilder edges = new StringBuilder();
 
     sb.append("digraph ART {\n");
-    sb.append("style=\"filled\" fontsize=\"10.0\" fontname=\"Courier New\"\n");
+    // default style for nodes
+    sb.append("node [style=\"filled\" shape=\"box\" color=\"white\"]\n");
 
-    worklist.add(firstElement);
+    worklist.add(rootElement);
 
     while(worklist.size() != 0){
       ARTElement currentElement = worklist.removeLast();
       if(processed.contains(currentElement)){
+        continue;
+      }
+      if (displayedElements != null && !displayedElements.contains(currentElement)) {
         continue;
       }
 
@@ -175,14 +200,14 @@ public class ARTUtils {
 
       if(!nodesList.contains(currentElement.getElementId())){
 
-        CFANode loc = extractLocation(currentElement);
-        String label = ((loc == null) ? 0 : loc.getNodeNumber()) + "000" + currentElement.getElementId();
+        String label = determineLabel(currentElement);
 
         sb.append(currentElement.getElementId());
         sb.append(" [");
-        sb.append("shape=\"diamond\" ");
-        sb.append("color=\"" + determineColor(currentElement) + "\" ");
-        sb.append("style=\"filled\" ");
+        String color = determineColor(currentElement);
+        if (color != null) {
+          sb.append("fillcolor=\"" + color + "\" ");
+        }
         sb.append("label=\"" + label +"\" ");
         sb.append("id=\"" + currentElement.getElementId() + "\"");
         sb.append("]");
@@ -204,7 +229,7 @@ public class ARTUtils {
         edges.append(child.getElementId());
         edges.append(" [");
 
-        boolean colored = pathEdges.contains(Pair.of(currentElement, child));
+        boolean colored = highlightedEdges.contains(Pair.of(currentElement, child));
         CFAEdge edge = currentElement.getEdgeToChild(child);
         if(colored) {
           edges.append("color=\"red\"");
@@ -215,7 +240,10 @@ public class ARTUtils {
             edges.append(" ");
           }
           edges.append("label=\"");
-          edges.append(edge.toString().replace('"', '\''));
+          edges.append("Line ");
+          edges.append(edge.getLineNumber());
+          edges.append(": ");
+          edges.append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''));
           edges.append("\"");
           edges.append(" id=\"");
           edges.append(currentElement.getElementId());
@@ -233,6 +261,42 @@ public class ARTUtils {
     sb.append(edges);
     sb.append("}\n");
     return sb.toString();
+  }
+
+  private static String determineLabel(ARTElement currentElement) {
+    StringBuilder builder = new StringBuilder();
+
+    builder.append(currentElement.getElementId());
+
+    CFANode loc = AbstractElements.extractLocation(currentElement);
+    if(loc != null) {
+      builder.append(" @ ");
+      builder.append(loc.toString());
+    }
+
+    Iterable<AutomatonState> states = AbstractElements.extractAllElementsOfType(currentElement, AutomatonState.class);
+    for (AutomatonState state : states) {
+      if (!state.getInternalStateName().equals("Init")) {
+        builder.append("\\n");
+        builder.append(state.getCPAName().replaceFirst("AutomatonAnalysis_", ""));
+        builder.append(": ");
+        builder.append(state.getInternalStateName());
+      }
+    }
+
+    PredicateAbstractElement abstraction = AbstractElements.extractElementByType(currentElement, PredicateAbstractElement.class);
+    if(abstraction != null && abstraction.isAbstractionElement()) {
+      builder.append("\\n");
+      builder.append(abstraction.getAbstractionFormula().asFormula().toString());
+    }
+
+    ExplicitElement explicit = AbstractElements.extractElementByType(currentElement, ExplicitElement.class);
+    if(explicit != null) {
+      builder.append("\\n");
+      builder.append(explicit.toCompactString());
+    }
+
+    return builder.toString();
   }
 
   /**

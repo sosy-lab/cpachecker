@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -78,12 +79,52 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     Preconditions.checkArgument(pPrecision instanceof FeatureVarsPrecision, "precision is no FeatureVarsPrecision");
     FeatureVarsPrecision precision = (FeatureVarsPrecision) pPrecision;
     FeatureVarsElement fvElement = (FeatureVarsElement) element;
-    assert !fvElement.getRegion().isFalse();
+    if (fvElement.getRegion().isFalse()) {
+      return Collections.emptyList();
+    }
+
+    //assert !fvElement.getRegion().isFalse();
 
     if (precision.isDisabled()) {
       // this means that no variables should be tracked (whitelist is empty)
       return Collections.singleton(fvElement);
     }
+
+    FeatureVarsElement successor;
+    // check the type of the edge
+    switch (cfaEdge.getEdgeType()) {
+
+    // this is an assumption, e.g. if(a == b)
+    case AssumeEdge: {
+      AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
+      successor =
+          handleAssumption(fvElement, assumeEdge.getExpression(), cfaEdge,
+              assumeEdge.getTruthAssumption(), precision);
+      break;
+    }
+
+    case MultiEdge: {
+      successor = fvElement;
+      for (CFAEdge innerEdge : (MultiEdge)cfaEdge) {
+        successor = getAbstractSuccessor(successor, precision, innerEdge);
+      }
+    }
+
+    default:
+     successor = getAbstractSuccessor(fvElement, precision, cfaEdge);
+    }
+
+    if (successor == null) {
+      return Collections.emptySet();
+    } else {
+      assert !successor.getRegion().isFalse();
+      return Collections.singleton(successor);
+    }
+  }
+
+  private FeatureVarsElement getAbstractSuccessor(
+      FeatureVarsElement fvElement, FeatureVarsPrecision precision, CFAEdge cfaEdge)
+      throws CPATransferException {
 
     FeatureVarsElement successor = fvElement;
     // check the type of the edge
@@ -101,19 +142,6 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     case DeclarationEdge: {
       break;
     }
-      // this is an assumption, e.g. if(a == b)
-    case AssumeEdge: {
-      AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
-      successor =
-          handleAssumption(fvElement, assumeEdge.getExpression(), cfaEdge,
-              assumeEdge.getTruthAssumption(), precision);
-      /*if (successor != null && successor != element) {
-        System.out.println("FV new state: " + successor.toString()
-            + " after edge " + cfaEdge.getRawStatement()
-            + " in line" + cfaEdge.getLineNumber());
-      }*/
-      break;
-    }
     case BlankEdge: {
       break;
     }
@@ -128,12 +156,10 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     default:
       throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
-    if (successor == null) {
-      return Collections.emptySet();
-    } else {
-      assert !successor.getRegion().isFalse();
-      return Collections.singleton(successor);
-    }
+    assert successor != null;
+    assert !successor.getRegion().isFalse();
+
+    return successor;
   }
 
   private FeatureVarsElement handleStatementEdge(FeatureVarsElement element,

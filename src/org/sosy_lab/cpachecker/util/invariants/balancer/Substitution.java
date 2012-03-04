@@ -36,6 +36,12 @@ public class Substitution implements Comparable<Substitution> {
     degree = r.getDegree();
   }
 
+  public Substitution copy() {
+    Variable u = var.copy();
+    Polynomial q = rhs.copy();
+    return new Substitution(u,q);
+  }
+
   @Override
   public String toString() {
     String s = "";
@@ -43,6 +49,7 @@ public class Substitution implements Comparable<Substitution> {
     return s;
   }
 
+  @Override
   public int compareTo(Substitution other) {
     return this.degree - other.degree;
   }

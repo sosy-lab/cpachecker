@@ -629,4 +629,24 @@ public class TemplateFormulaManager implements FormulaManager {
 	  return null;
   }
 
+  @Override
+  public boolean checkSyntacticEntails(Formula pLeftFormula, Formula pRightFormula) {
+    return false;
+  }
+
+  @Override
+  public Formula[] getArguments(Formula pF) {
+    return null;
+  }
+
+  @Override
+  public Formula makeUIP(String pName, FormulaList pArgs) {
+    return null;
+  }
+
+  @Override
+  public void declareUIP(String pName, int pArgCount) {
+
+  }
+
 }

@@ -75,7 +75,7 @@ public class IASTFunctionCallExpression extends IASTRightHandSide {
   public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
 
-    lASTString.append(functionName.toASTString());
+    lASTString.append(functionName.toParenthesizedASTString());
     lASTString.append("(");
     Joiner.on(", ").appendTo(lASTString, new ASTStringIterable(parameters));
     lASTString.append(")");

@@ -106,6 +106,11 @@ public class RedlogInterface {
           // and in fact the constraints are unsatisfiable.
           EA = new EliminationAnswer(false);
           break;
+        } else if (formula.equals("true")) {
+          // We record this, in case we need to know that Redlog found "true", even if
+          // it did not compute a numerical value for each parameter (e.g. it might solve
+          // for one parameter in terms of another).
+          EA.setTruthValue(true);
         }
         C.setFormula(formula);
         formula = "";

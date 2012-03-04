@@ -44,7 +44,9 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
@@ -62,6 +64,11 @@ public class PredicateAbstractionManager {
 
     public long allSatCount = 0;
     public int maxAllSatCount = 0;
+
+    public int numPathFormulaCoverageChecks = 0;
+    public int numEqualPathFormulae = 0;
+    public int numSyntacticEntailedPathFormulae = 0;
+    public int numSemanticEntailedPathFormulae = 0;
   }
 
   final Stats stats;
@@ -69,7 +76,7 @@ public class PredicateAbstractionManager {
   private final LogManager logger;
   private final ExtendedFormulaManager fmgr;
   private final AbstractionManager amgr;
-  private final TheoremProver thmProver;
+  private final Solver solver;
 
   @Option(name="abstraction.cartesian",
       description="whether to use Boolean (false) or Cartesian (true) abstraction")
@@ -92,7 +99,7 @@ public class PredicateAbstractionManager {
   public PredicateAbstractionManager(
       RegionManager pRmgr,
       ExtendedFormulaManager pFmgr,
-      TheoremProver pThmProver,
+      Solver pSolver,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
 
@@ -102,7 +109,7 @@ public class PredicateAbstractionManager {
     logger = pLogger;
     fmgr = pFmgr;
     amgr = new AbstractionManager(pRmgr, pFmgr, config, pLogger);
-    thmProver = pThmProver;
+    solver = pSolver;
 
     if (useCache) {
       abstractionCache = new HashMap<Pair<Formula, Collection<AbstractionPredicate>>, AbstractionFormula>();
@@ -178,6 +185,7 @@ public class PredicateAbstractionManager {
 
     stats.abstractionTime.startOuter();
 
+    TheoremProver thmProver = solver.getTheoremProver();
     thmProver.init();
     try {
       thmProver.push(f);
@@ -232,7 +240,9 @@ public class PredicateAbstractionManager {
             // state
             byte predVal = 0; // pred is neither true nor false
 
-            boolean isTrue = thmProver.isUnsat(predFalse);
+            thmProver.push(predFalse);
+            boolean isTrue = thmProver.isUnsat();
+            thmProver.pop();
 
             if (isTrue) {
               stats.abstractionTime.getInnerTimer().start();
@@ -243,7 +253,9 @@ public class PredicateAbstractionManager {
               predVal = 1;
             } else {
               // check whether it's false...
-              boolean isFalse = thmProver.isUnsat(predTrue);
+              thmProver.push(predTrue);
+              boolean isFalse = thmProver.isUnsat();
+              thmProver.pop();
 
               if (isFalse) {
                 stats.abstractionTime.getInnerTimer().start();
@@ -320,25 +332,35 @@ public class PredicateAbstractionManager {
 
       predVars.add(var);
     }
-    if (predVars.isEmpty()) {
-      stats.numSatCheckAbstractions++;
-    }
 
     // the formula is (abstractionFormula & pathFormula & predDef)
     Formula fm = fmgr.makeAnd(f, predDef);
-
-    logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
-
+    Region result;
     stats.abstractionTime.startOuter();
-    AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr, stats.abstractionTime.getInnerTimer());
-    long solveTime = stats.abstractionTime.stopOuter();
 
-    // update statistics
-    int numModels = allSatResult.getCount();
-    if (numModels < Integer.MAX_VALUE) {
-      stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
-      stats.allSatCount += numModels;
+    if (predVars.isEmpty()) {
+      stats.numSatCheckAbstractions++;
+
+      boolean satResult = !solver.isUnsat(fm);
+
+      RegionManager rmgr = amgr.getRegionManager();
+
+      result = (satResult) ? rmgr.makeTrue() : rmgr.makeFalse();
+
+    } else {
+      logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
+      TheoremProver thmProver = solver.getTheoremProver();
+      AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr, stats.abstractionTime.getInnerTimer());
+      result = allSatResult.getResult();
+
+      // update statistics
+      int numModels = allSatResult.getCount();
+      if (numModels < Integer.MAX_VALUE) {
+        stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
+        stats.allSatCount += numModels;
+      }
     }
+    long solveTime = stats.abstractionTime.stopOuter();
 
     // TODO dump hard abst
     if (solveTime > 10000 && dumpHardAbstractions) {
@@ -355,7 +377,6 @@ public class PredicateAbstractionManager {
       fmgr.printFormulasToFile(predVars, dumpFile);
     }
 
-    Region result = allSatResult.getResult();
     logger.log(Level.ALL, "Abstraction computed, result is", result);
     return result;
   }
@@ -375,16 +396,52 @@ public class PredicateAbstractionManager {
     Formula symbFormula = buildFormula(p1.getFormula());
     Formula a = fmgr.makeAnd(absFormula, symbFormula);
 
-    Formula b = fmgr.instantiate(a2.asFormula(), p1.getSsa());
+    // get formula of a2 with the indices of p1
+    Formula b = fmgr.instantiate(fmgr.uninstantiate(a2.asFormula()), p1.getSsa());
 
-    Formula toCheck = fmgr.makeAnd(a, fmgr.makeNot(b));
+    return solver.implies(a, b);
+  }
 
-    thmProver.init();
-    try {
-      return thmProver.isUnsat(toCheck);
-    } finally {
-      thmProver.reset();
+  /**
+   * Checks whether a1.getFormula() => a2.getFormula() and whether the a1.getSsa()(v) <= a2.getSsa()(v) for all v
+   */
+  public boolean checkCoverage(PathFormula a1, PathFormula a2, PathFormulaManager pfmgr) {
+    stats.numPathFormulaCoverageChecks++;
+
+    //handle common special case more efficiently
+    if(a1.equals(a2)) {
+      stats.numEqualPathFormulae++;
+      return true;
     }
+
+    //check ssa maps
+    SSAMap map1 = a1.getSsa();
+    SSAMap map2 = a2.getSsa();
+    for(String var : map1.allVariables()) {
+     if(map2.getIndex(var) < map1.getIndex(var)) {
+       return false;
+     }
+    }
+
+    //merge path formulae
+    PathFormula mergedPathFormulae = pfmgr.makeOr(a1, a2);
+
+    //quick syntactic check
+    Formula leftFormula = fmgr.getArguments(mergedPathFormulae.getFormula())[0];
+    Formula rightFormula = a2.getFormula();
+    if(fmgr.checkSyntacticEntails(leftFormula, rightFormula)) {
+      stats.numSyntacticEntailedPathFormulae++;
+      return true;
+    }
+
+
+    //check formulae
+    if(!solver.implies(mergedPathFormulae.getFormula(), a2.getFormula())) {
+      return false;
+    }
+    stats.numSemanticEntailedPathFormulae++;
+
+    return true;
   }
 
   /**
@@ -399,12 +456,7 @@ public class PredicateAbstractionManager {
     Formula f = fmgr.makeAnd(absFormula, symbFormula);
     logger.log(Level.ALL, "Checking satisfiability of formula", f);
 
-    thmProver.init();
-    try {
-      return thmProver.isUnsat(f);
-    } finally {
-      thmProver.reset();
-    }
+    return solver.isUnsat(f);
   }
 
   public AbstractionFormula makeTrueAbstractionFormula(Formula pPreviousBlockFormula) {
@@ -417,11 +469,60 @@ public class PredicateAbstractionManager {
   /**
    * Build the symbolic representation (with indexed variables) of a region.
    */
-  public Formula toConcrete(Region pRegion, SSAMap ssa) {
+  private Formula toConcrete(Region pRegion, SSAMap ssa) {
     return fmgr.instantiate(amgr.toConcrete(pRegion), ssa);
   }
 
+  /**
+   * Remove a set of predicates from an abstraction.
+   * @param oldAbstraction The abstraction to start from.
+   * @param removePredicates The predicate to remove.
+   * @param ssaMap The SSAMap to use for instantiating the new abstraction.
+   * @return A new abstraction similar to the old one without the predicates.
+   */
+  public AbstractionFormula reduce(AbstractionFormula oldAbstraction,
+      Collection<AbstractionPredicate> removePredicates, SSAMap ssaMap) {
+    RegionManager rmgr = amgr.getRegionManager();
 
+    Region newRegion = oldAbstraction.asRegion();
+    for (AbstractionPredicate predicate : removePredicates) {
+      newRegion = rmgr.makeExists(newRegion, predicate.getAbstractVariable());
+    }
+
+    Formula newFormula = toConcrete(newRegion, ssaMap);
+
+    AbstractionFormula newAbstraction =
+          new AbstractionFormula(newRegion, newFormula, oldAbstraction.getBlockFormula());
+    return newAbstraction;
+  }
+
+  /**
+   * Extend an abstraction by a set of predicates.
+   * @param reducedAbstraction The abstraction to extend.
+   * @param sourceAbstraction The abstraction where to take the predicates from.
+   * @param relevantPredicates The predicates to add.
+   * @param newSSA The SSAMap to use for instantiating the new abstraction.
+   * @return A new abstraction similar to the old one with some more predicates.
+   */
+  public AbstractionFormula expand(AbstractionFormula reducedAbstraction, AbstractionFormula sourceAbstraction,
+      Collection<AbstractionPredicate> relevantPredicates, SSAMap newSSA) {
+    RegionManager rmgr = amgr.getRegionManager();
+
+    Region removedInformationRegion = sourceAbstraction.asRegion();
+    for (AbstractionPredicate predicate : relevantPredicates) {
+      removedInformationRegion = rmgr.makeExists(removedInformationRegion,
+                                                 predicate.getAbstractVariable());
+    }
+
+    Region expandedRegion = rmgr.makeAnd(reducedAbstraction.asRegion(), removedInformationRegion);
+
+    Formula newFormula = toConcrete(expandedRegion, newSSA);
+    Formula blockFormula = reducedAbstraction.getBlockFormula();
+
+    AbstractionFormula newAbstractionFormula =
+        new AbstractionFormula(expandedRegion, newFormula, blockFormula);
+    return newAbstractionFormula;
+  }
 
   // delegate methods
 

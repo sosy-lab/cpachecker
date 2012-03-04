@@ -67,6 +67,7 @@ import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
@@ -86,6 +87,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -286,9 +289,12 @@ class CFAFunctionBuilder extends ASTVisitor {
               + cfa.getFunctionName() + ": " + gotoLabelNeeded.keySet());
       }
 
+      NodeCollectingCFAVisitor visitor = new NodeCollectingCFAVisitor();
+      CFATraversal.dfs().traverse(cfa, visitor);
+      Set<CFANode> reachableNodes = visitor.getVisitedNodes();
+
       for (CFALabelNode n : labelMap.values()) {
-        if (   (n.getNumEnteringEdges() == 0)
-            || !isPathFromTo(cfa, n)) {
+        if (!reachableNodes.contains(n)) {
           logDeadLabel(n);
 
           // remove all entering edges
@@ -301,12 +307,11 @@ class CFAFunctionBuilder extends ASTVisitor {
         }
       }
 
-      labelMap.clear();
-
       Iterator<CFANode> it = cfaNodes.iterator();
       while (it.hasNext()) {
         CFANode n = it.next();
-        if (n.getNumEnteringEdges() == 0 && n.getNumLeavingEdges() == 0) {
+
+        if (!reachableNodes.contains(n)) {
           // node was created but isn't part of CFA (e.g. because of dead code)
           it.remove(); // remove n from currentCFANodes
         }
@@ -585,7 +590,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), filelocStart, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, true);
 
     } else {
-      org.sosy_lab.cpachecker.cfa.ast.IASTExpression exp = handleSideAssignmentsInConditions(condition, rootNode);
+      Pair<org.sosy_lab.cpachecker.cfa.ast.IASTExpression, CFANode> pair = handleSideAssignmentsInConditions(condition, rootNode);
 
       if (furtherThenComputation) {
         thenNodeForLastThen = thenNode;
@@ -597,32 +602,33 @@ class CFAFunctionBuilder extends ASTVisitor {
       // edge connecting last condition with elseNode
       final AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + condition.getRawSignature() + ")",
                                                         filelocStart,
-                                                        rootNode,
+                                                        pair.getSecond(),
                                                         elseNodeForLastElse,
-                                                        exp,
+                                                        pair.getFirst(),
                                                         false);
       addToCFA(assumeEdgeFalse);
 
       // edge connecting last condition with thenNode
       final AssumeEdge assumeEdgeTrue = new AssumeEdge(condition.getRawSignature(),
                                                        filelocStart,
-                                                       rootNode,
+                                                       pair.getSecond(),
                                                        thenNodeForLastThen,
-                                                       exp,
+                                                       pair.getFirst(),
                                                        true);
       addToCFA(assumeEdgeTrue);
     }
   }
 
-  private org.sosy_lab.cpachecker.cfa.ast.IASTExpression handleSideAssignmentsInConditions(IASTExpression condition,
+  private Pair<org.sosy_lab.cpachecker.cfa.ast.IASTExpression, CFANode> handleSideAssignmentsInConditions(IASTExpression condition,
                                                                                            CFANode rootNode) {
     final org.sosy_lab.cpachecker.cfa.ast.IASTExpression exp =
         astCreator.convertBooleanExpression(condition);
     String rawSignature = condition.getRawSignature();
 
+    CFANode between = null;
     while (astCreator.existsSideAssignment()) {
       IASTNode middle = astCreator.getSideAssignment();
-      CFANode between = new CFANode(middle.getFileLocation().getStartingLineNumber(), cfa.getFunctionName());
+      between = new CFANode(middle.getFileLocation().getStartingLineNumber(), cfa.getFunctionName());
       StatementEdge previous;
       DeclarationEdge previousdec;
       if (middle instanceof IASTFunctionCallAssignmentStatement) {
@@ -650,7 +656,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       rootNode = between;
       cfaNodes.add(between);
     }
-    return exp;
+
+    return Pair.of(exp, rootNode);
   }
 
   private int visitForStatement(final IASTForStatement forStatement,
@@ -738,6 +745,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     // "counter = 0;"
     } else if (statement instanceof IASTExpressionStatement) {
       final CFANode nextNode = new CFANode(filelocStart, cfa.getFunctionName());
+      cfaNodes.add(nextNode);
+
       final StatementEdge initEdge = new StatementEdge(statement.getRawSignature(),
               astCreator.convert((IASTExpressionStatement) statement),
               filelocStart, loopInit, nextNode);
@@ -961,36 +970,55 @@ class CFAFunctionBuilder extends ASTVisitor {
   }
 
   /**
-   * isPathFromTo() makes a DFS-search from a given Node to search
-   * if there is a way to the target Node.
-   * the condition for this function is, that every Node has another NodeNumber
+   * Determines whether a forwards path between two nodes exists.
    *
-   * The code for this function was taken from CFATopologicalSort.java and is modified.
-   *
-   * @param fromNode starting node for DFS-search
-   * @param toNode target node for isPath
+   * @param fromNode starting node
+   * @param toNode target node
    */
   private boolean isPathFromTo(CFANode fromNode, CFANode toNode) {
-    return isPathFromTo0(new HashSet<CFANode>(), fromNode, toNode);
-  }
+    // Optimization: do two DFS searches in parallel:
+    // 1) search forwards from fromNode
+    // 2) search backwards from toNode
+    Deque<CFANode> toProcessForwards = new ArrayDeque<CFANode>();
+    Deque<CFANode> toProcessBackwards = new ArrayDeque<CFANode>();
+    Set<CFANode> visitedForwards = new HashSet<CFANode>();
+    Set<CFANode> visitedBackwards = new HashSet<CFANode>();
 
-  private boolean isPathFromTo0(Set<CFANode> pVisitedNodes, CFANode fromNode, CFANode toNode) {
-    // check if the target is reached
-    if (fromNode.equals(toNode)) {
-      return true;
-    }
+    toProcessForwards.addLast(fromNode);
+    visitedForwards.add(fromNode);
 
-    // add current node to visited nodes
-    pVisitedNodes.add(fromNode);
+    toProcessBackwards.addLast(toNode);
+    visitedBackwards.add(toNode);
 
-    // DFS-search with the children of current node
-    for (int i = 0; i < fromNode.getNumLeavingEdges(); i++) {
-      CFANode successor = fromNode.getLeavingEdge(i).getSuccessor();
-      if (!pVisitedNodes.contains(successor)) {
+    // if one of the queues is empty, the search has reached a dead end
+    while (!toProcessForwards.isEmpty() && !toProcessBackwards.isEmpty()) {
+      // step in forwards search
+      CFANode currentForwards = toProcessForwards.removeLast();
+      if (visitedBackwards.contains(currentForwards)) {
+        // the backwards search already has seen the current node
+        // so we know there's a path from fromNode to current and a path from
+        // current to toNode
+        return true;
+      }
 
-        if (isPathFromTo0(pVisitedNodes, successor, toNode)) {
-          // if there is a path, break the search and return true
-          return true;
+      for (CFAEdge child : CFAUtils.leavingEdges(currentForwards)) {
+        if (visitedForwards.add(child.getSuccessor())) {
+          toProcessForwards.addLast(child.getSuccessor());
+        }
+      }
+
+      // step in backwards search
+      CFANode currentBackwards = toProcessBackwards.removeLast();
+      if (visitedForwards.contains(currentBackwards)) {
+        // the forwards search already has seen the current node
+        // so we know there's a path from fromNode to current and a path from
+        // current to toNode
+        return true;
+      }
+
+      for (CFAEdge child : CFAUtils.enteringEdges(currentBackwards)) {
+        if (visitedBackwards.add(child.getPredecessor())) {
+          toProcessBackwards.addLast(child.getPredecessor());
         }
       }
     }

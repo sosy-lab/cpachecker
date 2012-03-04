@@ -34,6 +34,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
@@ -45,7 +46,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
  * Implementation of SmtInterpolFormulaManager for formulas with the theories of
  * real or integer linear arithmetic.
  */
-class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManager {
+public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManager {
 
   private final boolean useIntegers;
   private final static String SMT_INTERPOL_INT = "Int";
@@ -64,7 +65,7 @@ class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManager {
   private final String divUfDecl = "_/_";
   private final String modUfDecl = "_%_";
 
-  ArithmeticSmtInterpolFormulaManager(Configuration config, LogManager logger, boolean pUseIntegers) throws InvalidConfigurationException {
+  public ArithmeticSmtInterpolFormulaManager(Configuration config, LogManager logger, boolean pUseIntegers) throws InvalidConfigurationException {
     super(config, logger, pUseIntegers ? SMT_INTERPOL_INT : SMT_INTERPOL_REAL);
     useIntegers = pUseIntegers;
 
@@ -271,5 +272,35 @@ class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManager {
       }
     }
     return encapsulate(result);
+  }
+
+  @Override
+  public Formula makeUIP(String pName, FormulaList pArgs) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public void declareUIP(String pName, int pArgCount) {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public Formula[] getArguments(Formula f) {
+    Term t = getTerm(f);
+    assert t instanceof ApplicationTerm;
+    Term[] params = ((ApplicationTerm) t).getParameters();
+    Formula[] formulas = new Formula[params.length];
+    for (int i = 0; i < params.length; i++) {
+      formulas[i] = encapsulate(params[i]);
+    }
+    return formulas;
+  }
+
+  @Override
+  public boolean checkSyntacticEntails(Formula pLeftFormula, Formula pRightFormula) {
+    // TODO Auto-generated method stub
+    return false;
   }
 }

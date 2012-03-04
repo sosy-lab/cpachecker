@@ -33,20 +33,18 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
+import org.sosy_lab.cpachecker.cfa.ast.NumericTypes;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.util.assumptions.NumericTypes;
 
 /**
  * Class to generate assumptions related to over/underflow
@@ -105,7 +103,7 @@ implements GenericAssumptionBuilder
      * expression, ignoring bounds if applicable. The method does
      * not check that the expression is indeed an arithmetic expression.
      */
-    private static IASTNode conjunctPredicateForArithmeticExpression(IASTExpression exp, IASTNode result)
+    private static IASTExpression conjunctPredicateForArithmeticExpression(IASTExpression exp, IASTExpression result)
     {
       return conjunctPredicateForArithmeticExpression(exp.getExpressionType(), exp, result);
     }
@@ -116,8 +114,8 @@ implements GenericAssumptionBuilder
    * The two last, boolean arguments allow to avoid generating
    * lower and/or upper bounds predicates.
    */
-  private static IASTNode conjunctPredicateForArithmeticExpression(IType typ,
-      IASTExpression exp, IASTNode result) {
+  private static IASTExpression conjunctPredicateForArithmeticExpression(IType typ,
+      IASTExpression exp, IASTExpression result) {
 
     Pair<IASTIntegerLiteralExpression, IASTIntegerLiteralExpression> bounds =
         boundsForType(typ);
@@ -127,7 +125,7 @@ implements GenericAssumptionBuilder
       final IASTBinaryExpression secondExp = new IASTBinaryExpression(null, null, exp,
               bounds.getFirst(), BinaryOperator.GREATER_EQUAL);
       result = new IASTBinaryExpression(null, null,
-              (IASTExpression) result, secondExp, BinaryOperator.LOGICAL_AND);
+              result, secondExp, BinaryOperator.LOGICAL_AND);
     }
 
     if (bounds.getSecond() != null) {
@@ -135,12 +133,12 @@ implements GenericAssumptionBuilder
       final IASTBinaryExpression secondExp = new IASTBinaryExpression(null, null, exp,
               bounds.getSecond(), BinaryOperator.LESS_EQUAL);
       result =new IASTBinaryExpression(null, null,
-              (IASTExpression) result, secondExp, BinaryOperator.LOGICAL_AND);
+              result, secondExp, BinaryOperator.LOGICAL_AND);
     }
     return result;
   }
 
-    private static IASTNode visit(IASTExpression pExpression, IASTNode result) {
+    private static IASTExpression visit(IASTExpression pExpression, IASTExpression result) {
       if(pExpression instanceof IASTIdExpression){
         result = conjunctPredicateForArithmeticExpression(pExpression, result);
       }
@@ -172,14 +170,10 @@ implements GenericAssumptionBuilder
     }
 
   @Override
-  public IASTNode assumptionsForEdge(CFAEdge pEdge) {
-    IASTNode result = NumericTypes.TRUE;
+  public IASTExpression assumptionsForEdge(CFAEdge pEdge) {
+    IASTExpression result = NumericTypes.TRUE;
 
     switch (pEdge.getEdgeType()) {
-    case DeclarationEdge:
-      DeclarationEdge declarationEdge = (DeclarationEdge) pEdge;
-      result = declarationEdge.getRawAST().get();
-      break;
     case AssumeEdge:
       AssumeEdge assumeEdge = (AssumeEdge) pEdge;
       result = visit(assumeEdge.getExpression(), result);

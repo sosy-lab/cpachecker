@@ -286,6 +286,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     if (algorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
     }
+    if (mRefiner instanceof StatisticsProvider) {
+      ((StatisticsProvider)mRefiner).collectStatistics(pStatsCollection);
+    }
     pStatsCollection.add(stats);
   }
 

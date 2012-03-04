@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serializable;
+
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingElement;
@@ -40,7 +42,9 @@ import com.google.common.base.Predicate;
 /**
  * AbstractElement for Symbolic Predicate Abstraction CPA
  */
-public abstract class PredicateAbstractElement implements AbstractElement, Partitionable, FormulaReportingElement {
+public abstract class PredicateAbstractElement implements AbstractElement, Partitionable, FormulaReportingElement, Serializable {
+
+  private static final long serialVersionUID = -265763837277453447L;
 
   public final static Predicate<PredicateAbstractElement> FILTER_ABSTRACTION_ELEMENTS = new Predicate<PredicateAbstractElement>() {
     @Override
@@ -54,6 +58,8 @@ public abstract class PredicateAbstractElement implements AbstractElement, Parti
    * abstraction.
    */
   private static class AbstractionElement extends PredicateAbstractElement {
+
+    private static final long serialVersionUID = 8341054099315063986L;
 
     private AbstractionElement(PathFormula pf, AbstractionFormula pA) {
       super(pf, pA);
@@ -85,12 +91,12 @@ public abstract class PredicateAbstractElement implements AbstractElement, Parti
   }
 
   private static class NonAbstractionElement extends PredicateAbstractElement {
-
+    private static final long serialVersionUID = -6912172362012773999L;
     /**
      * The abstract element this element was merged into.
      * Used for fast coverage checks.
      */
-    private PredicateAbstractElement mergedInto = null;
+    private transient PredicateAbstractElement mergedInto = null;
 
     private NonAbstractionElement(PathFormula pF, AbstractionFormula pA) {
       super(pF, pA);
@@ -125,7 +131,8 @@ public abstract class PredicateAbstractElement implements AbstractElement, Parti
 
   static class ComputeAbstractionElement extends PredicateAbstractElement {
 
-    private final CFANode location;
+    private static final long serialVersionUID = -3961784113582993743L;
+    private transient final CFANode location;
 
     public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc) {
       super(pf, pA);

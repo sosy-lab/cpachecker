@@ -47,8 +47,12 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 
+import com.google.common.collect.ImmutableSet;
+
 @Options(prefix="blockreducer")
 public class BlockedCFAReducer implements BlockComputer {
+
+  public enum AbstractionMode {REDUCTION_REMAINDER_TS, FUNCTIONENTRY_ON_TS};
 
   @Option(description="Do at most n summarizations on a node.")
   private int reductionThreshold = 100;
@@ -66,6 +70,7 @@ public class BlockedCFAReducer implements BlockComputer {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File reducedCfaFile = new File("ReducedCfa.rsf");
 
+  private int functionCallSeq = 0;
   private final Deque<CFAFunctionDefinitionNode> inliningStack;
 
   public BlockedCFAReducer(Configuration pConfig) throws InvalidConfigurationException {
@@ -178,41 +183,56 @@ public class BlockedCFAReducer implements BlockComputer {
     toTraverse.add(pApplyTo.getEntryNode());
     while (toTraverse.size() > 0) {
       ReducedNode u = toTraverse.removeFirst();
-      if (!traverseDone.add(u)) {
+      if (traverseDone.contains(u)) {
         continue;
       }
 
       ReducedEdge[] leavingEdges = pApplyTo.getLeavingEdges(u);
-      if (leavingEdges.length != 2 || getSummarizationsOnNode(u) >= reductionThreshold) {
+      if (leavingEdges.length < 2 || getSummarizationsOnNode(u) >= reductionThreshold) {
         for (ReducedEdge e: leavingEdges) {
           toTraverse.add(e.getPointsTo());
         }
+        traverseDone.add(u);
         continue;
       }
 
-      ReducedNode v1 = leavingEdges[0].getPointsTo();
-      ReducedNode v2 = leavingEdges[1].getPointsTo();
+      // Find pairs of leaving edges, that point to the same target.
+      boolean onePairMerged = false;
+      for (int x=0; x<leavingEdges.length && !onePairMerged; x++) {
+        for (int y=x+1; y<leavingEdges.length && !onePairMerged; y++) {
+          ReducedEdge edgeX = leavingEdges[x];
+          ReducedEdge edgeY = leavingEdges[y];
 
-      if(v1 != v2) {
-        toTraverse.add(v1);
-        toTraverse.add(v2);
-        continue;
+          ReducedNode v1 = edgeX.getPointsTo();
+          ReducedNode v2 = edgeY.getPointsTo();
+
+          if (v1 == v2) {
+            ReducedEdge sumEdge = new ReducedEdge(v1);
+            sumEdge.addEdge(edgeX);
+            sumEdge.addEdge(edgeY);
+
+            pApplyTo.removeEdge(u, v1, edgeX);
+            pApplyTo.removeEdge(u, v2, edgeY);
+            pApplyTo.addEdge(u, v1, sumEdge);
+
+            incSummarizationsOnNode(u, 1);
+
+            onePairMerged = true;
+          } else {
+            toTraverse.add(v1);
+            toTraverse.add(v2);
+          }
+        }
       }
 
-      ReducedEdge sumEdge = new ReducedEdge(v1);
-      sumEdge.addEdge(leavingEdges[0]);
-      sumEdge.addEdge(leavingEdges[1]);
-
-      pApplyTo.removeEdge(u, v1, leavingEdges[0]);
-      pApplyTo.removeEdge(u, v2, leavingEdges[1]);
-      pApplyTo.addEdge(u, v1, sumEdge);
-
-      incSummarizationsOnNode(u, 1);
-
-      toTraverse.clear();
-      traverseDone.clear();
-      toTraverse.add(v1);
-      result = true;
+      if (onePairMerged) {
+        toTraverse.clear();
+        traverseDone.clear();
+        toTraverse.add(u);
+        result = true;
+      } else {
+        traverseDone.add(u);
+      }
     }
 
     return result;
@@ -220,14 +240,20 @@ public class BlockedCFAReducer implements BlockComputer {
 
   private static class FunctionNodeManager {
     private Map<CFANode, ReducedNode> nodeMapping = new HashMap<CFANode, ReducedNode>();
+    private int functionCallId;
 
     public ReducedNode getWrapper(CFANode pNode) {
       ReducedNode result = nodeMapping.get(pNode);
       if (result == null) {
         result = new ReducedNode(pNode);
-        nodeMapping.put(pNode, result);
+        result.setFunctionCallId(this.functionCallId);
+        this.nodeMapping.put(pNode, result);
       }
       return result;
+    }
+
+    public FunctionNodeManager(int pFunctionCallId) {
+      this.functionCallId = pFunctionCallId;
     }
   }
 
@@ -237,12 +263,13 @@ public class BlockedCFAReducer implements BlockComputer {
    * and the outgoing function calls that get inlined.
    *
    */
-  private ReducedFunction inlineAndSummarize(CFAFunctionDefinitionNode pFunctionNode, FunctionCallEdge pCalledBy) {
-    inliningStack.push(pFunctionNode);
+  private ReducedFunction inlineAndSummarize(CFAFunctionDefinitionNode pFunctionNode) {
+    this.functionCallSeq++;
+    this.inliningStack.push(pFunctionNode);
 
     Set<CFAEdge> traversed = new HashSet<CFAEdge>();
     Deque<ReducedNode> openEndpoints = new ArrayDeque<ReducedNode>();
-    FunctionNodeManager functionNodes = new FunctionNodeManager();
+    FunctionNodeManager functionNodes = new FunctionNodeManager(this.functionCallSeq);
 
     ReducedNode entryNode = functionNodes.getWrapper(pFunctionNode);
     ReducedNode exitNode = functionNodes.getWrapper(pFunctionNode.getExitNode());
@@ -273,8 +300,8 @@ public class BlockedCFAReducer implements BlockComputer {
             System.out.println("Ignoring recursion of " + calledFunction.getFunctionName());
             result.addEdge(uSn, callReturnTarget);
           } else {
-            System.out.println(String.format("Inlining %s to %s", calledFunction.getFunctionName(), pFunctionNode.getFunctionName()));
-            ReducedFunction functionSum = inlineAndSummarize(calledFunction, callEdge);
+            //System.out.println(String.format("Inlining %s to %s", calledFunction.getFunctionName(), pFunctionNode.getFunctionName()));
+            ReducedFunction functionSum = inlineAndSummarize(calledFunction);
 
             result.insertFunctionSum(functionSum);
             result.addEdge(uSn, functionSum.getEntryNode());
@@ -317,6 +344,14 @@ public class BlockedCFAReducer implements BlockComputer {
     } while (sequenceApplied || choiceApplied);
   }
 
+  private String getRsfEntryFor(ReducedNode pNode) {
+    return String.format("%s_%s_%d_%d",
+        pNode.getWrapped().getFunctionName(),
+        pNode.getNodeKindText(),
+        pNode.getFunctionCallId(),
+        pNode.getWrapped().getLineNumber());
+  }
+
   /**
    * Write the in-lined version of the CFA to the given PrintStream.
    *
@@ -328,15 +363,7 @@ public class BlockedCFAReducer implements BlockComputer {
       Map<ReducedNode, Set<ReducedEdge>> uTarget = pInlinedCfa.get(u);
       for (ReducedNode v: uTarget.keySet()) {
         for (int i=0; i<uTarget.get(v).size(); i++) {
-          pOut.println(String.format("REL\t%s_%s_%d_%d\t%s_%s_%d_%d",
-                u.getWrapped().getFunctionName(),
-                u.getNodeKindText(),
-                u.getWrapped().getLineNumber(),
-                u.getUniqueNodeId(),
-                v.getWrapped().getFunctionName(),
-                u.getNodeKindText(),
-                v.getWrapped().getLineNumber(),
-                v.getUniqueNodeId()));
+          pOut.println(String.format("REL\t%s\t%s", getRsfEntryFor(u), getRsfEntryFor(v)));
         }
       }
     }
@@ -346,11 +373,13 @@ public class BlockedCFAReducer implements BlockComputer {
    * Compute the nodes of the given CFA that should be abstraction-nodes.
    */
   @Override
-  public synchronized Set<CFANode> computeAbstractionNodes(final CFA pCfa) {
+  public synchronized ImmutableSet<CFANode> computeAbstractionNodes(final CFA pCfa) {
     assert(pCfa != null);
     assert(this.inliningStack.size() == 0);
+    assert(this.functionCallSeq == 0);
 
-    ReducedFunction reducedProgram = inlineAndSummarize(pCfa.getMainFunction(), null);
+    this.functionCallSeq = 0;
+    ReducedFunction reducedProgram = inlineAndSummarize(pCfa.getMainFunction());
 
     if (reducedCfaFile != null) {
       try {
@@ -365,8 +394,6 @@ public class BlockedCFAReducer implements BlockComputer {
       }
     }
 
-    //assert(verifyComputation(pCfa, reducedProgram));
-
     Set<ReducedNode> abstractionNodes = reducedProgram.getAllActiveNodes();
     Set<CFANode> result = new HashSet<CFANode>(abstractionNodes.size());
     for (ReducedNode n : abstractionNodes) {
@@ -374,7 +401,8 @@ public class BlockedCFAReducer implements BlockComputer {
     }
 
     System.out.println(String.format("CFANodes: %d, AbstNodes: %d, summarizationThresold: %d", pCfa.getAllNodes().size(), result.size(), reductionThreshold));
-    return result;
+
+    return ImmutableSet.copyOf(result);
   }
 }
 

@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.conditions.global;
 
+import java.util.Collection;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -45,13 +47,16 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithAB
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 
-public class GlobalConditionsCPA implements ConfigurableProgramAnalysisWithABM, AdjustableConditionCPA {
+public class GlobalConditionsCPA implements ConfigurableProgramAnalysisWithABM, AdjustableConditionCPA, ProofChecker {
 
   private final PrecisionAdjustment precisionAdjustment;
   private final GlobalConditionsThresholds thresholds;
@@ -67,7 +72,13 @@ public class GlobalConditionsCPA implements ConfigurableProgramAnalysisWithABM, 
 
     if (thresholds.isLimitEnabled()) {
       logger.log(Level.INFO, "Analyzing with the following", thresholds);
-      precisionAdjustment = new GlobalConditionsPrecisionAdjustment(logger, thresholds);
+      GlobalConditionsSimplePrecisionAdjustment prec = new GlobalConditionsSimplePrecisionAdjustment(logger, thresholds);
+
+      if (thresholds.getReachedSetSizeThreshold() >= 0) {
+        precisionAdjustment = new GlobalConditionsPrecisionAdjustment(logger, thresholds, prec);
+      } else {
+        precisionAdjustment = prec;
+      }
 
     } else {
       precisionAdjustment = StaticPrecisionAdjustment.getInstance();
@@ -119,5 +130,15 @@ public class GlobalConditionsCPA implements ConfigurableProgramAnalysisWithABM, 
   @Override
   public Reducer getReducer() {
     return NoOpReducer.getInstance();
+  }
+
+  @Override
+  public boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge, Collection<? extends AbstractElement> pSuccessors) throws CPATransferException, InterruptedException {
+    return pSuccessors.size() == 1 && pSuccessors.contains(pElement);
+  }
+
+  @Override
+  public boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement) throws CPAException {
+    return pElement == pOtherElement;
   }
 }

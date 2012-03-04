@@ -23,15 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.callstack;
 
+import java.util.Collection;
+
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithABM {
+public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithABM, ProofChecker {
 
   private final Reducer reducer = new CallstackReducer();
 
@@ -51,5 +57,15 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
   @Override
   public AbstractElement getInitialElement(CFANode pNode) {
     return new CallstackElement(null, pNode.getFunctionName(), pNode);
+  }
+
+  @Override
+  public boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge, Collection<? extends AbstractElement> pSuccessors) throws CPATransferException, InterruptedException {
+    return pSuccessors.equals(getTransferRelation().getAbstractSuccessors(pElement, null, pCfaEdge));
+  }
+
+  @Override
+  public boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement) throws CPAException {
+    return getAbstractDomain().isLessOrEqual(pElement, pOtherElement);
   }
 }

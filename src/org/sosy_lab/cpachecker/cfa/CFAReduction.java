@@ -132,8 +132,8 @@ public class CFAReduction {
                                            .clearOption("CompositeCPA.cpas")
                                            .build();
 
-      CPABuilder lBuilder = new CPABuilder(lConfig, logger, lReachedSetFactory, cfa);
-      ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs();
+      CPABuilder lBuilder = new CPABuilder(lConfig, logger, lReachedSetFactory);
+      ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs(cfa);
       Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger);
       ReachedSet lReached = lReachedSetFactory.create();
       lReached.add(lCpas.getInitialElement(cfa.getMainFunction()), lCpas.getInitialPrecision(cfa.getMainFunction()));

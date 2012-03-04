@@ -93,7 +93,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     }
 
     if (checkerName.equals("CBMC")) {
-      checker = new CBMCChecker(config, logger, cfa);
+      checker = new CBMCChecker(config, logger);
     } else if (checkerName.equals("CPACHECKER")) {
       checker = new CounterexampleCPAChecker(config, logger, reachedSetFactory, cfa);
     } else {
@@ -306,9 +306,9 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     if (checkTime.getNumberOfIntervals() > 0) {
       out.println("Number of infeasible paths:         " + numberOfInfeasiblePaths + " (" + toPercent(numberOfInfeasiblePaths, checkTime.getNumberOfIntervals()) +")" );
       out.println("Time for counterexample checks:     " + checkTime);
-    }
-    if (checker instanceof Statistics) {
-      ((Statistics)checker).printStatistics(out, pResult, pReached);
+      if (checker instanceof Statistics) {
+        ((Statistics)checker).printStatistics(out, pResult, pReached);
+      }
     }
   }
 

@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
-
+@SuppressWarnings("unused")
 public class BlockedCFAReducerTest {
 
   public class ReducerUnderTest extends BlockedCFAReducer {
@@ -69,18 +69,8 @@ public class BlockedCFAReducerTest {
      funct.addEdge(n5, exitNode);
 
      ReducerUnderTest reducer = new ReducerUnderTest(null);
-
      assertEquals(reducer.applySequenceRule(funct), true);
-     assertEquals(funct.getNumOfActiveNodes(), 6);
-
-     assertEquals(reducer.applySequenceRule(funct), true);
-     assertEquals(funct.getNumOfActiveNodes(), 5);
-
-     assertEquals(reducer.applySequenceRule(funct), true);
-     assertEquals(reducer.applySequenceRule(funct), true);
-     assertEquals(reducer.applySequenceRule(funct), true);
-     assertEquals(reducer.applySequenceRule(funct), false);
-     assertEquals(funct.getNumOfActiveNodes(), 2);
+     assertEquals(2, funct.getNumOfActiveNodes());
 
     } catch (InvalidConfigurationException e) {
       e.printStackTrace();
@@ -500,6 +490,44 @@ public class BlockedCFAReducerTest {
      for (ReducedNode n: funct.getAllActiveNodes()) {
        System.out.println(n.getWrapped().getLineNumber());
      }
+     assertEquals(3, funct.getNumOfActiveNodes());
+
+    } catch (InvalidConfigurationException e) {
+      e.printStackTrace();
+    }
+  }
+
+  @Test
+  public void testApplyReductionSequences_IfBranch() {
+   try {
+     ReducedNode entryNode = new ReducedNode(new CFANode(1, "test"));
+     ReducedNode exitNode = new ReducedNode(new CFANode(10, "test"));
+
+     ReducedNode n2 = new ReducedNode(new CFANode(2, "test"));
+     ReducedNode n3 = new ReducedNode(new CFANode(3, "test"));
+     ReducedNode n4 = new ReducedNode(new CFANode(4, "test"));
+     ReducedNode n1000 = new ReducedNode(new CFANode(1000, "test"));
+
+     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
+
+     funct.addEdge(entryNode, n2);
+     funct.addEdge(n2, n1000);
+     funct.addEdge(n2, n3);
+     funct.addEdge(n3, n4);
+     funct.addEdge(n2, n4);
+     funct.addEdge(n4, exitNode);
+
+     ReducerUnderTest reducer = new ReducerUnderTest(null);
+
+     Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
+     reducer.printInlinedCfa(inlinedCfa, System.out);
+
+     reducer.applyReductionSequences(funct);
+
+     System.out.println("Result:");
+     inlinedCfa = funct.getInlinedCfa();
+     reducer.printInlinedCfa(inlinedCfa, System.out);
+
      assertEquals(3, funct.getNumOfActiveNodes());
 
     } catch (InvalidConfigurationException e) {

@@ -57,6 +57,6 @@ public final class IASTCastExpression extends IASTExpression {
 
   @Override
   public String toASTString() {
-    return "(" + type.toASTString() + ")" + operand.toASTString();
+    return "(" + type.toASTString("") + ")" + operand.toParenthesizedASTString();
   }
 }

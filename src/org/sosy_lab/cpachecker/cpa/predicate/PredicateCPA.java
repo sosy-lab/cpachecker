@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -46,28 +47,28 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.YicesTheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFactory;
-import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolTheoremProver;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
@@ -76,15 +77,15 @@ import com.google.common.io.Files;
  * CPA that defines symbolic predicate abstraction.
  */
 @Options(prefix="cpa.predicate")
-public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
   }
 
-  @Option(name="abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES", "SMTINTERPOL"},
-      description="which solver to use?")
-  private String whichProver = "MATHSAT";
+  @Option(name="abstraction.type", toUppercase=true, values={"BDD", "FORMULA"},
+      description="What to use for storing abstractions")
+  private String abstractionType = "BDD";
 
   @Option(name="satsolver", toUppercase=true, values={"MATHSAT", "SMTINTERPOL"},
       description="which satsolver to use?")
@@ -117,13 +118,13 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicatePrecisionAdjustment prec;
   private final StopOperator stop;
   private final PredicatePrecision initialPrecision;
-  private final RegionManager regionManager;
   private final ExtendedFormulaManager formulaManager;
+  private final FormulaManagerFactory formulaManagerFactory;
   private final PathFormulaManager pathFormulaManager;
-  private final TheoremProver theoremProver;
+  private final Solver solver;
   private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
-  private final AbstractElement topElement;
+  private final PredicateAbstractElement topElement;
 
   protected PredicateCPA(Configuration config, LogManager logger, BlockOperator blk, CFA cfa) throws InvalidConfigurationException {
     config.inject(this, PredicateCPA.class);
@@ -133,20 +134,12 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     if (enableBlockreducer) {
       BlockComputer blockComputer = new BlockedCFAReducer(config);
-      blk.setExplicitAbstracitonNodes(blockComputer.computeAbstractionNodes(cfa));
+      blk.setExplicitAbstractionNodes(blockComputer.computeAbstractionNodes(cfa));
     }
 
-    regionManager = BDDRegionManager.getInstance();
+    formulaManagerFactory = new FormulaManagerFactory(config, logger);
 
-    FormulaManager solverFormulaManager = null;
-    if (satsolver.equals("MATHSAT")) {
-      solverFormulaManager = MathsatFactory.createFormulaManager(config, logger);
-    } else if (satsolver.equals("SMTINTERPOL")) {
-      solverFormulaManager = SmtInterpolFactory.createFormulaManager(config, logger);
-    } else {
-      throw new InternalError("Update list of allowed satsolvers!");
-    }
-    formulaManager = new ExtendedFormulaManager(solverFormulaManager, config, logger);
+    formulaManager = new ExtendedFormulaManager(formulaManagerFactory.getFormulaManager(), config, logger);
 
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger);
     if (useCache) {
@@ -154,17 +147,18 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     pathFormulaManager = pfMgr;
 
-    if (whichProver.equals("MATHSAT")) {
-      theoremProver = new MathsatTheoremProver((MathsatFormulaManager) solverFormulaManager);
-    } else if (whichProver.equals("SMTINTERPOL")) {
-      theoremProver = new SmtInterpolTheoremProver((SmtInterpolFormulaManager) solverFormulaManager);
-    } else if (whichProver.equals("YICES")) {
-      theoremProver = new YicesTheoremProver(formulaManager, logger);
+    TheoremProver theoremProver = formulaManagerFactory.createTheoremProver();
+    solver = new Solver(formulaManager, theoremProver);
+
+    RegionManager regionManager;
+    if (abstractionType.equals("FORMULA")) {
+      regionManager = new SymbolicRegionManager(formulaManager, solver);
     } else {
-      throw new InternalError("Update list of allowed solvers!");
+      assert abstractionType.equals("BDD");
+      regionManager = BDDRegionManager.getInstance();
     }
 
-    predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
+    predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, solver, config, logger);
     transfer = new PredicateTransferRelation(this, blk);
 
     topElement = PredicateAbstractElement.abstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
@@ -194,6 +188,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     initialPrecision = new PredicatePrecision(predicates);
 
     stats = new PredicateCPAStatistics(this, blk);
+
+    GlobalInfo.getInstance().storeFormulaManager(formulaManager);
   }
 
   private Collection<AbstractionPredicate> readPredicatesFromFile() {
@@ -241,10 +237,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return stop;
   }
 
-  public RegionManager getRegionManager() {
-    return regionManager;
-  }
-
   public PredicateAbstractionManager getPredicateManager() {
     return predicateManager;
   }
@@ -257,8 +249,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return pathFormulaManager;
   }
 
-  public TheoremProver getTheoremProver() {
-    return theoremProver;
+  public Solver getSolver() {
+    return solver;
   }
 
   Configuration getConfiguration() {
@@ -269,8 +261,12 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return logger;
   }
 
+  public FormulaManagerFactory getFormulaManagerFactory() {
+    return formulaManagerFactory;
+  }
+
   @Override
-  public AbstractElement getInitialElement(CFANode node) {
+  public PredicateAbstractElement getInitialElement(CFANode node) {
     return topElement;
   }
 
@@ -289,7 +285,13 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     pStatsCollection.add(stats);
   }
 
-  PredicateCPAStatistics getStats() {
-    return stats;
+  @Override
+  public boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge, Collection<? extends AbstractElement> pSuccessors) throws CPATransferException, InterruptedException {
+    return getTransferRelation().areAbstractSuccessors(pElement, pCfaEdge, pSuccessors);
+  }
+
+  @Override
+  public boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement) throws CPAException {
+    return getAbstractDomain().formulaBasedIsLessOrEqual(pElement, pOtherElement);
   }
 }

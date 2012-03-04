@@ -26,7 +26,7 @@ CPAchecker web page:
 
 # import our own modules
 TableGenerator = __import__('table-generator') # for '-' in module-name
-FileUtil = TableGenerator # only for different names in programm
+Util = TableGenerator.Util # only for different names in programm
 
 import xml.etree.ElementTree as ET
 import sys
@@ -138,7 +138,7 @@ def getFilenameList(listOfSourcefileTags, listOfSourcefileDics, compare):
 
 def status(currentFile):
     fileName = currentFile.get('name').lower()
-    isSafeFile = not TableGenerator.containsAny(fileName, TableGenerator.BUG_SUBSTRING_LIST)
+    isSafeFile = not Util.containsAny(fileName, TableGenerator.BUG_SUBSTRING_LIST)
     status = [x for x in currentFile.findall("column") if x.get("title") == "status"][0].get("value").lower()
 
     if status not in ('safe', 'unsafe'):
@@ -149,7 +149,7 @@ def compareResults(xmlFiles, options):
     compare = options.compare
     print ('\ncomparing results ...')
 
-    resultFiles = FileUtil.extendFileList(xmlFiles)
+    resultFiles = Util.extendFileList(xmlFiles)
 
     if len(resultFiles) == 0:
         print ('Resultfile not found. Check your filenames!')
@@ -211,10 +211,10 @@ def compareResults(xmlFiles, options):
         print ("\n---> NO DIFFERENCE FOUND IN COLUMN 'STATUS'")
 
     if options.dump_counts:
-        print "STATS"
+        print ("STATS")
         for elem in statusList:
             correct, wrong, unknown = elem.count("correct"), elem.count("wrong"), elem.count("unknown")
-            print correct, wrong, unknown
+            print (str(correct) + " " + str(wrong) + " " + str(unknown))
 
 
 def copyXMLElem(elem):

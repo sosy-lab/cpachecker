@@ -45,7 +45,6 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver.MathsatAllSatCallback;
 
@@ -59,7 +58,7 @@ public class YicesTheoremProver implements TheoremProver {
     private int curVarIndex;
     private final int yicesContext;
     private final yices.YicesLite yicesManager;
-    private final FormulaManager smgr;
+    private final MathsatFormulaManager smgr;
 
     private final Deque<Collection<String>> declStack;
     private final Set<String> globalDecls;
@@ -71,7 +70,7 @@ public class YicesTheoremProver implements TheoremProver {
     // much memory
     // private final int MAX_NUM_YICES_CALLS = 100;
 
-    public YicesTheoremProver(FormulaManager mgr, LogManager logger) {
+    public YicesTheoremProver(MathsatFormulaManager mgr, LogManager logger) {
         msatVarToYicesVar = new HashMap<Long, String>();
         msatToYicesCache = new HashMap<Long, String>();
         yicesPredToMsat = new HashMap<String, Long>();
@@ -371,14 +370,6 @@ public class YicesTheoremProver implements TheoremProver {
     @Override
     public boolean isUnsat() {
         return yicesInconsistent();
-    }
-
-    @Override
-    public boolean isUnsat(Formula f) {
-        push(f);
-        boolean res = yicesInconsistent();
-        pop();
-        return res;
     }
 
     @Override

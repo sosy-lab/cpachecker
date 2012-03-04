@@ -28,7 +28,6 @@ import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.Iterables.*;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.FILTER_ABSTRACTION_ELEMENTS;
 import static org.sosy_lab.cpachecker.util.AbstractElements.*;
-import static org.sosy_lab.cpachecker.util.assumptions.ReportingUtils.extractReportedFormulas;
 
 import java.io.File;
 import java.io.IOException;
@@ -209,7 +208,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
     fmgr = predCpa.getFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
-    prover = predCpa.getTheoremProver();
+    prover = predCpa.getSolver().getTheoremProver();
   }
 
   @Override
@@ -385,7 +384,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.INFO, "Starting assertions check...");
 
       stats.assertionsCheck.start();
-      boolean sound = prover.isUnsat(assertions);
+      prover.push(assertions);
+      boolean sound = prover.isUnsat();
+      prover.pop();
       stats.assertionsCheck.stop();
 
       logger.log(Level.FINER, "Soundness after assertion checks:", sound);
@@ -403,9 +404,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private Formula createFormulaFor(Iterable<AbstractElement> elements) {
     Formula f = fmgr.makeFalse();
 
-    for (PredicateAbstractElement e : transform(elements, EXTRACT_PREDICATE_ELEMENT)) {
-      assert e != null : "PredicateCPA exists but did not produce elements!";
-
+    for (PredicateAbstractElement e : AbstractElements.projectToType(elements, PredicateAbstractElement.class)) {
       f = fmgr.makeOr(f, e.getPathFormula().getFormula());
     }
 
@@ -521,7 +520,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     // get global invariants
     Formula invariants = extractInvariantsAt(loopHead, invariantGenerator.get());
-    invariants = fmgr.instantiate(invariants, SSAMap.emptyWithDefault(1));
+    invariants = fmgr.instantiate(invariants, SSAMap.emptySSAMap().withDefault(1));
 
     // Create formulas
     Formula inductions = fmgr.makeTrue();
@@ -550,7 +549,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // Create (A & B)
       PathFormula pathFormulaAB = extractElementByType(lastcutPointState, PredicateAbstractElement.class).getPathFormula();
       Formula formulaAB = fmgr.makeAnd(invariants, pathFormulaAB.getFormula());
-      assert (!prover.isUnsat(formulaAB));
 
       // Create C
       PathFormula empty = pmgr.makeEmptyPathFormula(pathFormulaAB); // empty has correct SSAMap
@@ -573,7 +571,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     logger.log(Level.INFO, "Starting induction check...");
 
     stats.inductionCheck.start();
-    boolean sound = prover.isUnsat(inductions);
+    prover.push(inductions);
+    boolean sound = prover.isUnsat();
+    prover.pop();
     stats.inductionCheck.stop();
 
     if (!sound && logger.wouldBeLogged(Level.ALL)) {
@@ -592,7 +592,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     Formula invariant = fmgr.makeFalse();
 
     for (AbstractElement locState : AbstractElements.filterLocation(reached, loc)) {
-      Formula f = extractReportedFormulas(fmgr, locState);
+      Formula f = AbstractElements.extractReportedFormulas(fmgr, locState);
       logger.log(Level.ALL, "Invariant:", f);
 
       invariant = fmgr.makeOr(invariant, f);
@@ -641,7 +641,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
         }
 
-        invariantCPAs = new CPABuilder(invariantConfig, logger, reachedSetFactory, cfa).buildCPAs();
+        invariantCPAs = new CPABuilder(invariantConfig, logger, reachedSetFactory).buildCPAs(cfa);
         reached = new ReachedSetFactory(invariantConfig, logger).create();
 
       } else {

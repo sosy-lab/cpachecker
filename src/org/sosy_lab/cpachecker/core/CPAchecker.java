@@ -39,31 +39,23 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.io.Resources;
 
+@Options(prefix="analysis")
 public class CPAchecker {
 
   public static interface CPAcheckerMXBean {
@@ -96,53 +88,20 @@ public class CPAchecker {
 
   }
 
-  @Options
-  private static class CPAcheckerOptions {
+  @Option(description="stop after the first error has been found")
+  private boolean stopAfterError = true;
 
-    @Option(name="analysis.useAssumptionCollector",
-        description="use assumption collecting algorithm")
-        boolean useAssumptionCollector = false;
+  @Option(name="disable",
+      description="stop CPAchecker after startup (internal option, not intended for users)")
+  private boolean disableAnalysis = false;
 
-    @Option(name="analysis.useAdjustableConditions",
-        description="use adjustable conditions algorithm")
-        boolean useAdjustableConditions = false;
-
-    @Option(name = "analysis.useRefinement",
-        description = "use CEGAR algorithm for lazy counter-example guided analysis"
-          + "\nYou need to specify a refiner with the cegar.refiner option."
-          + "\nCurrently all refiner require the use of the ARTCPA.")
-          boolean useRefinement = false;
-
-    @Option(name="analysis.useCBMC",
-        description="use CBMC to double-check counter-examples")
-        boolean useCBMC = false;
-
-    @Option(name="analysis.useBMC",
-        description="use a BMC like algorithm that checks for satisfiability "
-          + "after the analysis has finished, works only with PredicateCPA")
-          boolean useBMC = false;
-
-    @Option(name="analysis.stopAfterError",
-        description="stop after the first error has been found")
-        boolean stopAfterError = true;
-
-    @Option(name="analysis.restartAfterUnknown",
-        description="restart the algorithm using a different CPA after unknown result")
-        boolean useRestartingAlgorithm = false;
-
-    @Option(name="analysis.externalCBMC",
-        description="use CBMC as an external tool from CPAchecker")
-        boolean runCBMCasExternalTool = false;
-
-    @Option(name="analysis.disable",
-        description="stop CPAchecker after startup (internal option, not intended for users)")
-        boolean disableAnalysis = false;
-  }
+  @Option(name="externalCBMC",
+      description="use CBMC as an external tool from CPAchecker")
+  private boolean runCBMCasExternalTool = false;
 
   private final LogManager logger;
   private final Configuration config;
-  private final CPAcheckerOptions options;
-  private final ReachedSetFactory reachedSetFactory;
+  private final CoreComponentsFactory factory;
 
   /**
    * This method will throw an exception if the user has requested CPAchecker to
@@ -182,9 +141,8 @@ public class CPAchecker {
     config = pConfiguration;
     logger = pLogManager;
 
-    options = new CPAcheckerOptions();
-    config.inject(options);
-    reachedSetFactory = new ReachedSetFactory(pConfiguration, pLogManager);
+    config.inject(this);
+    factory = new CoreComponentsFactory(pConfiguration, pLogManager);
   }
 
   public CPAcheckerResult run(String filename) {
@@ -200,28 +158,28 @@ public class CPAchecker {
 
       // create reached set, cpa, algorithm
       stats.creationTime.start();
-      reached = reachedSetFactory.create();
+      reached = factory.createReachedSet();
 
       Algorithm algorithm;
 
-      if (options.runCBMCasExternalTool) {
+      if (runCBMCasExternalTool) {
         algorithm = new ExternalCBMCAlgorithm(filename, config, logger);
 
       } else {
         CFA cfa = parse(filename, stats);
+        GlobalInfo.getInstance().storeCFA(cfa);
         stopIfNecessary();
 
-        ConfigurableProgramAnalysis cpa = createCPA(stats, cfa);
+        ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, stats);
 
-        algorithm = createAlgorithm(cpa, stats, filename, cfa);
+        algorithm = factory.createAlgorithm(cpa, filename, cfa, stats);
 
-        if (algorithm instanceof RestartAlgorithm) {
-          // this algorithm needs an indirection so that it can change
-          // the actual reached set instance on the fly
-          reached = new ForwardingReachedSet(reached);
+        if (algorithm instanceof ImpactAlgorithm) {
+          ImpactAlgorithm mcmillan = (ImpactAlgorithm)algorithm;
+          reached.add(mcmillan.getInitialElement(cfa.getMainFunction()), mcmillan.getInitialPrecision(cfa.getMainFunction()));
+        } else {
+          initializeReachedSet(reached, cpa, cfa.getMainFunction());
         }
-
-        initializeReachedSet(reached, cpa, cfa.getMainFunction());
       }
 
       printConfigurationWarnings();
@@ -230,7 +188,7 @@ public class CPAchecker {
       stopIfNecessary();
       // now everything necessary has been instantiated
 
-      if (options.disableAnalysis) {
+      if (disableAnalysis) {
         return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
       }
 
@@ -306,7 +264,7 @@ public class CPAchecker {
 
         // either run only once (if stopAfterError == true)
         // or until the waitlist is empty
-      } while (!options.stopAfterError && reached.hasWaitingElement());
+      } while (!stopAfterError && reached.hasWaitingElement());
 
       logger.log(Level.INFO, "Stopping analysis ...");
       return sound;
@@ -336,71 +294,6 @@ public class CPAchecker {
     }
 
     return Result.SAFE;
-  }
-
-  private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats, CFA cfa) throws InvalidConfigurationException, CPAException {
-    logger.log(Level.FINE, "Creating CPAs");
-    stats.cpaCreationTime.start();
-    try {
-
-      if (options.useRestartingAlgorithm) {
-        // hard-coded dummy CPA
-        return LocationCPA.factory().set(cfa, CFA.class).createInstance();
-      }
-
-      CPABuilder builder = new CPABuilder(config, logger, reachedSetFactory, cfa);
-      ConfigurableProgramAnalysis cpa = builder.buildCPAs();
-
-      if (cpa instanceof StatisticsProvider) {
-        ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
-      }
-      return cpa;
-
-    } finally {
-      stats.cpaCreationTime.stop();
-    }
-  }
-
-  private Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
-        final MainCPAStatistics stats, final String filename, CFA cfa)
-        throws InvalidConfigurationException, CPAException {
-    logger.log(Level.FINE, "Creating algorithms");
-
-    Algorithm algorithm;
-
-    if (options.useRestartingAlgorithm) {
-      logger.log(Level.INFO, "Using Restarting Algorithm");
-      algorithm = new RestartAlgorithm(config, logger, filename, cfa);
-
-    } else {
-      algorithm = new CPAAlgorithm(cpa, logger);
-
-      if (options.useRefinement) {
-        algorithm = new CEGARAlgorithm(algorithm, cpa, config, logger);
-      }
-
-      if (options.useBMC) {
-        algorithm = new BMCAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, cfa);
-      }
-
-      if (options.useCBMC) {
-        algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, cfa);
-      }
-
-      if (options.useAssumptionCollector) {
-        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger);
-      }
-
-      if (options.useAdjustableConditions) {
-        algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
-      }
-
-    }
-
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
-    }
-    return algorithm;
   }
 
   private void initializeReachedSet(

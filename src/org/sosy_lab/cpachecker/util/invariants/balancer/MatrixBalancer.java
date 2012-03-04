@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -34,6 +34,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
+import org.sosy_lab.cpachecker.util.invariants.balancer.prh3.PivotRowHandler;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.VariableManager;
 import org.sosy_lab.cpachecker.util.invariants.redlog.EliminationAnswer;
 import org.sosy_lab.cpachecker.util.invariants.redlog.EliminationHandler;
@@ -56,13 +57,18 @@ public class MatrixBalancer implements Balancer {
 
   private TemplateNetwork tnet;
   private Map<String,Variable> paramVars = null;
-  private Collection<Matrix> matrices;
+  private List<Matrix> matrices;
 
   final Timer redlog = new Timer();
+  private boolean redlogReturnedTrue = false;
 
   public MatrixBalancer(LogManager lm) {
     logger = lm;
     RLI = new RedlogInterface(logger);
+  }
+
+  public boolean redlogSaidTrue() {
+    return redlogReturnedTrue;
   }
 
   @Override
@@ -73,17 +79,26 @@ public class MatrixBalancer implements Balancer {
     // Create Variables, and a map from parameter Strings to Variables.
     paramVars = makeParamVars();
 
-    // TODO: build all the matrices
-    Collection<Matrix> mats = new Vector<Matrix>();
+    // Build all the matrices
+    List<Matrix> mats = new Vector<Matrix>();
     for (Transition t : tnet.getTransitions()) {
       mats.addAll( getMatricesForTransition(t) );
     }
     matrices = mats;
+    logger.log(Level.ALL,"Transformed network transitions into matrices.");
+    logMatrices();
+    // Put them in RREF as far as possible without pivoting on any entries with variable numerator.
+    innocuousRREF();
+    logger.log(Level.ALL,"Put matrices in partial RREF, stopping when all potential pivots had variable numerator.");
+    logMatrices();
 
     // Try to find a solution.
     Map<String,Rational> solution = solve();
+
+    // Examine the results.
     if (solution == null) {
       logger.log(Level.FINEST, "MatrixBalancer could not find any solution.");
+      succeed = false;
     } else {
       // Set parameters to zero for which Redlog specified no value.
       fillInZeros(solution, paramVars.keySet());
@@ -99,18 +114,94 @@ public class MatrixBalancer implements Balancer {
   }
 
   private Map<String,Rational> solve() {
-    // diagnostic:
-    showMatrices();
-    // TODO
-    return null;
+    // Declare the return value.
+    Map<String,Rational> values = null;
+
+    // Initialize an AssumptionManager.
+    AssumptionManager amgr = new AssumptionManager(matrices, logger);
+
+    boolean tryAgain = true;
+    while (tryAgain) {
+
+      // We try to get through all the matrices, without raising a bad assumptions exception.
+      // If we make it all the way through, then we managed to find a sufficient set of assumptions
+      // on the parameters, for all the matrices to have solutions in nonnegative numbers.
+      // Finally, we check whether Redlog can find values for the parameters that satisfy these
+      // assumptions.
+
+      try {
+        Matrix m = amgr.nextMatrix();
+        while (m != null) {
+          logger.log(Level.ALL, "Working on matrix:","\n"+m.toString());
+          m.putInRREF(amgr, logger);
+          /*
+           * First method:
+          PivotRowHandler prh = new PivotRowHandler(m, logger);
+          prh.firstPass(amgr);
+          prh.secondPass(amgr);
+          prh.thirdPass(amgr, this);
+          */
+          /*
+           * Second method:
+          PivotRowHandler2 prh = new PivotRowHandler2(m, amgr, this, logger);
+          prh.firstPass();
+          prh.secondPass();
+          */
+          PivotRowHandler prh = new PivotRowHandler(m, amgr, this, logger);
+          prh.solve();
+          m = amgr.nextMatrix();
+        }
+
+        // If we made it this far, then we managed to compute a sufficient set of conditions on
+        // the parameters. So we retrieve it, and then ask Redlog to compute values for the parameters.
+
+        // Retrieve the assumption set:
+        AssumptionSet aset = amgr.getCurrentAssumptionSet();
+        // Pass it to Redlog:
+        values = tryAssumptionSet(aset);
+        // Review the results:
+        if (values == null) {
+          // Redlog didn't find values for the parameters, so we will go back and try again.
+          throw new BadAssumptionsException();
+        } else {
+          // We found an assumption set that works! We return it.
+          break;
+        }
+      } catch (BadAssumptionsException e) {
+        // We wind up here if anything went wrong, anywhere in the process.
+        // It is now time to backtrack, i.e. to ask the assumption manager to take us back in time
+        // to the last point at which we made a "possibly unnecessary" assumption. We'll carry on
+        // from there. Or, if there are no options left, then 'tryAgain' will be false, and we will
+        // exit the while loop. 'values' will still be null, indicating that we failed to find
+        // values for the parameters.
+        tryAgain = amgr.nextBranch();
+      }
+
+    }
+
+    return values;
+  }
+
+  /*
+   * We put each of the matrices into RREF, up to the point where we would have to choose a
+   * pivot with variable numerator. This process cannot generate any assumptions whatsoever,
+   * so we do not return any.
+   */
+  private void innocuousRREF() {
+    for (Matrix m : matrices) {
+      m.setHaltOnVarNumPivot(true);
+      m.putInRREF(logger);
+      m.setHaltOnVarNumPivot(false);
+    }
   }
 
   /*
    * Diagnostic method, purely for output.
    */
-  private void showMatrices() {
+  private void logMatrices() {
+    logger.log(Level.ALL,"Matrices:");
     for (Matrix m : matrices) {
-      System.out.println(m);
+      logger.log(Level.ALL,"\n"+m.toString());
     }
   }
 
@@ -139,8 +230,7 @@ public class MatrixBalancer implements Balancer {
    * If it succeeds, then we return a map, mapping parameter names to rationals.
    * Else we return null.
    */
-  @SuppressWarnings("unused")
-  private HashMap<String,Rational> tryAssumptionSet(AssumptionSet aset) {
+  public HashMap<String,Rational> tryAssumptionSet(AssumptionSet aset) {
     logger.log(Level.ALL, "Asking Redlog to find values for the parameters, assuming:\n",aset);
     HashMap<String,Rational> map = null;
 
@@ -166,6 +256,11 @@ public class MatrixBalancer implements Balancer {
     return map;
   }
 
+  public boolean isSatisfiable(AssumptionSet aset) {
+    Map<String,Rational> map = tryAssumptionSet(aset);
+    return map != null || redlogReturnedTrue;
+  }
+
   /**
    * Ask Redlog to find parameter values that satisfy a formula.
    * @param phi The formula to be satisfied.
@@ -174,12 +269,16 @@ public class MatrixBalancer implements Balancer {
    */
   private HashMap<String,Rational> getParameterValuesFromRedlog(String phi, Set<String> params) {
     HashMap<String,Rational> map = null;
+    redlogReturnedTrue = false;
     try {
       EliminationAnswer EA = RLI.rlqea(phi);
       if (EA != null) {
         if (EA.getTruthValue() == false) {
           logger.log(Level.ALL, "Redlog says formula is unsatisfiable.");
         } else {
+          if (EA.getTruthValue() == true) {
+            redlogReturnedTrue = true;
+          }
           EliminationHandler EH = new EliminationHandler(EA);
           map = EH.getParameterValues(params);
         }
@@ -190,7 +289,7 @@ public class MatrixBalancer implements Balancer {
     return map;
   }
 
-  private Collection<Matrix> getMatricesForTransition(Transition t) {
+  private List<Matrix> getMatricesForTransition(Transition t) {
 
     // Get the template map.
     TemplateMap tmap = tnet.getTemplateMap();
@@ -237,7 +336,7 @@ public class MatrixBalancer implements Balancer {
     TemplateVariableManager vmgr = new TemplateVariableManager(n,m);
     logger.log(Level.ALL, "Variable manager:\n", vmgr);
 
-    Collection<Matrix> matrices = consec(antD,t2,vmgr);
+    List<Matrix> matrices = consec(antD,t2,vmgr);
 
     // Restore templates and path formula.
     // They may be involved in other transitions, or we may restart the entire process
@@ -256,17 +355,17 @@ public class MatrixBalancer implements Balancer {
     return matrices;
   }
 
-  private Collection<Matrix> consec(TemplateDisjunction ant, TemplateFormula t2,
+  private List<Matrix> consec(TemplateDisjunction ant, TemplateFormula t2,
       VariableManager vmgr) {
     Vector<UIFAxiom> U = new Vector<UIFAxiom>();
     return consec(ant,t2,U,vmgr);
   }
 
-  private Collection<Matrix> consec(TemplateDisjunction ant, TemplateFormula t2,
+  private List<Matrix> consec(TemplateDisjunction ant, TemplateFormula t2,
       Vector<UIFAxiom> U, VariableManager vmgr) {
 
     // Initialize collection of matrices.
-    Collection<Matrix> matrices = new Vector<Matrix>();
+    List<Matrix> matrices = new Vector<Matrix>();
 
     // Build matrices.
     // Create Vector containing the linearization of each disjunct in ant:

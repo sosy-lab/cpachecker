@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,6 +51,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -58,16 +61,13 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatInterpolatingProver;
-import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolInterpolatingProver;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -79,26 +79,38 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 @Options(prefix="cpa.predicate.refinement")
 public abstract class InterpolationManager<I> {
 
-  public static class Stats {
-    public final Timer cexAnalysisTimer = new Timer();
-    public final Timer cexAnalysisSolverTimer = new Timer();
-    public final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
-    public final Timer interpolantVerificationTimer = new Timer();
+  static class Stats {
+    private final Timer cexAnalysisTimer = new Timer();
+    private final Timer cexAnalysisSolverTimer = new Timer();
+    private final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
+    private final Timer interpolantVerificationTimer = new Timer();
+
+    void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+      out.println("  Counterexample analysis:        " + cexAnalysisTimer + " (Max: " + cexAnalysisTimer.printMaxTime() + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
+      if (cexAnalysisGetUsefulBlocksTimer.getMaxTime() != 0) {
+        out.println("    Cex.focusing:                 " + cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.printMaxTime() + ")");
+      }
+      out.println("    Solving time only:            " + cexAnalysisSolverTimer + " (Max: " + cexAnalysisSolverTimer.printMaxTime() + ", Calls: " + cexAnalysisSolverTimer.getNumberOfIntervals() + ")");
+      if (interpolantVerificationTimer.getNumberOfIntervals() > 0) {
+        out.println("    Interpolant verification:     " + interpolantVerificationTimer);
+      }
+    }
   }
 
-  public final Stats refStats;
+  final Stats stats = new Stats();
 
   protected final LogManager logger;
   protected final ExtendedFormulaManager fmgr;
   protected final PathFormulaManager pmgr;
-  private final TheoremProver thmProver;
+  private final Solver solver;
 
   private final InterpolatingTheoremProver<?> firstItpProver;
   private final InterpolatingTheoremProver<?> secondItpProver;
 
-  @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT", "SMTINTERPOL"},
-      description="which interpolating solver to use for interpolant generation?")
-  private String whichItpProver = "MATHSAT";
+  @Option(name="interpolatingProver", toUppercase=true, values={"DEFAULT", "CSISAT"},
+      description="Which interpolating solver to use for interpolant generation?\n"
+          + "DEFAULT means to use the solver used for everything else as well.")
+  private String whichItpProver = "DEFAULT";
 
   @Option(description="apply deletion-filter to the abstract counterexample, to get "
     + "a minimal set of blocks, before applying interpolation-based refinement")
@@ -152,47 +164,32 @@ public abstract class InterpolationManager<I> {
   public InterpolationManager(
       ExtendedFormulaManager pFmgr,
       PathFormulaManager pPmgr,
-      TheoremProver pThmProver,
+      Solver pSolver,
+      FormulaManagerFactory pFmgrFactory,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, InterpolationManager.class);
 
-    refStats = new Stats();
     logger = pLogger;
     fmgr = pFmgr;
     pmgr = pPmgr;
-    thmProver = pThmProver;
+    solver = pSolver;
+
 
     // create solvers
-    FormulaManager realFormulaManager = fmgr.getDelegate();
-    if (whichItpProver.equals("MATHSAT")) {
-      if (!(realFormulaManager instanceof MathsatFormulaManager)) {
-        throw new InvalidConfigurationException("Need to use Mathsat as solver if Mathsat should be used for interpolation");
-      }
-      firstItpProver = new MathsatInterpolatingProver((MathsatFormulaManager) realFormulaManager, false);
-
-    } else if (whichItpProver.equals("CSISAT")) {
-      firstItpProver = new CSIsatInterpolatingProver(pFmgr, logger);
-
-    } else if (whichItpProver.equals("SMTINTERPOL")) {
-      firstItpProver = new SmtInterpolInterpolatingProver((SmtInterpolFormulaManager) realFormulaManager, false);
-
+    if (whichItpProver.equals("CSISAT")) {
+      firstItpProver = new CSIsatInterpolatingProver(fmgr, logger);
     } else {
-      throw new InternalError("Update list of allowed solvers!");
+      assert whichItpProver.equals("DEFAULT");
+      firstItpProver = pFmgrFactory.createInterpolatingTheoremProver(false);
     }
 
     if (changeItpSolveOTF) {
-      if (whichItpProver.equals("MATHSAT")) {
-        secondItpProver = new CSIsatInterpolatingProver(pFmgr, logger);
-
-      } else if (whichItpProver.equals("SMTINTERPOL")) {
-        secondItpProver = new SmtInterpolInterpolatingProver((SmtInterpolFormulaManager) realFormulaManager, false);
-
+      if (whichItpProver.equals("CSISAT")) {
+        secondItpProver = pFmgrFactory.createInterpolatingTheoremProver(false);
       } else {
-        if (!(realFormulaManager instanceof MathsatFormulaManager)) {
-          throw new InvalidConfigurationException("Need to use Mathsat as solver if Mathsat should be used for interpolation");
-        }
-        secondItpProver = new MathsatInterpolatingProver((MathsatFormulaManager) realFormulaManager, false);
+        assert whichItpProver.equals("DEFAULT");
+        secondItpProver = new CSIsatInterpolatingProver(fmgr, logger);
       }
     } else {
       secondItpProver = null;
@@ -292,7 +289,7 @@ public abstract class InterpolationManager<I> {
       List<Formula> pFormulas, Set<ARTElement> elementsOnPath, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
 
     logger.log(Level.FINEST, "Building counterexample trace");
-    refStats.cexAnalysisTimer.start();
+    stats.cexAnalysisTimer.start();
     pItpProver.init();
     try {
 
@@ -322,7 +319,7 @@ public abstract class InterpolationManager<I> {
 
       // Check feasibility of counterexample
       logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
-      refStats.cexAnalysisSolverTimer.start();
+      stats.cexAnalysisSolverTimer.start();
 
       boolean spurious;
       List<T> itpGroupsIds;
@@ -349,7 +346,7 @@ public abstract class InterpolationManager<I> {
         assert !itpGroupsIds.contains(null); // has to be filled completely
 
       } finally {
-        refStats.cexAnalysisSolverTimer.stop();
+        stats.cexAnalysisSolverTimer.stop();
       }
 
       logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
@@ -376,7 +373,7 @@ public abstract class InterpolationManager<I> {
 
     } finally {
       pItpProver.reset();
-      refStats.cexAnalysisTimer.stop();
+      stats.cexAnalysisTimer.stop();
     }
   }
 
@@ -418,10 +415,11 @@ public abstract class InterpolationManager<I> {
    */
   private List<Formula> getUsefulBlocks(List<Formula> f, boolean suffixTrace, boolean zigZag) {
 
-    refStats.cexAnalysisGetUsefulBlocksTimer.start();
+    stats.cexAnalysisGetUsefulBlocksTimer.start();
 
     // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
 
+    TheoremProver thmProver = solver.getTheoremProver();
     thmProver.init();
 
     logger.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
@@ -524,7 +522,7 @@ public abstract class InterpolationManager<I> {
 
     logger.log(Level.ALL, "DEBUG_1", "Done getUsefulBlocks");
 
-    refStats.cexAnalysisGetUsefulBlocksTimer.stop();
+    stats.cexAnalysisGetUsefulBlocksTimer.stop();
 
     return f;
   }
@@ -658,9 +656,9 @@ public abstract class InterpolationManager<I> {
       logger.log(Level.ALL, "Looking for interpolant for formulas from",
           start_of_a, "to", i);
 
-      refStats.cexAnalysisSolverTimer.start();
+      stats.cexAnalysisSolverTimer.start();
       Formula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
-      refStats.cexAnalysisSolverTimer.stop();
+      stats.cexAnalysisSolverTimer.stop();
 
       if (dumpInterpolationProblems) {
         File dumpFile = formatFormulaOutputFile("interpolant", i);
@@ -689,7 +687,7 @@ public abstract class InterpolationManager<I> {
   }
 
   private <T> void verifyInterpolants(List<Formula> interpolants, List<Formula> formulas, InterpolatingTheoremProver<T> prover) throws SolverException, InterruptedException {
-    refStats.interpolantVerificationTimer.start();
+    stats.interpolantVerificationTimer.start();
     try {
 
       final int n = interpolants.size();;
@@ -752,7 +750,7 @@ public abstract class InterpolationManager<I> {
       }
 
     } finally {
-      refStats.interpolantVerificationTimer.stop();
+      stats.interpolantVerificationTimer.stop();
     }
   }
 
@@ -776,13 +774,12 @@ public abstract class InterpolationManager<I> {
    * @throws RefinementFailedException If there were no predicates.
    */
   private <T> CounterexampleTraceInfo<I> extractPredicates(
-      List<Formula> interpolants) throws RefinementFailedException {
+      List<Formula> interpolants) {
 
     // the counterexample is spurious. Extract the predicates from
     // the interpolants
 
     CounterexampleTraceInfo<I> info = new CounterexampleTraceInfo<I>();
-    boolean foundPredicates = false;
 
     int i = 1;
     for (Formula itp : interpolants) {
@@ -794,17 +791,12 @@ public abstract class InterpolationManager<I> {
 
       } else {
         logger.log(Level.ALL, "For step", i, "got:", "interpolant", itp);
-        foundPredicates = true;
-
         preds = convertInterpolant(itp, i);
       }
       info.addPredicatesForRefinement(preds);
       i++;
     }
 
-    if (!foundPredicates) {
-      throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
-    }
     return info;
   }
 
@@ -863,6 +855,7 @@ public abstract class InterpolationManager<I> {
   public CounterexampleTraceInfo<I> checkPath(List<CFAEdge> pPath) throws CPATransferException {
     Formula f = pmgr.makeFormulaForPath(pPath).getFormula();
 
+    TheoremProver thmProver = solver.getTheoremProver();
     thmProver.init();
     try {
       thmProver.push(f);
@@ -889,7 +882,7 @@ public abstract class InterpolationManager<I> {
 
   protected File formatFormulaOutputFile(String formula, int index) {
     if (dumpInterpolationProblems) {
-      return fmgr.formatFormulaOutputFile("interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), formula, index);
+      return fmgr.formatFormulaOutputFile("interpolation", stats.cexAnalysisTimer.getNumberOfIntervals(), formula, index);
     } else {
       return null;
     }

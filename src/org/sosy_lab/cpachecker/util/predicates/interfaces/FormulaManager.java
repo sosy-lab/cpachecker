@@ -91,6 +91,16 @@ public interface FormulaManager {
   public Formula makeIfThenElse(Formula cond,
       Formula f1, Formula f2);
 
+  /**
+   * Creates an uninterpreted predicate (i.e., a UIF with boolean arguments and return type).
+   */
+  Formula makeUIP(String pName, FormulaList pArgs);
+
+  /**
+   * Declares an uninterpreted predicate (i.e., a UIF with boolean arguments and return type).
+   */
+  void declareUIP(String pName, int pArgCount);
+
 
   // ----------------- Numeric formulas -----------------
 
@@ -194,7 +204,6 @@ public interface FormulaManager {
      * which all the variables are "generic" ones. This is the inverse of the
      * instantiate() method above
      */
-    @Deprecated
     public Formula uninstantiate(Formula pF);
 
     /**
@@ -237,4 +246,15 @@ public interface FormulaManager {
      * if it is not done by the caller of this method.
      */
     public Formula createPredicateVariable(Formula pAtom);
+
+    /**
+     * Splits a formula into into arguments of the top level operator, e.g.,
+     * "f1 or f2" gets split to "f1", "f2".
+     */
+    public Formula[] getArguments(Formula f);
+
+    /**
+     * Checks whether leftFormula occurs in rightFormula.
+     */
+    public boolean checkSyntacticEntails(Formula leftFormula, Formula rightFormula);
 }

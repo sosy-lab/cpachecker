@@ -64,6 +64,10 @@ public class Automaton {
     }
   }
 
+  public List<AutomatonInternalState> getStates() {
+    return states;
+  }
+
   public String getName() {
     return name;
   }

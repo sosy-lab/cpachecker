@@ -24,6 +24,8 @@ path *  CPAchecker is a tool for configurable software verification.
 package org.sosy_lab.cpachecker.cpa.explicit;
 
 import static com.google.common.collect.Iterables.skip;
+import static com.google.common.collect.Lists.transform;
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
@@ -54,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -71,12 +72,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -85,22 +88,18 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFactory;
-import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolTheoremProver;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.predicate")
-public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARTElement, CFAEdge>> {
+public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARTElement, CFANode>> {
 
   @Option(name="satsolver", toUppercase=true, values={"MATHSAT", "SMTINTERPOL"},
       description="which satsolver to use?")
@@ -109,24 +108,24 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   final Timer precisionUpdate = new Timer();
   final Timer artUpdate = new Timer();
 
-  private Pair<ARTElement, CFAEdge> firstInterpolationPoint = null;
+  private Pair<ARTElement, CFANode> firstInterpolationPoint = null;
 
-  private Set<String> allReferencedVariables = new HashSet<String>();
+  private Set<String> allReferencedVariables                = new HashSet<String>();
 
-  private Set<String> globalVars = null;
+  private Set<String> globalVars                            = null;
 
   private final ExtendedFormulaManager fmgr;
   private final PathFormulaManager pathFormulaManager;
 
-  PredicatePrecision predicatePrecision = null;
+  private boolean predicateCpaAvailable         = false;
 
-  private boolean predicateCpaInUse = false;
+  private Set<Integer> pathHashes               = new HashSet<Integer>();
 
-  private Set<Integer> pathHashes = new HashSet<Integer>();
+  private Integer previousPathHash              = null;
 
-  private Integer previousPathHash = null;
+  private boolean refinePredicatePrecision      = false;
 
-  String lastPath;
+  private List<Pair<ARTElement, CFAEdge>> path  = null;
 
   public static ExplicitRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     if (!(pCpa instanceof WrapperCPA)) {
@@ -144,11 +143,10 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   }
 
   private static ExplicitRefiner initialiseExplicitRefiner(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws CPAException, InvalidConfigurationException {
-    FormulaManager simpleFormulaManager         = null;
-    RegionManager regionManager                 = null;
+    FormulaManagerFactory factory               = null;
     ExtendedFormulaManager formulaManager       = null;
     PathFormulaManager pathFormulaManager       = null;
-    TheoremProver theoremProver                 = null;
+    Solver solver                               = null;
     PredicateAbstractionManager absManager      = null;
     PredicateRefinementManager manager          = null;
 
@@ -156,29 +154,23 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     boolean predicateCpaInUse = predicateCpa != null;
     if (predicateCpaInUse) {
-      regionManager         = predicateCpa.getRegionManager();
+      factory               = predicateCpa.getFormulaManagerFactory();
       formulaManager        = predicateCpa.getFormulaManager();
       pathFormulaManager    = predicateCpa.getPathFormulaManager();
-      theoremProver         = predicateCpa.getTheoremProver();
+      solver                = predicateCpa.getSolver();
       absManager            = predicateCpa.getPredicateManager();
     } else {
-
-      if (satsolver.equals("MATHSAT")) {
-        simpleFormulaManager = MathsatFactory.createFormulaManager(config, logger);
-        theoremProver         = new MathsatTheoremProver((MathsatFormulaManager) simpleFormulaManager);
-      } else { // if (satsolver.equals("SMTINTERPOL")) {
-        simpleFormulaManager = SmtInterpolFactory.createFormulaManager(config, logger);
-        theoremProver         = new SmtInterpolTheoremProver((SmtInterpolFormulaManager) simpleFormulaManager);
-      }
-
-      regionManager         = BDDRegionManager.getInstance();
-      formulaManager        = new ExtendedFormulaManager(simpleFormulaManager, config, logger);
+      factory               = new FormulaManagerFactory(config, logger);
+      TheoremProver theoremProver = factory.createTheoremProver();
+      RegionManager regionManager = BDDRegionManager.getInstance();
+      formulaManager        = new ExtendedFormulaManager(factory.getFormulaManager(), config, logger);
       pathFormulaManager    = new PathFormulaManagerImpl(formulaManager, config, logger);
-      absManager            = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
+      solver                = new Solver(formulaManager, theoremProver);
+      absManager            = new PredicateAbstractionManager(regionManager, formulaManager, solver, config, logger);
     }
 
     manager = new PredicateRefinementManager(formulaManager,
-        pathFormulaManager, theoremProver, absManager, config, logger);
+        pathFormulaManager, solver, absManager, factory, config, logger);
 
     return new ExplicitRefiner(config, logger, pCpa, formulaManager, pathFormulaManager, manager, predicateCpaInUse);
   }
@@ -195,25 +187,30 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     this.fmgr                = pFmgr;
     this.pathFormulaManager  = pPathFormulaManager;
-    this.predicateCpaInUse   = predicateCpaInUse;
+    this.predicateCpaAvailable   = predicateCpaInUse;
 
     // TODO: runner-up award for ugliest hack of the month ...
     globalVars = ExplicitTransferRelation.globalVarsStatic;
   }
 
   @Override
-  protected void performRefinement(ARTReachedSet pReached, List<Pair<ARTElement, CFAEdge>> pPath,
-      CounterexampleTraceInfo<Collection<AbstractionPredicate>> pCounterexample,
+  protected void performRefinement(ARTReachedSet pReached, List<Pair<ARTElement, CFANode>> errorPath,
+      CounterexampleTraceInfo<Collection<AbstractionPredicate>> counterexampleTraceInfo,
       boolean pRepeatedCounterexample) throws CPAException {
 
     precisionUpdate.start();
+
+    // check if there was progress
+    if (!hasMadeProgress()) {
+      throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
+    }
 
     // get previous precision
     UnmodifiableReachedSet reached = pReached.asReachedSet();
     Precision oldPrecision = reached.getPrecision(reached.getLastElement());
 
-    Pair<ARTElement, ExplicitPrecision> refinementResult =
-            performRefinement(oldPrecision, pPath, pCounterexample);
+    Pair<ARTElement, Precision> refinementResult =
+            performRefinement(oldPrecision, errorPath, counterexampleTraceInfo);
     precisionUpdate.stop();
 
     artUpdate.start();
@@ -223,59 +220,87 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     logger.log(Level.FINEST, "Found spurious counterexample,",
         "trying strategy 1: remove everything below", root, "from ART.");
 
-    if (predicateCpaInUse && predicatePrecision != null) {
-      pReached.removeSubtree(root, refinementResult.getSecond(), predicatePrecision);
-    } else {
-      pReached.removeSubtree(root, refinementResult.getSecond());
-    }
+    pReached.removeSubtree(root, refinementResult.getSecond());
 
     artUpdate.stop();
   }
 
   @Override
-  protected final List<Pair<ARTElement, CFAEdge>> transformPath(Path pPath)
-  {
-    List<Pair<ARTElement, CFAEdge>> result = Lists.newArrayList();
+  protected final List<Pair<ARTElement, CFANode>> transformPath(Path errorPath) {
+    path = errorPath;
 
-    for(Pair<ARTElement, CFAEdge> element : skip(pPath, 1))
-      result.add(Pair.of(element.getFirst(), element.getSecond()));
+    // determine whether to refine explicit or predicate precision
+    refinePredicatePrecision = determineRefinementStrategy();
 
+    List<Pair<ARTElement, CFANode>> result = Lists.newArrayList();
+
+    for (ARTElement ae : skip(transform(errorPath, Pair.<ARTElement>getProjectionToFirst()), 1)) {
+      if(refinePredicatePrecision) {
+        PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
+        if (pe.isAbstractionElement()) {
+          CFANode location = AbstractElements.extractLocation(ae);
+          result.add(Pair.of(ae, location));
+        }
+      }
+      else {
+        result.add(Pair.of(ae, AbstractElements.extractLocation(ae)));
+      }
+    }
+
+    assert errorPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
     return result;
   }
 
+
+  private static final Function<PredicateAbstractElement, Formula> GET_BLOCK_FORMULA
+                = new Function<PredicateAbstractElement, Formula>() {
+                    @Override
+                    public Formula apply(PredicateAbstractElement e) {
+                      assert e.isAbstractionElement();
+                      return e.getAbstractionFormula().getBlockFormula();
+                    };
+                  };
+
   @Override
-  protected List<Formula> getFormulasForPath(List<Pair<ARTElement, CFAEdge>> path, ARTElement initialElement) throws CPATransferException {
+  protected List<Formula> getFormulasForPath(List<Pair<ARTElement, CFANode>> errorPath, ARTElement initialElement) throws CPATransferException {
 
-    ExplicitCPA explicitCPA = this.getArtCpa().retrieveWrappedCpa(ExplicitCPA.class);
+    if(refinePredicatePrecision) {
+      List<Formula> formulas = transform(errorPath,
+          Functions.compose(
+              GET_BLOCK_FORMULA,
+          Functions.compose(
+              AbstractElements.extractElementByTypeFunction(PredicateAbstractElement.class),
+              Pair.<ARTElement>getProjectionToFirst())));
 
-    CtoFormulaConverter converter = null;
-
-    try {
-      converter = new CtoFormulaConverter(explicitCPA.getConfiguration(), fmgr, logger);
-    }
-    catch(InvalidConfigurationException e) {
-      System.out.println("error when configuring CtoFormulaConverter");
-    }
-
-    PathFormula currentPathFormula = pathFormulaManager.makeEmptyPathFormula();
-
-    List<Formula> formulas = new ArrayList<Formula>(path.size());
-
-    // iterate over edges (not nodes)
-    for (Pair<ARTElement, CFAEdge> pathElement : path) {
-      currentPathFormula = converter.makeAnd(currentPathFormula, pathElement.getSecond());
-
-      formulas.add(currentPathFormula.getFormula());
-
-      // reset the formula
-      currentPathFormula = pathFormulaManager.makeEmptyPathFormula(currentPathFormula);
+      return formulas;
     }
 
-    return formulas;
+    else {
+      PathFormula currentPathFormula = pathFormulaManager.makeEmptyPathFormula();
+
+      List<Formula> formulas = new ArrayList<Formula>(path.size());
+
+      // iterate over edges (not nodes)
+      int i = 0;
+      for (Pair<ARTElement, CFAEdge> pathElement : path) {
+        i++;
+
+        if(i == 1)
+          continue;
+        currentPathFormula = pathFormulaManager.makeAnd(currentPathFormula, pathElement.getSecond());
+
+        formulas.add(currentPathFormula.getFormula());
+
+        // reset the formula
+        currentPathFormula = pathFormulaManager.makeEmptyPathFormula(currentPathFormula);
+      }
+
+      return formulas;
+    }
   }
 
-  private Pair<ARTElement, ExplicitPrecision> performRefinement(Precision oldPrecision,
-      List<Pair<ARTElement, CFAEdge>> errorPath,
+  private Pair<ARTElement, Precision> performRefinement(Precision oldPrecision,
+      List<Pair<ARTElement, CFANode>> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException {
 
     // create the mapping of CFA nodes to predicates, based on the counter example trace info
@@ -284,57 +309,32 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     // get the mapping of CFA nodes to variable names
     Multimap<CFANode, String> variableMapping = predicates.getVariableMapping(fmgr);
 
-    allReferencedVariables.addAll(variableMapping.values());
+    Precision precision = null;
 
-    // expand the mapping of CFA nodes to variable names, with a def-use analysis along that path
-    Multimap<CFANode, String> relevantVariablesOnPath = getRelevantVariablesOnPath(errorPath, predicates);
+    if(refinePredicatePrecision) {
+      precision = createPredicatePrecision(extractPredicatePrecision(oldPrecision),
+                                          predicates);
 
-    assert firstInterpolationPoint != null;
+      firstInterpolationPoint = predicates.firstInterpolationPoint;
+//System.out.println("refined PredicatePrecision");
+//System.out.println(precision);
+    } else {
+      allReferencedVariables.addAll(variableMapping.values());
 
-//System.out.println("\n" + (++refinementCounter) + ". refining ...");
-//System.out.println(getErrorPathAsString(errorPath));
-/*
-System.out.println("\nreferencedVariables: " + variableMapping.values());
-System.out.println("\nrelevantVariablesOnPath: " + relevantVariablesOnPath);
-System.out.println("\nallReferencedVariables: " + allReferencedVariables);
-System.out.println("\nnew predicate map: " + predicates.toString());
-System.out.println("\nfirstInterpolationPoint = " + firstInterpolationPoint + "\n");
-*/
-//System.exit(0);
-    // extract the precision of the available CPAs
-    ExplicitPrecision oldExplicitPrecision    = extractExplicitPrecision(oldPrecision);
-    PredicatePrecision oldPredicatePrecision  = extractPredicatePrecision(oldPrecision);
+      // expand the mapping of CFA nodes to variable names, with a def-use analysis along that path
+      Multimap<CFANode, String> relevantVariablesOnPath = getRelevantVariablesOnPath(errorPath, predicates);
 
-    // create the new precision
-    ExplicitPrecision explicitPrecision = new ExplicitPrecision(oldExplicitPrecision, variableMapping, relevantVariablesOnPath);
+      assert firstInterpolationPoint != null;
 
-    String errorTrace = getErrorPathAsString(errorPath);
-    Integer errorTraceHash = errorTrace.hashCode();
+      // create the new precision
+      precision = createExplicitPrecision(extractExplicitPrecision(oldPrecision),
+                                            variableMapping,
+                                            relevantVariablesOnPath);
 
-    // check if there was progress
-    if (!madeProgress(errorTraceHash)) {
-      System.out.println(errorTrace);
-      System.out.println(explicitPrecision);
-      System.out.println(predicatePrecision);
-      System.out.println("\nlast set of variables in predicates: " + variableMapping.values());
-
-      throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
+//System.out.println("refined ExplicitPrecision");
     }
 
-    // refine the predicate precision if a path was found again
-    if (predicateCpaInUse && errorTrace.equals(lastPath)) {
-        predicatePrecision = getPredicatePrecision(getInExplicitVariables(errorPath),
-            oldPredicatePrecision,
-            predicates);
-
-        previousPathHash = errorTraceHash;
-    }
-
-    lastPath = errorTrace;
-
-    pathHashes.add(errorTraceHash);
-
-    return Pair.of(firstInterpolationPoint.getFirst(), explicitPrecision);
+    return Pair.of(firstInterpolationPoint.getFirst(), precision);
   }
 
   /**
@@ -345,9 +345,23 @@ System.out.println("\nfirstInterpolationPoint = " + firstInterpolationPoint + "\
    */
   private ExplicitPrecision extractExplicitPrecision(Precision precision) {
     ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
-    if (explicitPrecision == null) {
+    if(explicitPrecision == null) {
       throw new IllegalStateException("Could not find the ExplicitPrecision for the error element");
     }
+    return explicitPrecision;
+  }
+
+  private ExplicitPrecision createExplicitPrecision(ExplicitPrecision oldPrecision,
+      Multimap<CFANode, String> variableMapping,
+      Multimap<CFANode, String> relevantVariablesOnPath) {
+
+    ExplicitPrecision explicitPrecision             = new ExplicitPrecision(oldPrecision);
+    SetMultimap<CFANode, String> additionalMapping  = HashMultimap.create(variableMapping);
+
+    additionalMapping.putAll(relevantVariablesOnPath);
+
+    explicitPrecision.getCegarPrecision().addToMapping(additionalMapping);
+
     return explicitPrecision;
   }
 
@@ -358,141 +372,51 @@ System.out.println("\nfirstInterpolationPoint = " + firstInterpolationPoint + "\
    * @return the predicate precision, or null, if the PredicateCPA is not in use
    */
   private PredicatePrecision extractPredicatePrecision(Precision precision) {
-    PredicatePrecision predicatePrecision = null;
-    if (predicateCpaInUse) {
-      predicatePrecision = Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
-      if (predicatePrecision == null) {
-        throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
-      }
+    PredicatePrecision predicatePrecision = Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
+    if(predicatePrecision == null) {
+      throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
     }
     return predicatePrecision;
   }
 
-  private boolean madeProgress(Integer currentPathHash) {
-    // if the current path was gone before, signal a failure
-    if(!predicateCpaInUse && pathHashes.contains(currentPathHash) || (predicateCpaInUse && currentPathHash.equals(previousPathHash))) {
-      return false;
-    } else {
-      return true;
-    }
-  }
-
-  /**
-   * This method returns the set of variables contained in the given error path, that cannot be tracked explicitly.
-   *
-   * @todo still plain stupid, no context information included, like function name or CFANode etc.
-   * @param pPath the error path to analyse
-   * @return the set of variables contained in the given error path, that cannot be tracked explicitly
-   */
-  private Set<String> getInExplicitVariables(List<Pair<ARTElement, CFAEdge>> pPath) {
-    Set<String> inexplicitVars = new HashSet<String>();
-
-    Function<Pair<?, ? extends CFAEdge>, CFAEdge> projectionToSecond = Pair.getProjectionToSecond();
-    for (CFAEdge edge : Lists.transform(pPath, projectionToSecond)) {
-      if (edge instanceof AssumeEdge) {
-        AssumeEdge assumeEdge = (AssumeEdge)edge;
-
-        IASTExpression assume = assumeEdge.getExpression();
-
-        if (assume instanceof IASTBinaryExpression) {
-          IASTBinaryExpression binary = (IASTBinaryExpression)assume;
-
-          if(binary.getOperator() == BinaryOperator.EQUALS && assumeEdge.getTruthAssumption()) {
-            //System.out.println("skipping vars in EQUALS from " + assumeEdge.getRawAST().toASTString());
-            continue;
-          }
-          else if(binary.getOperator() == BinaryOperator.NOT_EQUALS && !assumeEdge.getTruthAssumption()) {
-            //System.out.println("skipping vars in NOT_EQUALS from " + assumeEdge.getRawAST().toASTString());
-            //System.out.println("= skipping vars in NOT_EQUALS from " + assumeEdge);
-            continue;
-          }
-
-          switch (binary.getOperator()) {
-          case EQUALS:
-          case NOT_EQUALS:
-          case GREATER_THAN:
-          case GREATER_EQUAL:
-          case LESS_EQUAL:
-          case LESS_THAN:
-            IASTExpression leftOperand = binary.getOperand1();
-            IASTExpression rightOperand = binary.getOperand2();
-
-            // unwarp unary expression, e.g. !a != 0 => a
-            if(leftOperand instanceof IASTUnaryExpression) {
-              IASTUnaryExpression unaryExpression = (IASTUnaryExpression)leftOperand;
-
-              leftOperand = unaryExpression.getOperand();
-            }
-
-            // really just a hack for stuff like (a & b) != 0 => a (and actually b, too), are candidates for inexplicit vars
-            else if(leftOperand instanceof IASTBinaryExpression) {
-              IASTBinaryExpression binaryExpression = (IASTBinaryExpression)leftOperand;
-
-              leftOperand = binaryExpression.getOperand1();
-            }
-
-            if (leftOperand instanceof IASTIdExpression) {
-              IASTIdExpression leftIdentifier = (IASTIdExpression)leftOperand;
-
-              //System.out.println("leftIdentifier " + leftIdentifier.getName() + " part of binary expression " + binary.getRawSignature());
-              inexplicitVars.add(leftIdentifier.getName());
-            } else if (leftOperand instanceof IASTFieldReference) {
-              IASTFieldReference leftIdentifier = (IASTFieldReference)leftOperand;
-
-              //System.out.println("leftIdentifier " + leftIdentifier.getRawSignature() + " part of binary expression " + binary.getRawSignature());
-              inexplicitVars.add(leftIdentifier.toASTString());
-            }
-
-            if (rightOperand instanceof IASTIdExpression) {
-              IASTIdExpression rightIdentifier = (IASTIdExpression)rightOperand;
-
-              inexplicitVars.add(rightIdentifier.getName());
-            } else if (rightOperand instanceof IASTFieldReference) {
-              IASTFieldReference rightIdentifier = (IASTFieldReference)rightOperand;
-
-              //System.out.println("rightIdentifier " + rightIdentifier.getRawSignature() + " part of binary expression " + binary.getRawSignature());
-              inexplicitVars.add(rightIdentifier.toASTString());
-            }
-            break;
-          }
-        }
-      }
-    }
-
-    return inexplicitVars;
-  }
-
-  private PredicatePrecision getPredicatePrecision(Set<String> inexplicitVars,
-                                                    PredicatePrecision oldPredicatePrecision,
+  private PredicatePrecision createPredicatePrecision(PredicatePrecision oldPredicatePrecision,
                                                     PredicateMap predicateMap) {
-
-    //System.out.println("inexplicitVars = " + inexplicitVars);
-    Set<String> newPreds = new HashSet<String>();
-
     Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPredicatePrecision.getPredicateMap();
     Set<AbstractionPredicate> globalPredicates = oldPredicatePrecision.getGlobalPredicates();
 
     ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
     pmapBuilder.putAll(oldPredicateMap);
 
-    for (Map.Entry<CFANode, AbstractionPredicate> predicateAtLocation : predicateMap.getPredicateMapping().entries()) {
-      CFANode location                = predicateAtLocation.getKey();
-      AbstractionPredicate predicate  = predicateAtLocation.getValue();
-
-      for (String variable : fmgr.extractVariables(predicate.getSymbolicAtom())) {
-        variable = variable.substring(variable.lastIndexOf(":") + 1);
-
-        if (inexplicitVars.contains(variable)) {
-          pmapBuilder.putAll(location, predicate);
-          newPreds.add(variable);
-        }
-      }
-
-      if (predicate.getSymbolicAtom().isFalse())
-        pmapBuilder.putAll(location, predicate);
+    for(Map.Entry<CFANode, AbstractionPredicate> predicateAtLocation : predicateMap.getPredicateMapping().entries()) {
+      pmapBuilder.putAll(predicateAtLocation.getKey(), predicateAtLocation.getValue());
     }
 
     return new PredicatePrecision(pmapBuilder.build(), globalPredicates);
+  }
+
+  private boolean determineRefinementStrategy() {
+    return predicateCpaAvailable && pathHashes.contains(getErrorPathAsString(path).hashCode());
+  }
+
+  private boolean hasMadeProgress() {
+    Integer errorTraceHash = getErrorPathAsString(path).hashCode();
+//System.out.println("errorTraceHash = " + errorTraceHash);
+    // in case a PredicateCPA is running, too
+    // stop if the same error trace is found within two iterations
+    if(predicateCpaAvailable && errorTraceHash.equals(previousPathHash)) {
+      return false;
+    }
+    // in case only a ExplicitCPA is running:
+    // stop if the same error trace is found twice
+    else if(!predicateCpaAvailable && pathHashes.contains(errorTraceHash)) {
+      return false;
+    }
+
+    previousPathHash = refinePredicatePrecision ? errorTraceHash : null;
+
+    pathHashes.add(errorTraceHash);
+
+    return true;
   }
 
   /**
@@ -519,15 +443,15 @@ System.out.println("\nfirstInterpolationPoint = " + firstInterpolationPoint + "\
    * @param predicates the predicates from the refinement
    * @return the variables on the error path, on which the variables referenced by predicates depend on
    */
-  private Multimap<CFANode, String> getRelevantVariablesOnPath(List<Pair<ARTElement, CFAEdge>> errorPath, PredicateMap predicates) {
+  private Multimap<CFANode, String> getRelevantVariablesOnPath(List<Pair<ARTElement, CFANode>> errorPath, PredicateMap predicates) {
     CollectVariablesVisitor visitor = new CollectVariablesVisitor(allReferencedVariables);
 
     for (int i = errorPath.size() - 1; i >= 0; --i) {
-      Pair<ARTElement, CFAEdge> element = errorPath.get(i);
+      Pair<ARTElement, CFANode> element = errorPath.get(i);
 
-      CFAEdge edge = element.getSecond();
+      CFAEdge edge = element.getSecond().getEnteringEdge(0);
 
-      if (extractVariables(edge, visitor) || predicates.isInterpolationPoint(edge.getPredecessor())) {
+      if (extractVariables(edge, visitor) || predicates.isInterpolationPoint(edge.getSuccessor())) {
         firstInterpolationPoint = element;
       }
     }

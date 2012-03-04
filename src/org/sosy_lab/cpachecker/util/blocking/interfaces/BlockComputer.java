@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.blocking.interfaces;
 
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
+import com.google.common.collect.ImmutableSet;
+
 
 public interface BlockComputer {
-  public Set<CFANode> computeAbstractionNodes(final CFA pCfa);
+  public ImmutableSet<CFANode> computeAbstractionNodes(final CFA pCfa);
 }

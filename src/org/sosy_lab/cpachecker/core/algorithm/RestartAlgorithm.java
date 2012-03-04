@@ -115,6 +115,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private final RestartAlgorithmStatistics stats;
   private final String filename;
   private final CFA cfa;
+  private final Configuration globalConfig;
 
   private Algorithm currentAlgorithm;
 
@@ -129,6 +130,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     this.logger = pLogger;
     this.filename = pFilename;
     this.cfa = pCfa;
+    this.globalConfig = config;
   }
 
   @Override
@@ -235,6 +237,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     Algorithm algorithm = null;
 
     Configuration.Builder singleConfigBuilder = Configuration.builder();
+    singleConfigBuilder.copyFrom(globalConfig);
+    singleConfigBuilder.clearOption("restartAlgorithm.configFiles");
+    singleConfigBuilder.clearOption("analysis.restartAfterUnknown");
+
     try {
       RestartAlgorithmOptions singleOptions = new RestartAlgorithmOptions();
       singleConfigBuilder.loadFromFile(singleConfigFileName);
@@ -286,8 +292,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private ConfigurableProgramAnalysis createCPA(ReachedSetFactory pReachedSetFactory, Configuration pConfig, RestartAlgorithmStatistics stats) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    CPABuilder builder = new CPABuilder(pConfig, logger, pReachedSetFactory, cfa);
-    ConfigurableProgramAnalysis cpa = builder.buildCPAs();
+    CPABuilder builder = new CPABuilder(pConfig, logger, pReachedSetFactory);
+    ConfigurableProgramAnalysis cpa = builder.buildCPAs(cfa);
 
     if (cpa instanceof StatisticsProvider) {
       ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());

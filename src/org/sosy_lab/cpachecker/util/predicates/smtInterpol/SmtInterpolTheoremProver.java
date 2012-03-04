@@ -62,16 +62,6 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   }
 
   @Override
-  public boolean isUnsat(Formula f) {
-    push(f);
-    try {
-      return isUnsat();
-    } finally {
-      pop();
-    }
-  }
-
-  @Override
   public Model getModel() {
     Preconditions.checkNotNull(env);
     return SmtInterpolModel.createSmtInterpolModel(env, assertedTerms);

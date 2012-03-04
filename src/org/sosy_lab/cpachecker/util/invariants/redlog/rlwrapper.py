@@ -106,6 +106,10 @@ class StrIter:
 
 def runrl(formula):
 
+    # diag:
+    #open('/home/skieffer/Desktop/rlpout','a').write(formula)
+    #
+
     # Build the input.
     s = ''
     s += 'off output;\n'
@@ -128,7 +132,7 @@ def runrl(formula):
     red.stdout.close()
     
     # diag:
-    open('/home/skieffer/Desktop/rlpout','a').write(out)
+    #open('/home/skieffer/Desktop/rlpout','a').write(out)
     #
 
     # Process the output.

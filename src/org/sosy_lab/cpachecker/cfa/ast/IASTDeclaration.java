@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 
+
 /**
  * This class represents all sorts of top-level declarations (i.e., declarations
  * not nested inside another type declaration).
@@ -47,23 +48,5 @@ public abstract class IASTDeclaration extends IASTSimpleDeclaration {
    */
   public boolean isGlobal() {
     return isGlobal;
-  }
-
-  @Override
-  public String toASTString() {
-    StringBuilder lASTString = new StringBuilder();
-
-    lASTString.append(getDeclSpecifier().toASTString());
-
-    if (getName() != null
-        && !(getDeclSpecifier() instanceof IASTFunctionTypeSpecifier)
-        && !(getDeclSpecifier() instanceof IASTPointerTypeSpecifier
-            && ((IASTPointerTypeSpecifier)getDeclSpecifier()).getType() instanceof IASTFunctionTypeSpecifier)) {
-      lASTString.append(getName());
-    }
-
-    lASTString.append(";");
-
-    return lASTString.toString();
   }
 }

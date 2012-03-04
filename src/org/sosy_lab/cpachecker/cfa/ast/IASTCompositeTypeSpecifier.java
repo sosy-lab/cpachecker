@@ -57,7 +57,7 @@ public final class IASTCompositeTypeSpecifier extends IType {
   public static final int k_union  = 2;
 
   @Override
-  public String toASTString() {
+  public String toASTString(String pDeclarator) {
     StringBuilder lASTString = new StringBuilder();
 
     if (isConst()) {
@@ -84,6 +84,7 @@ public final class IASTCompositeTypeSpecifier extends IType {
       lASTString.append("\n");
     }
     lASTString.append("} ");
+    lASTString.append(pDeclarator);
 
     return lASTString.toString();
   }
@@ -99,11 +100,6 @@ public final class IASTCompositeTypeSpecifier extends IType {
                                               IType pSpecifier,
                                               String pName) {
       super(pFileLocation, pSpecifier, pName);
-    }
-
-    @Override
-    public String toASTString() {
-      return getDeclSpecifier().toASTString() + getName() + ";";
     }
   }
 }

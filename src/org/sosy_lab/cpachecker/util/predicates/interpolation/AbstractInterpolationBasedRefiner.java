@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -38,8 +39,10 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
@@ -229,7 +232,13 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
     }
   }
 
-  public InterpolationManager.Stats getStats2() {
-    return formulaManager.refStats;
+  protected void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+
+    if (totalRefinement.getSumTime() > 0) {
+      out.println("Time for refinement:              " + totalRefinement);
+      formulaManager.stats.printStatistics(out, result, reached);
+      out.println("  Error path post-processing:     " + errorPathProcessing);
+    }
   }
+
 }

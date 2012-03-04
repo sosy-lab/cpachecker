@@ -71,15 +71,7 @@ public class IASTFunctionTypeSpecifier extends IType {
   }
 
   @Override
-  public String toASTString() {
-    return toASTStringHelper(false);
-  }
-
-  String toASTStringFunctionPointer() {
-    return toASTStringHelper(true);
-  }
-
-  private String toASTStringHelper(boolean pPointer) {
+  public String toASTString(String pDeclarator) {
     StringBuilder lASTString = new StringBuilder();
 
     if (isConst()) {
@@ -89,27 +81,27 @@ public class IASTFunctionTypeSpecifier extends IType {
       lASTString.append("volatile ");
     }
 
-    lASTString.append(returnType.toASTString());
+    lASTString.append(returnType.toASTString(""));
+    lASTString.append(" ");
 
-    if (name != null) {
-      if (pPointer) {
-        lASTString.append("(*");
-        lASTString.append(name);
-        lASTString.append(")");
-      } else {
-        lASTString.append(name);
-      }
+    if (pDeclarator.startsWith("*")) {
+      // this is a function pointer, insert parentheses
+      lASTString.append("(");
+      lASTString.append(pDeclarator);
+      lASTString.append(")");
+    } else {
+      lASTString.append(pDeclarator);
     }
 
     lASTString.append("(");
-    if (parameters.isEmpty()) {
-      if (!pPointer) {
-        lASTString.append("void");
+    Joiner.on(", ").appendTo(lASTString, new ASTStringIterable(parameters));
+    if (takesVarArgs) {
+      if (!parameters.isEmpty()) {
+        lASTString.append(", ");
       }
-    } else {
-      lASTString.append(Joiner.on(", ").join(new ASTStringIterable(parameters)));
+      lASTString.append("...");
     }
-    lASTString.append(") ");
+    lASTString.append(")");
 
     return lASTString.toString();
   }

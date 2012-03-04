@@ -33,6 +33,7 @@ public class RationalFunction {
   public RationalFunction(Polynomial n, Polynomial d) {
     num = n;
     denom = d;
+    simplify();
   }
 
   public RationalFunction(Polynomial n) {
@@ -163,6 +164,9 @@ public class RationalFunction {
     return new RationalFunction(negnum,f.denom);
   }
 
+  /*
+   * Does not alter the passed rational function; creates a new one.
+   */
   public static RationalFunction applySubstitution(Substitution subs, RationalFunction f) {
     Polynomial n = Polynomial.applySubstitution(subs, f.num);
     Polynomial d = Polynomial.applySubstitution(subs, f.denom);
@@ -189,6 +193,24 @@ public class RationalFunction {
 
   public boolean isPolynomial() {
     return denom.isUnity();
+  }
+
+  public boolean isRationalConstantMultipleOf(RationalFunction that) {
+    Polynomial p = this.num.cancelRationalContent();
+    Polynomial q = this.denom.cancelRationalContent();
+    RationalFunction a = new RationalFunction(p,q);
+    Polynomial r = that.num.cancelRationalContent();
+    Polynomial s = that.denom.cancelRationalContent();
+    RationalFunction b = new RationalFunction(r,s);
+    if (subtract(a,b).isZero()) {
+      return true;
+    }
+    else if (add(a,b).isZero()) {
+      return true;
+    }
+    else {
+      return false;
+    }
   }
 
   /*
@@ -245,14 +267,25 @@ public class RationalFunction {
 
   public void simplify() {
 
-    // If num is 0, set denom to 1.
-    if (num.isZero()) {
-      denom = Polynomial.makeUnity();
+    // Check whether num is constant multiple of denom.
+    Rational q = num.rationalConstantQuotientOver(denom);
+    if (q != null) {
+      // In this case, this rational function is simply equal to q, everywhere it is defined.
+      num = new Polynomial(q);
+      denom = new Polynomial(1);
     }
-    // If not, then check whether num = denom, and in that case set both to 1.
-    else if (num.equals(denom)) {
-      num = Polynomial.makeUnity();
-      denom = Polynomial.makeUnity();
+
+    // Make coefficients integers, if we are not a polynomial.
+    if (!isPolynomial()) {
+      Rational a = num.getRationalContent();
+      Rational b = denom.getRationalContent();
+      num = num.cancelRationalContent();
+      denom = denom.cancelRationalContent();
+      Rational c = a.div(b);
+      int n = c.getNumerator();
+      int d = c.getDenominator();
+      num = Polynomial.multiply(new Polynomial(n), num);
+      denom = Polynomial.multiply(new Polynomial(d), denom);
     }
 
     // Cancel common monomial content of num and denom.
@@ -285,6 +318,21 @@ public class RationalFunction {
       Polynomial cinv = new Polynomial(c.makeReciprocal());
       num = Polynomial.multiply(cinv,num);
       denom = new Polynomial(1);
+    }
+
+    // If num is 0, set denom to 1.
+    if (num.isZero()) {
+      denom = Polynomial.makeUnity();
+    }
+    // If not, then check whether num = denom, and in that case set both to 1.
+    else if (num.equals(denom)) {
+      num = Polynomial.makeUnity();
+      denom = Polynomial.makeUnity();
+    }
+    // If not, then check whether -1*num = denom, and in that case set num = -1, denom = 1.
+    else if (Polynomial.multiply(new Polynomial(-1), num).equals(denom)) {
+      num = new Polynomial(-1);
+      denom = Polynomial.makeUnity();
     }
 
   }
