@@ -114,9 +114,19 @@ analysis.useBMC = false
 # use CBMC to double-check counter-examples
 analysis.useCBMC = false
 
+# use CBMC and the FeatureVars Restriction option
+analysis.useFeatureVarsRestriction = false
+
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
+# Use McMillan's Impact algorithm for lazy interpolation
+analysis.useImpactAlgorithm = false
+
+# use a proof check algorithm to validate a previously generated proof
+analysis.useProofCheckAlgorithm = false
+
+# whether or not to use refinement or not
 # use CEGAR algorithm for lazy counter-example guided analysis
 # You need to specify a refiner with the cegar.refiner option.
 # Currently all refiner require the use of the ARTCPA.
@@ -209,6 +219,9 @@ cfa.file = "cfa.dot"
 # remove paths from CFA that cannot lead to a error location
 cfa.removeIrrelevantForErrorLocations = false
 
+# combine sequences of simple edges into a single edge
+cfa.useMultiEdges = false
+
 # which model checker to use for verifying counterexamples as a second check
 # Currently CBMC or CPAchecker with a different config can be used.
 counterexample.checker = "CBMC"
@@ -249,12 +262,17 @@ cpa.art.errorPath.assignment = "ErrorPathAssignment.txt"
 cpa.art.errorPath.core = "ErrorPathCore.txt"
 cpa.art.errorPath.export = true
 cpa.art.errorPath.file = "ErrorPath.txt"
+cpa.art.errorPath.graph = "ErrorPath.dot"
 cpa.art.errorPath.json = "ErrorPath.json"
 cpa.art.errorPath.source = "ErrorPath.c"
 
 # export final ART as .dot file
 cpa.art.export = true
 cpa.art.file = "ART.dot"
+
+# whether to keep covered states in the reached set as addition to keeping
+# them in the ART
+cpa.art.keepCoveredStatesInReached = false
 
 # signal the analysis to break in case of reached error state
 cpa.automaton.breakOnTargetState = true
@@ -275,6 +293,13 @@ cpa.automaton.inputFile = no default value
 # cpas agree on this. This is probably what you want.
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
+
+# which precision adjustment strategy to use (ignorant or omniscient)
+# While an ignorant strategy keeps the domain knowledge seperated, and
+# delegates to the component precision adjustment operators, the omniscient
+# strategy may operate on global knowledge.
+cpa.composite.precAdjust = "IGNORANT"
+  allowed values: [IGNORANT, OMNISCIENT]
 
 # Limit for Java heap memory used by CPAchecker (in MiB; -1 for infinite)
 cpa.conditions.global.memory.heap = -1
@@ -303,8 +328,14 @@ cpa.conditions.global.time.wall = -1
 # When using adjustable conditions, analysis will end after this threshold
 cpa.conditions.global.time.wall.hardlimit = -1
 
+# whether or not to track unique assignments only
+cpa.conditions.path.assignments.demandUniqueness = true
+
+# file name where to put the extended stats file
+cpa.conditions.path.assignments.extendedStatsFile = no default value
+
 # maximum number of assignments (-1 for infinite)
-cpa.conditions.path.assignments.limit = -1
+cpa.conditions.path.assignments.threshold = -1
 
 # maximum number of assume edges length (-1 for infinite)
 cpa.conditions.path.assumeedges.limit = -1
@@ -326,13 +357,17 @@ cpa.defuse.merge = "sep"
 cpa.explicit.merge = "SEP"
   allowed values: [SEP, JOIN]
 
+# threshold for amount of different values that are tracked for one variable
+# per path (-1 means infinitely)
+cpa.explicit.precision.path.defaultThreshold = -1
+
+# threshold for amount of different values that are tracked for one variable
+# within the reached set (-1 means infinitely)
+cpa.explicit.precision.reachedSet.defaultThreshold = -1
+
 # which stop operator to use for ExplicitCPA
 cpa.explicit.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
-
-# threshold for amount of different values that are tracked for one variable
-# in ExplicitCPA (0 means infinitely)
-cpa.explicit.threshold = 0
 
 # blacklist regex for variables that won't be tracked by ExplicitCPA
 cpa.explicit.variableBlacklist = ""
@@ -383,6 +418,14 @@ cpa.pointer.merge = "sep"
 # print warnings during analysis when unsafe pointer operations are found
 cpa.pointer.printWarnings = true
 
+# which merge operator to use for PointerACPA
+cpa.pointerA.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
+# which stop operator to use for PointerACPA
+cpa.pointerA.stop = "SEP"
+  allowed values: [SEP, JOIN, NEVER]
+
 # whether to use auxiliary predidates for reduction
 cpa.predicate.abm.auxiliaryPredicateComputer = true
 
@@ -399,9 +442,9 @@ cpa.predicate.abstraction.dumpHardQueries = false
 # get an initial set of predicates from a file in MSAT format
 cpa.predicate.abstraction.initialPredicates = no default value
 
-# which solver to use?
-cpa.predicate.abstraction.solver = "MATHSAT"
-  allowed values: [MATHSAT, YICES]
+# What to use for storing abstractions
+cpa.predicate.abstraction.type = "BDD"
+  allowed values: [BDD, FORMULA]
 
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
@@ -423,9 +466,6 @@ cpa.predicate.blk.functions = false
 # abstractions at loop heads if threshold has been reached (no effect if
 # threshold = 0)
 cpa.predicate.blk.loops = false
-
-# Switch to a LBE configuration after so many milliseconds (0 to disable)
-cpa.predicate.blk.switchToLBEAfter = 0
 
 # maximum blocksize before abstraction is forced
 # (non-negative number, special values: 0 = don't check threshold, 1 = SBE)
@@ -531,9 +571,10 @@ cpa.predicate.refinement.dumpInterpolationProblems = false
 # of blocks, before applying interpolation-based refinement
 cpa.predicate.refinement.getUsefulBlocks = false
 
-# which interpolating solver to use for interpolant generation?
-cpa.predicate.refinement.interpolatingProver = "MATHSAT"
-  allowed values: [MATHSAT, CSISAT]
+# Which interpolating solver to use for interpolant generation?
+# DEFAULT means to use the solver used for everything else as well.
+cpa.predicate.refinement.interpolatingProver = "DEFAULT"
+  allowed values: [DEFAULT, CSISAT]
 
 # skip refinement if input formula is larger than this amount of bytes
 # (ignored if 0)
@@ -569,6 +610,11 @@ cpa.predicate.refinement.verifyInterpolants = false
 # blocksize)
 cpa.predicate.satCheck = 0
 
+# Whether to use MathSAT 4, MathSAT 5 or YICES (in combination with Mathsat
+# 4) as SMT solver
+cpa.predicate.solver = "MATHSAT4"
+  allowed values: [MATHSAT4, MATHSAT5, YICES]
+
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks
 cpa.predicate.symbolicCoverageCheck = false
@@ -595,10 +641,8 @@ cpa.uninitvars.printWarnings = "true"
 cpa.uninitvars.stop = "sep"
   allowed values: [sep, join]
 
-# export ART representation needed for proof checking in PCC, if the error
-# location is not reached, the representation depends on the algorithm used
-# for proof checking
-file = "pccProof.txt"
+# enable the Forced Covering optimization
+impact.useForcedCovering = true
 
 # C dialect for parser
 parser.dialect = GNUC
@@ -607,27 +651,10 @@ parser.dialect = GNUC
 # Ignore all casts that appear in the source code.
 parser.ignoreCasts = false
 
-# export ART representation needed for proof checking in PCC, if the error
-# location is not reached, the representation depends on the algorithm used
-# for proof checking
-pcc.profgen.file = "pccProof.txt"
-
-# Type of the algorithm which should be used for PCC
-pcc.proofgen.algorithm = SBENOINDART
-  enum:     [SBEINDART, SBENOINDART, SBEINDINVARIANT, SBENOINDINVARIANT,
-             SBENOEDGENOINDINVARIANT, SBENOEDGENOINDINVARIANT2, ABENOINDART,
-             LBENOINDART, ALBENOINDART, LBENOINDINVARIANT, ALBENOINDINVARIANT]
-
-# which solver to use?
-pcc.proofgen.cpa.predicate.abstraction.solver = "MATHSAT"
-  allowed values: [MATHSAT, YICES]
+# file in which ART representation needed for proof checking is stored
+pcc.proofFile = "art.obj"
 
 pcc.proofgen.doPCC = false
-
-# export ART representation needed for proof checking in PCC, if the error
-# location is not reached, the representation depends on the algorithm used
-# for proof checking
-pcc.proofgen.file = "pccProof.txt"
 
 # print reached set to text file
 reachedSet.export = true
