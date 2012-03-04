@@ -145,6 +145,9 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
       int i = startThread;
       while(i != -1 && !error) {
 
+        int otherTid = i == 0 ? 1 : 0;
+        this.printTransitions("Transition from "+otherTid, allCandidatesFrom[otherTid]);
+
         // construct ART for thread i
         error = runThread(i, reached[i]);
         if (error) {
@@ -152,8 +155,6 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
         }
 
         /* find the most general candidates from the thread */
-
-
         Pair<List<RGEnvCandidate>, Boolean> pair = processCandidates(threadCPA[i].getCandidates(), allCandidatesFrom[i]);
         allCandidatesFrom[i] = pair.getFirst();
         stats.maxValidCandidates[i] = Math.max(stats.maxValidCandidates[i], allCandidatesFrom[i].size());
@@ -188,7 +189,6 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
    * @return
    */
   private Pair<List<RGEnvCandidate>, Boolean> processCandidates(List<RGEnvCandidate> newCandidates, List<RGEnvCandidate> mgCandidates) {
-    environment.printUnprocessedTransitions(newCandidates);
     stats.allCandidates += newCandidates.size();
 
     List<RGEnvCandidate> newMG = environment.findMostGeneralCandidates(mgCandidates, newCandidates);
@@ -363,6 +363,19 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
       out.close();
     } catch (IOException e) {
       e.printStackTrace();
+    }
+  }
+
+
+  private void printTransitions(String string, Collection<RGEnvCandidate> pUnprocessedTransitions) {
+    System.out.println();
+    if (pUnprocessedTransitions.isEmpty()){
+      System.out.println(string+"\tnone");
+    } else {
+      System.out.println(string);
+    }
+    for (RGEnvCandidate tran : pUnprocessedTransitions){
+      System.out.println("\t-"+tran);
     }
   }
 

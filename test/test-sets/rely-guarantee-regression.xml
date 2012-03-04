@@ -3,89 +3,6 @@
 <benchmark tool="cpachecker" timelimit="120">
 
 
-  <test name="global pred, LBE, Boolean abst, fully abstracted env., debug">
-    <sourcefiles>
-      <include>test/programs/multi-threaded/benchmarks/lu-fig2.fixed.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.fixed.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/read_write_lock.cil.c</include>
-      <include>test/programs/multi-threaded/various/mutex-safe-modular.cil.c</include>
-      <include>test/programs/multi-threaded/various/simple-safe-modular.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/bakery.simple.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/lu-fig2.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.cil.c</include>
-      <include>test/programs/multi-threaded/various/mutex-unsafe.cil.c</include>
-      <include>test/programs/multi-threaded/various/real-unsafe.cil.c</include>
-      <include>test/programs/multi-threaded/various/simple-unsafe.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/bluetooth.cav09.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/dekker.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/peterson.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/time_var_mutex.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/szymanski.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/bakery.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/lamport.cil.c</include>
-      <include>test/programs/multi-threaded/various/mutex-safe-nonmodular.cil.c</include>
- 
-    </sourcefiles>
-
-      <option name="-concurrent"/>
-      <option name="-config">test/config/rg-global-lbe-boolean-fa-debug.properties</option>
-  </test>
-
-  <test name="global pred, LBE, Boolean abst, semi-abstracted env., debug">
-    <sourcefiles>
-      <include>test/programs/multi-threaded/benchmarks/lu-fig2.fixed.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.fixed.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/read_write_lock.cil.c</include>
-      <include>test/programs/multi-threaded/various/mutex-safe-modular.cil.c</include>
-      <include>test/programs/multi-threaded/various/simple-safe-modular.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/bakery.simple.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/lu-fig2.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.cil.c</include>
-      <include>test/programs/multi-threaded/various/mutex-unsafe.cil.c</include>
-      <include>test/programs/multi-threaded/various/real-unsafe.cil.c</include>
-      <include>test/programs/multi-threaded/various/simple-unsafe.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/bluetooth.cav09.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/dekker.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/peterson.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/time_var_mutex.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/szymanski.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/bakery.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/lamport.cil.c</include>
-      <include>test/programs/multi-threaded/various/mutex-safe-nonmodular.cil.c</include>
- 
-    </sourcefiles>
-
-      <option name="-concurrent"/>
-      <option name="-config">test/config/rg-global-lbe-boolean-sa-debug.properties</option>
-  </test>
-
-  <test name="global pred, LBE, Boolean abst, simple transitions env., debug">
-    <sourcefiles>
-      <include>test/programs/multi-threaded/benchmarks/lu-fig2.fixed.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.fixed.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/read_write_lock.cil.c</include>
-      <include>test/programs/multi-threaded/various/mutex-safe-modular.cil.c</include>
-      <include>test/programs/multi-threaded/various/simple-safe-modular.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/bakery.simple.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/lu-fig2.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.cil.c</include>
-      <include>test/programs/multi-threaded/various/mutex-unsafe.cil.c</include>
-      <include>test/programs/multi-threaded/various/real-unsafe.cil.c</include>
-      <include>test/programs/multi-threaded/various/simple-unsafe.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/bluetooth.cav09.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/dekker.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/peterson.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/time_var_mutex.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/szymanski.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/bakery.cil.c</include>
-      <include>test/programs/multi-threaded/benchmarks/lamport.cil.c</include>
-      <include>test/programs/multi-threaded/various/mutex-safe-nonmodular.cil.c</include>
- 
-    </sourcefiles>
-
-      <option name="-concurrent"/>
-      <option name="-config">test/config/rg-global-lbe-boolean-st-debug.properties</option>
-  </test>
 
 
   <test name="global pred, SBE, Cartesian abst, fully abstracted env., debug">
@@ -168,6 +85,90 @@
 
       <option name="-concurrent"/>
       <option name="-config">test/config/rg-global-sbe-cartesian-st-debug.properties</option>
+  </test>
+
+  <test name="global pred, LBE, Boolean abst, fully abstracted env., debug">
+    <sourcefiles>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig2.fixed.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.fixed.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/read_write_lock.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-safe-modular.cil.c</include>
+      <include>test/programs/multi-threaded/various/simple-safe-modular.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/bakery.simple.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig2.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-unsafe.cil.c</include>
+      <include>test/programs/multi-threaded/various/real-unsafe.cil.c</include>
+      <include>test/programs/multi-threaded/various/simple-unsafe.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/bluetooth.cav09.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/dekker.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/peterson.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/time_var_mutex.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/szymanski.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/bakery.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lamport.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-safe-nonmodular.cil.c</include>
+ 
+    </sourcefiles>
+
+      <option name="-concurrent"/>
+      <option name="-config">test/config/rg-global-lbe-boolean-fa-debug.properties</option>
+  </test>
+
+  <test name="global pred, LBE, Boolean abst, semi-abstracted env., debug">
+    <sourcefiles>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig2.fixed.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.fixed.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/read_write_lock.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-safe-modular.cil.c</include>
+      <include>test/programs/multi-threaded/various/simple-safe-modular.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/bakery.simple.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig2.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-unsafe.cil.c</include>
+      <include>test/programs/multi-threaded/various/real-unsafe.cil.c</include>
+      <include>test/programs/multi-threaded/various/simple-unsafe.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/bluetooth.cav09.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/dekker.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/peterson.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/time_var_mutex.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/szymanski.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/bakery.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lamport.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-safe-nonmodular.cil.c</include>
+ 
+    </sourcefiles>
+
+      <option name="-concurrent"/>
+      <option name="-config">test/config/rg-global-lbe-boolean-sa-debug.properties</option>
+  </test>
+
+  <test name="global pred, LBE, Boolean abst, simple transitions env., debug">
+    <sourcefiles>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig2.fixed.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.fixed.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/read_write_lock.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-safe-modular.cil.c</include>
+      <include>test/programs/multi-threaded/various/simple-safe-modular.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/bakery.simple.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig2.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-unsafe.cil.c</include>
+      <include>test/programs/multi-threaded/various/real-unsafe.cil.c</include>
+      <include>test/programs/multi-threaded/various/simple-unsafe.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/bluetooth.cav09.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/dekker.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/peterson.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/time_var_mutex.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/szymanski.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/bakery.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lamport.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-safe-nonmodular.cil.c</include>
+ 
+    </sourcefiles>
+
+      <option name="-concurrent"/>
+      <option name="-config">test/config/rg-global-lbe-boolean-st-debug.properties</option>
   </test>
 
   

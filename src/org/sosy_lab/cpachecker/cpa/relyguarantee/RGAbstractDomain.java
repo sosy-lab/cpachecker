@@ -62,6 +62,7 @@ public class RGAbstractDomain implements AbstractDomain {
 
       RGAbstractElement e1 = (RGAbstractElement)element1;
       RGAbstractElement e2 = (RGAbstractElement)element2;
+
       Formula f1 = e1.getAbsPathFormula().getFormula();
       Formula f2 = e2.getAbsPathFormula().getFormula();
 

@@ -100,6 +100,9 @@ public class ARTReachedSet {
     Set<ARTElement> toWaitlist = removeSubtree0(e);
 
     for (ARTElement ae : toWaitlist) {
+      if (ae.getElementId() == 582){
+        System.out.println(this.getClass());
+      }
       mReached.updatePrecision(ae, adaptPrecision(ae, p));
       mReached.reAddToWaitlist(ae);
     }

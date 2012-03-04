@@ -188,6 +188,24 @@ public class InterpolationTreeNode  {
     return ancestor != null;
   }
 
+  /**
+   * Finds the child that has the same branch id as the node;
+   * returns null if it doesn't exist.
+   * @return
+   */
+  public InterpolationTreeNode getLocalChild() {
+    InterpolationTreeNode lChild = null;
+
+    for (InterpolationTreeNode child : children){
+      if (child.uniqueId == uniqueId){
+        lChild = child;
+        break;
+      }
+    }
+
+    return lChild;
+  }
+
 
 
 

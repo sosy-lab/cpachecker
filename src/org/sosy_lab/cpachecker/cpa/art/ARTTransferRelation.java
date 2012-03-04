@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTr
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 
 public class ARTTransferRelation implements TransferRelation, StatisticsProvider {
 
@@ -76,15 +77,17 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
     ARTElement element = (ARTElement)pElement;
     int tid = element.getTid();
     RGCFAEdge rgEdge = null;
-    Pair<ARTElement, RGEnvTransition> application = null;
+
+    ImmutableList<Pair<ARTElement, RGEnvTransition>> envApplied = element.getEnvApplied();
+    Pair<ARTElement, RGEnvTransition> application;
     if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+      Builder<Pair<ARTElement, RGEnvTransition>> bldr = ImmutableList.<Pair<ARTElement, RGEnvTransition>>builder();
       rgEdge = (RGCFAEdge) edge;
       application = Pair.of(element, rgEdge.getRgEnvTransition());
+      envApplied = bldr.addAll(envApplied).add(application).build();
     }
 
     ImmutableList<Integer> succLocCl = getSuccessorLocationClasses(element, edge);
-
-
 
     // TODO statistics
     if (succLocCl == null){
@@ -98,7 +101,6 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
       return Collections.emptySet();
     }
 
-
     Map<ARTElement, CFAEdge> localParents = new HashMap<ARTElement, CFAEdge>(1);
     localParents.put(element, edge);
 
@@ -111,9 +113,7 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
     Collection<ARTElement> wrappedSuccessors = new ArrayList<ARTElement>();
     for (AbstractElement absElement : successors) {
       ARTElement successorElem = new ARTElement(absElement, localParents, envParents, succLocCl, tid);
-      if (application != null){
-        successorElem.addEnvApplied(application);
-      }
+      successorElem.setEnvApplied(envApplied);
       wrappedSuccessors.add(successorElem);
     }
 

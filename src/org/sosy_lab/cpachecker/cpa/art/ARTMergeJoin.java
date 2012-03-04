@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.art;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -74,8 +73,8 @@ public class ARTMergeJoin implements MergeOperator {
     }
 
     // merge elements only with the same env. applications
-    List<Pair<ARTElement, RGEnvTransition>> eapp1 = artElement1.getEnvApplied();
-    List<Pair<ARTElement, RGEnvTransition>> eapp2 = artElement2.getEnvApplied();
+    ImmutableList<Pair<ARTElement, RGEnvTransition>> eapp1 = artElement1.getEnvApplied();
+    ImmutableList<Pair<ARTElement, RGEnvTransition>> eapp2 = artElement2.getEnvApplied();
 
     // merge only if eapp1 and eapp2 are equal or are both null
     if (eapp1 != eapp2 && (eapp1 == null || eapp2 == null || !eapp1.equals(eapp2))){

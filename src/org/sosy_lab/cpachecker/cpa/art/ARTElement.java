@@ -81,7 +81,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
    */
   private final ImmutableList<Integer> locationClasses;
 
-  private List<Pair<ARTElement, RGEnvTransition>> envApplied = new Vector<Pair<ARTElement, RGEnvTransition>>();
+  private ImmutableList<Pair<ARTElement, RGEnvTransition>> envApplied = ImmutableList.of();
 
   private static int nextArtElementId = 0;
 
@@ -232,12 +232,12 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
 
 
-  public List<Pair<ARTElement, RGEnvTransition>> getEnvApplied() {
+  public ImmutableList<Pair<ARTElement, RGEnvTransition>> getEnvApplied() {
     return envApplied;
   }
 
 
-  public void setEnvApplied(List<Pair<ARTElement, RGEnvTransition>> pEnvApplied) {
+  public void setEnvApplied(ImmutableList<Pair<ARTElement, RGEnvTransition>> pEnvApplied) {
     envApplied = pEnvApplied;
   }
 
@@ -260,6 +260,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
     sb.append(", tid: ");
     sb.append(tid);
     sb.append(", Location: "+loc+" "+locationClasses);
+    sb.append(", env. applied: "+envAppliedToString());
     if (!destroyed) {
       sb.append(", Local parents: ");
       List<Integer> list = new ArrayList<Integer>();
@@ -292,6 +293,19 @@ public class ARTElement extends AbstractSingleWrapperElement {
     sb.append(") ");
     sb.append(rgElement);
     return sb.toString();
+  }
+
+
+  private String envAppliedToString(){
+    List<Pair<Integer, Integer>> repr = new Vector<Pair<Integer, Integer>>(envApplied.size());
+
+    for (Pair<ARTElement, RGEnvTransition> pair: envApplied){
+      int elemId = pair.getFirst().getElementId();
+      int envId = pair.getSecond().getSourceARTElement().getElementId();
+      repr.add(Pair.of(elemId, envId));
+    }
+
+    return repr.toString();
   }
 
   // TODO check

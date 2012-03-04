@@ -176,7 +176,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       CFANode loc = aElement.retrieveLocationElement().getLocationNode();
 
       if (debug){
-        System.out.println("Successors of "+aElement+" "+rgPrec);
+        System.out.println("Successors of "+aElement+ " "+rgPrec);
       }
 
       stats.transferTimer.start();
@@ -441,7 +441,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       System.out.println();
     } else {
       RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
-      System.out.println("\t "+pSuccessor+" "+rgPrec);
+      System.out.println("\t "+pSuccessor);
     }
   }
 

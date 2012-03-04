@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Vector;
 
@@ -95,6 +96,14 @@ import com.google.common.collect.ImmutableSetMultimap.Builder;
     }
 
 
+    @Override
+    public int hashCode(){
+      return artPredicateMap.hashCode() + 7 *
+          (artGlobalPredicates.hashCode() + 13 *
+              (envPredicateMap.hashCode()) + 17 * envGlobalPredicates.hashCode());
+    }
+
+
 
     public ImmutableSetMultimap<CFANode, AbstractionPredicate> getARTPredicateMap() {
       return this.artPredicateMap;
@@ -117,13 +126,13 @@ import com.google.common.collect.ImmutableSetMultimap.Builder;
     }
 
     /**
-     * Constructs a precision that contains all predicates from both precisions.
+     * Constructs a precision that contains all predicates from argument precisions.
      * @return
      */
-    public static RGPrecision merge(List<RGPrecision> precs){
+    public static RGPrecision merge(Collection<RGPrecision> precs){
 
       if (precs.size() == 1){
-        return precs.get(0);
+        return precs.iterator().next();
       }
 
       ImmutableSetMultimap<CFANode, AbstractionPredicate> mARTMap =
@@ -142,7 +151,7 @@ import com.google.common.collect.ImmutableSetMultimap.Builder;
     }
 
 
-    private static ImmutableSetMultimap<CFANode, AbstractionPredicate> mergeARTMaps(List<RGPrecision> precs) {
+    private static ImmutableSetMultimap<CFANode, AbstractionPredicate> mergeARTMaps(Collection<RGPrecision> precs) {
 
       List<ImmutableSetMultimap<CFANode, AbstractionPredicate>> artMaps =
           new Vector<ImmutableSetMultimap<CFANode, AbstractionPredicate>>(precs.size());
@@ -154,7 +163,7 @@ import com.google.common.collect.ImmutableSetMultimap.Builder;
       return mergeMaps(artMaps);
     }
 
-    private static ImmutableSet<AbstractionPredicate> mergeARTGlobals(List<RGPrecision> precs) {
+    private static ImmutableSet<AbstractionPredicate> mergeARTGlobals(Collection<RGPrecision> precs) {
 
       List<ImmutableSet<AbstractionPredicate>> artGlobals =
          new Vector<ImmutableSet<AbstractionPredicate>>(precs.size());
@@ -166,7 +175,7 @@ import com.google.common.collect.ImmutableSetMultimap.Builder;
       return mergeSets(artGlobals);
     }
 
-    private static ImmutableSetMultimap<CFANode, AbstractionPredicate> mergeEnvMaps(List<RGPrecision> precs) {
+    private static ImmutableSetMultimap<CFANode, AbstractionPredicate> mergeEnvMaps(Collection<RGPrecision> precs) {
 
       List<ImmutableSetMultimap<CFANode, AbstractionPredicate>> envMaps =
           new Vector<ImmutableSetMultimap<CFANode, AbstractionPredicate>>(precs.size());
@@ -178,7 +187,7 @@ import com.google.common.collect.ImmutableSetMultimap.Builder;
       return mergeMaps(envMaps);
     }
 
-    private static ImmutableSet<AbstractionPredicate> mergeEnvGlobals(List<RGPrecision> precs) {
+    private static ImmutableSet<AbstractionPredicate> mergeEnvGlobals(Collection<RGPrecision> precs) {
 
       List<ImmutableSet<AbstractionPredicate>> envGlobals =
          new Vector<ImmutableSet<AbstractionPredicate>>(precs.size());
@@ -191,7 +200,7 @@ import com.google.common.collect.ImmutableSetMultimap.Builder;
     }
 
     private static  ImmutableSetMultimap<CFANode, AbstractionPredicate> mergeMaps(
-        List<ImmutableSetMultimap<CFANode, AbstractionPredicate>> maps){
+        Collection<ImmutableSetMultimap<CFANode, AbstractionPredicate>> maps){
 
       Builder<CFANode, AbstractionPredicate> bldr = ImmutableSetMultimap.<CFANode, AbstractionPredicate>builder();
 

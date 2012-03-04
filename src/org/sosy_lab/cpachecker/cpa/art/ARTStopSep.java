@@ -51,6 +51,7 @@ public class ARTStopSep implements StopOperator {
     for (AbstractElement reachedElement : pReached) {
       ARTElement artReachedElement = (ARTElement)reachedElement;
       if (stop(artElement, artReachedElement)) {
+        System.out.println("\t by "+artReachedElement);
         return true;
       }
     }

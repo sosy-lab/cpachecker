@@ -560,7 +560,10 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
       if (node.isEnvAbstraction){
         // precision for env. transitions is stored in target nodes
         InterpolationTreeNode parentNode = node.getParent();
+        InterpolationTreeNode localChild = parentNode.getLocalChild();
+        assert localChild != null;
         info.addEnvPredicatesForRefinement(parentNode, preds);
+        //info.addEnvPredicatesForRefinement(localChild, preds);
       }
 
       // add predicates to ART precision or to env. precision

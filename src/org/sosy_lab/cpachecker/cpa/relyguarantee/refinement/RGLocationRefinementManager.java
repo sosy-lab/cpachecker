@@ -857,7 +857,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       RGCFAEdge rgEdge = (RGCFAEdge) edge;
       RGEnvTransition et = rgEdge.getRgEnvTransition();
       Path pi = new Path();
-      pi.push(Pair.of(elem, et.getOperation()));
+      pi.push(Pair.of(et.getSourceARTElement(), et.getOperation()));
       return pi;
     }
     else {
