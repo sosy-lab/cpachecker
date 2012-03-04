@@ -619,7 +619,8 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
     Only columns, that should be part of the table, are collected.
     '''
 
-    currentFile.status = 'unknown'
+    currentFile.status = getStatus(currentFile)
+    currentFile.statusColor = 'unknown'
     logfileContent = None
 
     valuesForHTML = []
@@ -647,6 +648,13 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
         valuesForCSV.append(value)
 
     return (valuesForHTML, valuesForCSV)
+
+
+def getStatus(sourcefileTag):
+    for column in sourcefileTag.findall('column'):
+        if column.get('title') == 'status':
+            return column.get('value')
+    return 'unknown' # default value
 
 
 def getValueFromLogfile(content, identifier):
@@ -683,15 +691,15 @@ def formatHTML(currentFile, value, columnTitle):
         isSafeFile = not Util.containsAny(fileName, BUG_SUBSTRING_LIST)
 
         if status == 'safe':
-            currentFile.status = 'correctSafe' if isSafeFile else 'wrongSafe'
+            currentFile.statusColor = 'correctSafe' if isSafeFile else 'wrongSafe'
         elif status == 'unsafe':
-            currentFile.status = 'wrongUnsafe' if isSafeFile else 'correctUnsafe'
+            currentFile.statusColor = 'wrongUnsafe' if isSafeFile else 'correctUnsafe'
         elif status == 'unknown':
-            currentFile.status = 'unknown'
+            currentFile.statusColor = 'unknown'
         else:
-            currentFile.status = 'error'
+            currentFile.statusColor = 'error'
         return '<td class="{0}"><a href="{1}">{2}</a></td>'.format(
-                    currentFile.status, quote(currentFile.logfile), status)
+                    currentFile.statusColor, quote(currentFile.logfile), status)
 
     else:
         return '<td>{0}</td>'.format(value)
@@ -725,7 +733,7 @@ def getStatsOfTest(fileResult, columns, valuesList):
     """
 
     # list for status of bug vs tool
-    statusList = [file.status for file in fileResult]
+    statusList = [file.statusColor for file in fileResult]
     assert len(valuesList) == len(statusList)
 
     # convert:
