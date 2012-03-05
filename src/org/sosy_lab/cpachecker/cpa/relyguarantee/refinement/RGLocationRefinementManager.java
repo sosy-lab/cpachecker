@@ -194,7 +194,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @throws CPATransferException
    * @throws RefinementFailedException
    */
-  public InterpolationTreeResult refine(InterpolationTreeResult counterexample) throws CPATransferException, RefinementFailedException {
+  public void refine(InterpolationTreeResult counterexample) throws CPATransferException, RefinementFailedException {
 
 
     InterpolationTreeResult result;
@@ -206,16 +206,15 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     else if (locationRefinement.equals("WITNESS")){
       result = findWitness(counterexample);
     }
-    else if (locationRefinement.equals("MONOTONIC")){
-      result = monotonicRefinement(counterexample);
-    }
     else {
-      result = nonMonotonicRefinement(counterexample);
+      findLocationMistmaches(counterexample);
     }
 
     stats.locRefTimer.stop();
-    return result;
   }
+
+
+
 
   /**
    * Adds a counterexample path the argument. This path is may not be feasible w.r.t. locations.
@@ -233,6 +232,28 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     counterexample.setCounterexamplePath(pi);
     return counterexample;
   }
+
+  private void findLocationMistmaches(InterpolationTreeResult counterexample) throws CPATransferException {
+
+    Collection<Path> paths = getErrorPathsForTrunk(counterexample.getTree());
+
+    Multimap<ARTElement, Pair<CFANode, CFANode>> inqMap = HashMultimap.create();
+
+    for (Path pi : paths){
+      Multimap<ARTElement, Pair<CFANode, CFANode>> threadInq = findLocationInequalities(pi, true);
+
+      if (threadInq.isEmpty()){
+        // concreate, feasible error path found
+        counterexample.setCounterexamplePath(pi);
+        return;
+      }
+
+      inqMap.putAll(threadInq);
+    }
+
+    counterexample.addLocationMistmatchesForRefinement(inqMap);
+  }
+
 
   /**
    * Monotonic refinement - a new equivalence class is created for every mismatching location.
@@ -611,14 +632,14 @@ public class RGLocationRefinementManager implements StatisticsProvider{
 
   /**
    * Traverses the path and finds mismatching locations that make it spurious.
-   * The collection is empty if the path is feasible w.r.t to locations.
+   * The map is empty if the path is feasible w.r.t to locations.
    * @param pi
    * @param stopAfterFirst find only the first inequality
    * @return
    */
-  private Collection<Pair<CFANode, CFANode>> findLocationInequalities(Path pi, boolean stopAfterFirst) {
+  private Multimap<ARTElement, Pair<CFANode, CFANode>> findLocationInequalities(Path pi, boolean stopAfterFirst) {
 
-   Collection<Pair<CFANode, CFANode>> inqColl = new Vector<Pair<CFANode, CFANode>>();
+    Multimap<ARTElement, Pair<CFANode, CFANode>> inqMap = HashMultimap.create();
 
     ARTElement first = pi.get(0).getFirst();
     // tid of the ART where the path begins
@@ -651,7 +672,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       } else {
         // mismatch pc[tid] != loc
         Pair<CFANode, CFANode> mismatch = Pair.of(pc[tid], loc);
-        inqColl.add(mismatch);
+        inqMap.put(element, mismatch);
 
         if (stopAfterFirst){
           break;
@@ -661,7 +682,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       }
     }
 
-    return inqColl;
+    return inqMap;
   }
 
 

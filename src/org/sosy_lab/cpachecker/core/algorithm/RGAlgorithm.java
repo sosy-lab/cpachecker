@@ -128,7 +128,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     for (int i=0; i< this.threadNo; i++){
       this.applyEnv[i] = getNodesForEnvApplication(pcfa.getCfa(i));
       this.allCandidatesFrom[i] = new Vector<RGEnvCandidate>();
-      this.threadCPA[i] = new RGThreadCPAAlgorithm(cpas[i], pcfa.getCfa(i), environment, applyEnv[i], allCandidatesFrom, config, logger, i);
+      this.threadCPA[i] = new RGThreadCPAAlgorithm(cpas[i], pcfa.getCfa(i), environment, applyEnv[i], allCandidatesFrom, config, logger, i, threadNo);
     }
   }
 

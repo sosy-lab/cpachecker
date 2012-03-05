@@ -30,12 +30,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -50,44 +50,58 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMap;
 
 public class ARTTransferRelation implements TransferRelation, StatisticsProvider {
 
   private final TransferRelation transferRelation;
-  private RGLocationMapping locationMapping;
   private final int tid;
 
   private final Stats stats;
 
-  public ARTTransferRelation(TransferRelation tr, RGLocationMapping locationMapping, int tid) {
+  public ARTTransferRelation(TransferRelation tr, int tid) {
     this.transferRelation = tr;
-    this.locationMapping = locationMapping;
     this.tid = tid;
     this.stats = new Stats(tid);
   }
 
-  protected void setLocationMapping(RGLocationMapping lm){
-    locationMapping = lm;
-  }
 
   @Override
   public Collection<ARTElement> getAbstractSuccessors(AbstractElement pElement, Precision pPrecision, CFAEdge edge)throws CPATransferException, InterruptedException {
     assert edge != null;
 
     ARTElement element = (ARTElement)pElement;
+    ARTPrecision prec = (ARTPrecision) pPrecision;
     int tid = element.getTid();
     RGCFAEdge rgEdge = null;
 
-    ImmutableList<Pair<ARTElement, RGEnvTransition>> envApplied = element.getEnvApplied();
-    Pair<ARTElement, RGEnvTransition> application;
+    ImmutableList<Pair<ARTElement, RGEnvTransition>> envApplied;
+    ImmutableMap<Integer, Integer> succLocCl;
+
     if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
-      Builder<Pair<ARTElement, RGEnvTransition>> bldr = ImmutableList.<Pair<ARTElement, RGEnvTransition>>builder();
+      Builder<Pair<ARTElement, RGEnvTransition>> envAppliedBldr = ImmutableList.<Pair<ARTElement, RGEnvTransition>>builder();
       rgEdge = (RGCFAEdge) edge;
-      application = Pair.of(element, rgEdge.getRgEnvTransition());
-      envApplied = bldr.addAll(envApplied).add(application).build();
+      RGEnvTransition et = rgEdge.getRgEnvTransition();
+      Pair<ARTElement, RGEnvTransition> application = Pair.of(element, et);
+      envApplied = envAppliedBldr.addAll(element.getEnvApplied())
+          .add(application)
+          .build();
+
+      RGLocationMapping lm = prec.getLocationMapping();
+      tid = et.getTid();
+      CFANode succLoc = et.getTargetARTElement().retrieveLocationElement().getLocationNode();
+      Integer newClass = lm.get(succLoc);
+      assert newClass != null;
+      com.google.common.collect.ImmutableMap.Builder<Integer, Integer> locClBldr =
+          ImmutableMap.<Integer, Integer>builder();
+      succLocCl = locClBldr.putAll(element.getLocationClasses())
+          .put(tid, newClass)
+          .build();
+    } else {
+      envApplied = element.getEnvApplied();
+      succLocCl = element.getLocationClasses();
     }
 
-    ImmutableList<Integer> succLocCl = getSuccessorLocationClasses(element, edge);
 
     // TODO statistics
     if (succLocCl == null){
@@ -95,7 +109,8 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
     }
 
     AbstractElement wrappedElement = element.getWrappedElement();
-    Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, edge);
+    Precision wrappedPrec = prec.getWrappedPrecision();
+    Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors(wrappedElement, wrappedPrec, edge);
 
     if (successors.isEmpty()) {
       return Collections.emptySet();
@@ -120,41 +135,6 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
     return wrappedSuccessors;
   }
 
-  /**
-   * Returns the location class of the successor element.
-   * @param element
-   * @param edge
-   * @return
-   */
-  private ImmutableList<Integer> getSuccessorLocationClasses(ARTElement element, CFAEdge edge) {
-
-    stats.locChecksNo++;
-    stats.locProcessingTimer.start();
-
-    ImmutableList<Integer> locCl = element.getLocationClasses();
-    ImmutableList<Integer> succLocCl;
-
-    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
-      RGCFAEdge rgEdge = (RGCFAEdge) edge;
-      RGEnvTransition et = rgEdge.getRgEnvTransition();
-
-      // check if the location classes of the predecessor and the element match
-      ImmutableList<Integer> predClass = et.getSourceARTElement().getLocationClasses();
-      assert locCl.equals(predClass);
-      succLocCl = et.getTargetARTElement().getLocationClasses();
-
-    } else {
-      // local edge can always be applied; change the class for this thread
-      List<Integer> list = new Vector<Integer>(locCl);
-      Integer newClass = locationMapping.get(edge.getSuccessor());
-      assert newClass != null;
-      list.set(tid, newClass);
-      succLocCl = ImmutableList.copyOf(list);
-    }
-
-    stats.locProcessingTimer.stop();
-    return succLocCl;
-  }
 
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,

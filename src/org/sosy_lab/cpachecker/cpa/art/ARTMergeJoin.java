@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTr
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class ARTMergeJoin implements MergeOperator {
 
@@ -65,8 +66,8 @@ public class ARTMergeJoin implements MergeOperator {
     }
 
     // merged elements that have matching location classes
-    ImmutableList<Integer> locations1 = artElement1.getLocationClasses();
-    ImmutableList<Integer> locations2 = artElement2.getLocationClasses();
+    ImmutableMap<Integer, Integer> locations1 = artElement1.getLocationClasses();
+    ImmutableMap<Integer, Integer> locations2 = artElement2.getLocationClasses();
 
     if (!locations1.equals(locations2)){
       return pElement2;

@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
+import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -48,25 +49,26 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement, Precision oldPrecision, UnmodifiableReachedSet pElements) throws CPAException {
+  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement, Precision pPrecision, UnmodifiableReachedSet pElements) throws CPAException {
 
     Preconditions.checkArgument(pElement instanceof ARTElement);
     ARTElement element = (ARTElement)pElement;
+    ARTPrecision prec = (ARTPrecision) pPrecision;
 
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
         pElements,  ARTElement.getUnwrapFunction(), Functions.<Precision>identity());
 
     AbstractElement oldElement = element.getWrappedElement();
-
-    Triple<AbstractElement, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
+    Precision oldWrappedPrecision = prec.getWrappedPrecision();
+    Triple<AbstractElement, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldWrappedPrecision, elements);
 
     AbstractElement newElement = unwrappedResult.getFirst();
-    Precision newPrecision = unwrappedResult.getSecond();
+    Precision newWrappedPrecision = unwrappedResult.getSecond();
     Action action = unwrappedResult.getThird();
 
-    if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
+    if ((oldElement == newElement) && (oldWrappedPrecision == newWrappedPrecision)) {
       // nothing has changed
-      return new Triple<AbstractElement, Precision, Action>(pElement, oldPrecision, action);
+      return new Triple<AbstractElement, Precision, Action>(pElement, pPrecision, action);
     }
 
     Map<ARTElement, CFAEdge> parents = element.getLocalParentMap();
@@ -89,6 +91,7 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
       covered.setCovered(resultElement);
     }
 
-    return new Triple<AbstractElement, Precision, Action>(resultElement, newPrecision, action);
+    ARTPrecision newPrec = new ARTPrecision(prec.getLocationMapping(), (CompositePrecision) newWrappedPrecision);
+    return new Triple<AbstractElement, Precision, Action>(resultElement, newPrec, action);
   }
 }

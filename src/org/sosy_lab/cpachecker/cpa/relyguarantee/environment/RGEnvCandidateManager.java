@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Defines partial order on environmental candidates.
@@ -87,8 +87,8 @@ public class RGEnvCandidateManager {
     CFAEdge op = c.getOperation();
 
     if (!op.isGlobalWrite() && !op.isLocalWrite()){
-      ImmutableList<Integer> locCl1 = c.getElement().getLocationClasses();
-      ImmutableList<Integer> locCl2 = c.getSuccessor().getLocationClasses();
+      ImmutableMap<Integer, Integer> locCl1 = c.getElement().getLocationClasses();
+      ImmutableMap<Integer, Integer> locCl2 = c.getSuccessor().getLocationClasses();
 
       if (locCl1.equals(locCl2)){
         return true;
@@ -136,8 +136,8 @@ public class RGEnvCandidateManager {
       return false;
     }
 
-    ImmutableList<Integer> locCl1 = c1.getElement().getLocationClasses();
-    ImmutableList<Integer> locCl2 = c2.getElement().getLocationClasses();
+    ImmutableMap<Integer, Integer> locCl1 = c1.getElement().getLocationClasses();
+    ImmutableMap<Integer, Integer> locCl2 = c2.getElement().getLocationClasses();
 
     if (!locCl1.equals(locCl2)){
       return false;

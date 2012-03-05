@@ -25,14 +25,13 @@ package org.sosy_lab.cpachecker.cpa.art;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
-import java.util.Vector;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
-import org.sosy_lab.cpachecker.cfa.ThreadCFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
@@ -45,15 +44,17 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM {
 
@@ -74,8 +75,6 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
   // TODO check if needed
   private ParallelCFAS pcfa;
-  // maps cfa nodes to equivalence classes
-  private RGLocationMapping locationMapping;
   private int tid = Integer.MAX_VALUE;
 
   private Path targetPath = null;
@@ -110,11 +109,10 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     stats = new ARTStatistics(config, this);
   }
 
-  public void setData(ParallelCFAS pcfa, RGLocationMapping locationMapping, int tid){
+  public void setData(ParallelCFAS pcfa, int tid){
     this.pcfa = pcfa;
-    this.locationMapping = locationMapping;
     this.tid = tid;
-    this.transferRelation = new ARTTransferRelation(wrappedTranferRelation, locationMapping, tid);
+    this.transferRelation = new ARTTransferRelation(wrappedTranferRelation, tid);
   }
 
   @Override
@@ -154,14 +152,16 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   @Override
   public AbstractElement getInitialElement (CFANode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ART
-    List<Integer> locVector = new Vector<Integer>(pcfa.getThreadNo());
+    Map<Integer, Integer> locMap = new HashMap<Integer, Integer>(pcfa.getThreadNo()-1);
 
-    for (ThreadCFA cfa : pcfa){
-      CFANode node = cfa.getInitalNode();
-      locVector.add(locationMapping.get(node));
+    for (int i=0; i<pcfa.getThreadNo(); i++){
+
+      if (i != tid){
+        locMap.put(i, 1);
+      }
     }
 
-    ImmutableList<Integer> locationClasses = ImmutableList.copyOf(locVector);
+    ImmutableMap<Integer, Integer> locationClasses = ImmutableMap.copyOf(locMap);
     return new ARTElement(getWrappedCpa().getInitialElement(pNode), Collections.<ARTElement, CFAEdge> emptyMap(), Collections.<ARTElement, RGCFAEdge> emptyMap(), locationClasses, tid);
   }
 
@@ -183,12 +183,11 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     targetPath = pTargetPath;
   }
 
-  public void setLocationMapping(RGLocationMapping lm) {
-    this.locationMapping = lm;
-    this.transferRelation.setLocationMapping(lm);
+
+  @Override
+  public Precision getInitialPrecision(CFANode pNode) {
+    RGLocationMapping lm = RGLocationMapping.getEmpty(pcfa.getCfa(tid));
+    return new ARTPrecision(lm, (CompositePrecision) super.getInitialPrecision(pNode));
   }
-
-
-
 
 }

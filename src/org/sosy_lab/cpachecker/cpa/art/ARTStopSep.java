@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class ARTStopSep implements StopOperator {
 
@@ -66,8 +66,8 @@ public class ARTStopSep implements StopOperator {
       return false;
     }
 
-    ImmutableList<Integer> locations1 = pElement.getLocationClasses();
-    ImmutableList<Integer> locations2 = pReachedElement.getLocationClasses();
+    ImmutableMap<Integer, Integer> locations1 = pElement.getLocationClasses();
+    ImmutableMap<Integer, Integer> locations2 = pReachedElement.getLocationClasses();
 
     if (!locations1.equals(locations2)){
       return false;

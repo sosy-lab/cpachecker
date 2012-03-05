@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public class ARTElement extends AbstractSingleWrapperElement {
@@ -79,15 +80,16 @@ public class ARTElement extends AbstractSingleWrapperElement {
   /**
    * equivalences class of each program counter
    */
-  private final ImmutableList<Integer> locationClasses;
+  private final ImmutableMap<Integer, Integer> locationClasses;
 
   private ImmutableList<Pair<ARTElement, RGEnvTransition>> envApplied = ImmutableList.of();
 
   private static int nextArtElementId = 0;
 
-  public ARTElement(AbstractElement pWrappedElement, Map<ARTElement, CFAEdge> parentEdges, Map<ARTElement, RGCFAEdge> parentEnvEdges, ImmutableList<Integer> locationClasses, int tid) {
+  public ARTElement(AbstractElement pWrappedElement, Map<ARTElement, CFAEdge> parentEdges, Map<ARTElement, RGCFAEdge> parentEnvEdges, ImmutableMap<Integer, Integer> locCl, int tid) {
     super(pWrappedElement);
     assert parentEdges != null;
+    assert !locCl.containsKey(tid);
 
     this.elementId = ++nextArtElementId;
     this.localParentMap = new LinkedHashMap<ARTElement, CFAEdge>(parentEdges);
@@ -109,7 +111,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
       parent.envChildMap.put(this, edge);
     }
 
-    this.locationClasses = locationClasses;
+    this.locationClasses = locCl;
 
     this.rgElement = AbstractElements.extractElementByType(this, RGAbstractElement.class);
     assert this.rgElement != null;
@@ -171,8 +173,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
     return false;
   }
 
-
-  public ImmutableList<Integer> getLocationClasses() {
+  public ImmutableMap<Integer, Integer> getLocationClasses() {
     return locationClasses;
   }
 

@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -205,13 +204,12 @@ public class CPAchecker {
       //RGVariables vars = new RGVariables(cfas);
 
       RGEnvironmentManager environment = new RGEnvironmentManager(pcfa, config, logger);
-      RGLocationMapping locMapping = environment.getLocationMapping();
 
       // create a cpa for each thread
       for(int i=0; i<threadNo; i++){
         ConfigurableProgramAnalysis cpa = createCPA(stats);
         ARTCPA artCPA = (ARTCPA) cpa;
-        artCPA.setData(pcfa, locMapping, i);
+        artCPA.setData(pcfa,  i);
         RGCPA rgCPA = artCPA.retrieveWrappedCpa(RGCPA.class);
         rgCPA.setData(i, pcfa, environment);
         //rgCPA.useHardcodedPredicates();

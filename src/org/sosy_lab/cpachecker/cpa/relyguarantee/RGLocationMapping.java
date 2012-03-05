@@ -68,6 +68,18 @@ public class RGLocationMapping {
     return new RGLocationMapping(map);
   }
 
+
+  public static RGLocationMapping getEmpty(ThreadCFA cfa) {
+
+    Map<CFANode, Integer> map = new HashMap<CFANode, Integer>(cfa.getAllNodes().size());
+
+    for (CFANode node : cfa.getAllNodes()){
+      map.put(node, 1);
+    }
+
+      return new RGLocationMapping(map);
+  }
+
   /**
    * Returns location mapping where all nodes that are not global declarations are mapped to their own
    * class.
@@ -171,6 +183,11 @@ public class RGLocationMapping {
     return inverse().keySet().size();
   }
 
+  public Collection<CFANode> classToNodes(Integer classNo) {
+    return inverse().get(classNo);
+  }
+
+
   public String toString(){
     String str = "RGLocationMapping: "+inverse();
     return str;
@@ -179,5 +196,9 @@ public class RGLocationMapping {
   public ImmutableMap<? extends CFANode, ? extends Integer> getMap() {
     return locationMapping;
   }
+
+
+
+
 
 }

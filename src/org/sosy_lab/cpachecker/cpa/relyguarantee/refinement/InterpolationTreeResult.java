@@ -25,11 +25,16 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement;
 
 import java.util.Collection;
 
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
 
@@ -43,6 +48,7 @@ public class InterpolationTreeResult {
   private final boolean isSpurious;
   private final SetMultimap<InterpolationTreeNode, AbstractionPredicate> artMap;
   private final SetMultimap<InterpolationTreeNode, AbstractionPredicate> envMap;
+  private final Multimap<ARTElement, Pair<CFANode, CFANode>> locMap;
   private final InterpolationTree tree;
   /** witness path for a feasible counterexample */
   private Path path;
@@ -54,6 +60,7 @@ public class InterpolationTreeResult {
     this.isSpurious = spurious;
     this.artMap = LinkedHashMultimap.create();
     this.envMap = LinkedHashMultimap.create();
+    this.locMap = HashMultimap.create();
     this.tree = null;
   }
 
@@ -64,6 +71,7 @@ public class InterpolationTreeResult {
     this.tree = tree;
     this.artMap = null;
     this.envMap = null;
+    this.locMap = null;
   }
 
   public boolean isSpurious(){
@@ -78,6 +86,9 @@ public class InterpolationTreeResult {
     envMap.putAll(e, preds);
   }
 
+  public void addLocationMistmatchForRefinement(ARTElement e,  Pair<CFANode, CFANode> mismatch) {
+    locMap.put(e, mismatch);
+  }
 
   public InterpolationTree getTree() {
     return tree;
@@ -93,21 +104,22 @@ public class InterpolationTreeResult {
     this.path = path;
   }
 
-  public RGLocationMapping getRefinedLocationMapping() {
-    return refinedLocationMapping;
-  }
-
-  public void setRefinedLocationMapping(RGLocationMapping refinedLocationMapping) {
-    assert isSpurious;
-    this.refinedLocationMapping = refinedLocationMapping;
-  }
-
-  public SetMultimap<InterpolationTreeNode, AbstractionPredicate> getArtMap() {
+  public SetMultimap<InterpolationTreeNode, AbstractionPredicate> getArtRefinementMap() {
     return artMap;
   }
 
-  public SetMultimap<InterpolationTreeNode, AbstractionPredicate> getEnvMap() {
+  public SetMultimap<InterpolationTreeNode, AbstractionPredicate> getEnvRefinementMap() {
     return envMap;
+  }
+
+  public Multimap<ARTElement, Pair<CFANode, CFANode>> getLocRefinementMap() {
+    return locMap;
+  }
+
+  public boolean addLocationMistmatchesForRefinement(
+      Multimap<ARTElement, Pair<CFANode, CFANode>> inqMap) {
+
+    return locMap.putAll(inqMap);
   }
 
 

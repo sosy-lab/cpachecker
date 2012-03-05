@@ -24,9 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+
+import com.google.common.collect.SetMultimap;
 
 /**
  * Stores information about a transition in an ART that may become an
@@ -39,14 +42,16 @@ public class RGEnvCandidate {
   private final CFAEdge operation;
   private final RGAbstractElement rgElement;
   private final RGAbstractElement rgSuccessor;
+  private final SetMultimap<Integer, CFANode> concreateLocs;
   private final int tid;
 
-  public RGEnvCandidate(ARTElement element, ARTElement successor, CFAEdge operation, int tid){
+  public RGEnvCandidate(ARTElement element, ARTElement successor, CFAEdge operation, SetMultimap<Integer, CFANode> concreateLocs, int tid){
     this.element     = element;
     this.successor   = successor;
     this.operation   = operation;
     this.rgElement   = AbstractElements.extractElementByType(element, RGAbstractElement.class);
     this.rgSuccessor = AbstractElements.extractElementByType(successor, RGAbstractElement.class);
+    this.concreateLocs = concreateLocs;
     this.tid         = tid;
   }
 
@@ -76,5 +81,9 @@ public class RGEnvCandidate {
 
   public String toString(){
     return "RGEnvCandidate: "+element.getElementId()+"--"+operation.getRawStatement()+"-->"+successor.getElementId();
+  }
+
+  public SetMultimap<Integer, CFANode> getConcreateLocations() {
+    return concreateLocs;
   }
 }

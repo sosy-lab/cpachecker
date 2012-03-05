@@ -526,6 +526,9 @@ cpa.rg.refinement.interpolatingProver = "MATHSAT"
 # Use lazy refinement rather than restart the analysis.
 cpa.rg.refinement.lazy = true
 
+# Add all predicates in the subtree to the pivot element.
+cpa.rg.refinement.lazy.shareDroppedPrecision = true
+
 # Perform refinement of control locations if a feasible counterexample is
 # found.
 cpa.rg.refinement.locationRefinement = "MONOTONIC"

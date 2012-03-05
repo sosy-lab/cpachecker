@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -211,7 +210,7 @@ public class RGRefiner implements StatisticsProvider{
     System.out.println();
     System.out.println("\t\t\t ----- Interpolation -----");
     InterpolationTreeResult counterexampleInfo = refManager.refine(targetElement, reachedSets, errorThr);
-    counterexampleInfo = locrefManager.refine(counterexampleInfo);
+    locrefManager.refine(counterexampleInfo);
 
     // if error is spurious refine
     if (counterexampleInfo.isSpurious()) {
@@ -238,33 +237,52 @@ public class RGRefiner implements StatisticsProvider{
 
 
   private void performLazyRefinement(ARTReachedSet[] reachedSets, InterpolationTreeResult cexample, RGAlgorithm algorithm) {
+    assert cexample.isSpurious();
     System.out.println();
     System.out.println("\t\t\t ----- Lazy refinement -----");
-    Map<Integer, Map<ARTElement, RGPrecision>> refMap = getLazyRefinement(reachedSets, cexample);
+
+    boolean dataRef = cexample.getLocRefinementMap().isEmpty();
+
+
+    Map<Integer, Map<ARTElement, Precision>> refMap;
+
+    if (dataRef){
+      refMap = getLazyRefinement(reachedSets, cexample);
+    } else {
+      refMap = null;
+    }
+
     dropPivots(reachedSets, refMap);
     algorithm.removeDestroyedCandidates();
-
-
   }
 
   private void performRestartingRefinement(ARTReachedSet[] reachedSets, InterpolationTreeResult cexample, RGAlgorithm algorithm) {
-    // TODO Auto-generated method stub
+    assert cexample.isSpurious();
     System.out.println();
     System.out.println("\t\t\t ----- Restarting refinement -----");
 
-    Map<Integer, Map<ARTElement, RGPrecision>> refMap = getRestartingPrecision(reachedSets, cexample);
+    boolean dataRef = cexample.getLocRefinementMap().isEmpty();
+
+    Map<Integer, Map<ARTElement, Precision>> refMap;
+
+    if (dataRef){
+      refMap = getRestartingPrecision(reachedSets, cexample);
+    } else {
+      refMap = null;
+    }
+
     dropPivots(reachedSets, refMap);
     algorithm.resetEnvironment();
   }
 
-  private void dropPivots(ARTReachedSet[] reachedSets, Map<Integer, Map<ARTElement, RGPrecision>> refMap) {
+  private void dropPivots(ARTReachedSet[] reachedSets, Map<Integer, Map<ARTElement, Precision>> refMap) {
 
 
     // drop subtrees and change precision
     for(int tid : refMap.keySet()){
       for(ARTElement root : refMap.get(tid).keySet()){
         // drop cut-off node in every thread
-        RGPrecision precision = refMap.get(tid).get(root);
+        Precision precision = refMap.get(tid).get(root);
         Set<ARTElement> parents = new HashSet<ARTElement>(root.getLocalParents());
 
         // TODO why does it take so long?
@@ -281,9 +299,9 @@ public class RGRefiner implements StatisticsProvider{
     }
   }
 
-  private Map<Integer, Map<ARTElement, RGPrecision>> findCommonPrecision(ARTReachedSet[] reachedSets, Map<Integer, Map<ARTElement, RGPrecision>> refMap) {
+  private Map<Integer, Map<ARTElement, Precision>> findCommonPrecision(ARTReachedSet[] reachedSets, Map<Integer, Map<ARTElement, Precision>> refMap) {
 
-    Map<Integer, Map<ARTElement, RGPrecision>> newRefMap = new HashMap<Integer, Map<ARTElement, RGPrecision>>(refMap);
+    Map<Integer, Map<ARTElement, Precision>> newRefMap = new HashMap<Integer, Map<ARTElement, Precision>>(refMap);
 
     for (int tid : refMap.keySet()){
 
@@ -302,7 +320,7 @@ public class RGRefiner implements StatisticsProvider{
       }
 
       // merge precision for elements that readded the same pivot
-       Map<ARTElement, RGPrecision> threadNewPivots = newRefMap.get(tid);
+       Map<ARTElement, Precision> threadNewPivots = newRefMap.get(tid);
 
       for (ARTElement elem : readdMap.keySet()){
 
@@ -314,7 +332,7 @@ public class RGRefiner implements StatisticsProvider{
         List<RGPrecision> precs = new Vector<RGPrecision>(pivs.size());
 
         for (ARTElement aelem : pivs){
-          precs.add(threadNewPivots.get(aelem));
+          precs.add((RGPrecision) threadNewPivots.get(aelem));
         }
 
         RGPrecision mPrec = RGPrecision.merge(precs);
@@ -334,33 +352,7 @@ public class RGRefiner implements StatisticsProvider{
    * @param pCounterexampleInfo
    * @return
    */
-  private Map<Integer, Map<ARTElement, RGPrecision>> getLazyRefinement(ARTReachedSet[] reachedSets, InterpolationTreeResult info) {
-
-    //boolean newPred = false;
-    boolean newLM = false;
-
-    // set location mapping
-    RGLocationMapping lm = info.getRefinedLocationMapping();
-    if (lm != null){
-      newLM = true;
-
-      if (debug){
-        System.out.println("New "+lm);
-      }
-
-      environment.setLocationMapping(lm);
-
-      for (int i=0; i<artCpas.length; i++){
-        ARTCPA artCpa = artCpas[i];
-        artCpa.setLocationMapping(lm);
-      }
-    }
-
-    // TODO change it!
-    if (newLM){
-      return getRestartingPrecision(reachedSets, info);
-    }
-
+  private Map<Integer, Map<ARTElement, Precision>> getLazyRefinement(ARTReachedSet[] reachedSets, InterpolationTreeResult info) {
 
     Pivots pivots = getNewPrecisionElements(reachedSets, info, false);
     if (debug){
@@ -404,7 +396,7 @@ public class RGRefiner implements StatisticsProvider{
       System.out.println();
     }
 
-   Map<Integer, Map<ARTElement, RGPrecision>> refMap = gatherPrecision(topElems, pivots, reachedSets);
+   Map<Integer, Map<ARTElement, Precision>> refMap = gatherPrecision(topElems, pivots, reachedSets);
 
     if (debug){
       for (int tid : refMap.keySet()){
@@ -415,7 +407,7 @@ public class RGRefiner implements StatisticsProvider{
         }
 
         for (ARTElement  aelem : refMap.get(tid).keySet()){
-          RGPrecision prec = refMap.get(tid).get(aelem);
+          Precision prec = refMap.get(tid).get(aelem);
           System.out.println("\t-"+aelem.getElementId()+" : "+prec);
         }
       }
@@ -437,7 +429,7 @@ public class RGRefiner implements StatisticsProvider{
         System.out.println("Thread "+tid+":");
 
         for (ARTElement  aelem : refMap.get(tid).keySet()){
-          RGPrecision prec = refMap.get(tid).get(aelem);
+          Precision prec = refMap.get(tid).get(aelem);
           System.out.println("\t-"+aelem.getElementId()+" : "+prec);
         }
       }
@@ -459,19 +451,19 @@ public class RGRefiner implements StatisticsProvider{
    * @param reachedSets
    * @return
    */
-  private Map<Integer, Map<ARTElement, RGPrecision>> addDroppedPrecision(
-      Map<Integer, Map<ARTElement, RGPrecision>> refMap,
+  private Map<Integer, Map<ARTElement, Precision>> addDroppedPrecision(
+      Map<Integer, Map<ARTElement, Precision>> refMap,
       ARTReachedSet[] reachedSets) {
 
-    HashMap<Integer, Map<ARTElement, RGPrecision>> newRefMap = new HashMap<Integer, Map<ARTElement, RGPrecision>>(refMap);
+    HashMap<Integer, Map<ARTElement, Precision>> newRefMap = new HashMap<Integer, Map<ARTElement, Precision>>(refMap);
 
     for (int tid : newRefMap.keySet()){
-      Map<ARTElement, RGPrecision> threadRefMap = newRefMap.get(tid);
+      Map<ARTElement, Precision> threadRefMap = newRefMap.get(tid);
 
       for (ARTElement pivot : threadRefMap.keySet()){
         Set<ARTElement> subtree = pivot.getLocalSubtree();
         Set<RGPrecision> toMerge = new LinkedHashSet<RGPrecision>();
-        toMerge.add(threadRefMap.get(pivot));
+        toMerge.add((RGPrecision) threadRefMap.get(pivot));
 
         for (ARTElement sub : subtree){
 
@@ -486,8 +478,8 @@ public class RGRefiner implements StatisticsProvider{
         RGPrecision mrgPrec = RGPrecision.merge(toMerge);
 
         if (debug){
-          SetView<AbstractionPredicate> artDiff = Sets.difference(mrgPrec.getARTGlobalPredicates(), threadRefMap.get(pivot).getARTGlobalPredicates());
-          SetView<AbstractionPredicate> envDiff = Sets.difference(mrgPrec.getEnvGlobalPredicates(), threadRefMap.get(pivot).getEnvGlobalPredicates());
+          SetView<AbstractionPredicate> artDiff = Sets.difference(mrgPrec.getARTGlobalPredicates(), ((RGPrecision) threadRefMap.get(pivot)).getARTGlobalPredicates());
+          SetView<AbstractionPredicate> envDiff = Sets.difference(mrgPrec.getEnvGlobalPredicates(), ((RGPrecision) threadRefMap.get(pivot)).getEnvGlobalPredicates());
 
           if (!artDiff.isEmpty()){
             System.out.println("shared "+artDiff);
@@ -496,11 +488,7 @@ public class RGRefiner implements StatisticsProvider{
           if (!envDiff.isEmpty()){
             System.out.println("shared "+artDiff);
           }
-
-
         }
-
-
 
         threadRefMap.put(pivot, mrgPrec);
       }
@@ -518,10 +506,10 @@ public class RGRefiner implements StatisticsProvider{
    * @param reachedSets
    * @return
    */
-  private Map<Integer, Map<ARTElement, RGPrecision>> gatherPrecision(Map<Integer, SetMultimap<ARTElement, ARTElement>> topElems,
+  private Map<Integer, Map<ARTElement, Precision>> gatherPrecision(Map<Integer, SetMultimap<ARTElement, ARTElement>> topElems,
       Pivots pivots, ARTReachedSet[] reachedSets) {
 
-    Map<Integer, Map<ARTElement, RGPrecision>> cutoff = new HashMap<Integer, Map<ARTElement, RGPrecision>>(pivots.getTids().size());
+    Map<Integer, Map<ARTElement, Precision>> cutoff = new HashMap<Integer, Map<ARTElement, Precision>>(pivots.getTids().size());
 
     for (int tid : topElems.keySet()){
       SetMultimap<ARTElement, ARTElement> coverMap = topElems.get(tid);
@@ -529,9 +517,9 @@ public class RGRefiner implements StatisticsProvider{
       for (ARTElement topElem : coverMap.keySet()){
         RGPrecision prec = gatherPrecisionForElement(topElem, coverMap.get(topElem), pivots, reachedSets[tid]);
 
-        Map<ARTElement, RGPrecision> threadCutoff = cutoff.get(tid);
+        Map<ARTElement, Precision> threadCutoff = cutoff.get(tid);
         if (threadCutoff == null){
-          threadCutoff = new HashMap<ARTElement, RGPrecision>();
+          threadCutoff = new HashMap<ARTElement, Precision>();
           cutoff.put(tid, threadCutoff);
         }
 
@@ -741,7 +729,7 @@ public class RGRefiner implements StatisticsProvider{
 
     Pivots pivots = new Pivots();
 
-    SetMultimap<InterpolationTreeNode, AbstractionPredicate> artMap = info.getArtMap();
+    SetMultimap<InterpolationTreeNode, AbstractionPredicate> artMap = info.getArtRefinementMap();
 
     for (InterpolationTreeNode node : artMap.keySet()){
       ARTElement aelem = node.getArtElement();
@@ -767,7 +755,7 @@ public class RGRefiner implements StatisticsProvider{
       }
     }
 
-    SetMultimap<InterpolationTreeNode, AbstractionPredicate> envMap = info.getEnvMap();
+    SetMultimap<InterpolationTreeNode, AbstractionPredicate> envMap = info.getEnvRefinementMap();
 
     for (InterpolationTreeNode node : envMap.keySet()){
       ARTElement aelem = node.getArtElement();
@@ -803,31 +791,13 @@ public class RGRefiner implements StatisticsProvider{
    * @param info
    * @return
    */
-  private Map<Integer, Map<ARTElement, RGPrecision>> getRestartingPrecision(ARTReachedSet[] reachedSets, InterpolationTreeResult info){
+  private Map<Integer, Map<ARTElement, Precision>> getRestartingPrecision(ARTReachedSet[] reachedSets, InterpolationTreeResult info){
     stats.restartingTimer.start();
 
     boolean newPred = false;
-    boolean newLM = false;
-
-    // set location mapping
-    RGLocationMapping lm = info.getRefinedLocationMapping();
-    if (lm != null){
-      newLM = true;
-
-      if (debug){
-        System.out.println("New "+lm);
-      }
-
-      environment.setLocationMapping(lm);
-
-      for (int i=0; i<artCpas.length; i++){
-        ARTCPA artCpa = artCpas[i];
-        artCpa.setLocationMapping(lm);
-      }
-     }
 
 
-    Map<Integer, Map<ARTElement, RGPrecision>> refMap = new HashMap<Integer, Map<ARTElement, RGPrecision>>(threadNo);
+    Map<Integer, Map<ARTElement, Precision>> refMap = new HashMap<Integer, Map<ARTElement, Precision>>(threadNo);
 
     // for every thread gather all new predicates in a single precision, which be added to the root
     for (int i=0; i<threadNo; i++){
@@ -839,7 +809,7 @@ public class RGRefiner implements StatisticsProvider{
 
       newPred = newPred || pair.getSecond();
 
-      HashMap<ARTElement, RGPrecision> threadRefMap = new HashMap<ARTElement, RGPrecision>();
+      HashMap<ARTElement, Precision> threadRefMap = new HashMap<ARTElement, Precision>();
       refMap.put(i, threadRefMap);
 
       for (ARTElement child : initial.getLocalChildren()){
@@ -848,7 +818,7 @@ public class RGRefiner implements StatisticsProvider{
     }
 
     if (debug){
-      assert newPred || newLM : "No new predicates nor location mapping found.";
+      assert newPred : "No new predicates nor location mapping found.";
     }
 
     stats.restartingTimer.stop();
@@ -990,7 +960,7 @@ public class RGRefiner implements StatisticsProvider{
   private Multimap<CFANode, AbstractionPredicate> gatherEnvPredicates(InterpolationTreeResult result, int i) {
     Multimap<CFANode, AbstractionPredicate> map = LinkedHashMultimap.create();
 
-    SetMultimap<InterpolationTreeNode, AbstractionPredicate> envMap = result.getEnvMap();
+    SetMultimap<InterpolationTreeNode, AbstractionPredicate> envMap = result.getEnvRefinementMap();
     for (InterpolationTreeNode node : envMap.keySet()){
       ARTElement aElement = node.getArtElement();
       int tid = aElement.getTid();
@@ -1008,7 +978,7 @@ public class RGRefiner implements StatisticsProvider{
   private Multimap<CFANode, AbstractionPredicate> gatherARTPredicates(InterpolationTreeResult result, int i) {
     Multimap<CFANode, AbstractionPredicate> map = LinkedHashMultimap.create();
 
-    SetMultimap<InterpolationTreeNode, AbstractionPredicate> artMap = result.getArtMap();
+    SetMultimap<InterpolationTreeNode, AbstractionPredicate> artMap = result.getArtRefinementMap();
 
     for (InterpolationTreeNode node : artMap.keySet()){
       ARTElement aElement = node.getArtElement();

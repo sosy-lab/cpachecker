@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Manager for semi-abstracted environmental transitions.
@@ -230,15 +230,15 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
       return false;
     }
 
-    ImmutableList<Integer> locCl1 = sa1.getSourceARTElement().getLocationClasses();
-    ImmutableList<Integer> locCl2 = sa2.getSourceARTElement().getLocationClasses();
+     ImmutableMap<Integer, Integer> locCl1 = sa1.getSourceARTElement().getLocationClasses();
+    ImmutableMap<Integer, Integer> locCl2 = sa2.getSourceARTElement().getLocationClasses();
 
     if (!locCl1.equals(locCl2)){
       return false;
     }
 
-    ImmutableList<Integer> tlocCl1 = sa1.getTargetARTElement().getLocationClasses();
-    ImmutableList<Integer> tlocCl2 = sa2.getTargetARTElement().getLocationClasses();
+    ImmutableMap<Integer, Integer> tlocCl1 = sa1.getTargetARTElement().getLocationClasses();
+    ImmutableMap<Integer, Integer> tlocCl2 = sa2.getTargetARTElement().getLocationClasses();
 
     if (!tlocCl1.equals(tlocCl2)){
       return false;

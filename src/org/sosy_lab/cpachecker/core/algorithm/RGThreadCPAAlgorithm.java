@@ -26,10 +26,8 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.Vector;
 import java.util.logging.Level;
 
@@ -61,9 +59,11 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.art.ARTPrecision;
 import org.sosy_lab.cpachecker.cpa.art.ARTTransferRelation;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGTransferRelation;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
@@ -73,9 +73,11 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTr
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.rg")
 public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
@@ -92,7 +94,8 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   private final ThreadCFA            cfa;
   private final LogManager                  logger;
   private RGEnvironmentManager environment;
-  private int tid;
+  private final int tid;
+  private final int threadNo;
   private ImmutableSet<CFANode> applyEnv;
 
   private List<Pair<AbstractElement, Precision>> forcedStop = new Vector<Pair<AbstractElement, Precision>>();
@@ -106,12 +109,16 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   private int otherTid;
 
 
-  public RGThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, ThreadCFA cfa, RGEnvironmentManager environment, ImmutableSet<CFANode> applyEnv, List<RGEnvCandidate>[] candidatesFromThread, Configuration config, LogManager logger,  int tid) {
+
+
+  public RGThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, ThreadCFA cfa, RGEnvironmentManager environment, ImmutableSet<CFANode> applyEnv, List<RGEnvCandidate>[] candidatesFromThread, Configuration config, LogManager logger,  int tid, int threadNo) {
     this.cpa = cpa;
     this.cfa = cfa;
     this.environment = environment;
     this.logger = logger;
     this.tid = tid;
+    this.threadNo = threadNo;
+
 
     this.stats = new Stats((ARTCPA) cpa, tid);
 
@@ -172,6 +179,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       final Precision precision = reachedSet.getPrecision(element);
 
       ARTElement aElement = (ARTElement) element;
+      ARTPrecision artPrec = (ARTPrecision) precision;
       RGPrecision rgPrec = Precisions.extractPrecisionByType(precision, RGPrecision.class);
       CFANode loc = aElement.retrieveLocationElement().getLocationNode();
 
@@ -182,7 +190,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       stats.transferTimer.start();
       runStats.transferTimer.start();
 
-      Collection<CFAEdge> edges = getEdgesForElement(aElement, rgPrec);
+      Collection<CFAEdge> edges = getEdgesForElement(aElement, artPrec);
 
       if (debug && edges.isEmpty()){
         System.out.println();
@@ -238,7 +246,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
           stats.envPrecisionTimer.start();
         }
 
-        Triple<AbstractElement, Precision, Action> precAdjustmentResult =precisionAdjustment.prec(successor, precision, reachedSet);
+        Triple<AbstractElement, Precision, Action> precAdjustmentResult = precisionAdjustment.prec(successor, precision, reachedSet);
         successor = precAdjustmentResult.getFirst();
         Precision successorPrecision = precAdjustmentResult.getSecond();
         Action action = precAdjustmentResult.getThird();
@@ -266,7 +274,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         /* Remember the transition element--edge-->successor as candidate for an env. transition. */
         stats.envGenTimer.start();
         if (createsEnvTransition(edge)){
-          RGEnvCandidate candidate = new RGEnvCandidate((ARTElement)element, (ARTElement)successor, edge, tid);
+          RGEnvCandidate candidate = generateCandidate(element, successor, precision, edge);
           candidates.add(candidate);
         }
         stats.envGenTimer.stop();
@@ -378,15 +386,41 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
+  private RGEnvCandidate generateCandidate(AbstractElement pElement,
+      AbstractElement successor, Precision pPrecision, CFAEdge edge) {
+
+    ARTElement element = (ARTElement) pElement;
+    ARTPrecision prec = (ARTPrecision) pPrecision;
+    RGLocationMapping lm = prec.getLocationMapping();
+    ImmutableMap<Integer, Integer> locCl = element.getLocationClasses();
+    SetMultimap<Integer, CFANode> concreateLocs = LinkedHashMultimap.create();
+
+    for (int i=0; i<threadNo; i++){
+
+      if (i == tid){
+        CFANode loc = element.retrieveLocationElement().getLocationNode();
+        concreateLocs.put(i, loc);
+      } else {
+        int classNo = locCl.get(i);
+        Collection<CFANode> nodes = lm.classToNodes(classNo);
+        assert !nodes.isEmpty();
+        concreateLocs.putAll(i, nodes);
+      }
+    }
+
+    RGEnvCandidate candidate = new RGEnvCandidate(element, (ARTElement)successor, edge, concreateLocs, tid);
+    return candidate;
+  }
+
   /**
    * Returns local and environmental edges to be applied at the element.
    * @param aElem
-   * @param rgPrec
+   * @param artPrec
    * @return
    */
-  private List<CFAEdge> getEdgesForElement(ARTElement aElem, RGPrecision rgPrec) {
+  private List<CFAEdge> getEdgesForElement(ARTElement aElem, ARTPrecision artPrec) {
     assert aElem != null;
-    assert rgPrec != null;
+    assert artPrec != null;
 
     List<CFAEdge> edges = new Vector<CFAEdge>();
     CFANode loc = aElem.retrieveLocationElement().getLocationNode();
@@ -394,11 +428,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
     /* get environmental edges */
     if (applyEnv.contains(loc)){
 
-
-      Set<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(rgPrec.getEnvGlobalPredicates());
-      preds.addAll(rgPrec.getEnvPredicateMap().get(loc));
-
-      List<RGEnvTransition> envTransitionToApply = environment.getEnvironmentalTransitionsToApply(aElem, candidatesFromThread[otherTid], preds);
+      List<RGEnvTransition> envTransitionToApply = environment.getEnvironmentalTransitionsToApply(aElem, candidatesFromThread[otherTid], artPrec);
 
       for (RGEnvTransition et : envTransitionToApply){
           RGCFAEdge rgEdge = new RGCFAEdge(et, loc, loc);

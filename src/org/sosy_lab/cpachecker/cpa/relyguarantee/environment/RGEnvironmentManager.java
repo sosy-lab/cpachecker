@@ -48,12 +48,15 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.art.ARTPrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
@@ -67,8 +70,11 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 
 /**
  * Stores information about environmental edges.
@@ -87,8 +93,9 @@ public class RGEnvironmentManager implements StatisticsProvider{
   @Option(description="Use caching for generating environmental transitions.")
   private boolean cacheGeneratingEnvTransition = true;
 
+  /*
   @Option(description="Use exact locations instead of abstracted location classes.")
-  private boolean preciseLocations = false;
+  private boolean preciseLocations = false;*/
 
   /** Number of threads. */
   private int threadNo;
@@ -96,7 +103,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
   private final SetMultimap<CFANode, AbstractionPredicate>[] envPrecision;
   /** envGlobalPrecision[i] contains global env. predicates for thread i */
   private final Set<AbstractionPredicate>[] envGlobalPrecision;
-  private RGLocationMapping locationMapping;
 
   private final Map<Pair<RGEnvCandidate, Set<AbstractionPredicate>>, RGEnvTransition> candidateToTransitionCache;
 
@@ -155,12 +161,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
       candidateToTransitionCache = null;
     }
 
-
-    if (preciseLocations){
-      this.locationMapping = RGLocationMapping.getIndentity(pcfa);
-    } else {
-      this.locationMapping = RGLocationMapping.getEmpty(pcfa);
-    }
   }
 
   public int getThreadNo() {
@@ -754,16 +754,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
     return envPrecision;
   }
 
-  public RGLocationMapping getLocationMapping() {
-    return locationMapping;
-  }
-
-  public void setLocationMapping(RGLocationMapping pLocationMapping) {
-    locationMapping = pLocationMapping;
-  }
-
-
-
   /**
    * Add predicates to environmental precision of some thread.
    * @param tid
@@ -783,19 +773,48 @@ public class RGEnvironmentManager implements StatisticsProvider{
    * @param preds predicates for env. transitions
    * @return
    */
-  public List<RGEnvTransition> getEnvironmentalTransitionsToApply(ARTElement elem, List<RGEnvCandidate> allCandidates, Set<AbstractionPredicate> preds) {
+  public List<RGEnvTransition> getEnvironmentalTransitionsToApply(ARTElement elem, List<RGEnvCandidate> allCandidates, ARTPrecision prec) {
     stats.etToApplyTimer.start();
 
-    // filter out candidates with mistmatching location classes
-    ImmutableList<Integer> locCl = elem.getLocationClasses();
+    // find concreate locatino that the element may belong to
+    SetMultimap<Integer, CFANode> cLocsElem = LinkedHashMultimap.create();
+    RGLocationMapping lm = prec.getLocationMapping();
+    ImmutableMap<Integer, Integer> locCl = elem.getLocationClasses();
+    CFANode loc = elem.retrieveLocationElement().getLocationNode();
 
-    Vector<RGEnvCandidate> candidates = new Vector<RGEnvCandidate>(allCandidates);
-    for (RGEnvCandidate cand : allCandidates){
-      ImmutableList<Integer> cndLocCl = cand.getElement().getLocationClasses();
-      if (!locCl.equals(cndLocCl)){
-        candidates.remove(cand);
+    for (int i=0; i<threadNo; i++){
+      if (i == elem.getTid()){
+        cLocsElem.put(i, loc);
+      } else {
+        Integer classNo = locCl.get(i);
+        Collection<CFANode> nodes = lm.classToNodes(classNo);
+        assert nodes.isEmpty();
+        cLocsElem.putAll(i, nodes);
       }
     }
+
+
+    // filter out candidates with mistmatching location classes
+    Vector<RGEnvCandidate> candidates = new Vector<RGEnvCandidate>(allCandidates);
+
+    for (RGEnvCandidate cand : allCandidates){
+      SetMultimap<Integer, CFANode> cLocsCand = cand.getConcreateLocations();
+
+      for (int i=0; i<threadNo; i++){
+        Set<CFANode> s1 = cLocsElem.get(i);
+        Set<CFANode> s2 = cLocsCand.get(i);
+        SetView<CFANode> inter = Sets.intersection(s1, s2);
+        if (inter.isEmpty()){
+          candidates.remove(cand);
+          break;
+        }
+      }
+
+    }
+
+    RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
+    Set<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(rgPrec.getEnvGlobalPredicates());
+    preds.addAll(rgPrec.getEnvPredicateMap().get(loc));
 
     List<RGEnvTransition> newTransitions = findMostGeneralEnvTransitions(candidates, preds);
     Set<RGEnvTransition> oldTransitions = elem.getEnvTransitionsApplied();
