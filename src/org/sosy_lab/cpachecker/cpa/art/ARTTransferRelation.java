@@ -54,6 +54,13 @@ public class ARTTransferRelation implements TransferRelation {
       throws CPATransferException, InterruptedException {
     ARTElement element = (ARTElement)pElement;
 
+    // covered elements may be in the reached set, but should always be ignored
+    if (element.isCovered()) {
+      return Collections.emptySet();
+    }
+
+    element.markExpanded();
+
     AbstractElement wrappedElement = element.getWrappedElement();
     Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, pCfaEdge);
     if (successors.isEmpty()) {
@@ -65,6 +72,7 @@ public class ARTTransferRelation implements TransferRelation {
       ARTElement successorElem = new ARTElement(absElement, element);
       wrappedSuccessors.add(successorElem);
     }
+
     return wrappedSuccessors;
   }
 

@@ -81,11 +81,7 @@ public class CfaReductionBlockOperator extends AbstractBlockOperator implements 
 
     if (considerCallstack) {
       String[] callstackFnc = pCallstackElement.getCallstackFunctions(succLoc.getFunctionName());
-      boolean abs = abstractionNodes.containsLeaf(callstackFnc, succLoc);
-      if (abs) {
-        System.out.println("Abstracting on: " + pCfaEdge.toString());
-      }
-      return abs;
+      return abstractionNodes.containsLeaf(callstackFnc, succLoc);
     }
 
     return false;

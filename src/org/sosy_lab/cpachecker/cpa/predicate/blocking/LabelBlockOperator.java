@@ -69,7 +69,6 @@ public class LabelBlockOperator extends AbstractBlockOperator implements BlockOp
     if (succNode instanceof CFALabelNode) {
       String label = ((CFALabelNode) succNode).getLabel().toLowerCase();
       if (this.abstractionLabelNames.contains(label)) {
-        System.out.println("Abstracting on label in line " + pCfaEdge.getLineNumber());
         return true;
       }
 

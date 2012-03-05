@@ -185,9 +185,11 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
         assert child.getParents().contains(currentElement) : "Reference from child to parent is missing in ART";
       }
 
-      // check if (e \in ART) => (e \in Reached ^ e.isCovered())
+      // check if (e \in ART) => (e \in Reached || e.isCovered())
       if (currentElement.isCovered()) {
-        assert !pReached.contains(currentElement) : "Reached set contains covered element";
+        // Assertion removed because now covered states are allowed to be in the reached set.
+        // But they don't need to be!
+//        assert !pReached.contains(currentElement) : "Reached set contains covered element";
 
       } else {
         // There is a special case here:

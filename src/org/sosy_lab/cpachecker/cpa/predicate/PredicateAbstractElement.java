@@ -86,7 +86,9 @@ public abstract class PredicateAbstractElement implements AbstractElement, Parti
 
     @Override
     public String toString() {
-      return "Abstraction location: true, Abstraction: " + super.abstractionFormula;
+      return String.format("Abstraction location: true. \n\t Block formula: %s \n\t Abst. formula: %s",
+          this.getPathFormula().toString(), this.getAbstractionFormula().toString());
+
     }
   }
 
@@ -125,7 +127,8 @@ public abstract class PredicateAbstractElement implements AbstractElement, Parti
 
     @Override
     public String toString() {
-      return "Abstraction location: false";
+      return String.format("Abstraction location: false. \n\t Block formula: %s \n\t Abst. formula: %s",
+          this.getPathFormula().toString(), this.getAbstractionFormula().toString());
     }
   }
 

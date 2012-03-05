@@ -39,10 +39,10 @@ import org.sosy_lab.cpachecker.cpa.predicate.blocking.DefaultBlockOperator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 class ImpactTransferRelation implements TransferRelation {
 
@@ -51,15 +51,15 @@ class ImpactTransferRelation implements TransferRelation {
   private final DefaultBlockOperator blk;
   private final FormulaManager fmgr;
   private final PathFormulaManager pfmgr;
-  private final TheoremProver prover;
+  private final Solver solver;
 
   public ImpactTransferRelation(LogManager pLogger, DefaultBlockOperator pBlk,
-      FormulaManager pFmgr, PathFormulaManager pPfmgr, TheoremProver pProver) {
+      FormulaManager pFmgr, PathFormulaManager pPfmgr, Solver pSolver) {
     logger = pLogger;
     blk = pBlk;
     fmgr = pFmgr;
     pfmgr = pPfmgr;
-    prover = pProver;
+    solver = pSolver;
   }
 
   @Override
@@ -112,15 +112,7 @@ class ImpactTransferRelation implements TransferRelation {
 
     Formula f = fmgr.makeAnd(pElement.getStateFormula(), pElement.getPathFormula().getFormula());
 
-    boolean unsat;
-    try {
-      prover.init();
-      unsat = prover.isUnsat(f);
-    } finally {
-      prover.reset();
-    }
-
-    if (unsat) {
+    if (solver.isUnsat(f)) {
       logger.log(Level.FINEST, "Path is infeasible.");
       return Collections.emptySet();
 
