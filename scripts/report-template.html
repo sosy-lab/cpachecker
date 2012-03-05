@@ -96,9 +96,13 @@ html,body {
     padding: 0px;
 }
 
-#errpathwin ul span {
+#errpathwin ul > li > span {
     width: 4em;
     background: #ccc;
+    display: inline-block;
+}
+
+#errpathwin ul > li > code > a {
     display: inline-block;
 }
 
@@ -194,6 +198,7 @@ a.action:hover {
 #tab_cil #cil_holder td pre {
     padding: 0px;
     margin: 0px;
+    border: none;
 }
 
 .zoomSliderContainer {
@@ -232,9 +237,13 @@ a.action:hover {
 }
 
 </style>
+
+    <link href="http://www.sosy-lab.org/lib/google-code-prettify-2011-06-01/prettify.css" type="text/css" rel="stylesheet" />
+    <script type="text/javascript" src="http://www.sosy-lab.org/lib/google-code-prettify-2011-06-01/prettify.js"></script>
+
     </head>
 
-    <body>
+    <body onload="prettyPrint()">
         <div class="toolbar" id="header">
             <h1>CPAchecker Report</h1>
             <small>Generated: {{{time_generated}}}</small>
@@ -851,8 +860,11 @@ a.action:hover {
                         edgelink.innerHTML = step.desc;
                         edgelink.onclick = edge_clickaction([step['source'], step['target']], i);
                         edgelink.style.textIndent = '' + (level * 15) + 'px';
-                        edgelink.style.display = 'inline-block';
-                        li.appendChild(edgelink);
+
+                        var code = document.createElement('code');
+                        code.className = 'prettyprint lang-c';
+                        code.appendChild(edgelink);
+                        li.appendChild(code);
                         ul.appendChild(li);
                     }
                 };
