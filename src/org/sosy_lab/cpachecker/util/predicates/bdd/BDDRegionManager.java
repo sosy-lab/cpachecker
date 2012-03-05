@@ -78,6 +78,8 @@ public class BDDRegionManager implements RegionManager {
   // In order for this to work, two invariants must hold:
   // - No two BDDRegion objects point to the same BDD instance.
   // - All BDDRegion objects get created by the wrap(BBD) method.
+  // For all BDD objects which do not get wrapped in a BDDRegion,
+  // free() must be called manually.
 
   // The reference objects will appear in this queue as soon as their target object was GCed.
   private final ReferenceQueue<BDDRegion> referenceQueue = new ReferenceQueue<BDDRegion>();
@@ -126,7 +128,10 @@ public class BDDRegionManager implements RegionManager {
       BDDRegion f1 = (BDDRegion)pF1;
       BDDRegion f2 = (BDDRegion)pF2;
       BDD imp = f1.getBDD().imp(f2.getBDD());
-      return imp.isOne();
+
+      boolean result = imp.isOne();
+      imp.free();
+      return result;
   }
 
   @Override
