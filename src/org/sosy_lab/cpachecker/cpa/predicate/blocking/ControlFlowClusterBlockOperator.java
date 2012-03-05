@@ -40,6 +40,7 @@ public class ControlFlowClusterBlockOperator extends AbstractBlockOperator imple
 
   public ControlFlowClusterBlockOperator(Configuration pConfig, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
     super(pConfig, pLogger, pCFA);
+    pConfig.inject(this);
 
     CallgraphClusterer clusterer = new CallgraphClusterer(pConfig, pLogger);
     clusterer.computeAndAssignClustering(pCFA);

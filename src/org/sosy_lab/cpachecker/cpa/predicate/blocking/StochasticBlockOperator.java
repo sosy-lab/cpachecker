@@ -63,6 +63,7 @@ public class StochasticBlockOperator extends AbstractBlockOperator implements Bl
 
   public StochasticBlockOperator(Configuration pConfig, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
     super(pConfig, pLogger, pCFA);
+    pConfig.inject(this);
   }
 
   /**

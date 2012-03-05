@@ -78,6 +78,7 @@ public class DefaultBlockOperator extends AbstractBlockOperator implements Block
 
   public DefaultBlockOperator(Configuration pConfig, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
     super(pConfig, pLogger, pCFA);
+    pConfig.inject(this);
   }
 
   /**

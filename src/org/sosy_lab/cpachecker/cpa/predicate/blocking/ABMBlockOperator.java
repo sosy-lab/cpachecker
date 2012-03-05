@@ -41,6 +41,7 @@ public class ABMBlockOperator extends DefaultBlockOperator {
 
   public ABMBlockOperator(Configuration pConfig, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
     super(pConfig, pLogger, pCFA);
+    pConfig.inject(this);
   }
 
   private BlockPartitioning partitioning = null;
