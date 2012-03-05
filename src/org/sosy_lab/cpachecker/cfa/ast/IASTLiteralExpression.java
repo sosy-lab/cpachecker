@@ -32,4 +32,9 @@ public abstract class IASTLiteralExpression extends IASTExpression {
 
   public abstract Object getValue();
 
+  @Override
+  protected String toParenthesizedASTString() {
+    // literal expression never need parentheses
+    return toASTString();
+  }
 }

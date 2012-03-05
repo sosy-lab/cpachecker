@@ -779,4 +779,10 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
 
     msat_declare_function(msatEnv, name, funcType);
   }
+
+  @Override
+  public String getVersion() {
+//    return msat_get_version(); // not implemented
+    return "MathSAT 5";
+  }
 }

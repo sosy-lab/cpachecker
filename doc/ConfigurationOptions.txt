@@ -1,55 +1,6 @@
 # This is an auto-generated file, DO NOT EDIT!
 # Run ant to generate it.
 
-# Possible log levels in descending order 
-# (lower levels include higher ones):
-# OFF:      no logs published
-# SEVERE:   error messages
-# WARNING:  warnings
-# INFO:     messages
-# FINE:     logs on main application level
-# FINER:    logs on central CPA algorithm level
-# FINEST:   logs published by specific CPAs
-# ALL:      debugging information
-# Care must be taken with levels of FINER or lower, as output files may
-# become quite large and memory usage might become an issue.
-
-# single levels to be excluded from being logged
-log.consoleExclude = ImmutableList.of()
-
-# log level of console output
-log.consoleLevel = Level.INFO
-
-# name of the log file
-log.file = "CPALog.txt"
-
-# single levels to be excluded from being logged
-log.fileExclude = ImmutableList.of()
-
-# log level of file output
-log.level = Level.OFF
-
-# maximum size of log output strings before they will be truncated
-log.truncateSize = 10000
-
-# use colors for log messages on console
-log.useColors = true
-
-# all used options are printed
-log.usedOptions.export = false
-
-# disable all default output files
-# (any explicitly given file will still be written)
-output.disable = false
-
-# directory to put all output files in
-output.path = "output/"
-
-# base directory for all input & output files
-# (except for the configuration file itself)
-rootDirectory = "."
-
-
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
 
@@ -95,6 +46,10 @@ analysis.traversal.useCallstack = false
 # ExplicitCPA)
 analysis.traversal.useExplicitInformation = false
 
+# Use an implementation of topsort strategy that computes sparser ids. This
+# leaves the second strategy more choices 'analysis.traversal.order'. 
+analysis.traversal.useSparseTopsort = false
+
 # Use an implementation of topsort strategy that allows to select a secondary
 # strategy that is used if there are two elements with the same topsort id.
 # The secondary strategy is selected with 'analysis.traversal.order'. The
@@ -120,6 +75,9 @@ analysis.useFeatureVarsRestriction = false
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
+# Use McMillan's Impact algorithm for lazy interpolation
+analysis.useImpactAlgorithm = false
+
 # use a proof check algorithm to validate a previously generated proof
 analysis.useProofCheckAlgorithm = false
 
@@ -135,6 +93,18 @@ assumptions.automatonFile = "AssumptionAutomaton.txt"
 # write collected assumptions to file
 assumptions.export = true
 assumptions.file = "assumptions.txt"
+
+# Allow function-entry nodes to be abstraction nodes?
+blockreducer.allowAbstOnFunctionEntry = true
+
+# Allow function-exit nodes to be abstraction nodes?
+blockreducer.allowAbstOnFunctionExit = true
+
+# Allow generic nodes to be abstraction nodes?
+blockreducer.allowAbstOnGenericNodes = true
+
+# Allow loop-head nodes to be abstraction nodes?
+blockreducer.allowAbstOnLoopHeads = true
 
 # Allow reduction of function entries; calculate abstractions alwasy at
 # function entries?
@@ -219,6 +189,64 @@ cfa.removeIrrelevantForErrorLocations = false
 # combine sequences of simple edges into a single edge
 cfa.useMultiEdges = false
 
+# Average number of nodes in a cluster. Determines the parameter
+# clusterMaxNumber.
+clusterer.callgraph.avgNodesInCluster = 0
+
+# write the call-graph to the specified file.
+clusterer.callgraph.callGraphFile = "CallGraph.rsf"
+
+# (max) number of clusters to create.
+clusterer.callgraph.clusterMaxNumber = 0
+
+# Merge partitions within distance (percent of layout diagonal; e.g. 0.05).
+clusterer.callgraph.clusterMergeDistancePercent = 0.05f
+
+# Stop clustering on min. distance (percent of layout diagonal; e.g. 0.4; 1
+# means one cluster for each node).
+clusterer.callgraph.clusterMinDistancePercent = 0.3f
+
+# write the clustering of the call-graph to the specified file.
+clusterer.callgraph.clusteringResultFile = "CallGraphClustering.crsf"
+
+# Calculate a deterministic initial input-layout for the minimizer?
+clusterer.callgraph.deterministicInitialLayout = false
+
+# Write the layout of the clustered callgraph to this file.
+clusterer.callgraph.graphLayoutFile = "CallGraph.lay"
+
+# Load the (precomputed) clusters from a external file.
+clusterer.callgraph.inputClusteringFile = "InputClustering.crsf"
+
+# Average number of nodes in a cluster. Determines the parameter
+# clusterMaxNumber.
+clusterer.reducedcfa.avgNodesInCluster = 0
+
+# (max) number of clusters to create.
+clusterer.reducedcfa.clusterMaxNumber = 0
+
+# Merge partitions within distance (percent of layout diagonal; e.g. 0.03).
+clusterer.reducedcfa.clusterMergeDistancePercent = 0.03f
+
+# Stop clustering on min. distance (percent of layout diagonal; e.g. 0.4; 1
+# means one cluster for each node).
+clusterer.reducedcfa.clusterMinDistancePercent = 0.3f
+
+# Calculate a deterministic initial input-layout for the minimizer?
+clusterer.reducedcfa.deterministicInitialLayout = true
+
+# Write the layout of the clustered callgraph to this file.
+clusterer.reducedcfa.graphLayoutFile = "CallGraph.lay"
+
+# write the call-graph to the specified file.
+clusterer.reducedcfa.reducedCfaFile = "ReducedCfa.rsf"
+
+# write the clustering of the call-graph to the specified file.
+clusterer.reducedcfa.resultClusteringFile = "CallGraphClustering.crsf"
+
+# write the statistics on the control-flow structure to a csv-file.
+controlflow.statistics.writeToFile = "StructureMeasures.csv"
+
 # which model checker to use for verifying counterexamples as a second check
 # Currently CBMC or CPAchecker with a different config can be used.
 counterexample.checker = "CBMC"
@@ -266,6 +294,10 @@ cpa.art.errorPath.source = "ErrorPath.c"
 # export final ART as .dot file
 cpa.art.export = true
 cpa.art.file = "ART.dot"
+
+# whether to keep covered states in the reached set as addition to keeping
+# them in the ART
+cpa.art.keepCoveredStatesInReached = false
 
 # signal the analysis to break in case of reached error state
 cpa.automaton.breakOnTargetState = true
@@ -435,18 +467,26 @@ cpa.predicate.abstraction.dumpHardQueries = false
 # get an initial set of predicates from a file in MSAT format
 cpa.predicate.abstraction.initialPredicates = no default value
 
+# What to use for storing abstractions
+cpa.predicate.abstraction.type = "BDD"
+  allowed values: [BDD, FORMULA]
+
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
 cpa.predicate.blk.alwaysAfterThreshold = true
-
-# abstraction always and only on explicitly computed abstraction nodes.
-cpa.predicate.blk.alwaysAndOnlyAtExplicitNodes = false
 
 # force abstractions at each function calls/returns, regardless of threshold
 cpa.predicate.blk.alwaysAtFunctions = true
 
 # force abstractions at loop heads, regardless of threshold
 cpa.predicate.blk.alwaysAtLoops = true
+
+# Instead of reducing the CFA by applying LBE rules; comute a clustering of
+# the inlined CFA.
+cpa.predicate.blk.cfareduction.clusterInlinedCfa = false
+
+# Consider the callstack for the explicitly computed abstraction nodes.
+cpa.predicate.blk.cfareduction.considerCallstack = true
 
 # abstractions at function calls/returns if threshold has been reached (no
 # effect if threshold = 0)
@@ -456,6 +496,12 @@ cpa.predicate.blk.functions = false
 # threshold = 0)
 cpa.predicate.blk.loops = false
 
+# abstract at function calls/returns with the given probability.
+cpa.predicate.blk.stochastic.absAtFunctions = 1.0f
+
+# abstract at loop heads with the given probability.
+cpa.predicate.blk.stochastic.absAtLoops = 1.0f
+
 # maximum blocksize before abstraction is forced
 # (non-negative number, special values: 0 = don't check threshold, 1 = SBE)
 cpa.predicate.blk.threshold = 0
@@ -463,11 +509,12 @@ cpa.predicate.blk.threshold = 0
 # use caching of path formulas
 cpa.predicate.blk.useCache = true
 
+# Type of the block-operator (any class that implements the interface
+# BlockOperator).
+cpa.predicate.blockOperator = DefaultBlockOperator.class
+
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
-
-# Enable the possibility to precompute explicit abstraction locations.
-cpa.predicate.enableBlockreducer = false
 
 # where to dump interpolation and abstraction problems (format string)
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.msat"
@@ -630,6 +677,9 @@ cpa.uninitvars.printWarnings = "true"
 cpa.uninitvars.stop = "sep"
   allowed values: [sep, join]
 
+# enable the Forced Covering optimization
+impact.useForcedCovering = true
+
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
@@ -648,6 +698,10 @@ reachedSet.file = "reached.txt"
 
 # list of files with configurations to use
 restartAlgorithm.configFiles = no default value
+
+# base directory for all input & output files
+# (except for the configuration file itself)
+rootDirectory = no default value
 
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)

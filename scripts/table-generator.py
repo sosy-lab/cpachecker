@@ -550,9 +550,9 @@ def getTableBody(listOfTests):
     if len(listOfTests) > 1 and not isDifference:
         print ("\n---> NO DIFFERENCE FOUND IN COLUMN 'STATUS'")
 
-    rowsForStats = getStatsHTML(listsOfFiles, fileNames, listsOfColumns, rowsForCSV)
+    rowsForStats, countsList = getStatsHTML(listsOfFiles, fileNames, listsOfColumns, rowsForCSV)
     if isDifference:
-        rowsForStatsDiff = getStatsHTML(listsOfFilesDiff, fileNamesDiff, listsOfColumns, rowsForCSVdiff)
+        rowsForStatsDiff, _ = getStatsHTML(listsOfFilesDiff, fileNamesDiff, listsOfColumns, rowsForCSVdiff)
 
     # get common folder
     commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
@@ -584,7 +584,7 @@ def getTableBody(listOfTests):
         HTMLdiffFooter = ''
         CSVdiff = ''
 
-    return (HTMLbody, HTMLfooter, HTMLdiff, HTMLdiffFooter, CSVbody, CSVdiff)
+    return (HTMLbody, HTMLfooter, HTMLdiff, HTMLdiffFooter, CSVbody, CSVdiff, countsList)
 
 
 def joinRows(rows, str=""):
@@ -619,7 +619,8 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
     Only columns, that should be part of the table, are collected.
     '''
 
-    currentFile.status = 'unknown'
+    currentFile.status = getStatus(currentFile)
+    currentFile.statusColor = 'unknown'
     logfileContent = None
 
     valuesForHTML = []
@@ -647,6 +648,13 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
         valuesForCSV.append(value)
 
     return (valuesForHTML, valuesForCSV)
+
+
+def getStatus(sourcefileTag):
+    for column in sourcefileTag.findall('column'):
+        if column.get('title') == 'status':
+            return column.get('value')
+    return 'unknown' # default value
 
 
 def getValueFromLogfile(content, identifier):
@@ -683,15 +691,15 @@ def formatHTML(currentFile, value, columnTitle):
         isSafeFile = not Util.containsAny(fileName, BUG_SUBSTRING_LIST)
 
         if status == 'safe':
-            currentFile.status = 'correctSafe' if isSafeFile else 'wrongSafe'
+            currentFile.statusColor = 'correctSafe' if isSafeFile else 'wrongSafe'
         elif status == 'unsafe':
-            currentFile.status = 'wrongUnsafe' if isSafeFile else 'correctUnsafe'
+            currentFile.statusColor = 'wrongUnsafe' if isSafeFile else 'correctUnsafe'
         elif status == 'unknown':
-            currentFile.status = 'unknown'
+            currentFile.statusColor = 'unknown'
         else:
-            currentFile.status = 'error'
+            currentFile.statusColor = 'error'
         return '<td class="{0}"><a href="{1}">{2}</a></td>'.format(
-                    currentFile.status, quote(currentFile.logfile), status)
+                    currentFile.statusColor, quote(currentFile.logfile), status)
 
     else:
         return '<td>{0}</td>'.format(value)
@@ -709,14 +717,16 @@ def getStatsHTML(listsOfFiles, fileNames, listsOfColumns, valuesList):
                     ['<td title="no bug exists + result is UNSAFE">false positives</td>'],
                     ['<td>score ({0} files, max score: {1})</td>'
                         .format(len(fileNames), maxScore)]]
+    countsList = [] # for options.dumpCounts
 
     # get statistics
     for elem in zip(listsOfFiles, listsOfColumns, *valuesList):
         files, columns, values = elem[0], elem[1], elem[2:]
-        stats = getStatsOfTest(files, columns, values)
-        for row, values in zip(rowsForStats, stats): row.extend(values)
+        (total, correct, fneg, fpos, score, counts) = getStatsOfTest(files, columns, values)
+        for row, values in zip(rowsForStats, (total, correct, fneg, fpos, score)): row.extend(values)
+        countsList.append(counts)
 
-    return rowsForStats
+    return rowsForStats, countsList
 
 
 def getStatsOfTest(fileResult, columns, valuesList):
@@ -725,7 +735,7 @@ def getStatsOfTest(fileResult, columns, valuesList):
     """
 
     # list for status of bug vs tool
-    statusList = [file.status for file in fileResult]
+    statusList = [file.statusColor for file in fileResult]
     assert len(valuesList) == len(statusList)
 
     # convert:
@@ -740,6 +750,8 @@ def getStatsOfTest(fileResult, columns, valuesList):
     wrongSafeRow = []
     wrongUnsafeRow = []
     scoreRow = []
+
+    counts = None # for options.dumpCounts
 
     for column, values in zip(columns, listsOfValues):
 
@@ -760,6 +772,12 @@ def getStatsOfTest(fileResult, columns, valuesList):
                                 SCORE_WRONG_SAFE * wrongSafeNr + \
                                 SCORE_WRONG_UNSAFE * wrongUnsafeNr))
 
+            # for options.dumpCounts
+            correct = correctSafeNr + correctUnsafeNr
+            wrong = wrongSafeNr + wrongUnsafeNr
+            unknown = len(statusList) - correct - wrong
+            counts = (correct, wrong, unknown)
+
         # get sums for correct, wrong, etc
         else:
             (sum, correctSum, wrongSafeNumber, wrongUnsafeNumber) \
@@ -770,8 +788,7 @@ def getStatsOfTest(fileResult, columns, valuesList):
             wrongUnsafeRow.append('<td>{0}</td>'.format(wrongUnsafeNumber))
             scoreRow.append('<td></td>')
 
-    # convert numbers to strings for output
-    return (sumRow, sumCorrectRow, wrongSafeRow, wrongUnsafeRow, scoreRow)
+    return (sumRow, sumCorrectRow, wrongSafeRow, wrongUnsafeRow, scoreRow, counts)
 
 
 def getStatsOfNumber(values, statusList):
@@ -826,7 +843,7 @@ def createTable(file, filesFromXML=False):
 
     print ('generating table ...')
     (tableHeadHTML, tableHeadCSV) = getTableHead(listOfTests)
-    (tableBodyHTML, tableFootHTML, tableBodyDiffHTML, tableFootDiffHTML, tableBodyCSV, CSVdiff) \
+    (tableBodyHTML, tableFootHTML, tableBodyDiffHTML, tableFootDiffHTML, tableBodyCSV, CSVdiff, countsList) \
             = getTableBody(listOfTests)
 
     tableCode = tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
@@ -877,6 +894,11 @@ def createTable(file, filesFromXML=False):
 
     print ('done')
 
+    if options.dumpCounts: # print some stats for Buildbot
+        print ("STATS")
+        for counts in countsList:
+            print (" ".join(str(e) for e in counts))
+
 
 def main(args=None):
 
@@ -898,7 +920,12 @@ def main(args=None):
         dest="outputPath",
         help="outputPath for table. if it does not exist, it is created."
     )
+    parser.add_option("-d", "--dump",
+        action="store_true", dest="dumpCounts",
+        help="Should the good, bad, unknown counts be printed? "
+    )
 
+    global options
     options, args = parser.parse_args(args)
 
     if options.outputPath:

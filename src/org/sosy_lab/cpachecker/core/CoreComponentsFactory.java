@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.algorithm.FeatureVarsRestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -76,6 +77,9 @@ class CoreComponentsFactory {
   @Option(description="use a BMC like algorithm that checks for satisfiability "
         + "after the analysis has finished, works only with PredicateCPA")
   private boolean useBMC = false;
+
+  @Option(description="Use McMillan's Impact algorithm for lazy interpolation")
+  private boolean useImpactAlgorithm = false;
 
   @Option(name="restartAfterUnknown",
       description="restart the algorithm using a different CPA after unknown result")
@@ -113,6 +117,9 @@ class CoreComponentsFactory {
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = new RestartAlgorithm(config, logger, filename, cfa);
+
+    } else if (useImpactAlgorithm) {
+      algorithm = new ImpactAlgorithm(config, logger, cpa);
 
     } else {
       algorithm = new CPAAlgorithm(cpa, logger);

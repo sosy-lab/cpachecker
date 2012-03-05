@@ -294,4 +294,8 @@ public class ForwardingFormulaManager implements FormulaManager {
     delegate.declareUIP(pName, pArgCount);
   }
 
+  @Override
+  public String getVersion() {
+    return delegate.getVersion();
+  }
 }

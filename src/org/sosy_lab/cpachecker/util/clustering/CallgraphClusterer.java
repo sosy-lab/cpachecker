@@ -75,7 +75,7 @@ public class CallgraphClusterer extends AbstractGraphClusterer {
   private int avgNodesInCluster = 0;
 
   @Option(description="Calculate a deterministic initial input-layout for the minimizer?")
-  private boolean deterministicInitialLayout = false;
+  private boolean deterministicInitialLayout = true;
 
   @Option(name="graphLayoutFile", description="Write the layout of the clustered callgraph to this file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -116,12 +116,16 @@ public class CallgraphClusterer extends AbstractGraphClusterer {
     }
   }
 
+  private int nodePosSeqNo = 0;
+
   private GraphVertex createCallGraphVertex (String pFunctionName) {
     GraphVertex result = new GraphVertex(pFunctionName);
     result.setId(nodeIdSeqNo++);
     if (deterministicInitialLayout) {
-      result.getPosition().x = (pFunctionName.hashCode() % 3019) * 10000 + nodeIdSeqNo;
-      result.getPosition().y = (pFunctionName.hashCode() + 1 % 2287) * 10000 + nodeIdSeqNo;
+      float x = (nodePosSeqNo % 100) * 10.0f + (float) Math.random();
+      float y = (float)Math.floor (nodePosSeqNo / 100) * 10.0f + (float) Math.random();
+      result.getPosition().x = x;
+      result.getPosition().y = y;
     } else {
       result.getPosition().x = 2 * (float) Math.random() - 1;
       result.getPosition().y = 2 * (float) Math.random() - 1;
