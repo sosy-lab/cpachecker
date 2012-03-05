@@ -21,16 +21,22 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.predicate;
+package org.sosy_lab.cpachecker.cpa.predicate.blocking;
 
+import java.io.PrintStream;
+
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionAdjustment;
+import org.sosy_lab.cpachecker.cpa.predicate.interfaces.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-
-import com.google.common.collect.ImmutableSet;
 
 /**
  * This class implements the blk operator from the paper
@@ -41,7 +47,7 @@ import com.google.common.collect.ImmutableSet;
  * This operator is configurable by the user.
  */
 @Options(prefix="cpa.predicate.blk")
-public class BlockOperator {
+public class DefaultBlockOperator extends AbstractBlockOperator implements BlockOperator {
 
   @Option(
       description="maximum blocksize before abstraction is forced\n"
@@ -65,16 +71,15 @@ public class BlockOperator {
   @Option(description="force abstractions at each function calls/returns, regardless of threshold")
   private boolean alwaysAtFunctions = true;
 
-  @Option(description="abstraction always and only on explicitly computed abstraction nodes.")
-  private boolean alwaysAndOnlyAtExplicitNodes = false;
-
-
-  private ImmutableSet<CFANode> explicitAbstractionNodes = null;
-
 
   int numBlkFunctions = 0;
   int numBlkLoops = 0;
   int numBlkThreshold = 0;
+
+  public DefaultBlockOperator(Configuration pConfig, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
+    super(pConfig, pLogger, pCFA);
+    pConfig.inject(this);
+  }
 
   /**
    * Check whether an abstraction should be computed.
@@ -85,14 +90,9 @@ public class BlockOperator {
    * an abstraction location if it has an incoming loop-back edge, if it is
    * the start node of a function or if it is the call site from a function call.
    */
-  public boolean isBlockEnd(CFAEdge cfaEdge, PathFormula pf) {
+  @Override
+  public boolean isBlockEnd(AbstractElement element, CFAEdge cfaEdge, PathFormula pf) {
     CFANode succLoc = cfaEdge.getSuccessor();
-    CFANode predLoc = cfaEdge.getPredecessor();
-
-    if (alwaysAndOnlyAtExplicitNodes) {
-      assert(explicitAbstractionNodes != null);
-      return explicitAbstractionNodes.contains(predLoc);
-    }
 
     if (alwaysAtFunctions && isFunctionCall(succLoc)) {
       numBlkFunctions++;
@@ -105,9 +105,6 @@ public class BlockOperator {
     }
 
     if (threshold > 0) {
-      if (threshold == 1) {
-        return true;
-      }
 
       if (isThresholdFulfilled(pf)) {
 
@@ -151,17 +148,15 @@ public class BlockOperator {
     return pf.getLength() >= threshold;
   }
 
-  protected boolean isLoopHead(CFANode succLoc) {
-    return succLoc.isLoopStart();
+  private String toPercent(double val, double full) {
+    return String.format("%1.0f", val/full*100) + "%";
   }
 
-  protected boolean isFunctionCall(CFANode succLoc) {
-    return (succLoc instanceof CFAFunctionDefinitionNode) // function call edge
-        || (succLoc.getEnteringSummaryEdge() != null); // function return edge
-  }
-
-  public void setExplicitAbstractionNodes(ImmutableSet<CFANode> pNodes) {
-    this.explicitAbstractionNodes = pNodes;
+  @Override
+  public void printStatistics(PrintStream pOut, PredicatePrecisionAdjustment pPrec) {
+    pOut.println("  Because of function entry/exit:  " + this.numBlkFunctions + " (" + toPercent(this.numBlkFunctions, pPrec.numAbstractions) + ")");
+    pOut.println("  Because of loop head:            " + this.numBlkLoops + " (" + toPercent(this.numBlkLoops, pPrec.numAbstractions) + ")");
+    pOut.println("  Because of threshold:            " + this.numBlkThreshold + " (" + toPercent(this.numBlkThreshold, pPrec.numAbstractions) + ")");
   }
 
 }
