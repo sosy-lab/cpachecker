@@ -684,4 +684,9 @@ public abstract class MathsatFormulaManager implements FormulaManager {
     Arrays.fill(tp, MSAT_BOOL);
     msat_declare_uif(msatEnv, name, MSAT_BOOL, tp);
   }
+
+  @Override
+  public String getVersion() {
+    return "MathSAT 4";
+  }
 }

@@ -203,4 +203,8 @@ public class BDDRegionManager implements RegionManager {
 
     return wrap(f1.exist(f2));
   }
+
+  public String getVersion() {
+    return factory.getVersion();
+  }
 }

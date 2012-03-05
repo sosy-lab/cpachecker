@@ -135,6 +135,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     formulaManagerFactory = new FormulaManagerFactory(config, logger);
 
     formulaManager = new ExtendedFormulaManager(formulaManagerFactory.getFormulaManager(), config, logger);
+    String libraries = formulaManager.getVersion();
 
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger);
     if (useCache) {
@@ -151,7 +152,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     } else {
       assert abstractionType.equals("BDD");
       regionManager = BDDRegionManager.getInstance();
+      libraries += " and " + ((BDDRegionManager)regionManager).getVersion();
     }
+    logger.log(Level.INFO, "Using predicate analysis with", libraries + ".");
 
     predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, solver, config, logger);
     transfer = new PredicateTransferRelation(this, blk);
