@@ -279,10 +279,10 @@ public class BlockedCFAReducer implements BlockComputer {
 
   private String[] getInliningStackAsArray() {
     String[] result = new String[this.inliningStack.size()];
-    int i=0;
+    int i = result.length-1;
     for (CFAFunctionDefinitionNode fnNode: this.inliningStack) {
       result[i] = fnNode.getFunctionName();
-      i++;
+      i--;
     }
     return result;
   }
@@ -403,6 +403,16 @@ public class BlockedCFAReducer implements BlockComputer {
     }
   }
 
+  private void addAbstNode(ItemTree<String, CFANode> pTarget, String[] pStack, CFANode pNode) {
+    System.out.print("Abstractionnode: ");
+    for (String s : pStack) {
+      System.out.print(s + ">");
+    }
+    System.out.println(pNode.getLineNumber());
+
+    pTarget.put(pStack).addLeaf(pNode, true);
+  }
+
   private ItemTree<String, CFANode> filterAbstractionNodes(ReducedFunction pInlined) {
     assert(pInlined != null);
 
@@ -412,11 +422,12 @@ public class BlockedCFAReducer implements BlockComputer {
     for (ReducedNode rn : activeNodes) {
       String[] cs = rn.getCallstack();
       CFANode cn = rn.getWrapped();
+
       switch (rn.getNodeKind()) {
-        case FUNCTIONENTRY: if (allowAbstOnFunctionEntry) result.put(cs).addLeaf(cn, true); break;
-        case FUNCTIONEXIT: if (allowAbstOnFunctionExit) result.put(cs).addLeaf(cn, true); break;
-        case GENERIC: if (allowAbstOnGenericNodes) result.put(cs).addLeaf(cn, true); break;
-        case LOOPHEAD: if (allowAbstOnLoopHeads) result.put(cs).addLeaf(cn, true); break;
+        case FUNCTIONENTRY: if (allowAbstOnFunctionEntry) addAbstNode(result, cs, cn); break;
+        case FUNCTIONEXIT: if (allowAbstOnFunctionExit) addAbstNode(result, cs, cn); break;
+        case GENERIC: if (allowAbstOnGenericNodes) addAbstNode(result, cs, cn); break;
+        case LOOPHEAD: if (allowAbstOnLoopHeads) addAbstNode(result, cs, cn); break;
 
         default: throw new RuntimeException("Invalid kind of ReducedNode!");
       }
