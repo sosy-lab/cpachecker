@@ -37,6 +37,7 @@ import glob
 import logging
 import os
 import platform
+import re
 import resource
 import signal
 import subprocess
@@ -1828,6 +1829,14 @@ def main(argv=None):
     for arg in args[1:]:
         if not os.path.exists(arg) or not os.path.isfile(arg):
             parser.error("File {0} does not exist.".format(repr(arg)))
+
+    try:
+        processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
+        if len(re.findall("python.*benchmark\.py", processes)) > 1:
+            logging.warn("Already running instance of this script detected. " + \
+                         "Please make sure to not interfere with somebody else's benchmarks.")
+    except OSError:
+        pass # this does not work on Windows
 
     for arg in args[1:]:
         if STOPPED_BY_INTERRUPT: break
