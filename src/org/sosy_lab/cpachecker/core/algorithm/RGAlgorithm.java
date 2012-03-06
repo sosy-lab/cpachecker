@@ -100,7 +100,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
   private final RGThreadCPAAlgorithm[] threadCPA;
   /** Where to apply env. transitionas */
   private final ImmutableSet<CFANode>[] applyEnv;
-  /** Most general candidates from ARTs */
+  /** Candidates from ARTs */
   private final List<RGEnvCandidate>[] allCandidatesFrom;
   public final Stats stats;
 
@@ -155,10 +155,13 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
         }
 
         /* find the most general candidates from the thread */
-        Pair<List<RGEnvCandidate>, Boolean> pair = processCandidates(threadCPA[i].getCandidates(), allCandidatesFrom[i]);
-        allCandidatesFrom[i] = pair.getFirst();
+        List<RGEnvCandidate> newCandidates = threadCPA[i].getCandidates();
+        boolean foundNewCand = !allCandidatesFrom[i].containsAll(newCandidates);
+        allCandidatesFrom[i].addAll(newCandidates);
+
+        stats.allCandidates += newCandidates.size();
         stats.maxValidCandidates[i] = Math.max(stats.maxValidCandidates[i], allCandidatesFrom[i].size());
-        boolean foundNewCand = pair.getSecond();
+
         threadCPA[i].getCandidates().clear();
 
 
@@ -182,12 +185,12 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
   }
 
 
-  /**
+  /*
    * Finds new list of most general candidates and returns true if the list has grown.
    * @param newCandidates
    * @param mgCandidates
    * @return
-   */
+
   private Pair<List<RGEnvCandidate>, Boolean> processCandidates(List<RGEnvCandidate> newCandidates, List<RGEnvCandidate> mgCandidates) {
     stats.allCandidates += newCandidates.size();
 
@@ -195,7 +198,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     boolean foundNew = !mgCandidates.containsAll(newMG);
 
     return Pair.of(newMG, foundNew);
-  }
+  }*/
 
 
   /**

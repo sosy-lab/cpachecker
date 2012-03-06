@@ -109,7 +109,7 @@ public class RGFullyAbstracted implements RGEnvTransition {
 
   @Override
   public String toString(){
-    return "fa: "+abstractTransition+", "+sourceARTElement.getLocationClasses()+"->"+targetARTElement.getLocationClasses();
+    return "fa: "+abstractTransition+", "+sourceARTElement.retrieveLocationElement().getLocationNode()+"->"+targetARTElement.retrieveLocationElement().getLocationNode();
   }
 
   @Override

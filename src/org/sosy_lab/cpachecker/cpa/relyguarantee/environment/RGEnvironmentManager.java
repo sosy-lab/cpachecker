@@ -218,18 +218,18 @@ public class RGEnvironmentManager implements StatisticsProvider{
    * @param newCandidates
    * @return
    */
-  public List<RGEnvCandidate> findMostGeneralCandidates(Collection<RGEnvCandidate> oldMGCandidates, Collection<RGEnvCandidate> newCandidates){
+  public List<RGEnvCandidate> findMostGeneralCandidates(Collection<RGEnvCandidate> candidates, RGLocationMapping lm){
     stats.candidateTimer.start();
 
-    Vector<RGEnvCandidate> newToProcess = new Vector<RGEnvCandidate>(newCandidates);
-    Vector<RGEnvCandidate> newCovered = new Vector<RGEnvCandidate>(newCandidates.size());
+    Vector<RGEnvCandidate> newToProcess = new Vector<RGEnvCandidate>(candidates);
+    Vector<RGEnvCandidate> newCovered = new Vector<RGEnvCandidate>(candidates.size());
 
     /* remove candidates whose application wouldn't make sense */
     for (RGEnvCandidate cnd : newToProcess){
-      if (candManager.isBottom(cnd)){
+      if (candManager.isBottom(cnd, lm)){
         newCovered.add(cnd);
 
-        if (debug){
+        if (debug && false){
           System.out.println("\t-bottom: "+cnd);
         }
       }
@@ -243,9 +243,9 @@ public class RGEnvironmentManager implements StatisticsProvider{
       if (!newCovered.contains(cnd1)){
         for (RGEnvCandidate cnd2 : newToProcess){
           if (cnd1 !=cnd2 && !newCovered.contains(cnd2)){
-            if (candManager.isLessOrEqual(cnd1, cnd2)){
+            if (candManager.isLessOrEqual(cnd1, cnd2, lm)){
               // edge1 => edge2
-              if (debug){
+              if (debug && false){
                 System.out.println("\t-covered: "+cnd1+" => "+cnd2);
               }
               newCovered.add(cnd1);
@@ -257,50 +257,15 @@ public class RGEnvironmentManager implements StatisticsProvider{
     }
 
     newToProcess.removeAll(newCovered);
-    newCovered.clear();
 
-    /* find the most general candidates among old m.g. and the remaning new */
-    List<RGEnvCandidate> oldCovered = new Vector<RGEnvCandidate>();
-
-    for (RGEnvCandidate nCnd : newToProcess){
-      for (RGEnvCandidate oCnd : oldMGCandidates){
-
-        if (oldCovered.contains(oCnd)){
-          continue;
-        }
-
-        if (candManager.isLessOrEqual(nCnd, oCnd)){
-          // new <= old
-          newCovered.add(nCnd);
-
-          if (debug){
-            System.out.println("\t- new covered: "+nCnd+ " => "+oCnd);
-          }
-          break;
-        }
-        else if (candManager.isLessOrEqual(oCnd, nCnd)){
-          // new > old
-          oldCovered.add(oCnd);
-
-          if (debug){
-            System.out.println("\t- old covered: "+oCnd+ " => "+nCnd);
-          }
-        }
-      }
-    }
-
-    List<RGEnvCandidate> newMGCandidates = new Vector<RGEnvCandidate>(newToProcess);
-    newMGCandidates.removeAll(newCovered);
-    newMGCandidates.addAll(oldMGCandidates);
-    newMGCandidates.removeAll(oldCovered);
 
     /* sanity check on request */
     if (debug){
-      checkMostGeneralCandidates(oldMGCandidates, newCandidates, newMGCandidates);
+      checkMostGeneralCandidates(candidates, newToProcess, lm);
     }
 
     stats.candidateTimer.stop();
-    return  newMGCandidates;
+    return  newToProcess;
   }
 
   /**
@@ -308,49 +273,38 @@ public class RGEnvironmentManager implements StatisticsProvider{
    * @param oldMGCandidates
    * @param newCandidates
    * @param newMGCandidates
+   * @param lm
    */
-  private void checkMostGeneralCandidates(Collection<RGEnvCandidate> oldMGCandidates, Collection<RGEnvCandidate> newCandidates, Collection<RGEnvCandidate> newMGCandidates){
+  private void checkMostGeneralCandidates(Collection<RGEnvCandidate> newCandidates, Collection<RGEnvCandidate> newMGCandidates, RGLocationMapping lm){
     stats.checkingTimer.start();
 
     // new m.g. candidates are incomperable
     for (RGEnvCandidate cand1 : newMGCandidates){
       for (RGEnvCandidate cand2 : newMGCandidates){
         if (cand1 != cand2){
-          if (candManager.isLessOrEqual(cand1, cand2)){
+          if (candManager.isLessOrEqual(cand1, cand2, lm)){
             System.out.println(this.getClass());
           }
-          if (candManager.isLessOrEqual(cand2, cand1)){
+          if (candManager.isLessOrEqual(cand2, cand1, lm)){
             System.out.println();
           }
-          assert !candManager.isLessOrEqual(cand2, cand1);
-          assert !candManager.isLessOrEqual(cand1, cand2);
+          assert !candManager.isLessOrEqual(cand2, cand1, lm);
+          assert !candManager.isLessOrEqual(cand1, cand2, lm);
         }
       }
-    }
-
-    // for every candidate in oldMGCandidates there exist greater of equal candidate in newMGCandidates
-    for (RGEnvCandidate oCand : oldMGCandidates){
-      boolean existsGeq = false;
-      for (RGEnvCandidate mgCand : newMGCandidates){
-        if (candManager.isLessOrEqual(oCand, mgCand)){
-          existsGeq = true;
-          break;
-        }
-      }
-      assert existsGeq || candManager.isBottom(oCand);
     }
 
     // for every candidate in newCandidates there exist greater of equal candidate in newMGCandidates
     for (RGEnvCandidate nCand : newCandidates){
       boolean existsGeq = false;
       for (RGEnvCandidate mgCand : newMGCandidates){
-        if (candManager.isLessOrEqual(nCand, mgCand)){
+        if (candManager.isLessOrEqual(nCand, mgCand, lm)){
           existsGeq = true;
           break;
         }
       }
 
-      assert existsGeq || candManager.isBottom(nCand);
+      assert existsGeq || candManager.isBottom(nCand, lm);
     }
     stats.checkingTimer.stop();
   }
@@ -403,71 +357,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
   }
 
 
-
-  /*
-   * Converts  unprocessed candidates from thread i into environmental transitions.
-   * The most general transitions are remebered as valid and unapplied for other threads.
-   * @param i   thread that generated the transitions
-   *public List<RGEnvTransition> processCandidates(int i, Collection<RGEnvCandidate> candidates, List<RGEnvTransition> oldValid) {
-    if (processStats == null){
-      processStats = new RelyGuaranteeEnvironmentProcessStatistics();
-    }
-    processStats.totalTimer.start();
-    stats.totalTimer.start();
-    processStats.candidates = candidates.size();
-    stats.allCandidates += candidates.size();
-
-
-
-    Vector<RGEnvCandidate> gCandidates = findMostGeneralCandidates(candidates);
-
-    // abstract the candidates
-    Vector<RGEnvTransition> newEnv   = new Vector<RGEnvTransition>(gCandidates.size());
-    for (RGEnvCandidate cand : gCandidates){
-      RGEnvTransition et = etManager.generateEnvTransition(cand, envGlobalPrecision[i], envPrecision[i]);
-      newEnv.add(et);
-    }
-
-    newEnv = findMostGeneralTransitions(newEnv);
-
-    // compare new and old transitions
-    Pair<Vector<RGEnvTransition>, Vector<RGEnvTransition>> pair = semanticCoverageCheck(newEnv, oldValid, i);
-
-    // env. edges that are not properly covered by any valid edge or another edge in newValid
-    Vector<RGEnvTransition> newValid = pair.getFirst();
-    // valid env. edges that are properly covered by some edge in newValid
-    Vector<RGEnvTransition> oldCovered = pair.getSecond();
-    processStats.newValid = newValid.size();
-    stats.allNew += newValid.size();
-
-    if (debug){
-      printEdges("New env. edges that are not covered:",newValid);
-      printEdges("Old env. edges that are covered by some new ones:",oldCovered);
-    }
-
-    Vector<RGEnvTransition> validPrime = new Vector<RGEnvTransition>(oldValid);
-
-    // remove valid edges that have been covered
-    validPrime.removeAll(oldCovered);
-
-    // add the edges after filtering to the set of valid edges by thread i
-    // add them to the set of unapplied edges for other threads
-    validPrime.addAll(newValid);
-    processStats.allValid = validPrime.size();
-    stats.maxValid = Math.max(stats.maxValid, validPrime.size());
-
-    if (debug){
-      printEdges("All valid env. edges from thread "+i+" after filtering", validPrime);
-    }
-
-    stats.totalTimer.stop();
-    processStats.totalTimer.stop();
-
-    return validPrime;
-  }*/
-
-
-
   /**
    * Print env. edges with a title.
    * @param string
@@ -500,82 +389,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
       System.out.println("\t-"+tran);
     }
   }
-
-
-  /**
-   * Find the most general elements from the set of candidates using the comparator.
-   * @param candidates
-   * @return
-   */
-  private Vector<RGEnvCandidate> findMostGeneralCandidates(Collection<RGEnvCandidate> candidates) {
-
-    // candidates to be inspected
-    Vector<RGEnvCandidate> cndToProcess = new Vector<RGEnvCandidate>(candidates);
-    // candidate that are covered or false
-    Vector<RGEnvCandidate> cndCovered = new Vector<RGEnvCandidate>();
-
-    /* remove candidates whose application wouldn't make sense */
-    for (RGEnvCandidate cnd : cndToProcess){
-      if (candManager.isBottom(cnd)){
-        cndCovered.add(cnd);
-
-        if (debug){
-          System.out.println("\t-bottom: "+cnd);
-        }
-      }
-    }
-
-    cndToProcess.removeAll(cndCovered);
-
-    /* find the most general candidates by comparing them */
-    for (RGEnvCandidate cnd1 : cndToProcess){
-      if (!cndCovered.contains(cnd1)){
-        for (RGEnvCandidate cnd2 : cndToProcess){
-          if (cnd1 !=cnd2 && !cndCovered.contains(cnd2)){
-            if (candManager.isLessOrEqual(cnd1, cnd2)){
-              // edge1 => edge2
-              if (debug){
-                System.out.println("\t-covered: "+cnd1+" => "+cnd2);
-              }
-              cndCovered.add(cnd1);
-              break;
-            }
-          }
-        }
-      }
-    }
-
-    cndToProcess.removeAll(cndCovered);
-
-
-    /* sanity check on request */
-    if (debug){
-      // for every input candidate there exist an candidate in cndToProcess that is greater or equal,
-      // unless the candidate is bottom
-      for (RGEnvCandidate cand1 : candidates){
-        boolean existsGeq = false;
-        for (RGEnvCandidate cand2 : cndToProcess){
-          if (candManager.isLessOrEqual(cand1, cand2)){
-            existsGeq = true;
-            break;
-          }
-        }
-
-        assert existsGeq || candManager.isBottom(cand1);
-      }
-
-      // among the candidates in cndToProcess none is less or equal than other
-      for (RGEnvCandidate cand1 : cndToProcess){
-        for (RGEnvCandidate cand2 : cndToProcess){
-          assert cand1 == cand2 || !candManager.isLessOrEqual(cand1, cand2);
-        }
-      }
-    }
-
-    return  cndToProcess;
-  }
-
-
 
 
   /**
@@ -776,9 +589,13 @@ public class RGEnvironmentManager implements StatisticsProvider{
   public List<RGEnvTransition> getEnvironmentalTransitionsToApply(ARTElement elem, List<RGEnvCandidate> allCandidates, ARTPrecision prec) {
     stats.etToApplyTimer.start();
 
+    RGLocationMapping lm = prec.getLocationMapping();
+
+    // find most general candidates w.r.t to the location mapping
+    List<RGEnvCandidate> candidates = findMostGeneralCandidates(allCandidates, lm);
+
     // find concreate locatino that the element may belong to
     SetMultimap<Integer, CFANode> cLocsElem = LinkedHashMultimap.create();
-    RGLocationMapping lm = prec.getLocationMapping();
     ImmutableMap<Integer, Integer> locCl = elem.getLocationClasses();
     CFANode loc = elem.retrieveLocationElement().getLocationNode();
 
@@ -795,9 +612,9 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
 
     // filter out candidates with mistmatching location classes
-    Vector<RGEnvCandidate> candidates = new Vector<RGEnvCandidate>(allCandidates);
+    Collection<RGEnvCandidate> covered = new Vector<RGEnvCandidate>();
 
-    for (RGEnvCandidate cand : allCandidates){
+    for (RGEnvCandidate cand : candidates){
       SetMultimap<Integer, CFANode> cLocsCand = cand.getConcreateLocations();
 
       for (int i=0; i<threadNo; i++){
@@ -805,12 +622,13 @@ public class RGEnvironmentManager implements StatisticsProvider{
         Set<CFANode> s2 = cLocsCand.get(i);
         SetView<CFANode> inter = Sets.intersection(s1, s2);
         if (inter.isEmpty()){
-          candidates.remove(cand);
+          covered.add(cand);
           break;
         }
       }
-
     }
+
+    candidates.removeAll(covered);
 
     RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
     Set<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(rgPrec.getEnvGlobalPredicates());

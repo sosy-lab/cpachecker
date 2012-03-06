@@ -429,7 +429,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
     CFANode loc = aElem.retrieveLocationElement().getLocationNode();
 
     /* get environmental edges */
-    if (applyEnv.contains(loc)){
+    if (applyEnv.contains(loc) && !candidatesFromThread[otherTid].isEmpty()){
 
       List<RGEnvTransition> envTransitionToApply = environment.getEnvironmentalTransitionsToApply(aElem, candidatesFromThread[otherTid], artPrec);
 

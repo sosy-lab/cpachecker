@@ -1093,9 +1093,11 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     System.out.println();
     for (Pair<ARTElement, CFAEdge> pair : pi){
       ARTElement element = pair.getFirst();
-      CFANode loc = element.retrieveLocationElement().getLocationNode();
       CFAEdge edge = pair.getSecond();
-      System.out.println("("+element.getTid()+","+element.getElementId()+","+loc+")\t"+edge.getRawStatement());
+      CFANode loc = edge.getPredecessor();
+      Integer tid = nodeToTidMap.get(loc);
+
+      System.out.println("("+tid+","+loc+")\t"+edge.getRawStatement());
     }
   }
 

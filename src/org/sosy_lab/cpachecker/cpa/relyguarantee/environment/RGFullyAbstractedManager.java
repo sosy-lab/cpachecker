@@ -102,7 +102,6 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
   }
 
 
-
   @Override
   public RGFullyAbstracted generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> preds)  {
     stats.generationTimer.start();

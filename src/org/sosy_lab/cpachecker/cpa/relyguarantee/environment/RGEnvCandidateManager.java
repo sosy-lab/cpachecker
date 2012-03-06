@@ -30,7 +30,9 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -68,19 +70,23 @@ public class RGEnvCandidateManager {
   }
 
   /**
-   * Return true only if the element is the smallest one w.r.t to the partial order.
+   * Return true only if the element is the smallest one w.r.t to the partial order for the location mapping.
    * @param c
    * @return
    */
-  public boolean isBottom(RGEnvCandidate c){
+  public boolean isBottom(RGEnvCandidate c, RGLocationMapping lm){
 
     /*
-     * if c's starting element is covered or
-     * op is not an assignment and locationClass(c) = locationClass(SP_op(c)),
-     * then c is bottom
+     * c is bottom if:
+     * its starting element is covered or destroyed
+     *              OR
+     * op is not an assignment and locationClass(c) = locationClass(SP_op(c))
+     * and lm(location(c)) = lm(location(SP_op(c))
+     *              OR
+     * SP_op(c) is false
      */
 
-    if (c.getElement().isDestroyed()){
+    if (c.getElement().isDestroyed() || c.getElement().isCovered()){
       return true;
     }
 
@@ -89,8 +95,13 @@ public class RGEnvCandidateManager {
     if (!op.isGlobalWrite() && !op.isLocalWrite()){
       ImmutableMap<Integer, Integer> locCl1 = c.getElement().getLocationClasses();
       ImmutableMap<Integer, Integer> locCl2 = c.getSuccessor().getLocationClasses();
+      CFANode loc1 = c.getElement().retrieveLocationElement().getLocationNode();
+      CFANode loc2 = c.getSuccessor().retrieveLocationElement().getLocationNode();
+      Integer cl1 = lm.get(loc1);
+      Integer cl2 = lm.get(loc2);
+      assert locCl1 != null && locCl2 != null;
 
-      if (locCl1.equals(locCl2)){
+      if (locCl1.equals(locCl2) && cl1 == cl2){
         return true;
       }
     }
@@ -113,21 +124,22 @@ public class RGEnvCandidateManager {
    * @param c2
    * @return
    */
-  public boolean isLessOrEqual(RGEnvCandidate c1, RGEnvCandidate c2) {
+  public boolean isLessOrEqual(RGEnvCandidate c1, RGEnvCandidate c2, RGLocationMapping lm) {
     /*
-     * c1 less or equal than c2 only if
-     * (abs1 & pf1) -> (abs2 & pf2) and op1 = op2 and locationClass(c1) = locationClass(c2)
+     * c1 less or equal than c2 only if:
+     * c1 is bottom (not checked here)
      *                      OR
-     * c1 is bottom
+     * (abs1 & pf1) -> (abs2 & pf2) and op1 = op2 and locationClass(c1) = locationClass(c2)
+     * and lm(location(c1)) = lm(location(c2))
      */
 
     if (c1.equals(c2)){
       return true;
     }
 
-    if (isBottom(c1)){
+    /*if (isBottom(c1, lm)){
       return true;
-    }
+    }*/
 
     CFAEdge op1 = c1.getOperation();
     CFAEdge op2 = c2.getOperation();
@@ -138,8 +150,10 @@ public class RGEnvCandidateManager {
 
     ImmutableMap<Integer, Integer> locCl1 = c1.getElement().getLocationClasses();
     ImmutableMap<Integer, Integer> locCl2 = c2.getElement().getLocationClasses();
+    Integer cl1 = lm.get(c1.getElement().retrieveLocationElement().getLocationNode());
+    Integer cl2 = lm.get(c2.getElement().retrieveLocationElement().getLocationNode());
 
-    if (!locCl1.equals(locCl2)){
+    if (!locCl1.equals(locCl2) || cl1 != cl2){
       return false;
     }
 
