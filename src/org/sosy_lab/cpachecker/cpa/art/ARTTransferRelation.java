@@ -88,15 +88,27 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
           .build();
 
       RGLocationMapping lm = prec.getLocationMapping();
-      tid = et.getTid();
       CFANode succLoc = et.getTargetARTElement().retrieveLocationElement().getLocationNode();
+      ImmutableMap<Integer, Integer> oldLocCl = element.getLocationClasses();
+      int stid = et.getTid();
+
       Integer newClass = lm.get(succLoc);
       assert newClass != null;
+
+
       com.google.common.collect.ImmutableMap.Builder<Integer, Integer> locClBldr =
           ImmutableMap.<Integer, Integer>builder();
-      succLocCl = locClBldr.putAll(element.getLocationClasses())
-          .put(tid, newClass)
-          .build();
+
+      for (Integer thread : oldLocCl.keySet()){
+
+        if (thread.equals(stid)){
+          locClBldr = locClBldr.put(thread, newClass);
+        } else {
+          locClBldr = locClBldr.put(thread, oldLocCl.get(thread));
+        }
+      }
+
+      succLocCl = locClBldr.build();
     } else {
       envApplied = element.getEnvApplied();
       succLocCl = element.getLocationClasses();

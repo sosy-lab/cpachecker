@@ -30,13 +30,16 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.cfa.ThreadCFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cpa.art.Path;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultimap.Builder;
+import com.google.common.collect.Multimap;
 
 /**
  * Immutable function that maps locations to their equivalence classes.
@@ -46,6 +49,10 @@ public class RGLocationMapping {
   private final ImmutableMap<CFANode, Integer> locationMapping;
   /** Inverse map, lazily initialized */
   private ImmutableMultimap<Integer, CFANode> inverse;
+  /** all inequalities seen so far */
+  private  Multimap<Path, Pair<CFANode, CFANode>> globalInqMap;
+  /** Number of classes in the last non-monotonic refinement*/
+  private  int numberOfNMClasses = 2;
 
   /**
    * Return location mapping, where all nodes belong to class number 1.
@@ -68,17 +75,23 @@ public class RGLocationMapping {
     return new RGLocationMapping(map);
   }
 
+  public static RGLocationMapping getEmpty(ParallelCFAS pcfa, int tid) {
+    Map<CFANode, Integer> map = new HashMap<CFANode, Integer>();
 
-  public static RGLocationMapping getEmpty(ThreadCFA cfa) {
+    for (int i=0; i < pcfa.getThreadNo(); i++ ){
 
-    Map<CFANode, Integer> map = new HashMap<CFANode, Integer>(cfa.getAllNodes().size());
-
-    for (CFANode node : cfa.getAllNodes()){
-      map.put(node, 1);
+      if (i != tid){
+        Set<CFANode> nodes = pcfa.getCfa(i).getExecNodes();
+        for (CFANode node : nodes){
+          map.put(node, 1);
+        }
+      }
     }
 
-      return new RGLocationMapping(map);
+    return new RGLocationMapping(map);
+
   }
+
 
   /**
    * Returns location mapping where all nodes that are not global declarations are mapped to their own
@@ -196,6 +209,9 @@ public class RGLocationMapping {
   public ImmutableMap<? extends CFANode, ? extends Integer> getMap() {
     return locationMapping;
   }
+
+
+
 
 
 

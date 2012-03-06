@@ -42,6 +42,7 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -85,7 +86,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatPr
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
 /**
@@ -121,12 +121,10 @@ public class RGLocationRefinementManager implements StatisticsProvider{
 
   /** Nodes that always have to belong to the first location class, i.e. all global nodes and execution start. */
   private final Set<CFANode> nodesAlwaysInClassOne;
-
-  /* for non-monotonic refinement only */
-  private final Multimap<Path, Pair<CFANode, CFANode>> globalInqMap;
+  /** Map: node.toString() -> node */
   private final Map<String, CFANode> nodeMap;
-  /** Number of classes in the last non-monotonic refinement*/
-  private int   numberOfNMClasses = 2;
+  /** Map : node -> its thread */
+  private final Map<CFANode, Integer> nodeToTidMap;
 
   private static RGLocationRefinementManager singleton;
   private static Pattern varRegex = Pattern.compile("^PRED_(N\\d+)_(\\d+)$");
@@ -155,19 +153,17 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     this.logger  = pLogger;
     this.stats = new Stats();
 
+    this.nodeMap = initializeNodeMap(pcfa);
     this.nodesAlwaysInClassOne = new HashSet<CFANode>();
+    this.nodeToTidMap = new HashMap<CFANode, Integer>();
 
     for (ThreadCFA cfa : pcfa){
       this.nodesAlwaysInClassOne.addAll(cfa.globalDeclNodes);
       this.nodesAlwaysInClassOne.add(cfa.executionStart);
-    }
 
-    if (locationRefinement.equals("NONMONOTONIC")){
-      globalInqMap = LinkedHashMultimap.create();
-      nodeMap = initializeNodeMap(this.pcfa);
-    } else {
-      globalInqMap = null;
-      nodeMap = null;
+      for (CFANode node : cfa.getAllNodes()){
+        this.nodeToTidMap.put(node, cfa.getTid());
+      }
     }
   }
 
@@ -194,7 +190,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @throws CPATransferException
    * @throws RefinementFailedException
    */
-  public void refine(InterpolationTreeResult counterexample) throws CPATransferException, RefinementFailedException {
+  public InterpolationTreeResult refine(InterpolationTreeResult counterexample) throws CPATransferException, RefinementFailedException {
 
 
     InterpolationTreeResult result;
@@ -207,10 +203,11 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       result = findWitness(counterexample);
     }
     else {
-      findLocationMistmaches(counterexample);
+      result = findLocationMistmaches(counterexample);
     }
 
     stats.locRefTimer.stop();
+    return result;
   }
 
 
@@ -218,56 +215,58 @@ public class RGLocationRefinementManager implements StatisticsProvider{
 
   /**
    * Adds a counterexample path the argument. This path is may not be feasible w.r.t. locations.
-   * In other words, if might be a false positive.
-   * @param counterexample
+   * In other words, it might be a false positive.
+   * @param cexample
    * @return
    * @throws CPATransferException
    */
-  private InterpolationTreeResult findWitness(InterpolationTreeResult counterexample) throws CPATransferException {
-    Collection<Path> paths = getErrorPathsForTrunk(counterexample.getTree());
-    assert !paths.isEmpty();
+  private InterpolationTreeResult findWitness(InterpolationTreeResult cexample) throws CPATransferException {
+
+    Collection<Path> paths = getErrorPathsForTrunk(cexample.getTree());
+    assert !paths.isEmpty() : "Couldn't find a witness path.";
 
     Path pi = paths.iterator().next();
 
-    counterexample.setCounterexamplePath(pi);
-    return counterexample;
+    InterpolationTreeResult newCexample = InterpolationTreeResult.feasibleWithWitness(cexample.getTree(), pi);
+    return newCexample;
   }
 
-  private void findLocationMistmaches(InterpolationTreeResult counterexample) throws CPATransferException {
 
-    Collection<Path> paths = getErrorPathsForTrunk(counterexample.getTree());
+  private InterpolationTreeResult findLocationMistmaches(InterpolationTreeResult cexample) throws CPATransferException {
 
-    Multimap<ARTElement, Pair<CFANode, CFANode>> inqMap = HashMultimap.create();
+    Collection<Path> paths = getErrorPathsForTrunk(cexample.getTree());
+    Map<Path, List<Triple<ARTElement, CFANode, CFANode>>> pathRefMap = new HashMap<Path, List<Triple<ARTElement, CFANode, CFANode>>>();
 
     for (Path pi : paths){
-      Multimap<ARTElement, Pair<CFANode, CFANode>> threadInq = findLocationInequalities(pi, true);
+      List<Triple<ARTElement, CFANode, CFANode>> threadInq = findLocationInequalities(pi, false);
 
       if (threadInq.isEmpty()){
         // concreate, feasible error path found
-        counterexample.setCounterexamplePath(pi);
-        return;
+        InterpolationTreeResult newCexample = InterpolationTreeResult.feasibleWithWitness(cexample.getTree(), pi);
+        return newCexample;
       }
 
-      inqMap.putAll(threadInq);
+      pathRefMap.put(pi, threadInq);
     }
 
-    counterexample.addLocationMistmatchesForRefinement(inqMap);
+    InterpolationTreeResult newCexample = InterpolationTreeResult.spurious();
+    newCexample.addLocationMapForRefinement(pathRefMap);
+    return newCexample;
   }
 
 
-  /**
+ /* /**
    * Monotonic refinement - a new equivalence class is created for every mismatching location.
    * @param counterexample
    * @return
    * @throws CPATransferException
    * @throws RefinementFailedException
-   */
+
   private InterpolationTreeResult monotonicRefinement(InterpolationTreeResult counterexample) throws CPATransferException, RefinementFailedException {
     stats.locRefTimer.start();
     stats.iterations++;
     Collection<Path> paths = getErrorPathsForTrunk(counterexample.getTree());
 
-    /* Map: tid -> pair of unequal nodes */
     Collection<Pair<CFANode, CFANode>> inqSet = new LinkedHashSet<Pair<CFANode, CFANode>>();
 
     for (Path pi : paths){
@@ -290,15 +289,15 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     stats.locClNo = refLocationMapping.getClassNo();
 
     return counterexample;
-  }
+  }*/
 
-  /**
+  /*
    * Non-monotonic refinement like described in "Non-monotonic Refinement of Control
    * Abstraction for Concurrent Programs" by Gupta.
    * @param counterexample
    * @return
    * @throws CPATransferException
-   */
+
   private InterpolationTreeResult nonMonotonicRefinement(InterpolationTreeResult counterexample) throws CPATransferException {
     stats.locRefTimer.start();
     stats.iterations++;
@@ -326,7 +325,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     stats.locClNo = refLocationMapping.getClassNo();
 
     return counterexample;
-  }
+  }*/
 
 
   /**
@@ -335,9 +334,9 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @param tree
    * @return
    */
-  private RGLocationMapping nonMonotonicLocationMapping(Multimap<Path, Pair<CFANode, CFANode>> inqMap) {
+  public Pair<RGLocationMapping, Integer> nonMonotonicLocationMapping(Multimap<Path, Pair<CFANode, CFANode>> inqMap, int minClNo) {
 
-    int clNo = numberOfNMClasses;
+    int clNo = minClNo;
     thmProver.init();
 
     boolean unsat;
@@ -352,13 +351,12 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       clNo++;
     } while (unsat);
 
-    numberOfNMClasses = clNo-1;
 
     Model model = thmProver.getModel();
     thmProver.reset();
 
     RGLocationMapping lm = RGLocationMappingSAT(model);
-    return lm;
+    return Pair.of(lm, clNo-1);
   }
 
   /**
@@ -418,8 +416,6 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   private Formula buildNonMonotonicFormulaSAT(Multimap<Path, Pair<CFANode, CFANode>> inqMap, int clNo) {
     stats.formulaTimer.start();
     Formula f = fManager.makeTrue();
-
-
 
     int bitNo = 0;
     int powerOf2 = 1;
@@ -598,6 +594,8 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   }
 
 
+
+
   /**
    * Refines old location mapping by putting mistmatching nodes in different equivalence classes.
    * @param oldLM
@@ -605,7 +603,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @return
    * @throws RefinementFailedException
    */
-  private RGLocationMapping monotonicLocationMapping(RGLocationMapping oldLM, Collection<Pair<CFANode, CFANode>> inqColl) throws RefinementFailedException {
+  public RGLocationMapping monotonicLocationMapping(RGLocationMapping oldLM, Collection<Pair<CFANode, CFANode>> inqColl) throws RefinementFailedException {
     Integer topCl = oldLM.getClassNo();
 
     HashMap<CFANode, Integer> newLM = new HashMap<CFANode, Integer>(oldLM.getMap());
@@ -618,7 +616,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       if (nodesAlwaysInClassOne.contains(node)){
         node = inq.getFirst();
 
-        if (this.nodesAlwaysInClassOne.contains(node)){
+        if (nodesAlwaysInClassOne.contains(node)){
           throw new RefinementFailedException(Reason.LocationRefinementFailed, null);
         }
       }
@@ -637,9 +635,9 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @param stopAfterFirst find only the first inequality
    * @return
    */
-  private Multimap<ARTElement, Pair<CFANode, CFANode>> findLocationInequalities(Path pi, boolean stopAfterFirst) {
+  private List<Triple<ARTElement, CFANode, CFANode>> findLocationInequalities(Path pi, boolean stopAfterFirst) {
 
-    Multimap<ARTElement, Pair<CFANode, CFANode>> inqMap = HashMultimap.create();
+    List<Triple<ARTElement, CFANode, CFANode>> inqList = new Vector<Triple<ARTElement, CFANode, CFANode>>();
 
     ARTElement first = pi.get(0).getFirst();
     // tid of the ART where the path begins
@@ -656,7 +654,6 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       } else {
         pc[i] = pcfa.getCfas().get(i).getExecutionStart();
       }
-
     }
 
     // execute
@@ -664,15 +661,16 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       ARTElement element = pair.getFirst();
       CFAEdge edge = pair.getSecond();
 
-      int tid = element.getTid();
-      CFANode loc = element.retrieveLocationElement().getLocationNode();
+      int tid = nodeToTidMap.get(edge.getPredecessor());
+      CFANode loc = edge.getPredecessor();
 
       if (pc[tid].equals(loc)){
         pc[tid] = edge.getSuccessor();
       } else {
         // mismatch pc[tid] != loc
         Pair<CFANode, CFANode> mismatch = Pair.of(pc[tid], loc);
-        inqMap.put(element, mismatch);
+        Triple<ARTElement, CFANode, CFANode> mistmatch = Triple.of(element, pc[tid], loc);
+        inqList.add(mistmatch);
 
         if (stopAfterFirst){
           break;
@@ -682,7 +680,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       }
     }
 
-    return inqMap;
+    return inqList;
   }
 
 
@@ -781,7 +779,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     for (RGBranchingModel bModel : bModels){
       Path pi = getPathBetween(start, stop, elems, bModel);
       pathPrinter(pi);
-      System.out.println("\n\n\n");
+      System.out.println("\n");
       pis.add(pi);
     }
 
@@ -878,7 +876,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       RGCFAEdge rgEdge = (RGCFAEdge) edge;
       RGEnvTransition et = rgEdge.getRgEnvTransition();
       Path pi = new Path();
-      pi.push(Pair.of(et.getSourceARTElement(), et.getOperation()));
+      pi.push(Pair.of(elem, et.getOperation()));
       return pi;
     }
     else {

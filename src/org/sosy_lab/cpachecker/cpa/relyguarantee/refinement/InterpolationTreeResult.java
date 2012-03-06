@@ -24,17 +24,17 @@
 package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
 
@@ -48,60 +48,89 @@ public class InterpolationTreeResult {
   private final boolean isSpurious;
   private final SetMultimap<InterpolationTreeNode, AbstractionPredicate> artMap;
   private final SetMultimap<InterpolationTreeNode, AbstractionPredicate> envMap;
-  private final Multimap<ARTElement, Pair<CFANode, CFANode>> locMap;
+  private final Map<Path, List<Triple<ARTElement, CFANode, CFANode>>>  locMap;
   private final InterpolationTree tree;
   /** witness path for a feasible counterexample */
-  private Path path;
-  private RGLocationMapping refinedLocationMapping;
+  private final Path path;
 
 
-  public InterpolationTreeResult(boolean spurious){
-    assert spurious;
-    this.isSpurious = spurious;
-    this.artMap = LinkedHashMultimap.create();
-    this.envMap = LinkedHashMultimap.create();
-    this.locMap = HashMultimap.create();
-    this.tree = null;
+  /**
+   * A spurious counterexample.
+   * @return
+   */
+  public static InterpolationTreeResult spurious(){
+    SetMultimap<InterpolationTreeNode, AbstractionPredicate> artMap = LinkedHashMultimap.create();
+    SetMultimap<InterpolationTreeNode, AbstractionPredicate> envMap = LinkedHashMultimap.create();
+    Map<Path, List<Triple<ARTElement, CFANode, CFANode>>>  locMap =
+        new HashMap<Path, List<Triple<ARTElement, CFANode, CFANode>>>();
+
+    return new InterpolationTreeResult(true, artMap, envMap, locMap, null, null);
   }
 
-  public InterpolationTreeResult(boolean spurious, InterpolationTree tree){
-    assert !spurious;
+  /**
+   * A feasible countrexample with its interpolation tree.
+   * @param tree
+   * @return
+   */
+  public static InterpolationTreeResult feasible(InterpolationTree tree){
+    assert tree != null;
 
+    return new InterpolationTreeResult(false, null, null, null, tree, null);
+  }
+
+  /**
+   * A feasible countrexample with its interpolation tree and a concreate error path.
+   * @param tree
+   * @param witness
+   * @return
+   */
+  public static InterpolationTreeResult feasibleWithWitness(InterpolationTree tree, Path witness){
+    assert tree != null;
+    assert witness != null;
+
+    return new InterpolationTreeResult(false, null, null, null, tree, witness);
+  }
+
+  private InterpolationTreeResult(boolean spurious,
+      SetMultimap<InterpolationTreeNode, AbstractionPredicate> artMap,
+      SetMultimap<InterpolationTreeNode, AbstractionPredicate> envMap,
+      Map<Path, List<Triple<ARTElement, CFANode, CFANode>>>  locMap,
+      InterpolationTree tree,
+      Path path) {
     this.isSpurious = spurious;
+    this.artMap = artMap;
+    this.envMap = envMap;
+    this.locMap = locMap;
     this.tree = tree;
-    this.artMap = null;
-    this.envMap = null;
-    this.locMap = null;
+    this.path = path;
   }
+
 
   public boolean isSpurious(){
     return isSpurious;
   }
 
   public void addPredicatesForRefinement(InterpolationTreeNode e, Collection<AbstractionPredicate> preds) {
+    assert isSpurious : "Predicates for refimenent cannot be added to a feasible counterexample.";
     artMap.putAll(e, preds);
   }
 
   public void addEnvPredicatesForRefinement(InterpolationTreeNode e,  Collection<AbstractionPredicate> preds) {
+    assert isSpurious : "Predicates for refimenent cannot be added to a feasible counterexample.";
     envMap.putAll(e, preds);
   }
 
-  public void addLocationMistmatchForRefinement(ARTElement e,  Pair<CFANode, CFANode> mismatch) {
-    locMap.put(e, mismatch);
+  public void addLocationMapForRefinement(Map<Path, List<Triple<ARTElement, CFANode, CFANode>>> pPathInqMap) {
+    assert isSpurious : "Locations for refimenent cannot be added to a feasible counterexample.";
+    locMap.putAll(pPathInqMap);
   }
 
   public InterpolationTree getTree() {
     return tree;
   }
 
-
   public Path getPath() {
     return path;
-  }
-
-  public void setCounterexamplePath(Path path) {
-    assert !isSpurious;
-    this.path = path;
   }
 
   public SetMultimap<InterpolationTreeNode, AbstractionPredicate> getArtRefinementMap() {
@@ -112,15 +141,12 @@ public class InterpolationTreeResult {
     return envMap;
   }
 
-  public Multimap<ARTElement, Pair<CFANode, CFANode>> getLocRefinementMap() {
+  public Map<Path, List<Triple<ARTElement, CFANode, CFANode>>> getPathRefinementMap() {
     return locMap;
   }
 
-  public boolean addLocationMistmatchesForRefinement(
-      Multimap<ARTElement, Pair<CFANode, CFANode>> inqMap) {
 
-    return locMap.putAll(inqMap);
-  }
+
 
 
 

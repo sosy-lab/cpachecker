@@ -788,7 +788,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
       } else {
         Integer classNo = locCl.get(i);
         Collection<CFANode> nodes = lm.classToNodes(classNo);
-        assert nodes.isEmpty();
+        assert !nodes.isEmpty();
         cLocsElem.putAll(i, nodes);
       }
     }

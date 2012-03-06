@@ -472,7 +472,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
      */
 
     // assume that the trace is spurious
-    InterpolationTreeResult info  = new InterpolationTreeResult(true);
+    InterpolationTreeResult info  = InterpolationTreeResult.spurious();
 
     if (debug){
       System.out.println();
@@ -514,7 +514,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
           // if trace is feasible, then it should be detected in the first iteration
           assert prevNode == null;
 
-          info = new InterpolationTreeResult(false, tree);
+          info = InterpolationTreeResult.feasible(tree);
           if (debug){
             System.out.println("\tFeasibile error trace.");
           }

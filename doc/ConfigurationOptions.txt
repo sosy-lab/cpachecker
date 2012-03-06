@@ -501,9 +501,6 @@ cpa.rg.interpolation.changesolverontimeout = false
 # Limit of nodes in an interpolation tree (0 - no limit).
 cpa.rg.itpTreeNodeLimit = 0
 
-# Use exact locations instead of abstracted location classes.
-cpa.rg.preciseLocations = false
-
 # refinement will add all discovered predicates to all the locations in the
 # abstract trace
 cpa.rg.refinement.addEnvPredicatesGlobally = true
@@ -524,7 +521,7 @@ cpa.rg.refinement.interpolatingProver = "MATHSAT"
   allowed values: [MATHSAT, CSISAT]
 
 # Use lazy refinement rather than restart the analysis.
-cpa.rg.refinement.lazy = true
+cpa.rg.refinement.lazy = false
 
 # Add all predicates in the subtree to the pivot element.
 cpa.rg.refinement.lazy.shareDroppedPrecision = true

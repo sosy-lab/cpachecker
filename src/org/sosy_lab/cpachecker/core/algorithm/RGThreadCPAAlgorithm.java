@@ -179,12 +179,15 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       final Precision precision = reachedSet.getPrecision(element);
 
       ARTElement aElement = (ARTElement) element;
+      if (!(precision instanceof ARTPrecision)){
+        System.out.println();
+      }
       ARTPrecision artPrec = (ARTPrecision) precision;
       RGPrecision rgPrec = Precisions.extractPrecisionByType(precision, RGPrecision.class);
       CFANode loc = aElement.retrieveLocationElement().getLocationNode();
 
       if (debug){
-        System.out.println("Successors of "+aElement+ " "+rgPrec);
+        System.out.println("Successors of "+aElement);
       }
 
       stats.transferTimer.start();

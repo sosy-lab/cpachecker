@@ -56,16 +56,19 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.art.ARTPrecision;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -99,7 +102,7 @@ public class RGRefiner implements StatisticsProvider{
 
   @Option(name="refinement.lazy",
       description="Use lazy refinement rather than restart the analysis.")
-  private boolean lazy = true;
+  private boolean lazy = false;
 
   @Option(name="refinement.lazy.shareDroppedPrecision",
       description="Add all predicates in the subtree to the pivot element.")
@@ -209,16 +212,16 @@ public class RGRefiner implements StatisticsProvider{
     }
     System.out.println();
     System.out.println("\t\t\t ----- Interpolation -----");
-    InterpolationTreeResult counterexampleInfo = refManager.refine(targetElement, reachedSets, errorThr);
-    locrefManager.refine(counterexampleInfo);
+    InterpolationTreeResult cexample = refManager.refine(targetElement, reachedSets, errorThr);
+    cexample = locrefManager.refine(cexample);
 
     // if error is spurious refine
-    if (counterexampleInfo.isSpurious()) {
+    if (cexample.isSpurious()) {
 
       if (lazy){
-        performLazyRefinement(artReachedSets, counterexampleInfo, algorithm);
+        performLazyRefinement(artReachedSets, cexample, algorithm);
       } else {
-        performRestartingRefinement(artReachedSets, counterexampleInfo, algorithm);
+        performRestartingRefinement(artReachedSets, cexample, algorithm);
 
 
         for (int i=0; i<reachedSets.length;i++){
@@ -236,44 +239,48 @@ public class RGRefiner implements StatisticsProvider{
   }
 
 
-  private void performLazyRefinement(ARTReachedSet[] reachedSets, InterpolationTreeResult cexample, RGAlgorithm algorithm) {
+  private void performLazyRefinement(ARTReachedSet[] reachedSets, InterpolationTreeResult cexample, RGAlgorithm algorithm) throws RefinementFailedException {
     assert cexample.isSpurious();
     System.out.println();
     System.out.println("\t\t\t ----- Lazy refinement -----");
 
-    boolean dataRef = cexample.getLocRefinementMap().isEmpty();
+    boolean dataRef = cexample.getPathRefinementMap().isEmpty();
 
 
     Map<Integer, Map<ARTElement, Precision>> refMap;
 
     if (dataRef){
-      refMap = getLazyRefinement(reachedSets, cexample);
+      refMap = getLazyDataRefinement(reachedSets, cexample);
     } else {
-      refMap = null;
+      refMap = getLazyLocationRefinement(reachedSets, cexample);
     }
 
     dropPivots(reachedSets, refMap);
     algorithm.removeDestroyedCandidates();
   }
 
-  private void performRestartingRefinement(ARTReachedSet[] reachedSets, InterpolationTreeResult cexample, RGAlgorithm algorithm) {
+
+
+  private void performRestartingRefinement(ARTReachedSet[] reachedSets, InterpolationTreeResult cexample, RGAlgorithm algorithm) throws RefinementFailedException {
     assert cexample.isSpurious();
     System.out.println();
     System.out.println("\t\t\t ----- Restarting refinement -----");
 
-    boolean dataRef = cexample.getLocRefinementMap().isEmpty();
+    boolean dataRef = cexample.getPathRefinementMap().isEmpty();
 
     Map<Integer, Map<ARTElement, Precision>> refMap;
 
     if (dataRef){
-      refMap = getRestartingPrecision(reachedSets, cexample);
+      refMap = getRestartingDataPrecision(reachedSets, cexample);
     } else {
-      refMap = null;
+      refMap = getRestartingLocationPrecision(reachedSets, cexample);
     }
 
     dropPivots(reachedSets, refMap);
     algorithm.resetEnvironment();
   }
+
+
 
   private void dropPivots(ARTReachedSet[] reachedSets, Map<Integer, Map<ARTElement, Precision>> refMap) {
 
@@ -352,7 +359,7 @@ public class RGRefiner implements StatisticsProvider{
    * @param pCounterexampleInfo
    * @return
    */
-  private Map<Integer, Map<ARTElement, Precision>> getLazyRefinement(ARTReachedSet[] reachedSets, InterpolationTreeResult info) {
+  private Map<Integer, Map<ARTElement, Precision>> getLazyDataRefinement(ARTReachedSet[] reachedSets, InterpolationTreeResult info) {
 
     Pivots pivots = getNewPrecisionElements(reachedSets, info, false);
     if (debug){
@@ -438,6 +445,53 @@ public class RGRefiner implements StatisticsProvider{
 
     // TODO check if correct
     //assert newLM || !refMap.isEmpty()  : "No new predicates nor location mapping found.";
+
+    return refMap;
+  }
+
+
+
+
+  /**
+   * Find pivots nodes and their new precision.
+   * @param pReachedSets
+   * @param pCexample
+   * @return
+   * @throws RefinementFailedException
+   */
+  private Map<Integer, Map<ARTElement, Precision>> getLazyLocationRefinement(ARTReachedSet[] reachedSets, InterpolationTreeResult info) throws RefinementFailedException {
+
+    Map<Integer, Map<ARTElement, Precision>> refMap = new HashMap<Integer, Map<ARTElement, Precision>>(threadNo);
+
+    assert !refMap.isEmpty() : "No mistmaching location found.";
+
+    /* for every path we take one pair of mistmatching location (e.g. the first one);
+       all paths belong to the same thread */
+    Map<ARTElement, Pair<CFANode, CFANode>> mismatchMap = getMistmachesPerPath(info.getPathRefinementMap());
+
+
+    // find the unique highest abstract point, s.t. all ART elements are in its subtree
+    Set<ARTElement> absElems = new HashSet<ARTElement>();
+    for (ARTElement elem : mismatchMap.keySet()){
+      ARTElement la = RGCPA.findLastAbstractionARTElement(elem);
+      absElems.add(la);
+    }
+
+    SetMultimap<ARTElement, ARTElement> map = this.findTopARTElements(absElems);
+    assert map.size() == 1;
+    ARTElement top = map.keySet().iterator().next();
+
+    // refine the location map at top using all mistmatching pairs
+    int tid = top.getTid();
+    ARTPrecision prec = (ARTPrecision) reachedSets[tid].getPrecision(top);
+    RGLocationMapping oldLM = prec.getLocationMapping();
+    Collection<Pair<CFANode, CFANode>> mismatchColl = mismatchMap.values();
+    RGLocationMapping newLM = locrefManager.monotonicLocationMapping(oldLM, mismatchColl);
+
+    ARTPrecision newPrec = new ARTPrecision(newLM, prec.getWrappedPrecision());
+    Map<ARTElement, Precision> threadRefMap = new HashMap<ARTElement, Precision>();
+    threadRefMap.put(top, newPrec);
+    refMap.put(tid, threadRefMap);
 
     return refMap;
   }
@@ -605,38 +659,11 @@ public class RGRefiner implements StatisticsProvider{
     for (int tid : pivots.getTids()){
       Set<ARTElement> threadPivots = pivots.getPivotsForThread(tid);
 
-      SetMultimap<ARTElement, ARTElement> map = covered.get(tid);
-      if (map == null){
-        map = LinkedHashMultimap.create();
-        covered.put(tid, map);
-      }
+      SetMultimap<ARTElement, ARTElement> map = findTopARTElements(threadPivots);
 
-      for (ARTElement pivot : threadPivots){
-        if (map.containsValue(pivot) || pivot.isCovered()){
-          // pivot is covered
-          continue;
-        }
-
-        map.put(pivot, null);
-
-        Set<ARTElement> subtree = pivot.getLocalSubtree();
-
-        for (ARTElement otherPivot : threadPivots){
-          if (otherPivot.equals(pivot)){
-            continue;
-          }
-
-          if (subtree.contains(otherPivot)){
-            // pivot coveres otherPivot
-            map.put(pivot, otherPivot);
-            map.removeAll(otherPivot);
-          }
-        }
-
-      }
-      if (map.isEmpty()){
+      if (!map.isEmpty()){
         // all pivots are covered
-        covered.remove(tid);
+        covered.put(tid, map);
       }
 
     }
@@ -669,6 +696,43 @@ public class RGRefiner implements StatisticsProvider{
     }
 
     return covered;
+  }
+
+
+  /**
+   * Creates a map from highest ART elements to the elements covered by them (can be null).
+   * @param elems
+   * @return
+   */
+  public SetMultimap<ARTElement, ARTElement> findTopARTElements(Collection<ARTElement> elems){
+
+    SetMultimap<ARTElement, ARTElement> map = LinkedHashMultimap.create();
+
+    for (ARTElement elem : elems){
+      if (map.containsValue(elem) || elem.isCovered()){
+        // elem is covered
+        continue;
+      }
+
+      map.put(elem, null);
+
+      Set<ARTElement> subtree = elem.getLocalSubtree();
+
+      for (ARTElement otherPivot : elems){
+        if (otherPivot.equals(elem)){
+          continue;
+        }
+
+        if (subtree.contains(otherPivot)){
+          // pivot coveres otherPivot
+          map.put(elem, otherPivot);
+          map.removeAll(otherPivot);
+        }
+      }
+
+    }
+
+    return map;
   }
 
   /**
@@ -791,12 +855,10 @@ public class RGRefiner implements StatisticsProvider{
    * @param info
    * @return
    */
-  private Map<Integer, Map<ARTElement, Precision>> getRestartingPrecision(ARTReachedSet[] reachedSets, InterpolationTreeResult info){
+  private Map<Integer, Map<ARTElement, Precision>> getRestartingDataPrecision(ARTReachedSet[] reachedSets, InterpolationTreeResult info){
     stats.restartingTimer.start();
 
     boolean newPred = false;
-
-
     Map<Integer, Map<ARTElement, Precision>> refMap = new HashMap<Integer, Map<ARTElement, Precision>>(threadNo);
 
     // for every thread gather all new predicates in a single precision, which be added to the root
@@ -804,7 +866,7 @@ public class RGRefiner implements StatisticsProvider{
       ARTElement initial = reachedSets[i].getFirstElement();
       Precision prec = reachedSets[i].getPrecision(initial);
       RGPrecision oldPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
-      Pair<RGPrecision, Boolean> pair = gatherAllPredicatesForThread(info, oldPrec, i);
+      Pair<RGPrecision, Boolean> pair = gatherAllDataPredicatesForThread(info, oldPrec, i);
       RGPrecision newPrec = pair.getFirst();
 
       newPred = newPred || pair.getSecond();
@@ -826,7 +888,80 @@ public class RGRefiner implements StatisticsProvider{
   }
 
 
+  /**
+   * Construct a new location mapping for the children of the inital elements.
+   * @param reachedSets
+   * @param info
+   * @return
+   * @throws RefinementFailedException
+   */
+  private Map<Integer, Map<ARTElement, Precision>> getRestartingLocationPrecision(ARTReachedSet[] reachedSets, InterpolationTreeResult info) throws RefinementFailedException {
+    stats.restartingTimer.start();
 
+    Map<Integer, Map<ARTElement, Precision>> refMap = new HashMap<Integer, Map<ARTElement, Precision>>(threadNo);
+
+    /* for every path we take one pair of mistmatching location (e.g. the first one);
+       all paths belong to the same thread */
+    Map<ARTElement, Pair<CFANode, CFANode>> mismatchMap = getMistmachesPerPath(info.getPathRefinementMap());
+    Collection<Pair<CFANode, CFANode>> mismatchColl = mismatchMap.values();
+
+    // find new location mapping for the error thread, and copy top precision for the others
+    int errorTid = mismatchMap.keySet().iterator().next().getTid();
+
+    for (int i=0; i<threadNo; i++){
+      ARTElement initial = reachedSets[i].getFirstElement();
+      ARTPrecision prec = (ARTPrecision) reachedSets[i].getPrecision(initial);
+
+      ARTPrecision newPrec;
+
+      if (i == errorTid){
+        RGLocationMapping lm = prec.getLocationMapping();
+        RGLocationMapping newLM = locrefManager.monotonicLocationMapping(lm, mismatchColl);
+
+        if (debug){
+          System.out.println("New location mapping: "+newLM+"\n");
+        }
+
+        newPrec = new ARTPrecision(newLM, prec.getWrappedPrecision());
+      } else {
+        newPrec = prec;
+      }
+
+
+      HashMap<ARTElement, Precision> threadRefMap = new HashMap<ARTElement, Precision>();
+      refMap.put(i, threadRefMap);
+
+      for (ARTElement child : initial.getLocalChildren()){
+        threadRefMap.put(child, newPrec);
+      }
+    }
+
+    return refMap;
+  }
+
+
+
+
+
+  /**
+   * Picks one pair of mistmatching locations for every path.
+   * @param pathRefMap
+   * @return
+   */
+  private Map<ARTElement, Pair<CFANode, CFANode>> getMistmachesPerPath(Map<Path, List<Triple<ARTElement, CFANode, CFANode>>> pathRefMap) {
+
+    Map<ARTElement, Pair<CFANode, CFANode>> result = new HashMap<ARTElement, Pair<CFANode, CFANode>>();
+
+    for (Path pi : pathRefMap.keySet()){
+
+      List<Triple<ARTElement, CFANode, CFANode>> list = pathRefMap.get(pi);
+      Triple<ARTElement, CFANode, CFANode> triple = list.get(0);
+
+      result.put(triple.getFirst(), Pair.of(triple.getSecond(), triple.getThird()));
+    }
+
+    return result;
+  }
 
   /**
    * Combine all predicates for thread i into a single precision. Return a pair of new precision
@@ -836,7 +971,7 @@ public class RGRefiner implements StatisticsProvider{
    * @param pI
    * @return
    */
-  private Pair<RGPrecision, Boolean> gatherAllPredicatesForThread(InterpolationTreeResult itpResult, RGPrecision oldPrec, int i) {
+  private Pair<RGPrecision, Boolean> gatherAllDataPredicatesForThread(InterpolationTreeResult itpResult, RGPrecision oldPrec, int i) {
 
     ImmutableSetMultimap<CFANode, AbstractionPredicate> artPredicateMap;
     ImmutableSet<AbstractionPredicate> artGlobalPredicates;
@@ -954,7 +1089,6 @@ public class RGRefiner implements StatisticsProvider{
 
     return Pair.of(newPrec, newPred);
   }
-
 
 
   private Multimap<CFANode, AbstractionPredicate> gatherEnvPredicates(InterpolationTreeResult result, int i) {

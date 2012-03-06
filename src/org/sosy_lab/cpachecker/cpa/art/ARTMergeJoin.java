@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -52,6 +53,7 @@ public class ARTMergeJoin implements MergeOperator {
 
     ARTElement artElement1 = (ARTElement)pElement1;
     ARTElement artElement2 = (ARTElement)pElement2;
+    ARTPrecision precision = (ARTPrecision) pPrecision;
 
     // covered elements are not in the reached set
     assert !artElement1.isCovered();
@@ -85,7 +87,8 @@ public class ARTMergeJoin implements MergeOperator {
 
     AbstractElement wrappedElement1 = artElement1.getWrappedElement();
     AbstractElement wrapppedElement2 = artElement2.getWrappedElement();
-    AbstractElement retElement = wrappedMerge.merge(wrappedElement1, wrapppedElement2, pPrecision);
+    CompositePrecision wP = precision.getWrappedPrecision();
+    AbstractElement retElement = wrappedMerge.merge(wrappedElement1, wrapppedElement2, wP);
     if(retElement.equals(wrapppedElement2)){
       return pElement2;
     }

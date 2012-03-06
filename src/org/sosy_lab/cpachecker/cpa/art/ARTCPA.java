@@ -186,7 +186,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
   @Override
   public Precision getInitialPrecision(CFANode pNode) {
-    RGLocationMapping lm = RGLocationMapping.getEmpty(pcfa.getCfa(tid));
+    RGLocationMapping lm = RGLocationMapping.getEmpty(pcfa, tid);
     return new ARTPrecision(lm, (CompositePrecision) super.getInitialPrecision(pNode));
   }
 
