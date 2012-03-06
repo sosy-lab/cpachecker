@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.environment;
 import java.util.Collection;
 
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -39,12 +40,13 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 public interface RGEnvTransitionManager {
 
   /**
-   * Generate an environmental transition from the candidate using the given precision.
+   * Generate an environmental transition from the candidate using the given precision and location mapping.
    * @param cand
    * @param predicates
+   * @param lm
    * @return
    */
-  RGEnvTransition generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> predicates);
+  RGEnvTransition generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> predicates, RGLocationMapping lm);
 
   /**
    * Returns a path formula representing the effect of applying the transition on the element.

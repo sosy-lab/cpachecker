@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -56,9 +57,12 @@ public class RGSemiAbstracted implements RGEnvTransition{
   private final PathFormula formulaForAbstraction;
   /** ART elements that generated this transition */
   private ImmutableSet<ARTElement> generatingARTElement;
+  /** The classes for tid's locations at {@link #sourceARTElement} and {@link #targetARTElement}.
+   * They are computed w.r.t. to precision of the element where the transition is applied. */
+  private final Pair<Integer, Integer> locClasses;
 
 
-  public RGSemiAbstracted(Formula precondition, Region preconditionRegion, SSAMap ssa, CFAEdge operation, ARTElement sourceElem, ARTElement targetElem, int tid, PathFormula formulaForAbs){
+  public RGSemiAbstracted(Formula precondition, Region preconditionRegion, SSAMap ssa, CFAEdge operation, ARTElement sourceElem, ARTElement targetElem, int tid, PathFormula formulaForAbs, Pair<Integer, Integer> locClasses){
     assert !sourceElem.isDestroyed();
     assert formulaForAbs.getFormula().isTrue();
 
@@ -70,6 +74,7 @@ public class RGSemiAbstracted implements RGEnvTransition{
     this.targetARTElement = targetElem;
     this.formulaForAbstraction = formulaForAbs;
     this.tid = tid;
+    this.locClasses = locClasses;
 
     this.generatingARTElement = ImmutableSet.of(sourceARTElement, targetARTElement);
   }
@@ -108,7 +113,7 @@ public class RGSemiAbstracted implements RGEnvTransition{
 
   @Override
   public String toString(){
-    return "sa: "+operation.getRawStatement()+", "+abstractPrecondition+", "+sourceARTElement.getLocationClasses()+"->"+targetARTElement.getLocationClasses();
+    return "sa: "+operation.getRawStatement()+", "+abstractPrecondition+", ["+locClasses.getFirst()+"->"+locClasses.getSecond()+"]";
   }
 
   @Override
@@ -130,6 +135,12 @@ public class RGSemiAbstracted implements RGEnvTransition{
   public PathFormula getFormulaAddedForAbstraction() {
     return formulaForAbstraction;
   }
+
+  public Pair<Integer, Integer> getLocClasses() {
+    return locClasses;
+  }
+
+
 
 
 

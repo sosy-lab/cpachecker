@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -60,9 +61,12 @@ public class RGFullyAbstracted implements RGEnvTransition {
   /** Additional formula used for the abstraction of this transition. */
   private final PathFormula formulaForAbstraction;
   /** ART elements that generated this transition */
-  private ImmutableSet<ARTElement> generatingARTElement;
+  private final ImmutableSet<ARTElement> generatingARTElement;
+  /** The classes for tid's locations at {@link #sourceARTElement} and {@link #targetARTElement}.
+   * They are computed w.r.t. to precision of the element where the transition is applied. */
+  private final Pair<Integer, Integer> locClasses;
 
-  public RGFullyAbstracted(Formula abstractTransition, Region abstractTransitionRegion, SSAMap lowSSA, SSAMap highSSA, ARTElement sourceARTElement, ARTElement targetARTElement,  CFAEdge op, int tid, PathFormula abstractionFormula){
+  public RGFullyAbstracted(Formula abstractTransition, Region abstractTransitionRegion, SSAMap lowSSA, SSAMap highSSA, ARTElement sourceARTElement, ARTElement targetARTElement,  CFAEdge op, int tid, PathFormula abstractionFormula,  Pair<Integer, Integer> locClasses){
     assert !sourceARTElement.isDestroyed();
 
     this.abstractTransition = abstractTransition;
@@ -74,6 +78,7 @@ public class RGFullyAbstracted implements RGEnvTransition {
     this.operation = op;
     this.tid = tid;
     this.formulaForAbstraction = abstractionFormula;
+    this.locClasses = locClasses;
 
     Set<ARTElement> generating = new HashSet<ARTElement>(2);
     generating.add(sourceARTElement);
@@ -109,7 +114,7 @@ public class RGFullyAbstracted implements RGEnvTransition {
 
   @Override
   public String toString(){
-    return "fa: "+abstractTransition+", "+sourceARTElement.retrieveLocationElement().getLocationNode()+"->"+targetARTElement.retrieveLocationElement().getLocationNode();
+    return "fa: "+abstractTransition+", ["+locClasses.getFirst()+"->"+locClasses.getSecond()+"]";
   }
 
   @Override
@@ -141,6 +146,12 @@ public class RGFullyAbstracted implements RGEnvTransition {
   public PathFormula getFormulaAddedForAbstraction() {
     return formulaForAbstraction;
   }
+
+  public Pair<Integer, Integer> getLocClasses() {
+    return locClasses;
+  }
+
+
 
 
 

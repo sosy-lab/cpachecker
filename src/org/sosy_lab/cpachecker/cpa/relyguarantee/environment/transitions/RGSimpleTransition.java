@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -53,8 +54,11 @@ public class RGSimpleTransition implements RGEnvTransition{
   private final int tid;
   /** ART elements that generated this transition */
   private final ImmutableCollection<ARTElement> generatingARTElement;
+  /** The classes for tid's locations at {@link #sourceARTElement} and {@link #targetARTElement}.
+   * They are computed w.r.t. to precision of the element where the transition is applied. */
+  private final Pair<Integer, Integer> locClasses;
 
-  public RGSimpleTransition(Formula abstraction, Region abstractionReg, PathFormula pf, CFAEdge operation, ARTElement sourceElem, ARTElement targetARTElem, int tid){
+  public RGSimpleTransition(Formula abstraction, Region abstractionReg, PathFormula pf, CFAEdge operation, ARTElement sourceElem, ARTElement targetARTElem, int tid, Pair<Integer, Integer> locClasses){
     assert !sourceElem.isDestroyed();
 
     this.abstraction = abstraction;
@@ -64,6 +68,7 @@ public class RGSimpleTransition implements RGEnvTransition{
     this.sourceARTElement = sourceElem;
     this.targetARTElement  = targetARTElem;
     this.tid = tid;
+    this.locClasses = locClasses;
 
     this.generatingARTElement = ImmutableSet.of(sourceARTElement, targetARTElement);
   }
@@ -103,7 +108,7 @@ public class RGSimpleTransition implements RGEnvTransition{
 
   @Override
   public String toString() {
-    return "st: "+operation.getRawStatement()+", "+abstraction+", "+pf+", "+sourceARTElement.getLocationClasses()+"->"+targetARTElement.getLocationClasses();
+    return "st: "+operation.getRawStatement()+", "+abstraction+", "+pf+", ["+locClasses.getFirst()+"->"+locClasses.getSecond()+"]";
   }
 
   @Override
@@ -125,6 +130,12 @@ public class RGSimpleTransition implements RGEnvTransition{
   public PathFormula getFormulaAddedForAbstraction() {
     return null;
   }
+
+  public Pair<Integer, Integer> getLocClasses() {
+    return locClasses;
+  }
+
+
 
 
 }

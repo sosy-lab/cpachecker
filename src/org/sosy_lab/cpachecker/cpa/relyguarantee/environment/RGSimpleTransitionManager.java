@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGSimpleTransition;
@@ -88,20 +90,19 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
   }
 
   @Override
-  public RGSimpleTransition generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> preds) {
+  public RGSimpleTransition generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> preds, RGLocationMapping lm) {
     // TODO Auto-generated method stub
     AbstractionFormula abs = cand.getRgElement().getAbstractionFormula();
     Formula absF = abs.asFormula();
     Region absReg = abs.asRegion();
     PathFormula pf = cand.getRgElement().getAbsPathFormula();
 
-    /*ARTElement laElement = RGCPA.findLastAbstractionARTElement(cand.getElement());
-    if (laElement == null){
-      System.out.println(this.getClass());
-    }
-    assert laElement != null;*/
+    // find classes for locations of the source thread
+    int sCl = lm.get(cand.getElement().retrieveLocationElement().getLocationNode());
+    int tCl = lm.get(cand.getSuccessor().retrieveLocationElement().getLocationNode());
+    Pair<Integer, Integer> locCl = Pair.of(sCl, tCl);
 
-    return new RGSimpleTransition(absF, absReg, pf, cand.getOperation(), cand.getElement(), cand.getSuccessor(), cand.getTid());
+    return new RGSimpleTransition(absF, absReg, pf, cand.getOperation(), cand.getElement(), cand.getSuccessor(), cand.getTid(), locCl);
   }
 
   @Override
@@ -197,8 +198,8 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
       return false;
     }
 
-    ImmutableMap<Integer, Integer> locCl1 = et1.getSourceARTElement().getLocationClasses();
-    ImmutableMap<Integer, Integer> locCl2 = et2.getSourceARTElement().getLocationClasses();
+    Pair<Integer, Integer> locCl1 = st1.getLocClasses();
+    Pair<Integer, Integer> locCl2 = st2.getLocClasses();
 
     if (!locCl1.equals(locCl2)){
       return false;

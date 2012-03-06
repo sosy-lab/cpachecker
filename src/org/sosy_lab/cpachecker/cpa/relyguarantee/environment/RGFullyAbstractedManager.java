@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGFullyAbstracted;
@@ -103,7 +104,7 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
 
 
   @Override
-  public RGFullyAbstracted generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> preds)  {
+  public RGFullyAbstracted generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> preds, RGLocationMapping lm)  {
     stats.generationTimer.start();
 
     // get the predicates for the transition
@@ -130,13 +131,16 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
     Formula newF = fManager.makeAnd(newPf.getFormula(), equivs.getFirst().getFirst());
     newPf = new PathFormula(newF, newSsa, newPf.getLength());
 
-    stats.generationTimer.stop();
+
+    // find classes for locations of the source thread
+    int sCl = lm.get(cand.getElement().retrieveLocationElement().getLocationNode());
+    int tCl = lm.get(cand.getSuccessor().retrieveLocationElement().getLocationNode());
+    Pair<Integer, Integer> locCl = Pair.of(sCl, tCl);
 
     // abstract
     AbstractionFormula newAbs = absManager.buildNextValueAbstraction(oldAbs, oldPf, newPf, preds, sourceTid);
     SSAMap highSSA = newAbs.asPathFormula().getSsa();
-    //return new RGFullyAbstracted(newAbs.asFormula(), newAbs.asRegion(), oldSsa, highSSA, cand.getSuccessor(), sourceTid);
-    RGFullyAbstracted et = new RGFullyAbstracted(newAbs.asFormula(), newAbs.asRegion(), oldSsa, highSSA, cand.getElement(), cand.getSuccessor(), cand.getOperation(), sourceTid, newPf);
+    RGFullyAbstracted et = new RGFullyAbstracted(newAbs.asFormula(), newAbs.asRegion(), oldSsa, highSSA, cand.getElement(), cand.getSuccessor(), cand.getOperation(), sourceTid, newPf, locCl);
 
     stats.generationTimer.stop();
     return et;
@@ -254,8 +258,12 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
 
 
   private boolean isLessOrEqual(RGFullyAbstracted efa1, RGFullyAbstracted efa2) {
-    ImmutableMap<Integer, Integer> locCl1 = efa1.getSourceARTElement().getLocationClasses();
-    ImmutableMap<Integer, Integer> locCl2 = efa2.getSourceARTElement().getLocationClasses();
+    /* The location classes refer only to the locations of the transitions' source thread.
+     * Technically we should compare location classes of all threads, but we know that
+     * the match anyway the location classes of the element where they're going to be applied.
+     */
+    Pair<Integer, Integer> locCl1 = efa1.getLocClasses();
+    Pair<Integer, Integer> locCl2 = efa2.getLocClasses();
 
     if (!locCl1.equals(locCl2)){
       return false;

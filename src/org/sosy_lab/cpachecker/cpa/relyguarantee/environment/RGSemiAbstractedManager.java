@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGSemiAbstracted;
@@ -112,7 +113,7 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
 
 
   @Override
-  public RGSemiAbstracted generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> preds) {
+  public RGSemiAbstracted generateEnvTransition(RGEnvCandidate cand, Collection<AbstractionPredicate> preds, RGLocationMapping lm) {
     stats.generationTimer.start();
 
     // abstract
@@ -122,9 +123,14 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
     Formula aPred = fManager.uninstantiate(aFilter.asFormula());
     Region aPredReg = aFilter.asRegion();
 
+    // find classes for locations of the source thread
+    int sCl = lm.get(cand.getElement().retrieveLocationElement().getLocationNode());
+    int tCl = lm.get(cand.getSuccessor().retrieveLocationElement().getLocationNode());
+    Pair<Integer, Integer> locCl = Pair.of(sCl, tCl);
+
     SSAMap ssa = cand.getRgElement().getAbsPathFormula().getSsa();
     CFAEdge operation = cand.getOperation();
-    RGSemiAbstracted sa = new RGSemiAbstracted(aPred, aPredReg, ssa, operation, cand.getElement(), cand.getSuccessor(), cand.getTid(), pfManager.makeEmptyPathFormula());
+    RGSemiAbstracted sa = new RGSemiAbstracted(aPred, aPredReg, ssa, operation, cand.getElement(), cand.getSuccessor(), cand.getTid(), pfManager.makeEmptyPathFormula(), locCl);
 
     stats.generationTimer.stop();
     return sa;
@@ -230,8 +236,8 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
       return false;
     }
 
-     ImmutableMap<Integer, Integer> locCl1 = sa1.getSourceARTElement().getLocationClasses();
-    ImmutableMap<Integer, Integer> locCl2 = sa2.getSourceARTElement().getLocationClasses();
+    Pair<Integer, Integer> locCl1 = sa1.getLocClasses();
+    Pair<Integer, Integer> locCl2 = sa2.getLocClasses();
 
     if (!locCl1.equals(locCl2)){
       return false;
