@@ -162,9 +162,20 @@ class Util:
         s = s.strip()
         if s.endswith('s'): # '1.23s'
             s = s[:-1].strip() # remove last char
-        elif s == '-':
+        elif s in ['-', '']:
             s = 0
         return Decimal(s)
+
+
+    @staticmethod
+    def copyXMLElem(elem):
+        """
+        this function is needed for python < 2.7
+        """
+        copy = ET.Element(elem.tag)
+        for child in elem.getchildren(): copy.append(child)
+        for key, value in elem.attrib: copy.set(key, value)
+        return copy
 
 
 class Column:
@@ -269,7 +280,7 @@ def appendTests(listOfTests, filelist, columnsToShow=None):
                            for c in resultElem.find('sourcefile').findall('column')]
 
             insertLogFileNames(resultFile, resultElem)
-            listOfTests.append((resultElem, columns))
+            listOfTests.append(Result(resultElem, None, columns))
         else:
             print ('File {0} is not found.'.format(repr(resultFile)))
             exit()
@@ -313,19 +324,99 @@ def mergeFilelists(listOfTests):
     the sourcefiles have the same order in all tests. 
     Invalid testsElements are removed.
     """
-    filenames = [e.get('name') for e in listOfTests[0][0].findall('sourcefile')]
     mergedListOfTests = []
-    for testResult, columns in listOfTests:
-        # TODO handle missing files, similar to regression.py?
-        # check for equal files in the tests
-        if containEqualFiles(listOfTests[0][0], testResult):
-            mergedListOfTests.append(
-                Result(testResult, testResult.findall('sourcefile'), columns))
-        else:
-            print ('    {0} contains different files, skipping resultfile'.
-                        format(testResult.get("filename")))
-            continue
-    return mergedListOfTests, filenames
+    emptyElemList = getEmptyElements(listOfTests)
+    listOfSourcefileDics = getSourcefileDics(listOfTests)
+    filenames = getFilenames(listOfTests)
+
+    mergedList = []
+    
+    if options.merge:
+        for result, dic, emptyElem in zip(listOfTests, listOfSourcefileDics, emptyElemList):
+            result.filelist = []
+            for filename in filenames:
+                if filename in dic:
+                    fileResult = dic[filename]
+                else:
+                    fileResult = Util.copyXMLElem(emptyElem) # make copy, because it is changed
+                    fileResult.set('name', filename)
+                    fileResult.logfile = ''
+                    print ('    no result for {0}'.format(filename))
+                result.filelist.append(fileResult)
+            mergedList.append(result)
+
+    else: # check for equal files
+        for result in listOfTests:
+            if containEqualFiles(listOfTests[0], result):
+                result.filelist = result.findall('sourcefile')
+                mergedList.append(result)
+            else:
+                print ('    {0} contains different files, skipping resultfile'.
+                        format(result.get("filename")))
+                continue
+
+    for result in mergedList:
+        assert len(result.filelist) == len(mergedList[0].filelist)
+
+    return mergedList, filenames
+
+
+def getFilenames(listOfTests):
+    """
+    this function returns a list of filenames.
+    if necessary, it can merge lists of names: [A,C] + [A,B] --> [A,B,C]
+    """
+    if options.merge:
+        lists = [[file.get('name') for file in result.findall('sourcefile')]
+                 for result in listOfTests]
+        nameList = []
+        nameSet = set()
+        for list in lists:
+            index = 0
+            for name in list:
+                if name not in nameSet:
+                    nameList.insert(index+1, name)
+                    nameSet.add(name)
+                    index += 1
+                else:
+                    index = nameList.index(name)
+
+    else:
+        nameList = [file.get('name') for file in listOfTests[0].findall('sourcefile')]
+    return nameList
+
+
+def getEmptyElements(listOfTests):
+    """
+    this function creates empty xml-elements (dummies) for sourcefiles.
+    the elemnt contains columns with an empty value.
+    """
+    emptyElemList = []
+    for result in listOfTests:
+        emptyElem = ET.Element('sourcefile')
+        for column in result.find('sourcefile').findall('column'):
+            emptyElem.append(
+                ET.Element('column', title=column.get('title'), value=''))
+        emptyElemList.append(emptyElem)
+    return emptyElemList
+
+
+def getSourcefileDics(listOfTests):
+    """
+    this function returns a list of dictionaries
+    with key=filename and value=resultElem.
+    """
+    listOfFileDics = []
+    for result in listOfTests:
+        dic = {}
+        for fileResult in result.findall('sourcefile'):
+            filename = fileResult.get('name')
+            if filename in dic: # file tested twice in benchmark, should not happen
+                print ("file '{0}' is used twice. skipping file.".format(filename))
+            else:
+                dic[filename] = fileResult
+        listOfFileDics.append(dic)
+    return listOfFileDics
 
 
 def getTableHead(listOfTests, fileNames):
@@ -934,7 +1025,12 @@ def main(args=None):
     )
     parser.add_option("-d", "--dump",
         action="store_true", dest="dumpCounts",
-        help="Should the good, bad, unknown counts be printed? "
+        help="Should the good, bad, unknown counts be printed?"
+    )
+    parser.add_option("-m", "--merge",
+        action="store_true", dest="merge",
+        help="If resultfiles with distinct sourcefiles are found, " \
+            + "should the sourcefilenames be merged?"
     )
 
     global options
