@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
+import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
+
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
@@ -30,7 +32,6 @@ import java.util.ArrayList;
 
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaList;
 
 
 /**
@@ -43,9 +44,8 @@ class Mathsat5Formula implements Formula, Serializable {
   private final long msatEnv;
 
   public Mathsat5Formula(long e, long t) {
-    if (Mathsat5NativeApi.MSAT_ERROR_TERM(t)) {
-      throw new IllegalArgumentException("Error: term is not a valid mathsat term");
-    }
+    assert e != 0;
+    assert t != 0;
 
     msatTerm = t;
     msatEnv = e;
@@ -58,19 +58,17 @@ class Mathsat5Formula implements Formula, Serializable {
 
   @Override
   public boolean isFalse() {
-    int isFalse = Mathsat5NativeApi.msat_term_is_false(msatEnv, msatTerm);
-    boolean res = (isFalse != 0);
-    return res;
+    return msat_term_is_false(msatEnv, msatTerm);
   }
 
   @Override
   public boolean isTrue() {
-    return Mathsat5NativeApi.msat_term_is_true(msatEnv, msatTerm) != 0;
+    return msat_term_is_true(msatEnv, msatTerm);
   }
 
   @Override
   public String toString() {
-    return Mathsat5NativeApi.msat_term_repr(msatTerm);
+    return msat_term_repr(msatTerm);
   }
 
   @Override
@@ -86,22 +84,6 @@ class Mathsat5Formula implements Formula, Serializable {
   @Override
   public int hashCode() {
     return (int) msatTerm;
-  }
-
-  protected int getArity() {
-    return Mathsat5NativeApi.msat_term_arity(msatTerm);
-  }
-
-  protected long getArg(int index) {
-    return Mathsat5NativeApi.msat_term_get_arg(msatTerm, index);
-  }
-
-  protected long getDeclaration() {
-    return Mathsat5NativeApi.msat_term_get_decl(msatTerm);
-  }
-
-  protected long getReturnType() {
-    return Mathsat5NativeApi.msat_decl_get_return_type(getDeclaration());
   }
 
   private Object writeReplace() throws ObjectStreamException {

@@ -39,9 +39,7 @@ public class Mathsat5FormulaList implements FormulaList, Serializable {
    */
   public Mathsat5FormulaList(long... terms) {
     for (long t : terms) {
-      if (Mathsat5NativeApi.MSAT_ERROR_TERM(t)) {
-        throw new IllegalArgumentException("Error term is not a valid formula");
-      }
+      assert t != 0;
     }
     this.terms = terms;
   }

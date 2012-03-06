@@ -53,17 +53,17 @@ public class ArithmeticMathsat5FormulaManager extends Mathsat5FormulaManager {
   private final long divUfDecl;
   private final long modUfDecl;
 
-  public ArithmeticMathsat5FormulaManager(Configuration config, LogManager logger, boolean pUseIntegers)
+  public ArithmeticMathsat5FormulaManager(Configuration config, LogManager logger, final boolean pUseIntegers)
       throws InvalidConfigurationException {
-    super(config, logger, pUseIntegers ? MSAT_INT : MSAT_REAL);
+    super(config, logger, new MsatType() {
+      @Override
+      public long getVariableType(long pMsatEnv) {
+        return pUseIntegers ? msat_get_integer_type(pMsatEnv) : msat_get_rational_type(pMsatEnv);
+      }
+    });
 
-
-    final long msatVarType = msat_get_rational_type(msatEnv);
-    final long[] msatVarType1 = { msatVarType };
-    final long[] msatVarType2 = { msatVarType, msatVarType };
-
-    long functionType2 = msat_get_function_type(msatEnv, msatVarType2, 2, msatVarType);
-    long functionType1 = msat_get_function_type(msatEnv, msatVarType1, 1, msatVarType);
+    long functionType2 = msat_get_function_type(msatEnv, new long[] { msatVarType, msatVarType }, 2, msatVarType);
+    long functionType1 = msat_get_function_type(msatEnv, new long[] { msatVarType }, 1, msatVarType);
 
     bitwiseAndUfDecl = msat_declare_function(msatEnv, "_&_", functionType2);
     bitwiseOrUfDecl = msat_declare_function(msatEnv, "_|_", functionType2);
@@ -74,8 +74,6 @@ public class ArithmeticMathsat5FormulaManager extends Mathsat5FormulaManager {
     multUfDecl = msat_declare_function(msatEnv, "_*_", functionType2);
     divUfDecl = msat_declare_function(msatEnv, "_/_", functionType2);
     modUfDecl = msat_declare_function(msatEnv, "_%_", functionType2);
-
-
   }
 
   @Override
@@ -132,7 +130,7 @@ public class ArithmeticMathsat5FormulaManager extends Mathsat5FormulaManager {
     long t2 = getTerm(f2);
 
     long result;
-    if (msat_term_is_number(msatEnv, t2) != 0) {
+    if (msat_term_is_number(msatEnv, t2)) {
       // invert t2 and multiply with it
       String n = msat_term_repr(t2);
       if (n.startsWith("(")) {
@@ -164,12 +162,10 @@ public class ArithmeticMathsat5FormulaManager extends Mathsat5FormulaManager {
     long t2 = getTerm(f2);
 
     long result;
-    if (msat_term_is_number(msatEnv, t1) != 0) {
+    if (msat_term_is_number(msatEnv, t1)) {
       result = msat_make_times(msatEnv, t1, t2);
-      assert (!MSAT_ERROR_TERM(result));
-    } else if (msat_term_is_number(msatEnv, t2) != 0) {
+    } else if (msat_term_is_number(msatEnv, t2)) {
       result = msat_make_times(msatEnv, t2, t1);
-      assert (!MSAT_ERROR_TERM(result));
     } else {
       result = buildMsatUF(multUfDecl, new long[] { t1, t2 });
     }
@@ -180,35 +176,30 @@ public class ArithmeticMathsat5FormulaManager extends Mathsat5FormulaManager {
   @Override
   public Formula makeEqual(Formula f1, Formula f2) {
     long t = msat_make_equal(msatEnv, getTerm(f1), getTerm(f2));
-    assert (!MSAT_ERROR_TERM(t));
     return encapsulate(t);
   }
 
   @Override
   public Formula makeGt(Formula f1, Formula f2) {
     long t = msat_make_not(msatEnv, msat_make_leq(msatEnv, getTerm(f1), getTerm(f2)));
-    assert (!MSAT_ERROR_TERM(t));
     return encapsulate(t);
   }
 
   @Override
   public Formula makeGeq(Formula f1, Formula f2) {
     long t = msat_make_leq(msatEnv, getTerm(f2), getTerm(f1));
-    assert (!MSAT_ERROR_TERM(t));
     return encapsulate(t);
   }
 
   @Override
   public Formula makeLt(Formula f1, Formula f2) {
     long t = msat_make_not(msatEnv, msat_make_leq(msatEnv, getTerm(f2), getTerm(f1)));
-    assert (!MSAT_ERROR_TERM(t));
     return encapsulate(t);
   }
 
   @Override
   public Formula makeLeq(Formula f1, Formula f2) {
     long t = msat_make_leq(msatEnv, getTerm(f1), getTerm(f2));
-    assert (!MSAT_ERROR_TERM(t));
     return encapsulate(t);
   }
 
@@ -276,10 +267,10 @@ public class ArithmeticMathsat5FormulaManager extends Mathsat5FormulaManager {
       final Formula tt = toProcess.pollLast();
       final long t = getTerm(tt);
 
-      if (msat_term_is_number(msatEnv, t) != 0) {
+      if (msat_term_is_number(msatEnv, t)) {
         allLiterals.add(tt);
       }
-      if (msat_term_is_uf(msatEnv, t) != 0) {
+      if (msat_term_is_uf(msatEnv, t)) {
         String r = msat_term_repr(t);
         if (r.startsWith("_&_")) {
           andFound = true;

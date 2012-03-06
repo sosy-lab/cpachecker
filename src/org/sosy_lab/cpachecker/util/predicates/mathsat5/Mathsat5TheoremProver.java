@@ -69,8 +69,7 @@ public class Mathsat5TheoremProver implements TheoremProver {
   @Override
   public void pop() {
     Preconditions.checkState(curEnv != 0);
-    int ok = msat_pop_backtrack_point(curEnv);
-    assert (ok == 0);
+    msat_pop_backtrack_point(curEnv);
   }
 
   @Override
@@ -118,8 +117,7 @@ public class Mathsat5TheoremProver implements TheoremProver {
     }
 
     MathsatAllSatCallback callback = new MathsatAllSatCallback(amgr, timer, allsatEnv);
-    int ass_res = msat_assert_formula(allsatEnv, formula);
-    assert (ass_res == 0);
+    msat_assert_formula(allsatEnv, formula);
 
     int numModels = msat_all_sat(allsatEnv, imp, callback);
 
@@ -203,7 +201,7 @@ public class Mathsat5TheoremProver implements TheoremProver {
       Region m = rmgr.makeTrue();
       for (long t : model) {
         Region v;
-        if (msat_term_is_not(env, t) != 0) {
+        if (msat_term_is_not(env, t)) {
           t = msat_term_get_arg(t, 0);
           v = amgr.getPredicate(new Mathsat5Formula(env, t)).getAbstractVariable();
           v = rmgr.makeNot(v);

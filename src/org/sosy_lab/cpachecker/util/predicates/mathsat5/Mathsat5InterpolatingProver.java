@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
+import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
+
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.Model;
@@ -49,9 +51,9 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
     public void init() {
         Preconditions.checkState(interpolEnv == 0);
 
-        cfg = Mathsat5NativeApi.msat_create_config();
-        Mathsat5NativeApi.msat_set_option(cfg, "interpolation", "true");
-        Mathsat5NativeApi.msat_set_option( cfg, "model_generation", "true");
+        cfg = msat_create_config();
+        msat_set_option(cfg, "interpolation", "true");
+        msat_set_option( cfg, "model_generation", "true");
         interpolEnv = mgr.createEnvironment(cfg, useSharedEnv, false);
     }
 
@@ -61,11 +63,11 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
 
         long t = ((Mathsat5Formula)f).getTerm();
         if (!useSharedEnv) {
-            t = Mathsat5NativeApi.msat_make_copy_from(interpolEnv, t, mgr.getMsatEnv());
+            t = msat_make_copy_from(interpolEnv, t, mgr.getMsatEnv());
         }
-        int group = Mathsat5NativeApi.msat_create_itp_group(interpolEnv);
-        Mathsat5NativeApi.msat_set_itp_group(interpolEnv, group);
-        Mathsat5NativeApi.msat_assert_formula(interpolEnv, t);
+        int group = msat_create_itp_group(interpolEnv);
+        msat_set_itp_group(interpolEnv, group);
+        msat_assert_formula(interpolEnv, t);
         return group;
     }
 
@@ -73,10 +75,10 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
     public boolean isUnsat() {
         Preconditions.checkState(interpolEnv != 0);
 
-        int res = Mathsat5NativeApi.msat_solve(interpolEnv);
-        assert(res != Mathsat5NativeApi.MSAT_UNKNOWN);
+        int res = msat_solve(interpolEnv);
+        assert(res != MSAT_UNKNOWN);
 
-        return res == Mathsat5NativeApi.MSAT_UNSAT;
+        return res == MSAT_UNSAT;
     }
 
     @Override
@@ -88,11 +90,10 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
         for (Integer f : formulasOfA) {
           groupsOfA[i++] = f;
         }
-        long itp = Mathsat5NativeApi.msat_get_interpolant(interpolEnv, groupsOfA);
-        assert(!Mathsat5NativeApi.MSAT_ERROR_TERM(itp));
+        long itp = msat_get_interpolant(interpolEnv, groupsOfA);
 
         if (!useSharedEnv) {
-            itp = Mathsat5NativeApi.msat_make_copy_from(mgr.getMsatEnv(), itp, interpolEnv);
+            itp = msat_make_copy_from(mgr.getMsatEnv(), itp, interpolEnv);
         }
         return new Mathsat5Formula(mgr.getMsatEnv(), itp);
     }
@@ -101,7 +102,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
     public void reset() {
         Preconditions.checkState(interpolEnv != 0);
 
-        Mathsat5NativeApi.msat_destroy_env(interpolEnv);
+        msat_destroy_env(interpolEnv);
         interpolEnv = 0;
     }
 
