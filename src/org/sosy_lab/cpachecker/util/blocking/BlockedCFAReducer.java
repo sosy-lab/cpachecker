@@ -404,11 +404,11 @@ public class BlockedCFAReducer implements BlockComputer {
   }
 
   private void addAbstNode(ItemTree<String, CFANode> pTarget, String[] pStack, CFANode pNode) {
-    System.out.print("Abstractionnode: ");
-    for (String s : pStack) {
-      System.out.print(s + ">");
-    }
-    System.out.println(pNode.getLineNumber());
+//    System.out.print("Abstractionnode: ");
+//    for (String s : pStack) {
+//      System.out.print(s + ">");
+//    }
+//    System.out.println(pNode.getLineNumber());
 
     pTarget.put(pStack).addLeaf(pNode, true);
   }
