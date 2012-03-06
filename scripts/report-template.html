@@ -115,7 +115,7 @@ html,body {
     background-color: #f3f3f3;
 }
 
-#errpathwin ul li.selected {
+#errpathwin ul > li.selected {
     border: 1px solid red;
     margin: 0px;
 }
@@ -744,7 +744,7 @@ a.action:hover {
                 //errorpath edge selection handler
                 function edge_clickaction(edgeid, errpathindex) {
                     return function() {
-                        errpathelem_select(this.parentNode);
+                        errpathelem_select(this.parentNode.parentNode);
                         viewer.windows.simulator.pos = errpathindex;
                         self.handlers.fire('edge_selected', edgeid, errpathindex);
                     };
@@ -1050,10 +1050,10 @@ a.action:hover {
                     line--;
                 }
                 if (selected_cil) {
-                    selected_cil.style.backgroundColor = '#fff';
+                    selected_cil.children[1].children[0].style.backgroundColor = '';
                 }
                 selected_cil = document.getElementById('cil_line_' + line);
-                selected_cil.style.backgroundColor = 'red';
+                selected_cil.children[1].children[0].style.backgroundColor = 'red';
                 selected_cil.scrollIntoView();
             }
 
