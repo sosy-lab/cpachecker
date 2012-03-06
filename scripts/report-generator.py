@@ -86,11 +86,14 @@ def call_dot(infile, outpath):
             os.remove(outfile) # sometimes outfile is written half, so cleanup
         except OSError:
             pass # if outfile is not written, removing is impossible
+        return False
 
     if code != 0:
         print ('Error: Could not call GraphViz to create graph {0} (error code {1})'.format(outfile, code))
         print ('Report generation failed')
         sys.exit(1)
+
+    return True
 
 def main():
 
@@ -131,6 +134,12 @@ def main():
         dest="errorpath",
         help="CPAChecker cpa.art.errorPath.json"
     )
+    parser.add_option("-g", "--errorpathgraph",
+        action="store",
+        type="string",
+        dest="errorpathgraph",
+        help="CPAChecker cpa.art.errorPath.graph"
+    )
     parser.add_option("-c", "--config",
         action="store",
         type="string",
@@ -150,6 +159,7 @@ def main():
     tplfilepath = os.path.join(scriptdir, 'report-template.html')
     outfilepath = os.path.join(reportdir, 'index.html')
     artfilepath = options.art or os.path.join(cpaoutdir, 'ART.dot')
+    errorpathgraph = options.errorpathgraph or os.path.join(cpaoutdir, 'ErrorPath.dot')
     errorpath = options.errorpath or os.path.join(cpaoutdir, 'ErrorPath.json')
     combinednodes = os.path.join(reportdir, 'combinednodes.json')
     cfainfo = os.path.join(reportdir, 'cfainfo.json')
@@ -203,7 +213,10 @@ def main():
     #if there is an ART.dot create an SVG in the report dir
     if os.path.isfile(artfilepath):
         print ('Generating SVG for ART')
-        call_dot(artfilepath, reportdir)
+        if not call_dot(artfilepath, reportdir) and os.path.isfile(errorpathgraph):
+            if call_dot(errorpathgraph, reportdir):
+                os.rename(os.path.join(reportdir, 'ErrorPath.svg'),
+                          os.path.join(reportdir, 'ART.svg'))
 
     inf = open(tplfilepath, 'r')
     outf = open(outfilepath, 'w')
