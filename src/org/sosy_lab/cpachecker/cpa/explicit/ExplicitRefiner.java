@@ -209,23 +209,38 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     for(Pair<ARTElement, CFAEdge> el : path){
       cfaTrace.add(el.getSecond());
     }
-
+firstInterpolationPoint = null;
     AssignedVariablesCollector collector = new AssignedVariablesCollector();
     Multimap<CFAEdge, ReferencedVariable> assignedVariables = collector.collectVars(cfaTrace);
     Set<ReferencedVariable> ignoreAlways = new HashSet<ReferencedVariable>();
-int i = 0;
+
     try {
       for(Pair<ARTElement, CFAEdge> pathElement : path){
         numberOfErrorPathElements++;
         Collection<ReferencedVariable> varsAtEdge = assignedVariables.get(pathElement.getSecond());
 
+        // if all variables are already part of the interpolant, nothing more to do here ...
+/*
+        int tracked = 0;
+        for(ReferencedVariable var : varsAtEdge) {
+          CFANode succ = pathElement.getSecond().getSuccessor();
+System.out.println();
+System.out.println(intPol != null);
+if(intPol != null) {
+  System.out.println(intPol.containsKey(succ));
+  if(intPol.containsKey(succ))
+    System.out.println(intPol.get(succ).contains(var));
+}
+          if(intPol != null && intPol.containsKey(succ) && intPol.get(succ).contains(var)) {
+            tracked++;
+          }
+        }
+        // ... just try next edge
+        if(tracked == varsAtEdge.size()) {
+          continue;
+        }
+*/
         boolean feasible = false;
-
-        String statement = pathElement.getSecond().getRawStatement();
-        int len = statement.length();
-        if(statement.indexOf("\n") != -1)
-          len = statement.indexOf("\n");
-        //System.out.println("edge: " + pathElement.getSecond().getRawStatement().substring(0, len));
 
         if(!varsAtEdge.isEmpty()) {
           numberOfCounterExampleChecks++;
@@ -241,14 +256,15 @@ int i = 0;
 
 
         if(feasible) {
+          if(firstInterpolationPoint == null)
+            firstInterpolationPoint = Pair.of(pathElement.getFirst(), pathElement.getSecond().getSuccessor());
+
           for(ReferencedVariable var : varsAtEdge)
             interpolant.put(pathElement.getSecond().getSuccessor(), var.getName());
         }
         else {
           ignoreAlways.addAll(varsAtEdge);
         }
-
-        i++;
       }
 
     } catch (InterruptedException e) {
@@ -395,9 +411,9 @@ int i = 0;
       // expand the mapping of CFA nodes to variable names, with a def-use analysis along that path
       Multimap<CFANode, String> relevantVariablesOnPath = getRelevantVariablesOnPath(errorPath, predicates);
 
-      assert firstInterpolationPoint != null;
+
 */
-      firstInterpolationPoint = errorPath.get(0);
+      assert firstInterpolationPoint != null;
       // create the new precision
       precision = createExplicitPrecision(extractExplicitPrecision(oldPrecision),
           intPol,
