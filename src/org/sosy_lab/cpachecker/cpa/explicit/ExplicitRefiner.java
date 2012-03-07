@@ -27,6 +27,7 @@ import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -82,7 +83,6 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -124,6 +124,10 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
   private Multimap<CFANode, String> intPol = null;
 
+  private int numberOfCounterExampleChecks = 0;
+  private int numberOfErrorPathElements = 0;
+  private Timer timerCounterExampleChecks = new Timer();
+
   public static ExplicitRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     if (!(pCpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(ExplicitRefiner.class.getSimpleName() + " could not find the ExplicitCPA");
@@ -135,6 +139,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     }
 
     ExplicitRefiner refiner = initialiseExplicitRefiner(pCpa, explicitCpa.getConfiguration(), explicitCpa.getLogger());
+    explicitCpa.getStats().addRefiner(refiner);
 
     return refiner;
   }
@@ -158,11 +163,10 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       absManager            = predicateCpa.getPredicateManager();
     } else {
       factory               = new FormulaManagerFactory(config, logger);
-      RegionManager regionManager                 = BDDRegionManager.getInstance();
       formulaManager        = new ExtendedFormulaManager(factory.getFormulaManager(), config, logger);
       pathFormulaManager    = new PathFormulaManagerImpl(formulaManager, config, logger);
       theoremProver         = factory.createTheoremProver();
-      absManager            = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
+      absManager            = new PredicateAbstractionManager(BDDRegionManager.getInstance(), formulaManager, theoremProver, config, logger);
     }
 
     manager = new PredicateRefinementManager(formulaManager,
@@ -181,16 +185,16 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     config.inject(this, ExplicitRefiner.class);
 
-    this.fmgr                = pFmgr;
-    this.pathFormulaManager  = pPathFormulaManager;
-    this.predicateCpaAvailable   = predicateCpaInUse;
+    this.fmgr                   = pFmgr;
+    this.pathFormulaManager     = pPathFormulaManager;
+    this.predicateCpaAvailable  = predicateCpaInUse;
 
     // TODO: runner-up award for ugliest hack of the month ...
     globalVars = ExplicitTransferRelation.globalVarsStatic;
   }
 
   private Multimap<CFANode, String> getInterpolants(ARTReachedSet reachedSet) throws CPAException {
-
+    timerCounterExampleChecks.start();
     Multimap<CFANode, String> interpolant = HashMultimap.create();
 
     ARTElement root   = (ARTElement)reachedSet.asReachedSet().getFirstElement();
@@ -212,7 +216,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 int i = 0;
     try {
       for(Pair<ARTElement, CFAEdge> pathElement : path){
-
+        numberOfErrorPathElements++;
         Collection<ReferencedVariable> varsAtEdge = assignedVariables.get(pathElement.getSecond());
 
         boolean feasible = false;
@@ -224,6 +228,7 @@ int i = 0;
         //System.out.println("edge: " + pathElement.getSecond().getRawStatement().substring(0, len));
 
         if(!varsAtEdge.isEmpty()) {
+          numberOfCounterExampleChecks++;
           String ignoreThese = Joiner.on(",").join(varsAtEdge);
           if(!ignoreAlways.isEmpty())
             ignoreThese = ignoreThese + "," + Joiner.on(",").join(ignoreAlways);
@@ -250,6 +255,7 @@ int i = 0;
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
+    timerCounterExampleChecks.stop();
     System.out.println("interpolant = " + interpolant);
 
     return interpolant;
@@ -700,5 +706,14 @@ System.out.println(((ExplicitPrecision)precision).getCegarPrecision());
     }
 
     return sb.toString();
+  }
+
+  void printStatistics(PrintStream out) {
+    out.println("counter-example checks:");
+    out.println("  number of checks:                         " + numberOfCounterExampleChecks);
+    out.println("  total number of elements in error paths:  " + numberOfErrorPathElements);
+    out.println("  percentage of elements checked:           " + (Math.round(((double)numberOfCounterExampleChecks / (double)numberOfErrorPathElements) * 10000) / 100.00) + "%");
+    out.println("  max. time for singe check:            " + timerCounterExampleChecks.printMaxTime());
+    out.println("  total time for checks:                " + timerCounterExampleChecks);
   }
 }

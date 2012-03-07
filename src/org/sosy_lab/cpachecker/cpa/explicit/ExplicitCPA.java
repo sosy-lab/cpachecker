@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import java.util.Collection;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -46,12 +48,14 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 
 @Options(prefix="cpa.explicit")
-public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
+public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ExplicitCPA.class);
@@ -77,6 +81,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
   private final ExplicitReducer reducer;
+  private final ExplicitCPAStatistics statistics;
 
   private final Configuration config;
   private final LogManager logger;
@@ -96,6 +101,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
     stopOperator        = initializeStopOperator();
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     reducer             = new ExplicitReducer();
+    statistics          = new ExplicitCPAStatistics();
 
     checker = new CounterexampleCPAChecker(config, logger, new ReachedSetFactory(config, logger), CoreComponentsFactory.static_cfa);
   }
@@ -178,5 +184,14 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
   @Override
   public Reducer getReducer() {
     return reducer;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(statistics);
+  }
+
+  ExplicitCPAStatistics getStats() {
+    return statistics;
   }
 }
