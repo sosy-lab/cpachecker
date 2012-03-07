@@ -1581,11 +1581,10 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
     @return: status of CPAchecker after running a testfile
     """
 
-    def isOutOfMemory(line):
-        return ('java.lang.OutOfMemoryError' in line
-             or 'std::bad_alloc'             in line # C++ out of memory exception
+    def isOutOfNativeMemory(line):
+        return ('std::bad_alloc'             in line # C++ out of memory exception (MathSAT)
              or 'Cannot allocate memory'     in line
-             or line.startswith('out of memory')
+             or line.startswith('out of memory')     # CuDD
              )
 
     if returnsignal == 0:
@@ -1607,11 +1606,15 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
         status = "ERROR ({0})".format(returnsignal)
 
     for line in output.splitlines():
-        if isOutOfMemory(line):
+        if 'java.lang.OutOfMemoryError' in line:
             status = 'OUT OF MEMORY'
+        elif isOutOfNativeMemory(line):
+            status = 'OUT OF NATIVE MEMORY'
         elif 'SIGSEGV' in line:
             status = 'SEGMENTATION FAULT'
-        elif (returncode == 0 or returncode == 1) and ('Exception' in line):
+        elif ((returncode == 0 or returncode == 1)
+                and ('Exception' in line)
+                and not line.startswith('cbmc')): # ignore "cbmc error output: ... Minisat::OutOfMemoryException"
             status = 'EXCEPTION'
         elif 'Could not reserve enough space for object heap' in line:
             status = 'JAVA HEAP ERROR'
