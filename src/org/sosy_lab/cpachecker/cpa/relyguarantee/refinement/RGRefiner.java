@@ -102,7 +102,7 @@ public class RGRefiner implements StatisticsProvider{
 
   @Option(name="refinement.lazy",
       description="Use lazy refinement rather than restart the analysis.")
-  private boolean lazy = false;
+  private boolean lazy = true;
 
   @Option(name="refinement.lazy.shareDroppedPrecision",
       description="Add all predicates in the subtree to the pivot element.")
@@ -462,8 +462,6 @@ public class RGRefiner implements StatisticsProvider{
   private Map<Integer, Map<ARTElement, Precision>> getLazyLocationRefinement(ARTReachedSet[] reachedSets, InterpolationTreeResult info) throws RefinementFailedException {
 
     Map<Integer, Map<ARTElement, Precision>> refMap = new HashMap<Integer, Map<ARTElement, Precision>>(threadNo);
-
-    assert !refMap.isEmpty() : "No mistmaching location found.";
 
     /* for every path we take one pair of mistmatching location (e.g. the first one);
        all paths belong to the same thread */
@@ -1024,8 +1022,6 @@ public class RGRefiner implements StatisticsProvider{
       envGlobalBldr = envGlobalBldr.addAll(oldPrec.getEnvGlobalPredicates());
       envGlobalBldr = envGlobalBldr.addAll(newEnvPredicates.values());
       envGlobalPredicates = envGlobalBldr.build();
-
-      environment.addPredicatesToEnvPrecision(i, null, newEnvPredicates.values());
 
       if (debug){
         dEnvGlobal = new HashSet<AbstractionPredicate>(newEnvPredicates.values());
