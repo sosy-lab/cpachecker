@@ -102,9 +102,9 @@ void throwException(JNIEnv *env, const char *name, const char *msg) {
     goto out##num; \
   }
 
-#define STRUCT_ARRAY_OUTPUT_ARG(mtype, num) \
-  mtype *p_arg##num = NULL; \
-  mtype ** m_arg##num = &p_arg##num;
+#define STRUCT_ARRAY_OUTPUT_ARG(num) \
+  size_t s_arg##num = 0; \
+  size_t *m_arg##num = &s_arg##num;
 
 #define CALL0(mreturn, func) mreturn retval = msat_##func();
 #define CALL1(mreturn, func) mreturn retval = msat_##func(m_arg1);
@@ -133,6 +133,17 @@ void throwException(JNIEnv *env, const char *name, const char *msg) {
   }
 
 #define STRUCT_RETURN \
+  if (retval.repr == NULL) { \
+    throwException(jenv, "java/lang/IllegalArgumentException", "MathSAT returned null"); \
+  } \
+  return (jlong)((size_t)(retval.repr)); \
+}
+
+#define STRUCT_RETURN_WITH_ENV \
+  if (retval.repr == NULL) { \
+    const char *msg = msat_last_error_message(m_arg1); \
+    throwException(jenv, "java/lang/IllegalArgumentException", msg); \
+  } \
   return (jlong)((size_t)(retval.repr)); \
 }
 
@@ -145,7 +156,7 @@ void throwException(JNIEnv *env, const char *name, const char *msg) {
   if (!(*jenv)->ExceptionCheck(jenv)) { \
     jretval = (*jenv)->NewStringUTF(jenv, retval); \
   } \
-  free(retval); \
+  msat_free(retval); \
   return jretval; \
 }
 
@@ -157,42 +168,47 @@ void throwException(JNIEnv *env, const char *name, const char *msg) {
 	return jretval; \
 }
 
+#define FAILURE_CODE_RETURN \
+  if (retval != 0) { \
+    const char *msg = msat_last_error_message(m_arg1); \
+    throwException(jenv, "java/lang/IllegalArgumentException", msg); \
+  } \
+}
+
 /**
  * This assumes that mathsat allocated an array,
- * put the address of it in p_arg##arg_num and
- * returned the length of it.
+ * returned the pointer and stored the size in the argument arg_num
+ * (which was declared with STRUCT_ARRAY_OUTPUT_ARG).
+ * It also assumes that the first argument is an environment.
  */
 #define RETURN_STRUCT_ARRAY(arg_num) \
   jlongArray jretval = NULL; \
   if ((*jenv)->ExceptionCheck(jenv)) { \
     goto out; \
   } \
-  if (retval < 0) { \
-    throwException(jenv, "java/lang/RuntimeException", "Mathsat returned error code"); \
-    goto out; \
-  } \
-  if (retval == 0) { \
-    jretval = (*jenv)->NewLongArray(jenv, 0); \
+  if (retval == NULL) { \
+    const char *msg = msat_last_error_message(m_arg1); \
+    throwException(jenv, "java/lang/IllegalArgumentException", msg); \
     goto out; \
   } \
   \
-  jlong *jarr = malloc(sizeof(jlong) * (size_t)retval); \
+  jlong *jarr = malloc(sizeof(jlong) * s_arg##arg_num); \
   if (jarr == NULL) { \
     throwException(jenv, "java/lang/OutOfMemoryError", "Cannot allocate native memory for passing return value from Mathsat"); \
     goto out; \
   } \
-  int i; \
-  for (i = 0; i < (size_t)retval; ++i) { \
-      jarr[i] = (jlong)((size_t)p_arg##arg_num[i].repr); \
+  size_t i; \
+  for (i = 0; i < s_arg##arg_num; ++i) { \
+      jarr[i] = (jlong)((size_t)retval[i].repr); \
   } \
-  jretval = (*jenv)->NewLongArray(jenv, (size_t)retval); \
+  jretval = (*jenv)->NewLongArray(jenv, s_arg##arg_num); \
   if (jretval != NULL) { \
-    (*jenv)->SetLongArrayRegion(jenv, jretval, 0, (size_t)retval, jarr); \
+    (*jenv)->SetLongArrayRegion(jenv, jretval, 0, s_arg##arg_num, jarr); \
   } \
   free(jarr); \
   \
   out: \
-  free(p_arg##arg_num); \
+  msat_free(retval); \
   \
   return jretval; \
 }
@@ -208,26 +224,26 @@ typedef jlong jjconf;
 
 typedef jlong jjterm;
 #define TERM_ARG(num) STRUCT_ARG(msat_term, num)
-#define TERM_RETURN STRUCT_RETURN
+#define TERM_RETURN STRUCT_RETURN_WITH_ENV
 typedef jlongArray jjtermArray;
 #define TERM_ARRAY_ARG(num) STRUCT_ARRAY_ARG(msat_term, num)
 #define FREE_TERM_ARRAY_ARG(num) FREE_STRUCT_ARRAY_ARG(num)
-#define TERM_ARRAY_OUTPUT_ARG(num) STRUCT_ARRAY_OUTPUT_ARG(msat_term, num)
+#define TERM_ARRAY_OUTPUT_ARG(num) STRUCT_ARRAY_OUTPUT_ARG(num)
 #define RETURN_TERM_ARRAY(arg_num) RETURN_STRUCT_ARRAY(arg_num)
 #define TERM_POINTER_ARG(num) STRUCT_POINTER_ARG(msat_term, num)
 #define PUT_TERM_POINTER_ARG(num) PUT_STRUCT_POINTER_ARG(num)
 
 typedef jlong jjdecl;
 #define DECL_ARG(num) STRUCT_ARG(msat_decl, num)
-#define DECL_RETURN STRUCT_RETURN
+#define DECL_RETURN STRUCT_RETURN_WITH_ENV
 
 typedef jlong jjmodel_iterator;
 #define MODEL_ITERATOR_ARG(num) STRUCT_ARG(msat_model_iterator, num)
-#define MODEL_ITERATOR_RETURN STRUCT_RETURN
+#define MODEL_ITERATOR_RETURN STRUCT_RETURN_WITH_ENV
 
 typedef jlong jjtype;
 #define TYPE_ARG(num) STRUCT_ARG(msat_type, num)
-#define TYPE_RETURN STRUCT_RETURN
+#define TYPE_RETURN STRUCT_RETURN_WITH_ENV
 typedef jlongArray jjtypeArray;
 #define TYPE_ARRAY_ARG(num) STRUCT_ARRAY_ARG(msat_type, num)
 #define FREE_TYPE_ARRAY_ARG(num) FREE_STRUCT_ARRAY_ARG(num)
@@ -236,8 +252,7 @@ typedef jlongArray jjtypeArray;
 typedef jint jjboolean;
 #define BOOLEAN_RETURN INT_RETURN;
 
-typedef jint jjfailureCode;
-#define FAILURE_CODE_RETURN INT_RETURN;
+typedef jvoid jjfailureCode;
 
 // Abbreviations for common combinations of return and argument types
 //
@@ -249,58 +264,11 @@ typedef jint jjfailureCode;
 // margX: Java type of argument X
 // jargX: Mathsat type of argument X
 
-#define b_func1t(func, func_escaped) \
-  DEFINE_FUNC(jboolean, func_escaped) WITH_ONE_ARG(jterm) \
-  STRUCT_ARG(msat_term, 1) \
-  CALL1(int, func) \
-  BOOLEAN_RETURN
-
-#define f_func1s(func, func_escaped, marg1) \
-  DEFINE_FUNC(jfailureCode, func_escaped) WITH_ONE_ARG(long) \
-  STRUCT_ARG(marg1, 1) \
-  CALL1(int, func) \
-  FAILURE_CODE_RETURN
-
 #define i_func1s(func, func_escaped, mreturn, marg1) \
   DEFINE_FUNC(int, func_escaped) WITH_ONE_ARG(long) \
   STRUCT_ARG(marg1, 1) \
   CALL1(mreturn, func) \
   INT_RETURN
-
-#define s_func1s(func, func_escaped, mreturn, marg1) \
-  DEFINE_FUNC(long, func_escaped) WITH_ONE_ARG(long) \
-  STRUCT_ARG(marg1, 1) \
-  CALL1(mreturn, func) \
-  STRUCT_RETURN
-
-#define f_func2si(func, func_escaped, marg1, marg2) \
-  DEFINE_FUNC(jfailureCode, func_escaped) WITH_TWO_ARGS(long, int) \
-  STRUCT_ARG(marg1, 1) \
-  SIMPLE_ARG(marg2, 2) \
-  CALL2(int, func) \
-  FAILURE_CODE_RETURN
-
-#define s_func2ss(func, func_escaped, mreturn, marg1, marg2) \
-  DEFINE_FUNC(long, func_escaped) WITH_TWO_ARGS(long, long) \
-  STRUCT_ARG(marg1, 1) \
-  STRUCT_ARG(marg2, 2) \
-  CALL2(mreturn, func) \
-  STRUCT_RETURN
-
-#define term_to_string(func, func_escaped) \
-  DEFINE_FUNC(string, func_escaped) WITH_TWO_ARGS(jenv, jterm) \
-  ENV_ARG(1) \
-  TERM_ARG(2) \
-  CALL2(char *, func) \
-  STRING_RETURN
-
-#define make_term_from_string(func, func_escaped) \
-  DEFINE_FUNC(jterm, func_escaped) WITH_TWO_ARGS(jenv, string) \
-  ENV_ARG(1) \
-  STRING_ARG(2) \
-  CALL2(msat_term, func) \
-  FREE_STRING_ARG(2) \
-  TERM_RETURN
 
 // Now really define the functions.
 
@@ -351,7 +319,8 @@ static int call_java_callback(msat_term *model, int size, void *user_data) {
 
 /*
  * msat_config msat_create_config(void)
- */DEFINE_FUNC(jconf, 1create_1config) WITHOUT_ARGS
+ */
+DEFINE_FUNC(jconf, 1create_1config) WITHOUT_ARGS
 CALL0(msat_config, create_config)
 CONF_RETURN
 
@@ -389,14 +358,14 @@ VOID_CALL1(destroy_env)
 /*
  * int msat_set_option(msat_config cfg, const char *option, const char *value);
  */
-DEFINE_FUNC(jfailureCode, 1set_1option) WITH_THREE_ARGS(jconf, string, string)
+DEFINE_FUNC(int, 1set_1option) WITH_THREE_ARGS(jconf, string, string)
 CONF_ARG(1)
 STRING_ARG(2)
 STRING_ARG(3)
 CALL3(int, set_option)
 FREE_STRING_ARG(3)
 FREE_STRING_ARG(2)
-FAILURE_CODE_RETURN
+INT_RETURN
 
 #define get_msat_type(name) \
   DEFINE_FUNC(jtype, 1get_1##name##_1type) WITH_ONE_ARG(jenv) \
@@ -525,9 +494,22 @@ DECL_RETURN
 
 
 
-s_func1s(make_true, 1make_1true, msat_term, msat_env)
+DEFINE_FUNC(jterm, 1make_1true) WITH_ONE_ARG(jenv)
+ENV_ARG(1)
+CALL1(msat_term, make_true)
+STRUCT_RETURN_WITH_ENV
 
-s_func1s(make_false, 1make_1false, msat_term, msat_env)
+DEFINE_FUNC(jterm, 1make_1false) WITH_ONE_ARG(jenv)
+ENV_ARG(1)
+CALL1(msat_term, make_false)
+STRUCT_RETURN_WITH_ENV
+
+DEFINE_FUNC(jterm, 1make_1not) WITH_TWO_ARGS(jenv, jterm)
+ENV_ARG(1)
+TERM_ARG(2)
+CALL2(msat_term, make_not)
+STRUCT_RETURN_WITH_ENV
+
 
 #define make_term_binary(name) \
   DEFINE_FUNC(jterm, 1make_1##name) WITH_THREE_ARGS(jenv, jterm, jterm) \
@@ -539,20 +521,11 @@ s_func1s(make_false, 1make_1false, msat_term, msat_env)
 
 make_term_binary(iff)
 make_term_binary(or)
-s_func2ss(make_not, 1make_1not, msat_term, msat_env, msat_term)
 make_term_binary(and)
 make_term_binary(equal)
 make_term_binary(leq)
 make_term_binary(plus)
 make_term_binary(times)
-
-//DEFINE_FUNC(jterm, 1make_1int_1congruence) WITH_FOUR_ARGS(jenv, int, jterm, jterm)
-//ENV_ARG(1)
-//SIMPLE_ARG(mpz_t, 2)
-//TERM_ARG(3)
-//TERM_ARG(4)
-//CALL4(msat_term, make_int_modular_congruence)
-//TERM_RETURN
 
 DEFINE_FUNC(jterm, 1make_1floor) WITH_TWO_ARGS(jenv, jterm)
 ENV_ARG(1)
@@ -705,14 +678,13 @@ DEFINE_FUNC(jterm, 1term_1get_1arg) WITH_TWO_ARGS(jterm, int)
 TERM_ARG(1)
 SIMPLE_ARG(int, 2)
 CALL2(msat_term, term_get_arg)
-TERM_RETURN
+STRUCT_RETURN
 
 DEFINE_FUNC(jtype, 1term_1get_1type) WITH_ONE_ARG(jterm)
 TERM_ARG(1)
 CALL1(msat_type, term_get_type)
-TYPE_RETURN
+STRUCT_RETURN
 
-#define func_term_is(name) b_func1t(term_is_##name, 1term_1is_1##name)
 #define func2_term_is(name, name_escaped) \
 	DEFINE_FUNC(jboolean, 1term_1is_##name_escaped) WITH_TWO_ARGS(jenv, jterm) \
 	ENV_ARG(1) \
@@ -726,8 +698,6 @@ func2_term_is(boolean_constant, 1boolean_1constant)
 func2_term_is(atom, 1atom)
 func2_term_is(number, 1number)
 
-//DEFINE_FUNC(int, 1term_1to_1number) WITH_TWO_ARGS(jenv, jterm)
-
 func2_term_is(and, 1and)
 func2_term_is(or, 1or)
 func2_term_is(not, 1not)
@@ -740,14 +710,11 @@ func2_term_is(leq, 1leq)
 func2_term_is(plus, 1plus)
 func2_term_is(times, 1times)
 
-//DEFINE_FUNC(float, 1term_1is_1int_1modular_1congruence) WITH_TWO_ARGS(jenv, jterm)
-
 func2_term_is(floor, 1floor)
 func2_term_is(array_read, 1array_1read)
 func2_term_is(array_write, 1array_1write)
 
 
-//#define func_term_is_bv(name) b_func1t(term_is_bv_##name, 1term_1is_1bv_1##name)
 #define func_term_is_bv(name) \
 	DEFINE_FUNC(jboolean, 1term_1is_1bv_1##name) WITH_TWO_ARGS(jenv, jterm) \
 	ENV_ARG(1) \
@@ -822,12 +789,15 @@ CALL2(msat_decl, find_decl)
 FREE_STRING_ARG(2)
 DECL_RETURN
 
-s_func1s(term_get_decl, 1term_1get_1decl, msat_decl, msat_term)
+DEFINE_FUNC(jdecl, 1term_1get_1decl) WITH_ONE_ARG(jterm)
+TERM_ARG(1)
+CALL1(msat_decl, term_get_decl)
+STRUCT_RETURN
 
 DEFINE_FUNC(jtype, 1decl_1get_1return_1type) WITH_ONE_ARG(jdecl)
 DECL_ARG(1)
 CALL1(msat_type, decl_get_return_type)
-TYPE_RETURN
+STRUCT_RETURN
 
 DEFINE_FUNC(int, 1decl_1id) WITH_ONE_ARG(jdecl)
 DECL_ARG(1)
@@ -840,7 +810,7 @@ DEFINE_FUNC(jtype, 1decl_1get_1arg_1type) WITH_TWO_ARGS(jdecl, int)
 DECL_ARG(1)
 SIMPLE_ARG(int, 2)
 CALL2(msat_type, decl_get_arg_type)
-TYPE_RETURN
+STRUCT_RETURN
 
 DEFINE_FUNC(string, 1decl_1get_1name) WITH_ONE_ARG(jdecl)
 DECL_ARG(1)
@@ -853,6 +823,22 @@ TERM_ARG(1)
 CALL1(char *, term_repr)
 STRING_RETURN
 
+
+#define term_to_string(func, func_escaped) \
+  DEFINE_FUNC(string, func_escaped) WITH_TWO_ARGS(jenv, jterm) \
+  ENV_ARG(1) \
+  TERM_ARG(2) \
+  CALL2(char *, func) \
+  STRING_RETURN
+
+#define make_term_from_string(func, func_escaped) \
+  DEFINE_FUNC(jterm, func_escaped) WITH_TWO_ARGS(jenv, string) \
+  ENV_ARG(1) \
+  STRING_ARG(2) \
+  CALL2(msat_term, func) \
+  FREE_STRING_ARG(2) \
+  TERM_RETURN
+
 make_term_from_string(from_string, 1from_1string)
 
 make_term_from_string(from_smtlib1, 1from_1smtlib1)
@@ -861,17 +847,15 @@ term_to_string(to_smtlib1, 1to_1smtlib1)
 term_to_string(to_smtlib2, 1to_1smtlib2)
 
 
-//f_func2si(add_theory, 1add_1theory, \
-//	msat_env, \
-//	msat_theory)
-//
-//f_func2si(set_theory_combination, 1set_1theory_1combination, \
-//	msat_env, \
-//	msat_theory_combination)
+DEFINE_FUNC(jfailureCode, 1push_1backtrack_1point) WITH_ONE_ARG(jenv)
+ENV_ARG(1)
+CALL1(int, push_backtrack_point)
+FAILURE_CODE_RETURN
 
-f_func1s(push_backtrack_point, 1push_1backtrack_1point, msat_env)
-
-f_func1s(pop_backtrack_point, 1pop_1backtrack_1point, msat_env)
+DEFINE_FUNC(jfailureCode, 1pop_1backtrack_1point) WITH_ONE_ARG(jenv)
+ENV_ARG(1)
+CALL1(int, pop_backtrack_point)
+FAILURE_CODE_RETURN
 
 DEFINE_FUNC(void, 1reset_1env) WITH_ONE_ARG(jenv)
 ENV_ARG(1)
@@ -914,7 +898,7 @@ DEFINE_FUNC(jtermArray, 1get_1asserted_1formulas) WITH_ONE_ARG(jenv)
 		(*jenv)->SetLongArrayRegion(jenv, jretval, 0, (size_t) terms_size, jarr);
 	}
 	free(jarr);
-	out: free(retval);
+	out: msat_free(retval);
 	return jretval;
 }
 
@@ -939,7 +923,11 @@ out:
 FREE_TERM_ARRAY_ARG(2)
 INT_RETURN
 
-s_func2ss(get_model_value, 1get_1model_1value, msat_term, msat_env, msat_term)
+DEFINE_FUNC(jterm, 1get_1model_1value) WITH_TWO_ARGS(jenv, jterm)
+ENV_ARG(1)
+TERM_ARG(2)
+CALL2(msat_term, get_model_value)
+STRUCT_RETURN_WITH_ENV
 
 DEFINE_FUNC(jmodel_iterator, 1create_1model_1iterator) WITH_ONE_ARG(jenv)
 ENV_ARG(1)
@@ -965,81 +953,33 @@ DEFINE_FUNC(void, 1destroy_1model_1iterator) WITH_ONE_ARG(jmodel_iterator)
 MODEL_ITERATOR_ARG(1)
 VOID_CALL1(destroy_model_iterator)
 
+
 DEFINE_FUNC(jtermArray, 1get_1theory_1lemmas) WITH_ONE_ARG(jenv)
-	msat_env env;
-	env.repr = (void *) ((size_t) arg1);
-	size_t terms_size;
-	size_t *terms_size_ptr = &terms_size;
-	msat_term * retval = msat_get_theory_lemmas(env, terms_size_ptr);
+ENV_ARG(1)
+TERM_ARRAY_OUTPUT_ARG(2)
+CALL2(msat_term*, get_theory_lemmas)
+RETURN_TERM_ARRAY(2)
 
-		jlongArray jretval = ((void *) 0);
-		jlong *jarr = malloc(sizeof(jlong) * (size_t) terms_size);
-		if (jarr == ((void *) 0)) {
-			throwException(
-					jenv,
-					"java/lang/OutOfMemoryError",
-					"Cannot allocate native memory for passing return value from Mathsat");
-			goto out;
-		}
-		size_t i;
-		for (i = 0; i < terms_size; ++i) {
-			jarr[i] = (jlong)((size_t)retval[i].repr);
-		}
-		jretval = (*jenv)->NewLongArray(jenv, (size_t) terms_size);
-		if (jretval != ((void *) 0)) {
-			(*jenv)->SetLongArrayRegion(jenv, jretval, 0, (size_t) terms_size, jarr);
-		}
-		free(jarr);
-		out: free(retval);
-		return jretval;
-}
+DEFINE_FUNC(jtermArray, 1get_1unsat_1assumptions) WITH_ONE_ARG(jenv)
+ENV_ARG(1)
+TERM_ARRAY_OUTPUT_ARG(2)
+CALL2(msat_term*, get_unsat_assumptions)
+RETURN_TERM_ARRAY(2)
 
-//DEFINE_FUNC(jterm, 1get_1unsat_1core) WITH_ONE_ARG(jenv)
-//ENV_ARG(1)
-//STRUCT_POINTER_ARG(size_t, 2)
-//CALL2(msat_term, get_unsat_core)
-//TERM_ARRAY_OUTPUT_ARG()
 
-JNIEXPORT jjtermArray JNICALL Java_org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi_msat_1get_1unsat_1core(
-		JNIEnv *jenv, jclass jcls, jjenv arg1) {
-	msat_env env;
-	env.repr = (void *) ((size_t) arg1);
-	size_t terms_size;
-	size_t *terms_size_ptr = &terms_size;
-	msat_term * retval = msat_get_unsat_core(env, terms_size_ptr);
-
-	jlongArray jretval = ((void *) 0);
-	jlong *jarr = malloc(sizeof(jlong) * (size_t) terms_size);
-	if (jarr == ((void *) 0)) {
-		throwException(
-				jenv,
-				"java/lang/OutOfMemoryError",
-				"Cannot allocate native memory for passing return value from Mathsat");
-		goto out;
-	}
-	size_t i;
-	for (i = 0; i < terms_size; ++i) {
-		jarr[i] = (jlong)((size_t)retval[i].repr);
-	}
-	jretval = (*jenv)->NewLongArray(jenv, (size_t) terms_size);
-	if (jretval != ((void *) 0)) {
-		(*jenv)->SetLongArrayRegion(jenv, jretval, 0, (size_t) terms_size, jarr);
-	}
-	free(jarr);
-	out: free(retval);
-	return jretval;
-}
-
-//s_func1s(get_unsat_core, 1get_1unsat_1core, \
-//	msat_term, \
-//	msat_env)
-
-//f_func1s(init_interpolation, 1init_1interpolation, \
-//	msat_env)
+DEFINE_FUNC(jtermArray, 1get_1unsat_1core) WITH_ONE_ARG(jenv)
+ENV_ARG(1)
+TERM_ARRAY_OUTPUT_ARG(2)
+CALL2(msat_term*, get_unsat_core)
+RETURN_TERM_ARRAY(2)
 
 i_func1s(create_itp_group, 1create_1itp_1group, int, msat_env)
 
-f_func2si(set_itp_group, 1set_1itp_1group, msat_env, int)
+DEFINE_FUNC(jfailureCode, 1set_1itp_1group) WITH_TWO_ARGS(jenv, int)
+ENV_ARG(1)
+SIMPLE_ARG(int, 2)
+CALL2(int, set_itp_group)
+FAILURE_CODE_RETURN
 
 DEFINE_FUNC(jterm, 1get_1interpolant) WITH_THREE_ARGS(jenv, intArray, int)
 ENV_ARG(1)
@@ -1054,3 +994,6 @@ ENV_ARG(1)
 CALL1(const char *, last_error_message)
 CONST_STRING_RETURN
 
+DEFINE_FUNC(string, 1get_1version) WITHOUT_ARGS
+CALL0(char *, get_version)
+STRING_RETURN

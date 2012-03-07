@@ -543,4 +543,9 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
       return res;
     }
   }
+
+  @Override
+  public String getVersion(){
+    return "SMTInterpol, unknown version"; //TODO better information?
+  }
 }

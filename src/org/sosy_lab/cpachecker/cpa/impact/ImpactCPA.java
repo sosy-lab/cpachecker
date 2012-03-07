@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.impact;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -52,10 +51,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 public class ImpactCPA implements ConfigurableProgramAnalysis {
 
-  @Option(name="cpa.predicate.satsolver", toUppercase=true, values={"MATHSAT", "SMTINTERPOL"},
-      description="which satsolver to use?")
-  private String satsolver = "MATHSAT";
-
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ImpactCPA.class).withOptions(BlockOperator.class);
   }
@@ -74,7 +69,6 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
   private final TransferRelation transferRelation;
 
   private ImpactCPA(Configuration pConfig, LogManager pLogger, BlockOperator blk) throws InvalidConfigurationException {
-    pConfig.inject(this, ImpactCPA.class);
     config = pConfig;
     logger = pLogger;
 

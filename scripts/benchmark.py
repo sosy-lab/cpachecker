@@ -37,6 +37,7 @@ import glob
 import logging
 import os
 import platform
+import re
 import resource
 import signal
 import subprocess
@@ -1580,11 +1581,10 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
     @return: status of CPAchecker after running a testfile
     """
 
-    def isOutOfMemory(line):
-        return ('java.lang.OutOfMemoryError' in line
-             or 'std::bad_alloc'             in line # C++ out of memory exception
+    def isOutOfNativeMemory(line):
+        return ('std::bad_alloc'             in line # C++ out of memory exception (MathSAT)
              or 'Cannot allocate memory'     in line
-             or line.startswith('out of memory')
+             or line.startswith('out of memory')     # CuDD
              )
 
     if returnsignal == 0:
@@ -1606,8 +1606,10 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
         status = "ERROR ({0})".format(returnsignal)
 
     for line in output.splitlines():
-        if isOutOfMemory(line):
+        if 'java.lang.OutOfMemoryError' in line:
             status = 'OUT OF MEMORY'
+        elif isOutOfNativeMemory(line):
+            status = 'OUT OF NATIVE MEMORY'
         elif 'SIGSEGV' in line:
             status = 'SEGMENTATION FAULT'
         elif (returncode == 0 or returncode == 1) \
@@ -1829,6 +1831,14 @@ def main(argv=None):
     for arg in args[1:]:
         if not os.path.exists(arg) or not os.path.isfile(arg):
             parser.error("File {0} does not exist.".format(repr(arg)))
+
+    try:
+        processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
+        if len(re.findall("python.*benchmark\.py", processes)) > 1:
+            logging.warn("Already running instance of this script detected. " + \
+                         "Please make sure to not interfere with somebody else's benchmarks.")
+    except OSError:
+        pass # this does not work on Windows
 
     for arg in args[1:]:
         if STOPPED_BY_INTERRUPT: break

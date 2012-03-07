@@ -257,4 +257,6 @@ public interface FormulaManager {
      * Checks whether leftFormula occurs in rightFormula.
      */
     public boolean checkSyntacticEntails(Formula leftFormula, Formula rightFormula);
+
+    public String getVersion();
 }

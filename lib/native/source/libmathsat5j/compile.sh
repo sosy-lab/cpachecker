@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# For building libmathsatj.so, there are two dependencies:
+# For building libmathsat5j.so, there are two dependencies:
 # - The static Mathsat4 library as can be downloaded from http://mathsat4.disi.unitn.it/download.html
 # - The static GMP library compiled with the "-fPIC" option.
 #   To create this, download GMP from http://gmplib.org/ and run
@@ -42,9 +42,9 @@ else
 	exit 1
 fi
 
-MISSING_SYMBOLS="$(readelf -Ws libmathsatj.so | grep NOTYPE | grep GLOBAL | grep UND)"
+MISSING_SYMBOLS="$(readelf -Ws libmathsat5j.so | grep NOTYPE | grep GLOBAL | grep UND)"
 if [ ! -z "$MISSING_SYMBOLS" ]; then
-	echo "Warning: There are the following unresolved dependencies in libmathsatj.so:"
+	echo "Warning: There are the following unresolved dependencies in libmathsat5j.so:"
 	readelf -Ws libmathsat5j.so | grep NOTYPE | grep GLOBAL | grep UND
 	exit 1
 fi

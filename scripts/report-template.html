@@ -96,9 +96,13 @@ html,body {
     padding: 0px;
 }
 
-#errpathwin ul span {
+#errpathwin ul > li > span {
     width: 4em;
     background: #ccc;
+    display: inline-block;
+}
+
+#errpathwin ul > li > code > a {
     display: inline-block;
 }
 
@@ -107,7 +111,11 @@ html,body {
     white-space: nowrap;
 }
 
-#errpathwin ul li.selected {
+#errpathwin ul > li:nth-child(odd) {
+    background-color: #f3f3f3;
+}
+
+#errpathwin ul > li.selected {
     border: 1px solid red;
     margin: 0px;
 }
@@ -194,6 +202,11 @@ a.action:hover {
 #tab_cil #cil_holder td pre {
     padding: 0px;
     margin: 0px;
+    border: none;
+}
+
+#tab_cil #cil_holder tr:nth-child(2n+1) td pre.prettyprint {
+    background-color: #f3f3f3;
 }
 
 .zoomSliderContainer {
@@ -232,9 +245,13 @@ a.action:hover {
 }
 
 </style>
+
+    <link href="http://www.sosy-lab.org/lib/google-code-prettify-2011-06-01/prettify.css" type="text/css" rel="stylesheet" />
+    <script type="text/javascript" src="http://www.sosy-lab.org/lib/google-code-prettify-2011-06-01/prettify.js"></script>
+
     </head>
 
-    <body>
+    <body onload="prettyPrint()">
         <div class="toolbar" id="header">
             <h1>CPAchecker Report</h1>
             <small>Generated: {{{time_generated}}}</small>
@@ -727,7 +744,7 @@ a.action:hover {
                 //errorpath edge selection handler
                 function edge_clickaction(edgeid, errpathindex) {
                     return function() {
-                        errpathelem_select(this.parentNode);
+                        errpathelem_select(this.parentNode.parentNode);
                         viewer.windows.simulator.pos = errpathindex;
                         self.handlers.fire('edge_selected', edgeid, errpathindex);
                     };
@@ -851,8 +868,11 @@ a.action:hover {
                         edgelink.innerHTML = step.desc;
                         edgelink.onclick = edge_clickaction([step['source'], step['target']], i);
                         edgelink.style.textIndent = '' + (level * 15) + 'px';
-                        edgelink.style.display = 'inline-block';
-                        li.appendChild(edgelink);
+
+                        var code = document.createElement('code');
+                        code.className = 'prettyprint lang-c';
+                        code.appendChild(edgelink);
+                        li.appendChild(code);
                         ul.appendChild(li);
                     }
                 };
@@ -1030,10 +1050,10 @@ a.action:hover {
                     line--;
                 }
                 if (selected_cil) {
-                    selected_cil.style.backgroundColor = '#fff';
+                    selected_cil.children[1].children[0].style.backgroundColor = '';
                 }
                 selected_cil = document.getElementById('cil_line_' + line);
-                selected_cil.style.backgroundColor = 'red';
+                selected_cil.children[1].children[0].style.backgroundColor = 'red';
                 selected_cil.scrollIntoView();
             }
 

@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
@@ -86,10 +85,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Option(name="abstraction.type", toUppercase=true, values={"BDD", "FORMULA"},
       description="What to use for storing abstractions")
   private String abstractionType = "BDD";
-
-  @Option(name="satsolver", toUppercase=true, values={"MATHSAT", "SMTINTERPOL"},
-      description="which satsolver to use?")
-  private String satsolver = "MATHSAT";
 
   @Option(name="abstraction.initialPredicates",
       description="get an initial set of predicates from a file in MSAT format")
@@ -140,6 +135,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     formulaManagerFactory = new FormulaManagerFactory(config, logger);
 
     formulaManager = new ExtendedFormulaManager(formulaManagerFactory.getFormulaManager(), config, logger);
+    String libraries = formulaManager.getVersion();
 
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger);
     if (useCache) {
@@ -156,7 +152,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     } else {
       assert abstractionType.equals("BDD");
       regionManager = BDDRegionManager.getInstance();
+      libraries += " and " + ((BDDRegionManager)regionManager).getVersion();
     }
+    logger.log(Level.INFO, "Using predicate analysis with", libraries + ".");
 
     predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, solver, config, logger);
     transfer = new PredicateTransferRelation(this, blk);

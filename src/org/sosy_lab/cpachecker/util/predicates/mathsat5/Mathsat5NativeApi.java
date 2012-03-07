@@ -27,36 +27,15 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
+import java.util.NoSuchElementException;
+
+import com.google.common.collect.UnmodifiableIterator;
+
 
 class Mathsat5NativeApi {
 
   static {
     System.loadLibrary("mathsat5j");
-  }
-
-  // msat_type
-  public static final int MSAT_BOOL = 0;
-  public static final int MSAT_UIF = 1;
-  public static final int MSAT_INT = 2;
-  public static final int MSAT_REAL = 3;
-  public static final int MSAT_BV = 4;
-
-
-  public static long get_msat_type_struct(long env, int pType) {
-
-      switch (pType) {
-      case MSAT_BOOL:
-        return msat_get_bool_type(env);
-      case MSAT_INT:
-        return msat_get_integer_type(env);
-      case MSAT_REAL:
-        return msat_get_rational_type(env);
-      case MSAT_BV:
-        return msat_get_bv_type(env, 32);
-        default:
-          return MSAT_UNDEF;
-      }
-
   }
 
   // msat_result
@@ -74,31 +53,8 @@ class Mathsat5NativeApi {
     void callback(long[] model);
   }
 
-  // error checking functions
-  public static boolean MSAT_ERROR_TERM(long t) {
-    return t == 0;
-  }
-
-  public static boolean MSAT_ERROR_DECL(long d) {
-    return d == 0;
-  }
-
-  public static boolean MSAT_ERROR_MODEL_ITERATOR(long i) {
-    return i == 0;
-  }
-
-  public static long MSAT_MAKE_ERROR_TERM() {
-    return 0;
-  }
-
   // wrappers for some of the native methods with a different number
   // of arguments
-  /*
-  public static long msat_declare_uif(long e, String name, int out_type,
-                                     int[] args_types) {
-    return msat_declare_uif(e, name, out_type, args_types.length, args_types);
-  }
-  */
   public static int msat_all_sat(long e, long[] important,
       AllSatModelCallback func) {
 
@@ -106,18 +62,37 @@ class Mathsat5NativeApi {
     return result;
   }
 
-  // returns a pair (t, v), or null in case of errors
-  public static long[] msat_model_iterator_next(long i) {
-    long[] t = new long[1];
-    long[] v = new long[1];
-    int s = msat_model_iterator_next(i, t, v);
-    if (s == -1) { return null; }
-    return new long[] { t[0], v[0] };
+  public static ModelIterator msat_create_ModelIterator(long e) {
+    return new ModelIterator(msat_create_model_iterator(e));
   }
 
-//  public static long[] msat_get_theory_lemmas(long e) {
-//    return msat_get_theory_lemmas(e, 0);
-//  }
+  public static class ModelIterator extends UnmodifiableIterator<long[]> {
+
+    private final long i;
+
+    private ModelIterator(long pI) {
+      i = pI;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return msat_model_iterator_has_next(i);
+    }
+
+    @Override
+    public long[] next() {
+      long[] t = new long[1];
+      long[] v = new long[1];
+      if (msat_model_iterator_next(i, t, v)) {
+        throw new NoSuchElementException();
+      }
+      return new long[] { t[0], v[0] };
+    }
+
+    public void free() {
+      msat_destroy_model_iterator(i);
+    }
+  }
 
   public static long msat_get_interpolant(long e, int[] groups_of_a) {
     return msat_get_interpolant(e, groups_of_a, groups_of_a.length);
@@ -126,7 +101,6 @@ class Mathsat5NativeApi {
   /*
    * Environment creation
    */
-  //public static native void msat_set_verbosity(int level);
   public static native long msat_create_config();
   public static native void msat_destroy_config(long cfg);
   public static native long msat_create_env(long cfg);
@@ -143,13 +117,13 @@ class Mathsat5NativeApi {
   public static native long msat_get_simple_type(long e, String name);
   public static native long msat_get_function_type(long e, long[] paramTypes, int size, long returnType);
 
-  public static native int msat_is_bool_type(long e, long t);
-  public static native int msat_is_rational_type(long e, long t);
-  public static native int msat_is_integer_type(long e, long t);
-  public static native int msat_is_bv_type(long e, long t);
-  public static native int msat_is_array_type(long e, long t);
+  public static native boolean msat_is_bool_type(long e, long t);
+  public static native boolean msat_is_rational_type(long e, long t);
+  public static native boolean msat_is_integer_type(long e, long t);
+  public static native boolean msat_is_bv_type(long e, long t);
+  public static native boolean msat_is_array_type(long e, long t);
 
-  public static native int msat_type_equals(long t1, long t2);
+  public static native boolean msat_type_equals(long t1, long t2);
 
   public static native long msat_declare_function(long e, String name, long t);
 
@@ -167,7 +141,6 @@ class Mathsat5NativeApi {
   public static native long msat_make_leq(long e, long t1, long t2);
   public static native long msat_make_plus(long e, long t1, long t2);
   public static native long msat_make_times(long e, long t1, long t2);
-  //public static native long msat_make_int_modular_congruence(long e, int mpz, long t1, long t2);
   public static native long msat_make_floor(long e, long t);
   public static native long msat_make_number(long e, String num_rep);
   public static native long msat_make_term_ite(long e, long c, long tt, long te);
@@ -212,57 +185,51 @@ class Mathsat5NativeApi {
   public static native int msat_term_arity(long t);
   public static native long msat_term_get_arg(long t, int n);
   public static native long msat_term_get_type(long t);
-  public static native int msat_term_is_true(long e, long t);
-  public static native int msat_term_is_false(long e, long t);
-  public static native int msat_term_is_boolean_constant(long e, long t);
-  public static native int msat_term_is_atom(long e, long t);
-  public static native int msat_term_is_number(long e, long t);
-  // TODO
-  //public static native int msat_term_to_number(long e, long t, int out);
-  // ----
-  public static native int msat_term_is_and(long e, long t);
-  public static native int msat_term_is_or(long e, long t);
-  public static native int msat_term_is_not(long e, long t);
-  public static native int msat_term_is_iff(long e,long t);
-  public static native int msat_term_is_term_ite(long e, long t);
-  public static native int msat_term_is_constant(long e, long t);
-  public static native int msat_term_is_uf(long e, long t);
-  public static native int msat_term_is_equal(long e, long t);
-  public static native int msat_term_is_leq(long e, long t);
-  public static native int msat_term_is_plus(long e, long t);
-  public static native int msat_term_is_times(long e, long t);
-  // TODO
-  //public static native int msat_term_is_int_modular_congruence(long e, long t, int outMod);
-  // ----
-  public static native int msat_term_is_floor(long e, long t);
-  public static native int msat_term_is_array_read(long e, long t);
-  public static native int msat_term_is_array_write(long e, long t);
-  public static native int msat_term_is_bv_concat(long e, long t);
-  public static native int msat_term_is_bv_extract(long e, long t);
-  public static native int msat_term_is_bv_or(long e, long t);
-  public static native int msat_term_is_bv_xor(long e, long t);
-  public static native int msat_term_is_bv_and(long e, long t);
-  public static native int msat_term_is_bv_not(long e, long t);
-  public static native int msat_term_is_bv_plus(long e, long t);
-  public static native int msat_term_is_bv_minus(long e, long t);
-  public static native int msat_term_is_bv_times(long e, long t);
-  public static native int msat_term_is_bv_neg(long e, long t);
-  public static native int msat_term_is_bv_udiv(long e, long t);
-  public static native int msat_term_is_bv_urem(long e, long t);
-  public static native int msat_term_is_bv_sdiv(long e, long t);
-  public static native int msat_term_is_bv_srem(long e, long t);
-  public static native int msat_term_is_bv_ult(long e, long t);
-  public static native int msat_term_is_bv_uleq(long e, long t);
-  public static native int msat_term_is_bv_slt(long e, long t);
-  public static native int msat_term_is_bv_sleq(long e, long t);
-  public static native int msat_term_is_bv_lshl(long e, long t);
-  public static native int msat_term_is_bv_lshr(long e, long t);
-  public static native int msat_term_is_bv_ashr(long e, long t);
-  public static native int msat_term_is_bv_zext(long e, long t);
-  public static native int msat_term_is_bv_sext(long e, long t);
-  public static native int msat_term_is_bv_rol(long e, long t);
-  public static native int msat_term_is_bv_ror(long e, long t);
-  public static native int msat_term_is_bv_comp(long e, long t);
+  public static native boolean msat_term_is_true(long e, long t);
+  public static native boolean msat_term_is_false(long e, long t);
+  public static native boolean msat_term_is_boolean_constant(long e, long t);
+  public static native boolean msat_term_is_atom(long e, long t);
+  public static native boolean msat_term_is_number(long e, long t);
+  public static native boolean msat_term_is_and(long e, long t);
+  public static native boolean msat_term_is_or(long e, long t);
+  public static native boolean msat_term_is_not(long e, long t);
+  public static native boolean msat_term_is_iff(long e,long t);
+  public static native boolean msat_term_is_term_ite(long e, long t);
+  public static native boolean msat_term_is_constant(long e, long t);
+  public static native boolean msat_term_is_uf(long e, long t);
+  public static native boolean msat_term_is_equal(long e, long t);
+  public static native boolean msat_term_is_leq(long e, long t);
+  public static native boolean msat_term_is_plus(long e, long t);
+  public static native boolean msat_term_is_times(long e, long t);
+  public static native boolean msat_term_is_floor(long e, long t);
+  public static native boolean msat_term_is_array_read(long e, long t);
+  public static native boolean msat_term_is_array_write(long e, long t);
+  public static native boolean msat_term_is_bv_concat(long e, long t);
+  public static native boolean msat_term_is_bv_extract(long e, long t);
+  public static native boolean msat_term_is_bv_or(long e, long t);
+  public static native boolean msat_term_is_bv_xor(long e, long t);
+  public static native boolean msat_term_is_bv_and(long e, long t);
+  public static native boolean msat_term_is_bv_not(long e, long t);
+  public static native boolean msat_term_is_bv_plus(long e, long t);
+  public static native boolean msat_term_is_bv_minus(long e, long t);
+  public static native boolean msat_term_is_bv_times(long e, long t);
+  public static native boolean msat_term_is_bv_neg(long e, long t);
+  public static native boolean msat_term_is_bv_udiv(long e, long t);
+  public static native boolean msat_term_is_bv_urem(long e, long t);
+  public static native boolean msat_term_is_bv_sdiv(long e, long t);
+  public static native boolean msat_term_is_bv_srem(long e, long t);
+  public static native boolean msat_term_is_bv_ult(long e, long t);
+  public static native boolean msat_term_is_bv_uleq(long e, long t);
+  public static native boolean msat_term_is_bv_slt(long e, long t);
+  public static native boolean msat_term_is_bv_sleq(long e, long t);
+  public static native boolean msat_term_is_bv_lshl(long e, long t);
+  public static native boolean msat_term_is_bv_lshr(long e, long t);
+  public static native boolean msat_term_is_bv_ashr(long e, long t);
+  public static native boolean msat_term_is_bv_zext(long e, long t);
+  public static native boolean msat_term_is_bv_sext(long e, long t);
+  public static native boolean msat_term_is_bv_rol(long e, long t);
+  public static native boolean msat_term_is_bv_ror(long e, long t);
+  public static native boolean msat_term_is_bv_comp(long e, long t);
   //public static native int msat_visit_term(long e, msat_visit_term_callback func)
   public static native long msat_find_decl(long e, String symbol);
 
@@ -283,11 +250,11 @@ class Mathsat5NativeApi {
   /*
    * Problem solving
    */
-  public static native int msat_push_backtrack_point(long e);
-  public static native int msat_pop_backtrack_point(long e);
+  public static native void msat_push_backtrack_point(long e);
+  public static native void msat_pop_backtrack_point(long e);
   //public static native int msat_num_backtrack_points(long e)
   public static native void msat_reset_env(long e);
-  public static native int msat_assert_formula(long e, long formula);
+  public static native void msat_assert_formula(long e, long formula);
   //public static native int msat_add_preferred_for_branching(long e, long termBoolvar);
   //public static native int msat_clear_preferred_for_branching(long e)
   public static native int msat_solve(long e);
@@ -303,35 +270,29 @@ class Mathsat5NativeApi {
    * Interpolation
    */
   public static native int msat_create_itp_group(long e);
-  public static native int msat_set_itp_group(long e, int group);
+  public static native void msat_set_itp_group(long e, int group);
   private static native long msat_get_interpolant(long e, int[] groups_of_a, int n);
 
   /*
    * Model computation
    */
   public static native long msat_get_model_value(long e, long term);
-  public static native long msat_create_model_iterator(long e);
-  public static native int msat_model_iterator_has_next(long i);
-  private static native int msat_model_iterator_next(long i, long[] t, long[] v);
-  public static native void msat_destroy_model_iterator(long i);
+  private static native long msat_create_model_iterator(long e);
+  private static native boolean msat_model_iterator_has_next(long i);
+  private static native boolean msat_model_iterator_next(long i, long[] t, long[] v);
+  private static native void msat_destroy_model_iterator(long i);
 
 
   /*
    * Unsat core computation
    */
+  public static native long[] msat_get_unsat_assumptions(long e);
   public static native long msat_get_unsat_core(long e);
-  //public static native long[] msat_get_unsat_assumptions(long e);
-
 
 
   /*
    * Special functions
    */
-  // TODO
-  public static native void msat_free(long ptr);
   public static native String msat_get_version();
   public static native String msat_last_error_message(long e);
-  // ---
-
-
 }

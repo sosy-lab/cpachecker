@@ -23,12 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.bdd;
 
+import java.lang.ref.PhantomReference;
+import java.lang.ref.ReferenceQueue;
+import java.util.Map;
+
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+
+import com.google.common.collect.Maps;
 
 /**
  * A wrapper for the javabdd (http://javabdd.sf.net) package.
@@ -65,72 +71,145 @@ public class BDDRegionManager implements RegionManager {
 
   public static RegionManager getInstance() { return instance; }
 
+
+  // Code for connecting the Java GC and the BDD library GC
+  // When a Java object is freed, we need to tell the library.
+  // The method with PhantomReferences is a better way then using finalize().
+  // In order for this to work, two invariants must hold:
+  // - No two BDDRegion objects point to the same BDD instance.
+  // - All BDDRegion objects get created by the wrap(BBD) method.
+  // For all BDD objects which do not get wrapped in a BDDRegion,
+  // free() must be called manually.
+
+  // The reference objects will appear in this queue as soon as their target object was GCed.
+  private final ReferenceQueue<BDDRegion> referenceQueue = new ReferenceQueue<BDDRegion>();
+
+  // In this map we store the info which BDD to free after a BDDRegion object was GCed.
+  private final Map<PhantomReference<BDDRegion>, BDD> referenceMap = Maps.newIdentityHashMap();
+
+  /**
+   * Cleanup all references to BDDs that are no longer needed.
+   * We call this method from all public methods, so that this gets done as soon
+   * as possible.
+   * Usually we would do this in a daemon thread in the background, but the
+   * BDD library is not multi-threaded.
+   */
+  private void cleanupReferences() {
+    PhantomReference<? extends BDDRegion> ref;
+    while ((ref = (PhantomReference<? extends BDDRegion>)referenceQueue.poll()) != null) {
+
+      BDD bdd = referenceMap.remove(ref);
+      assert bdd != null;
+      bdd.free();
+    }
+  }
+
+  /**
+   * Wrap a BDD object in a BDDRegion and register it so that we can free the
+   * BDD after the BDDRegion was garbage collected.
+   * Always use this method, and never the BDDRegion constructor directly.
+   */
+  private BDDRegion wrap(BDD bdd) {
+    BDDRegion region = new BDDRegion(bdd);
+
+    PhantomReference<BDDRegion> ref = new PhantomReference<BDDRegion>(region, referenceQueue);
+    referenceMap.put(ref, bdd);
+
+    return region;
+  }
+
+
   @Override
   public boolean entails(Region pF1, Region pF2) {
+      cleanupReferences();
+
       // check entailment using BDDs: create the BDD representing
       // the implication, and check that it is the TRUE formula
       BDDRegion f1 = (BDDRegion)pF1;
       BDDRegion f2 = (BDDRegion)pF2;
       BDD imp = f1.getBDD().imp(f2.getBDD());
-      return imp.isOne();
+
+      boolean result = imp.isOne();
+      imp.free();
+      return result;
   }
 
   @Override
   public Region makeTrue() {
+    cleanupReferences();
+
     return trueFormula;
   }
 
   @Override
   public Region makeFalse() {
+    cleanupReferences();
+
     return falseFormula;
   }
 
   @Override
   public Region makeAnd(Region pF1, Region pF2) {
+    cleanupReferences();
+
     BDDRegion f1 = (BDDRegion)pF1;
     BDDRegion f2 = (BDDRegion)pF2;
 
-    return new BDDRegion(f1.getBDD().and(f2.getBDD()));
+    return wrap(f1.getBDD().and(f2.getBDD()));
   }
 
   @Override
   public Region makeNot(Region pF) {
+    cleanupReferences();
+
     BDDRegion f = (BDDRegion)pF;
 
-    return new BDDRegion(f.getBDD().not());
+    return wrap(f.getBDD().not());
   }
 
   @Override
   public Region makeOr(Region pF1, Region pF2) {
+    cleanupReferences();
+
     BDDRegion f1 = (BDDRegion)pF1;
     BDDRegion f2 = (BDDRegion)pF2;
 
-    return new BDDRegion(f1.getBDD().or(f2.getBDD()));
+    return wrap(f1.getBDD().or(f2.getBDD()));
   }
 
   @Override
   public Region createPredicate() {
+    cleanupReferences();
+
     BDD bddVar = createNewVar();
 
-    return new BDDRegion(bddVar);
+    return wrap(bddVar);
   }
 
   @Override
   public Triple<Region, Region, Region> getIfThenElse(Region pF) {
+    cleanupReferences();
+
     BDD f = ((BDDRegion)pF).getBDD();
 
-    BDDRegion predicate = new BDDRegion(factory.ithVar(f.var()));
-    BDDRegion fThen = new BDDRegion(f.high());
-    BDDRegion fElse = new BDDRegion(f.low());
+    BDDRegion predicate = wrap(factory.ithVar(f.var()));
+    BDDRegion fThen = wrap(f.high());
+    BDDRegion fElse = wrap(f.low());
 
     return new Triple<Region, Region, Region>(predicate, fThen, fElse);
   }
 
   @Override
   public Region makeExists(Region pF1, Region pF2) {
+    cleanupReferences();
+
     BDD f1 = ((BDDRegion)pF1).getBDD();
     BDD f2 = ((BDDRegion)pF2).getBDD();
 
-    return new BDDRegion(f1.exist(f2));
+    return wrap(f1.exist(f2));
+  }
+
+  public String getVersion() {
+    return factory.getVersion();
   }
 }

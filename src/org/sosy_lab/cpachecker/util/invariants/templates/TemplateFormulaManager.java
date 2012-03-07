@@ -649,4 +649,8 @@ public class TemplateFormulaManager implements FormulaManager {
 
   }
 
+  @Override
+  public String getVersion() {
+    throw new UnsupportedOperationException();
+  }
 }
