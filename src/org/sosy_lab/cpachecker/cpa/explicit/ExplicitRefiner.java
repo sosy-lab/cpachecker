@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
@@ -88,6 +89,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -119,6 +121,8 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   private boolean refinePredicatePrecision      = false;
 
   private List<Pair<ARTElement, CFAEdge>> path  = null;
+
+  private Multimap<CFANode, String> intPol = null;
 
   public static ExplicitRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     if (!(pCpa instanceof WrapperCPA)) {
@@ -185,29 +189,78 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     globalVars = ExplicitTransferRelation.globalVarsStatic;
   }
 
+  private Multimap<CFANode, String> getInterpolants(ARTReachedSet reachedSet) throws CPAException {
+
+    Multimap<CFANode, String> interpolant = HashMultimap.create();
+
+    ARTElement root   = (ARTElement)reachedSet.asReachedSet().getFirstElement();
+    ARTElement target = (ARTElement)reachedSet.asReachedSet().getLastElement();
+
+    Set<ARTElement> artTrace = new HashSet<ARTElement>();
+    for(Pair<ARTElement, CFAEdge> el : path){
+      artTrace.add(el.getFirst());
+    }
+
+    List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
+    for(Pair<ARTElement, CFAEdge> el : path){
+      cfaTrace.add(el.getSecond());
+    }
+
+    AssignedVariablesCollector collector = new AssignedVariablesCollector();
+    Multimap<CFAEdge, ReferencedVariable> assignedVariables = collector.collectVars(cfaTrace);
+    Set<ReferencedVariable> ignoreAlways = new HashSet<ReferencedVariable>();
+int i = 0;
+    try {
+      for(Pair<ARTElement, CFAEdge> pathElement : path){
+
+        Collection<ReferencedVariable> varsAtEdge = assignedVariables.get(pathElement.getSecond());
+
+        boolean feasible = false;
+
+        String statement = pathElement.getSecond().getRawStatement();
+        int len = statement.length();
+        if(statement.indexOf("\n") != -1)
+          len = statement.indexOf("\n");
+        //System.out.println("edge: " + pathElement.getSecond().getRawStatement().substring(0, len));
+
+        if(!varsAtEdge.isEmpty()) {
+          String ignoreThese = Joiner.on(",").join(varsAtEdge);
+          if(!ignoreAlways.isEmpty())
+            ignoreThese = ignoreThese + "," + Joiner.on(",").join(ignoreAlways);
+
+          ExplicitCPA.checker.toBeIgnored = ignoreThese;
+          feasible = ExplicitCPA.checker.checkCounterexample(root, target, artTrace);
+          //System.out.println(i + "/" + path.size() + " -> " + ignoreThese + (feasible ? " " : " in") + "feasible");
+          //System.out.println("precise counter example check says: " + (feasible ? "" : "in") + "feasible when ignoring " + Joiner.on(",").join(varsAtEdge));
+        }
+
+
+        if(feasible) {
+          for(ReferencedVariable var : varsAtEdge)
+            interpolant.put(pathElement.getSecond().getSuccessor(), var.getName());
+        }
+        else {
+          ignoreAlways.addAll(varsAtEdge);
+        }
+
+        i++;
+      }
+
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    System.out.println("interpolant = " + interpolant);
+
+    return interpolant;
+  }
+
   @Override
   protected void performRefinement(ARTReachedSet pReached, List<Pair<ARTElement, CFANode>> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> counterexampleTraceInfo,
       boolean pRepeatedCounterexample) throws CPAException {
 
-    Set<ARTElement> elems = new HashSet<ARTElement>();
-
-    int i = 0;
-    for(Pair<ARTElement, CFANode> el : errorPath){
-      System.out.println(el.getSecond());
-      elems.add(el.getFirst());
-    }
-
-    try {
-      System.out.println("checking ...");
-      boolean feasible = ExplicitCPA.checker.checkCounterexample((ARTElement)pReached.asReachedSet().getFirstElement(),
-          (ARTElement)pReached.asReachedSet().getLastElement(), elems);
-
-      System.out.println("precise counter examlple check says: " + (feasible ? "" : "in") + "feasible");
-    } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
+    intPol = getInterpolants(pReached);
 
     precisionUpdate.start();
 
@@ -330,18 +383,20 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 //System.out.println("refined PredicatePrecision");
 //System.out.println(precision);
     } else {
-      allReferencedVariables.addAll(variableMapping.values());
+      Multimap<CFANode, String> relevantVariablesOnPath = HashMultimap.create();
+      /*allReferencedVariables.addAll(variableMapping.values());
 
       // expand the mapping of CFA nodes to variable names, with a def-use analysis along that path
       Multimap<CFANode, String> relevantVariablesOnPath = getRelevantVariablesOnPath(errorPath, predicates);
 
       assert firstInterpolationPoint != null;
-
+*/
+      firstInterpolationPoint = errorPath.get(0);
       // create the new precision
       precision = createExplicitPrecision(extractExplicitPrecision(oldPrecision),
-                                            variableMapping,
-                                            relevantVariablesOnPath);
-
+          intPol,
+          relevantVariablesOnPath                      );
+System.out.println(((ExplicitPrecision)precision).getCegarPrecision());
 //System.out.println("refined ExplicitPrecision");
     }
 
