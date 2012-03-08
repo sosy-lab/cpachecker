@@ -42,7 +42,6 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -86,6 +85,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatPr
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 
 /**
@@ -235,10 +237,10 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   private InterpolationTreeResult findLocationMistmaches(InterpolationTreeResult cexample) throws CPATransferException {
 
     Collection<Path> paths = getErrorPathsForTrunk(cexample.getTree());
-    Map<Path, List<Triple<ARTElement, CFANode, CFANode>>> pathRefMap = new HashMap<Path, List<Triple<ARTElement, CFANode, CFANode>>>();
+    Map<Path, List<Pair<ARTElement, Pair<CFANode, CFANode>>>> pathRefMap = new HashMap<Path, List<Pair<ARTElement, Pair<CFANode, CFANode>>>>();
 
     for (Path pi : paths){
-      List<Triple<ARTElement, CFANode, CFANode>> threadInq = findLocationInequalities(pi, false);
+      List<Pair<ARTElement, Pair<CFANode, CFANode>>> threadInq = findLocationInequalities(pi, false);
 
       if (threadInq.isEmpty()){
         // concreate, feasible error path found
@@ -355,7 +357,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     Model model = thmProver.getModel();
     thmProver.reset();
 
-    RGLocationMapping lm = RGLocationMappingSAT(model);
+    RGLocationMapping lm = RGLocationMappingSAT(model, inqMap);
     return Pair.of(lm, clNo-1);
   }
 
@@ -484,14 +486,14 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     return fManager.makePredicateVariable(name, 0);
   }
 
-
+/*
   private RGLocationMapping RGLocationMappingLA(Model model) {
 
     Map<CFANode, Integer> locMapping = new HashMap<CFANode, Integer>();
     Set<CFANode> allNodes = new HashSet<CFANode>(nodeMap.values());
 
 
-    /* retrive location classes from the model*/
+    // retrive location classes from the model
     for (AssignableTerm term : model.keySet()){
       assert term.getType() == TermType.Integer;
       Integer classNo = (Integer) model.get(term);
@@ -502,23 +504,24 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       allNodes.remove(node);
     }
 
-    /* put remaining nodes in class 1*/
+    // put remaining nodes in class
     for (CFANode node : allNodes){
       locMapping.put(node, 1);
     }
 
 
     return RGLocationMapping.copyOf(locMapping);
-  }
+  }*/
 
   /**
    * Creates a location from the SAT model.
+   * @param inqMap
    * @param pModel
    * @return
    */
-  private RGLocationMapping RGLocationMappingSAT(Model model) {
+  private RGLocationMapping RGLocationMappingSAT(Model model, Multimap<Path, Pair<CFANode, CFANode>> inqMap) {
     // TODO ensure that execution start is always in class one.
-    Map<CFANode, Integer> locMapping = new HashMap<CFANode, Integer>();
+    Builder<CFANode, Integer> bldr = ImmutableMap.<CFANode, Integer>builder();
     Set<CFANode> allNodes = new HashSet<CFANode>(nodeMap.values());
 
     // map: location -> (bit number, value)
@@ -538,18 +541,18 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     /* retrive location classes from the bits */
     for (CFANode node : predMap.keySet()){
       Integer locCl = bitsToNumber(predMap.get(node))+1;
-      locMapping.put(node, locCl);
+      bldr = bldr.put(node, locCl);
       allNodes.remove(node);
     }
 
 
     /* put remaining nodes in class 1*/
     for (CFANode node : allNodes){
-      locMapping.put(node, 1);
+      bldr = bldr.put(node, 1);
     }
 
 
-    return RGLocationMapping.copyOf(locMapping);
+    return new RGLocationMapping(bldr.build(), ImmutableSetMultimap.copyOf(inqMap));
   }
 
 
@@ -599,32 +602,39 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   /**
    * Refines old location mapping by putting mistmatching nodes in different equivalence classes.
    * @param oldLM
-   * @param inqColl
+   * @param mismatchesForPath
    * @return
    * @throws RefinementFailedException
    */
-  public RGLocationMapping monotonicLocationMapping(RGLocationMapping oldLM, Collection<Pair<CFANode, CFANode>> inqColl) throws RefinementFailedException {
+  public RGLocationMapping monotonicLocationMapping(RGLocationMapping oldLM, ImmutableSetMultimap<Path, Pair<CFANode, CFANode>> mismatchesForPath) throws RefinementFailedException {
     Integer topCl = oldLM.getClassNo();
 
-    HashMap<CFANode, Integer> newLM = new HashMap<CFANode, Integer>(oldLM.getMap());
+    Builder<CFANode, Integer> bldr = ImmutableMap.<CFANode, Integer>builder();
 
-    // put one of the mistmatching nodes in a new classe
-    for (Pair<CFANode, CFANode> inq : inqColl){
+    // for every path only one mistmatch is choosen
+    for (Path pi : mismatchesForPath.keySet()){
+
+      Set<Pair<CFANode, CFANode>> misColl = mismatchesForPath.get(pi);
+      assert !misColl.isEmpty();
+
+      Pair<CFANode, CFANode> mismatch = misColl.iterator().next();
+
+      // put one of the mistmatching nodes in a new classe
       // make sure that global decl. nodes and execution start always belong to class 1
-      CFANode node = inq.getSecond();
+      CFANode node = mismatch.getSecond();
 
       if (nodesAlwaysInClassOne.contains(node)){
-        node = inq.getFirst();
+        node = mismatch.getFirst();
 
         if (nodesAlwaysInClassOne.contains(node)){
           throw new RefinementFailedException(Reason.LocationRefinementFailed, null);
         }
       }
 
-      newLM.put(node, ++topCl);
+      bldr = bldr.put(node, ++topCl);
     }
 
-    return RGLocationMapping.copyOf(newLM);
+    return new RGLocationMapping(bldr.build(), mismatchesForPath);
   }
 
 
@@ -635,9 +645,9 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @param stopAfterFirst find only the first inequality
    * @return
    */
-  private List<Triple<ARTElement, CFANode, CFANode>> findLocationInequalities(Path pi, boolean stopAfterFirst) {
+  private List<Pair<ARTElement, Pair<CFANode, CFANode>>> findLocationInequalities(Path pi, boolean stopAfterFirst) {
 
-    List<Triple<ARTElement, CFANode, CFANode>> inqList = new Vector<Triple<ARTElement, CFANode, CFANode>>();
+    List<Pair<ARTElement, Pair<CFANode, CFANode>>> inqList = new Vector<Pair<ARTElement, Pair<CFANode, CFANode>>>();
 
     ARTElement first = pi.get(0).getFirst();
     // tid of the ART where the path begins
@@ -669,8 +679,8 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       } else {
         // mismatch pc[tid] != loc
         Pair<CFANode, CFANode> mismatch = Pair.of(pc[tid], loc);
-        Triple<ARTElement, CFANode, CFANode> mistmatch = Triple.of(element, pc[tid], loc);
-        inqList.add(mistmatch);
+        Pair<ARTElement, Pair<CFANode, CFANode>> pivotAndMistmatch = Pair.of(element, mismatch);
+        inqList.add(pivotAndMistmatch);
 
         if (stopAfterFirst){
           break;

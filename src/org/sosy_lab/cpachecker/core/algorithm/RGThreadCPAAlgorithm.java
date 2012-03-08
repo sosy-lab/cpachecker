@@ -190,6 +190,10 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         System.out.println("Successors of "+aElement);
       }
 
+      if (aElement.getElementId() == 513){
+        System.out.println(this.getClass());
+      }
+
       stats.transferTimer.start();
       runStats.transferTimer.start();
 
@@ -373,9 +377,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       if (changeThread && stepCount > 5){
         return false;
       }
-
-
-
     }
 
     stats.totalTimer.stop();

@@ -35,8 +35,8 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -115,7 +115,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
   /** General stats */
   public final Stats stats;
 
-  private final Map<Pair<RGEnvCandidate, Set<AbstractionPredicate>>, RGEnvTransition> candidateToTransitionCache;
+  private final Map<Triple<RGEnvCandidate, Set<AbstractionPredicate>, RGLocationMapping>, RGEnvTransition> candidateToTransitionCache;
 
 
   public RGEnvironmentManager(ParallelCFAS pcfa, Configuration config, LogManager logger) throws InvalidConfigurationException{
@@ -141,7 +141,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
     this.candManager = new RGEnvCandidateManager(fManager, pfManager, absManager, ssaManager, tProver, rManager, pcfa, config, logger);
 
     if (cacheGeneratingEnvTransition){
-      candidateToTransitionCache = new HashMap<Pair<RGEnvCandidate, Set<AbstractionPredicate>>, RGEnvTransition>();
+      candidateToTransitionCache = new HashMap<Triple<RGEnvCandidate, Set<AbstractionPredicate>, RGLocationMapping>, RGEnvTransition>();
     } else {
       candidateToTransitionCache = null;
     }
@@ -178,7 +178,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
 
   public void printUnprocessedTransitions(Collection<RGEnvCandidate> candidates) {
-    printTransitions("Enviornmental transitions generated:", candidates);
+    printCandidates("Enviornmental transitions generated:", candidates);
   }
 
   /**
@@ -324,7 +324,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
     RGEnvTransition et;
 
     if (cacheGeneratingEnvTransition){
-      Pair<RGEnvCandidate, Set<AbstractionPredicate>> key = Pair.of(cand, preds);
+      Triple<RGEnvCandidate, Set<AbstractionPredicate>, RGLocationMapping> key = Triple.of(cand, preds, lm);
       et = candidateToTransitionCache.get(key);
 
       if (et == null){
@@ -347,7 +347,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
    * @param string
    * @param rgEdges
    */
-  private void printEdges(String string, List<RGEnvTransition> rgEdges) {
+  private void printEnvTransitions(String string, List<RGEnvTransition> rgEdges) {
     //System.out.println();
     if (rgEdges.isEmpty()){
       System.out.println(string+"\tnone");
@@ -363,7 +363,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
    * Print env. transitinos with a title.
    * @param string
    */
-  private void printTransitions(String string, Collection<RGEnvCandidate> pUnprocessedTransitions) {
+  private void printCandidates(String string, Collection<RGEnvCandidate> pUnprocessedTransitions) {
     System.out.println();
     if (pUnprocessedTransitions.isEmpty()){
       System.out.println(string+"\tnone");
@@ -394,7 +394,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
       if (etManager.isBottom(et)){
         etCovered.add(et);
 
-        if (debug){
+        if (debug && false ){
           System.out.println("\t-bottom: "+et);
         }
       }
@@ -409,7 +409,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
           if (et1 !=et2 && !etCovered.contains(et2)){
             if (etManager.isLessOrEqual(et1, et2)){
               // edge1 => edge2
-              if (debug){
+              if (debug && false){
                 System.out.println("\t-covered: "+et1+" => "+et2);
               }
               etCovered.add(et1);
@@ -506,6 +506,11 @@ public class RGEnvironmentManager implements StatisticsProvider{
     // find most general candidates w.r.t to the location mapping
     List<RGEnvCandidate> candidates = findMostGeneralCandidates(allCandidates, lm);
 
+    if (debug){
+      printCandidates("Most general candidates:", candidates);
+      System.out.println();
+    }
+
     // find concreate locatino that the element may belong to
     SetMultimap<Integer, CFANode> cLocsElem = LinkedHashMultimap.create();
     ImmutableMap<Integer, Integer> locCl = elem.getLocationClasses();
@@ -521,6 +526,8 @@ public class RGEnvironmentManager implements StatisticsProvider{
         cLocsElem.putAll(i, nodes);
       }
     }
+
+
 
 
     // filter out candidates with mistmatching location classes
@@ -542,11 +549,22 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
     candidates.removeAll(covered);
 
+    if (debug){
+      printCandidates("Candidates after filtering:", candidates);
+      System.out.println();
+    }
+
     RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
     Set<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(rgPrec.getEnvGlobalPredicates());
     preds.addAll(rgPrec.getEnvPredicateMap().get(loc));
 
     List<RGEnvTransition> newTransitions = findMostGeneralEnvTransitions(candidates, preds, lm);
+
+    if (debug){
+      this.printEnvTransitions("Env. transitions to apply", newTransitions);
+      System.out.println();
+    }
+
     Set<RGEnvTransition> oldTransitions = elem.getEnvTransitionsApplied();
     List<RGEnvTransition> newToApply = getDifference(newTransitions, oldTransitions);
 

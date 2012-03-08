@@ -581,6 +581,15 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
   }
 
 
+
+
+  public ParallelCFAS getPcfa() {
+    return pcfa;
+  }
+
+
+
+
   public static class Stats implements Statistics {
 
 

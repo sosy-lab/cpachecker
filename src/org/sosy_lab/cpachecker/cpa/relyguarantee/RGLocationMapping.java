@@ -24,22 +24,18 @@
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
-import org.sosy_lab.cpachecker.cfa.ThreadCFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultimap.Builder;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ImmutableSetMultimap;
 
 /**
  * Immutable function that maps locations to their equivalence classes.
@@ -47,49 +43,36 @@ import com.google.common.collect.Multimap;
 public class RGLocationMapping {
 
   private final ImmutableMap<CFANode, Integer> locationMapping;
-  /** Inverse map, lazily initialized */
-  private ImmutableMultimap<Integer, CFANode> inverse;
-  /** all inequalities seen so far */
-  private  Multimap<Path, Pair<CFANode, CFANode>> globalInqMap;
-  /** Number of classes in the last non-monotonic refinement*/
-  private  int numberOfNMClasses = 2;
+  /** Inverse map */
+  private final ImmutableMultimap<Integer, CFANode> inverseMapping;
+  /** all inequalities that generated this mapping*/
+  private final ImmutableSetMultimap<Path, Pair<CFANode, CFANode>> mismatchesForPath;
+  /* Number of classes in the last non-monotonic refinement
+  private  int numberOfNMClasses = 2;*/
 
   /**
-   * Return location mapping, where all nodes belong to class number 1.
+   * Return location mapping, where all execution nodes of other threads
+   * belong to the deafult class (1).
    * @param pcfa
+   * @param tid
    * @return
    */
-  public static RGLocationMapping getEmpty(ParallelCFAS pcfa){
-    Map<CFANode, Integer> map = new HashMap<CFANode, Integer>(100);
-
-    for (ThreadCFA cfa : pcfa){
-      Collection<CFANode> nodes = cfa.getAllNodes();
-      for (CFANode node : nodes){
-        Integer oldValue = map.put(node, 1);
-        if (oldValue != null){
-          assert false;
-        }
-        assert oldValue == null;
-      }
-    }
-    return new RGLocationMapping(map);
-  }
-
   public static RGLocationMapping getEmpty(ParallelCFAS pcfa, int tid) {
-    Map<CFANode, Integer> map = new HashMap<CFANode, Integer>();
+
+    com.google.common.collect.ImmutableMap.Builder<CFANode, Integer> bldr =
+        ImmutableMap.<CFANode, Integer>builder();
 
     for (int i=0; i < pcfa.getThreadNo(); i++ ){
 
       if (i != tid){
         Set<CFANode> nodes = pcfa.getCfa(i).getExecNodes();
         for (CFANode node : nodes){
-          map.put(node, 1);
+          bldr = bldr.put(node, 1);
         }
       }
     }
 
-    return new RGLocationMapping(map);
-
+    return new RGLocationMapping(bldr.build(), ImmutableSetMultimap.<Path, Pair<CFANode, CFANode>>of());
   }
 
 
@@ -99,49 +82,16 @@ public class RGLocationMapping {
    * @param pcfa
    * @return
    */
-  public static RGLocationMapping getIndentity(ParallelCFAS pcfa){
-    Map<CFANode, Integer> map = new HashMap<CFANode, Integer>(100);
-
-    for (ThreadCFA cfa : pcfa){
-      // execution start is also mapped to class 1.
-      Set<CFANode> gdNodes = new HashSet<CFANode>(cfa.getGlobalDeclNodes());
-      gdNodes.add(cfa.getExecutionStart());
-      Set<CFANode> execNodes = new HashSet<CFANode>(cfa.getAllNodes());
-      execNodes.removeAll(gdNodes);
-
-      for (CFANode node : gdNodes){
-        Integer oldValue = map.put(node, 1);
-        if (oldValue != null){
-          assert false;
-        }
-        assert oldValue == null;
-      }
-
-      for (CFANode node : execNodes){
-        assert node.getNodeNumber() != 1;
-        Integer oldValue = map.put(node, node.getNodeNumber());
-        if (oldValue != null){
-          assert false;
-        }
-        assert oldValue == null;
-      }
-    }
-
-
-    return new RGLocationMapping(map);
+  public static RGLocationMapping getIndentity(ParallelCFAS pcfa, int tid){
+    assert false : "Not implemented yet";
+    return null;
   }
 
-  /**
-   * Create location mapping from a map.
-   * @param map
-   * @return
-   */
-  public static RGLocationMapping copyOf(Map<CFANode, Integer> map){
-    return new RGLocationMapping(map);
-  }
 
-  private RGLocationMapping(Map<CFANode, Integer> map){
-    locationMapping = ImmutableMap.copyOf(map);
+  public RGLocationMapping(ImmutableMap<CFANode, Integer> map, ImmutableSetMultimap<Path, Pair<CFANode, CFANode>> mismatchesForPath){
+    this.locationMapping = map;
+    this.mismatchesForPath = mismatchesForPath;
+    this.inverseMapping = inverse(this.locationMapping);
   }
 
   public boolean containsKey(Object pArg0) {
@@ -177,44 +127,52 @@ public class RGLocationMapping {
     return locationMapping.values();
   }
 
-  public ImmutableMultimap<Integer, CFANode> inverse(){
 
-    if (inverse == null){
-      Builder<Integer, CFANode> bldr = ImmutableMultimap.builder();
+  private ImmutableMultimap<Integer, CFANode> inverse(ImmutableMap<CFANode, Integer> map){
 
-      for (Entry<CFANode, Integer> entry : locationMapping.entrySet()){
-        bldr.put(entry.getValue(), entry.getKey());
-      }
+    Builder<Integer, CFANode> bldr = ImmutableMultimap.builder();
 
-      inverse = bldr.build();
+    for (Entry<CFANode, Integer> entry : map.entrySet()){
+      bldr.put(entry.getValue(), entry.getKey());
     }
 
-    return inverse;
+    return bldr.build();
   }
 
   public int getClassNo(){
-    return inverse().keySet().size();
+    return inverseMapping.keySet().size();
   }
 
   public Collection<CFANode> classToNodes(Integer classNo) {
-    return inverse().get(classNo);
+    return this.inverseMapping.get(classNo);
   }
 
 
+  @Override
   public String toString(){
-    String str = "RGLocationMapping: "+inverse();
+    String str = "RGLocationMapping: "+inverseMapping;
     return str;
   }
 
-  public ImmutableMap<? extends CFANode, ? extends Integer> getMap() {
+  @Override
+  public int hashCode(){
+    return locationMapping.hashCode();
+  }
+
+
+  public ImmutableMap<CFANode, Integer> getLocationMapping() {
     return locationMapping;
   }
 
 
+  public ImmutableMultimap<Integer, CFANode> getInverseMapping() {
+    return inverseMapping;
+  }
 
 
-
-
+  public ImmutableSetMultimap<Path, Pair<CFANode, CFANode>> getMismatchesForPath() {
+    return mismatchesForPath;
+  }
 
 
 }

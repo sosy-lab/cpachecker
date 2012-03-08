@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.Path;
@@ -48,7 +48,7 @@ public class InterpolationTreeResult {
   private final boolean isSpurious;
   private final SetMultimap<InterpolationTreeNode, AbstractionPredicate> artMap;
   private final SetMultimap<InterpolationTreeNode, AbstractionPredicate> envMap;
-  private final Map<Path, List<Triple<ARTElement, CFANode, CFANode>>>  locMap;
+  private final Map<Path, List<Pair<ARTElement, Pair<CFANode, CFANode>>>>  locMap;
   private final InterpolationTree tree;
   /** witness path for a feasible counterexample */
   private final Path path;
@@ -61,8 +61,8 @@ public class InterpolationTreeResult {
   public static InterpolationTreeResult spurious(){
     SetMultimap<InterpolationTreeNode, AbstractionPredicate> artMap = LinkedHashMultimap.create();
     SetMultimap<InterpolationTreeNode, AbstractionPredicate> envMap = LinkedHashMultimap.create();
-    Map<Path, List<Triple<ARTElement, CFANode, CFANode>>>  locMap =
-        new HashMap<Path, List<Triple<ARTElement, CFANode, CFANode>>>();
+    Map<Path, List<Pair<ARTElement, Pair<CFANode, CFANode>>>>  locMap =
+        new HashMap<Path, List<Pair<ARTElement, Pair<CFANode, CFANode>>>>();
 
     return new InterpolationTreeResult(true, artMap, envMap, locMap, null, null);
   }
@@ -94,7 +94,7 @@ public class InterpolationTreeResult {
   private InterpolationTreeResult(boolean spurious,
       SetMultimap<InterpolationTreeNode, AbstractionPredicate> artMap,
       SetMultimap<InterpolationTreeNode, AbstractionPredicate> envMap,
-      Map<Path, List<Triple<ARTElement, CFANode, CFANode>>>  locMap,
+      Map<Path, List<Pair<ARTElement, Pair<CFANode, CFANode>>>>  locMap,
       InterpolationTree tree,
       Path path) {
     this.isSpurious = spurious;
@@ -120,7 +120,7 @@ public class InterpolationTreeResult {
     envMap.putAll(e, preds);
   }
 
-  public void addLocationMapForRefinement(Map<Path, List<Triple<ARTElement, CFANode, CFANode>>> pPathInqMap) {
+  public void addLocationMapForRefinement(Map<Path, List<Pair<ARTElement, Pair<CFANode, CFANode>>>> pPathInqMap) {
     assert isSpurious : "Locations for refimenent cannot be added to a feasible counterexample.";
     locMap.putAll(pPathInqMap);
   }
@@ -141,7 +141,7 @@ public class InterpolationTreeResult {
     return envMap;
   }
 
-  public Map<Path, List<Triple<ARTElement, CFANode, CFANode>>> getPathRefinementMap() {
+  public Map<Path, List<Pair<ARTElement, Pair<CFANode, CFANode>>>> getPathRefinementMap() {
     return locMap;
   }
 

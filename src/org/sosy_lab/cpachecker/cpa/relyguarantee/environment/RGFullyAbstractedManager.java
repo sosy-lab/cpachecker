@@ -133,8 +133,8 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
 
 
     // find classes for locations of the source thread
-    int sCl = lm.get(cand.getElement().retrieveLocationElement().getLocationNode());
-    int tCl = lm.get(cand.getSuccessor().retrieveLocationElement().getLocationNode());
+    int sCl = lm.get(cand.getElementLoc());
+    int tCl = lm.get(cand.getSuccessorLoc());
     Pair<Integer, Integer> locCl = Pair.of(sCl, tCl);
 
     // abstract

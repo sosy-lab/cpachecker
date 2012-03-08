@@ -521,7 +521,7 @@ cpa.rg.refinement.interpolatingProver = "MATHSAT"
   allowed values: [MATHSAT, CSISAT]
 
 # Use lazy refinement rather than restart the analysis.
-cpa.rg.refinement.lazy = false
+cpa.rg.refinement.lazy = true
 
 # Add all predicates in the subtree to the pivot element.
 cpa.rg.refinement.lazy.shareDroppedPrecision = true

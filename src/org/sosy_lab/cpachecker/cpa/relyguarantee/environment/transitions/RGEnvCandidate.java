@@ -39,6 +39,8 @@ public class RGEnvCandidate {
 
   private final ARTElement element;
   private final ARTElement successor;
+  private final CFANode elementLoc;
+  private final CFANode successorLoc;
   private final CFAEdge operation;
   private final RGAbstractElement rgElement;
   private final RGAbstractElement rgSuccessor;
@@ -48,6 +50,8 @@ public class RGEnvCandidate {
   public RGEnvCandidate(ARTElement element, ARTElement successor, CFAEdge operation, SetMultimap<Integer, CFANode> concreateLocs, int tid){
     this.element     = element;
     this.successor   = successor;
+    this.elementLoc  = element.retrieveLocationElement().getLocationNode();
+    this.successorLoc = successor.retrieveLocationElement().getLocationNode();
     this.operation   = operation;
     this.rgElement   = AbstractElements.extractElementByType(element, RGAbstractElement.class);
     this.rgSuccessor = AbstractElements.extractElementByType(successor, RGAbstractElement.class);
@@ -79,8 +83,17 @@ public class RGEnvCandidate {
     return tid;
   }
 
+
+  public CFANode getElementLoc() {
+    return elementLoc;
+  }
+
+  public CFANode getSuccessorLoc() {
+    return successorLoc;
+  }
+
   public String toString(){
-    return "RGEnvCandidate: "+element.getElementId()+"--"+operation.getRawStatement()+"-->"+successor.getElementId();
+    return "RGEnvCandidate: "+element.getElementId()+" ("+elementLoc+")--"+operation.getRawStatement()+"-->"+successor.getElementId()+" ("+successorLoc+")";
   }
 
   public SetMultimap<Integer, CFANode> getConcreateLocations() {
