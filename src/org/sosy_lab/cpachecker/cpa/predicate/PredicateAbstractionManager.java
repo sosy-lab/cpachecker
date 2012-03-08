@@ -529,12 +529,4 @@ public class PredicateAbstractionManager {
   public Collection<AbstractionPredicate> extractPredicates(Region pRegion) {
     return amgr.extractPredicates(pRegion);
   }
-
-  public AbstractionPredicate makeFalsePredicate() {
-    return amgr.makeFalsePredicate();
-  }
-
-  public AbstractionPredicate makePredicate(Formula f) {
-    return amgr.makePredicate(f);
-  }
 }

@@ -63,7 +63,6 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
@@ -142,7 +141,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     ExtendedFormulaManager formulaManager       = null;
     PathFormulaManager pathFormulaManager       = null;
     Solver solver                               = null;
-    PredicateAbstractionManager absManager      = null;
+    AbstractionManager absManager               = null;
     PredicateRefinementManager manager          = null;
 
     PredicateCPA predicateCpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(PredicateCPA.class);
@@ -153,16 +152,15 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       formulaManager        = predicateCpa.getFormulaManager();
       pathFormulaManager    = predicateCpa.getPathFormulaManager();
       solver                = predicateCpa.getSolver();
-      absManager            = predicateCpa.getPredicateManager();
+      absManager            = predicateCpa.getAbstractionManager();
     } else {
       factory               = new FormulaManagerFactory(config, logger);
       TheoremProver theoremProver = factory.createTheoremProver();
-      RegionManager regionManager = BDDRegionManager.getInstance();
+      RegionManager regionManager                 = BDDRegionManager.getInstance();
       formulaManager        = new ExtendedFormulaManager(factory.getFormulaManager(), config, logger);
-      AbstractionManager amgr = new AbstractionManager(regionManager, formulaManager, config, logger);
       pathFormulaManager    = new PathFormulaManagerImpl(formulaManager, config, logger);
       solver                = new Solver(formulaManager, theoremProver);
-      absManager            = new PredicateAbstractionManager(amgr, formulaManager, solver, config, logger);
+      absManager            = new AbstractionManager(regionManager, formulaManager, config, logger);
     }
 
     manager = new PredicateRefinementManager(formulaManager,
