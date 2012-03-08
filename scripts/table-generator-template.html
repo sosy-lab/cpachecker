@@ -60,11 +60,19 @@ function showContentPane() {
 function hideContentPane(event) {
 	// hide the content pane on mouse click outside the content pane
 	// or when pressing the "Esc" or "c" key with the content pane focused
-    if(event.keyCode == undefined
-		|| event.keyCode == 27 || event.keyCode == 67) {
+    if(event.type == "click" || escKeyPressed(event) || cKeyPressed(event)) {
       $('#contentPaneBackground').hide();
       $('#contentPane').hide().empty();
   }
+}
+
+function escKeyPressed(event) {
+	return event.keyCode == 27;
+}
+
+function cKeyPressed(event) {
+	// only "c" is pressed, not in combination with Ctrl-key
+	return (event.keyCode == 67 && event.ctrlKey == false);
 }
 
 var headerArray = [];
