@@ -57,9 +57,11 @@ import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCPAChecker;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
@@ -122,11 +124,13 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
   private List<Pair<ARTElement, CFAEdge>> path  = null;
 
-  private Multimap<CFANode, String> intPol = null;
+  private Multimap<CFANode, String> interPolant = HashMultimap.create();
 
   private int numberOfCounterExampleChecks = 0;
   private int numberOfErrorPathElements = 0;
   private Timer timerCounterExampleChecks = new Timer();
+
+  private ExplicitCPA explicitCpa = null;
 
   public static ExplicitRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     if (!(pCpa instanceof WrapperCPA)) {
@@ -189,35 +193,58 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     this.pathFormulaManager     = pPathFormulaManager;
     this.predicateCpaAvailable  = predicateCpaInUse;
 
+    explicitCpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(ExplicitCPA.class);
+
     // TODO: runner-up award for ugliest hack of the month ...
     globalVars = ExplicitTransferRelation.globalVarsStatic;
   }
 
-  private Multimap<CFANode, String> getInterpolants(ARTReachedSet reachedSet) throws CPAException {
-    timerCounterExampleChecks.start();
-    Multimap<CFANode, String> interpolant = HashMultimap.create();
+  private Multimap<CFAEdge, ReferencedVariable> determineReferencedVariableMapping(List<CFAEdge> cfaTrace) {
+    AssignedVariablesCollector collector = new AssignedVariablesCollector();
 
-    ARTElement root   = (ARTElement)reachedSet.asReachedSet().getFirstElement();
-    ARTElement target = (ARTElement)reachedSet.asReachedSet().getLastElement();
+    return collector.collectVars(cfaTrace);
+  }
+
+  private void determineInterpolant(ARTReachedSet reachedSet) throws CPAException, InvalidConfigurationException {
+    timerCounterExampleChecks.start();
 
     Set<ARTElement> artTrace = new HashSet<ARTElement>();
-    for(Pair<ARTElement, CFAEdge> el : path){
-      artTrace.add(el.getFirst());
+    List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
+    for(Pair<ARTElement, CFAEdge> pathElement : path){
+      artTrace.add(pathElement.getFirst());
+      cfaTrace.add(pathElement.getSecond());
     }
 
-    List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
-    for(Pair<ARTElement, CFAEdge> el : path){
-      cfaTrace.add(el.getSecond());
+    firstInterpolationPoint = null;
+
+    Multimap<CFAEdge, ReferencedVariable> referencedVariableMapping = determineReferencedVariableMapping(cfaTrace);
+
+    interPolant.clear();
+    Set<ReferencedVariable> irrelevantVariables = new HashSet<ReferencedVariable>();
+
+    boolean feasible = false;
+
+    // create a new CPA, which disallows tracking the variables
+    CounterexampleCPAChecker checker = new CounterexampleCPAChecker(Configuration.builder().build(),
+                                                                    explicitCpa.getLogger(),
+                                                                    new ReachedSetFactory(explicitCpa.getConfiguration(), explicitCpa.getLogger()),
+                                                                    explicitCpa.getCFA());
+
+    try {
+      feasible = checker.checkCounterexample((ARTElement)reachedSet.asReachedSet().getFirstElement(),
+                                             (ARTElement)reachedSet.asReachedSet().getLastElement(),
+                                             artTrace);
+      System.out.println("full precision check says: " + feasible);
+    } catch (InterruptedException e1) {
+      // TODO Auto-generated catch block
+      e1.printStackTrace();
     }
-firstInterpolationPoint = null;
-    AssignedVariablesCollector collector = new AssignedVariablesCollector();
-    Multimap<CFAEdge, ReferencedVariable> assignedVariables = collector.collectVars(cfaTrace);
-    Set<ReferencedVariable> ignoreAlways = new HashSet<ReferencedVariable>();
 
     try {
       for(Pair<ARTElement, CFAEdge> pathElement : path){
         numberOfErrorPathElements++;
-        Collection<ReferencedVariable> varsAtEdge = assignedVariables.get(pathElement.getSecond());
+
+        Collection<ReferencedVariable> referencedVariablesAtEdge = referencedVariableMapping.get(pathElement.getSecond());
 
         // if all variables are already part of the interpolant, nothing more to do here ...
 /*
@@ -240,30 +267,34 @@ if(intPol != null) {
           continue;
         }
 */
-        boolean feasible = false;
-
-        if(!varsAtEdge.isEmpty()) {
+        if(!referencedVariablesAtEdge.isEmpty()) {
           numberOfCounterExampleChecks++;
-          String ignoreThese = Joiner.on(",").join(varsAtEdge);
-          if(!ignoreAlways.isEmpty())
-            ignoreThese = ignoreThese + "," + Joiner.on(",").join(ignoreAlways);
 
-          ExplicitCPA.checker.toBeIgnored = ignoreThese;
-          feasible = ExplicitCPA.checker.checkCounterexample(root, target, artTrace);
-          //System.out.println(i + "/" + path.size() + " -> " + ignoreThese + (feasible ? " " : " in") + "feasible");
-          //System.out.println("precise counter example check says: " + (feasible ? "" : "in") + "feasible when ignoring " + Joiner.on(",").join(varsAtEdge));
+          irrelevantVariables.addAll(referencedVariablesAtEdge);
+
+          // create a new CPA, which disallows tracking the variables
+          checker = new CounterexampleCPAChecker(Configuration.builder().setOption("counterexample.checker.ignoreGlobally", Joiner.on(",").join(irrelevantVariables)).build(),
+                                                                          explicitCpa.getLogger(),
+                                                                          new ReachedSetFactory(explicitCpa.getConfiguration(), explicitCpa.getLogger()),
+                                                                          explicitCpa.getCFA());
+
+          feasible = checker.checkCounterexample((ARTElement)reachedSet.asReachedSet().getFirstElement(),
+                                                 (ARTElement)reachedSet.asReachedSet().getLastElement(),
+                                                 artTrace);
         }
 
-
+        // in case the path becomes feasible ...
         if(feasible) {
-          if(firstInterpolationPoint == null)
-            firstInterpolationPoint = Pair.of(pathElement.getFirst(), pathElement.getSecond().getSuccessor());
+          // ... set the top-most interpolation point, if not yet set ...
+          if(firstInterpolationPoint == null) {
+            firstInterpolationPoint = Pair.of(pathElement.getFirst(), pathElement.getSecond().getPredecessor());
+          }
 
-          for(ReferencedVariable var : varsAtEdge)
-            interpolant.put(pathElement.getSecond().getSuccessor(), var.getName());
-        }
-        else {
-          ignoreAlways.addAll(varsAtEdge);
+          // ... and add the "important" variables to the interpolant, and remove them from the irrelevant ones
+          for(ReferencedVariable importantVariable : referencedVariablesAtEdge) {
+            interPolant.put(pathElement.getSecond().getSuccessor(), importantVariable.getName());
+            irrelevantVariables.remove(importantVariable);
+          }
         }
       }
 
@@ -272,9 +303,7 @@ if(intPol != null) {
       e.printStackTrace();
     }
     timerCounterExampleChecks.stop();
-    System.out.println("interpolant = " + interpolant);
-
-    return interpolant;
+    System.out.println("interpolant = " + interPolant);
   }
 
   @Override
@@ -282,7 +311,12 @@ if(intPol != null) {
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> counterexampleTraceInfo,
       boolean pRepeatedCounterexample) throws CPAException {
 
-    intPol = getInterpolants(pReached);
+    try {
+      determineInterpolant(pReached);
+    } catch (InvalidConfigurationException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
 
     precisionUpdate.start();
 
@@ -389,37 +423,42 @@ if(intPol != null) {
       List<Pair<ARTElement, CFANode>> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException {
 
-    // create the mapping of CFA nodes to predicates, based on the counter example trace info
-    PredicateMap predicates = new PredicateMap(pInfo.getPredicatesForRefinement(), errorPath);
-
-    // get the mapping of CFA nodes to variable names
-    Multimap<CFANode, String> variableMapping = predicates.getVariableMapping(fmgr);
-
     Precision precision = null;
 
-    if(refinePredicatePrecision) {
-      precision = createPredicatePrecision(extractPredicatePrecision(oldPrecision),
-                                          predicates);
-
-      firstInterpolationPoint = predicates.firstInterpolationPoint;
-//System.out.println("refined PredicatePrecision");
-//System.out.println(precision);
-    } else {
+    if(interPolant != null) {
       Multimap<CFANode, String> relevantVariablesOnPath = HashMultimap.create();
-      /*allReferencedVariables.addAll(variableMapping.values());
-
-      // expand the mapping of CFA nodes to variable names, with a def-use analysis along that path
-      Multimap<CFANode, String> relevantVariablesOnPath = getRelevantVariablesOnPath(errorPath, predicates);
-
-
-*/
-      assert firstInterpolationPoint != null;
-      // create the new precision
       precision = createExplicitPrecision(extractExplicitPrecision(oldPrecision),
-          intPol,
-          relevantVariablesOnPath                      );
-System.out.println(((ExplicitPrecision)precision).getCegarPrecision());
-//System.out.println("refined ExplicitPrecision");
+                                          interPolant,
+                                          relevantVariablesOnPath);
+
+      firstInterpolationPoint = errorPath.get(0);
+
+      //System.out.println(((ExplicitPrecision)precision).getCegarPrecision());
+    } else {
+      // create the mapping of CFA nodes to predicates, based on the counter example trace info
+      PredicateMap predicates = new PredicateMap(pInfo.getPredicatesForRefinement(), errorPath);
+
+      // get the mapping of CFA nodes to variable names
+      Multimap<CFANode, String> variableMapping = predicates.getVariableMapping(fmgr);
+
+      if(refinePredicatePrecision) {
+        precision = createPredicatePrecision(extractPredicatePrecision(oldPrecision),
+                                            predicates);
+
+        firstInterpolationPoint = predicates.firstInterpolationPoint;
+      } else {
+        allReferencedVariables.addAll(variableMapping.values());
+
+        // expand the mapping of CFA nodes to variable names, with a def-use analysis along that path
+        Multimap<CFANode, String> relevantVariablesOnPath = getRelevantVariablesOnPath(errorPath, predicates);
+
+        assert firstInterpolationPoint != null;
+
+        // create the new precision
+        precision = createExplicitPrecision(extractExplicitPrecision(oldPrecision),
+                                            variableMapping,
+                                            relevantVariablesOnPath);
+      }
     }
 
     return Pair.of(firstInterpolationPoint.getFirst(), precision);

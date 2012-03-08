@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
@@ -58,13 +57,15 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
 
   private final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
-  private CFA cfa;
-  public String toBeIgnored = null;
+  private final CFA cfa;
 
   @Option(name="config",
       description="configuration file for counterexample checks with CPAchecker")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private File configFile = new File("config/explicitAnalysis-no-cbmc.properties");
+
+  @Option(description="comma sperated list of variables that are never tracked by the analysis")
+  private String ignoreGlobally = "";
 
   public CounterexampleCPAChecker(Configuration config, LogManager logger, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
     this.logger = logger;
@@ -94,12 +95,11 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       Configuration lConfig = Configuration.builder()
               .loadFromFile(configFile)
               .setOption("specification", automatonFile.getAbsolutePath())
-              .setOption("cpa.explicit.precision.ignore.asString", toBeIgnored)
+              .setOption("cpa.explicit.precision.ignore.asString", ignoreGlobally)
               .build();
 
       CPABuilder lBuilder = new CPABuilder(lConfig, logger, reachedSetFactory);
-
-      ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs(CoreComponentsFactory.static_cfa);
+      ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs(cfa);
       Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger);
       PartitionedReachedSet lReached = new PartitionedReachedSet(TraversalMethod.DFS);
       lReached.add(lCpas.getInitialElement(entryNode), lCpas.getInitialPrecision(entryNode));
@@ -113,7 +113,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       }
 
     } catch (InvalidConfigurationException e) {
-      throw new CounterexampleAnalysisFailed("Invalid co nfigu rat ion in counterexample-check config: " + e.getMessage(), e);
+      throw new CounterexampleAnalysisFailed("Invalid configuration in counterexample-check config: " + e.getMessage(), e);
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed(e.getMessage(), e);
     }

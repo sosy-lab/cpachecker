@@ -52,7 +52,8 @@ import com.google.common.collect.Multimap;
 
 
 /**
- * Helper class that collects all <code>ReferencedVariable</code>s in a given set of nodes.
+ * Helper class that collects all "relevant" variables in a given set of nodes, where "relevant" means,
+ * that they either appear on the left hand side of an assignment or within an assume edge.
  */
 public class AssignedVariablesCollector {
   Set<String> globalVars = new HashSet<String>();

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.conditions.global;
 
 import java.util.Collection;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -71,7 +70,7 @@ public class GlobalConditionsCPA implements ConfigurableProgramAnalysisWithABM, 
     thresholds = new GlobalConditionsThresholds(config, logger);
 
     if (thresholds.isLimitEnabled()) {
-      logger.log(Level.INFO, "Analyzing with the following", thresholds);
+      //logger.log(Level.INFO, "Analyzing with the following", thresholds);
       GlobalConditionsSimplePrecisionAdjustment prec = new GlobalConditionsSimplePrecisionAdjustment(logger, thresholds);
 
       if (thresholds.getReachedSetSizeThreshold() >= 0) {
