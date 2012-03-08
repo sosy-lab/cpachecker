@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+
 /**
  * Enum listing several possible reasons for giving up analysis at a certain point.
  */
@@ -48,8 +51,12 @@ public enum PreventingHeuristic {
   /**
    * Returns a formula representation of this reason, which includes the
    * threshold value which was exceeded.
+   * @param manager
    */
-  public String getFormulaString(long thresholdValue) {
-    return "VAR " + predicateString + ": INTEGER -> BOOLEAN \n\n " + "FORMULA (" + predicateString + "(" + thresholdValue + "))";
+  public Formula getFormula(FormulaManager fmgr, long thresholdValue) {
+    final Formula number = fmgr.makeNumber(Long.toString(thresholdValue));
+    final Formula var = fmgr.makeVariable(predicateString);
+    // TODO better idea?
+    return fmgr.makeEqual(var, number);
   }
 }
