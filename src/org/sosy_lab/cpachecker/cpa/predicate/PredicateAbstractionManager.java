@@ -40,6 +40,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -181,7 +182,7 @@ public class PredicateAbstractionManager {
 
   private Region buildCartesianAbstraction(final Formula f, final SSAMap ssa,
       Collection<AbstractionPredicate> predicates) {
-    final RegionManager rmgr = amgr.getRegionManager();
+    final RegionCreator rmgr = amgr.getRegionCreator();
 
     stats.abstractionTime.startOuter();
 
@@ -343,14 +344,14 @@ public class PredicateAbstractionManager {
 
       boolean satResult = !solver.isUnsat(fm);
 
-      RegionManager rmgr = amgr.getRegionManager();
+      RegionCreator rmgr = amgr.getRegionCreator();
 
       result = (satResult) ? rmgr.makeTrue() : rmgr.makeFalse();
 
     } else {
       logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
       TheoremProver thmProver = solver.getTheoremProver();
-      AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr, stats.abstractionTime.getInnerTimer());
+      AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr.getRegionCreator(), stats.abstractionTime.getInnerTimer());
       result = allSatResult.getResult();
 
       // update statistics
@@ -385,7 +386,7 @@ public class PredicateAbstractionManager {
    * Checks if a1 => a2
    */
   public boolean checkCoverage(AbstractionFormula a1, AbstractionFormula a2) {
-    return amgr.getRegionManager().entails(a1.asRegion(), a2.asRegion());
+    return amgr.entails(a1.asRegion(), a2.asRegion());
   }
 
   /**
@@ -463,7 +464,7 @@ public class PredicateAbstractionManager {
     if (pPreviousBlockFormula == null) {
       pPreviousBlockFormula = fmgr.makeTrue();
     }
-    return new AbstractionFormula(amgr.getRegionManager().makeTrue(), fmgr.makeTrue(), pPreviousBlockFormula);
+    return new AbstractionFormula(amgr.getRegionCreator().makeTrue(), fmgr.makeTrue(), pPreviousBlockFormula);
   }
 
   /**
@@ -482,7 +483,7 @@ public class PredicateAbstractionManager {
    */
   public AbstractionFormula reduce(AbstractionFormula oldAbstraction,
       Collection<AbstractionPredicate> removePredicates, SSAMap ssaMap) {
-    RegionManager rmgr = amgr.getRegionManager();
+    RegionCreator rmgr = amgr.getRegionCreator();
 
     Region newRegion = oldAbstraction.asRegion();
     for (AbstractionPredicate predicate : removePredicates) {
@@ -506,7 +507,7 @@ public class PredicateAbstractionManager {
    */
   public AbstractionFormula expand(AbstractionFormula reducedAbstraction, AbstractionFormula sourceAbstraction,
       Collection<AbstractionPredicate> relevantPredicates, SSAMap newSSA) {
-    RegionManager rmgr = amgr.getRegionManager();
+    RegionCreator rmgr = amgr.getRegionCreator();
 
     Region removedInformationRegion = sourceAbstraction.asRegion();
     for (AbstractionPredicate predicate : relevantPredicates) {

@@ -32,11 +32,10 @@ import java.util.Collection;
 import java.util.Deque;
 
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.base.Preconditions;
@@ -95,8 +94,8 @@ public class MathsatTheoremProver implements TheoremProver {
 
   @Override
   public AllSatResult allSat(Formula f, Collection<Formula> important,
-                             AbstractionManager amgr, Timer timer) {
-    checkNotNull(amgr);
+                             RegionCreator rmgr, Timer timer) {
+    checkNotNull(rmgr);
     checkNotNull(timer);
     long formula = getTerm(f);
 
@@ -107,7 +106,7 @@ public class MathsatTheoremProver implements TheoremProver {
     for (Formula impF : important) {
       imp[i++] = getTerm(impF);
     }
-    MathsatAllSatCallback callback = new MathsatAllSatCallback(amgr, timer);
+    MathsatAllSatCallback callback = new MathsatAllSatCallback(rmgr, timer);
     msat_assert_formula(allsatEnv, formula);
     int numModels = msat_all_sat(allsatEnv, imp, callback);
 
@@ -131,8 +130,7 @@ public class MathsatTheoremProver implements TheoremProver {
    * callback used to build the predicate abstraction of a formula
    */
   static class MathsatAllSatCallback implements NativeApi.AllSatModelCallback, TheoremProver.AllSatResult {
-    private final AbstractionManager amgr;
-    private final RegionManager rmgr;
+    private final RegionCreator rmgr;
 
     private final Timer totalTime;
 
@@ -141,9 +139,8 @@ public class MathsatTheoremProver implements TheoremProver {
     private Region formula;
     private final Deque<Region> cubes = new ArrayDeque<Region>();
 
-    public MathsatAllSatCallback(AbstractionManager fmgr, Timer timer) {
-      this.amgr = fmgr;
-      this.rmgr = fmgr.getRegionManager();
+    public MathsatAllSatCallback(RegionCreator rmgr, Timer timer) {
+      this.rmgr = rmgr;
       this.formula = rmgr.makeFalse();
       this.totalTime = timer;
     }
@@ -192,10 +189,10 @@ public class MathsatTheoremProver implements TheoremProver {
         Region v;
         if (msat_term_is_not(t) != 0) {
           t = msat_term_get_arg(t, 0);
-          v = amgr.getPredicate(encapsulate(t)).getAbstractVariable();
+          v = rmgr.getPredicate(encapsulate(t));
           v = rmgr.makeNot(v);
         } else {
-          v = amgr.getPredicate(encapsulate(t)).getAbstractVariable();
+          v = rmgr.getPredicate(encapsulate(t));
         }
         curCube.add(v);
       }

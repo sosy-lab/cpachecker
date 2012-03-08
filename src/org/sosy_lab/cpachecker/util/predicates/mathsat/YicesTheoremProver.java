@@ -42,7 +42,7 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
@@ -282,8 +282,8 @@ public class YicesTheoremProver implements TheoremProver {
 
     @Override
     public AllSatResult allSat(Formula f, Collection<Formula> important,
-            AbstractionManager amgr, Timer timer) {
-        MathsatAllSatCallback callback = new MathsatAllSatCallback(amgr, timer);
+            RegionCreator rmgr, Timer timer) {
+        MathsatAllSatCallback callback = new MathsatAllSatCallback(rmgr, timer);
 
         // build the yices representation of the formula...
         Pair<Collection<String>, String> yicesFormula = toYices(f);
