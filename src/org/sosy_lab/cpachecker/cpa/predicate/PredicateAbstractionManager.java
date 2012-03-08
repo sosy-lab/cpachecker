@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatResult;
 
@@ -98,7 +97,7 @@ public class PredicateAbstractionManager {
   private final Map<Formula, Boolean> feasibilityCache;
 
   public PredicateAbstractionManager(
-      RegionManager pRmgr,
+      AbstractionManager pAmgr,
       ExtendedFormulaManager pFmgr,
       Solver pSolver,
       Configuration config,
@@ -109,7 +108,7 @@ public class PredicateAbstractionManager {
     stats = new Stats();
     logger = pLogger;
     fmgr = pFmgr;
-    amgr = new AbstractionManager(pRmgr, pFmgr, config, pLogger);
+    amgr = pAmgr;
     solver = pSolver;
 
     if (useCache) {

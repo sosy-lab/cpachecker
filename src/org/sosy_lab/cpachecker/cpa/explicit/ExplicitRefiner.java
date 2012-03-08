@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
@@ -158,9 +159,10 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       TheoremProver theoremProver = factory.createTheoremProver();
       RegionManager regionManager = BDDRegionManager.getInstance();
       formulaManager        = new ExtendedFormulaManager(factory.getFormulaManager(), config, logger);
+      AbstractionManager amgr = new AbstractionManager(regionManager, formulaManager, config, logger);
       pathFormulaManager    = new PathFormulaManagerImpl(formulaManager, config, logger);
       solver                = new Solver(formulaManager, theoremProver);
-      absManager            = new PredicateAbstractionManager(regionManager, formulaManager, solver, config, logger);
+      absManager            = new PredicateAbstractionManager(amgr, formulaManager, solver, config, logger);
     }
 
     manager = new PredicateRefinementManager(formulaManager,
