@@ -49,9 +49,8 @@ public enum PreventingHeuristic {
   }
 
   /**
-   * Returns a formula representation of this reason, which includes the
+   * Returns a formula of this reason, which includes the
    * threshold value which was exceeded.
-   * @param manager
    */
   public Formula getFormula(FormulaManager fmgr, long thresholdValue) {
     final Formula number = fmgr.makeNumber(Long.toString(thresholdValue));

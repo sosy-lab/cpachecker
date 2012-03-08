@@ -34,7 +34,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
@@ -129,7 +128,7 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
     if (isNumber(t2)) {
       result = env.term("/", t1, t2);
     } else {
-      result = buildUF(divUfDecl, t1, t2);
+      result = env.term(divUfDecl, t1, t2);
     }
     return encapsulate(result);
   }
@@ -148,7 +147,7 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
     if (isNumber(t1) || isNumber(t2)) { // TODO: both not numeral?
       result = env.term("*", t1, t2);
     } else {
-      result = buildUF(multUfDecl, t1, t2);
+      result = env.term(multUfDecl, t1, t2);
     }
 
     return encapsulate(result);
@@ -158,7 +157,7 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
 
   @Override
   public Formula makeEqual(Formula f1, Formula f2) {
-    return this.makeEquivalence(f1, f2);
+    return encapsulate(env.term("=", getTerm(f1), getTerm(f2)));
   }
 
   @Override
@@ -185,7 +184,7 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
 
   @Override
   public Formula makeBitwiseNot(Formula f) {
-    return encapsulate(buildUF(bitwiseNotUfDecl, getTerm(f)));
+    return encapsulate(env.term(bitwiseNotUfDecl, getTerm(f)));
   }
 
   @Override
@@ -216,7 +215,7 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
   //----------------- Uninterpreted functions -----------------
 
   private Formula makeUIFforBinaryOperator(Formula f1, Formula f2, String uifDecl) {
-    return encapsulate(buildUF(uifDecl, getTerm(f1), getTerm(f2)));
+    return encapsulate(env.term(uifDecl, getTerm(f1), getTerm(f2)));
   }
 
   // ----------------- Complex formula manipulation -----------------
@@ -261,8 +260,8 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
       Term z = env.numeral("0");
       for (Formula nn : allLiterals) {
         Term n = getTerm(nn);
-        Term u1 = buildUF(bitwiseAndUfDecl, n, z);
-        Term u2 = buildUF(bitwiseAndUfDecl, z, n);
+        Term u1 = env.term(bitwiseAndUfDecl, n, z);
+        Term u2 = env.term(bitwiseAndUfDecl, z, n);
         Term e1;
         e1 = env.term("=", u1, z);
         Term e2 = env.term("=", u2, z);
@@ -275,18 +274,6 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
   }
 
   @Override
-  public Formula makeUIP(String pName, FormulaList pArgs) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public void declareUIP(String pName, int pArgCount) {
-    // TODO Auto-generated method stub
-
-  }
-
-  @Override
   public Formula[] getArguments(Formula f) {
     Term t = getTerm(f);
     assert t instanceof ApplicationTerm;
@@ -296,11 +283,5 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
       formulas[i] = encapsulate(params[i]);
     }
     return formulas;
-  }
-
-  @Override
-  public boolean checkSyntacticEntails(Formula pLeftFormula, Formula pRightFormula) {
-    // TODO Auto-generated method stub
-    return false;
   }
 }

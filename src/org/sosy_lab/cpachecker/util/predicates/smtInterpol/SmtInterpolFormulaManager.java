@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUti
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -180,7 +181,11 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
   @Override
   public Formula makeEquivalence(Formula f1, Formula f2) {
-    return encapsulate(env.term("=", getTerm(f1), getTerm(f2)));
+    Term t1 = getTerm(f1);
+    Term t2 = getTerm(f2);
+    assert t1.getSort() == env.sort(BOOLEAN_SORT);
+    assert t2.getSort() == env.sort(BOOLEAN_SORT);
+    return encapsulate(env.term("=", t1, t2));
   }
 
   @Override
@@ -191,28 +196,43 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
   // ----------------- Uninterpreted functions -----------------
 
-  protected Term buildUF(String name, Term... args) {
+  protected Term buildUF(String name, Term[] args, boolean predicate) {
     Sort[] sorts = new Sort[args.length];
     for (int i = 0; i < args.length; i++) {
       sorts[i] = args[i].getSort();
     }
 
-    env.declareFun(name, sorts, env.sort(sort));
+    env.declareFun(name, sorts,
+        predicate ? env.sort(BOOLEAN_SORT) : env.sort(sort));
     return env.term(name, args);
   }
 
   @Override
+  public Formula makeUIP(String name, FormulaList args) {
+    Term uif = buildUF(name, getTerm(args), true);
+    uifs.add(uif);
+    return encapsulate(uif);
+  }
+
+  @Override
   public Formula makeUIF(String name, FormulaList args) {
-    Term uif = buildUF(name, getTerm(args));
+    Term uif = buildUF(name, getTerm(args), false);
     uifs.add(uif);
     return encapsulate(uif);
   }
 
   @Override
   public Formula makeUIF(String name, FormulaList args, int idx) {
-    Term uif = buildUF(makeName(name, idx), getTerm(args));
+    Term uif = buildUF(makeName(name, idx), getTerm(args), false);
     uifs.add(uif);
     return encapsulate(uif);
+  }
+
+  @Override
+  public void declareUIP(String name, int argCount) {
+    Sort[] sorts = new Sort[argCount];
+    Arrays.fill(sorts, env.sort(BOOLEAN_SORT));
+    env.declareFun(name, sorts, env.sort(BOOLEAN_SORT));
   }
 
   // ----------------- Other formulas -----------------
@@ -347,7 +367,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
               int idx = ssa.getIndex(name, encapsulate(newargs));
               if (idx > 0) {
                 // ok, the variable has an instance in the SSA, replace it
-                newt = buildUF(makeName(name, idx), newargs);
+                newt = buildUF(makeName(name, idx), newargs, false);
               } else {
                 newt = replaceArgs(env, t, newargs);
               }
@@ -414,7 +434,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
             if (ufCanBeLvalue(name)) {
               name = parseName(name).getFirst();
 
-              newt = buildUF(name, newargs);
+              newt = buildUF(name, newargs, false);
             } else {
               newt = replaceArgs(env, t, newargs);
             }
@@ -542,6 +562,36 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
       arithCache.put(f, res);
       return res;
     }
+  }
+
+  @Override
+  public boolean checkSyntacticEntails(Formula leftFormula, Formula rightFormula) {
+    final Term leftTerm = getTerm(leftFormula);
+
+    Deque<Term> toProcess = new ArrayDeque<Term>();
+    Set<Term> seen = new HashSet<Term>();
+
+    toProcess.push(getTerm(rightFormula));
+    while (!toProcess.isEmpty()) {
+      final Term rightSubTerm = toProcess.pop();
+
+      if(rightSubTerm == leftTerm) { // TODO equal? compare Strings?
+        return true;
+      }
+
+      if (!isVariable(rightSubTerm)) {
+        int args = getArity(rightSubTerm);
+        for (int i = 0; i < args; ++i) {
+          Term arg = getArg(rightSubTerm, i);
+          if(!seen.contains(arg)) {
+            toProcess.add(arg);
+            seen.add(arg);
+          }
+        }
+      }
+    }
+
+    return false;
   }
 
   @Override
