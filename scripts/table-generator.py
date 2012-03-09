@@ -924,12 +924,13 @@ def createTable(file, filesFromXML=False):
 
     if filesFromXML:
         listOfTests = getListOfTests(file, True)
-        prefix = OUTPUT_PATH + os.path.basename(file)[:-4] # remove ending '.xml'
+        name = os.path.basename(file)[:-4] # remove ending '.xml'
     else:
         listOfTests = getListOfTests(file)
         timestamp = time.strftime("%y%m%d-%H%M", time.localtime())
-        prefix = OUTPUT_PATH + NAME_START + "." + timestamp
+        name = NAME_START + "." + timestamp
 
+    prefix = OUTPUT_PATH + name
     HTMLOutFileName = prefix + ".table.html"
     HTMLdiffOutFileName = prefix + ".diff.html"
     CSVOutFileName = prefix + ".table.csv"
@@ -973,7 +974,7 @@ def createTable(file, filesFromXML=False):
     templateFile = open(templateFileName, 'r')
     HTMLOutFile = open(HTMLOutFileName, 'w')
     Template(templateFile, HTMLOutFile).render(
-                title="table of tests",
+                title=name,
                 table=tableCode
                 )
     templateFile.close()
@@ -983,7 +984,7 @@ def createTable(file, filesFromXML=False):
         templateFile = open(templateFileName, 'r')
         HTMLdiffOutFile = open(HTMLdiffOutFileName, 'w')
         Template(templateFile, HTMLdiffOutFile).render(
-                title="differences",
+                title=name + " differences",
                 table=tableDiffCode
                 )
         templateFile.close()
