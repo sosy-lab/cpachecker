@@ -88,8 +88,12 @@ parser code {:
       Symbol symbol = new AutomatonParser(new AutomatonScanner(input, pInputFile, config, pLogger, sf),sf, pLogger).parse();
       return ((List<Automaton>) symbol.value);
     } catch (Exception e) {
-      throw new InvalidConfigurationException("Could not load automaton from file " + pInputFile.getAbsolutePath()
-          + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()) + ")", e);
+      if (e instanceof IOException && e.getMessage() != null) {
+        throw new InvalidConfigurationException("Could not load automaton from file " + e.getMessage(), e);
+      } else {      
+        throw new InvalidConfigurationException("Could not load automaton from file " + pInputFile.getAbsolutePath()
+            + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()) + ")", e);
+      }
     } finally {
       if (input!= null) {
         try {
