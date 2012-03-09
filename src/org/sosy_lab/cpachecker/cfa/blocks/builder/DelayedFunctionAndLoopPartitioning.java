@@ -89,7 +89,6 @@ public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartition
       }
       //skip as many (hopefully) definitions
       skippedDeclarations--;
-      System.out.println(edge);
       functionBody.remove(edge.getPredecessor());
       currentNode = edge.getSuccessor();
     }
