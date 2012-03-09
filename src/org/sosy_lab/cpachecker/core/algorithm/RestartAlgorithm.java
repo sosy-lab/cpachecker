@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 import java.io.File;
 import java.io.IOException;
@@ -85,6 +86,17 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       return "Restart Algorithm";
     }
 
+    private void printIntermediateStatistics(PrintStream out, Result result,
+        ReachedSet reached) {
+
+      String text = "Statistics for algorithm " + noOfAlgorithmsUsed + " of " + configFiles.size();
+      out.println(text);
+      out.println(Strings.repeat("=", text.length()));
+
+      printSubStatistics(out, result, reached);
+      out.println();
+    }
+
     @Override
     public void printStatistics(PrintStream out, Result result,
         ReachedSet reached) {
@@ -92,9 +104,13 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Number of algorithms provided:    " + configFiles.size());
       out.println("Number of algorithms used:        " + noOfAlgorithmsUsed);
 
+      printSubStatistics(out, result, reached);
+    }
+
+    private void printSubStatistics(PrintStream out, Result result, ReachedSet reached) {
       for (Statistics s : subStats) {
         String name = s.getName();
-        if (name != null && !name.isEmpty()) {
+        if (!isNullOrEmpty(name)) {
           name = name + " statistics";
           out.println("");
           out.println(name);
@@ -200,7 +216,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       if (configFilesIterator.hasNext()) {
-        stats.printStatistics(System.out, Result.UNKNOWN, currentReached);
+        stats.printIntermediateStatistics(System.out, Result.UNKNOWN, currentReached);
         stats.resetSubStatistics();
         logger.log(Level.INFO, "RestartAlgorithm switches to the next configuration...");
       }
