@@ -60,11 +60,19 @@ function showContentPane() {
 function hideContentPane(event) {
 	// hide the content pane on mouse click outside the content pane
 	// or when pressing the "Esc" or "c" key with the content pane focused
-    if(event.keyCode == undefined
-		|| event.keyCode == 27 || event.keyCode == 67) {
+    if(event.type == "click" || escKeyPressed(event) || cKeyPressed(event)) {
       $('#contentPaneBackground').hide();
       $('#contentPane').hide().empty();
   }
+}
+
+function escKeyPressed(event) {
+	return event.keyCode == 27;
+}
+
+function cKeyPressed(event) {
+	// only "c" is pressed, not in combination with Ctrl-key
+	return (event.keyCode == 67 && event.ctrlKey == false);
 }
 
 var headerArray = [];
@@ -227,11 +235,105 @@ function createColumnToggleButtons() {
     showContentPane();
 }
 
+function createRowFilterButtons() {
+    var tableHead = $("#dataTable > thead")[0];
+    var columnTitles = $("#columnTitles > td");
+    var testNums = headerArray[4];
+    var testNum = testNums[1];
+    var testName = tableHead.children[3].cells[headerArray[3][1]].textContent + " " + 
+		    tableHead.children[4].cells[testNum].textContent;
+
+    // TODO can we make next block more OO-like?
+    buttonList = '<ul>' + testName;
+    for (var i=1; i<columnTitles.length; i++) { // do not use first column (i!=0)
+	if (testNum != testNums[i]) {
+	    testNum = testNums[i];
+	    testName = tableHead.children[3].cells[headerArray[3][i]].textContent + " " + 
+			tableHead.children[4].cells[testNum].textContent;
+	    buttonList += '</ul><ul>' + testName;
+	}
+
+	var toggleFunction = 'onclick="fillRowFilterField(this,' + i + ')"';
+
+	var column = columnTitles[i];
+	var button = '<input type="radio" name="filter" id="check' + i + '" ' + toggleFunction + '>';
+	var label = '<label for="check' + i + '">' + column.textContent + '</label>';
+	buttonList += '<li>' + button + label + '</li>';
+    }
+    buttonList += '</ul>';
+    buttonList += '<select id="rowfilterSelect"><option value="none">none</option></select>';
+    buttonList = $(buttonList);
+
+    $('<form id="filterButtons" onsubmit="return false"></form>')
+        .append(buttonList)
+        .appendTo($("#contentPane"));
+    showContentPane();
+}
+
+function fillRowFilterField (button, columnIndex) {
+
+    var rowfilter = $('#rowfilterSelect');
+    var rowfilterSelect = rowfilter[0];
+
+    // clear all but default option
+    for(var i = rowfilterSelect.options.length - 1; i > 0; i--) {
+      rowfilterSelect.options.remove(i);
+    }
+
+    // determin new options
+    var dataRows = $('#dataTable > tbody')[0].rows;
+    var options = new Array();
+    for(var i = 0; i < dataRows.length; i++) {
+      currentValue = dataRows[i].cells[columnIndex].textContent;
+      if(jQuery.inArray(currentValue, options) === -1)
+	options[options.length] = currentValue;
+    }
+
+    // add new options
+    for(var i = 0; i < options.length; i++) {
+	newOption = document.createElement('option');
+	newOption.value = options[i];
+	newOption.text = options[i];
+	
+	rowfilterSelect.options.add(newOption, null);
+    }
+
+    rowfilter.unbind().on('change', {column: columnIndex}, filterRows);
+}
+
+function filterRows(event) {
+  var rowfilterSelect = $('#rowfilterSelect')[0];
+  selectedValue = rowfilterSelect.value;
+  columnIndex = event.data.column;
+
+  columnName = $('#columnTitles')[0].cells[columnIndex].textContent;
+
+  var dataRows = $('#dataTable > tbody')[0].rows;
+  for(var i = 0; i < dataRows.length; i++) {
+    $(dataRows[i]).show();
+    if(selectedValue != dataRows[i].cells[columnIndex].textContent) {
+      $(dataRows[i]).hide();
+    }
+  
+    else if(columnName == 'status' && dataRows[i].cells[columnIndex].className.indexOf('wrong') == 0){
+      $(dataRows[i]).hide();
+    }
+  }
+  
+  $('#contentPaneBackground').hide();
+  $('#contentPane').hide().empty();
+}
+
 $(document).ready(function(){
     $('#columnTitles > td:first-child')
         .addClass("clickable")
         .click(function (event) { 
             return createColumnToggleButtons(); });
+
+    $('body').keydown(function (event) {
+			    if(event.keyCode == 70)
+			      return createRowFilterButtons(); 
+			  });
 });
 </script>
 
@@ -290,6 +392,10 @@ function getTableData(header) {
 
     for(i = 0; i < tableBody.rows.length; i++) {
       var currentRow = tableBody.rows[i];
+
+      if(!$(currentRow).is(":visible")) {
+	continue;
+      }
 
       for (j = 0; j < indices.length; j++) {
         var index = indices[j];
