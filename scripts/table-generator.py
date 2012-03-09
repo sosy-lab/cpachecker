@@ -434,23 +434,21 @@ def getTableHead(listOfTests, fileNames):
     testBranches = getBranchRow(listOfTests, testWidths)
     testOptions = getOptionsRow(listOfTests, testWidths)
 
-    return (('\n' + HTML_SHIFT).join([HTML_SHIFT + '<thead>', toolRow,
-            limitRow, systemRow, dateRow, testRow, testBranches, testOptions,
-            columnRow]) + '\n</thead>',
+    return ('\n'.join([toolRow, limitRow, systemRow, dateRow, testRow, testBranches, testOptions, columnRow]),
             toolLine + '\n' + testLine + '\n' + titleLine + '\n')
 
+def getCommonPrefix(fileNames):
+    # get common folder of sourcefiles
+    commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
+    commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
+    return commonPrefix
 
 def getColumnsRowAndTestWidths(listOfTests, fileNames):
     '''
     get columnsRow and testWidths, for all columns that should be shown
     '''
-
-    # get common folder of sourcefiles
-    commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
-    commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
-
     testWidths = [len(result.columns) for result in listOfTests]
-    columnsTitles = [commonPrefix]
+    columnsTitles = [getCommonPrefix(fileNames)]
     for result in listOfTests:
         for column in result.columns: columnsTitles.append(column.title)
 
@@ -657,31 +655,26 @@ def getTableBody(listOfTests, fileNames):
     if isDifference:
         rowsForStatsDiff, _ = getStatsHTML(listOfTestsDiff, fileNamesDiff, rowsForCSVdiff)
 
-    # get common folder
-    commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
-    commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
+    commonPrefix = getCommonPrefix(fileNames)
 
     # generate text for filenames, insert it as first column
     # this implicitly adds filenames into diff-lists, too
     for fileName, HTMLrow, CSVrow in zip(fileNames, rowsForHTML, rowsForCSV):
         filePath = getPathOfSourceFile(fileName)
+        fileName = fileName.replace(commonPrefix, '', 1)
         HTMLrow.insert(0, ['<td><a href="{0}">{1}</a></td>'.
-                    format(quote(filePath), fileName.replace(commonPrefix, '', 1))])
-        CSVrow.insert(0, [fileName.replace(commonPrefix, '', 1)])
+                    format(quote(filePath), fileName)])
+        CSVrow.insert(0, [fileName])
 
     # join all listelements to strings
-    rowsHTML = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(joinRows(rowsForHTML))
-    statsHTML = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(map(''.join, rowsForStats))
-    HTMLbody = '<tbody>\n{0}<tr>{1}</tr>\n</tbody>'.format(HTML_SHIFT, rowsHTML)
-    HTMLfooter = '<tfoot>\n{0}<tr>{1}</tr>\n</tfoot>'.format(HTML_SHIFT, statsHTML)
-    CSVbody = '\n'.join(joinRows(rowsForCSV, CSV_SEPARATOR))
+    HTMLbody   = joinHtmlRows(rowsForHTML)
+    HTMLfooter = joinHtmlRows(rowsForStats)
+    CSVbody    = '\n'.join(joinRows(rowsForCSV, CSV_SEPARATOR))
 
     if isDifference:
-        rowsHTMLdiff = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(joinRows(rowsForHTMLdiff))
-        statsHTMLdiff = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(map(''.join, rowsForStatsDiff))
-        HTMLdiff = '<tbody>\n{0}<tr>{1}</tr>\n</tbody>'.format(HTML_SHIFT, rowsHTMLdiff)
-        HTMLdiffFooter = '<tfoot>\n{0}<tr>{1}</tr>\n</tfoot>'.format(HTML_SHIFT, statsHTMLdiff)
-        CSVdiff = '\n'.join(joinRows(rowsForCSVdiff, CSV_SEPARATOR))
+        HTMLdiff       = joinHtmlRows(rowsForHTMLdiff)
+        HTMLdiffFooter = joinHtmlRows(rowsForStatsDiff)
+        CSVdiff        = '\n'.join(joinRows(rowsForCSVdiff, CSV_SEPARATOR))
     else:
         HTMLdiff = ''
         HTMLdiffFooter = ''
@@ -689,6 +682,11 @@ def getTableBody(listOfTests, fileNames):
 
     return (HTMLbody, HTMLfooter, HTMLdiff, HTMLdiffFooter, CSVbody, CSVdiff, countsList)
 
+def joinHtmlRows(rows):
+    """
+    This functions joins all rows into one HTML block.
+    """
+    return '\n'.join(['<tr>{0}</tr>'.format(row) for row in joinRows(rows)])
 
 def joinRows(rows, str=""):
     """
@@ -950,19 +948,6 @@ def createTable(file, filesFromXML=False):
     (tableBodyHTML, tableFootHTML, tableBodyDiffHTML, tableFootDiffHTML, tableBodyCSV, CSVdiff, countsList) \
             = getTableBody(listOfResults, filenames)
 
-    tableCode = tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
-                + '\n' + HTML_SHIFT \
-                + tableBodyHTML.replace('\n','\n' + HTML_SHIFT) \
-                + '\n' + HTML_SHIFT \
-                + tableFootHTML.replace('\n','\n' + HTML_SHIFT)
-
-    if tableBodyDiffHTML != '':
-        tableDiffCode = tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
-                + '\n' + HTML_SHIFT \
-                + tableBodyDiffHTML.replace('\n','\n' + HTML_SHIFT) \
-                + '\n' + HTML_SHIFT \
-                + tableFootDiffHTML.replace('\n','\n' + HTML_SHIFT)
-
     if not os.path.isdir(OUTPUT_PATH): os.makedirs(OUTPUT_PATH)
 
     # write HTML to file
@@ -975,7 +960,9 @@ def createTable(file, filesFromXML=False):
     HTMLOutFile = open(HTMLOutFileName, 'w')
     Template(templateFile, HTMLOutFile).render(
                 title=name,
-                table=tableCode
+                head=tableHeadHTML,
+                body=tableBodyHTML,
+                foot=tableFootHTML
                 )
     templateFile.close()
     HTMLOutFile.close()
@@ -985,7 +972,9 @@ def createTable(file, filesFromXML=False):
         HTMLdiffOutFile = open(HTMLdiffOutFileName, 'w')
         Template(templateFile, HTMLdiffOutFile).render(
                 title=name + " differences",
-                table=tableDiffCode
+                head=tableHeadHTML,
+                body=tableBodyDiffHTML,
+                foot=tableFootDiffHTML
                 )
         templateFile.close()
         HTMLdiffOutFile.close()
