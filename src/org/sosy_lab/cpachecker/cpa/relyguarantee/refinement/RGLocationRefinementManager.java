@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationClass;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
@@ -87,8 +88,11 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 
 /**
  * Handles refinement of locations.
@@ -117,7 +121,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   private final RegionManager rManager;
   private final RGEnvironmentManager envManager;
   private ParallelCFAS pcfa;
-  private final int tidNo;
+  private final int threadNo;
   private final LogManager logger;
   private final Stats stats;
 
@@ -151,7 +155,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     this.rManager = pRManager;
     this.envManager = envManager;
     this.pcfa = pcfa;
-    this.tidNo = pcfa.getThreadNo();
+    this.threadNo = pcfa.getThreadNo();
     this.logger  = pLogger;
     this.stats = new Stats();
 
@@ -514,7 +518,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   }*/
 
   /**
-   * Creates a location from the SAT model.
+   * Creates a location mapping from the SAT model.
    * @param inqMap
    * @param pModel
    * @return
@@ -551,8 +555,8 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       bldr = bldr.put(node, 1);
     }
 
-
-    return new RGLocationMapping(bldr.build(), ImmutableSetMultimap.copyOf(inqMap));
+    // TODO finish
+    return new RGLocationMapping(null, ImmutableSetMultimap.copyOf(inqMap));
   }
 
 
@@ -600,18 +604,31 @@ public class RGLocationRefinementManager implements StatisticsProvider{
 
 
   /**
-   * Refines old location mapping by putting mistmatching nodes in different equivalence classes.
+   * Creates a new location mapping that for every path chooses one mistmatch
+   * and places its node in separated classes.
    * @param oldLM
    * @param mismatchesForPath
    * @return
    * @throws RefinementFailedException
    */
-  public RGLocationMapping monotonicLocationMapping(RGLocationMapping oldLM, ImmutableSetMultimap<Path, Pair<CFANode, CFANode>> mismatchesForPath) throws RefinementFailedException {
-    Integer topCl = oldLM.getClassNo();
+  public RGLocationMapping monotonicLocationMapping(ImmutableSetMultimap<Path, Pair<CFANode, CFANode>> mismatchesForPath,
+      int tid) throws RefinementFailedException {
 
-    Map<CFANode, Integer> map = new HashMap<CFANode, Integer>(oldLM.getLocationMapping());
 
-    // for every path only one mistmatch is choosen
+    // class number -> nodes
+    SetMultimap<Integer, CFANode> map = LinkedHashMultimap.create();
+
+    // put all nodes in class one
+    for (int i=0; i<threadNo; i++){
+
+      if (i != tid){
+        map.putAll(1, pcfa.getCfa(i).getExecNodes());
+      }
+    }
+
+    // put one of the mistmatching nodes in a new classe
+    // make sure that global decl. nodes and execution start always belong to class 1
+    int topCl = 1;
     for (Path pi : mismatchesForPath.keySet()){
 
       Set<Pair<CFANode, CFANode>> misColl = mismatchesForPath.get(pi);
@@ -619,8 +636,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
 
       Pair<CFANode, CFANode> mismatch = misColl.iterator().next();
 
-      // put one of the mistmatching nodes in a new classe
-      // make sure that global decl. nodes and execution start always belong to class 1
+
       CFANode node = mismatch.getSecond();
 
       if (nodesAlwaysInClassOne.contains(node)){
@@ -631,10 +647,19 @@ public class RGLocationRefinementManager implements StatisticsProvider{
         }
       }
 
-      map.put(node, ++topCl);
+      map.put(++topCl, node);
+      boolean wasInOne = map.remove(1, node);
+      assert wasInOne;
     }
 
-    return new RGLocationMapping(ImmutableMap.copyOf(map), mismatchesForPath);
+    // create location classes
+    Set<RGLocationClass> partitioning = new HashSet<RGLocationClass>(map.keySet().size());
+    for (Integer classNo : map.keySet()){
+      RGLocationClass loccl = new RGLocationClass(ImmutableSet.copyOf(map.get(classNo)));
+      partitioning.add(loccl);
+    }
+
+    return new RGLocationMapping(ImmutableSet.copyOf(partitioning), mismatchesForPath);
   }
 
 
@@ -654,11 +679,11 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     int stid = first.getTid();
 
     // expected locations
-    CFANode[] pc = new CFANode[tidNo];
+    CFANode[] pc = new CFANode[threadNo];
 
     /* initialize local thread to start of global declarations
      * and other threads to start of execution */
-    for (int i=0; i<tidNo; i++){
+    for (int i=0; i<threadNo; i++){
       if (i == stid){
         pc[i] = pcfa.getCfas().get(i).getInitalNode();
       } else {

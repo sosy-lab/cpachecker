@@ -63,7 +63,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTPrecision;
 import org.sosy_lab.cpachecker.cpa.art.ARTTransferRelation;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationClass;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGTransferRelation;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
@@ -398,9 +398,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       AbstractElement successor, Precision pPrecision, CFAEdge edge) {
 
     ARTElement element = (ARTElement) pElement;
-    ARTPrecision prec = (ARTPrecision) pPrecision;
-    RGLocationMapping lm = prec.getLocationMapping();
-    ImmutableMap<Integer, Integer> locCl = element.getLocationClasses();
+    ImmutableMap<Integer, RGLocationClass> locClasses = element.getLocationClasses();
     SetMultimap<Integer, CFANode> concreateLocs = LinkedHashMultimap.create();
 
     for (int i=0; i<threadNo; i++){
@@ -409,10 +407,9 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         CFANode loc = element.retrieveLocationElement().getLocationNode();
         concreateLocs.put(i, loc);
       } else {
-        int classNo = locCl.get(i);
-        Collection<CFANode> nodes = lm.classToNodes(classNo);
-        assert !nodes.isEmpty();
-        concreateLocs.putAll(i, nodes);
+        RGLocationClass locClass = locClasses.get(i);
+        assert locClass != null;
+        concreateLocs.putAll(i, locClass.getClassNodes());
       }
     }
 

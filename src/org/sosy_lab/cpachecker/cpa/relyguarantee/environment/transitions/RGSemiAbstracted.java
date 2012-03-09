@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationClass;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -57,12 +57,23 @@ public class RGSemiAbstracted implements RGEnvTransition{
   private final PathFormula formulaForAbstraction;
   /** ART elements that generated this transition */
   private ImmutableSet<ARTElement> generatingARTElement;
-  /** The classes for tid's locations at {@link #sourceARTElement} and {@link #targetARTElement}.
-   * They are computed w.r.t. to precision of the element where the transition is applied. */
-  private final Pair<Integer, Integer> locClasses;
+  /** Class of the source element's location */
+  private final RGLocationClass sourceLocationClass;
+  /** Class of the target element's location */
+  private final RGLocationClass targetLocationClass;
 
 
-  public RGSemiAbstracted(Formula precondition, Region preconditionRegion, SSAMap ssa, CFAEdge operation, ARTElement sourceElem, ARTElement targetElem, int tid, PathFormula formulaForAbs, Pair<Integer, Integer> locClasses){
+  public RGSemiAbstracted(Formula precondition,
+      Region preconditionRegion,
+      SSAMap ssa,
+      CFAEdge operation,
+      ARTElement sourceElem,
+      ARTElement targetElem,
+      int tid,
+      PathFormula formulaForAbs,
+      RGLocationClass sourceLocClass,
+      RGLocationClass targetLocClass){
+
     assert !sourceElem.isDestroyed();
     assert formulaForAbs.getFormula().isTrue();
 
@@ -74,7 +85,8 @@ public class RGSemiAbstracted implements RGEnvTransition{
     this.targetARTElement = targetElem;
     this.formulaForAbstraction = formulaForAbs;
     this.tid = tid;
-    this.locClasses = locClasses;
+    this.sourceLocationClass = sourceLocClass;
+    this.targetLocationClass = targetLocClass;
 
     this.generatingARTElement = ImmutableSet.of(sourceARTElement, targetARTElement);
   }
@@ -113,7 +125,9 @@ public class RGSemiAbstracted implements RGEnvTransition{
 
   @Override
   public String toString(){
-    return "sa: "+operation.getRawStatement()+", "+abstractPrecondition+", ["+locClasses.getFirst()+"->"+locClasses.getSecond()+"]";
+    return "sa: "+operation.getRawStatement()+", "+abstractPrecondition+
+        ", ["+sourceARTElement.retrieveLocationElement().getLocationNode()+"->"+
+        targetARTElement.retrieveLocationElement().getLocationNode()+"]";
   }
 
   @Override
@@ -136,12 +150,13 @@ public class RGSemiAbstracted implements RGEnvTransition{
     return formulaForAbstraction;
   }
 
-  public Pair<Integer, Integer> getLocClasses() {
-    return locClasses;
+  public RGLocationClass getSourceLocationClass() {
+    return sourceLocationClass;
   }
 
-
-
+  public RGLocationClass getTargetLocationClass() {
+    return targetLocationClass;
+  }
 
 
 }

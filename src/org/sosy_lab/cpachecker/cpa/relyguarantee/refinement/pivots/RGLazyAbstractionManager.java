@@ -339,8 +339,7 @@ public class RGLazyAbstractionManager {
         Builder<Path, Pair<CFANode, CFANode>> bldr = ImmutableSetMultimap.<Path, Pair<CFANode, CFANode>>builder();
         bldr = bldr.putAll(lm.getMismatchesForPath()).putAll(lpiv.getMismatchesPerPath());
 
-        RGLocationMapping emptyLM = RGLocationMapping.getEmpty(pcfa, tid);
-        RGLocationMapping newLM = locrefManager.monotonicLocationMapping(emptyLM, bldr.build());
+        RGLocationMapping newLM = locrefManager.monotonicLocationMapping(bldr.build(), tid);
 
         Precision newPrec = new ARTPrecision(newLM, oldPrec.getWrappedPrecision());
 

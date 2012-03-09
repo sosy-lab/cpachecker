@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationClass;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
@@ -59,8 +60,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-
-import com.google.common.collect.ImmutableMap;
 
 /**
  * Manager for fully-abstracted environmental transitions.
@@ -131,16 +130,23 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
     Formula newF = fManager.makeAnd(newPf.getFormula(), equivs.getFirst().getFirst());
     newPf = new PathFormula(newF, newSsa, newPf.getLength());
 
-
-    // find classes for locations of the source thread
-    int sCl = lm.get(cand.getElementLoc());
-    int tCl = lm.get(cand.getSuccessorLoc());
-    Pair<Integer, Integer> locCl = Pair.of(sCl, tCl);
+    // abstract the element and successor's locations
+    RGLocationClass sourceLocClass = lm.getLocationClass(cand.getElementLoc());
+    RGLocationClass targetLocClass = lm.getLocationClass(cand.getSuccessorLoc());
 
     // abstract
     AbstractionFormula newAbs = absManager.buildNextValueAbstraction(oldAbs, oldPf, newPf, preds, sourceTid);
     SSAMap highSSA = newAbs.asPathFormula().getSsa();
-    RGFullyAbstracted et = new RGFullyAbstracted(newAbs.asFormula(), newAbs.asRegion(), oldSsa, highSSA, cand.getElement(), cand.getSuccessor(), cand.getOperation(), sourceTid, newPf, locCl);
+    RGFullyAbstracted et = new RGFullyAbstracted(newAbs.asFormula(),
+        newAbs.asRegion(),
+        oldSsa, highSSA,
+        cand.getElement(),
+        cand.getSuccessor(),
+        cand.getOperation(),
+        sourceTid,
+        newPf,
+        sourceLocClass,
+        targetLocClass);
 
     stats.generationTimer.stop();
     return et;
@@ -183,41 +189,41 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
 
   @Override
   public PathFormula formulaForRefinement(RGAbstractElement elem, RGEnvTransition et, int unique) {
-      RGFullyAbstracted fa = (RGFullyAbstracted) et;
-      AbstractionFormula abs = elem.getAbstractionFormula();
-      PathFormula pf = elem.getAbsPathFormula();
+    RGFullyAbstracted fa = (RGFullyAbstracted) et;
+    AbstractionFormula abs = elem.getAbstractionFormula();
+    PathFormula pf = elem.getAbsPathFormula();
 
-      /* if path formula is true, then BDDs can detect unsatisfiable result */
-      if (pf.getFormula().isTrue()){
-        boolean isFalse = checkByBDD(fa, abs);
-        if (isFalse){
-          // no stats here, since they are probably redundant with formulaForAbstraction
-          return pfManager.makeFalsePathFormula();
-        }
+    /* if path formula is true, then BDDs can detect unsatisfiable result */
+    if (pf.getFormula().isTrue()){
+      boolean isFalse = checkByBDD(fa, abs);
+      if (isFalse){
+        // no stats here, since they are probably redundant with formulaForAbstraction
+        return pfManager.makeFalsePathFormula();
       }
+    }
 
-      SSAMap lowSSA = pf.getSsa();
-      Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(1);
-      rMap.put(-1, unique);
-      SSAMap gSsa = ssaManager.changePrimeNo(fa.getLowSSA(), rMap);
+    SSAMap lowSSA = pf.getSsa();
+    Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(1);
+    rMap.put(-1, unique);
+    SSAMap gSsa = ssaManager.changePrimeNo(fa.getLowSSA(), rMap);
 
-      // build equalities between the local variables and the variables that generated the transition
-      PathFormula lowPf = pfManager.makePrimedEqualities(lowSSA, -1, gSsa, unique);
+    // build equalities between the local variables and the variables that generated the transition
+    PathFormula lowPf = pfManager.makePrimedEqualities(lowSSA, -1, gSsa, unique);
 
-      // increment all indexes that the transition can change by 1
-      Set<String> nlVars = new HashSet<String>(pcfas.getGlobalVariables());
-      int sourceTid = fa.getTid();
-      nlVars.addAll(pcfas.getLocalVars(sourceTid));
+    // increment all indexes that the transition can change by 1
+    Set<String> nlVars = new HashSet<String>(pcfas.getGlobalVariables());
+    int sourceTid = fa.getTid();
+    nlVars.addAll(pcfas.getLocalVars(sourceTid));
 
-      SSAMap highSSA = ssaManager.incrementMap(lowSSA, nlVars, 1);
+    SSAMap highSSA = ssaManager.incrementMap(lowSSA, nlVars, 1);
 
-      SSAMap fSsa = ssaManager.changePrimeNo(fa.getHighSSA(), rMap);
+    SSAMap fSsa = ssaManager.changePrimeNo(fa.getHighSSA(), rMap);
 
-      // build equalities between the highest indexes of the instantiated filter
-      Formula hiF =  fManager.makePrimedEqualities(highSSA, -1, fSsa, unique);
+    // build equalities between the highest indexes of the instantiated filter
+    Formula hiF =  fManager.makePrimedEqualities(highSSA, -1, fSsa, unique);
 
-      Formula appF = fManager.makeAnd(hiF, lowPf.getFormula());
-      PathFormula appPf = new PathFormula(appF, highSSA, 0);
+    Formula appF = fManager.makeAnd(hiF, lowPf.getFormula());
+    PathFormula appPf = new PathFormula(appF, highSSA, 0);
 
 
     return appPf;
@@ -262,17 +268,12 @@ public class RGFullyAbstractedManager extends RGEnvTransitionManagerFactory {
      * Technically we should compare location classes of all threads, but we know that
      * the match anyway the location classes of the element where they're going to be applied.
      */
-    Pair<Integer, Integer> locCl1 = efa1.getLocClasses();
-    Pair<Integer, Integer> locCl2 = efa2.getLocClasses();
+    RGLocationClass s1lc = efa1.getSourceLocationClass();
+    RGLocationClass s2lc = efa2.getSourceLocationClass();
+    RGLocationClass t1lc = efa1.getTargetLocationClass();
+    RGLocationClass t2lc = efa2.getTargetLocationClass();
 
-    if (!locCl1.equals(locCl2)){
-      return false;
-    }
-
-    ImmutableMap<Integer, Integer> tlocCl1 = efa1.getTargetARTElement().getLocationClasses();
-    ImmutableMap<Integer, Integer> tlocCl2 = efa2.getTargetARTElement().getLocationClasses();
-
-    if (!tlocCl1.equals(tlocCl2)){
+    if (!s1lc.equals(s2lc) || !t1lc.equals(t2lc)){
       return false;
     }
 

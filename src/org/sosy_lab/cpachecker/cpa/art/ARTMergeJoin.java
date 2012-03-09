@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationClass;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -68,8 +69,8 @@ public class ARTMergeJoin implements MergeOperator {
     }
 
     // merged elements that have matching location classes
-    ImmutableMap<Integer, Integer> locations1 = artElement1.getLocationClasses();
-    ImmutableMap<Integer, Integer> locations2 = artElement2.getLocationClasses();
+     ImmutableMap<Integer, RGLocationClass> locations1 = artElement1.getLocationClasses();
+     ImmutableMap<Integer, RGLocationClass> locations2 = artElement2.getLocationClasses();
 
     if (!locations1.equals(locations2)){
       return pElement2;

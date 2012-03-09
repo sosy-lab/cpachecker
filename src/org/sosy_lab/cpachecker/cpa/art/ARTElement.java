@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationClass;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -80,13 +81,17 @@ public class ARTElement extends AbstractSingleWrapperElement {
   /**
    * equivalences class of each program counter
    */
-  private final ImmutableMap<Integer, Integer> locationClasses;
+  private final ImmutableMap<Integer, RGLocationClass> locationClasses;
 
   private ImmutableList<Pair<ARTElement, RGEnvTransition>> envApplied = ImmutableList.of();
 
   private static int nextArtElementId = 0;
 
-  public ARTElement(AbstractElement pWrappedElement, Map<ARTElement, CFAEdge> parentEdges, Map<ARTElement, RGCFAEdge> parentEnvEdges, ImmutableMap<Integer, Integer> locCl, int tid) {
+  public ARTElement(AbstractElement pWrappedElement,
+      Map<ARTElement, CFAEdge> parentEdges,
+      Map<ARTElement, RGCFAEdge> parentEnvEdges,
+      ImmutableMap<Integer, RGLocationClass> locCl,
+      int tid) {
     super(pWrappedElement);
     assert parentEdges != null;
     assert !locCl.containsKey(tid);
@@ -173,7 +178,8 @@ public class ARTElement extends AbstractSingleWrapperElement {
     return false;
   }
 
-  public ImmutableMap<Integer, Integer> getLocationClasses() {
+
+  public ImmutableMap<Integer, RGLocationClass> getLocationClasses() {
     return locationClasses;
   }
 
@@ -181,7 +187,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
     return tid;
   }
 
-  protected void (ARTElement pCoveredBy) {
+  protected void setCovered(ARTElement pCoveredBy) {
     assert pCoveredBy != null;
     assert pCoveredBy.mayCover;
 

@@ -23,28 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import java.util.Collection;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableMultimap.Builder;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 
 /**
- * Immutable function that maps locations to their equivalence classes.
+ * Location mapping of thread i partions locations of other threads into equivalence
+ * classes. It abstract individual location to set of locations that are seen as equivalent.
+ * If every location belongs to a separate class, then the function becomes a vector of program
+ * counters. Location mappings are immutable.
  */
 public class RGLocationMapping {
 
-  private final ImmutableMap<CFANode, Integer> locationMapping;
-  /** Inverse map */
-  private final ImmutableMultimap<Integer, CFANode> inverseMapping;
+  private final ImmutableMap<CFANode, RGLocationClass> locationMapping;
+  private final ImmutableSet<RGLocationClass> partitioning;
   /** all inequalities that generated this mapping*/
   private final ImmutableSetMultimap<Path, Pair<CFANode, CFANode>> mismatchesForPath;
   /* Number of classes in the last non-monotonic refinement
@@ -52,47 +49,54 @@ public class RGLocationMapping {
 
   /**
    * Return location mapping, where all execution nodes of other threads
-   * belong to the deafult class (1).
+   * belong to one class.
    * @param pcfa
    * @param tid
    * @return
    */
   public static RGLocationMapping getEmpty(ParallelCFAS pcfa, int tid) {
 
-    com.google.common.collect.ImmutableMap.Builder<CFANode, Integer> bldr =
-        ImmutableMap.<CFANode, Integer>builder();
+    com.google.common.collect.ImmutableSet.Builder<CFANode> bldr = ImmutableSet.<CFANode>builder();
+
 
     for (int i=0; i < pcfa.getThreadNo(); i++ ){
 
       if (i != tid){
-        Set<CFANode> nodes = pcfa.getCfa(i).getExecNodes();
-        for (CFANode node : nodes){
-          bldr = bldr.put(node, 1);
-        }
+        bldr = bldr.addAll(pcfa.getCfa(i).getExecNodes());
       }
     }
 
-    return new RGLocationMapping(bldr.build(), ImmutableSetMultimap.<Path, Pair<CFANode, CFANode>>of());
+    RGLocationClass defClass = new RGLocationClass(bldr.build());
+    ImmutableSet<RGLocationClass> part = ImmutableSet.of(defClass);
+
+    return new RGLocationMapping(part, ImmutableSetMultimap.<Path, Pair<CFANode, CFANode>>of());
   }
 
 
-  /**
-   * Returns location mapping where all nodes that are not global declarations are mapped to their own
-   * class.
-   * @param pcfa
-   * @return
-   */
-  public static RGLocationMapping getIndentity(ParallelCFAS pcfa, int tid){
-    assert false : "Not implemented yet";
-    return null;
-  }
-
-
-  public RGLocationMapping(ImmutableMap<CFANode, Integer> map, ImmutableSetMultimap<Path, Pair<CFANode, CFANode>> mismatchesForPath){
-    this.locationMapping = map;
+  public RGLocationMapping(ImmutableSet<RGLocationClass> partitioning, ImmutableSetMultimap<Path, Pair<CFANode, CFANode>> mismatchesForPath){
+    this.partitioning =  partitioning;
     this.mismatchesForPath = mismatchesForPath;
-    this.inverseMapping = inverse(this.locationMapping);
+    this.locationMapping = paritioningToMap(partitioning);
   }
+
+
+  private ImmutableMap<CFANode, RGLocationClass> paritioningToMap(
+      ImmutableSet<RGLocationClass> part) {
+
+    // if two location classes contain the same node, the builder will throw an exception
+
+    com.google.common.collect.ImmutableMap.Builder<CFANode, RGLocationClass> bldr =
+        ImmutableMap.<CFANode, RGLocationClass>builder();
+
+    for (RGLocationClass locClass : part){
+      for (CFANode node : locClass.getClassNodes()){
+        bldr = bldr.put(node, locClass);
+      }
+    }
+
+    return bldr.build();
+  }
+
 
   public boolean containsKey(Object pArg0) {
     return locationMapping.containsKey(pArg0);
@@ -102,55 +106,15 @@ public class RGLocationMapping {
     return locationMapping.containsValue(pArg0);
   }
 
-  public Set<java.util.Map.Entry<CFANode, Integer>> entrySet() {
-    return locationMapping.entrySet();
-  }
-
-  public Integer get(Object pArg0) {
-    return locationMapping.get(pArg0);
-  }
-
-  public boolean isEmpty() {
-    return locationMapping.isEmpty();
-  }
-
-  public Set<CFANode> keySet() {
-    return locationMapping.keySet();
-  }
-
-
-  public int size() {
-    return locationMapping.size();
-  }
-
-  public Collection<Integer> values() {
-    return locationMapping.values();
-  }
-
-
-  private ImmutableMultimap<Integer, CFANode> inverse(ImmutableMap<CFANode, Integer> map){
-
-    Builder<Integer, CFANode> bldr = ImmutableMultimap.builder();
-
-    for (Entry<CFANode, Integer> entry : map.entrySet()){
-      bldr.put(entry.getValue(), entry.getKey());
-    }
-
-    return bldr.build();
-  }
 
   public int getClassNo(){
-    return inverseMapping.keySet().size();
-  }
-
-  public Collection<CFANode> classToNodes(Integer classNo) {
-    return this.inverseMapping.get(classNo);
+    return partitioning.size();
   }
 
 
   @Override
   public String toString(){
-    String str = "RGLocationMapping: "+inverseMapping;
+    String str = "RGLocationMapping: "+this.partitioning;
     return str;
   }
 
@@ -159,19 +123,27 @@ public class RGLocationMapping {
     return locationMapping.hashCode();
   }
 
+  public boolean equals(RGLocationMapping other){
+    return other.partitioning.equals(partitioning);
+  }
 
-  public ImmutableMap<CFANode, Integer> getLocationMapping() {
+  public ImmutableMap<CFANode, RGLocationClass> getLocationMapping() {
     return locationMapping;
   }
 
 
-  public ImmutableMultimap<Integer, CFANode> getInverseMapping() {
-    return inverseMapping;
+  public ImmutableSet<RGLocationClass> getParitioning() {
+    return partitioning;
   }
 
 
   public ImmutableSetMultimap<Path, Pair<CFANode, CFANode>> getMismatchesForPath() {
     return mismatchesForPath;
+  }
+
+
+  public RGLocationClass getLocationClass(CFANode node) {
+    return locationMapping.get(node);
   }
 
 

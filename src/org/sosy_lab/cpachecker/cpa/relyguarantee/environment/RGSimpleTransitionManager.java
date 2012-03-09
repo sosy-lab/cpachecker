@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -41,6 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationClass;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
@@ -57,8 +57,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-
-import com.google.common.collect.ImmutableMap;
 
 @Options(prefix="cpa.rg")
 public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
@@ -97,12 +95,19 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
     Region absReg = abs.asRegion();
     PathFormula pf = cand.getRgElement().getAbsPathFormula();
 
-    // find classes for locations of the source thread
-    int sCl = lm.get(cand.getElement().retrieveLocationElement().getLocationNode());
-    int tCl = lm.get(cand.getSuccessor().retrieveLocationElement().getLocationNode());
-    Pair<Integer, Integer> locCl = Pair.of(sCl, tCl);
+    // abstract the element and successor's locations
+    RGLocationClass sourceLocClass = lm.getLocationClass(cand.getElementLoc());
+    RGLocationClass targetLocClass = lm.getLocationClass(cand.getSuccessorLoc());
 
-    return new RGSimpleTransition(absF, absReg, pf, cand.getOperation(), cand.getElement(), cand.getSuccessor(), cand.getTid(), locCl);
+    return new RGSimpleTransition(absF,
+        absReg,
+        pf,
+        cand.getOperation(),
+        cand.getElement(),
+        cand.getSuccessor(),
+        cand.getTid(),
+        sourceLocClass,
+        targetLocClass);
   }
 
   @Override
@@ -187,6 +192,10 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
 
   @Override
   public boolean isLessOrEqual(RGEnvTransition et1, RGEnvTransition et2) {
+    /* The location classes refer only to the locations of the transitions' source thread.
+     * Technically we should compare location classes of all threads, but we know that
+     * the match anyway the location classes of the element where they're going to be applied.
+     */
 
     RGSimpleTransition st1 = (RGSimpleTransition) et1;
     RGSimpleTransition st2 = (RGSimpleTransition) et2;
@@ -198,17 +207,12 @@ public class RGSimpleTransitionManager extends RGEnvTransitionManagerFactory {
       return false;
     }
 
-    Pair<Integer, Integer> locCl1 = st1.getLocClasses();
-    Pair<Integer, Integer> locCl2 = st2.getLocClasses();
+    RGLocationClass s1lc = st1.getSourceLocationClass();
+    RGLocationClass s2lc = st2.getSourceLocationClass();
+    RGLocationClass t1lc = st1.getTargetLocationClass();
+    RGLocationClass t2lc = st2.getTargetLocationClass();
 
-    if (!locCl1.equals(locCl2)){
-      return false;
-    }
-
-    ImmutableMap<Integer, Integer> tlocCl1 = et1.getTargetARTElement().getLocationClasses();
-    ImmutableMap<Integer, Integer> tlocCl2 = et2.getTargetARTElement().getLocationClasses();
-
-    if (!tlocCl1.equals(tlocCl2)){
+    if (!s1lc.equals(s2lc) || !t1lc.equals(t2lc)){
       return false;
     }
 

@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationClass;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
@@ -58,8 +59,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-
-import com.google.common.collect.ImmutableMap;
 
 /**
  * Manager for semi-abstracted environmental transitions.
@@ -123,14 +122,22 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
     Formula aPred = fManager.uninstantiate(aFilter.asFormula());
     Region aPredReg = aFilter.asRegion();
 
-    // find classes for locations of the source thread
-    int sCl = lm.get(cand.getElement().retrieveLocationElement().getLocationNode());
-    int tCl = lm.get(cand.getSuccessor().retrieveLocationElement().getLocationNode());
-    Pair<Integer, Integer> locCl = Pair.of(sCl, tCl);
+    // abstract the element and successor's locations
+    RGLocationClass sourceLocClass = lm.getLocationClass(cand.getElementLoc());
+    RGLocationClass targetLocClass = lm.getLocationClass(cand.getSuccessorLoc());
 
     SSAMap ssa = cand.getRgElement().getAbsPathFormula().getSsa();
     CFAEdge operation = cand.getOperation();
-    RGSemiAbstracted sa = new RGSemiAbstracted(aPred, aPredReg, ssa, operation, cand.getElement(), cand.getSuccessor(), cand.getTid(), pfManager.makeEmptyPathFormula(), locCl);
+    RGSemiAbstracted sa = new RGSemiAbstracted(aPred,
+        aPredReg,
+        ssa,
+        operation,
+        cand.getElement(),
+        cand.getSuccessor(),
+        cand.getTid(),
+        pfManager.makeEmptyPathFormula(),
+        sourceLocClass,
+        targetLocClass);
 
     stats.generationTimer.stop();
     return sa;
@@ -227,6 +234,10 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
   }
 
   public boolean isLessOrEqual(RGSemiAbstracted sa1, RGSemiAbstracted sa2) {
+    /* The location classes refer only to the locations of the transitions' source thread.
+     * Technically we should compare location classes of all threads, but we know that
+     * the match anyway the location classes of the element where they're going to be applied.
+     */
     stats.lessOrEqualChecks++;
 
     CFAEdge op1 = sa1.getOperation();
@@ -236,17 +247,12 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
       return false;
     }
 
-    Pair<Integer, Integer> locCl1 = sa1.getLocClasses();
-    Pair<Integer, Integer> locCl2 = sa2.getLocClasses();
+    RGLocationClass s1lc = sa1.getSourceLocationClass();
+    RGLocationClass s2lc = sa2.getSourceLocationClass();
+    RGLocationClass t1lc = sa1.getTargetLocationClass();
+    RGLocationClass t2lc = sa2.getTargetLocationClass();
 
-    if (!locCl1.equals(locCl2)){
-      return false;
-    }
-
-    ImmutableMap<Integer, Integer> tlocCl1 = sa1.getTargetARTElement().getLocationClasses();
-    ImmutableMap<Integer, Integer> tlocCl2 = sa2.getTargetARTElement().getLocationClasses();
-
-    if (!tlocCl1.equals(tlocCl2)){
+    if (!s1lc.equals(s2lc) || !t1lc.equals(t2lc)){
       return false;
     }
 

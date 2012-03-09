@@ -69,12 +69,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
-
 /**
  * Stores information about environmental edges.
  */
@@ -138,7 +132,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
     this.amManager = AbstractionManagerImpl.getInstance(rManager, msatFormulaManager, pfManager, config, logger);
     this.ssaManager = SSAMapManagerImpl.getInstance(fManager, config, logger);
     this.etManager  = RGEnvTransitionManagerFactory.getInstance(abstractEnvTransitions, fManager, pfManager, absManager, ssaManager, tProver, rManager, pcfa, config, logger);
-    this.candManager = new RGEnvCandidateManager(fManager, pfManager, absManager, ssaManager, tProver, rManager, pcfa, config, logger);
+    this.candManager = new RGEnvCandidateManager(fManager, pfManager, absManager, ssaManager, tProver, rManager, pcfa, threadNo, config, logger);
 
     if (cacheGeneratingEnvTransition){
       candidateToTransitionCache = new HashMap<Triple<RGEnvCandidate, Set<AbstractionPredicate>, RGLocationMapping>, RGEnvTransition>();
@@ -199,11 +193,13 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
   /**
    * Returns most general candidates from the previous m.g. candidates and some new ones.
+   * @param pImmutableMap
    * @param oldMGCandidates
    * @param newCandidates
    * @return
    */
-  public List<RGEnvCandidate> findMostGeneralCandidates(Collection<RGEnvCandidate> candidates, RGLocationMapping lm){
+  public List<RGEnvCandidate> findMostGeneralCandidates(Collection<RGEnvCandidate> candidates,
+      ARTElement element, ARTPrecision prec){
     stats.candidateTimer.start();
 
     Vector<RGEnvCandidate> newToProcess = new Vector<RGEnvCandidate>(candidates);
@@ -211,7 +207,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
     /* remove candidates whose application wouldn't make sense */
     for (RGEnvCandidate cnd : newToProcess){
-      if (candManager.isBottom(cnd, lm)){
+      if (candManager.isBottom(cnd, element, prec)){
         newCovered.add(cnd);
 
         if (debug && false){
@@ -228,7 +224,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
       if (!newCovered.contains(cnd1)){
         for (RGEnvCandidate cnd2 : newToProcess){
           if (cnd1 !=cnd2 && !newCovered.contains(cnd2)){
-            if (candManager.isLessOrEqual(cnd1, cnd2, lm)){
+            if (candManager.isLessOrEqual(cnd1, cnd2, element, prec)){
               // edge1 => edge2
               if (debug && false){
                 System.out.println("\t-covered: "+cnd1+" => "+cnd2);
@@ -246,7 +242,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
     /* sanity check on request */
     if (debug){
-      checkMostGeneralCandidates(candidates, newToProcess, lm);
+      checkMostGeneralCandidates(candidates, newToProcess, element, prec);
     }
 
     stats.candidateTimer.stop();
@@ -260,21 +256,23 @@ public class RGEnvironmentManager implements StatisticsProvider{
    * @param newMGCandidates
    * @param lm
    */
-  private void checkMostGeneralCandidates(Collection<RGEnvCandidate> newCandidates, Collection<RGEnvCandidate> newMGCandidates, RGLocationMapping lm){
+  private void checkMostGeneralCandidates(Collection<RGEnvCandidate> newCandidates, Collection<RGEnvCandidate> newMGCandidates, ARTElement elem, ARTPrecision prec){
     stats.checkingTimer.start();
+
+    RGLocationMapping lm = prec.getLocationMapping();
 
     // new m.g. candidates are incomperable
     for (RGEnvCandidate cand1 : newMGCandidates){
       for (RGEnvCandidate cand2 : newMGCandidates){
         if (cand1 != cand2){
-          if (candManager.isLessOrEqual(cand1, cand2, lm)){
+          if (candManager.isLessOrEqual(cand1, cand2, elem, prec)){
             System.out.println(this.getClass());
           }
-          if (candManager.isLessOrEqual(cand2, cand1, lm)){
+          if (candManager.isLessOrEqual(cand2, cand1, elem, prec)){
             System.out.println();
           }
-          assert !candManager.isLessOrEqual(cand2, cand1, lm);
-          assert !candManager.isLessOrEqual(cand1, cand2, lm);
+          assert !candManager.isLessOrEqual(cand2, cand1, elem, prec);
+          assert !candManager.isLessOrEqual(cand1, cand2, elem, prec);
         }
       }
     }
@@ -283,13 +281,13 @@ public class RGEnvironmentManager implements StatisticsProvider{
     for (RGEnvCandidate nCand : newCandidates){
       boolean existsGeq = false;
       for (RGEnvCandidate mgCand : newMGCandidates){
-        if (candManager.isLessOrEqual(nCand, mgCand, lm)){
+        if (candManager.isLessOrEqual(nCand, mgCand, elem, prec)){
           existsGeq = true;
           break;
         }
       }
 
-      assert existsGeq || candManager.isBottom(nCand, lm);
+      assert existsGeq || candManager.isBottom(nCand, elem, prec);
     }
     stats.checkingTimer.stop();
   }
@@ -504,16 +502,16 @@ public class RGEnvironmentManager implements StatisticsProvider{
     RGLocationMapping lm = prec.getLocationMapping();
 
     // find most general candidates w.r.t to the location mapping
-    List<RGEnvCandidate> candidates = findMostGeneralCandidates(allCandidates, lm);
+    List<RGEnvCandidate> candidates = findMostGeneralCandidates(allCandidates, elem, prec);
 
     if (debug){
       printCandidates("Most general candidates:", candidates);
       System.out.println();
     }
-
-    // find concreate locatino that the element may belong to
+/*
+    // find concreate location that the element may belong to
     SetMultimap<Integer, CFANode> cLocsElem = LinkedHashMultimap.create();
-    ImmutableMap<Integer, Integer> locCl = elem.getLocationClasses();
+    ImmutableMap<Integer, Integer> locCl = prec.getLocationMapping();
     CFANode loc = elem.retrieveLocationElement().getLocationNode();
 
     for (int i=0; i<threadNo; i++){
@@ -555,8 +553,9 @@ public class RGEnvironmentManager implements StatisticsProvider{
     if (debug){
       printCandidates("Candidates after filtering:", candidates);
       System.out.println();
-    }
+    }*/
 
+    CFANode loc = elem.retrieveLocationElement().getLocationNode();
     RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
     Set<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(rgPrec.getEnvGlobalPredicates());
     preds.addAll(rgPrec.getEnvPredicateMap().get(loc));

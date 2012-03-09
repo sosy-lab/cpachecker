@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationClass;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
@@ -55,13 +56,10 @@ import com.google.common.collect.ImmutableMap;
 public class ARTTransferRelation implements TransferRelation, StatisticsProvider {
 
   private final TransferRelation transferRelation;
-  private final int tid;
-
   private final Stats stats;
 
   public ARTTransferRelation(TransferRelation tr, int tid) {
     this.transferRelation = tr;
-    this.tid = tid;
     this.stats = new Stats(tid);
   }
 
@@ -76,7 +74,7 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
     RGCFAEdge rgEdge = null;
 
     ImmutableList<Pair<ARTElement, RGEnvTransition>> envApplied;
-    ImmutableMap<Integer, Integer> succLocCl;
+    ImmutableMap<Integer, RGLocationClass> succLocCl;
 
     if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
       Builder<Pair<ARTElement, RGEnvTransition>> envAppliedBldr = ImmutableList.<Pair<ARTElement, RGEnvTransition>>builder();
@@ -89,15 +87,14 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
 
       RGLocationMapping lm = prec.getLocationMapping();
       CFANode succLoc = et.getTargetARTElement().retrieveLocationElement().getLocationNode();
-      ImmutableMap<Integer, Integer> oldLocCl = element.getLocationClasses();
+      ImmutableMap<Integer, RGLocationClass> oldLocCl = element.getLocationClasses();
       int stid = et.getTid();
 
-      Integer newClass = lm.get(succLoc);
+      RGLocationClass newClass = lm.getLocationClass(succLoc);
       assert newClass != null;
 
-
-      com.google.common.collect.ImmutableMap.Builder<Integer, Integer> locClBldr =
-          ImmutableMap.<Integer, Integer>builder();
+      com.google.common.collect.ImmutableMap.Builder<Integer, RGLocationClass> locClBldr =
+          ImmutableMap.<Integer, RGLocationClass>builder();
 
       for (Integer thread : oldLocCl.keySet()){
 

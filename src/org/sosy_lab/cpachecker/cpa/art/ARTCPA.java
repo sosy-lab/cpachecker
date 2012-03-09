@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.art;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,10 +49,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationClass;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 
 public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM {
 
@@ -74,10 +74,13 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final Statistics stats;
 
   // TODO check if needed
+  private int tid = -1;
   private ParallelCFAS pcfa;
-  private int tid = Integer.MAX_VALUE;
+  private RGLocationMapping initLM;
 
   private Path targetPath = null;
+
+
 
 
 
@@ -113,6 +116,9 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     this.pcfa = pcfa;
     this.tid = tid;
     this.transferRelation = new ARTTransferRelation(wrappedTranferRelation, tid);
+
+    // create inital location mapping
+    initLM = RGLocationMapping.getEmpty(pcfa, tid);
   }
 
   @Override
@@ -152,17 +158,21 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   @Override
   public AbstractElement getInitialElement (CFANode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ART
-    Map<Integer, Integer> locMap = new HashMap<Integer, Integer>(pcfa.getThreadNo()-1);
+    Builder<Integer, RGLocationClass> bldr = ImmutableMap.<Integer, RGLocationClass>builder();
 
     for (int i=0; i<pcfa.getThreadNo(); i++){
 
       if (i != tid){
-        locMap.put(i, 1);
+        CFANode execStart = pcfa.getCfa(i).getExecutionStart();
+        bldr  = bldr.put(i, initLM.getLocationClass(execStart));
       }
     }
 
-    ImmutableMap<Integer, Integer> locationClasses = ImmutableMap.copyOf(locMap);
-    return new ARTElement(getWrappedCpa().getInitialElement(pNode), Collections.<ARTElement, CFAEdge> emptyMap(), Collections.<ARTElement, RGCFAEdge> emptyMap(), locationClasses, tid);
+    return new ARTElement(getWrappedCpa().getInitialElement(pNode),
+        Collections.<ARTElement, CFAEdge> emptyMap(),
+        Collections.<ARTElement, RGCFAEdge> emptyMap(),
+        bldr.build(),
+        tid);
   }
 
   protected LogManager getLogger() {
@@ -186,8 +196,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
   @Override
   public Precision getInitialPrecision(CFANode pNode) {
-    RGLocationMapping lm = RGLocationMapping.getEmpty(pcfa, tid);
-    return new ARTPrecision(lm, (CompositePrecision) super.getInitialPrecision(pNode));
+    return new ARTPrecision(initLM, (CompositePrecision) super.getInitialPrecision(pNode));
   }
 
 }

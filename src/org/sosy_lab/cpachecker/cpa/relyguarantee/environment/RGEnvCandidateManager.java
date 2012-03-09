@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment;
 
+import java.util.Set;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
@@ -31,7 +33,10 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.art.ARTPrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationClass;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -43,6 +48,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 
 /**
  * Defines partial order on environmental candidates.
@@ -57,8 +66,9 @@ public class RGEnvCandidateManager {
   private final RegionManager rManager;
   private final ParallelCFAS pcfas;
   private final LogManager logger;
+  private final int threadNo;
 
-  public RGEnvCandidateManager(FormulaManager fManager, PathFormulaManager pfManager, RGAbstractionManager absManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, ParallelCFAS pPcfa, Configuration config,  LogManager logger) {
+  public RGEnvCandidateManager(FormulaManager fManager, PathFormulaManager pfManager, RGAbstractionManager absManager, SSAMapManager ssaManager, TheoremProver thmProver, RegionManager rManager, ParallelCFAS pPcfa, int threadNo, Configuration config,  LogManager logger) {
     this.fManager = fManager;
     this.pfManager = pfManager;
     this.absManager  = absManager;
@@ -67,46 +77,37 @@ public class RGEnvCandidateManager {
     this.rManager  = rManager;
     this.pcfas = pPcfa;
     this.logger = logger;
+    this.threadNo = threadNo;
   }
 
   /**
    * Return true only if the element is the smallest one w.r.t to the partial order for the location mapping.
+   * C is bottom if:
+   * the classes of c's source locations
+   * don't match the element
+   *              OR
+   * c's starting element is covered or destroyed
+   *              OR
+   * op is not an assignment and lm(location(c)) = lm(location(SP_op(c))
+   *              OR
+   * SP_op(c) is false
    * @param c
+   * @param pLocClasses
    * @return
    */
-  public boolean isBottom(RGEnvCandidate c, RGLocationMapping lm){
+  public boolean isBottom(RGEnvCandidate c,
+      ARTElement elem, ARTPrecision prec){
 
     /*
-     * c is bottom if:
-     * its starting element is covered or destroyed
-     *              OR
-     * op is not an assignment and locationClass(c) = locationClass(SP_op(c))
-     * and lm(location(c)) = lm(location(SP_op(c))
-     *              OR
-     * SP_op(c) is false
+
      */
 
+    // check if c's starting element is covered or destroyed
     if (c.getElement().isDestroyed() || c.getElement().isCovered()){
       return true;
     }
 
-    CFAEdge op = c.getOperation();
-
-    if (!op.isGlobalWrite() && !op.isLocalWrite()){
-      ImmutableMap<Integer, Integer> locCl1 = c.getElement().getLocationClasses();
-      ImmutableMap<Integer, Integer> locCl2 = c.getSuccessor().getLocationClasses();
-      CFANode loc1 = c.getElement().retrieveLocationElement().getLocationNode();
-      CFANode loc2 = c.getSuccessor().retrieveLocationElement().getLocationNode();
-      Integer cl1 = lm.get(loc1);
-      Integer cl2 = lm.get(loc2);
-      assert locCl1 != null && locCl2 != null;
-
-      if (locCl1.equals(locCl2) && cl1 == cl2){
-        return true;
-      }
-    }
-
-    /* if abs1 or pf1 is false, then c is bottom */
+    // check if SP_op(c) is false (in a simple way)
     Formula absF = c.getRgElement().getAbstractionFormula().asFormula();
     Formula f = c.getRgElement().getAbsPathFormula().getFormula();
 
@@ -114,23 +115,64 @@ public class RGEnvCandidateManager {
       return true;
     }
 
+    // check if the classes of c's source locations don't match the element
+    int elemTid = elem.getTid();
+    ImmutableMap<Integer, RGLocationClass> elemLocClasses = elem.getLocationClasses();
+    SetMultimap<Integer, CFANode> cLocations = c.getConcreateLocations();
+
+    for (int i=0; i<threadNo; i++){
+
+      if (i == elemTid){
+        CFANode elemLoc = elem.retrieveLocationElement().getLocationNode();
+        Set<CFANode> candNodes = cLocations.get(i);
+
+        if (!candNodes.contains(elemLoc)){
+          return true;
+        }
+      } else {
+        ImmutableSet<CFANode> elemNodes = elemLocClasses.get(i).getClassNodes();
+        Set<CFANode> candNodes = cLocations.get(i);
+        SetView<CFANode> intr = Sets.intersection(elemNodes, candNodes);
+
+        if (intr.isEmpty()){
+          return true;
+        }
+      }
+    }
+
+    // check if op is not an assignment and lm(location(c)) = lm(location(SP_op(c))
+    CFAEdge op = c.getOperation();
+
+    if (!op.isGlobalWrite() && !op.isLocalWrite()){
+      RGLocationMapping lm = prec.getLocationMapping();
+      RGLocationClass elemLocCl = lm.getLocationClass(c.getElementLoc());
+      RGLocationClass succLocCl = lm.getLocationClass(c.getSuccessorLoc());
+      assert elemLocCl != null && succLocCl != null;
+
+      if (elemLocCl.equals(succLocCl)){
+        return true;
+      }
+    }
+
     return false;
   }
 
 
   /**
-   * Return true only if c1 is less or equal than c2.
+   * Return true only if c1 is less or equal than c2. c1 less or equal than c2 only if:
+   * c1 is bottom
+   *                      OR
+   * (abs1 & pf1) -> (abs2 & pf2) and locations classes of
+   * c1 and c2 are the same w.r.t to the precision.
+   *
+   * We assume that c1 and c2 are non-bottom.
    * @param c1
    * @param c2
    * @return
    */
-  public boolean isLessOrEqual(RGEnvCandidate c1, RGEnvCandidate c2, RGLocationMapping lm) {
+  public boolean isLessOrEqual(RGEnvCandidate c1, RGEnvCandidate c2, ARTElement elem, ARTPrecision prec) {
     /*
-     * c1 less or equal than c2 only if:
-     * c1 is bottom (not checked here)
-     *                      OR
-     * (abs1 & pf1) -> (abs2 & pf2) and op1 = op2 and locationClass(c1) = locationClass(c2)
-     * and lm(location(c1)) = lm(location(c2))
+     *
      */
 
     if (c1.equals(c2)){
@@ -148,15 +190,20 @@ public class RGEnvCandidateManager {
       return false;
     }
 
-    ImmutableMap<Integer, Integer> locCl1 = c1.getElement().getLocationClasses();
-    ImmutableMap<Integer, Integer> locCl2 = c2.getElement().getLocationClasses();
-    Integer cl1 = lm.get(c1.getElement().retrieveLocationElement().getLocationNode());
-    Integer cl2 = lm.get(c2.getElement().retrieveLocationElement().getLocationNode());
+    /*
+     *  since c1 and c2 are non-bottom, so the location classes of their source element's
+     *  are equivalent w.r.t to the precision. It remains to check if the location classes of
+     *  their successor are also equivalent.
+     */
+    RGLocationMapping lm = prec.getLocationMapping();
+    RGLocationClass succ1lc = lm.getLocationClass(c2.getSuccessorLoc());
+    RGLocationClass succ2lc = lm.getLocationClass(c2.getSuccessorLoc());
 
-    if (!locCl1.equals(locCl2) || cl1 != cl2){
+    if (!succ1lc.equals(succ2lc)){
       return false;
     }
 
+    // check implication
     Formula f1 = c1.getRgElement().getAbsPathFormula().getFormula();
     Formula f2 = c1.getRgElement().getAbsPathFormula().getFormula();
 

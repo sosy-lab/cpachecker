@@ -576,8 +576,7 @@ public class RGRefiner implements StatisticsProvider{
       ARTPrecision newPrec;
 
       if (i == errorTid){
-        RGLocationMapping lm = prec.getLocationMapping();
-        RGLocationMapping newLM = locrefManager.monotonicLocationMapping(lm, mismatchPerPath);
+        RGLocationMapping newLM = locrefManager.monotonicLocationMapping(mismatchPerPath, errorTid);
 
         /*if (debug){
           System.out.println("New location mapping: "+newLM+"\n");
