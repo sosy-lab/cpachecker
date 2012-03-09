@@ -37,6 +37,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -64,12 +65,15 @@ import com.google.common.collect.Iterables;
 @Options(prefix="restartAlgorithm")
 public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
-  private class RestartAlgorithmStatistics implements Statistics {
+  private static class RestartAlgorithmStatistics implements Statistics {
 
+    private final int noOfAlgorithms;
     private final Collection<Statistics> subStats;
     private int noOfAlgorithmsUsed = 0;
+    private Timer totalTime = new Timer();
 
-    public RestartAlgorithmStatistics() {
+    public RestartAlgorithmStatistics(int pNoOfAlgorithms) {
+      noOfAlgorithms = pNoOfAlgorithms;
       subStats = new ArrayList<Statistics>();
     }
 
@@ -79,6 +83,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     public void resetSubStatistics(){
       subStats.clear();
+      totalTime = new Timer();
     }
 
     @Override
@@ -89,7 +94,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     private void printIntermediateStatistics(PrintStream out, Result result,
         ReachedSet reached) {
 
-      String text = "Statistics for algorithm " + noOfAlgorithmsUsed + " of " + configFiles.size();
+      String text = "Statistics for algorithm " + noOfAlgorithmsUsed + " of " + noOfAlgorithms;
       out.println(text);
       out.println(Strings.repeat("=", text.length()));
 
@@ -101,13 +106,15 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     public void printStatistics(PrintStream out, Result result,
         ReachedSet reached) {
 
-      out.println("Number of algorithms provided:    " + configFiles.size());
+      out.println("Number of algorithms provided:    " + noOfAlgorithms);
       out.println("Number of algorithms used:        " + noOfAlgorithmsUsed);
 
       printSubStatistics(out, result, reached);
     }
 
     private void printSubStatistics(PrintStream out, Result result, ReachedSet reached) {
+      out.println("Total time for algorithm " + noOfAlgorithmsUsed + ": " + totalTime);
+
       for (Statistics s : subStats) {
         String name = s.getName();
         if (!isNullOrEmpty(name)) {
@@ -141,7 +148,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       throw new InvalidConfigurationException("Need at least one configuration for restart algorithm!");
     }
 
-    this.stats = new RestartAlgorithmStatistics();
+    this.stats = new RestartAlgorithmStatistics(configFiles.size());
     this.logger = pLogger;
     this.filename = pFilename;
     this.cfa = pCfa;
@@ -162,57 +169,62 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     Iterator<File> configFilesIterator = configFiles.iterator();
 
     while (configFilesIterator.hasNext()) {
-      File singleConfigFileName = configFilesIterator.next();
-
+      stats.totalTime.start();
       ReachedSet currentReached;
       try {
-        Pair<Algorithm, ReachedSet> currentPair = createNextAlgorithm(singleConfigFileName, mainFunction);
-        currentAlgorithm = currentPair.getFirst();
-        currentReached = currentPair.getSecond();
-      } catch (InvalidConfigurationException e) {
-        logger.logUserException(Level.WARNING, e, "Skipping one analysis because its configuration is invalid");
-        continue;
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Skipping one analysis due to unreadable configuration file");
-        continue;
-      }
+        File singleConfigFileName = configFilesIterator.next();
 
-      reached.setDelegate(currentReached);
-
-      if (currentAlgorithm instanceof StatisticsProvider) {
-        ((StatisticsProvider)currentAlgorithm).collectStatistics(stats.getSubStatistics());
-      }
-
-      stats.noOfAlgorithmsUsed++;
-
-      // run algorithm
-      try {
-        boolean sound = currentAlgorithm.run(currentReached);
-
-        if (Iterables.any(currentReached, AbstractElements.IS_TARGET_ELEMENT)) {
-          return sound;
+        try {
+          Pair<Algorithm, ReachedSet> currentPair = createNextAlgorithm(singleConfigFileName, mainFunction);
+          currentAlgorithm = currentPair.getFirst();
+          currentReached = currentPair.getSecond();
+        } catch (InvalidConfigurationException e) {
+          logger.logUserException(Level.WARNING, e, "Skipping one analysis because its configuration is invalid");
+          continue;
+        } catch (IOException e) {
+          logger.logUserException(Level.WARNING, e, "Skipping one analysis due to unreadable configuration file");
+          continue;
         }
 
-        if (!sound) {
-          // if the analysis is not sound and we can proceed with
-          // another algorithm, continue with the next algorithm
-          logger.log(Level.INFO, "Analysis result was unsound.");
+        reached.setDelegate(currentReached);
 
-        } else if (currentReached.hasWaitingElement()) {
-          // if there are still elements in the waitlist, the result is unknown
-          // continue with the next algorithm
-          logger.log(Level.INFO, "Analysis not completed: There are still elements to be processed.");
+        if (currentAlgorithm instanceof StatisticsProvider) {
+          ((StatisticsProvider)currentAlgorithm).collectStatistics(stats.getSubStatistics());
+        }
 
-        } else {
-          // sound analysis and completely finished, terminate
-          return true;
+        stats.noOfAlgorithmsUsed++;
+
+        // run algorithm
+        try {
+          boolean sound = currentAlgorithm.run(currentReached);
+
+          if (Iterables.any(currentReached, AbstractElements.IS_TARGET_ELEMENT)) {
+            return sound;
+          }
+
+          if (!sound) {
+            // if the analysis is not sound and we can proceed with
+            // another algorithm, continue with the next algorithm
+            logger.log(Level.INFO, "Analysis result was unsound.");
+
+          } else if (currentReached.hasWaitingElement()) {
+            // if there are still elements in the waitlist, the result is unknown
+            // continue with the next algorithm
+            logger.log(Level.INFO, "Analysis not completed: There are still elements to be processed.");
+
+          } else {
+            // sound analysis and completely finished, terminate
+            return true;
+          }
+        } catch (CPAException e) {
+          if (configFilesIterator.hasNext()) {
+            logger.logUserException(Level.WARNING, e, "Analysis not completed");
+          } else {
+            throw e;
+          }
         }
-      } catch (CPAException e) {
-        if (configFilesIterator.hasNext()) {
-          logger.logUserException(Level.WARNING, e, "Analysis not completed");
-        } else {
-          throw e;
-        }
+      } finally {
+        stats.totalTime.stop();
       }
 
       if (configFilesIterator.hasNext()) {
