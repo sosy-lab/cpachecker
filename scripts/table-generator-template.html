@@ -36,6 +36,12 @@
     #contentPane { height:90%; width:90%; position:fixed; top:5%; left:5%;
              border:solid 10px black; border-radius:15px;
              background-color:white; opacity:1; display:none }
+
+@media print {
+    /* don't print tfoot on each page */
+    tfoot { display: table-row-group; }
+}
+
 	-->
 </style>
 

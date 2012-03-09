@@ -951,16 +951,16 @@ def createTable(file, filesFromXML=False):
 
     tableCode = tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
                 + '\n' + HTML_SHIFT \
-                + tableFootHTML.replace('\n','\n' + HTML_SHIFT) \
+                + tableBodyHTML.replace('\n','\n' + HTML_SHIFT) \
                 + '\n' + HTML_SHIFT \
-                + tableBodyHTML.replace('\n','\n' + HTML_SHIFT)
+                + tableFootHTML.replace('\n','\n' + HTML_SHIFT)
 
     if tableBodyDiffHTML != '':
         tableDiffCode = tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
                 + '\n' + HTML_SHIFT \
-                + tableFootDiffHTML.replace('\n','\n' + HTML_SHIFT) \
+                + tableBodyDiffHTML.replace('\n','\n' + HTML_SHIFT) \
                 + '\n' + HTML_SHIFT \
-                + tableBodyDiffHTML.replace('\n','\n' + HTML_SHIFT)
+                + tableFootDiffHTML.replace('\n','\n' + HTML_SHIFT)
 
     if not os.path.isdir(OUTPUT_PATH): os.makedirs(OUTPUT_PATH)
 
