@@ -165,6 +165,10 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
     return precision;
   }
 
+  ExplicitPrecision getPrecision() {
+    return precision;
+  }
+
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;

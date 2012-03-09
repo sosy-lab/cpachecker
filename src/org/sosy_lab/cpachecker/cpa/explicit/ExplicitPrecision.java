@@ -210,18 +210,28 @@ public class ExplicitPrecision implements Precision {
           || mapping.containsEntry(currentLocation, variable);
     }
 
+    boolean allowsTrackingAt(CFANode location, String variable) {
+      return mapping != null && mapping.containsEntry(location, variable);
+    }
+
     /**
      * This methods add the addition mapping to the current mapping, i.e., this precision can only grow in size, and never may get smaller.
      *
      * @param additionalMapping the addition mapping to be added to the current mapping
      */
     void addToMapping(SetMultimap<CFANode, String> additionalMapping) {
+      //int before = mapping.size();
       mapping.putAll(additionalMapping);
+      //int after = mapping.size();
+
+      //if((before + additionalMapping.size()) != after) {
+      //System.out.println("redundancy !!!");
+      //}
     }
 
     @Override
     public String toString() {
-      return Joiner.on(",\n").join(mapping.entries());
+      return Joiner.on(",").join(mapping.entries());
     }
   }
 
