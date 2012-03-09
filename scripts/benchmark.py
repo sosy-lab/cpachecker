@@ -1558,6 +1558,16 @@ def run_random(options, sourcefile, columns, rlimits, file):
     status = 'safe' if random() < 0.5 else 'unsafe'
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
+def appendFileToFile(sourcename, targetname):
+    source = open(sourcename, 'r')
+    try:
+        target = open(targetname, 'a')
+        try:
+            target.writelines(source.readlines())
+        finally:
+            target.close()
+    finally:
+        source.close()
 
 def run_cpachecker(options, sourcefile, columns, rlimits, file):
     if ("-stats" not in options):
@@ -1569,6 +1579,22 @@ def run_cpachecker(options, sourcefile, columns, rlimits, file):
 
     status = getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
     getCPAcheckerColumns(output, columns)
+
+    # Segmentation faults reference a file with more information.
+    # We append this file to the log.
+    if status == 'SEGMENTATION FAULT':
+        next = False
+        for line in output.splitlines():
+            if next:
+                try:
+                    dumpFile = line.strip(' #')
+                    appendFileToFile(dumpFile, file)
+                    os.remove(dumpFile)
+                except IOError as e:
+                    logging.warn('Could not append additional segmentation fault information (%s)' % e.strerror)
+                break
+            if line == '# An error report file with more information is saved as:':
+                next = True
 
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
