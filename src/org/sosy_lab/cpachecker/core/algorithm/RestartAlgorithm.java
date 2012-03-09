@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 
@@ -148,12 +147,21 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     while (configFilesIterator.hasNext()) {
       File singleConfigFileName = configFilesIterator.next();
-      Pair<Algorithm, ReachedSet> currentPair = createNextAlgorithm(singleConfigFileName, mainFunction);
 
-      currentAlgorithm = currentPair.getFirst();
-      ReachedSet currentReached = currentPair.getSecond();
+      ReachedSet currentReached;
+      try {
+        Pair<Algorithm, ReachedSet> currentPair = createNextAlgorithm(singleConfigFileName, mainFunction);
+        currentAlgorithm = currentPair.getFirst();
+        currentReached = currentPair.getSecond();
+      } catch (InvalidConfigurationException e) {
+        logger.logUserException(Level.WARNING, e, "Skipping one analysis because its configuration is invalid");
+        continue;
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Skipping one analysis due to unreadable configuration file");
+        continue;
+      }
+
       reached.setDelegate(currentReached);
-
 
       if (currentAlgorithm instanceof StatisticsProvider) {
         ((StatisticsProvider)currentAlgorithm).collectStatistics(stats.getSubStatistics());
@@ -231,47 +239,34 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  private Pair<Algorithm, ReachedSet> createNextAlgorithm(File singleConfigFileName, CFANode mainFunction) {
+  private Pair<Algorithm, ReachedSet> createNextAlgorithm(File singleConfigFileName, CFANode mainFunction) throws InvalidConfigurationException, CPAException, InterruptedException, IOException {
 
-    ReachedSet reached = null;
-    Algorithm algorithm = null;
+    ReachedSet reached;
+    Algorithm algorithm;
 
     Configuration.Builder singleConfigBuilder = Configuration.builder();
     singleConfigBuilder.copyFrom(globalConfig);
     singleConfigBuilder.clearOption("restartAlgorithm.configFiles");
     singleConfigBuilder.clearOption("analysis.restartAfterUnknown");
 
-    try {
-      RestartAlgorithmOptions singleOptions = new RestartAlgorithmOptions();
-      singleConfigBuilder.loadFromFile(singleConfigFileName);
-      Configuration singleConfig = singleConfigBuilder.build();
-      singleConfig.inject(singleOptions);
+    RestartAlgorithmOptions singleOptions = new RestartAlgorithmOptions();
+    singleConfigBuilder.loadFromFile(singleConfigFileName);
+    Configuration singleConfig = singleConfigBuilder.build();
+    singleConfig.inject(singleOptions);
 
-      if(singleOptions.runCBMCasExternalTool){
-        algorithm = new ExternalCBMCAlgorithm(filename, singleConfig, logger);
-        reached = new ReachedSetFactory(singleConfig, logger).create();
-      }
-      else{
-        ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig, logger);
-        ConfigurableProgramAnalysis cpa = createCPA(singleReachedSetFactory, singleConfig, stats);
-        algorithm = createAlgorithm(cpa, singleConfig, stats, singleReachedSetFactory, singleOptions);
-        reached = createInitialReachedSetForRestart(cpa, mainFunction, singleReachedSetFactory);
-      }
-
-      CPAchecker.stopIfNecessary();
-
-    } catch (IOException e) {
-      e.printStackTrace();
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-    } catch (CPAException e) {
-      e.printStackTrace();
-    } catch (InterruptedException e) {
-      e.printStackTrace();
+    if(singleOptions.runCBMCasExternalTool){
+      algorithm = new ExternalCBMCAlgorithm(filename, singleConfig, logger);
+      reached = new ReachedSetFactory(singleConfig, logger).create();
+    }
+    else{
+      ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig, logger);
+      ConfigurableProgramAnalysis cpa = createCPA(singleReachedSetFactory, singleConfig, stats);
+      algorithm = createAlgorithm(cpa, singleConfig, stats, singleReachedSetFactory, singleOptions);
+      reached = createInitialReachedSetForRestart(cpa, mainFunction, singleReachedSetFactory);
     }
 
-    Preconditions.checkNotNull(algorithm);
-    Preconditions.checkNotNull(reached);
+    CPAchecker.stopIfNecessary();
+
     return Pair.of(algorithm, reached);
   }
 
