@@ -33,12 +33,16 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationClass;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 
 public class ARTPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -58,6 +62,11 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
         pElements,  ARTElement.getUnwrapFunction(), Functions.<Precision>identity());
 
+    // if location classes match partitions, then precision for location doesn't have to be adjusted
+    ImmutableMap<Integer, RGLocationClass> oldLocClasses = element.getLocationClasses();
+    RGLocationMapping lm = prec.getLocationMapping();
+    boolean rebuild =  !lm.getParitioning().containsAll(oldLocClasses.values());
+
     AbstractElement oldElement = element.getWrappedElement();
     Precision oldWrappedPrecision = prec.getWrappedPrecision();
     Triple<AbstractElement, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldWrappedPrecision, elements);
@@ -66,7 +75,7 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
     Precision newWrappedPrecision = unwrappedResult.getSecond();
     Action action = unwrappedResult.getThird();
 
-    if ((oldElement == newElement) && (oldWrappedPrecision == newWrappedPrecision)) {
+    if ((oldElement == newElement) && (oldWrappedPrecision == newWrappedPrecision) && !rebuild) {
       // nothing has changed
       return new Triple<AbstractElement, Precision, Action>(pElement, pPrecision, action);
     }
@@ -74,8 +83,29 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
     Map<ARTElement, CFAEdge> parents = element.getLocalParentMap();
     Map<ARTElement, RGCFAEdge> envParents = element.getEnvParentMap();
 
+    // adjust the precison of the location classes
+    ImmutableMap<Integer, RGLocationClass> newLocClasses;
+    if (rebuild){
+      // paritions in the precision and in the element are different
+      Builder<Integer, RGLocationClass> bldr = ImmutableMap.<Integer, RGLocationClass>builder();
 
-    ARTElement resultElement = new ARTElement(newElement, parents, envParents, element.getLocationClasses(), element.getTid());
+      for (Integer tid : oldLocClasses.keySet()){
+        RGLocationClass oldLocClass = oldLocClasses.get(tid);
+        RGLocationClass newLocClass = lm.findSubsumingLocationMapping(oldLocClass.getClassNodes());
+        if (newLocClass == null){
+          System.out.println();
+        }
+        assert newLocClass != null;
+        bldr = bldr.put(tid, newLocClass);
+      }
+
+      newLocClasses = bldr.build();
+
+    } else {
+      newLocClasses = oldLocClasses;
+    }
+
+    ARTElement resultElement = new ARTElement(newElement, parents, envParents, newLocClasses, element.getTid());
     resultElement.setEnvApplied(element.getEnvApplied());
 
     Map<ARTElement, CFAEdge> localChildren = element.getLocalChildMap();

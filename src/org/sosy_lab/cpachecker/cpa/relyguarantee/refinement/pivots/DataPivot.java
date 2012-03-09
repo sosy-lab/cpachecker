@@ -49,6 +49,8 @@ public class DataPivot implements Pivot{
   private final  Set<AbstractionPredicate> envGlobalPredicates;
 
   public DataPivot(ARTElement element){
+    assert !element.getLocalParents().isEmpty() : "Inital element cannot be a pivot";
+
     this.element = element;
     this.artPredicateMap  = LinkedHashMultimap.<CFANode, AbstractionPredicate>create();
     this.envPredicateMap = LinkedHashMultimap.<CFANode, AbstractionPredicate>create();

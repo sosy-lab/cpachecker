@@ -42,6 +42,8 @@ public class LocationPivot implements Pivot {
   private final SetMultimap<Path, Pair<CFANode, CFANode>> mismatchesPerPath;
 
   public LocationPivot(ARTElement element){
+    assert !element.getLocalParents().isEmpty() : "Inital element cannot be a pivot";
+
     this.element = element;
     this.mismatchesPerPath = LinkedHashMultimap.create();
   }

@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEd
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.ImmutableSet;
 
 public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM {
 
@@ -157,14 +158,15 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
   @Override
   public AbstractElement getInitialElement (CFANode pNode) {
-    // TODO some code relies on the fact that this method is called only one and the result is the root of the ART
+    // the location classes of other threads contain only their exec start nodes
     Builder<Integer, RGLocationClass> bldr = ImmutableMap.<Integer, RGLocationClass>builder();
 
     for (int i=0; i<pcfa.getThreadNo(); i++){
 
       if (i != tid){
         CFANode execStart = pcfa.getCfa(i).getExecutionStart();
-        bldr  = bldr.put(i, initLM.getLocationClass(execStart));
+        RGLocationClass execNodeClass = new RGLocationClass(ImmutableSet.of(execStart));
+        bldr  = bldr.put(i, execNodeClass);
       }
     }
 

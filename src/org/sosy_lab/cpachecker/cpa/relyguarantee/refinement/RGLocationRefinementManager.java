@@ -680,6 +680,8 @@ public class RGLocationRefinementManager implements StatisticsProvider{
 
     // expected locations
     CFANode[] pc = new CFANode[threadNo];
+    // lastAss[i] is the last ART element, where pc[i] was abstracted
+    ARTElement[] lastAss = new ARTElement[threadNo];
 
     /* initialize local thread to start of global declarations
      * and other threads to start of execution */
@@ -689,6 +691,8 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       } else {
         pc[i] = pcfa.getCfas().get(i).getExecutionStart();
       }
+
+      lastAss[i] = pi.get(1).getFirst();
     }
 
     // execute
@@ -701,10 +705,15 @@ public class RGLocationRefinementManager implements StatisticsProvider{
 
       if (pc[tid].equals(loc)){
         pc[tid] = edge.getSuccessor();
+        lastAss[tid] = element;
       } else {
         // mismatch pc[tid] != loc
         Pair<CFANode, CFANode> mismatch = Pair.of(pc[tid], loc);
-        Pair<ARTElement, Pair<CFANode, CFANode>> pivotAndMistmatch = Pair.of(element, mismatch);
+
+        // lastAss[tid] is the first element, where location has to be recomputed
+        ARTElement pivot = lastAss[tid];
+
+        Pair<ARTElement, Pair<CFANode, CFANode>> pivotAndMistmatch = Pair.of(pivot, mismatch);
         inqList.add(pivotAndMistmatch);
 
         if (stopAfterFirst){

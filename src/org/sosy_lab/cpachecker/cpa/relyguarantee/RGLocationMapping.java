@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
+import java.util.Set;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -144,6 +146,20 @@ public class RGLocationMapping {
 
   public RGLocationClass getLocationClass(CFANode node) {
     return locationMapping.get(node);
+  }
+
+
+  public RGLocationClass findSubsumingLocationMapping(Set<CFANode> nodes) {
+    RGLocationClass sub = null;
+
+    for (RGLocationClass partition : partitioning){
+      if (partition.getClassNodes().containsAll(nodes)){
+        sub = partition;
+        break;
+      }
+    }
+
+    return sub;
   }
 
 
