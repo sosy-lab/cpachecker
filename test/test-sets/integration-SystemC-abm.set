@@ -6,12 +6,8 @@
 ../programs/benchmarks/systemc/transmitter.03.BUG.cil.c
 ../programs/benchmarks/systemc/transmitter.04.BUG.cil.c
 ../programs/benchmarks/systemc/bist_cell.cil.c
-../programs/benchmarks/systemc/kundu.cil.c
-../programs/benchmarks/systemc/mem_slave_tlm.1.cil.c
 ../programs/benchmarks/systemc/pc_sfifo_1.cil.c
 ../programs/benchmarks/systemc/pc_sfifo_2.cil.c
 ../programs/benchmarks/systemc/pc_sfifo_3.cil.c
 ../programs/benchmarks/systemc/token_ring.01.cil.c
-../programs/benchmarks/systemc/token_ring.04.cil.c
-../programs/benchmarks/systemc/toy.cil.c
 
