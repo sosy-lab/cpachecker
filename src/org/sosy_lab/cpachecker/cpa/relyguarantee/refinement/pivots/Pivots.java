@@ -48,7 +48,7 @@ public class Pivots {
   }
 
   public boolean isEmpty() {
-    return isEmpty();
+    return pivotsPerThread.isEmpty();
   }
 
   public  Set<Integer> getTids() {
@@ -76,5 +76,20 @@ public class Pivots {
   public boolean addPivot(Pivot pivot) {
     int tid = pivot.getTid();
     return pivotsPerThread.put(tid, pivot);
+  }
+
+  @Override
+  public String toString(){
+    StringBuilder bldr = new StringBuilder();
+
+    for (Integer tid : pivotsPerThread.keySet()){
+      bldr.append("Pivots for thread "+tid+"\n");
+
+      for (Pivot piv : pivotsPerThread.get(tid)){
+        bldr.append("\t-"+piv+"\n");
+      }
+    }
+
+    return bldr.toString();
   }
 }

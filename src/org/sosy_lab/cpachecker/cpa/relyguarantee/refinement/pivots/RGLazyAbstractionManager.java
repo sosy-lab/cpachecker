@@ -32,6 +32,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
@@ -70,10 +72,21 @@ public class RGLazyAbstractionManager {
       description="Add all predicates in the subtree to the pivot element.")
   private boolean shareDroppedPrecision = false;
 
+  @Option(name="refinement.addPredicatesGlobally",
+      description="refinement will add all discovered predicates "
+          + "to all the locations in the abstract trace")
+  private boolean addPredicatesGlobally = true;
+
+  @Option(name="refinement.addEnvPredicatesGlobally",
+      description="refinement will add all discovered predicates "
+          + "to all the locations in the abstract trace")
+  private boolean addEnvPredicatesGlobally = true;
+
   private final RGLocationRefinementManager locrefManager;
   private final ParallelCFAS pcfa;
 
-  public RGLazyAbstractionManager(RGLocationRefinementManager pLocrefManager, ParallelCFAS pcfa) {
+  public RGLazyAbstractionManager(RGLocationRefinementManager pLocrefManager, ParallelCFAS pcfa, Configuration config) throws InvalidConfigurationException {
+    config.inject(this, RGLazyAbstractionManager.class);
     this.locrefManager  = pLocrefManager;
     this.pcfa           = pcfa;
   }
@@ -135,7 +148,7 @@ public class RGLazyAbstractionManager {
     if (isDataRefinement){
       refMap = createDataPrecision(pivots, reachedSets);
     } else {
-      refMap = gatherLocationPrecision(pivots, reachedSets);
+      refMap = createLocationPrecision(pivots, reachedSets);
     }
 
     if (debug){
@@ -261,16 +274,29 @@ public class RGLazyAbstractionManager {
             ImmutableSet.<AbstractionPredicate>builder();
 
         // add old predicates
-        artMapBldr    = artMapBldr.putAll(dpiv.getArtPredicateMap());
-        artGlobalBldr = artGlobalBldr.addAll(dpiv.getArtGlobalPredicates());
-        envMapBldr    = envMapBldr.putAll(dpiv.getEnvPredicatesMap());
-        envGlobalBldr = envGlobalBldr.addAll(dpiv.getEnvGlobalPredicates());
-
-        // add pivot precision
         artMapBldr    = artMapBldr.putAll(oldRgPrec.getARTPredicateMap());
         artGlobalBldr = artGlobalBldr.addAll(oldRgPrec.getARTGlobalPredicates());
         envMapBldr    = envMapBldr.putAll(oldRgPrec.getEnvPredicateMap());
         envGlobalBldr = envGlobalBldr.addAll(oldRgPrec.getEnvGlobalPredicates());
+
+
+        // add pivot precision
+        if (this.addPredicatesGlobally){
+          artGlobalBldr = artGlobalBldr.addAll(dpiv.getArtPredicateMap().values());
+        } else {
+          artMapBldr    = artMapBldr.putAll(dpiv.getArtPredicateMap());
+        }
+
+        artGlobalBldr   = artGlobalBldr.addAll(dpiv.getArtGlobalPredicates());
+
+        if (this.addEnvPredicatesGlobally){
+          envGlobalBldr = envGlobalBldr.addAll(dpiv.getEnvPredicatesMap().values());
+        } else {
+          envMapBldr    = envMapBldr.putAll(dpiv.getEnvPredicatesMap());
+        }
+
+        envGlobalBldr   = envGlobalBldr.addAll(dpiv.getEnvGlobalPredicates());
+
 
         Precision prec = new RGPrecision(artMapBldr.build(), artGlobalBldr.build(),
             envMapBldr.build(), envGlobalBldr.build());
@@ -289,7 +315,7 @@ public class RGLazyAbstractionManager {
    * @return
    * @throws RefinementFailedException
    */
-  private Map<Integer, Map<ARTElement, Precision>> gatherLocationPrecision(Pivots pivots,
+  private Map<Integer, Map<ARTElement, Precision>> createLocationPrecision(Pivots pivots,
       ARTReachedSet[] reachedSets) throws RefinementFailedException {
 
     Map<Integer, Map<ARTElement, Precision>> refMap = new HashMap<Integer, Map<ARTElement, Precision>>();
@@ -303,7 +329,7 @@ public class RGLazyAbstractionManager {
       }
 
       for (Pivot piv : pivots.getPivotsForThread(tid)){
-        LocationPivot dpiv = (LocationPivot) piv;
+        LocationPivot lpiv = (LocationPivot) piv;
 
         ARTElement elem = piv.getElement();
         ARTPrecision oldPrec = (ARTPrecision) reachedSets[tid].getPrecision(elem);
@@ -311,7 +337,7 @@ public class RGLazyAbstractionManager {
 
         // add mistmatches from the pivot and the precision
         Builder<Path, Pair<CFANode, CFANode>> bldr = ImmutableSetMultimap.<Path, Pair<CFANode, CFANode>>builder();
-        bldr = bldr.putAll(lm.getMismatchesForPath()).putAll(dpiv.getMismatchesPerPath());
+        bldr = bldr.putAll(lm.getMismatchesForPath()).putAll(lpiv.getMismatchesPerPath());
 
         RGLocationMapping emptyLM = RGLocationMapping.getEmpty(pcfa, tid);
         RGLocationMapping newLM = locrefManager.monotonicLocationMapping(emptyLM, bldr.build());
@@ -355,7 +381,6 @@ public class RGLazyAbstractionManager {
             Set<ARTElement> envChildren = aElem.getEnvChildMap().keySet();
 
             for (ARTElement child : envChildren){
-              int cTid = child.getTid();
               ARTElement la = RGCPA.findLastAbstractionARTElement(child);
 
               if (!processed.containsPivotsWithElement(la)){
@@ -413,8 +438,12 @@ public class RGLazyAbstractionManager {
           if (subtree.contains(otherPiv.getElement())){
             // pivot coveres otherPiv
             coveredByPiv.add(otherPiv);
-            coveredByPiv.addAll(map.get(otherPiv));
-            map.remove(otherPiv);
+
+            if (map.containsKey(otherPiv)){
+              coveredByPiv.addAll(map.get(otherPiv));
+              map.remove(otherPiv);
+            }
+
           }
         }
 
@@ -497,7 +526,7 @@ public class RGLazyAbstractionManager {
       CFANode loc = elem.retrieveLocationElement().getLocationNode();
 
       DataPivot piv = new DataPivot(elem);
-      piv.addArtPredicates(loc, preds);
+      piv.addEnvPredicates(loc, preds);
       pivs.addPivot(piv);
     }
 

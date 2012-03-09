@@ -472,7 +472,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
      */
 
     // assume that the trace is spurious
-    InterpolationTreeResult info  = InterpolationTreeResult.spurious();
+    InterpolationTreeResult info  = InterpolationTreeResult.spurious(tree);
 
     if (debug){
       System.out.println();

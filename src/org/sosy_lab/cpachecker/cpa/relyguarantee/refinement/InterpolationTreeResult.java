@@ -58,13 +58,13 @@ public class InterpolationTreeResult {
    * A spurious counterexample.
    * @return
    */
-  public static InterpolationTreeResult spurious(){
+  public static InterpolationTreeResult spurious(InterpolationTree tree){
     SetMultimap<InterpolationTreeNode, AbstractionPredicate> artMap = LinkedHashMultimap.create();
     SetMultimap<InterpolationTreeNode, AbstractionPredicate> envMap = LinkedHashMultimap.create();
     Map<Path, List<Pair<ARTElement, Pair<CFANode, CFANode>>>>  locMap =
         new HashMap<Path, List<Pair<ARTElement, Pair<CFANode, CFANode>>>>();
 
-    return new InterpolationTreeResult(true, artMap, envMap, locMap, null, null);
+    return new InterpolationTreeResult(true, artMap, envMap, locMap, tree, null);
   }
 
   /**

@@ -181,7 +181,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
     return tid;
   }
 
-  protected void setCovered(ARTElement pCoveredBy) {
+  protected void (ARTElement pCoveredBy) {
     assert pCoveredBy != null;
     assert pCoveredBy.mayCover;
 

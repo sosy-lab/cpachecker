@@ -190,7 +190,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         System.out.println("Successors of "+aElement);
       }
 
-      if (aElement.getElementId() == 513){
+      if (aElement.getElementId() == 128){
         System.out.println(this.getClass());
       }
 
@@ -365,6 +365,10 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
           if (debug){
             System.out.println();
+          }
+
+          if (((ARTElement) successor).getElementId() == 117){
+            System.out.println(this.getClass());
           }
 
           reachedSet.add(successor, successorPrecision);

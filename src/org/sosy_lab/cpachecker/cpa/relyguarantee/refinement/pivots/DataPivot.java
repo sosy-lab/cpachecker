@@ -127,4 +127,51 @@ public class DataPivot implements Pivot{
     envGlobalPredicates.addAll(prec.getEnvGlobalPredicates());
   }
 
+
+  @Override
+  public String toString(){
+    StringBuilder bldr = new StringBuilder();
+
+    bldr.append( "LocationPivot element id: "+element.getElementId()+", ");
+
+    if (!artGlobalPredicates.isEmpty()){
+      bldr.append("global ART: "+artGlobalPredicates+", ");
+    }
+
+    if (!artPredicateMap.isEmpty()){
+      bldr.append("local ART: "+artPredicateMap+", ");
+    }
+
+    if (!envGlobalPredicates.isEmpty()){
+      bldr.append("global env.: "+envGlobalPredicates+", ");
+    }
+
+    if (!envPredicateMap.isEmpty()){
+      bldr.append("local env: "+envPredicateMap);
+    }
+
+    return bldr.toString();
+  }
+
+  @Override
+  public boolean equals(Object ob){
+    if (ob instanceof DataPivot){
+      DataPivot dpiv = (DataPivot) ob;
+      return dpiv.element.equals(element) &&
+          dpiv.artPredicateMap.equals(artPredicateMap) &&
+          dpiv.artGlobalPredicates.equals(artGlobalPredicates) &&
+          dpiv.envPredicateMap.equals(envPredicateMap) &&
+          dpiv.envGlobalPredicates.equals(envGlobalPredicates);
+    }
+
+    return false;
+  }
+
+  @Override
+  public int hashCode(){
+    return element.hashCode() + 3 *
+        (this.artPredicateMap.hashCode() + 11 *
+            this.envPredicateMap.hashCode());
+  }
+
 }

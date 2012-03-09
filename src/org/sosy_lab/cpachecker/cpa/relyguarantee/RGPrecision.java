@@ -44,8 +44,10 @@ import com.google.common.collect.ImmutableSetMultimap.Builder;
     private final ImmutableSetMultimap<CFANode, AbstractionPredicate> envPredicateMap;
     private final ImmutableSet<AbstractionPredicate> envGlobalPredicates;
 
-    public RGPrecision(ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap, ImmutableSet<AbstractionPredicate> globalPredicates,
-        ImmutableSetMultimap<CFANode, AbstractionPredicate> envPredicateMap, ImmutableSet<AbstractionPredicate> envGlobalPredicates) {
+    public RGPrecision(ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap,
+        ImmutableSet<AbstractionPredicate> globalPredicates,
+        ImmutableSetMultimap<CFANode, AbstractionPredicate> envPredicateMap,
+        ImmutableSet<AbstractionPredicate> envGlobalPredicates) {
       assert predicateMap != null;
       assert globalPredicates != null;
       assert envPredicateMap != null;

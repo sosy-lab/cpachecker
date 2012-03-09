@@ -251,7 +251,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       pathRefMap.put(pi, threadInq);
     }
 
-    InterpolationTreeResult newCexample = InterpolationTreeResult.spurious();
+    InterpolationTreeResult newCexample = InterpolationTreeResult.spurious(cexample.getTree());
     newCexample.addLocationMapForRefinement(pathRefMap);
     return newCexample;
   }
@@ -609,7 +609,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   public RGLocationMapping monotonicLocationMapping(RGLocationMapping oldLM, ImmutableSetMultimap<Path, Pair<CFANode, CFANode>> mismatchesForPath) throws RefinementFailedException {
     Integer topCl = oldLM.getClassNo();
 
-    Builder<CFANode, Integer> bldr = ImmutableMap.<CFANode, Integer>builder();
+    Map<CFANode, Integer> map = new HashMap<CFANode, Integer>(oldLM.getLocationMapping());
 
     // for every path only one mistmatch is choosen
     for (Path pi : mismatchesForPath.keySet()){
@@ -631,10 +631,10 @@ public class RGLocationRefinementManager implements StatisticsProvider{
         }
       }
 
-      bldr = bldr.put(node, ++topCl);
+      map.put(node, ++topCl);
     }
 
-    return new RGLocationMapping(bldr.build(), mismatchesForPath);
+    return new RGLocationMapping(ImmutableMap.copyOf(map), mismatchesForPath);
   }
 
 

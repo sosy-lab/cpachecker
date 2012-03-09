@@ -31,7 +31,6 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -65,7 +64,6 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.pivots.Pivots;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.pivots.RGLazyAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -81,8 +79,6 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 
 
 @Options(prefix="cpa.rg")
@@ -110,7 +106,7 @@ public class RGRefiner implements StatisticsProvider{
   private final RGLazyAbstractionManager lazyManager;
 
   private final ARTCPA[] artCpas;
-  private ParallelCFAS pcfa;
+  private final ParallelCFAS pcfa;
   private final int threadNo;
   // TODO remove
   private RGAlgorithm algorithm;
@@ -142,6 +138,11 @@ public class RGRefiner implements StatisticsProvider{
   public RGRefiner(RGAlgorithm pAlgorithm, final ConfigurableProgramAnalysis[] cpas, RGEnvironmentManager rgEnvironment, Configuration pConfig) throws InvalidConfigurationException{
     pConfig.inject(this, RGRefiner.class);
     artCpas = new ARTCPA[cpas.length];
+    this.threadNo     = cpas.length;
+    this.algorithm    = pAlgorithm;
+    this.pcfa        = this.algorithm.getPcfa();
+    this.stats        = new Stats();
+
     for (int i=0; i<cpas.length; i++){
       if (cpas[i] instanceof ARTCPA) {
         artCpas[i] = (ARTCPA) cpas[i];
@@ -150,18 +151,11 @@ public class RGRefiner implements StatisticsProvider{
       }
     }
 
-    this.threadNo     = cpas.length;
-    this.algorithm    = pAlgorithm;
-    this.pcfa        = this.algorithm.getPcfa();
-
-    this.stats        = new Stats();
-
     RGCPA rgCPA = artCpas[0].retrieveWrappedCpa(RGCPA.class);
     if (rgCPA != null){
       refManager = rgCPA.getRelyGuaranteeManager();
       locrefManager = rgCPA.getLocrefManager();
-      lazyManager  = new RGLazyAbstractionManager(locrefManager);
-      //rgCPA.getConfiguration().inject(this, RelyGuaranteeRefiner.class);
+      lazyManager  = new RGLazyAbstractionManager(locrefManager, this.pcfa, pConfig);
     } else {
       throw new InvalidConfigurationException("RelyGuaranteeCPA needed for refinement");
     }
@@ -462,12 +456,12 @@ public class RGRefiner implements StatisticsProvider{
 
 
 
-  /**
+  /*
    * Add all predicates in the subtree of the element to its precision.
    * @param refMap
    * @param reachedSets
    * @return
-   */
+   *
   private Map<Integer, Map<ARTElement, Precision>> addDroppedPrecision(
       Map<Integer, Map<ARTElement, Precision>> refMap,
       ARTReachedSet[] reachedSets) {
@@ -513,197 +507,9 @@ public class RGRefiner implements StatisticsProvider{
 
 
     return newRefMap;
-  }
-
-  /**
-   * Compute new precision for the top elements. This precision includes the current precision and all new precision of the
-   * covered elements.
-   * @param topElems
-   * @param pivots
-   * @param reachedSets
-   * @return
-   */
-  private Map<Integer, Map<ARTElement, Precision>> gatherPrecision(Map<Integer, SetMultimap<ARTElement, ARTElement>> topElems,
-      Pivots pivots, ARTReachedSet[] reachedSets) {
-
-    Map<Integer, Map<ARTElement, Precision>> refMap = new HashMap<Integer, Map<ARTElement, Precision>>(pivots.getTids().size());
-
-    for (int tid : topElems.keySet()){
-      SetMultimap<ARTElement, ARTElement> coverMap = topElems.get(tid);
-
-      for (ARTElement topElem : coverMap.keySet()){
-
-        Precision prec;
-        if (pivots.isDataRefinement()){
-          prec = gatherDataPrecisionForElement(topElem, coverMap.get(topElem), (DataPivots) pivots, reachedSets[tid]);
-        } else {
-          prec = gatherLocationPrecisionForElement(topElem, coverMap.get(topElem), (LocationPivots) pivots, reachedSets[tid]);
-        }
-
-        Map<ARTElement, Precision> threadCutoff = refMap.get(tid);
-        if (threadCutoff == null){
-          threadCutoff = new HashMap<ARTElement, Precision>();
-          refMap.put(tid, threadCutoff);
-        }
-
-        threadCutoff.put(topElem, prec);
-      }
-    }
-
-    return refMap;
-  }
+  }*/
 
 
-
-  /**
-   * Compute new data precision for the element. This precision includes the current precision and all new precision of the
-   * covered pivots.
-   * @param topElem
-   * @param covered
-   * @param predicates
-   * @param reachedSets
-   * @return
-   */
-  private RGPrecision gatherDataPrecisionForElement(ARTElement topElem, Set<ARTElement> covered, DataPivots pivots, ARTReachedSet reachedSets) {
-    Builder<CFANode, AbstractionPredicate> artMapBldr = ImmutableSetMultimap.<CFANode, AbstractionPredicate>builder();
-    com.google.common.collect.ImmutableSet.Builder<AbstractionPredicate> artGlobalBldr =
-        ImmutableSet.<AbstractionPredicate>builder();
-    Builder<CFANode, AbstractionPredicate> envMapBldr = ImmutableSetMultimap.<CFANode, AbstractionPredicate>builder();
-    com.google.common.collect.ImmutableSet.Builder<AbstractionPredicate> envGlobalBldr =
-        ImmutableSet.<AbstractionPredicate>builder();
-
-    // add exists precision of the top element
-    Precision topPrec = reachedSets.getPrecision(topElem);
-    assert topPrec != null;
-    RGPrecision topRgPrec = Precisions.extractPrecisionByType(topPrec, RGPrecision.class);
-
-    artMapBldr = artMapBldr.putAll(topRgPrec.getARTPredicateMap());
-    artGlobalBldr = artGlobalBldr.addAll(topRgPrec.getARTGlobalPredicates());
-    envMapBldr = envMapBldr.putAll(topRgPrec.getEnvPredicateMap());
-    envGlobalBldr = envGlobalBldr.addAll(topRgPrec.getEnvGlobalPredicates());
-
-    Set<ARTElement> toInclude = new HashSet<ARTElement>(covered);
-    toInclude.add(topElem);
-
-    for (ARTElement elem : toInclude){
-      if (elem == null){
-        continue;
-      }
-      CFANode loc = elem.retrieveLocationElement().getLocationNode();
-      Set<AbstractionPredicate> artPreds = pivots.getARTPredicateForPivot(elem);
-      if (artPreds == null){
-        continue;
-      }
-
-      if (addPredicatesGlobally){
-        artGlobalBldr = artGlobalBldr.addAll(artPreds);
-      } else {
-        artMapBldr = artMapBldr.putAll(loc, artPreds);
-      }
-
-      Set<AbstractionPredicate> envPreds = pivots.getEnvPredicateForPivot(elem);
-      if (envPreds == null){
-        continue;
-      }
-
-      if (addEnvPredicatesGlobally){
-        envGlobalBldr = envGlobalBldr.addAll(envPreds);
-      } else {
-        envMapBldr = envMapBldr.putAll(loc, envPreds);
-      }
-    }
-
-    return new RGPrecision(artMapBldr.build(), artGlobalBldr.build(), envMapBldr.build(), envGlobalBldr.build());
-  }
-
-  /**
-   * Compute new location mapping for the element. This precision includes the mistmatches of all the covered pivots.
-   */
-  private Precision gatherLocationPrecisionForElement(ARTElement topElem, Set<ARTElement> covered, LocationPivots pivots, ARTReachedSet artReachedSet) {
-
-    int errorTid = topElem.getTid();
-
-/*
-
-
-    // find the unique highest abstract point, s.t. all ART elements are in its subtree
-    Set<ARTElement> absElems = new HashSet<ARTElement>();
-    for (ARTElement elem : mismatchMap.keySet()){
-      ARTElement la = RGCPA.findLastAbstractionARTElement(elem);
-      absElems.add(la);
-    }
-
-    SetMultimap<ARTElement, ARTElement> map = this.findTopARTElements(absElems);
-    assert map.size() == 1;
-    ARTElement top = map.keySet().iterator().next();
-
-    // refine the location map at top using all mistmatching pairs
-    int tid = top.getTid();
-    ARTPrecision prec = (ARTPrecision) reachedSets[tid].getPrecision(top);
-    RGLocationMapping oldLM = prec.getLocationMapping();
-    Collection<Pair<CFANode, CFANode>> mismatchColl = mismatchMap.values();
-    RGLocationMapping newLM = locrefManager.monotonicLocationMapping(oldLM, mismatchColl);
-
-    ARTPrecision newPrec = new ARTPrecision(newLM, prec.getWrappedPrecision());
-    Map<ARTElement, Precision> threadRefMap = new HashMap<ARTElement, Precision>();
-    threadRefMap.put(top, newPrec);
-    refMap.put(tid, threadRefMap);*/
-    return null;
-  }
-
-
-  /*
-   * Returns for each tread a map from a uncovered, top element to the element it covers.
-   * @param pivots
-   * @return
-
-  private Map<Integer, SetMultimap<ARTElement, ARTElement>> findTopElements(Pivots pivots) {
-
-    // tid -> element -> covered elements
-    Map<Integer, SetMultimap<ARTElement, ARTElement>> covered = new HashMap<Integer, SetMultimap<ARTElement, ARTElement>>();
-
-    for (int tid : pivots.getTids()){
-      Set<ARTElement> threadPivots = pivots.getPivotsForThread(tid);
-
-      SetMultimap<ARTElement, ARTElement> map = findTopARTElements(threadPivots);
-
-      if (!map.isEmpty()){
-        // all pivots are covered
-        covered.put(tid, map);
-      }
-
-    }
-
-    if (debug){
-      for (int tid : pivots.getTids()){
-        for (ARTElement pivot : pivots.getPivotsForThread(tid)){
-          boolean existsTop = false;
-
-          if (pivot.isCovered()){
-            continue;
-          }
-
-          for (ARTElement top : covered.get(tid).keySet()){
-            if (top.equals(pivot)){
-              existsTop = true;
-              break;
-            }
-
-            if (covered.get(tid).get(top).contains(pivot)){
-              assert top.getLocalSubtree().contains(pivot);
-              existsTop = true;
-              break;
-            }
-          }
-
-          assert existsTop || pivot.isCovered();
-        }
-      }
-    }
-
-    return covered;
-  }
-*/
 
   /**
    * Computes new precision for the inital elements.

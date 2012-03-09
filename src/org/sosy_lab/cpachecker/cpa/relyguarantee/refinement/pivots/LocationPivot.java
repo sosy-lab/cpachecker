@@ -73,6 +73,29 @@ public class LocationPivot implements Pivot {
     return mismatchesPerPath.put(pPi, pMismatch);
   }
 
+  public SetMultimap<Path, Pair<CFANode, CFANode>> getMismatchesPerPath() {
+    return mismatchesPerPath;
+  }
 
+  @Override
+  public String toString(){
+    String str = "LocationPivot element id: "+element.getElementId()+", mismatches: "+mismatchesPerPath.values();
+    return str;
+  }
 
+  @Override
+  public boolean equals(Object ob){
+    if (ob instanceof LocationPivot){
+      LocationPivot locpiv = (LocationPivot) ob;
+      return locpiv.element.equals(element) &&
+          locpiv.mismatchesPerPath.equals(mismatchesPerPath);
+    }
+
+    return false;
+  }
+
+  @Override
+  public int hashCode(){
+    return mismatchesPerPath.hashCode() + 13 * element.hashCode();
+  }
 }

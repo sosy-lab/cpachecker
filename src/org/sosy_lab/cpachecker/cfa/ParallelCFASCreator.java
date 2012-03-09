@@ -184,9 +184,9 @@ public class ParallelCFASCreator implements StatisticsProvider{
     for (int tid=0; tid<threadNamesList.size(); tid++){
       String threadName = threadNamesList.get(tid);
       CFA cfa = cfas.get(tid);
-      addTopologicalInfo(cfa);
       addLoopInfo(cfa);
       ThreadCFA tcfa = buildThreadCFA(cfa, threadName, tid);
+      addTopologicalInfo(cfa);
       checkCFA(tcfa);
       Pair<ImmutableMultimap<CFAEdge, String>, ImmutableMultimap<CFAEdge, String>> pair = getReadWriteAllEdges(tcfa);
       setOperationTypes(tcfa, globalVars, pair.getFirst(), pair.getSecond());

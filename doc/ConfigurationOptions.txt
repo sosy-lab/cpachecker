@@ -25,8 +25,8 @@ analysis.restartAfterUnknown = false
 analysis.stopAfterError = true
 
 # Choose comparator for comparator waitlist.
-analysis.traversal.comparator = ENVAPP_MIN
-  enum:     [ART_ID_MAX, ART_ID_MIN, ENVAPP_MIN]
+analysis.traversal.comparator = MIN_ENVAPP_MAX_TOP
+  enum:     [ART_ID_MAX, ART_ID_MIN, MIN_ENVAPP_MIN_TOP, MIN_ENVAPP_MAX_TOP]
 
 # which strategy to adopt for visiting states?
 analysis.traversal.order = DFS
@@ -524,7 +524,7 @@ cpa.rg.refinement.interpolatingProver = "MATHSAT"
 cpa.rg.refinement.lazy = true
 
 # Add all predicates in the subtree to the pivot element.
-cpa.rg.refinement.lazy.shareDroppedPrecision = true
+cpa.rg.refinement.lazy.shareDroppedPrecision = false
 
 # Perform refinement of control locations if a feasible counterexample is
 # found.
