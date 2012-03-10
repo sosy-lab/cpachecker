@@ -150,14 +150,13 @@ public class RGRestartingRefinementManager {
   private Map<Integer, Map<ARTElement, Precision>> getRestartingLocationPrecision(ARTReachedSet[] reachedSets, InterpolationTreeResult info) throws RefinementFailedException {
 
     Map<Integer, Map<ARTElement, Precision>> refMap = new HashMap<Integer, Map<ARTElement, Precision>>(threadNo);
+    int errorTid = info.getPathRefinementMap().values().iterator().next().get(0).getFirst().getTid();
 
     /* for every path we take one pair of mistmatching location (e.g. the first one);
        all paths belong to the same thread */
-    ImmutableSetMultimap<Path, Pair<CFANode, CFANode>> mismatchPerPath = getMistmachesPerPath(info.getPathRefinementMap());
+    SetMultimap<Path, Pair<CFANode, CFANode>> mismatchPerPath = getMistmachesPerPath(info.getPathRefinementMap());
 
     // find new location mapping for the error thread, and copy top precision for the others
-    int errorTid = info.getPathRefinementMap().values().iterator().next().get(0).getFirst().getTid();
-
     for (int i=0; i<threadNo; i++){
       ARTElement initial = reachedSets[i].getFirstElement();
       ARTPrecision prec = (ARTPrecision) reachedSets[i].getPrecision(initial);
@@ -165,7 +164,11 @@ public class RGRestartingRefinementManager {
       ARTPrecision newPrec;
 
       if (i == errorTid){
-        RGLocationMapping newLM = locRefManager.monotonicLocationMapping(mismatchPerPath, errorTid);
+        // add mismatches from the current precision
+        RGLocationMapping initLM = prec.getLocationMapping();
+        mismatchPerPath.putAll(initLM.getMismatchesForPath());
+        RGLocationMapping newLM = locRefManager.monotonicLocationMapping(ImmutableSetMultimap.copyOf(mismatchPerPath),
+            errorTid);
 
         /*if (debug){
           System.out.println("New location mapping: "+newLM+"\n");
@@ -357,19 +360,19 @@ public class RGRestartingRefinementManager {
    * @param pathRefMap
    * @return
    */
-  private ImmutableSetMultimap<Path, Pair<CFANode, CFANode>> getMistmachesPerPath(
+  private SetMultimap<Path, Pair<CFANode, CFANode>> getMistmachesPerPath(
       Map<Path, List<Pair<ARTElement, Pair<CFANode, CFANode>>>> pathRefMap) {
 
-    Builder<Path, Pair<CFANode, CFANode>> bldr = ImmutableSetMultimap.<Path, Pair<CFANode, CFANode>>builder();
+    SetMultimap<Path, Pair<CFANode, CFANode>> mmap = LinkedHashMultimap.create();
 
     for (Path pi : pathRefMap.keySet()){
       List<Pair<ARTElement, Pair<CFANode, CFANode>>> list = pathRefMap.get(pi);
       Pair<ARTElement, Pair<CFANode, CFANode>> triple = list.get(0);
 
-      bldr = bldr.put(pi, triple.getSecond());
+      mmap.put(pi, triple.getSecond());
     }
 
-    return bldr.build();
+    return mmap;
   }
 
 

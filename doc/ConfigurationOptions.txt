@@ -479,7 +479,7 @@ cpa.rg.cacheGeneratingEnvTransition = true
 # Use caching for comparing environmental transitions.
 cpa.rg.cacheLessOrEqual = true
 
-# If true, then change treads after successors for a state were computed.
+# If true, then change treads after a number of operations.
 cpa.rg.changeThread = false
 
 # always check satisfiability at end of block, even if precision is empty
@@ -506,10 +506,6 @@ cpa.rg.itpTreeNodeLimit = 0
 cpa.rg.refinement.addEnvPredicatesGlobally = true
 cpa.rg.refinement.addPredicatesGlobally = true
 
-# If true, the analysis continues in the previous thread. If false, the first
-# thread is analysed first.
-cpa.rg.refinement.continueThread = false
-
 # Print debugging info?
 cpa.rg.refinement.debug = false
 
@@ -521,7 +517,7 @@ cpa.rg.refinement.interpolatingProver = "MATHSAT"
   allowed values: [MATHSAT, CSISAT]
 
 # Use lazy refinement rather than restart the analysis.
-cpa.rg.refinement.lazy = true
+cpa.rg.refinement.lazy = false
 
 # Add all predicates in the subtree to the pivot element.
 cpa.rg.refinement.lazy.shareDroppedPrecision = false
@@ -533,6 +529,10 @@ cpa.rg.refinement.locationRefinement = "MONOTONIC"
 
 # split arithmetic equalities when extracting predicates from interpolants
 cpa.rg.refinement.splitItpAtoms = false
+
+# If true, the analysis continues in the previous thread. If false, the first
+# thread is analysed first.
+cpa.rg.refinement.switchThreadsAfterRefinement = true
 
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks
