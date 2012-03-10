@@ -1,8 +1,11 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="300">
+<benchmark tool="cpachecker" timelimit="120">
 
-  <test name="global pred, SBE, Cartesian abst, fully abstracted env.">
+
+
+
+  <test name="rg-restart-sbe-fa.properties">
     <sourcefiles>
       <include>test/programs/multi-threaded/benchmarks/lu-fig2.fixed.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.fixed.cil.c</include>
@@ -27,10 +30,10 @@
     </sourcefiles>
 
       <option name="-concurrent"/>
-      <option name="-config">test/config/rg-global-sbe-cartesian-fa.properties</option>
+      <option name="-config">test/config/rg-restart-sbe-fa.properties</option>
   </test>
 
-  <test name="global pred, SBE, Cartesian abst, semi-abstracted env.">
+  <test name="rg-restart-sbe-sa.properties">
     <sourcefiles>
       <include>test/programs/multi-threaded/benchmarks/lu-fig2.fixed.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.fixed.cil.c</include>
@@ -54,10 +57,10 @@
     </sourcefiles>
 
       <option name="-concurrent"/>
-      <option name="-config">test/config/rg-global-sbe-cartesian-sa.properties</option>
+      <option name="-config">test/config/rg-restart-sbe-sa.properties</option>
   </test>
 
-  <test name="global pred, SBE, Cartesian abst, simple transition env.">
+  <test name="rg-restart-sbe-st.properties">
     <sourcefiles>
       <include>test/programs/multi-threaded/benchmarks/lu-fig2.fixed.cil.c</include>
       <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.fixed.cil.c</include>
@@ -81,7 +84,7 @@
     </sourcefiles>
 
       <option name="-concurrent"/>
-      <option name="-config">test/config/rg-global-sbe-cartesian-st.properties</option>
+      <option name="-config">rg-restart-sbe-st.properties</option>
   </test>
 
   
@@ -120,5 +123,6 @@
     <column title="parser loading">time for loading C parser:</column>
     <column title="parsing and processing">total time on threads CFAs creation:</column>
   </columns>
+
   
 </benchmark>

@@ -85,7 +85,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   @Option(description="Print debugging info?")
   private boolean debug = false;
 
-  @Option(description="If true, then change treads after successors for a state were computed.")
+  @Option(description="If true, then change treads after a number of operations.")
   private boolean changeThread = false;
 
   public final Stats stats;

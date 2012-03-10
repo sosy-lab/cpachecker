@@ -41,16 +41,16 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManage
 import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.RGRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-
 @Options(prefix="cpa.rg.refinement")
 public class RGCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvider {
 
-  @Option(description="If true, the analysis continues in the previous thread. If false, the first thread is analysed first.")
-  private boolean continueThread = false;
+  @Option(name="switchThreadsAfterRefinement",
+      description="If true, the analysis continues in the previous thread. If false, the first thread is analysed first.")
+  private boolean switchThreadsAfterRefinement = true;
 
   private final Stats stats;
 
-  private RGAlgorithm algorithm;
+  private RGAlgorithm algorit@Optionhm;
   private RGRefiner refiner;
   private Configuration config;
   private LogManager logger;
@@ -110,7 +110,7 @@ public class RGCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvide
     System.out.println("------------------------ Rely-guarantee analysis "+stats.countIterations+" -------------------------");
 
     stats.totalAnal.start();
-    int errorThread = continueThread ? stats.countIterations % 2 : 0;
+    int errorThread = switchThreadsAfterRefinement ? stats.countIterations % 2 : 0;
     errorThread = algorithm.run(reachedSets, errorThread);
     long time = stats.totalAnal.stop();
 

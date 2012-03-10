@@ -98,7 +98,7 @@ public class RGRefiner implements StatisticsProvider{
 
   @Option(name="refinement.lazy",
       description="Use lazy refinement rather than restart the analysis.")
-  private boolean lazy = true;
+  private boolean lazy = false;
 
   private final RGRefinementManager<?, ?> refManager;
   private final RGLocationRefinementManager locrefManager;
