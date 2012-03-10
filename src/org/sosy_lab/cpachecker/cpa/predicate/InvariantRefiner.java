@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplateConstraint;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormulaManager;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -77,7 +78,7 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
   private final PredicateCPA predicateCpa;
   private final Configuration config;
   private final LogManager logger;
-  private final PredicateAbstractionManager amgr;
+  private final AbstractionManager amgr;
   private final ExtendedFormulaManager emgr;
   private final TemplateFormulaManager tmgr;
   //private final TemplatePathFormulaBuilder tpfb;
@@ -100,7 +101,7 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
     config.inject(this, InvariantRefiner.class);
     logger = predicateCpa.getLogger();
 
-    amgr = predicateCpa.getPredicateManager();
+    amgr = predicateCpa.getAbstractionManager();
     emgr = predicateCpa.getFormulaManager();
 
     tmgr = new TemplateFormulaManager();

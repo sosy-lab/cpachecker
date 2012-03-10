@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
@@ -51,7 +52,7 @@ import com.google.common.collect.ImmutableSet;
 @Options(prefix="cpa.predicate.refinement")
 public class PredicateRefinementManager extends InterpolationManager<Collection<AbstractionPredicate>> {
 
-  private final PredicateAbstractionManager amgr;
+  private final AbstractionManager amgr;
 
   @Option(description="only use the atoms from the interpolants as predicates, "
     + "and not the whole interpolant")
@@ -64,7 +65,7 @@ public class PredicateRefinementManager extends InterpolationManager<Collection<
       ExtendedFormulaManager pFmgr,
       PathFormulaManager pPmgr,
       Solver pSolver,
-      PredicateAbstractionManager pAmgr,
+      AbstractionManager pAmgr,
       FormulaManagerFactory pFmgrFactory,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {

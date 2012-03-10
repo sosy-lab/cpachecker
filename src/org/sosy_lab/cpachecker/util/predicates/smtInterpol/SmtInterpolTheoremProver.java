@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFormulaManager.*;
 import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUtil.*;
 
 import java.util.ArrayDeque;
@@ -32,11 +33,10 @@ import java.util.Deque;
 import java.util.List;
 
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.base.Preconditions;
@@ -77,7 +77,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   @Override
   public void push(Formula f) {
     Preconditions.checkNotNull(env);
-    final Term t = mgr.getTerm(f);
+    final Term t = getTerm(f);
     assertedTerms.add(t);
     env.push(1);
     env.assertTerm(t);
@@ -99,15 +99,15 @@ public class SmtInterpolTheoremProver implements TheoremProver {
 
   @Override
   public AllSatResult allSat(Formula f, Collection<Formula> formulas,
-                             AbstractionManager amgr, Timer timer) {
-    checkNotNull(amgr);
+                             RegionCreator rmgr, Timer timer) {
+    checkNotNull(rmgr);
     checkNotNull(timer);
 
     SmtInterpolEnvironment allsatEnv = mgr.getEnvironment(); //TODO do we need a new environment?
     checkNotNull(allsatEnv);
 
     // create new allSatResult
-    SmtInterpolAllSatCallback result = new SmtInterpolAllSatCallback(amgr, timer);
+    SmtInterpolAllSatCallback result = new SmtInterpolAllSatCallback(rmgr, timer);
 
     allsatEnv.push(1);
 
@@ -115,11 +115,11 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     Term[] importantTerms = new Term[formulas.size()];
     int i = 0;
     for (Formula impF : formulas) {
-      importantTerms[i++] = mgr.getTerm(impF);
+      importantTerms[i++] = getTerm(impF);
     }
 
     int numModels = 0;
-    allsatEnv.assertTerm(mgr.getTerm(f));
+    allsatEnv.assertTerm(getTerm(f));
     while (allsatEnv.checkSat() == LBool.SAT) {
       if (numModels > 20) { // TODO remove limit, TODO handle infinity
         System.out.println("i have found some models, making break in allsat()");
@@ -171,8 +171,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
    * callback used to build the predicate abstraction of a formula
    */
   class SmtInterpolAllSatCallback implements TheoremProver.AllSatResult {
-    private final AbstractionManager amgr;
-    private final RegionManager rmgr;
+    private final RegionCreator rmgr;
 
     private final Timer totalTime;
 
@@ -181,9 +180,8 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     private Region formula;
     private final Deque<Region> cubes = new ArrayDeque<Region>();
 
-    public SmtInterpolAllSatCallback(AbstractionManager fmgr, Timer timer) {
-      this.amgr = fmgr;
-      this.rmgr = fmgr.getRegionManager();
+    public SmtInterpolAllSatCallback(RegionCreator rmgr, Timer timer) {
+      this.rmgr = rmgr;
       this.formula = rmgr.makeFalse();
       this.totalTime = timer;
     }
@@ -232,10 +230,10 @@ public class SmtInterpolTheoremProver implements TheoremProver {
         Region region;
         if (isNot(t)) {
           t = getArg(t, 0);
-          region = amgr.getPredicate(mgr.encapsulate(t)).getAbstractVariable();
+          region = rmgr.getPredicate(encapsulate(t));
           region = rmgr.makeNot(region);
         } else {
-          region = amgr.getPredicate(mgr.encapsulate(t)).getAbstractVariable();
+          region = rmgr.getPredicate(encapsulate(t));
         }
         curCube.add(region);
       }

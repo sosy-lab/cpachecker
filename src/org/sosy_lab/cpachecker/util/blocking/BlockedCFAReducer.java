@@ -400,8 +400,6 @@ public class BlockedCFAReducer implements BlockComputer {
       result.add(n.getWrapped());
     }
 
-    System.out.println(String.format("CFANodes: %d, AbstNodes: %d, summarizationThresold: %d", pCfa.getAllNodes().size(), result.size(), reductionThreshold));
-
     return ImmutableSet.copyOf(result);
   }
 }

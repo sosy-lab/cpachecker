@@ -31,10 +31,12 @@ import java.io.PrintStream;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryUsage;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -145,8 +147,40 @@ class MainCPAStatistics implements Statistics {
     @Override
     public void run() {
       MemoryMXBean mxBean = ManagementFactory.getMemoryMXBean();
+
+      List<MemoryPoolMXBean> poolBeans = ManagementFactory.getMemoryPoolMXBeans();
+      for (Iterator<MemoryPoolMXBean> it = poolBeans.iterator(); it.hasNext(); ) {
+        MemoryPoolMXBean pool = it.next();
+        if (pool.isCollectionUsageThresholdSupported()
+            && !pool.getName().contains("Survivor")) {
+          long threshold = (long) (pool.getUsage().getMax() * 0.99);
+          pool.setCollectionUsageThreshold(threshold);
+          logger.log(Level.INFO, "Setting threshold of pool", pool.getName(), "to", formatMem(threshold).trim());
+
+        } else {
+          it.remove();
+        }
+      }
+      long[] poolCollectionUsageThresholdCounts = new long[poolBeans.size()];
+
+
       while (true) { // no stop condition, call Thread#interrupt() to stop it
         count++;
+
+        int i = 0;
+        for (MemoryPoolMXBean pool : poolBeans) {
+          if (pool.isCollectionUsageThresholdExceeded()) {
+            long collectionUsageThresholdCount = pool.getCollectionUsageThresholdCount();
+            if (collectionUsageThresholdCount > poolCollectionUsageThresholdCounts[i]) {
+
+              logger.log(Level.WARNING, "Collection threshold exceeded in pool", pool.getName() + ":",
+                  pool.getCollectionUsage());
+                  //formatMem(pool.getUsage().getUsed()).trim(), "of", formatMem(pool.getUsage().getMax()).trim(), "used.");
+              poolCollectionUsageThresholdCounts[i] = collectionUsageThresholdCount;
+            }
+          }
+          i++;
+        }
 
         // get Java heap usage
         MemoryUsage currentHeap = mxBean.getHeapMemoryUsage();

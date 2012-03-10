@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -33,6 +35,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 
@@ -64,6 +67,8 @@ public class ExplicitPrecision implements Precision {
    */
   private CegarPrecision cegarPrecision             = null;
 
+  private Ignore ignore = null;
+
   public ExplicitPrecision(String variableBlacklist, Configuration config) throws InvalidConfigurationException {
     config.inject(this);
 
@@ -72,6 +77,7 @@ public class ExplicitPrecision implements Precision {
     cegarPrecision        = new CegarPrecision(config);
     reachedSetThresholds  = new ReachedSetThresholds(config);
     pathThresholds        = new PathThresholds(config);
+    ignore                = new Ignore(config);
   }
 
   /**
@@ -86,6 +92,7 @@ public class ExplicitPrecision implements Precision {
     cegarPrecision        = new CegarPrecision(original.cegarPrecision);
     reachedSetThresholds  = new ReachedSetThresholds(original.reachedSetThresholds);
     pathThresholds        = new PathThresholds(original.pathThresholds);
+    ignore                = new Ignore(original.ignore);
   }
 
   public CegarPrecision getCegarPrecision() {
@@ -98,6 +105,10 @@ public class ExplicitPrecision implements Precision {
 
   public PathThresholds getPathThresholds() {
     return pathThresholds;
+  }
+
+  public Ignore getIgnore() {
+    return ignore;
   }
 
   public void setLocation(CFANode node) {
@@ -120,6 +131,7 @@ public class ExplicitPrecision implements Precision {
     return reachedSetThresholds.allowsTrackingOf(variable)
         && pathThresholds.allowsTrackingOf(variable)
         && cegarPrecision.allowsTrackingOf(variable)
+        && ignore.allowsTrackingOf(variable)
         && !blackListPattern.matcher(variable).matches();
   }
 
@@ -129,6 +141,34 @@ public class ExplicitPrecision implements Precision {
 
   public String getBlackListPattern() {
     return blackListPattern.pattern();
+  }
+
+  @Options(prefix="cpa.explicit.precision.ignore")
+  class Ignore {
+    @Option(description="csv list of variables never to track")
+    private String asString = "";
+    private List<String> asList = null;
+
+    private Ignore(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+
+      if(!asString.isEmpty()) {
+        asList = Arrays.asList(asString.split(","));
+      }
+    }
+
+    private Ignore(Ignore toBeIgnored) {
+
+      asString = toBeIgnored.asString;
+
+      if(!asString.isEmpty()) {
+        asList = Arrays.asList(asString.split(","));
+      }
+    }
+
+    public boolean allowsTrackingOf(String variable) {
+      return asList == null || !asList.contains(variable);
+    }
   }
 
   @Options(prefix="analysis")
@@ -170,13 +210,28 @@ public class ExplicitPrecision implements Precision {
           || mapping.containsEntry(currentLocation, variable);
     }
 
+    boolean allowsTrackingAt(CFANode location, String variable) {
+      return mapping != null && mapping.containsEntry(location, variable);
+    }
+
     /**
      * This methods add the addition mapping to the current mapping, i.e., this precision can only grow in size, and never may get smaller.
      *
      * @param additionalMapping the addition mapping to be added to the current mapping
      */
     void addToMapping(SetMultimap<CFANode, String> additionalMapping) {
+      //int before = mapping.size();
       mapping.putAll(additionalMapping);
+      //int after = mapping.size();
+
+      //if((before + additionalMapping.size()) != after) {
+      //System.out.println("redundancy !!!");
+      //}
+    }
+
+    @Override
+    public String toString() {
+      return Joiner.on(",").join(mapping.entries());
     }
   }
 

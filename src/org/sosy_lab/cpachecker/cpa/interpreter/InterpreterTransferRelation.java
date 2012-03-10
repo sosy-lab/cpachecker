@@ -263,7 +263,6 @@ public class InterpreterTransferRelation implements TransferRelation {
                 newElement.assignConstant(varName, element.getValueFor(returnVarName));
               }
               else{
-                System.out.println("FORGETTING: " + exprOnSummary);
                 newElement.forget(varName);
               }
           }
@@ -272,7 +271,6 @@ public class InterpreterTransferRelation implements TransferRelation {
                 newElement.assignConstant(globalVar, element.getValueFor(globalVar));
               }
               else{
-                System.out.println("FORGETTING: " + exprOnSummary);
                 newElement.forget(varName);
               }
           }
@@ -284,7 +282,6 @@ public class InterpreterTransferRelation implements TransferRelation {
             newElement.assignConstant(assignedVarName, element.getValueFor(returnVarName));
           }
           else{
-            System.out.println("FORGETTING: " + exprOnSummary);
             newElement.forget(assignedVarName);
           }
         }
@@ -1305,7 +1302,6 @@ public class InterpreterTransferRelation implements TransferRelation {
       if (value != null) {
         newElement.assignConstant(assignedVar, value);
       } else {
-        System.out.println("FORGETTING: " + unaryExp.toASTString());
         newElement.forget(assignedVar);
       }
     }

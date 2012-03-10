@@ -151,7 +151,7 @@ class Util:
             value = value[:-1]
         try:
             floatValue = float(value)
-            value = "%.{0}f".format(numberOfDigits) % floatValue
+            value = "{value:.{width}f}".format(width=numberOfDigits, value=floatValue)
         except ValueError: # if value is no float, don't format it
             pass
         return value + lastChar
@@ -282,7 +282,7 @@ def appendTests(listOfTests, filelist, columnsToShow=None):
             insertLogFileNames(resultFile, resultElem)
             listOfTests.append(Result(resultElem, None, columns))
         else:
-            print ('File {0} is not found.'.format(repr(resultFile)))
+            print ('File {0!r} is not found.'.format(resultFile))
             exit()
 
 
@@ -424,185 +424,111 @@ def getTableHead(listOfTests, fileNames):
     get tablehead (tools, limits, testnames, systeminfo, columntitles for html,
     testnames and columntitles for csv)
     '''
+    testWidths = [len(test.columns) for test in listOfTests]
 
-    (columnRow, testWidths, titleLine) = getColumnsRowAndTestWidths(listOfTests, fileNames)
-    (toolRow, toolLine) = getToolRow(listOfTests, testWidths)
-    limitRow = getLimitRow(listOfTests, testWidths)
-    systemRow = getSystemRow(listOfTests, testWidths)
-    dateRow = getDateRow(listOfTests, testWidths)
-    (testRow, testLine) = getTestRow(listOfTests, testWidths)
-    testBranches = getBranchRow(listOfTests, testWidths)
-    testOptions = getOptionsRow(listOfTests, testWidths)
+    tools       = ['{0} {1}'.format(test.get('tool'), test.get('version')) for test in listOfTests]
+    toolRow     = getRow('Tool', tools, testWidths, collapse=True)
+    toolLine    = getCsvRow('Tool', tools, testWidths)
 
-    return (('\n' + HTML_SHIFT).join([HTML_SHIFT + '<thead>', toolRow,
-            limitRow, systemRow, dateRow, testRow, testBranches, testOptions,
-            columnRow]) + '\n</thead>',
+    limits      = ['timelimit: {0}, memlimit: {1}'.format(test.get('timelimit'), test.get('memlimit')) for test in listOfTests]
+    limitRow    = getRow('Limits', limits, testWidths, collapse=True)
+
+    systemFormatString = 'host: {host}<br>os: {os}<br>cpu: {cpu}<br>cores: {cores}, frequency: {freq}, ram: {ram}</td>'
+    systems     = [systemFormatString.format(**getSystemInfo(test)) for test in listOfTests]
+    systemRow   = getRow('System', systems, testWidths, collapse=True)
+
+    dates       = [test.get('date') for test in listOfTests]
+    dateRow     = getRow('Date of run', dates, testWidths, collapse=True)
+
+    tests       = [test.get('name', test.get('benchmarkname')) for test in listOfTests]
+    testRow     = getRow('Test', tests, testWidths)
+    testLine    = getCsvRow('Test', tests, testWidths)
+
+    branchesRow = getBranchRow(listOfTests, testWidths)
+
+    options     = [test.get('options', ' ').replace(' -', '<br>-') for test in listOfTests]
+    optionsRow  = getRow('Options', options, testWidths)
+
+    commonFileNamePrefix = getCommonPrefix(fileNames)
+    titles      = [column.title for test in listOfTests for column in test.columns]
+    testWidths1 = [1]*sum(testWidths)
+    titleRow    = getRow(commonFileNamePrefix, titles, testWidths1, id='columnTitles')
+    titleLine   = getCsvRow(commonFileNamePrefix, titles, testWidths1)
+
+    return ('\n'.join([toolRow, limitRow, systemRow, dateRow, testRow, branchesRow, optionsRow, titleRow]),
             toolLine + '\n' + testLine + '\n' + titleLine + '\n')
 
 
-def getColumnsRowAndTestWidths(listOfTests, fileNames):
+def getRow(rowName, values, widths, collapse=False, id=None):
     '''
-    get columnsRow and testWidths, for all columns that should be shown
+    Format row, each cell spans over all columns of this test.
+    Returns tuple of row for HTML and CSV.
     '''
+    def collapseCells(values, widths):
+        previousValue = values[0]
+        previousWidth = 0
 
-    # get common folder of sourcefiles
-    commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
-    commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
+        for value, width in zip(values, widths):
+            if value != previousValue:
+                yield (previousValue, previousWidth)
+                previousWidth = 0
+                previousValue = value
+            previousWidth += width
 
-    testWidths = [len(result.columns) for result in listOfTests]
-    columnsTitles = [commonPrefix]
-    for result in listOfTests:
-        for column in result.columns: columnsTitles.append(column.title)
+        yield (previousValue, previousWidth)
 
-    return ('<tr id="columnTitles"><td>' + \
-                '</td><td>'.join(columnsTitles) + \
-                '</td></tr>',
-            testWidths,
-            CSV_SEPARATOR.join(columnsTitles))
+    if not id:
+        id = rowName.lower().split(' ')[0]
+    row = []
 
+    if collapse:
+        valuesAndWidths = collapseCells(values, widths)
+    else:
+        valuesAndWidths = zip(values, widths)
 
-def getToolRow(listOfTests, testWidths):
+    for value, width in valuesAndWidths:
+        if width:
+            row.append('<td colspan="{0}">{1}</td>'.format(width, value))
+
+    return '<tr id="{0}"><td>{1}</td>{2}</tr>'.format(id, rowName, "".join(row))
+
+def getCsvRow(rowName, values, widths):
     '''
-    get toolRow, each cell of it spans over all tests of this tool
+    Format row, each cell spans over all columns of this test.
     '''
+    line = [rowName.lower()]
 
-    toolRow = '<tr><td>Tool</td>'
-    toolLine = ['tool']
-    tool = (listOfTests[0].get('tool'), listOfTests[0].get('version'))
-    toolWidth = 0
+    for value, width in zip(values, widths):
+        if width:
+            line += [value]*width
 
-    for result, width in zip(listOfTests, testWidths):
-        newTool = (result.get('tool'), result.get('version'))
-        if newTool != tool:
-            toolRow += '<td colspan="{0}">{1} {2}</td>'.format(toolWidth, *tool)
-            toolWidth = 0
-            tool = newTool
-        toolWidth += width
-        for i in range(width):
-            toolLine.append(newTool[0] + ' ' + newTool[1])
-    toolRow += '<td colspan="{0}">{1} {2}</td></tr>'.format(toolWidth, *tool)
+    return CSV_SEPARATOR.join(line)
 
-    return (toolRow, CSV_SEPARATOR.join(toolLine))
-
-
-def getLimitRow(listOfTests, testWidths):
-    '''
-    get limitRow, each cell of it spans over all tests with this limit
-    '''
-
-    limitRow = '<tr><td>Limits</td>'
-    limitWidth = 0
-    limit = (listOfTests[0].get('timelimit'), listOfTests[0].get('memlimit'))
-
-    for result, width in zip(listOfTests, testWidths):
-        newLimit = (result.get('timelimit'), result.get('memlimit'))
-        if newLimit != limit:
-            limitRow += '<td colspan="{0}">timelimit: {1}, memlimit: {2}</td>'\
-                            .format(limitWidth, *limit)
-            limitWidth = 0
-            limit = newLimit
-        limitWidth += width
-    limitRow += '<td colspan="{0}">timelimit: {1}, memlimit: {2}</td></tr>'\
-                    .format(limitWidth, *limit)
-
-    return limitRow
-
-
-def getSystemRow(listOfTests, testWidths):
-    '''
-    get systemRow, each cell of it spans over all tests with this system
-    '''
-
-    def getSystem(systemTag):
-        cpuTag = systemTag.find('cpu')
-        system = (systemTag.find('os').get('name'),
-                  cpuTag.get('model'),
-                  cpuTag.get('cores'),
-                  cpuTag.get('frequency'),
-                  systemTag.find('ram').get('size'),
-                  systemTag.get('hostname', 'unknown'))
-        return system
-
-    systemFormatString = '<td colspan="{0}">host: {6}<br>os: {1}<br>'\
-                       + 'cpu: {2}<br>cores: {3}, frequency: {4}, ram: {5}</td>'
-    systemLine = '<tr><td>System</td>'
-    systemWidth = 0
-    systemTag = listOfTests[0].find('systeminfo')
-    system = getSystem(systemTag)
-
-    for result, width in zip(listOfTests, testWidths):
-        systemTag = result.find('systeminfo')
-        newSystem = getSystem(systemTag)
-        if newSystem != system:
-            systemLine += systemFormatString.format(systemWidth, *system)
-            systemWidth = 0
-            system = newSystem
-        systemWidth += width
-    systemLine += systemFormatString.format(systemWidth, *system) + '</tr>'
-
-    return systemLine
-
-
-def getDateRow(listOfTests, testWidths):
-    '''
-    get dateRow, each cell of it spans over all tests with this date
-    '''
-
-    dateRow = '<tr><td>Date of run</td>'
-    dateWidth = 0
-    date = listOfTests[0].get('date')
-
-    for result, width in zip(listOfTests, testWidths):
-        newDate = result.get('date')
-        if newDate != date:
-            dateRow += '<td colspan="{0}">{1}</td>'.format(dateWidth, date)
-            dateWidth = 0
-            date = newDate
-        dateWidth += width
-    dateRow += '<td colspan="{0}">{1}</td></tr>'.format(dateWidth, date)
-
-    return dateRow
-
-
-def getTestRow(listOfTests, testWidths):
-    '''
-    create testRow, each cell spans over all columns of this test
-    '''
-
-    testNames = [result.get('name', result.get('benchmarkname'))
-                                for result in listOfTests]
-    tests = ['<td colspan="{0}">{1}</td>'.format(width, testName)
-             for (testName, width) in zip(testNames, testWidths) if width]
-    testLine = CSV_SEPARATOR.join(['test'] + [CSV_SEPARATOR.join([testName]*width)
-             for (testName, width) in zip(testNames, testWidths) if width])
-
-    return ('<tr><td>Test set</td>' + ''.join(tests) + '</tr>',
-            testLine)
-
+def getSystemInfo(test):
+    systemTag = test.find('systeminfo')
+    cpuTag = systemTag.find('cpu')
+    return {'os':    systemTag.find('os').get('name'),
+            'cpu':   cpuTag.get('model'),
+            'cores': cpuTag.get('cores'),
+            'freq':  cpuTag.get('frequency'),
+            'ram':   systemTag.find('ram').get('size'),
+            'host':  systemTag.get('hostname', 'unknown')}
 
 def getBranchRow(listOfTests, testWidths):
-    '''
-    create branchRow, each cell spans over the columns of a test
-    '''
     testBranches = [os.path.basename(result.get('filename', '?'))
                     for result in listOfTests]
     if not any("#" in branch for branch in testBranches):
         return ""
     testBranches = [testBranch.split("#", 1)[0] for testBranch in testBranches]
-    branches = ['<td colspan="{0}">{1}</td>'.format(width, testBranch)
-             for (testBranch, width) in zip(testBranches, testWidths) if width]
-    return '<tr id="branch"><td>branch</td>' + ''.join(branches) + '</tr>'
+
+    return getRow('Branch', testBranches, testWidths)
 
 
-def getOptionsRow(listOfTests, testWidths):
-    '''
-    create optionsRow, each cell spans over the columns of a test
-    '''
-
-    testOptions = [result.get('options', ' ') for result in listOfTests]
-    options = ['<td colspan="{0}">{1}</td>'.format(width, testOption.replace(' -','<br>-'))
-             for (testOption, width) in zip(testOptions, testWidths) if width]
-    return '<tr id="options"><td>Options</td>' + ''.join(options) + '</tr>'
+def getCommonPrefix(fileNames):
+    # get common folder of sourcefiles
+    commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
+    commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
+    return commonPrefix
 
 
 def getTableBody(listOfTests, fileNames):
@@ -657,31 +583,26 @@ def getTableBody(listOfTests, fileNames):
     if isDifference:
         rowsForStatsDiff, _ = getStatsHTML(listOfTestsDiff, fileNamesDiff, rowsForCSVdiff)
 
-    # get common folder
-    commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
-    commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
+    commonPrefix = getCommonPrefix(fileNames)
 
     # generate text for filenames, insert it as first column
     # this implicitly adds filenames into diff-lists, too
     for fileName, HTMLrow, CSVrow in zip(fileNames, rowsForHTML, rowsForCSV):
         filePath = getPathOfSourceFile(fileName)
+        fileName = fileName.replace(commonPrefix, '', 1)
         HTMLrow.insert(0, ['<td><a href="{0}">{1}</a></td>'.
-                    format(quote(filePath), fileName.replace(commonPrefix, '', 1))])
-        CSVrow.insert(0, [fileName.replace(commonPrefix, '', 1)])
+                    format(quote(filePath), fileName)])
+        CSVrow.insert(0, [fileName])
 
     # join all listelements to strings
-    rowsHTML = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(joinRows(rowsForHTML))
-    statsHTML = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(map(''.join, rowsForStats))
-    HTMLbody = '<tbody>\n{0}<tr>{1}</tr>\n</tbody>'.format(HTML_SHIFT, rowsHTML)
-    HTMLfooter = '<tfoot>\n{0}<tr>{1}</tr>\n</tfoot>'.format(HTML_SHIFT, statsHTML)
-    CSVbody = '\n'.join(joinRows(rowsForCSV, CSV_SEPARATOR))
+    HTMLbody   = joinHtmlRows(rowsForHTML)
+    HTMLfooter = joinHtmlRows(rowsForStats)
+    CSVbody    = '\n'.join(joinRows(rowsForCSV, CSV_SEPARATOR))
 
     if isDifference:
-        rowsHTMLdiff = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(joinRows(rowsForHTMLdiff))
-        statsHTMLdiff = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(map(''.join, rowsForStatsDiff))
-        HTMLdiff = '<tbody>\n{0}<tr>{1}</tr>\n</tbody>'.format(HTML_SHIFT, rowsHTMLdiff)
-        HTMLdiffFooter = '<tfoot>\n{0}<tr>{1}</tr>\n</tfoot>'.format(HTML_SHIFT, statsHTMLdiff)
-        CSVdiff = '\n'.join(joinRows(rowsForCSVdiff, CSV_SEPARATOR))
+        HTMLdiff       = joinHtmlRows(rowsForHTMLdiff)
+        HTMLdiffFooter = joinHtmlRows(rowsForStatsDiff)
+        CSVdiff        = '\n'.join(joinRows(rowsForCSVdiff, CSV_SEPARATOR))
     else:
         HTMLdiff = ''
         HTMLdiffFooter = ''
@@ -689,6 +610,11 @@ def getTableBody(listOfTests, fileNames):
 
     return (HTMLbody, HTMLfooter, HTMLdiff, HTMLdiffFooter, CSVbody, CSVdiff, countsList)
 
+def joinHtmlRows(rows):
+    """
+    This functions joins all rows into one HTML block.
+    """
+    return '\n'.join(['<tr>{0}</tr>'.format(row) for row in joinRows(rows)])
 
 def joinRows(rows, str=""):
     """
@@ -924,12 +850,13 @@ def createTable(file, filesFromXML=False):
 
     if filesFromXML:
         listOfTests = getListOfTests(file, True)
-        prefix = OUTPUT_PATH + os.path.basename(file)[:-4] # remove ending '.xml'
+        name = os.path.basename(file)[:-4] # remove ending '.xml'
     else:
         listOfTests = getListOfTests(file)
         timestamp = time.strftime("%y%m%d-%H%M", time.localtime())
-        prefix = OUTPUT_PATH + NAME_START + "." + timestamp
+        name = NAME_START + "." + timestamp
 
+    prefix = OUTPUT_PATH + name
     HTMLOutFileName = prefix + ".table.html"
     HTMLdiffOutFileName = prefix + ".diff.html"
     CSVOutFileName = prefix + ".table.csv"
@@ -949,19 +876,6 @@ def createTable(file, filesFromXML=False):
     (tableBodyHTML, tableFootHTML, tableBodyDiffHTML, tableFootDiffHTML, tableBodyCSV, CSVdiff, countsList) \
             = getTableBody(listOfResults, filenames)
 
-    tableCode = tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
-                + '\n' + HTML_SHIFT \
-                + tableFootHTML.replace('\n','\n' + HTML_SHIFT) \
-                + '\n' + HTML_SHIFT \
-                + tableBodyHTML.replace('\n','\n' + HTML_SHIFT)
-
-    if tableBodyDiffHTML != '':
-        tableDiffCode = tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
-                + '\n' + HTML_SHIFT \
-                + tableFootDiffHTML.replace('\n','\n' + HTML_SHIFT) \
-                + '\n' + HTML_SHIFT \
-                + tableBodyDiffHTML.replace('\n','\n' + HTML_SHIFT)
-
     if not os.path.isdir(OUTPUT_PATH): os.makedirs(OUTPUT_PATH)
 
     # write HTML to file
@@ -973,8 +887,10 @@ def createTable(file, filesFromXML=False):
     templateFile = open(templateFileName, 'r')
     HTMLOutFile = open(HTMLOutFileName, 'w')
     Template(templateFile, HTMLOutFile).render(
-                title="table of tests",
-                table=tableCode
+                title=name,
+                head=tableHeadHTML,
+                body=tableBodyHTML,
+                foot=tableFootHTML
                 )
     templateFile.close()
     HTMLOutFile.close()
@@ -983,8 +899,10 @@ def createTable(file, filesFromXML=False):
         templateFile = open(templateFileName, 'r')
         HTMLdiffOutFile = open(HTMLdiffOutFileName, 'w')
         Template(templateFile, HTMLdiffOutFile).render(
-                title="differences",
-                table=tableDiffCode
+                title=name + " differences",
+                head=tableHeadHTML,
+                body=tableBodyDiffHTML,
+                foot=tableFootDiffHTML
                 )
         templateFile.close()
         HTMLdiffOutFile.close()

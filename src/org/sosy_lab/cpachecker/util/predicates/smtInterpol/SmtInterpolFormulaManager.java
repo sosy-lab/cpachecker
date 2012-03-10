@@ -99,19 +99,19 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
     return Pair.of(s[0], Integer.parseInt(s[1]));
   }
 
-  Term getTerm(Formula f) {
+  protected static Term getTerm(Formula f) {
     return ((SmtInterpolFormula) f).getTerm();
   }
 
-  Term[] getTerm(FormulaList f) {
+  protected static Term[] getTerm(FormulaList f) {
     return ((SmtInterpolFormulaList) f).getTerms();
   }
 
-  Formula encapsulate(Term t) {
+  protected static Formula encapsulate(Term t) {
     return new SmtInterpolFormula(t);
   }
 
-  FormulaList encapsulate(Term[] t) {
+  protected static FormulaList encapsulate(Term[] t) {
     return new SmtInterpolFormulaList(t);
   }
 

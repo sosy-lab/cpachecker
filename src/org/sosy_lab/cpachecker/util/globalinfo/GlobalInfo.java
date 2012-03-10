@@ -52,7 +52,6 @@ public class GlobalInfo {
   }
 
   public void storeCFA(CFA cfa) {
-    Preconditions.checkState(cfaInfo == null);
     cfaInfo = new CFAInfo(cfa);
   }
 
@@ -71,7 +70,6 @@ public class GlobalInfo {
   }
 
   public void storeFormulaManager(ExtendedFormulaManager formulaManager) {
-    Preconditions.checkState(this.formulaManager == null);
     this.formulaManager = formulaManager;
   }
 

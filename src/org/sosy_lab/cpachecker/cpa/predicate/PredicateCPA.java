@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
@@ -117,6 +118,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final FormulaManagerFactory formulaManagerFactory;
   private final PathFormulaManager pathFormulaManager;
   private final Solver solver;
+  private final AbstractionManager abstractionManager;
   private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
   private final PredicateAbstractElement topElement;
@@ -156,7 +158,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     logger.log(Level.INFO, "Using predicate analysis with", libraries + ".");
 
-    predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, solver, config, logger);
+    abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger);
+
+    predicateManager = new PredicateAbstractionManager(abstractionManager, formulaManager, solver, config, logger);
     transfer = new PredicateTransferRelation(this, blk);
 
     topElement = PredicateAbstractElement.abstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
@@ -176,7 +180,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     Collection<AbstractionPredicate> predicates = readPredicatesFromFile();
 
     if (checkBlockFeasibility) {
-      AbstractionPredicate p = predicateManager.makeFalsePredicate();
+      AbstractionPredicate p = abstractionManager.makeFalsePredicate();
       if (predicates == null) {
         predicates = ImmutableSet.of(p);
       } else {
@@ -201,7 +205,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
         Collection<AbstractionPredicate> predicates = new ArrayList<AbstractionPredicate>(atoms.size());
 
         for (Formula atom : atoms) {
-          predicates.add(predicateManager.makePredicate(atom));
+          predicates.add(abstractionManager.makePredicate(atom));
         }
         return predicates;
 
@@ -233,6 +237,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Override
   public StopOperator getStopOperator() {
     return stop;
+  }
+
+  public AbstractionManager getAbstractionManager() {
+    return abstractionManager;
   }
 
   public PredicateAbstractionManager getPredicateManager() {

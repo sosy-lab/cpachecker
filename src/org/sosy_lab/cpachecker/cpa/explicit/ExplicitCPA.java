@@ -23,11 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import java.util.Collection;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
@@ -44,11 +47,13 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 @Options(prefix="cpa.explicit")
-public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
+public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ExplicitCPA.class);
@@ -74,11 +79,15 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
   private final ExplicitReducer reducer;
+  private final ExplicitCPAStatistics statistics;
+
+  private final CFA cfa;
 
   private final Configuration config;
   private final LogManager logger;
 
-  private ExplicitCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private ExplicitCPA(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
+    this.cfa    = cfa;
     this.config = config;
     this.logger = logger;
 
@@ -91,6 +100,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
     stopOperator        = initializeStopOperator();
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     reducer             = new ExplicitReducer();
+    statistics          = new ExplicitCPAStatistics();
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -155,6 +165,10 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
     return precision;
   }
 
+  ExplicitPrecision getPrecision() {
+    return precision;
+  }
+
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
@@ -171,5 +185,18 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
   @Override
   public Reducer getReducer() {
     return reducer;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(statistics);
+  }
+
+  ExplicitCPAStatistics getStats() {
+    return statistics;
+  }
+
+  CFA getCFA() {
+    return cfa;
   }
 }

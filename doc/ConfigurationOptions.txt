@@ -610,10 +610,14 @@ cpa.predicate.refinement.verifyInterpolants = false
 # blocksize)
 cpa.predicate.satCheck = 0
 
+# encode program variables as INTEGERs in SmtInterpol, instead of using
+# REALs.
+cpa.predicate.smtinterpol.useIntegers = false
+
 # Whether to use MathSAT 4, MathSAT 5 or YICES (in combination with Mathsat
 # 4) as SMT solver
 cpa.predicate.solver = "MATHSAT4"
-  allowed values: [MATHSAT4, MATHSAT5, YICES]
+  allowed values: [MATHSAT4, MATHSAT5, YICES, SMTINTERPOL]
 
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks
