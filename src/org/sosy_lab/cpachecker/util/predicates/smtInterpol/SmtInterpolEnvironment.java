@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -62,6 +63,9 @@ public class SmtInterpolEnvironment implements Script {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File smtLogfile = new File("smtinterpol.smt");
 
+  /** this is a counter to get distinct logfiles for distinct environments. */
+  private static int logfileCounter = 0;
+
   /** the wrapped Script */
   private Script script;
 
@@ -90,14 +94,15 @@ public class SmtInterpolEnvironment implements Script {
       script = new Benchmark(logger);
 
     } else {
+      String filename = getFilename(smtLogfile.getAbsolutePath());
+      smtLogfile.getParentFile().mkdirs();
       try {
         // create a thin wrapper around Benchmark,
         // this allows to write most formulas of the solver to outputfile
         // TODO how much faster is SmtInterpol without this Wrapper?
 
         // create directories of file, then use its name
-        smtLogfile.getParentFile().mkdirs();
-        script = new LoggingScript(new Benchmark(logger), smtLogfile.getAbsolutePath(), true);
+        script = new LoggingScript(new Benchmark(logger), filename, true);
       } catch (FileNotFoundException e) {
         e.printStackTrace();
       }
@@ -114,6 +119,22 @@ public class SmtInterpolEnvironment implements Script {
     } catch (SMTLIBException e) {
       e.printStackTrace();
     }
+  }
+
+  /**  This function creates a filename with following scheme:
+       first filename is unchanged, then a number is appended */
+  private String getFilename(final String oldFilename) {
+    String filename = oldFilename;
+    if (logfileCounter != 0) {
+      if (oldFilename.endsWith(".smt")) {
+        filename = oldFilename.substring(0, oldFilename.length() - 4)
+            + "__" + logfileCounter + ".smt";
+      } else {
+        filename += "__" + logfileCounter;
+      }
+    }
+    logfileCounter++;
+    return filename;
   }
 
   @Override
@@ -380,7 +401,22 @@ public class SmtInterpolEnvironment implements Script {
   }
 
   @Override
+  public Term numeral(BigInteger num) throws SMTLIBException {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public Term decimal(String decimal) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Term decimal(BigDecimal decimal) throws SMTLIBException {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Term string(String s) throws SMTLIBException {
     throw new UnsupportedOperationException();
   }
 
