@@ -56,8 +56,8 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionMana
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManagerFactory;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.RGLocationRefinementManager;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.RGRefinementManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.interpolation.RGInterpolationManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.locations.RGLocationRefinementManager;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -139,7 +139,7 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
   protected final AbstractionManager aManager;
   protected final SSAMapManager ssaManager;
   protected final RGEnvTransitionManager etManager;
-  protected final RGRefinementManager<?, ?> refManager;
+  protected final RGInterpolationManager<?, ?> refManager;
   private RGEnvironmentManager envManager;
   protected final InterpolatingTheoremProver<Integer> itpProver;
   protected  RGLocationRefinementManager locrefManager;
@@ -200,7 +200,7 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
     this.aManager = AbstractionManagerImpl.getInstance(rManager, mathsatFormulaManager, pfManager, config, logger);
     this.ssaManager = SSAMapManagerImpl.getInstance(fManager, config, logger);
     this.etManager  = RGEnvTransitionManagerFactory.getInstance(abstractEnvTransitions, fManager, pfManager, absManager, ssaManager, thmProver, rManager, pcfa, config, logger);
-    this.refManager = RGRefinementManager.getInstance(rManager, fManager,  ssaManager, pfManager, etManager, thmProver, itpProver, alternativeItpProver, config, logger);
+    this.refManager = RGInterpolationManager.getInstance(rManager, fManager,  ssaManager, pfManager, etManager, thmProver, itpProver, alternativeItpProver, config, logger);
 
 
 
@@ -256,7 +256,7 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
     return null;
   }
 
-  public RGRefinementManager<?, ?> getRelyGuaranteeManager() {
+  public RGInterpolationManager<?, ?> getRelyGuaranteeManager() {
     return this.refManager;
   }
 

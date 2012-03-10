@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement;
+package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.interpolation;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+
 
 
 /**
@@ -179,7 +180,6 @@ public class InterpolationDag {
   public void retainNodesInThread(Collection<InterpolationDagNodeKey> retain, int tid){
 
     Deque<InterpolationDagNode> toProcess = new LinkedList<InterpolationDagNode>();
-    Set<InterpolationDagNode> removed = new HashSet<InterpolationDagNode>();
 
     for (InterpolationDagNode root : roots){
       if (root.getTid() == tid){

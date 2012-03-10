@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement;
+package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.interpolation;
 
 import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
@@ -82,7 +82,7 @@ import com.google.common.collect.Lists;
 
 
 @Options(prefix="cpa.rg")
-public class RGRefinementManager<T1, T2> implements StatisticsProvider {
+public class RGInterpolationManager<T1, T2> implements StatisticsProvider {
 
   @Option(name="refinement.interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"},
       description="which interpolating solver to use for interpolant generation?")
@@ -125,7 +125,7 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
 
 
-  private static RGRefinementManager<?,?> rgRefManager;
+  private static RGInterpolationManager<?,?> rgRefManager;
 
   /**
    * Singleton instance of RelyGuaranteeRefinementManager.
@@ -142,19 +142,19 @@ public class RGRefinementManager<T1, T2> implements StatisticsProvider {
    * @return
    * @throws InvalidConfigurationException
    */
-  public static RGRefinementManager<?, ?> getInstance(RegionManager pRmgr, FormulaManager pFmgr, SSAMapManager pSsaManager, PathFormulaManager pPmgr, RGEnvTransitionManager etManager, TheoremProver pThmProver,
+  public static RGInterpolationManager<?, ?> getInstance(RegionManager pRmgr, FormulaManager pFmgr, SSAMapManager pSsaManager, PathFormulaManager pPmgr, RGEnvTransitionManager etManager, TheoremProver pThmProver,
       InterpolatingTheoremProver<?> pItpProver, InterpolatingTheoremProver<?> pAltItpProver, Configuration pConfig,
       LogManager pLogger) throws InvalidConfigurationException {
     if (rgRefManager == null){
-      rgRefManager = new RGRefinementManager(pRmgr, pFmgr, pSsaManager, pPmgr, etManager, pThmProver, pItpProver, pAltItpProver, pConfig, pLogger);
+      rgRefManager = new RGInterpolationManager(pRmgr, pFmgr, pSsaManager, pPmgr, etManager, pThmProver, pItpProver, pAltItpProver, pConfig, pLogger);
     }
     return rgRefManager;
   }
 
-  public RGRefinementManager(RegionManager pRmgr, FormulaManager pFmgr, SSAMapManager pSsaManager, PathFormulaManager pPmgr, RGEnvTransitionManager etManager, TheoremProver pThmProver,
+  public RGInterpolationManager(RegionManager pRmgr, FormulaManager pFmgr, SSAMapManager pSsaManager, PathFormulaManager pPmgr, RGEnvTransitionManager etManager, TheoremProver pThmProver,
       InterpolatingTheoremProver<T1> pItpProver, InterpolatingTheoremProver<T2> pAltItpProver, Configuration pConfig,
       LogManager pLogger) throws InvalidConfigurationException {
-    pConfig.inject(this, RGRefinementManager.class);
+    pConfig.inject(this, RGInterpolationManager.class);
     this.logger = pLogger;
     this.amgr = AbstractionManagerImpl.getInstance(pRmgr, pFmgr, pPmgr, pConfig, pLogger);
     this.fmgr = pFmgr;

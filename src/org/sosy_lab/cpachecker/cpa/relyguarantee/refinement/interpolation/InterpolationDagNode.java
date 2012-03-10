@@ -21,15 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement;
+package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.interpolation;
 
 import java.util.List;
 import java.util.Vector;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
-import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 import com.google.common.collect.ImmutableMap;
@@ -120,9 +118,9 @@ public class InterpolationDagNode{
     return parents;
   }
 
+  @Override
   public String toString() {
-    RGAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RGAbstractElement.class);
-    return "ItpDagNode "+key.toString();
+   return "ItpDagNode "+key.toString();
   }
 
   public int getTid() {
@@ -157,6 +155,7 @@ public class InterpolationDagNode{
   }
 
 
+  @Override
   public boolean equals(Object other){
     if (!(other instanceof InterpolationDagNode)){
       return false;

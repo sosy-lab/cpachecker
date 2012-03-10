@@ -21,51 +21,57 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement;
+package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.interpolation;
 
-import org.sosy_lab.common.Pair;
+public class InterpolationTreeNodeKey  {
 
-class  InterpolationDagNodeKey{
+  protected final int tid;
+  protected final int artElementId;
+  protected final int uniqueId;
 
-  protected final Integer tid;
-  protected final Integer artElementId;
-
-  public InterpolationDagNodeKey(Integer tid, Integer artElementId){
-    assert tid != null;
-    assert artElementId != null;
-    this.tid  = tid;
+  InterpolationTreeNodeKey(int tid, int  artElementId,  int uniqueId){
+    this.tid = tid;
     this.artElementId = artElementId;
+    this.uniqueId = uniqueId;
   }
 
-  public Pair<Integer, Integer> getPair() {
-    return Pair.of(tid, artElementId);
+  InterpolationTreeNodeKey(InterpolationDagNodeKey key,  int uniqueId){
+    this.tid = key.tid;
+    this.artElementId = key.artElementId;
+    this.uniqueId = uniqueId;
   }
 
-  public Integer getTid(){
+  public Integer getTid() {
     return tid;
   }
 
-  public Integer getARTElementId(){
+  public Integer getArtElementId() {
     return artElementId;
   }
 
+  public Integer getUniqueId() {
+    return uniqueId;
+  }
+
+  @Override
   public String toString(){
-    return "("+tid+","+artElementId+")";
+    return "itpTreeNodeKey ("+tid+","+artElementId+","+uniqueId+")";
   }
 
   @Override
   public int hashCode(){
-    return 11 * (47 * tid + artElementId);
+    return 11 * (47 * tid + 13 * (artElementId + uniqueId));
   }
 
+  @Override
   public boolean equals(Object other){
-    if (!(other instanceof InterpolationDagNodeKey)){
+    if (!(other instanceof InterpolationTreeNodeKey)){
       return false;
     }
 
-    InterpolationDagNodeKey otherKey = (InterpolationDagNodeKey) other;
+    InterpolationTreeNodeKey otherKey = (InterpolationTreeNodeKey) other;
 
-    if (otherKey.getTid().equals(this.getTid()) && otherKey.getARTElementId().equals(this.getARTElementId())){
+    if (otherKey.uniqueId == uniqueId && otherKey.artElementId == artElementId && otherKey.tid == tid){
       return true;
     } else {
       return false;

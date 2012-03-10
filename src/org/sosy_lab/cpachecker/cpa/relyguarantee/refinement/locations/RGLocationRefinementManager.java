@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement;
+package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.locations;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -68,6 +68,9 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionMana
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.interpolation.InterpolationTree;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.interpolation.InterpolationTreeNode;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.interpolation.InterpolationTreeResult;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -108,20 +111,17 @@ public class RGLocationRefinementManager implements StatisticsProvider{
       description="Perform refinement of control locations if a feasible counterexample is found.")
   private String locationRefinement =  "MONOTONIC";
 
+  private static Pattern varRegex = Pattern.compile("^PRED_(N\\d+)_(\\d+)$");
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
-  private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
-      "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
+
 
   private final FormulaManager fManager;
   private final PathFormulaManager pfManager;
   private final RGEnvTransitionManager etManager;
-  private final RGAbstractionManager absManager;
-  private final SSAMapManager ssaManager;
   private final TheoremProver thmProver;
-  private final RegionManager rManager;
-  private final RGEnvironmentManager envManager;
   private ParallelCFAS pcfa;
   private final int threadNo;
+  @SuppressWarnings("unused")
   private final LogManager logger;
   private final Stats stats;
 
@@ -133,7 +133,8 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   private final Map<CFANode, Integer> nodeToTidMap;
 
   private static RGLocationRefinementManager singleton;
-  private static Pattern varRegex = Pattern.compile("^PRED_(N\\d+)_(\\d+)$");
+
+
 
   public static RGLocationRefinementManager getInstance(FormulaManager pFManager, PathFormulaManager pPfManager, RGEnvTransitionManager pEtManager, RGAbstractionManager absManager, SSAMapManager pSsaManager,TheoremProver pThmProver, RegionManager pRManager, RGEnvironmentManager envManager, ParallelCFAS pPcfa, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     if (singleton == null){
@@ -149,11 +150,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
     this.fManager = pFManager;
     this.pfManager = pPfManager;
     this.etManager = pEtManager;
-    this.absManager = absManager;
-    this.ssaManager = pSsaManager;
     this.thmProver = pThmProver;
-    this.rManager = pRManager;
-    this.envManager = envManager;
     this.pcfa = pcfa;
     this.threadNo = pcfa.getThreadNo();
     this.logger  = pLogger;
@@ -261,79 +258,6 @@ public class RGLocationRefinementManager implements StatisticsProvider{
   }
 
 
- /* /**
-   * Monotonic refinement - a new equivalence class is created for every mismatching location.
-   * @param counterexample
-   * @return
-   * @throws CPATransferException
-   * @throws RefinementFailedException
-
-  private InterpolationTreeResult monotonicRefinement(InterpolationTreeResult counterexample) throws CPATransferException, RefinementFailedException {
-    stats.locRefTimer.start();
-    stats.iterations++;
-    Collection<Path> paths = getErrorPathsForTrunk(counterexample.getTree());
-
-    Collection<Pair<CFANode, CFANode>> inqSet = new LinkedHashSet<Pair<CFANode, CFANode>>();
-
-    for (Path pi : paths){
-      Collection<Pair<CFANode, CFANode>> threadInq = findLocationInequalities(pi, true);
-
-      if (threadInq.isEmpty()){
-        // concreate, feasible error path found
-        counterexample.setCounterexamplePath(pi);
-        return counterexample;
-      }
-
-      inqSet.addAll(threadInq);
-    }
-
-    // path is spurious, find new location mapping
-    RGLocationMapping refLocationMapping = monotonicLocationMapping(envManager.getLocationMapping(), inqSet);
-    counterexample = new InterpolationTreeResult(true);
-    counterexample.setRefinedLocationMapping(refLocationMapping);
-
-    stats.locClNo = refLocationMapping.getClassNo();
-
-    return counterexample;
-  }*/
-
-  /*
-   * Non-monotonic refinement like described in "Non-monotonic Refinement of Control
-   * Abstraction for Concurrent Programs" by Gupta.
-   * @param counterexample
-   * @return
-   * @throws CPATransferException
-
-  private InterpolationTreeResult nonMonotonicRefinement(InterpolationTreeResult counterexample) throws CPATransferException {
-    stats.locRefTimer.start();
-    stats.iterations++;
-
-    InterpolationTree tree = counterexample.getTree();
-    Collection<Path> paths = getErrorPathsForTrunk(tree);
-
-    for (Path pi : paths){
-      Collection<Pair<CFANode, CFANode>> threadInq = findLocationInequalities(pi, false);
-
-      if (threadInq.isEmpty()){
-        // concrete, feasible error path found
-        counterexample.setCounterexamplePath(pi);
-        return counterexample;
-      }
-
-      globalInqMap.putAll(pi, threadInq);
-    }
-
-    // path is spurious, find new location mapping
-    RGLocationMapping refLocationMapping = nonMonotonicLocationMapping(globalInqMap);
-    counterexample = new InterpolationTreeResult(true);
-    counterexample.setRefinedLocationMapping(refLocationMapping);
-
-    stats.locClNo = refLocationMapping.getClassNo();
-
-    return counterexample;
-  }*/
-
-
   /**
    * Finds the minimal number of equivalence class that puts splits mistmatching locations using a SAT solver.
    * @param inqMap
@@ -372,6 +296,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
    * @param clNo
    * @return
    */
+  @SuppressWarnings("unused")
   private Formula buildNonMonotonicFormulaLA(Multimap<Path, Pair<CFANode, CFANode>> inqMap, int clNo) {
     stats.formulaTimer.start();
 
@@ -1118,7 +1043,7 @@ public class RGLocationRefinementManager implements StatisticsProvider{
         InterpolationTreeNode parentBranchNode = tree.getParentBranchId(node);
 
         if (parentBranchNode != null){
-          rMap.put(-1, parentBranchNode.uniqueId);
+          rMap.put(-1, parentBranchNode.getUniqueId());
         }
       } else {
         rMap.put(-1, uniqueId);

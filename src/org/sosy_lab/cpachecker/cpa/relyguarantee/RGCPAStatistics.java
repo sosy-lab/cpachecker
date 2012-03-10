@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.RGRefinementManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.interpolation.RGInterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 
@@ -66,7 +66,7 @@ public class  RGCPAStatistics implements Statistics {
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      RGRefinementManager<?, ?> amgr = cpa.refManager;
+      RGInterpolationManager<?, ?> amgr = cpa.refManager;
 
       Multimap<CFANode, AbstractionPredicate> predicates = HashMultimap.create();
 

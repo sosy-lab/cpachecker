@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement;
+package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.interpolation;
 
 import java.util.Vector;
 
@@ -146,6 +146,7 @@ public class InterpolationTreeNode  {
     return tid;
   }
 
+  @Override
   public String toString(){
     return "itpTreeNode ("+tid+","+artElement.getElementId()+","+uniqueId+")";
   }

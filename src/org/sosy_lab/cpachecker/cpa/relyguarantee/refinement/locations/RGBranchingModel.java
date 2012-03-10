@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement;
+package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.locations;
 
 import java.util.HashMap;
 
@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
  * Specifies branches taken on one path.
  */
 
+@SuppressWarnings("serial")
 public class RGBranchingModel extends  HashMap<Pair<ARTElement, CFAEdge>, Boolean>{
 
 }

@@ -50,7 +50,7 @@ public class RGCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvide
 
   private final Stats stats;
 
-  private RGAlgorithm algorit@Optionhm;
+  private RGAlgorithm algorithm;
   private RGRefiner refiner;
   private Configuration config;
   private LogManager logger;

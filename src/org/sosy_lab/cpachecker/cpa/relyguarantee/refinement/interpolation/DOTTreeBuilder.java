@@ -21,16 +21,16 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement;
+package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.interpolation;
 
 import java.util.Deque;
 import java.util.LinkedList;
 
 
+
 public class DOTTreeBuilder {
 
   private static String graphName  = "G";
-  private static String tLabel     = "T";
   private static String envColor   = "chocolate";
   private static String errorColor = "red";
   private static String nonAbstractionColor = "lightgrey";
