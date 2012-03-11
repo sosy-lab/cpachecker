@@ -137,7 +137,14 @@ public class RGLazyRefinementManager {
       System.out.println();
     }
 
-    pivots = balancePrecisions(pivots, reachedSets);
+    addDroppedPrecision(reachedSets, pivots);
+
+    if (debug){
+      System.out.println(pivots.toString());
+      System.out.println();
+    }
+
+    balancePrecisions(pivots, reachedSets);
 
     if (debug){
       System.out.println(pivots.toString());
@@ -177,6 +184,36 @@ public class RGLazyRefinementManager {
   }
 
 
+  private void addDroppedPrecision(ARTReachedSet[] reachedSets, Pivots pivots) {
+
+    for (Integer tid : pivots.getTids()){
+
+      for (DataPivot piv : pivots.getPivotsForThread(tid)){
+
+        Set<ARTElement> subtree = piv.getElement().getLocalSubtree();
+        Set<RGPrecision> seenPrecision = new HashSet<RGPrecision>();
+
+        for (ARTElement elem : subtree){
+
+          if (elem.isCovered()){
+            continue;
+          }
+
+          ARTPrecision prec = (ARTPrecision) reachedSets[tid].getPrecision(elem);
+          RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
+
+          if (!seenPrecision.contains(rgPrec)){
+            seenPrecision.add(rgPrec);
+            piv.addRGPrecision(rgPrec);
+          }
+        }
+      }
+    }
+
+    return;
+  }
+
+
   /**
    * If two pivots would casue the same element to be readded to the waitlist, then
    * their precision should be the same, to avoid race conditions.
@@ -184,21 +221,19 @@ public class RGLazyRefinementManager {
    * @param pReachedSets
    * @return
    */
-  private Pivots balancePrecisions(Pivots oldPivots, ARTReachedSet[] reachedSets) {
-    Pivots pivots = new Pivots();
-    pivots.addAll(oldPivots.getPivotMap());
+  private void balancePrecisions(Pivots pivots, ARTReachedSet[] reachedSets) {
 
     for (Integer tid : pivots.getTids()){
 
-      Collection<Pivot> pivsForThread = pivots.getPivotsForThread(tid);
+      Collection<DataPivot> pivsForThread = pivots.getPivotsForThread(tid);
       if (pivsForThread.size() <=1 ){
         continue;
       }
 
       // readMap: elements that will readded -> pivots that cause it
-      SetMultimap<ARTElement, Pivot> readdMap = LinkedHashMultimap.create();
+      SetMultimap<ARTElement, DataPivot> readdMap = LinkedHashMultimap.create();
 
-      for (Pivot piv : pivsForThread){
+      for (DataPivot piv : pivsForThread){
         ARTElement aelem = piv.getElement();
         Set<ARTElement> readdSet = reachedSets[tid].readdedElements(aelem);
 
@@ -210,22 +245,22 @@ public class RGLazyRefinementManager {
       // merge precision for elements that readded the same pivot
       for (ARTElement elem : readdMap.keySet()){
 
-        Set<Pivot> pivs = readdMap.get(elem);
+        Set<DataPivot> pivs = readdMap.get(elem);
         if (pivs.size() == 1){
           continue;
         }
 
         // merge all elements in the first one
-        Pivot first = pivs.iterator().next();
+        DataPivot first = pivs.iterator().next();
 
-        for (Pivot piv : pivs){
+        for (DataPivot piv : pivs){
           if (!piv.equals(first)){
             first.addPrecisionOf(piv);
           }
         }
 
         // add precision of the first element into all others
-        for (Pivot piv : pivs){
+        for (DataPivot piv : pivs){
           if (!piv.equals(first)){
             piv.addPrecisionOf(first);
           }
@@ -234,8 +269,6 @@ public class RGLazyRefinementManager {
 
       }
     }
-
-    return pivots;
   }
 
 
@@ -257,8 +290,8 @@ public class RGLazyRefinementManager {
         refMap.put(tid, map);
       }
 
-      for (Pivot piv : pivots.getPivotsForThread(tid)){
-        DataPivot dpiv = (DataPivot) piv;
+      for (DataPivot piv : pivots.getPivotsForThread(tid)){
+        DataPivot dpiv = piv;
 
         ARTElement elem = piv.getElement();
         ARTPrecision oldPrec = (ARTPrecision) reachedSets[tid].getPrecision(elem);
@@ -328,8 +361,7 @@ public class RGLazyRefinementManager {
         refMap.put(tid, map);
       }
 
-      for (Pivot piv : pivots.getPivotsForThread(tid)){
-        LocationPivot lpiv = (LocationPivot) piv;
+      for (DataPivot piv : pivots.getPivotsForThread(tid)){
 
         ARTElement elem = piv.getElement();
         ARTPrecision oldPrec = (ARTPrecision) reachedSets[tid].getPrecision(elem);
@@ -337,7 +369,7 @@ public class RGLazyRefinementManager {
 
         // add mistmatches from the pivot and the precision
         Builder<Path, Pair<CFANode, CFANode>> bldr = ImmutableSetMultimap.<Path, Pair<CFANode, CFANode>>builder();
-        bldr = bldr.putAll(lm.getMismatchesForPath()).putAll(lpiv.getMismatchesPerPath());
+        bldr = bldr.putAll(lm.getMismatchesForPath()).putAll(piv.getMismatchesPerPath());
 
         RGLocationMapping newLM = locrefManager.monotonicLocationMapping(bldr.build(), tid);
 
@@ -370,9 +402,9 @@ public class RGLazyRefinementManager {
 
       for (int tid : unprocessed.getTids()){
 
-        Collection<Pivot> pivs = unprocessed.getPivotsForThread(tid);
+        Collection<DataPivot> pivs = unprocessed.getPivotsForThread(tid);
 
-        for (Pivot piv : pivs){
+        for (DataPivot piv : pivs){
           ARTElement abs = piv.getElement();
           Set<ARTElement> absElems = abs.getLocalSubtree();
 
@@ -383,13 +415,7 @@ public class RGLazyRefinementManager {
               ARTElement la = RGCPA.findLastAbstractionARTElement(child);
 
               if (!processed.containsPivotsWithElement(la)){
-                Pivot newPiv;
-                if (isDataRefinement){
-                  newPiv = new DataPivot(la);
-                } else {
-                  newPiv = new LocationPivot(la);
-                }
-
+                DataPivot newPiv = new DataPivot(la);
                 newUnprocessed.addPivot(newPiv);
               }
             }
@@ -411,24 +437,24 @@ public class RGLazyRefinementManager {
    * @param pivs
    * @return
    */
-  public Map<Pivot, Set<Pivot>> determinePivotCoverage(Pivots pivs) {
+  public Map<DataPivot, Set<DataPivot>> determinePivotCoverage(Pivots pivs) {
 
-    Map<Pivot, Set<Pivot>> map = new HashMap<Pivot, Set<Pivot>>();
-    Set<Pivot> allCovered = new HashSet<Pivot>();
+    Map<DataPivot, Set<DataPivot>> map = new HashMap<DataPivot, Set<DataPivot>>();
+    Set<DataPivot> allCovered = new HashSet<DataPivot>();
 
     for (Integer tid : pivs.getTids()){
 
-      for (Pivot piv : pivs.getPivotsForThread(tid)){
+      for (DataPivot piv : pivs.getPivotsForThread(tid)){
         if (allCovered.contains(piv) || piv.getElement().isCovered()){
           continue;
         }
 
-        Set<Pivot> coveredByPiv = new LinkedHashSet<Pivot>();
+        Set<DataPivot> coveredByPiv = new LinkedHashSet<DataPivot>();
         map.put(piv, coveredByPiv);
 
         Set<ARTElement> subtree = piv.getElement().getLocalSubtree();
 
-        for (Pivot otherPiv : pivs.getPivotsForThread(tid)){
+        for (DataPivot otherPiv : pivs.getPivotsForThread(tid)){
           // compare only uncovered nodes
           if (otherPiv.equals(piv) || allCovered.contains(otherPiv)){
             continue;
@@ -463,12 +489,12 @@ public class RGLazyRefinementManager {
   public Pivots mergePivotsIntoTop(Pivots pivs){
     Pivots topPivs = new Pivots();
 
-    Map<Pivot, Set<Pivot>> coverage = this.determinePivotCoverage(pivs);
+    Map<DataPivot, Set<DataPivot>> coverage = this.determinePivotCoverage(pivs);
 
-    for (Pivot topPiv : coverage.keySet()){
-      Set<Pivot> covered = coverage.get(topPiv);
+    for (DataPivot topPiv : coverage.keySet()){
+      Set<DataPivot> covered = coverage.get(topPiv);
 
-      for (Pivot covPiv : covered){
+      for (DataPivot covPiv : covered){
         topPiv.addPrecisionOf(covPiv);
       }
 
@@ -494,12 +520,12 @@ public class RGLazyRefinementManager {
     int errorTid = root.getTid();
     ARTElement errorElem = root.getArtElement();
 
-    // create a pivot for the error state with its precsion
+    /* create a pivot for the error state with its precsion
     ARTPrecision errorPrec = (ARTPrecision) reachedSets[errorTid].getPrecision(errorElem);
     RGPrecision rgErrorPrec = Precisions.extractPrecisionByType(errorPrec, RGPrecision.class);
     DataPivot errorPiv = new DataPivot(errorElem);
     errorPiv.addRGPrecision(rgErrorPrec);
-    pivs.addPivot(errorPiv);
+    pivs.addPivot(errorPiv);*/
 
     // create a pivot for every point with new ART predicates
     SetMultimap<InterpolationTreeNode, AbstractionPredicate> artMap = info.getArtRefinementMap();
@@ -550,7 +576,7 @@ public class RGLazyRefinementManager {
     // add the error node as a pivot with the mistmatches from its location mapping
     ARTPrecision errorPrec = (ARTPrecision) reachedSets[errorTid].getPrecision(errorElem);
     RGLocationMapping errorLM = errorPrec.getLocationMapping();
-    LocationPivot errorPiv = new LocationPivot(errorElem);
+    DataPivot errorPiv = new DataPivot(errorElem);
     errorPiv.addMismatchesPerPath(errorLM.getMismatchesForPath());
     pivs.addPivot(errorPiv);
 
@@ -562,7 +588,7 @@ public class RGLazyRefinementManager {
       ARTElement elem = pivotAndMistmatch.getFirst();
       Pair<CFANode, CFANode> mismatch = pivotAndMistmatch.getSecond();
 
-      LocationPivot piv = new LocationPivot(elem);
+      DataPivot piv = new DataPivot(elem);
       piv.addMismatchPerPath(pi, mismatch);
       pivs.addPivot(piv);
     }
@@ -584,7 +610,7 @@ public class RGLazyRefinementManager {
     ARTElement init = reachedSets[errorTid].getFirstElement();
 
     for (ARTElement child : init.getLocalChildren()){
-      LocationPivot piv = new LocationPivot(child);
+      DataPivot piv = new DataPivot(child);
       pivs.addPivot(piv);
     }
 

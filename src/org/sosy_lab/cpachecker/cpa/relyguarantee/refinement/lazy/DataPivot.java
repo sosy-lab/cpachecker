@@ -27,26 +27,32 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
-import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
 /**
- * A pivot for data refinement.
+ * Represents an element to be removed from an ART due to refinement. It may
+ * carry new precision (ART or environmental predicates, location mismatches)
+ * discovered by counterexample analysis. The new precision should be added to
+ * the existing precision of the element.
  */
-public class DataPivot implements Pivot{
+public class DataPivot{
 
   private final ARTElement element;
   private final SetMultimap<CFANode, AbstractionPredicate> artPredicateMap;
   private final SetMultimap<CFANode, AbstractionPredicate> envPredicateMap;
   private final Set<AbstractionPredicate> artGlobalPredicates;
   private final  Set<AbstractionPredicate> envGlobalPredicates;
+  private final SetMultimap<Path, Pair<CFANode, CFANode>> mismatchesPerPath;
 
   public DataPivot(ARTElement element){
     assert !element.getLocalParents().isEmpty() : "Inital element cannot be a pivot";
@@ -56,15 +62,13 @@ public class DataPivot implements Pivot{
     this.envPredicateMap = LinkedHashMultimap.<CFANode, AbstractionPredicate>create();
     this.artGlobalPredicates = new LinkedHashSet<AbstractionPredicate>();
     this.envGlobalPredicates = new LinkedHashSet<AbstractionPredicate>();
-
+    this.mismatchesPerPath = LinkedHashMultimap.create();
   }
 
-  @Override
   public ARTElement getElement() {
     return element;
   }
 
-  @Override
   public int getTid() {
     return element.getTid();
   }
@@ -109,17 +113,26 @@ public class DataPivot implements Pivot{
     return envGlobalPredicates.addAll(preds);
   }
 
+  public boolean addMismatchesPerPath(ImmutableSetMultimap<Path, Pair<CFANode, CFANode>> map) {
+    return mismatchesPerPath.putAll(map);
+  }
 
-  @Override
-  public void addPrecisionOf(Pivot pivot){
-    Preconditions.checkArgument(pivot instanceof DataPivot);
-    DataPivot datPiv = (DataPivot) pivot;
+  public boolean addMismatchPerPath(Path pPi, Pair<CFANode, CFANode> pMismatch) {
+    return mismatchesPerPath.put(pPi, pMismatch);
+  }
+
+  public SetMultimap<Path, Pair<CFANode, CFANode>> getMismatchesPerPath() {
+    return mismatchesPerPath;
+  }
+
+  public void addPrecisionOf(DataPivot pivot){
+    DataPivot datPiv = pivot;
 
     artPredicateMap.putAll(datPiv.artPredicateMap);
     envPredicateMap.putAll(datPiv.envPredicateMap);
     artGlobalPredicates.addAll(datPiv.artGlobalPredicates);
     envGlobalPredicates.addAll(datPiv.envGlobalPredicates);
-
+    mismatchesPerPath.putAll(datPiv.mismatchesPerPath);
   }
 
   public void addRGPrecision(RGPrecision prec) {
@@ -134,7 +147,11 @@ public class DataPivot implements Pivot{
   public String toString(){
     StringBuilder bldr = new StringBuilder();
 
-    bldr.append( "LocationPivot element id: "+element.getElementId()+", ");
+    bldr.append("Pivot element id: "+element.getElementId()+", ");
+
+    if (!mismatchesPerPath.isEmpty()){
+      bldr.append("mismatches: "+mismatchesPerPath.values()+", ");
+    }
 
     if (!artGlobalPredicates.isEmpty()){
       bldr.append("global ART: "+artGlobalPredicates+", ");

@@ -36,7 +36,7 @@ import com.google.common.collect.SetMultimap;
 /**
  * A pivot for location refinement.
  */
-public class LocationPivot implements Pivot {
+public class LocationPivot {
 
   private final ARTElement element;
   private final SetMultimap<Path, Pair<CFANode, CFANode>> mismatchesPerPath;
@@ -48,21 +48,21 @@ public class LocationPivot implements Pivot {
     this.mismatchesPerPath = LinkedHashMultimap.create();
   }
 
-  @Override
+
   public ARTElement getElement() {
     return element;
   }
 
-  @Override
+
   public int getTid() {
     return element.getTid();
   }
 
 
-  @Override
-  public void addPrecisionOf(Pivot pivot){
+
+  public void addPrecisionOf(LocationPivot pivot){
     Preconditions.checkArgument(pivot instanceof LocationPivot);
-    LocationPivot locPiv = (LocationPivot) pivot;
+    LocationPivot locPiv = pivot;
 
     mismatchesPerPath.putAll(locPiv.mismatchesPerPath);
   }

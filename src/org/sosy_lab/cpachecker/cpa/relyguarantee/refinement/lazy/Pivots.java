@@ -33,17 +33,17 @@ import com.google.common.collect.Multimap;
 
 public class Pivots {
 
-  private final Multimap<Integer, Pivot> pivotsPerThread;
+  private final Multimap<Integer, DataPivot> pivotsPerThread;
 
   public Pivots(){
     this.pivotsPerThread = HashMultimap.create();
   }
 
-  public Multimap<Integer, Pivot> getPivotMap() {
+  public Multimap<Integer, DataPivot> getPivotMap() {
     return pivotsPerThread;
   }
 
-  public boolean addAll(Multimap<Integer, Pivot> pPivotsPerThread) {
+  public boolean addAll(Multimap<Integer, DataPivot> pPivotsPerThread) {
     return this.pivotsPerThread.putAll(pPivotsPerThread);
   }
 
@@ -55,15 +55,15 @@ public class Pivots {
     return pivotsPerThread.keySet();
   }
 
-  public Collection<Pivot> getPivotsForThread(int tid) {
-    return this.pivotsPerThread.get(tid);
+  public Collection<DataPivot> getPivotsForThread(int tid) {
+    return pivotsPerThread.get(tid);
   }
 
   public boolean containsPivotsWithElement(ARTElement element) {
     boolean contains = false;
     int tid = element.getTid();
 
-    for (Pivot piv : this.pivotsPerThread.get(tid)){
+    for (DataPivot piv : this.pivotsPerThread.get(tid)){
       if (piv.getElement().equals(element)){
         contains = true;
         break;
@@ -73,7 +73,7 @@ public class Pivots {
     return contains;
   }
 
-  public boolean addPivot(Pivot pivot) {
+  public boolean addPivot(DataPivot pivot) {
     int tid = pivot.getTid();
     return pivotsPerThread.put(tid, pivot);
   }
@@ -85,7 +85,7 @@ public class Pivots {
     for (Integer tid : pivotsPerThread.keySet()){
       bldr.append("Pivots for thread "+tid+"\n");
 
-      for (Pivot piv : pivotsPerThread.get(tid)){
+      for (DataPivot piv : pivotsPerThread.get(tid)){
         bldr.append("\t-"+piv+"\n");
       }
     }
