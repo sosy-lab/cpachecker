@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5InterpolatingPro
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.ArithmeticSmtInterpolFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolTheoremProver;
 
 @Options(prefix="cpa.predicate")
@@ -172,6 +173,8 @@ public class FormulaManagerFactory {
     if (solver.equals("MATHSAT5")) {
       return new Mathsat5InterpolatingProver((Mathsat5FormulaManager) fmgr, shared);
 
+    } else if (solver.equals("SMTINTERPOL")) {
+      return new SmtInterpolInterpolatingProver((SmtInterpolFormulaManager) fmgr, shared);
     } else {
       assert solver.equals("MATHSAT4") || solver.equals("YICES");
       return new MathsatInterpolatingProver((MathsatFormulaManager) fmgr, shared);

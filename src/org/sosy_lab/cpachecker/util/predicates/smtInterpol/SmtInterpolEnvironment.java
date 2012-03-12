@@ -84,14 +84,13 @@ public class SmtInterpolEnvironment implements Script {
   /** This Collection is the toplevel of the stack. */
   private Collection<Triple<String, Sort[], Sort>> currentDeclarations;
 
-  /** The constructor sets some options and initializes the logger. */
+  /** The Constructor sets some options and initializes the logger. */
   public SmtInterpolEnvironment(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
 
     Logger logger = Logger.getRootLogger(); // TODO use SosyLab-Logger
     // levels: ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF:
     logger.setLevel(Level.OFF);
-    //
 
     benchmark = new Benchmark(logger);
     if (smtLogfile == null) { // option -noout
@@ -104,8 +103,6 @@ public class SmtInterpolEnvironment implements Script {
         // create a thin wrapper around Benchmark,
         // this allows to write most formulas of the solver to outputfile
         // TODO how much faster is SmtInterpol without this Wrapper?
-
-        // create directories of file, then use its name
         script = new LoggingScript(benchmark, filename, true);
       } catch (FileNotFoundException e) {
         e.printStackTrace();
@@ -113,13 +110,9 @@ public class SmtInterpolEnvironment implements Script {
     }
 
     try {
-//    script.setOption(":produce-assignments", true);
-//    script.setOption(":interactive-mode", true);
-
       script.setOption(":produce-proofs", true);
       script.setOption(":produce-models", true);
-      BigInteger verbosity = (BigInteger) script.getOption(":verbosity");
-      script.setOption(":verbosity", verbosity.subtract(new BigInteger("2")));
+      script.setOption(":verbosity", new BigInteger("2"));
     } catch (SMTLIBException e) {
       e.printStackTrace();
     }
