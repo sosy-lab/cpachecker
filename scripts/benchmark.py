@@ -35,6 +35,7 @@ except ImportError: # Queue was renamed to queue in Python 3
 import time
 import glob
 import logging
+import optparse
 import os
 import platform
 import re
@@ -1804,17 +1805,21 @@ def main(argv=None):
 
     if argv is None:
         argv = sys.argv
-    from optparse import OptionParser
-    parser = OptionParser(usage="usage: %prog [OPTION]... [FILE]...\n\n" + \
-        "INFO: documented example-files can be found in 'doc/examples'\n")
+    parser = optparse.OptionParser(usage=
+        """%prog [OPTION]... [FILE]...
+
+INFO: Documented example-files can be found as 'doc/examples/benchmark*.xml'.
+
+Use the table-generator.py script to create nice tables
+from the output of this script.""")
 
     parser.add_option("-d", "--debug",
                       action="store_true",
-                      help="enable debug output")
+                      help="Enable debug output")
 
     parser.add_option("-t", "--test", dest="testRunOnly",
                       action="append",
-                      help="Run only the specified TEST from the xml-file. "
+                      help="Run only the given TEST from the xml-file. "
                             + "This option can be specified several times.",
                       metavar="TEST")
 
@@ -1825,29 +1830,25 @@ def main(argv=None):
 
     parser.add_option("-T", "--timelimit",
                       dest="timelimit", default=None,
-                      help="set timelimit for benchmarks, " + \
-                      "this option overrides the limit given in the xml-file, " + \
-                      "use -1 to delete the limit of xml, " + \
-                      "other negative numbers are useless")
+                      help="Time limit in seconds for each run (-1 to disable)",
+                      metavar="SECONDS")
 
     parser.add_option("-M", "--memorylimit",
                       dest="memorylimit", default=None,
-                      help="set memorylimit for benchmarks, " + \
-                      "this option overrides the limit given in the xml-file, " + \
-                      "use -1 to delete the limit of xml, " + \
-                      "other negative numbers are useless")
+                      help="Memory limit in MB (-1 to disable)",
+                      metavar="MB")
 
     parser.add_option("-N", "--numOfThreads",
                       dest="numOfThreads", default=None,
-                      help="set number of threads for benchmarks, " + \
-                      "this option overrides the number given in the xml-file")
+                      help="Run n benchmarks in parallel",
+                      metavar="n")
 
     parser.add_option("-x", "--moduloAndRest",
                       dest="moduloAndRest", default=(1,0), nargs=2, type="int",
-                      help="run only a special subset of tests, " + \
-                      "this option stores two ints (a, b), " + \
-                      "the script runs all tests with (testnumber % a == b), " + \
-                      "the first test has testnumber 1")
+                      help="Run only a subset of tests for which (i % a == b) holds" +
+                            "with i being the index of the test in the xml-file " +
+                            "(starting with 1).",
+                      metavar="a b")
 
     global options, OUTPUT_PATH
     (options, args) = parser.parse_args(argv)
