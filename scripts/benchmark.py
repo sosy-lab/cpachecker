@@ -806,7 +806,7 @@ class OutputHandler:
         self.writeTestInfoToLog()
 
 
-    def outputForSkippingTest(self, test):
+    def outputForSkippingTest(self, test, reason=None):
         '''
         This function writes a simple message to terminal and logfile,
         when a test is skipped.
@@ -814,16 +814,18 @@ class OutputHandler:
         '''
 
         # print to terminal
-        print("\nskipping test" + \
-            (" '" + test.name + "'" if test.name is not None else ""))
+        print ("\nskipping test" +
+               (" '" + test.name + "'" if test.name else "") +
+               (" " + reason if reason else "")
+              )
 
         # write into TXTFile
         numberOfTest = self.benchmark.tests.index(test) + 1
         testInfo = "\n\n"
         if test.name is not None:
             testInfo += test.name + "\n"
-        testInfo += "test {0} of {1}: skipped\n".format(
-                numberOfTest, len(self.benchmark.tests))
+        testInfo += "test {0} of {1}: skipped {2}\n".format(
+                numberOfTest, len(self.benchmark.tests), reason or "")
         self.TXTFile.append(testInfo)
 
 
@@ -1751,6 +1753,9 @@ def runBenchmark(benchmarkFile):
                 and options.testRunOnly != test.name) \
                 or (testnumber % mod != rest):
             outputHandler.outputForSkippingTest(test)
+
+        elif not test.runs:
+            outputHandler.outputForSkippingTest(test, "because it has no files")
 
         else:
             # get times before test
