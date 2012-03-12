@@ -67,28 +67,43 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
   public ArithmeticSmtInterpolFormulaManager(Configuration config, LogManager logger, boolean pUseIntegers) throws InvalidConfigurationException {
     super(config, logger, pUseIntegers ? SMT_INTERPOL_INT : SMT_INTERPOL_REAL);
     useIntegers = pUseIntegers;
+    initBasics(env);
+  }
 
+  @Override
+  SmtInterpolEnvironment createEnvironment(boolean shared) {
+    SmtInterpolEnvironment newEnv = super.createEnvironment(shared);
+
+    if (!shared) {
+      assert !newEnv.isLogicSet();
+      initBasics(newEnv);
+    }
+    return newEnv;
+  }
+
+  /** set logic and declare some useful functions */
+  private void initBasics(SmtInterpolEnvironment e) {
     final Sort sortType;
     if (useIntegers) {
-      env.setLogic(Logics.QF_UFLIA);
-      sortType = env.sort(SMT_INTERPOL_INT);
+      e.setLogic(Logics.QF_UFLIA);
+      sortType = e.sort(SMT_INTERPOL_INT);
     } else {
-      env.setLogic(Logics.QF_UFLRA);
-      sortType = env.sort(SMT_INTERPOL_REAL);
+      e.setLogic(Logics.QF_UFLRA);
+      sortType = e.sort(SMT_INTERPOL_REAL);
     }
 
     final Sort[] sortArray1 = { sortType };
     final Sort[] sortArray2 = { sortType, sortType };
 
-    env.declareFun(bitwiseAndUfDecl, sortArray2, sortType);
-    env.declareFun(bitwiseOrUfDecl, sortArray2, sortType);
-    env.declareFun(bitwiseXorUfDecl, sortArray2, sortType);
-    env.declareFun(bitwiseNotUfDecl, sortArray1, sortType);
-    env.declareFun(leftShiftUfDecl, sortArray2, sortType);
-    env.declareFun(rightShiftUfDecl, sortArray2, sortType);
-    env.declareFun(multUfDecl, sortArray2, sortType);
-    env.declareFun(divUfDecl, sortArray2, sortType);
-    env.declareFun(modUfDecl, sortArray2, sortType);
+    e.declareFun(bitwiseAndUfDecl, sortArray2, sortType);
+    e.declareFun(bitwiseOrUfDecl, sortArray2, sortType);
+    e.declareFun(bitwiseXorUfDecl, sortArray2, sortType);
+    e.declareFun(bitwiseNotUfDecl, sortArray1, sortType);
+    e.declareFun(leftShiftUfDecl, sortArray2, sortType);
+    e.declareFun(rightShiftUfDecl, sortArray2, sortType);
+    e.declareFun(multUfDecl, sortArray2, sortType);
+    e.declareFun(divUfDecl, sortArray2, sortType);
+    e.declareFun(modUfDecl, sortArray2, sortType);
   }
 
   // ----------------- Numeric formulas -----------------

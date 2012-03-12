@@ -45,6 +45,8 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
 
     private final SmtInterpolFormulaManager mgr;
     private SmtInterpolEnvironment env;
+    private boolean shared;
+
     List<String> assertedFormulas; // Collection of termNames
     Map<String, Term> annotatedTerms; // Collection of termNames
     private String prefix = "term_"; // for termnames
@@ -53,11 +55,12 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
     public SmtInterpolInterpolatingProver(SmtInterpolFormulaManager pMgr, boolean shared) {
       mgr = pMgr;
       env = null;
+      this.shared = shared;
     }
 
     @Override
     public void init() {
-      env = mgr.getEnvironment();
+      env = mgr.createEnvironment(shared);
       env.push(1);
       assertedFormulas = new ArrayList<String>();
       annotatedTerms = new HashMap<String, Term>();

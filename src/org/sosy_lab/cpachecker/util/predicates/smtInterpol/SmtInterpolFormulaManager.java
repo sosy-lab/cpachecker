@@ -51,6 +51,8 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
+  private Configuration config;
+
   // the environment in which all terms are created
   final SmtInterpolEnvironment env;
   String sort; // sort is the type (i.e. INT, REAL), depends on logic
@@ -76,13 +78,25 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
   SmtInterpolFormulaManager(Configuration config, LogManager logger, String sort)
       throws InvalidConfigurationException {
-    env = new SmtInterpolEnvironment(config);
+    this.env = new SmtInterpolEnvironment(config);
     this.sort = sort;
+    this.config = config;
   }
 
-  SmtInterpolEnvironment getEnvironment() {
+  /** This method returns a 'shared' environment or
+   * a complete new environment. */
+  SmtInterpolEnvironment createEnvironment(boolean shared) {
     assert env != null;
-    return env;
+    try {
+      if (shared) {
+        return env; // TODO get real shared environment!
+      } else {
+        return new SmtInterpolEnvironment(config);
+      }
+    } catch (InvalidConfigurationException e) {
+      e.printStackTrace();
+      return null; // TODO catch or throw??
+    }
   }
 
   // ----------------- Helper function -----------------
@@ -596,6 +610,6 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
   @Override
   public String getVersion(){
-    return "SMTInterpol, unknown version"; //TODO better information?
+    return env.getVersion();
   }
 }

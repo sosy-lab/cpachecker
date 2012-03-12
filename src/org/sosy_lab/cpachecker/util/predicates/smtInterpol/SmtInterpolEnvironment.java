@@ -46,6 +46,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Annotation;
 import de.uni_freiburg.informatik.ultimate.logic.Assignments;
 import de.uni_freiburg.informatik.ultimate.logic.LoggingScript;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
+import de.uni_freiburg.informatik.ultimate.logic.QuotedString;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Script;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
@@ -68,6 +69,8 @@ public class SmtInterpolEnvironment implements Script {
 
   /** the wrapped Script */
   private Script script;
+  private Benchmark benchmark;
+  private boolean logicIsSet = false;
 
   /** This Set stores declared functions.
    * It is used to guarantee, that functions are only declared once. */
@@ -90,8 +93,9 @@ public class SmtInterpolEnvironment implements Script {
     logger.setLevel(Level.OFF);
     //
 
+    benchmark = new Benchmark(logger);
     if (smtLogfile == null) { // option -noout
-      script = new Benchmark(logger);
+      script = benchmark;
 
     } else {
       String filename = getFilename(smtLogfile.getAbsolutePath());
@@ -102,7 +106,7 @@ public class SmtInterpolEnvironment implements Script {
         // TODO how much faster is SmtInterpol without this Wrapper?
 
         // create directories of file, then use its name
-        script = new LoggingScript(new Benchmark(logger), filename, true);
+        script = new LoggingScript(benchmark, filename, true);
       } catch (FileNotFoundException e) {
         e.printStackTrace();
       }
@@ -139,20 +143,22 @@ public class SmtInterpolEnvironment implements Script {
 
   @Override
   public void setLogic(String logic) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void setLogic(Logics logic) {
+    assert !logicIsSet : "Logic was set before, you cannot do this again.";
     try {
       script.setLogic(logic);
+      logicIsSet = true;
     } catch (SMTLIBException e) {
       e.printStackTrace();
     }
   }
 
-  @Override
-  public void setLogic(Logics logic) {
-    try {
-      script.setLogic(logic);
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-    }
+  public boolean isLogicSet() {
+    return logicIsSet;
   }
 
   @Override
@@ -322,7 +328,7 @@ public class SmtInterpolEnvironment implements Script {
 
   @Override
   public Object[] getInfo(String info) {
-    throw new UnsupportedOperationException();
+    return script.getInfo(info);
   }
 
   @Override
@@ -456,4 +462,16 @@ public class SmtInterpolEnvironment implements Script {
     throw new UnsupportedOperationException();
   }
 
+  public String getVersion(){
+    Object[] program = script.getInfo(":name");
+    Object[] version = script.getInfo(":version");
+
+    assert program.length == 2 && ":name".equals(program[0]) &&
+        program[1] instanceof QuotedString;
+    assert version.length == 2 && ":version".equals(version[0]) &&
+        version[1] instanceof QuotedString;
+
+    return ((QuotedString)program[1]).getValue() + " " +
+        ((QuotedString)version[1]).getValue();
+  }
 }

@@ -88,7 +88,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     Preconditions.checkNotNull(mgr);
     assert (env == null);
     assertedTerms = new ArrayList<Term>();
-    env = mgr.getEnvironment();
+    env = mgr.createEnvironment(true);
   }
 
   @Override
@@ -103,7 +103,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     checkNotNull(rmgr);
     checkNotNull(timer);
 
-    SmtInterpolEnvironment allsatEnv = mgr.getEnvironment(); //TODO do we need a new environment?
+    SmtInterpolEnvironment allsatEnv = mgr.createEnvironment(true);
     checkNotNull(allsatEnv);
 
     // create new allSatResult
