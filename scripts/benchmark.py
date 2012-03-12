@@ -1749,8 +1749,7 @@ def runBenchmark(benchmarkFile):
         testnumber = benchmark.tests.index(test) + 1 # the first test has number 1
         (mod, rest) = options.moduloAndRest
 
-        if (options.testRunOnly is not None \
-                and options.testRunOnly != test.name) \
+        if (options.testRunOnly and test.name not in options.testRunOnly) \
                 or (testnumber % mod != rest):
             outputHandler.outputForSkippingTest(test)
 
@@ -1814,7 +1813,9 @@ def main(argv=None):
                       help="enable debug output")
 
     parser.add_option("-t", "--test", dest="testRunOnly",
-                      help="run only a special TEST from xml-file",
+                      action="append",
+                      help="Run only the specified TEST from the xml-file. "
+                            + "This option can be specified several times.",
                       metavar="TEST")
 
     parser.add_option("-o", "--outputpath",
