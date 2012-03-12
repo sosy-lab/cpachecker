@@ -561,6 +561,10 @@ def filterRowsWithDifferences(rows):
 
     if len(rowsDiff) == 0:
         print ("---> NO DIFFERENCE FOUND IN COLUMN 'STATUS'")
+    elif len(rowsDiff) == len(rows):
+        print ("---> DIFFERENCES FOUND IN ALL ROWS, NO NEED TO CREATE DIFFERENCE TABLE")
+        return []
+
     return rowsDiff
 
 
