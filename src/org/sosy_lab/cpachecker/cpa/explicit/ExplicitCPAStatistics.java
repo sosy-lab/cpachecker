@@ -49,7 +49,7 @@ class ExplicitCPAStatistics implements Statistics {
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     if(refiner != null) {
       if(refiner instanceof ExplicitRefiner) {
-        ((ExplicitRefiner)refiner).printStatistics(out);
+        ((ExplicitRefiner)refiner).printStatistics(out, result, reached);
       }
     }
   }

@@ -58,10 +58,12 @@ import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCPAChecker;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
@@ -136,7 +138,12 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   // interpolant data-structure for "explicit-interpolation"
   private Multimap<CFANode, String> interpolant             = HashMultimap.create();
 
-  // statistics
+  // statistics for explicit refinement
+  private int numberOfExplicitRefinements                   = 0;
+  private int numberOfPredicateRefinements                  = 0;
+  private Timer timerSyntacticalPathAnalysis                = new Timer();
+
+  // statistics for explicit interpolation
   private int numberOfCounterExampleChecks                  = 0;
   private int numberOfErrorPathElements                     = 0;
   private Timer timerCounterExampleChecks                   = new Timer();
@@ -264,8 +271,8 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
         try {
           feasible = checker.checkCounterexample(path.get(0).getFirst(),
-            path.get(path.size() - 1).getFirst(),
-            artTrace);
+                                                  path.get(path.size() - 1).getFirst(),
+                                                  artTrace);
         } catch (InterruptedException e) {
           throw new CPAException("counterexample-check failed: ", e);
         }
@@ -423,11 +430,13 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       Multimap<CFANode, String> variableMapping = predicates.getVariableMapping(fmgr);
 
       if(refinePredicatePrecision) {
+        numberOfPredicateRefinements++;
         precision = createPredicatePrecision(extractPredicatePrecision(oldPrecision),
                                             predicates);
 
         firstInterpolationPoint = predicates.firstInterpolationPoint;
       } else {
+        numberOfExplicitRefinements++;
         allReferencedVariables.addAll(variableMapping.values());
 
         // expand the mapping of CFA nodes to variable names, with a def-use analysis along that path
@@ -552,6 +561,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
    * @return the variables on the error path, on which the variables referenced by predicates depend on
    */
   private Multimap<CFANode, String> getRelevantVariablesOnPath(List<Pair<ARTElement, CFANode>> errorPath, PredicateMap predicates) {
+    timerSyntacticalPathAnalysis.start();
     CollectVariablesVisitor visitor = new CollectVariablesVisitor(allReferencedVariables);
 
     for (int i = errorPath.size() - 1; i >= 0; --i) {
@@ -564,6 +574,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       }
     }
 
+    timerSyntacticalPathAnalysis.stop();
     return visitor.getVariablesAtLocations();
   }
 
@@ -744,12 +755,23 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     return sb.toString();
   }
 
-  void printStatistics(PrintStream out) {
-    out.println("counter-example checks:");
-    out.println("  number of checks:                         " + numberOfCounterExampleChecks);
-    out.println("  total number of elements in error paths:  " + numberOfErrorPathElements);
-    out.println("  percentage of elements checked:           " + (Math.round(((double)numberOfCounterExampleChecks / (double)numberOfErrorPathElements) * 10000) / 100.00) + "%");
-    out.println("  max. time for singe check:            " + timerCounterExampleChecks.printMaxTime());
-    out.println("  total time for checks:                " + timerCounterExampleChecks);
+  @Override
+  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+    super.printStatistics(out, result, reached);
+
+    if(useExplicitInterpolation) {
+      out.println("Explicit Interpolator:");
+      out.println("  number of counter-example checks:         " + numberOfCounterExampleChecks);
+      out.println("  total number of elements in error paths:  " + numberOfErrorPathElements);
+      out.println("  percentage of elements checked:           " + (Math.round(((double)numberOfCounterExampleChecks / (double)numberOfErrorPathElements) * 10000) / 100.00) + "%");
+      out.println("  max. time for singe check:            " + timerCounterExampleChecks.printMaxTime());
+      out.println("  total time for checks:                " + timerCounterExampleChecks);
+    } else {
+      out.println("Explicit Refiner:");
+      out.println("  number of explicit refinements:            " + numberOfExplicitRefinements);
+      out.println("  number of predicate refinements:           " + numberOfPredicateRefinements);
+      out.println("  max. time for syntactical path analysis:   " + timerSyntacticalPathAnalysis.printMaxTime());
+      out.println("  total time for syntactical path analysis:  " + timerSyntacticalPathAnalysis);
+    }
   }
 }
