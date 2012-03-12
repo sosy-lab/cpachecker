@@ -32,7 +32,7 @@ public final class IASTElaboratedTypeSpecifier extends IType {
       final ElaboratedType pKind, final String pName) {
     super(pConst, pVolatile);
     kind = pKind;
-    name = pName;
+    name = pName.intern();
   }
 
   public String getName() {

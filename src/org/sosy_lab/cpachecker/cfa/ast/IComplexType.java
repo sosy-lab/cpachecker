@@ -32,7 +32,7 @@ public class IComplexType extends IType {
 
   public IComplexType(final String pName) {
     super(false, false);
-    name = pName;
+    name = pName.intern();
   }
 
   public String getName() {

@@ -38,7 +38,7 @@ public final class IASTCompositeTypeSpecifier extends IType {
     super(pConst, pVolatile);
     key = pKey;
     members = ImmutableList.copyOf(pMembers);
-    name = pName;
+    name = pName.intern();
   }
 
   public int getKey() {

@@ -30,7 +30,7 @@ public final class IASTNamedTypeSpecifier extends IType {
   public IASTNamedTypeSpecifier(final boolean pConst, final boolean pVolatile,
       final String pName) {
     super(pConst, pVolatile);
-    name = pName;
+    name = pName.intern();
   }
 
   public String getName() {

@@ -32,7 +32,7 @@ public final class IASTIdExpression extends IASTExpression {
                           final IType pType, final String pName,
                           final IASTSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType);
-    name = pName;
+    name = pName.intern();
     declaration = pDeclaration;
   }
 

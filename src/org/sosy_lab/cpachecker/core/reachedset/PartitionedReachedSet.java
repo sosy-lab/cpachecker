@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
-import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 /**
@@ -53,7 +53,7 @@ import com.google.common.collect.Multimap;
  */
 public class PartitionedReachedSet extends DefaultReachedSet {
 
-  private final Multimap<Object, AbstractElement> partitionedReached = LinkedHashMultimap.create();
+  private final Multimap<Object, AbstractElement> partitionedReached = HashMultimap.create(100, 1);
 
   public PartitionedReachedSet(WaitlistFactory waitlistFactory) {
     super(waitlistFactory);
