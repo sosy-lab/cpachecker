@@ -83,7 +83,7 @@ public class SmtInterpolEnvironment implements Script {
 
   @Option(name="logfile", description="export solverqueries in smtlib-format")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File smtLogfile = new File("smtinterpol.smt");
+  private File smtLogfile = new File("smtinterpol.smt2");
 
   /** this is a counter to get distinct logfiles for distinct environments. */
   private static int logfileCounter = 0;
@@ -119,8 +119,6 @@ public class SmtInterpolEnvironment implements Script {
 
     } else {
       String filename = getFilename(smtLogfile.getAbsolutePath());
-      // TODO bug with Options??
-      if (smtLogfile.getParentFile() != null) smtLogfile.getParentFile().mkdirs();
       try {
         // create a thin wrapper around Benchmark,
         // this allows to write most formulas of the solver to outputfile
@@ -145,9 +143,9 @@ public class SmtInterpolEnvironment implements Script {
   private String getFilename(final String oldFilename) {
     String filename = oldFilename;
     if (logfileCounter != 0) {
-      if (oldFilename.endsWith(".smt")) {
+      if (oldFilename.endsWith(".smt2")) {
         filename = oldFilename.substring(0, oldFilename.length() - 4)
-            + "__" + logfileCounter + ".smt";
+            + "__" + logfileCounter + ".smt2";
       } else {
         filename += "__" + logfileCounter;
       }

@@ -43,6 +43,7 @@ public class SmtInterpolUtil {
   msat_term_is_atom (msat_term t): nonzero if t is an atom,
   i.e. either a boolean variable or a relation between terms.
   TODO: what is atom?? */
+  /** A Term is an Atom, iff its function is no element of {"And", "Or", "Not"}.*/
   public static boolean isAtom(Term t) {
     boolean is = !isAnd(t) && !isOr(t) && !isNot(t);
     if (log) System.out.println("   isAtom (" + is +"): " + t);

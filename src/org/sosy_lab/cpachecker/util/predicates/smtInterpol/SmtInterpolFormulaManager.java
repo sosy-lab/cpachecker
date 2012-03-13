@@ -52,8 +52,6 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
-  private Configuration config;
-
   // the environment in which all terms are created
   final SmtInterpolEnvironment env;
   Type type; // INT or REAL, depends on logic
@@ -79,7 +77,6 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
       throws InvalidConfigurationException {
     this.env = new SmtInterpolEnvironment(config);
     this.type = type;
-    this.config = config;
   }
 
   /** This method returns a 'shared' environment or
@@ -466,7 +463,10 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
     while (!toProcess.isEmpty()) {
       Formula tt = toProcess.pop();
       Term t = getTerm(tt);
-      assert !cache.contains(tt);
+
+      if (cache.contains(tt)) {
+        continue;
+      }
       cache.add(tt);
 
       if (tt.isTrue() || tt.isFalse()) {
@@ -482,14 +482,10 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
           Term a2 = getArg(t, 1);
           Formula tt1 = encapsulate(env.term("<=", a1, a2)); // TODO why "<="??
           cache.add(tt1);
-
           atoms.add(tt1);
-          atoms.add(tt);
-        } else {
-          atoms.add(tt);
         }
-      } else if (conjunctionsOnly && !isNot(t)
-                  && !isAnd(t)) {
+        atoms.add(tt);
+      } else if (conjunctionsOnly && !isNot(t) && !isAnd(t)) {
         // conjunctions only, but formula is neither "not" nor "and"
         // treat this as atomic
         atoms.add(uninstantiate(tt));

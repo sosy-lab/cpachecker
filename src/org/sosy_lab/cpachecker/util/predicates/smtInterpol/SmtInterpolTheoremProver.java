@@ -124,8 +124,8 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     int numModels = 0;
     allsatEnv.assertTerm(getTerm(f));
     while (allsatEnv.checkSat() == LBool.SAT) {
-      if (numModels > 20) { // TODO remove limit, TODO handle infinity
-        System.out.println("i have found some models, making break in allsat()");
+      if (numModels > 100) { // TODO remove limit, TODO handle infinity
+        System.out.println("i have found many models, aborting allsat()");
         break;
       }
 
