@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
@@ -55,15 +56,13 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
   // the environment in which all terms are created
   final SmtInterpolEnvironment env;
-  String sort; // sort is the type (i.e. INT, REAL), depends on logic
+  Type type; // INT or REAL, depends on logic
 
   // set to store uninterpreted functions, later we check, if a term is a UIF.
   Set<Term> uifs = new HashSet<Term>();
 
   // the character for separating name and index of a value
   private final static String INDEX_SEPARATOR = "@";
-
-  private final static String BOOLEAN_SORT = "Bool";
 
   // various caches for speeding up expensive tasks
   //
@@ -76,27 +75,18 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   Term falseTerm;
   Term trueTerm;
 
-  SmtInterpolFormulaManager(Configuration config, LogManager logger, String sort)
+  SmtInterpolFormulaManager(Configuration config, LogManager logger, Type type)
       throws InvalidConfigurationException {
     this.env = new SmtInterpolEnvironment(config);
-    this.sort = sort;
+    this.type = type;
     this.config = config;
   }
 
   /** This method returns a 'shared' environment or
    * a complete new environment. */
-  SmtInterpolEnvironment createEnvironment(boolean shared) {
+  SmtInterpolEnvironment createEnvironment() {
     assert env != null;
-    try {
-      if (shared) {
-        return env; // TODO get real shared environment!
-      } else {
-        return new SmtInterpolEnvironment(config);
-      }
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-      return null; // TODO catch or throw??
-    }
+    return env;
   }
 
   // ----------------- Helper function -----------------
@@ -197,8 +187,9 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   public Formula makeEquivalence(Formula f1, Formula f2) {
     Term t1 = getTerm(f1);
     Term t2 = getTerm(f2);
-    assert t1.getSort() == env.sort(BOOLEAN_SORT);
-    assert t2.getSort() == env.sort(BOOLEAN_SORT);
+    Sort booleanSort = env.sort(Type.BOOL);
+    assert t1.getSort() == booleanSort;
+    assert t2.getSort() == booleanSort;
     return encapsulate(env.term("=", t1, t2));
   }
 
@@ -216,8 +207,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
       sorts[i] = args[i].getSort();
     }
 
-    env.declareFun(name, sorts,
-        predicate ? env.sort(BOOLEAN_SORT) : env.sort(sort));
+    env.declareFun(name, sorts, env.sort(predicate ? Type.BOOL : type));
     return env.term(name, args);
   }
 
@@ -245,8 +235,8 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   @Override
   public void declareUIP(String name, int argCount) {
     Sort[] sorts = new Sort[argCount];
-    Arrays.fill(sorts, env.sort(BOOLEAN_SORT));
-    env.declareFun(name, sorts, env.sort(BOOLEAN_SORT));
+    Arrays.fill(sorts, env.sort(Type.BOOL));
+    env.declareFun(name, sorts, env.sort(Type.BOOL));
   }
 
   // ----------------- Other formulas -----------------
@@ -268,13 +258,12 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
   @Override
   public Formula makeVariable(String var) {
-    return encapsulate(buildVariable(var, env.sort(sort)));
+    return encapsulate(buildVariable(var, env.sort(type)));
   }
 
   @Override
   public Formula makePredicateVariable(String var, int idx) {
-    return encapsulate(buildVariable(makeName("PRED_" + var, idx),
-       								 env.sort(BOOLEAN_SORT)));
+    return encapsulate(buildVariable(makeName("PRED_" + var, idx), env.sort(Type.BOOL)));
   }
 
   @Override
@@ -310,8 +299,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
     Term t = getTerm(f);
     // TODO is something better than hashcode??
     String repr = (isAtom(t) ? t.toString() : ("#" + t.hashCode()));
-    return encapsulate(buildVariable("\"PRED" + repr + "\"",
-            env.sort(BOOLEAN_SORT)));
+    return encapsulate(buildVariable("\"PRED" + repr + "\"", env.sort(Type.BOOL)));
   }
 
   @Override

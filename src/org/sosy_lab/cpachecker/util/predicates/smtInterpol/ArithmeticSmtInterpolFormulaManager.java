@@ -34,6 +34,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
@@ -48,8 +49,6 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManager {
 
   private final boolean useIntegers;
-  private final static String SMT_INTERPOL_INT = "Int";
-  private final static String SMT_INTERPOL_REAL = "Real";
 
   // UF encoding of some unsupported operations
   // TODO there are some bitVektor-functions in smtinterpol.theory, can we use them?
@@ -65,19 +64,14 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
   private final String modUfDecl = "_%_";
 
   public ArithmeticSmtInterpolFormulaManager(Configuration config, LogManager logger, boolean pUseIntegers) throws InvalidConfigurationException {
-    super(config, logger, pUseIntegers ? SMT_INTERPOL_INT : SMT_INTERPOL_REAL);
+    super(config, logger, pUseIntegers ? Type.INT : Type.REAL);
     useIntegers = pUseIntegers;
     initBasics(env);
   }
 
   @Override
-  SmtInterpolEnvironment createEnvironment(boolean shared) {
-    SmtInterpolEnvironment newEnv = super.createEnvironment(shared);
-
-    if (!shared) {
-      assert !newEnv.isLogicSet();
-      initBasics(newEnv);
-    }
+  SmtInterpolEnvironment createEnvironment() {
+    SmtInterpolEnvironment newEnv = super.createEnvironment();
     return newEnv;
   }
 
@@ -86,10 +80,10 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
     final Sort sortType;
     if (useIntegers) {
       e.setLogic(Logics.QF_UFLIA);
-      sortType = e.sort(SMT_INTERPOL_INT);
+      sortType = e.sort(Type.INT);
     } else {
       e.setLogic(Logics.QF_UFLRA);
-      sortType = e.sort(SMT_INTERPOL_REAL);
+      sortType = e.sort(Type.REAL);
     }
 
     final Sort[] sortArray1 = { sortType };

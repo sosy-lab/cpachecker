@@ -88,12 +88,15 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     Preconditions.checkNotNull(mgr);
     assert (env == null);
     assertedTerms = new ArrayList<Term>();
-    env = mgr.createEnvironment(true);
+    env = mgr.createEnvironment();
   }
 
   @Override
   public void reset() {
     Preconditions.checkNotNull(env);
+    while(assertedTerms.size() > 0) { // cleanup stack
+      pop();
+    }
     env = null;
   }
 
@@ -103,7 +106,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     checkNotNull(rmgr);
     checkNotNull(timer);
 
-    SmtInterpolEnvironment allsatEnv = mgr.createEnvironment(true);
+    SmtInterpolEnvironment allsatEnv = mgr.createEnvironment();
     checkNotNull(allsatEnv);
 
     // create new allSatResult

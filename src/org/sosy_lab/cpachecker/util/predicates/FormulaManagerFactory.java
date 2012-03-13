@@ -174,7 +174,7 @@ public class FormulaManagerFactory {
       return new Mathsat5InterpolatingProver((Mathsat5FormulaManager) fmgr, shared);
 
     } else if (solver.equals("SMTINTERPOL")) {
-      return new SmtInterpolInterpolatingProver((SmtInterpolFormulaManager) fmgr, shared);
+      return new SmtInterpolInterpolatingProver((SmtInterpolFormulaManager) fmgr);
     } else {
       assert solver.equals("MATHSAT4") || solver.equals("YICES");
       return new MathsatInterpolatingProver((MathsatFormulaManager) fmgr, shared);

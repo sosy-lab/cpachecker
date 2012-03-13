@@ -60,6 +60,27 @@ import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.Benchmark;
 @Options(prefix="cpa.predicate.smtinterpol")
 public class SmtInterpolEnvironment implements Script {
 
+  /**
+   * Enum listing possible types for SmtInterpol.
+   */
+  public enum Type {
+    BOOL("Bool"),
+    INT("Int"),
+    REAL("Real");
+    // TODO more types?
+
+	private final String name;
+
+    private Type(String s) {
+      name = s;
+    }
+
+    @Override
+    public String toString() {
+      return name;
+    }
+  }
+
   @Option(name="logfile", description="export solverqueries in smtlib-format")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File smtLogfile = new File("smtinterpol.smt");
@@ -69,8 +90,7 @@ public class SmtInterpolEnvironment implements Script {
 
   /** the wrapped Script */
   private Script script;
-  private Benchmark benchmark;
-  private boolean logicIsSet = false;
+  private Logics logic = null;
 
   /** This Set stores declared functions.
    * It is used to guarantee, that functions are only declared once. */
@@ -84,7 +104,8 @@ public class SmtInterpolEnvironment implements Script {
   /** This Collection is the toplevel of the stack. */
   private Collection<Triple<String, Sort[], Sort>> currentDeclarations;
 
-  /** The Constructor sets some options and initializes the logger. */
+  /** The Constructor creates the wrapped Element, sets some options
+   * and initializes the logger. */
   public SmtInterpolEnvironment(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
 
@@ -92,13 +113,14 @@ public class SmtInterpolEnvironment implements Script {
     // levels: ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF:
     logger.setLevel(Level.OFF);
 
-    benchmark = new Benchmark(logger);
+    Benchmark benchmark = new Benchmark(logger);
     if (smtLogfile == null) { // option -noout
       script = benchmark;
 
     } else {
       String filename = getFilename(smtLogfile.getAbsolutePath());
-      smtLogfile.getParentFile().mkdirs();
+      // TODO bug with Options??
+      if (smtLogfile.getParentFile() != null) smtLogfile.getParentFile().mkdirs();
       try {
         // create a thin wrapper around Benchmark,
         // this allows to write most formulas of the solver to outputfile
@@ -141,17 +163,17 @@ public class SmtInterpolEnvironment implements Script {
 
   @Override
   public void setLogic(Logics logic) {
-    assert !logicIsSet : "Logic was set before, you cannot do this again.";
+    assert !isLogicSet() : "Logic was set before, you cannot do this again.";
     try {
       script.setLogic(logic);
-      logicIsSet = true;
+      this.logic = logic;
     } catch (SMTLIBException e) {
       e.printStackTrace();
     }
   }
 
   public boolean isLogicSet() {
-    return logicIsSet;
+    return logic != null;
   }
 
   @Override
@@ -327,6 +349,10 @@ public class SmtInterpolEnvironment implements Script {
   @Override
   public void exit() {
     throw new UnsupportedOperationException();
+  }
+
+  public Sort sort(Type type) {
+    return sort(type.toString());
   }
 
   @Override

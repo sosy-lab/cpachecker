@@ -45,22 +45,20 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
 
     private final SmtInterpolFormulaManager mgr;
     private SmtInterpolEnvironment env;
-    private boolean shared;
 
     List<String> assertedFormulas; // Collection of termNames
     Map<String, Term> annotatedTerms; // Collection of termNames
     private String prefix = "term_"; // for termnames
     static int counter = 0; // for different termnames // TODO static?
 
-    public SmtInterpolInterpolatingProver(SmtInterpolFormulaManager pMgr, boolean shared) {
+    public SmtInterpolInterpolatingProver(SmtInterpolFormulaManager pMgr) {
       mgr = pMgr;
       env = null;
-      this.shared = shared;
     }
 
     @Override
     public void init() {
-      env = mgr.createEnvironment(shared);
+      env = mgr.createEnvironment();
       env.push(1);
       assertedFormulas = new ArrayList<String>();
       annotatedTerms = new HashMap<String, Term>();
