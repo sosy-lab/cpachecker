@@ -322,7 +322,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
 
     if (automatonBranchingThreshold > 0) {
-      sb.append("LOCAL int branchingThreshold = 10;\n");
+      sb.append("LOCAL int branchingThreshold = " + automatonBranchingThreshold + ";\n");
       sb.append("LOCAL int branchingCount = 0;\n\n");
     }
 
