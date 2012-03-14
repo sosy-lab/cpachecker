@@ -321,9 +321,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     StringBuilder sb = new StringBuilder();
     sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
 
+    String actionOnFinalEdges = "";
     if (automatonBranchingThreshold > 0) {
       sb.append("LOCAL int branchingThreshold = " + automatonBranchingThreshold + ";\n");
       sb.append("LOCAL int branchingCount = 0;\n\n");
+
+      // Reset automaton variable on all edges like "GOTO __FALSE"
+      // to allow merging of states.
+      actionOnFinalEdges = "DO branchingCount = 0 ";
     }
 
     sb.append("INITIAL STATE ART" + initialElement.getElementId() + ";\n\n");
@@ -344,13 +349,13 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       automatonStates++;
 
       if (!relevantElements.contains(e)) {
-        sb.append("   TRUE -> GOTO __TRUE;\n\n");
+        sb.append("   TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
 
       } else {
         boolean branching = false;
         if ((automatonBranchingThreshold > 0) && (e.getChildren().size() > 1)) {
           branching = true;
-          sb.append("    branchingCount == branchingThreshold -> GOTO __FALSE;\n");
+          sb.append("    branchingCount == branchingThreshold -> " + actionOnFinalEdges + "GOTO __FALSE;\n");
         }
 
         CFANode loc = AbstractElements.extractLocation(e);
@@ -377,13 +382,13 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           }
 
           if (falseAssumptionElements.contains(child)) {
-            sb.append("GOTO __FALSE");
+            sb.append(actionOnFinalEdges + "GOTO __FALSE");
           } else {
             sb.append("GOTO ART" + child.getElementId());
           }
           sb.append(";\n");
         }
-        sb.append("    TRUE -> GOTO __TRUE;\n\n");
+        sb.append("    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
       }
     }
     sb.append("END AUTOMATON\n");
