@@ -189,16 +189,19 @@ public class AutomatonState implements AbstractQueryableElement, Targetable, Ser
     if (parts.length != 2) {
       throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
     } else {
-      if (parts[0].trim().toLowerCase().equals("state")) {
-        return this.getInternalState().getName().equals(parts[1].trim());
+      String left = parts[0].trim();
+      String right = parts[1].trim();
+      if (left.equalsIgnoreCase("state")) {
+        return this.getInternalState().getName().equals(right);
       } else {
-        if (this.vars.containsKey(parts[0].trim())) {
+        AutomatonVariable var = vars.get(left);
+        if (var != null) {
           // is a local variable
           try {
-            int val = Integer.parseInt(parts[1]);
-            return vars.get(parts[0]).getValue() == val;
+            int val = Integer.parseInt(right);
+            return var.getValue() == val;
           } catch (NumberFormatException e) {
-            throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not parse the int \"" + parts[1] + "\".");
+            throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not parse the int \"" + right + "\".");
           }
         } else {
           throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Only accepting \"State == something\" and \"varname = something\" queries so far.");
@@ -214,16 +217,18 @@ public class AutomatonState implements AbstractQueryableElement, Targetable, Ser
     if (parts.length != 2) {
       throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not split the string correctly.");
     } else {
-      AutomatonVariable var = this.vars.get(parts[0].trim());
+      String left = parts[0].trim();
+      String right = parts[1].trim();
+      AutomatonVariable var = this.vars.get(left);
       if (var != null) {
         try {
-          int val = Integer.parseInt(parts[1]);
+          int val = Integer.parseInt(right);
           var.setValue(val);
         } catch (NumberFormatException e) {
-          throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not parse the int \"" + parts[1].trim() + "\".");
+          throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not parse the int \"" + right + "\".");
         }
       } else {
-        throw new InvalidQueryException("Could not modify the variable \"" + parts[0].trim() + "\" (Variable not found)");
+        throw new InvalidQueryException("Could not modify the variable \"" + left + "\" (Variable not found)");
       }
     }
   }
