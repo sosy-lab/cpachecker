@@ -131,7 +131,7 @@ class CFABuilder extends ASTVisitor {
         throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
       }
 
-      globalDeclarations.add(Pair.of(functionDefinition, fd.getRawSignature()));
+      globalDeclarations.add(Pair.of(functionDefinition, fd.getDeclSpecifier().getRawSignature() + " " + fd.getDeclarator().getRawSignature()));
 
       return PROCESS_SKIP;
 
