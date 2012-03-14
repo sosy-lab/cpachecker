@@ -25,6 +25,7 @@ CPAchecker web page:
 """
 
 import xml.etree.ElementTree as ET
+import collections
 import os.path
 import glob
 import shutil
@@ -412,6 +413,13 @@ class Test:
             else:
                 return 'error'
 
+        def calculateScore(category):
+            return {'correctSafe':   SCORE_CORRECT_SAFE,
+                    'wrongSafe':     SCORE_WRONG_SAFE,
+                    'correctUnsafe': SCORE_CORRECT_UNSAFE,
+                    'wrongUnsafe':   SCORE_WRONG_UNSAFE,
+                    }.get(category,  SCORE_UNKNOWN)
+
         def getValueFromLogfile(content, identifier):
             """
             This method searches for values in lines of the content.
@@ -440,7 +448,9 @@ class Test:
 
         for column in listOfColumns: # for all columns that should be shown
             value = "-" # default value
-            if column.text == None: # collect values from XML
+            if column.title.lower() == 'score':
+                value = str(calculateScore(category))
+            elif column.text == None: # collect values from XML
                 value = Util.getColumnValue(sourcefileTag, column.title, '-')
 
             elif sourcefileTag.logfile != None: # collect values from logfile
@@ -700,13 +710,12 @@ def getStatsOfTest(tests):
 
 def getStatsOfStatusColumn(categoryList):
     # count different elems in statusList
-    total         = len(categoryList)
-    correctSafe   = categoryList.count('correctSafe')
-    correctUnsafe = categoryList.count('correctUnsafe')
-    wrongSafe     = categoryList.count('wrongSafe')
-    wrongUnsafe   = categoryList.count('wrongUnsafe')
+    counts = collections.defaultdict(int)
+    for category in categoryList:
+        counts[category] += 1
 
-    return (total, correctSafe, correctUnsafe, wrongSafe, wrongUnsafe)
+    return (len(categoryList), counts['correctSafe'], counts['correctUnsafe'],
+            counts['wrongSafe'], counts['wrongUnsafe'])
 
 
 def getStatsOfNumberColumn(values, categoryList):
@@ -717,17 +726,13 @@ def getStatsOfNumberColumn(values, categoryList):
         print ("Warning: NumberParseException. Statistics may be wrong.")
         return (0, 0, 0, 0)
 
-    correctSum = sum([value
-                      for value, status in zip(valueList, categoryList)
-                      if (status == 'correctSafe' or status == 'correctUnsafe')])
-    wrongSafe = sum([value
-                      for value, status in zip(valueList, categoryList)
-                      if (status == 'wrongSafe')])
-    wrongUnsafe = sum([value
-                      for value, status in zip(valueList, categoryList)
-                      if (status == 'wrongUnsafe')])
+    valuesPerCategory = collections.defaultdict(int)
+    for value, category in zip(valueList, categoryList):
+        valuesPerCategory[category] += value
 
-    return (sum(valueList), correctSum, wrongSafe, wrongUnsafe)
+    return (sum(valueList),
+            valuesPerCategory['correctSafe'] + valuesPerCategory['correctUnsafe'],
+            valuesPerCategory['wrongSafe'], valuesPerCategory['wrongUnsafe'])
 
 
 
