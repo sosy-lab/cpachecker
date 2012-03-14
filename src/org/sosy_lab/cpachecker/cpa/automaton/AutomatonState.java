@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -41,7 +42,7 @@ import com.google.common.base.Joiner;
  * This class combines a AutomatonInternal State with a variable Configuration.
  * Instaces of this class are passed to the CPAchecker as AbstractElement.
  */
-public class AutomatonState implements AbstractQueryableElement, Targetable, Serializable {
+public class AutomatonState implements AbstractQueryableElement, Targetable, Serializable, Partitionable {
   private static final long serialVersionUID = -4665039439114057346L;
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
 
@@ -105,6 +106,11 @@ public class AutomatonState implements AbstractQueryableElement, Targetable, Ser
   }
 
   @Override
+  public Object getPartitionKey() {
+    return internalState;
+  }
+
+  @Override
   public boolean equals(Object pObj) {
     if (this == pObj) {
       return true;
@@ -123,8 +129,9 @@ public class AutomatonState implements AbstractQueryableElement, Targetable, Ser
 
   @Override
   public int hashCode() {
-    return (internalState == null) ? super.hashCode()
-      : (internalState.hashCode() * 17 + vars.hashCode());
+    // Important: we cannot use vars.hashCode(), because the hash code of a map
+    // depends on the hash code of its values, and those may change.
+    return internalState.hashCode();
   }
 
   @Override
