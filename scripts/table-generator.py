@@ -821,6 +821,7 @@ def main(args=None):
     )
 
     options, args = parser.parse_args(args)
+    args = args[1:] # skip args[0] which is the name of this script
 
     if options.outputPath:
         global OUTPUT_PATH
@@ -829,15 +830,18 @@ def main(args=None):
     if not os.path.isdir(OUTPUT_PATH): os.makedirs(OUTPUT_PATH)
 
     if options.xmltablefile:
+        if args:
+            print ("Invalid additional arguments '{}'".format(" ".join(args)))
+            exit()
         listOfTestFiles = parseTableDefinitionFile(options.xmltablefile)
         name = os.path.basename(options.xmltablefile)[:-4] # remove ending '.xml'
 
     else:
-        if len(args) > 1:
-            inputFiles = args[1:]
+        if args:
+            inputFiles = args
         else:
-            print ("searching resultfiles in '" + OUTPUT_PATH + "' ...")
-            inputFiles = [OUTPUT_PATH + '*.results*.xml']
+            print ("searching resultfiles in '{}'...".format(OUTPUT_PATH))
+            inputFiles = [os.path.join(OUTPUT_PATH, '*.results*.xml')]
 
         inputFiles = Util.extendFileList(inputFiles) # expand wildcards
         listOfTestFiles = [(file, None) for file in inputFiles]
@@ -848,9 +852,10 @@ def main(args=None):
     # parse test files
     listOfTests = [parseTestFile(file, columnsToShow) for file, columnsToShow in listOfTestFiles]
 
-    if len(listOfTests) == 0:
-        print ('\nError! No file with testresults found.\n' \
-            + 'Please check the filenames in your XML-file.')
+    if not listOfTests:
+        print ('\nError! No file with testresults found.')
+        if options.xmltablefile:
+            print ('Please check the filenames in your XML-file.')
         exit()
 
     print ('merging files ...')
