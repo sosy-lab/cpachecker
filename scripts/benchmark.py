@@ -35,6 +35,7 @@ except ImportError: # Queue was renamed to queue in Python 3
 import time
 import glob
 import logging
+import optparse
 import os
 import platform
 import re
@@ -806,7 +807,7 @@ class OutputHandler:
         self.writeTestInfoToLog()
 
 
-    def outputForSkippingTest(self, test):
+    def outputForSkippingTest(self, test, reason=None):
         '''
         This function writes a simple message to terminal and logfile,
         when a test is skipped.
@@ -814,16 +815,18 @@ class OutputHandler:
         '''
 
         # print to terminal
-        print("\nskipping test" + \
-            (" '" + test.name + "'" if test.name is not None else ""))
+        print ("\nskipping test" +
+               (" '" + test.name + "'" if test.name else "") +
+               (" " + reason if reason else "")
+              )
 
         # write into TXTFile
         numberOfTest = self.benchmark.tests.index(test) + 1
         testInfo = "\n\n"
         if test.name is not None:
             testInfo += test.name + "\n"
-        testInfo += "test {0} of {1}: skipped\n".format(
-                numberOfTest, len(self.benchmark.tests))
+        testInfo += "test {0} of {1}: skipped {2}\n".format(
+                numberOfTest, len(self.benchmark.tests), reason or "")
         self.TXTFile.append(testInfo)
 
 
@@ -1746,10 +1749,12 @@ def runBenchmark(benchmarkFile):
         testnumber = benchmark.tests.index(test) + 1 # the first test has number 1
         (mod, rest) = options.moduloAndRest
 
-        if (options.testRunOnly is not None \
-                and options.testRunOnly != test.name) \
+        if (options.testRunOnly and test.name not in options.testRunOnly) \
                 or (testnumber % mod != rest):
             outputHandler.outputForSkippingTest(test)
+
+        elif not test.runs:
+            outputHandler.outputForSkippingTest(test, "because it has no files")
 
         else:
             # get times before test
@@ -1799,16 +1804,22 @@ def main(argv=None):
 
     if argv is None:
         argv = sys.argv
-    from optparse import OptionParser
-    parser = OptionParser(usage="usage: %prog [OPTION]... [FILE]...\n\n" + \
-        "INFO: documented example-files can be found in 'doc/examples'\n")
+    parser = optparse.OptionParser(usage=
+        """%prog [OPTION]... [FILE]...
+
+INFO: Documented example-files can be found as 'doc/examples/benchmark*.xml'.
+
+Use the table-generator.py script to create nice tables
+from the output of this script.""")
 
     parser.add_option("-d", "--debug",
                       action="store_true",
-                      help="enable debug output")
+                      help="Enable debug output")
 
     parser.add_option("-t", "--test", dest="testRunOnly",
-                      help="run only a special TEST from xml-file",
+                      action="append",
+                      help="Run only the given TEST from the xml-file. "
+                            + "This option can be specified several times.",
                       metavar="TEST")
 
     parser.add_option("-o", "--outputpath",
@@ -1818,29 +1829,25 @@ def main(argv=None):
 
     parser.add_option("-T", "--timelimit",
                       dest="timelimit", default=None,
-                      help="set timelimit for benchmarks, " + \
-                      "this option overrides the limit given in the xml-file, " + \
-                      "use -1 to delete the limit of xml, " + \
-                      "other negative numbers are useless")
+                      help="Time limit in seconds for each run (-1 to disable)",
+                      metavar="SECONDS")
 
     parser.add_option("-M", "--memorylimit",
                       dest="memorylimit", default=None,
-                      help="set memorylimit for benchmarks, " + \
-                      "this option overrides the limit given in the xml-file, " + \
-                      "use -1 to delete the limit of xml, " + \
-                      "other negative numbers are useless")
+                      help="Memory limit in MB (-1 to disable)",
+                      metavar="MB")
 
     parser.add_option("-N", "--numOfThreads",
                       dest="numOfThreads", default=None,
-                      help="set number of threads for benchmarks, " + \
-                      "this option overrides the number given in the xml-file")
+                      help="Run n benchmarks in parallel",
+                      metavar="n")
 
     parser.add_option("-x", "--moduloAndRest",
                       dest="moduloAndRest", default=(1,0), nargs=2, type="int",
-                      help="run only a special subset of tests, " + \
-                      "this option stores two ints (a, b), " + \
-                      "the script runs all tests with (testnumber % a == b), " + \
-                      "the first test has testnumber 1")
+                      help="Run only a subset of tests for which (i % a == b) holds" +
+                            "with i being the index of the test in the xml-file " +
+                            "(starting with 1).",
+                      metavar="a b")
 
     global options, OUTPUT_PATH
     (options, args) = parser.parse_args(argv)

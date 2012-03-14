@@ -40,6 +40,7 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -124,6 +125,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       description="write collected assumptions as automaton to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
       private File assumptionAutomatonFile = new File("AssumptionAutomaton.txt");
+
+  @Option(description="Add a threshold to the automaton, "
+      + "after so many branches on a path the automaton will be ignored (0 to disable)")
+  @IntegerOption(min=0)
+  private int automatonBranchingThreshold = 0;
 
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
@@ -314,6 +320,17 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       Set<ARTElement> relevantElements, Set<AbstractElement> falseAssumptionElements) {
     StringBuilder sb = new StringBuilder();
     sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
+
+    String actionOnFinalEdges = "";
+    if (automatonBranchingThreshold > 0) {
+      sb.append("LOCAL int branchingThreshold = " + automatonBranchingThreshold + ";\n");
+      sb.append("LOCAL int branchingCount = 0;\n\n");
+
+      // Reset automaton variable on all edges like "GOTO __FALSE"
+      // to allow merging of states.
+      actionOnFinalEdges = "DO branchingCount = 0 ";
+    }
+
     sb.append("INITIAL STATE ART" + initialElement.getElementId() + ";\n\n");
     sb.append("STATE __TRUE :\n");
     sb.append("    TRUE -> ASSUME \"true\" GOTO __TRUE;\n\n");
@@ -332,9 +349,15 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       automatonStates++;
 
       if (!relevantElements.contains(e)) {
-        sb.append("   TRUE -> GOTO __TRUE;\n\n");
+        sb.append("   TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
 
       } else {
+        boolean branching = false;
+        if ((automatonBranchingThreshold > 0) && (e.getChildren().size() > 1)) {
+          branching = true;
+          sb.append("    branchingCount == branchingThreshold -> " + actionOnFinalEdges + "GOTO __FALSE;\n");
+        }
+
         CFANode loc = AbstractElements.extractLocation(e);
         for (ARTElement child : e.getChildren()) {
           if (child.isCovered()) {
@@ -354,14 +377,18 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           escape(assumption.toString(), sb);
           sb.append("\" ");
 
+          if (branching) {
+            sb.append("DO branchingCount = branchingCount+1 ");
+          }
+
           if (falseAssumptionElements.contains(child)) {
-            sb.append("GOTO __FALSE");
+            sb.append(actionOnFinalEdges + "GOTO __FALSE");
           } else {
             sb.append("GOTO ART" + child.getElementId());
           }
           sb.append(";\n");
         }
-        sb.append("    TRUE -> GOTO __TRUE;\n\n");
+        sb.append("    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
       }
     }
     sb.append("END AUTOMATON\n");

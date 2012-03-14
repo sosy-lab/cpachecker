@@ -65,14 +65,15 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
   public ARTElement(AbstractElement pWrappedElement, ARTElement pParentElement) {
     super(pWrappedElement);
     elementId = ++nextArtElementId;
-    parents = new LinkedHashSet<ARTElement>();
+    parents = new LinkedHashSet<ARTElement>(1); // TODO Is HashSet enough? It would be more memory-efficient.
     if(pParentElement != null){
       addParent(pParentElement);
     }
-    children = new LinkedHashSet<ARTElement>();
+    children = new LinkedHashSet<ARTElement>(1);
   }
 
   public Set<ARTElement> getParents(){
+    // TODO return unmodifiable view?
     return parents;
   }
 

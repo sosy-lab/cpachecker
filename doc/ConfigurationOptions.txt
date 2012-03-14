@@ -132,6 +132,10 @@ analysis.useProofCheckAlgorithm = false
 # Currently all refiner require the use of the ARTCPA.
 analysis.useRefinement = false
 
+# Add a threshold to the automaton, after so many branches on a path the
+# automaton will be ignored (0 to disable)
+assumptions.automatonBranchingThreshold = 0
+
 # write collected assumptions as automaton to file
 assumptions.automatonFile = "AssumptionAutomaton.txt"
 
@@ -229,6 +233,9 @@ counterexample.checker = "CBMC"
 
 # configuration file for counterexample checks with CPAchecker
 counterexample.checker.config = "config/explicitAnalysis-no-cbmc.properties"
+
+# comma sperated list of variables that are never tracked by the analysis
+counterexample.checker.ignoreGlobally = ""
 
 # continue analysis after an counterexample was found that was denied by the
 # second check
@@ -357,6 +364,9 @@ cpa.defuse.merge = "sep"
 cpa.explicit.merge = "SEP"
   allowed values: [SEP, JOIN]
 
+# csv list of variables never to track
+cpa.explicit.precision.ignore.asString = ""
+
 # threshold for amount of different values that are tracked for one variable
 # per path (-1 means infinitely)
 cpa.explicit.precision.path.defaultThreshold = -1
@@ -371,6 +381,9 @@ cpa.explicit.stop = "SEP"
 
 # blacklist regex for variables that won't be tracked by ExplicitCPA
 cpa.explicit.variableBlacklist = ""
+
+# whether or not to use explicit interpolation
+cpa.explict.refiner.useExplicitInterpolation = false
 
 # whitelist regex for variables that will be tracked by FeatureVarsCPA
 cpa.featurevars.variableWhitelist = ""

@@ -45,6 +45,10 @@ public class ForwardingReachedSet implements ReachedSet {
     this.delegate = checkNotNull(pDelegate);
   }
 
+  public ReachedSet getDelegate() {
+    return delegate;
+  }
+
   public void setDelegate(ReachedSet pDelegate) {
     delegate = checkNotNull(pDelegate);
   }

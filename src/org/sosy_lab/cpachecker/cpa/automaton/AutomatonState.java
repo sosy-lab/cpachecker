@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -41,7 +42,7 @@ import com.google.common.base.Joiner;
  * This class combines a AutomatonInternal State with a variable Configuration.
  * Instaces of this class are passed to the CPAchecker as AbstractElement.
  */
-public class AutomatonState implements AbstractQueryableElement, Targetable, Serializable {
+public class AutomatonState implements AbstractQueryableElement, Targetable, Serializable, Partitionable {
   private static final long serialVersionUID = -4665039439114057346L;
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
 
@@ -105,6 +106,11 @@ public class AutomatonState implements AbstractQueryableElement, Targetable, Ser
   }
 
   @Override
+  public Object getPartitionKey() {
+    return internalState;
+  }
+
+  @Override
   public boolean equals(Object pObj) {
     if (this == pObj) {
       return true;
@@ -123,8 +129,9 @@ public class AutomatonState implements AbstractQueryableElement, Targetable, Ser
 
   @Override
   public int hashCode() {
-    return (internalState == null) ? super.hashCode()
-      : (internalState.hashCode() * 17 + vars.hashCode());
+    // Important: we cannot use vars.hashCode(), because the hash code of a map
+    // depends on the hash code of its values, and those may change.
+    return internalState.hashCode();
   }
 
   @Override
@@ -182,16 +189,19 @@ public class AutomatonState implements AbstractQueryableElement, Targetable, Ser
     if (parts.length != 2) {
       throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
     } else {
-      if (parts[0].trim().toLowerCase().equals("state")) {
-        return this.getInternalState().getName().equals(parts[1].trim());
+      String left = parts[0].trim();
+      String right = parts[1].trim();
+      if (left.equalsIgnoreCase("state")) {
+        return this.getInternalState().getName().equals(right);
       } else {
-        if (this.vars.containsKey(parts[0].trim())) {
+        AutomatonVariable var = vars.get(left);
+        if (var != null) {
           // is a local variable
           try {
-            int val = Integer.parseInt(parts[1]);
-            return vars.get(parts[0]).getValue() == val;
+            int val = Integer.parseInt(right);
+            return var.getValue() == val;
           } catch (NumberFormatException e) {
-            throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not parse the int \"" + parts[1] + "\".");
+            throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not parse the int \"" + right + "\".");
           }
         } else {
           throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Only accepting \"State == something\" and \"varname = something\" queries so far.");
@@ -207,16 +217,18 @@ public class AutomatonState implements AbstractQueryableElement, Targetable, Ser
     if (parts.length != 2) {
       throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not split the string correctly.");
     } else {
-      AutomatonVariable var = this.vars.get(parts[0].trim());
+      String left = parts[0].trim();
+      String right = parts[1].trim();
+      AutomatonVariable var = this.vars.get(left);
       if (var != null) {
         try {
-          int val = Integer.parseInt(parts[1]);
+          int val = Integer.parseInt(right);
           var.setValue(val);
         } catch (NumberFormatException e) {
-          throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not parse the int \"" + parts[1].trim() + "\".");
+          throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not parse the int \"" + right + "\".");
         }
       } else {
-        throw new InvalidQueryException("Could not modify the variable \"" + parts[0].trim() + "\" (Variable not found)");
+        throw new InvalidQueryException("Could not modify the variable \"" + left + "\" (Variable not found)");
       }
     }
   }
