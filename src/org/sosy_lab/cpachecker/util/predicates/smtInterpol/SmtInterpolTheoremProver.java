@@ -124,17 +124,11 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     int numModels = 0;
     allsatEnv.assertTerm(getTerm(f));
     while (allsatEnv.checkSat() == LBool.SAT) {
-      if (numModels > 100) { // TODO remove limit, TODO handle infinity
-        System.out.println("i have found many models, aborting allsat()");
-        break;
-      }
-
       Term[] model = new Term[importantTerms.length];
 
       if (importantTerms.length == 0) {
         // assert current model to get next model
-        result.callback(model, allsatEnv);
-
+        result.callback(model);
         System.out.println(
             "satCheck is SAT, but there is no model for important terms!");
         break;
@@ -152,7 +146,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
         }
       }
       // add model to BDD
-      result.callback(model, allsatEnv);
+      result.callback(model);
 
       Term notTerm;
       if (model.length == 1) { // AND needs 2 or more terms
@@ -221,7 +215,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
       formula = cubes.remove();
     }
 
-    public void callback(Term[] model, SmtInterpolEnvironment env) { // TODO function needed for smtInterpol???
+    public void callback(Term[] model) { // TODO function needed for smtInterpol???
       totalTime.start();
 
       // the abstraction is created simply by taking the disjunction

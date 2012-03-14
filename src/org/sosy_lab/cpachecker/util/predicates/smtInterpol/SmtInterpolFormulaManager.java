@@ -163,8 +163,6 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
     if (t1 == getTrueTerm()) { return f2;}
     if (t2 == getTrueTerm()) { return f1;}
     Term t = env.term("and", t1, t2);
-     // System.out.println("old:\n" + prettyPrint(t) + "\n\n");
-     // System.out.println(prettyPrint(simplify(script, t)) + "\n\n");
     return encapsulate(simplify(env, t));
   }
 
@@ -175,8 +173,6 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
     if (t1 == getFalseTerm()) { return f2;}
     if (t2 == getFalseTerm()) { return f1;}
     Term t = env.term("or", t1, t2);
-     // System.out.println("old:\n" + prettyPrint(t) + "\n\n");
-     // System.out.println(prettyPrint(simplify(script, t)) + "\n\n");
     return encapsulate(simplify(env, t));
   }
 
@@ -395,7 +391,6 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   public Formula uninstantiate(Formula f) {
     Map<Formula, Formula> cache = uninstantiateCache;
     Deque<Formula> toProcess = new ArrayDeque<Formula>();
-    // System.out.println("formula: " + f);
 
     toProcess.push(f);
     while (!toProcess.isEmpty()) {

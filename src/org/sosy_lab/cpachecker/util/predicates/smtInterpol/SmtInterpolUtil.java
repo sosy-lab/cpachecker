@@ -229,83 +229,70 @@ public class SmtInterpolUtil {
     if (t instanceof ApplicationTerm) {
       ApplicationTerm at = (ApplicationTerm) t;
       FunctionSymbol function = at.getFunction();
-      Term[] params = at.getParameters();
 
       // (a&b&c)|(a&d&e)   -->    a&((b&c)|(d&e))
       if ("or".equals(function.getName())) {
-        assert params.length >= 2;
-        Set<Term>[] children = new Set[params.length];
-        for (int i = 0; i < params.length; i++) {
-          if (params[i] instanceof ApplicationTerm) {
-            ApplicationTerm atChild = (ApplicationTerm) params[i];
-            if ("and".equals(atChild.getFunction().getName())) {
-              children[i] = Sets.newHashSet(atChild.getParameters());
-            } else {
-              return t; // if one child is no AND, there is no common child
-            }
-          }
-        }
-        Set<Term> commonTerms = children[0];
-        for (int i = 1; i < children.length; i++) {
-          commonTerms = Sets.intersection(commonTerms, children[i]);
-        }
-        Term[] newChildren = new Term[children.length];
-        for (int i = 0; i < children.length; i++) {
-          Set<Term> diff = Sets.difference(children[i], commonTerms);
-          if (diff.size() == 0) {
-            newChildren[i] = env.term("false");
-          } else if (diff.size() == 1) {
-            newChildren[i] = diff.toArray(new Term[1])[0];
-          } else {
-            newChildren[i] = env.term("and", diff.toArray(new Term[0]));
-          }
-        }
-        Term mergedChildren = env.term("or", newChildren);
-        Term[] ts = commonTerms.toArray(new Term[commonTerms.size()+2]);
-        ts[commonTerms.size()] = env.term("true"); // one TRUE in AND does not matter
-        ts[commonTerms.size()+1] = mergedChildren;
-        return env.term("and", ts);
+        return factorOut(at, "or", env);
 
         // (a|b|c)&(a|d|e)   -->    a|((b|c)&(d|e))
       } else if ("and".equals(function.getName())) {
-        assert params.length >= 2;
-        Set<Term>[] children = new Set[params.length];
-        for (int i = 0; i < params.length; i++) {
-          if (params[i] instanceof ApplicationTerm) {
-            ApplicationTerm atChild = (ApplicationTerm) params[i];
-            if ("or".equals(atChild.getFunction().getName())) {
-              children[i] = Sets.newHashSet(atChild.getParameters());
-            } else {
-              return t; // if one child is no OR, there is no common child
-            }
-          }
-        }
-        Set<Term> commonTerms = children[0];
-        for (int i = 1; i < children.length; i++) {
-          commonTerms = Sets.intersection(commonTerms, children[i]);
-        }
-        Term[] newChildren = new Term[children.length];
-        for (int i = 0; i < children.length; i++) {
-          Set<Term> diff = Sets.difference(children[i], commonTerms);
-          if (diff.size() == 0) {
-            newChildren[i] = env.term("true");
-          } else if (diff.size() == 1) {
-            newChildren[i] = diff.toArray(new Term[1])[0];
-          } else {
-            newChildren[i] = env.term("or", diff.toArray(new Term[0]));
-          }
-        }
-        Term mergedChildren = env.term("and", newChildren);
-        Term[] ts = commonTerms.toArray(new Term[commonTerms.size()+2]);
-        ts[commonTerms.size()] = env.term("false"); // one FALSE in OR does not matter
-        ts[commonTerms.size()+1] = mergedChildren;
-        return env.term("or", ts);
+        return factorOut(at, "and", env);
 
       } else {
         return t;
       }
     } else {
       return t;
+    }
+  }
+
+ /** This method factors out common children of the term.
+  * Example:   (a&b)|(a&c)  -->   a&(b|c)   */
+  private static Term factorOut(ApplicationTerm at, String function,
+      SmtInterpolEnvironment env) {
+    Term[] params = at.getParameters();
+    assert params.length >= 2 && ("and".equals(function) || "or".equals(function));
+
+    Term neutral = env.term("and".equals(function) ? "true" : "false");
+    String childFunction = "and".equals(function) ? "or" : "and";
+    Set<Term>[] children = new Set[params.length];
+    for (int i = 0; i < params.length; i++) {
+      if (params[i] instanceof ApplicationTerm) {
+        ApplicationTerm atChild = (ApplicationTerm) params[i];
+        if (childFunction.equals(atChild.getFunction().getName())) {
+          children[i] = Sets.newHashSet(atChild.getParameters());
+        } else {
+          return at; // if one child is no AND/OR, there is no common child
+        }
+      } else {
+        return at; // if one child is no AND/OR, there is no common child
+      }
+    }
+    Set<Term> commonTerms = children[0];
+    for (int i = 1; i < children.length; i++) {
+      commonTerms = Sets.intersection(commonTerms, children[i]);
+    }
+    if (commonTerms.isEmpty()) {
+      return at;
+    }
+    Term[] newChildren = new Term[children.length];
+    for (int i = 0; i < children.length; i++) {
+      Set<Term> diff = Sets.difference(children[i], commonTerms);
+      if (diff.size() == 0) {
+        newChildren[i] = neutral;
+      } else if (diff.size() == 1) {
+        newChildren[i] = diff.toArray(new Term[1])[0];
+      } else {
+        newChildren[i] = env.term(childFunction, diff.toArray(new Term[0]));
+      }
+    }
+    Term[] ts = commonTerms.toArray(new Term[commonTerms.size()+1]);
+    ts[commonTerms.size()] = env.term(function, newChildren);
+    if (ts.length == 1) {
+      return ts[0];
+    } else {
+      assert ts.length > 1;
+      return env.term(childFunction, ts);
     }
   }
 
