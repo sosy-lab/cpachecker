@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -317,6 +318,9 @@ class MainCPAStatistics implements Statistics {
             }
         }
 
+        if (reached instanceof ForwardingReachedSet) {
+          reached = ((ForwardingReachedSet)reached).getDelegate();
+        }
         int reachedSize = reached.size();
 
         out.println("CPAchecker general statistics");
@@ -355,7 +359,12 @@ class MainCPAStatistics implements Statistics {
           out.println("  Number of partitions:       " + partitions);
           out.println("    Avg size of partitions:   " + reachedSize / partitions);
           Map.Entry<Object, Collection<AbstractElement>> maxPartition = p.getMaxPartition();
-          out.println("    Max size of partitions:   " + maxPartition.getValue().size() + " (with key " + maxPartition.getKey() + ")");
+          out.print  ("    Max size of partitions:   " + maxPartition.getValue().size());
+          if (maxPartition.getValue().size() > 1) {
+            out.println(" (with key " + maxPartition.getKey() + ")");
+          } else {
+            out.println();
+          }
         }
         out.println("  Number of target elements:  " + Iterables.size(filterTargetElements(reached)));
         out.println("Time for analysis setup:      " + creationTime);
