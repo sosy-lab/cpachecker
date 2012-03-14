@@ -85,7 +85,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 public class ExplicitTransferRelation implements TransferRelation
 {
   private final Set<String> globalVariables = new HashSet<String>();
-  static Set<String> globalVarsStatic = null;
 
   private String missingInformationLeftVariable = null;
   private String missingInformationLeftPointer  = null;
@@ -96,8 +95,6 @@ public class ExplicitTransferRelation implements TransferRelation
 
   public ExplicitTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
-
-    globalVarsStatic = globalVariables;
   }
 
   @Override
