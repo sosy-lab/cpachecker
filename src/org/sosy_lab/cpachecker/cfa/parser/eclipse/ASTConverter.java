@@ -105,7 +105,7 @@ class ASTConverter {
   private final boolean ignoreCasts;
 
   private Scope scope;
-  private LinkedList<IASTNode> sideAssigment = new LinkedList<IASTNode>();
+  private LinkedList<IASTNode> sideAssignments = new LinkedList<IASTNode>();
 
   public ASTConverter(Scope pScope, boolean pIgnoreCasts, LogManager pLogger) {
     scope = pScope;
@@ -120,11 +120,11 @@ class ASTConverter {
   }
 
   public boolean existsSideAssignment(){
-    return !sideAssigment.isEmpty();
+    return !sideAssignments.isEmpty();
   }
 
-  public IASTNode getSideAssignment() {
-    return sideAssigment.removeFirst();
+  public IASTNode getNextSideAssignment() {
+    return sideAssignments.removeFirst();
   }
 
   private static final Set<BinaryOperator> BOOLEAN_BINARY_OPERATORS = ImmutableSet.of(
@@ -173,7 +173,7 @@ class ASTConverter {
       return addSideassignmentsForExpressionsWithoutSideEffects(node, e);
 
     } else if (node instanceof IASTAssignment) {
-      sideAssigment.add(node);
+      sideAssignments.add(node);
       return ((IASTAssignment) node).getLeftHandSide();
 
     } else {
@@ -183,29 +183,9 @@ class ASTConverter {
 
   private IASTExpression addSideassignmentsForExpressionsWithoutSideEffects(IASTNode node,
                                                                             org.eclipse.cdt.core.dom.ast.IASTExpression e){
-    String name = "__CPAchecker_TMP_";
-    int i = 0;
-    while(scope.variableNameInUse(name+i, name+i)){
-      i++;
-    }
-    name += i;
+    IASTIdExpression tmp = createTemporaryVariable(e);
 
-    IASTVariableDeclaration decl = new IASTVariableDeclaration(node.getFileLocation(),
-                                               false,
-                                               StorageClass.AUTO,
-                                               ((IASTFunctionCallExpression) node).getExpressionType(),
-                                               name,
-                                               name,
-                                               null);
-
-    scope.registerDeclaration(decl);
-    sideAssigment.add(decl);
-    IASTIdExpression tmp = new IASTIdExpression(convert(e.getFileLocation()),
-                                                convert(e.getExpressionType()),
-                                                name,
-                                                decl);
-
-    sideAssigment.add(new IASTFunctionCallAssignmentStatement(convert(e.getFileLocation()),
+    sideAssignments.add(new IASTFunctionCallAssignmentStatement(convert(e.getFileLocation()),
                                                               tmp,
                                                               (IASTFunctionCallExpression) node));
     return tmp;
@@ -249,8 +229,37 @@ class ASTConverter {
     }
   }
 
+
   private IASTArraySubscriptExpression convert(org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression e) {
     return new IASTArraySubscriptExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getArrayExpression()), convertExpressionWithoutSideEffects(e.getSubscriptExpression()));
+  }
+
+  /**
+   * creates temporary variables with increasing numbers
+   */
+  private IASTIdExpression createTemporaryVariable(org.eclipse.cdt.core.dom.ast.IASTExpression e) {
+    String name = "__CPAchecker_TMP_";
+    int i = 0;
+    while(scope.variableNameInUse(name+i, name+i)){
+      i++;
+    }
+    name += i;
+
+    IASTVariableDeclaration decl = new IASTVariableDeclaration(convert(e.getFileLocation()),
+                                               false,
+                                               StorageClass.AUTO,
+                                               convert(e.getExpressionType()),
+                                               name,
+                                               name,
+                                               null);
+
+    scope.registerDeclaration(decl);
+    sideAssignments.add(decl);
+    IASTIdExpression tmp = new IASTIdExpression(convert(e.getFileLocation()),
+                                                convert(e.getExpressionType()),
+                                                name,
+                                                decl);
+    return tmp;
   }
 
   private IASTNode convert(org.eclipse.cdt.core.dom.ast.IASTBinaryExpression e) {
@@ -268,6 +277,7 @@ class ASTConverter {
         // a = b
         IASTNode rightHandSide = convertExpressionWithSideEffects(e.getOperand2()); // right-hand side may have a function call
 
+
         if (rightHandSide instanceof IASTExpression) {
           // a = b
           return new IASTExpressionAssignmentStatement(fileLoc, leftHandSide, (IASTExpression)rightHandSide);
@@ -277,7 +287,7 @@ class ASTConverter {
           return new IASTFunctionCallAssignmentStatement(fileLoc, leftHandSide, (IASTFunctionCallExpression)rightHandSide);
 
         } else if(rightHandSide instanceof IASTAssignment) {
-          sideAssigment.add(rightHandSide);
+          sideAssignments.add(rightHandSide);
           return new IASTExpressionAssignmentStatement(fileLoc, leftHandSide, ((IASTAssignment) rightHandSide).getLeftHandSide());
         } else {
           throw new CFAGenerationRuntimeException("Expression is not free of side-effects", e);
@@ -673,7 +683,7 @@ class ASTConverter {
       }
 
       if (e.getParent() instanceof org.eclipse.cdt.core.dom.ast.IASTExpression) {
-        return addSideAssignmentsForUnaryExpressions(operand, fileLoc, type, postOp);
+        return addSideAssignmentsForUnaryExpressions(e, operand, fileLoc, type, postOp);
       } else {
         IASTExpression postOne = new IASTIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
         IASTBinaryExpression postExp = new IASTBinaryExpression(fileLoc, type, operand, postOne, postOp);
@@ -685,36 +695,17 @@ class ASTConverter {
     }
   }
 
-  private IASTIdExpression addSideAssignmentsForUnaryExpressions(IASTExpression exp,
+  private IASTIdExpression addSideAssignmentsForUnaryExpressions(org.eclipse.cdt.core.dom.ast.IASTExpression e,
+                                                                 IASTExpression exp,
                                                                  IASTFileLocation fileLoc,
                                                                  IType type,
                                                                  BinaryOperator op) {
-    String name = "__CPAchecker_TMP_";
-    int i = 0;
-    while (scope.variableNameInUse(name + i, name + i)) {
-      i++;
-    }
-    name += i;
-
-    IASTVariableDeclaration decl = new IASTVariableDeclaration(fileLoc,
-                                                               false,
-                                                               StorageClass.AUTO,
-                                                               type,
-                                                               name,
-                                                               name,
-                                                               null);
-
-    scope.registerDeclaration(decl);
-    sideAssigment.add(decl);
-    IASTIdExpression tmp = new IASTIdExpression(fileLoc,
-                                                type,
-                                                name,
-                                                decl);
-    sideAssigment.add(new IASTExpressionAssignmentStatement(fileLoc, tmp, exp));
+    IASTIdExpression tmp = createTemporaryVariable(e);
+    sideAssignments.add(new IASTExpressionAssignmentStatement(fileLoc, tmp, exp));
 
     IASTExpression one = new IASTIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
     IASTBinaryExpression postExp = new IASTBinaryExpression(fileLoc, type, exp, one, op);
-    sideAssigment.add(new IASTExpressionAssignmentStatement(fileLoc, exp, postExp));
+    sideAssignments.add(new IASTExpressionAssignmentStatement(fileLoc, exp, postExp));
     return tmp;
   }
 
@@ -788,6 +779,7 @@ class ASTConverter {
 
     } else if (node instanceof IASTExpression) {
       return new IASTExpressionStatement(convert(s.getFileLocation()), (IASTExpression)node);
+
     } else {
       throw new AssertionError();
     }
@@ -1320,7 +1312,7 @@ class ASTConverter {
   private IASTInitializerExpression convert(org.eclipse.cdt.core.dom.ast.IASTInitializerExpression i) {
     IASTNode initializer = convertExpressionWithSideEffects(i.getExpression());
     if(initializer != null && initializer instanceof IASTAssignment){
-      sideAssigment.add(initializer);
+      sideAssignments.add(initializer);
       return new IASTInitializerExpression(convert(i.getFileLocation()), ((IASTAssignment)initializer).getLeftHandSide());
     }
 
@@ -1350,7 +1342,7 @@ class ASTConverter {
       IASTNode initializer = convertExpressionWithSideEffects(e);
 
       if(initializer != null && initializer instanceof IASTAssignment){
-        sideAssigment.add(initializer);
+        sideAssignments.add(initializer);
         return new IASTInitializerExpression(convert(e.getFileLocation()), ((IASTAssignment)initializer).getLeftHandSide());
       } else if (initializer != null && initializer instanceof IASTFunctionCallExpression) {
         IASTExpression exp = addSideassignmentsForExpressionsWithoutSideEffects(initializer, e);
