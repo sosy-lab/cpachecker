@@ -33,8 +33,10 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Multimap;
 
 
 public class PredicateMap {
@@ -95,8 +97,8 @@ public class PredicateMap {
    *
    * @return a mapping from program locations to variables referenced in predicates at that program location
    */
-  public ImmutableMultimap<CFANode, String> getVariableMapping(FormulaManager fmgr) {
-    ImmutableSetMultimap.Builder<CFANode, String> builder = ImmutableSetMultimap.builder();
+  public Multimap<CFANode, String> determinePrecisionIncrement(FormulaManager fmgr) {
+    Multimap<CFANode, String> increment = HashMultimap.create();
 
     // for each program location in the mapping ...
     for (Map.Entry<CFANode, AbstractionPredicate> predicateAtLocation : predicateMap.entries()) {
@@ -108,11 +110,11 @@ public class PredicateMap {
 
       // ... and add them to variables-at-location-mapping
       if(!atoms.isEmpty()) {
-        builder.putAll(currentLocation, atoms);
+        increment.putAll(currentLocation, atoms);
       }
     }
 
-    return builder.build();
+    return increment;
   }
 
   @Override
