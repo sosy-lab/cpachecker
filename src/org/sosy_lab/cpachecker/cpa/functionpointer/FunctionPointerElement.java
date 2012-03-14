@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.functionpointer;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -36,6 +35,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 
 /**
  * Represents one abstract state of the FunctionPointer CPA.
@@ -127,25 +128,80 @@ class FunctionPointerElement extends AbstractSingleWrapperElement  {
     }
   }
 
-  // this map should never contain UnknownTargets
-  private final Map<String,FunctionPointerTarget> pointerVariableValues;
+  static class Builder {
+
+    private final AbstractElement wrappedElement;
+    private Map<String,FunctionPointerTarget> values = null;
+    private final ImmutableMap<String,FunctionPointerTarget> oldValues;
+
+    private Builder(ImmutableMap<String, FunctionPointerTarget> pOldValues, AbstractElement pWrappedElement) {
+      oldValues = pOldValues;
+      wrappedElement = pWrappedElement;
+    }
+
+    private void setupMaps() {
+      if (values == null) {
+        values = Maps.newHashMap(oldValues);
+      }
+    }
+
+    public FunctionPointerTarget getTarget(String variableName) {
+      // default to UNKNOWN
+      Map<String, FunctionPointerTarget> map = Objects.firstNonNull(values, oldValues);
+      return Objects.firstNonNull(map.get(variableName), UnknownTarget.getInstance());
+    }
+
+    void setTarget(String variableName, FunctionPointerTarget target) {
+      setupMaps();
+
+      if (target == UnknownTarget.getInstance()) {
+        values.remove(target);
+      } else {
+        values.put(variableName, target);
+      }
+    }
+
+    void clearVariablesWithPrefix(String prefix) {
+      setupMaps();
+
+      Iterator<String> it = values.keySet().iterator();
+
+      while (it.hasNext()) {
+        if (it.next().startsWith(prefix)) {
+          it.remove();
+        }
+      }
+    }
+
+    FunctionPointerElement build() {
+      Map<String, FunctionPointerTarget> map = Objects.firstNonNull(values, oldValues);
+      return new FunctionPointerElement(wrappedElement, map);
+    }
+  }
+
+  // This map should never contain UnknownTargets.
+  private final ImmutableMap<String,FunctionPointerTarget> pointerVariableValues;
 
   private FunctionPointerElement(AbstractElement pWrappedElement) {
     super(pWrappedElement);
-    pointerVariableValues = new HashMap<String,FunctionPointerTarget>(0);
+    pointerVariableValues = ImmutableMap.of();
   }
 
-  private FunctionPointerElement(FunctionPointerElement pCopyFromPreviousState, AbstractElement pWrappedElement) {
+  private FunctionPointerElement(AbstractElement pWrappedElement, Map<String, FunctionPointerTarget> pValues) {
     super(pWrappedElement);
-    pointerVariableValues = new HashMap<String,FunctionPointerTarget>(pCopyFromPreviousState.pointerVariableValues);
+    pointerVariableValues = ImmutableMap.copyOf(pValues);
   }
 
   public static FunctionPointerElement createEmptyElement(AbstractElement pWrappedElement) {
     return new FunctionPointerElement(pWrappedElement);
   }
 
+  public FunctionPointerElement.Builder createBuilderWithNewWrappedElement(AbstractElement pElement) {
+    return new Builder(this.pointerVariableValues, pElement);
+  }
+
   public FunctionPointerElement createDuplicateWithNewWrappedElement(AbstractElement pElement) {
-    return new FunctionPointerElement(this, pElement);
+    return new FunctionPointerElement(pElement, this.pointerVariableValues);
   }
 
   @Override
@@ -161,24 +217,6 @@ class FunctionPointerElement extends AbstractSingleWrapperElement  {
   public FunctionPointerTarget getTarget(String variableName) {
     // default to UNKNOWN
     return Objects.firstNonNull(pointerVariableValues.get(variableName), UnknownTarget.getInstance());
-  }
-
-  public void setTarget(String variableName, FunctionPointerTarget target) {
-    if (target == UnknownTarget.getInstance()) {
-      pointerVariableValues.remove(variableName);
-    } else {
-      pointerVariableValues.put(variableName, target);
-    }
-  }
-
-  public void clearVariablesWithPrefix(String prefix) {
-    Iterator<String> it = pointerVariableValues.keySet().iterator();
-
-    while (it.hasNext()) {
-      if (it.next().startsWith(prefix)) {
-        it.remove();
-      }
-    }
   }
 
   public boolean isLessOrEqualThan(FunctionPointerElement pElement) {
