@@ -9,6 +9,12 @@ event {
 	if(__MONITOR_STATE_state == 0) {
 		__MONITOR_STATE_state = 1;
 	} 
+	else if(__MONITOR_STATE_state == 4) {
+		__MONITOR_STATE_state = 5;
+	}
+	else if(__MONITOR_STATE_state == 7) {
+		__MONITOR_STATE_state = 8;
+	}
 	__MONITOR_END_TRANSITION;
   }
 }
@@ -75,12 +81,6 @@ event {
 	if(__MONITOR_STATE_state == 2) {
 		__MONITOR_STATE_state = 3;
 	} 
-	else if(__MONITOR_STATE_state == 4) {
-		__MONITOR_STATE_state = 5;
-	} 
-	else if(__MONITOR_STATE_state == 7) {
-		__MONITOR_STATE_state = 8;
-	} 
 	__MONITOR_END_TRANSITION;
   }
 }
@@ -95,4 +95,3 @@ event {
 	__MONITOR_END_TRANSITION;
   }
 }
-

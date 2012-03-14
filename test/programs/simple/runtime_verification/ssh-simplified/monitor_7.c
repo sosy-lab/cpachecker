@@ -523,8 +523,22 @@ int ssl3_accept(int initial_state )
                                                                                 0) {
 #line 21
                                                                               __MONITOR_STATE_state = 1;
-                                                                            }
+                                                                            } else {
 #line 23
+                                                                              if (__MONITOR_STATE_state ==
+                                                                                  4) {
+#line 24
+                                                                                __MONITOR_STATE_state = 5;
+                                                                              } else {
+#line 26
+                                                                                if (__MONITOR_STATE_state ==
+                                                                                    7) {
+#line 27
+                                                                                  __MONITOR_STATE_state = 8;
+                                                                                }
+                                                                              }
+                                                                            }
+#line 29
                                                                             __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
                                                                             {
 
@@ -555,15 +569,15 @@ int ssl3_accept(int initial_state )
                                                                             {
 
                                                                             {
-#line 33 "spec.work"
+#line 39 "spec.work"
                                                                             __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 34
+#line 40
                                                                             if (__MONITOR_STATE_state ==
                                                                                 1) {
-#line 35
+#line 41
                                                                               __MONITOR_STATE_state = 2;
                                                                             }
-#line 37
+#line 43
                                                                             __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
                                                                             {
 
@@ -614,15 +628,15 @@ int ssl3_accept(int initial_state )
                                                                               {
 
                                                                               {
-#line 47 "spec.work"
+#line 53 "spec.work"
                                                                               __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 48
+#line 54
                                                                               if (__MONITOR_STATE_state ==
                                                                                   2) {
-#line 49
+#line 55
                                                                                 __MONITOR_STATE_state = 6;
                                                                               }
-#line 51
+#line 57
                                                                               __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
                                                                               {
 
@@ -723,15 +737,15 @@ int ssl3_accept(int initial_state )
                                                                                         {
 
                                                                                         {
-#line 61 "spec.work"
+#line 67 "spec.work"
                                                                                         __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 62
+#line 68
                                                                                         if (__MONITOR_STATE_state ==
                                                                                             6) {
-#line 63
+#line 69
                                                                                           __MONITOR_STATE_state = 7;
                                                                                         }
-#line 65
+#line 71
                                                                                         __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
                                                                                         {
 
@@ -830,15 +844,15 @@ int ssl3_accept(int initial_state )
 #line 397
                                                                                   s__s3__tmp__cert_request = 1;
                                                                                   {
-#line 75 "spec.work"
+#line 81 "spec.work"
                                                                                   __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 76
+#line 82
                                                                                   if (__MONITOR_STATE_state ==
                                                                                       8) {
-#line 77
+#line 83
                                                                                     error_fn();
                                                                                   }
-#line 79
+#line 85
                                                                                   __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
                                                                                   {
 
@@ -1018,15 +1032,15 @@ int ssl3_accept(int initial_state )
                                                                             {
 
                                                                             {
-#line 89 "spec.work"
+#line 95 "spec.work"
                                                                             __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 90
+#line 96
                                                                             if (__MONITOR_STATE_state ==
                                                                                 5) {
-#line 91
+#line 97
                                                                               error_fn();
                                                                             }
-#line 93
+#line 99
                                                                             __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
                                                                             {
 
@@ -1079,27 +1093,13 @@ int ssl3_accept(int initial_state )
                                                                             {
 
                                                                             {
-#line 103 "spec.work"
+#line 109 "spec.work"
                                                                             __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 104
+#line 110
                                                                             if (__MONITOR_STATE_state ==
                                                                                 2) {
-#line 105
-                                                                              __MONITOR_STATE_state = 3;
-                                                                            } else {
-#line 107
-                                                                              if (__MONITOR_STATE_state ==
-                                                                                  4) {
-#line 108
-                                                                                __MONITOR_STATE_state = 5;
-                                                                              } else {
-#line 110
-                                                                                if (__MONITOR_STATE_state ==
-                                                                                    7) {
 #line 111
-                                                                                  __MONITOR_STATE_state = 8;
-                                                                                }
-                                                                              }
+                                                                              __MONITOR_STATE_state = 3;
                                                                             }
 #line 113
                                                                             __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
