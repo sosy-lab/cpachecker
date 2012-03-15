@@ -134,12 +134,76 @@ public class CallgraphClusterer extends AbstractGraphClusterer {
     return result;
   }
 
+  private static class NodeCalledBy {
+    String callerName;
+    CFANode calledNode;
+
+    public NodeCalledBy(CFANode pNode, String pCalledBy) {
+      this.calledNode = pNode;
+      this.callerName = pCalledBy;
+    }
+  }
+
+  private GraphData inlinedCallgraphFromCFA (CFA pCfa) {
+    GraphData result = new GraphData();
+
+    CFAFunctionDefinitionNode mainNode = pCfa.getMainFunction();
+    GraphVertex rootNode = new GraphVertex(mainNode.getFunctionName());
+    result.insertVertex(rootNode);
+
+    Set<CFAEdge> traveredEdges = new HashSet<CFAEdge>();
+    Deque<NodeCalledBy> toTraverse = new ArrayDeque<NodeCalledBy>();
+
+    toTraverse.add(new NodeCalledBy(mainNode, ""));
+
+    while (toTraverse.size() > 0) {
+      NodeCalledBy nodeCalledBy = toTraverse.removeFirst();
+      CFANode node = nodeCalledBy.calledNode;
+
+      int leavingEdges = node.getNumLeavingEdges();
+      for (int i=0; i<leavingEdges; i++) {
+        CFAEdge edge = node.getLeavingEdge(i);
+        if (traveredEdges.add(edge)) {
+          toTraverse.add(new NodeCalledBy(edge.getSuccessor(), node.getFunctionName()));
+
+          if (edge instanceof FunctionCallEdge) {
+            String callerFunctionName = nodeCalledBy.callerName;
+            String calledFunctionName = ((FunctionCallEdge) edge).getSuccessor().getFunctionName();
+            if (pCfa.getFunctionHead(calledFunctionName) != null) {
+
+              GraphVertex callerVertex = result.getVertexByName(callerFunctionName);
+              if (callerVertex == null) {
+                callerVertex = createCallGraphVertex(callerFunctionName);
+                result.insertVertex(callerVertex);
+              }
+
+              GraphVertex calledVertex = result.getVertexByName(calledFunctionName);
+              if (calledVertex == null) {
+                calledVertex = createCallGraphVertex(calledFunctionName);
+                result.insertVertex(calledVertex);
+              }
+
+              GraphEdge callEdge = new GraphEdge("CALL", callerVertex, calledVertex, 1);
+              result.insertEdge(callEdge);
+
+              System.out.println("CALL\t" + callerFunctionName + "\t" + calledFunctionName);
+            }
+          }
+        }
+      }
+    }
+
+    result.initGroups();
+
+    return result;
+  }
+
   /**
    * Build a call-graph out of a CFA.
    * @param pCfa  The CFA.
    * @return      GraphData that can be processed by CCVisu.
    */
-  private GraphData callgraphFromCFA2 (CFA pCfa) {
+  private GraphData callgraphFromCFA (CFA pCfa) {
     GraphData result = new GraphData();
 
     CFAFunctionDefinitionNode mainNode = pCfa.getMainFunction();
@@ -165,22 +229,22 @@ public class CallgraphClusterer extends AbstractGraphClusterer {
             String calledFunctionName = ((FunctionCallEdge) edge).getSuccessor().getFunctionName();
             if (pCfa.getFunctionHead(calledFunctionName) != null) {
 
+              // The node for the caller should already exist!
+              //  (this is not the case for functions that are called using
+              //  function pointers).
               GraphVertex callerVertex = result.getVertexByName(callerFunctionName);
-              if (callerVertex == null) {
-                callerVertex = createCallGraphVertex(callerFunctionName);
-                result.insertVertex(callerVertex);
+              if (callerVertex != null) {
+                GraphVertex calledVertex = result.getVertexByName(calledFunctionName);
+                if (calledVertex == null) {
+                  calledVertex = createCallGraphVertex(calledFunctionName);
+                  result.insertVertex(calledVertex);
+                }
+
+                GraphEdge callEdge = new GraphEdge("CALL", callerVertex, calledVertex, 1);
+                result.insertEdge(callEdge);
+
+                System.out.println("CALL\t" + callerFunctionName + "\t" + calledFunctionName);
               }
-
-              GraphVertex calledVertex = result.getVertexByName(calledFunctionName);
-              if (calledVertex == null) {
-                calledVertex = createCallGraphVertex(calledFunctionName);
-                result.insertVertex(calledVertex);
-              }
-
-              GraphEdge callEdge = new GraphEdge("CALL", callerVertex, calledVertex, 1);
-              result.insertEdge(callEdge);
-
-              System.out.println("CALL\t" + callerFunctionName + "\t" + calledFunctionName);
             }
           } else if (edge instanceof StatementEdge) {
   //            IASTStatement statement = ((StatementEdge) edge).getStatement();
@@ -195,63 +259,6 @@ public class CallgraphClusterer extends AbstractGraphClusterer {
     }
 
     result.initGroups();
-    assert(result.isGraphConnected("CALL"));
-
-    return result;
-  }
-
-  /**
-   * Build a call-graph out of a CFA.
-   * @param pCfa  The CFA.
-   * @return      GraphData that can be processed by CCVisu.
-   */
-  private GraphData callgraphFromCFA (CFA pCfa) {
-    GraphData result = new GraphData();
-
-    CFAFunctionDefinitionNode mainNode = pCfa.getMainFunction();
-    GraphVertex rootNode = new GraphVertex(mainNode.getFunctionName());
-    result.insertVertex(rootNode);
-
-    for (CFANode node : pCfa.getAllNodes()) {
-        int leavingEdges = node.getNumLeavingEdges();
-        for (int i=0; i<leavingEdges; i++) {
-          CFAEdge edge = node.getLeavingEdge(i);
-
-          if (edge instanceof FunctionCallEdge) {
-            String callerFunctionName = node.getFunctionName();
-            String calledFunctionName = ((FunctionCallEdge) edge).getSuccessor().getFunctionName();
-            if (pCfa.getFunctionHead(calledFunctionName) != null) {
-
-              GraphVertex callerVertex = result.getVertexByName(callerFunctionName);
-              if (callerVertex == null) {
-                callerVertex = createCallGraphVertex(callerFunctionName);
-                result.insertVertex(callerVertex);
-              }
-
-              GraphVertex calledVertex = result.getVertexByName(calledFunctionName);
-              if (calledVertex == null) {
-                calledVertex = createCallGraphVertex(calledFunctionName);
-                result.insertVertex(calledVertex);
-              }
-
-              GraphEdge callEdge = new GraphEdge("CALL", callerVertex, calledVertex, 1);
-              result.insertEdge(callEdge);
-
-              System.out.println("CALL\t" + callerFunctionName + "\t" + calledFunctionName);
-            }
-          } else if (edge instanceof StatementEdge) {
-//            IASTStatement statement = ((StatementEdge) edge).getStatement();
-//            if (statement instanceof IASTFunctionCall) {
-//              IASTFunctionCallExpression f = ((IASTFunctionCall)statement).getFunctionCallExpression();
-//              String functionName = f.getFunctionNameExpression().getRawSignature();
-//              System.out.println("Not added: " + functionName);
-//            }
-          }
-      }
-    }
-
-    result.initGroups();
-    assert(result.isGraphConnected("CALL"));
 
     return result;
   }
@@ -300,7 +307,7 @@ public class CallgraphClusterer extends AbstractGraphClusterer {
     }
 
     // Extract the call-graph.
-    GraphData graph = callgraphFromCFA2(pCfa);
+    GraphData graph = callgraphFromCFA(pCfa);
 
     // Prepare the options for the minimizer.
     org.sosy_lab.ccvisu.Options options = new org.sosy_lab.ccvisu.Options();
@@ -311,13 +318,21 @@ public class CallgraphClusterer extends AbstractGraphClusterer {
     // Maybe write the call graph to a file.
     writeGraph(options, graph, callGraphFile);
 
+    assert(graph.isGraphConnected("CALL"));
+
     // Run the minimizer to get a layout.
+    int tries = 5;
     Minimizer minimizer = new MinimizerBarnesHut(options);
-    try {
-      minimizer.minimizeEnergy();
-    } catch (InterruptedException e1) {
-      // Interruption should not occur in this case.
-    }
+    do {
+      try {
+        minimizer.minimizeEnergy();
+      } catch (Exception e) {
+        // Interruption should not occur in this case.
+        // Maybe a stack overflow occurs because of invalid positions.
+        graph.setNodesToRandomPositions(graph.getVertices(), 2);
+      }
+      tries = 0;
+    } while (tries-- > 0);
 
     // Maybe we should write the layout to a file.
     writeGraphLayout(options, graph, graphLayoutFile);
