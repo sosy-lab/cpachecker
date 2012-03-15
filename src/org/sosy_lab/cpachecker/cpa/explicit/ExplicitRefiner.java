@@ -384,6 +384,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     Precision precision                           = null;
     Multimap<CFANode, String> precisionIncrement  = null;
+    ARTElement interpolationPoint                 = null;
 
     if(useExplicitInterpolation) {
       precisionIncrement = determinePrecisionIncrement(extractExplicitPrecision(oldPrecision).getCegarPrecision());
@@ -394,16 +395,17 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       // create the mapping of CFA nodes to predicates, based on the counter example trace info
       PredicateMap predicateMap = new PredicateMap(pInfo.getPredicatesForRefinement(), errorPath);
 
-      // get the precision increment out of it
-      precisionIncrement = predicateMap.determinePrecisionIncrement(fmgr);
-
       if(refinePredicatePrecision) {
         numberOfPredicateRefinements++;
         precision = createPredicatePrecision(extractPredicatePrecision(oldPrecision), predicateMap);
+        interpolationPoint = predicateMap.firstInterpolationPoint.getFirst();
       }
 
       else {
         numberOfExplicitRefinements++;
+
+        // determine the precision increment
+        precisionIncrement = predicateMap.determinePrecisionIncrement(fmgr);
 
         ExplicitPrecision explicitPrecision = extractExplicitPrecision(oldPrecision);
 
@@ -418,7 +420,10 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       }
     }
 
-    ARTElement interpolationPoint = determineInterpolationPoint(errorPath, precisionIncrement);
+    // when predicate refinement is done, the interpolation point has been set already
+    // for explicit refinement it is done here
+    if(interpolationPoint == null)
+      interpolationPoint = determineInterpolationPoint(errorPath, precisionIncrement);
 
     return Pair.of(interpolationPoint, precision);
   }
@@ -433,14 +438,16 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     // use the first node where new information is present
     else {
-      for(Pair<ARTElement, CFANode> element : errorPath) {
-        if(precisionIncrement.containsKey(element.getSecond())) {
+      for(Pair<ARTElement, CFAEdge> element : path) {
+        if(precisionIncrement.containsKey(element.getSecond().getSuccessor())) {
           interpolationPoint = element.getFirst();
           break;
         }
       }
     }
 
+    //    if(interpolationPoint != null)
+      //System.out.println(errorPath);
     assert interpolationPoint != null;
 
     return interpolationPoint;
