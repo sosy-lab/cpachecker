@@ -226,10 +226,14 @@ public class CPAchecker {
   private CFA parse(String filename, MainCPAStatistics stats) throws InvalidConfigurationException, IOException,
       ParserException, InterruptedException {
     // parse file and create CFA
+
     CFACreator cfaCreator = new CFACreator(config, logger);
     stats.setCFACreator(cfaCreator);
 
-    return cfaCreator.parseFileAndCreateCFA(filename);
+    CFA result = cfaCreator.parseFileAndCreateCFA(filename);
+    stats.setCFA(result);
+
+    return result;
   }
 
   private void printConfigurationWarnings() {

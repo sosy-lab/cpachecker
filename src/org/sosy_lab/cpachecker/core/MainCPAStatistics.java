@@ -53,7 +53,9 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -217,6 +219,7 @@ class MainCPAStatistics implements Statistics {
     final Timer analysisTime = new Timer();
 
     private CFACreator cfaCreator;
+    private CFA cfa;
 
     public MainCPAStatistics(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
         logger = pLogger;
@@ -371,6 +374,81 @@ class MainCPAStatistics implements Statistics {
             out.println("Total process virtual memory: " + formatMem(memStats.maxProcess) + " max (" + formatMem(memStats.sumProcess/memStats.count) + " avg)");
           }
         }
+
+        printCfaStatistics(out, result, reached);
+    }
+
+    public void printCfaStatistics(PrintStream out, Result result, ReachedSet reached) {
+      out.println(String.format("CFA nodes: %d", this.cfa.getAllNodes().size()));
+      out.println(String.format("CFA Number of functions: %d", this.cfa.getNumberOfFunctions()));
+      int loops = 0;
+      if (this.cfa.getLoopStructure().isPresent()) {
+        loops = this.cfa.getLoopStructure().get().size();
+      }
+      out.println(String.format("CFA Number of loops: %d", loops));
+
+      int branchCount = 0;
+      int assumeEdges = 0;
+      int blankEdges = 0;
+      int callToReturnEdges = 0;
+      int declarationEdges = 0;
+      int functionCallEdges = 0;
+      int functionReturnEdges = 0;
+      int returnStatementEdges = 0;
+      int statementEdges = 0;
+      int edgeCount = 0;
+      int strictTopoBackEdges = 0;
+      int sparseTopoBackEdges = 0;
+      int loopStarts = 0;
+
+      for (CFANode node : cfa.getAllNodes()) {
+
+        int numberOfLeavingEdges = node.getNumLeavingEdges();
+        if (numberOfLeavingEdges > 1) {
+          branchCount++;
+        }
+        if (node.isLoopStart()) {
+          loopStarts++;
+        }
+        for (int i=0; i<numberOfLeavingEdges; i++) {
+          CFAEdge outgoingEdge = node.getLeavingEdge(i);
+          switch(outgoingEdge.getEdgeType()) {
+            case AssumeEdge: assumeEdges++; break;
+            case BlankEdge: blankEdges++; break;
+            case CallToReturnEdge: callToReturnEdges++; break;
+            case DeclarationEdge: declarationEdges++; break;
+            case FunctionCallEdge: functionCallEdges++; break;
+            case FunctionReturnEdge: functionReturnEdges++; break;
+            case ReturnStatementEdge: returnStatementEdges++; break;
+            case StatementEdge: statementEdges++; break;
+          }
+          edgeCount++;
+          if (outgoingEdge.getSuccessor() != null) {
+            if (outgoingEdge.getSuccessor().getStrictTopoSortId() < node.getStrictTopoSortId()) {
+              strictTopoBackEdges++;
+            }
+            if (outgoingEdge.getSuccessor().getSparseTopoSortId() < node.getSparseTopoSortId()) {
+              sparseTopoBackEdges++;
+            }
+
+          }
+        }
+      }
+
+      out.println(String.format("CFA number of branches: %d", branchCount));
+      out.println(String.format("CFA number of assumes: %d", assumeEdges));
+      out.println(String.format("CFA number of blank edges: %d", blankEdges));
+      out.println(String.format("CFA number of return call edges: %d", callToReturnEdges));
+      out.println(String.format("CFA number of declaration edges: %d", declarationEdges));
+      out.println(String.format("CFA number of function call edges: %d", functionCallEdges));
+      out.println(String.format("CFA number of function return edges: %d", functionReturnEdges));
+      out.println(String.format("CFA number of return statement edges: %d", returnStatementEdges));
+      out.println(String.format("CFA number of statement edges: %d", statementEdges));
+      out.println(String.format("CFA number of edges: %d", edgeCount));
+      out.println(String.format("CFA number of back edges: %d", strictTopoBackEdges));
+      out.println(String.format("CFA number of sparse back edges: %d", sparseTopoBackEdges));
+      out.println(String.format("CFA number of loop starts: %d", loopStarts));
+
     }
 
     private static String formatMem(long mem) {
@@ -380,5 +458,9 @@ class MainCPAStatistics implements Statistics {
     public void setCFACreator(CFACreator pCfaCreator) {
       Preconditions.checkState(cfaCreator == null);
       cfaCreator = pCfaCreator;
+    }
+
+    public void setCFA(CFA pCfa) {
+      this.cfa = pCfa;
     }
 }
