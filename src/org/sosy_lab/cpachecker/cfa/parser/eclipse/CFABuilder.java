@@ -127,7 +127,7 @@ class CFABuilder extends ASTVisitor {
 
       // add forward declaration to list of global declarations
       org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration functionDefinition = astCreator.convert(fd);
-      if (astCreator.existsSideAssignment()) {
+      if (astCreator.numberOfSideAssignments() > 0) {
         throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
       }
 
@@ -163,7 +163,7 @@ class CFABuilder extends ASTVisitor {
     final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
 
-    if (astCreator.existsSideAssignment()) {
+    if (astCreator.numberOfSideAssignments() > 0) {
       throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
     }
 

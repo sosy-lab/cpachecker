@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.eclipse.cdt.core.dom.ast.IASTConditionalExpression;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -106,6 +107,8 @@ class ASTConverter {
 
   private Scope scope;
   private LinkedList<IASTNode> sideAssignments = new LinkedList<IASTNode>();
+  private org.eclipse.cdt.core.dom.ast.IASTConditionalExpression conditionalExpression = null;
+  private IASTIdExpression conditionalTemporaryVariable = null;
 
   public ASTConverter(Scope pScope, boolean pIgnoreCasts, LogManager pLogger) {
     scope = pScope;
@@ -119,12 +122,24 @@ class ASTConverter {
     }
   }
 
-  public boolean existsSideAssignment(){
-    return !sideAssignments.isEmpty();
+  public int numberOfSideAssignments(){
+    return sideAssignments.size();
   }
 
   public IASTNode getNextSideAssignment() {
     return sideAssignments.removeFirst();
+  }
+
+  public void resetConditionalExpression() {
+    conditionalExpression = null;
+  }
+
+  public org.eclipse.cdt.core.dom.ast.IASTConditionalExpression getConditionalExpression() {
+    return conditionalExpression;
+  }
+
+  public IASTIdExpression getConditionalTemporaryVariable() {
+    return conditionalTemporaryVariable;
   }
 
   private static final Set<BinaryOperator> BOOLEAN_BINARY_OPERATORS = ImmutableSet.of(
@@ -224,11 +239,20 @@ class ASTConverter {
     } else if (e instanceof org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression)e);
 
+    } else if (e instanceof org.eclipse.cdt.core.dom.ast.IASTConditionalExpression) {
+      return convert((org.eclipse.cdt.core.dom.ast.IASTConditionalExpression)e);
+
     } else {
       throw new CFAGenerationRuntimeException("", e);
     }
   }
 
+  private IASTNode convert(IASTConditionalExpression e) {
+    IASTIdExpression tmp = createTemporaryVariable(e);
+    conditionalTemporaryVariable = tmp;
+    conditionalExpression = e;
+    return tmp;
+  }
 
   private IASTArraySubscriptExpression convert(org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression e) {
     return new IASTArraySubscriptExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getArrayExpression()), convertExpressionWithoutSideEffects(e.getSubscriptExpression()));
