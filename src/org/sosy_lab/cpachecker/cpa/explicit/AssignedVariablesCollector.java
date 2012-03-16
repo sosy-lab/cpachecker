@@ -84,8 +84,9 @@ public class AssignedVariablesCollector {
 
     case DeclarationEdge:
       IASTDeclaration declaration = ((DeclarationEdge)edge).getDeclaration();
-      if(declaration.isGlobal()) {
+      if(declaration.getName() != null && declaration.isGlobal()) {
         globalVars.add(declaration.getName());
+        pCollectedVars.put(edge, new ReferencedVariable(declaration.getName(), false, false, null));
       }
       break;
 

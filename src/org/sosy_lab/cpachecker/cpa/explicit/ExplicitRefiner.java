@@ -116,7 +116,13 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   boolean useExplicitInterpolation                          = false;
 
   @Option(description="whether or not to use the top most interpolation point")
-  boolean useTopMostInterpolationPoint                      = false;
+  boolean useTopMostInterpolationPoint                      = true;
+
+  @Option(description="whether or not to remove important variables again")
+  boolean removeImportantVariables                          = true;
+
+  @Option(description="whether or not to skip counter-example checks of variables that already are in the precision")
+  boolean skipRedundantChecks                               = true;
 
   // statistics for explicit refinement
   private int numberOfExplicitRefinements                   = 0;
@@ -216,25 +222,30 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     Multimap<CFAEdge, ReferencedVariable> referencedVariableMapping = determineReferencedVariableMapping(cfaTrace);
 
-    for(Pair<ARTElement, CFAEdge> pathElement : path){
+    for(int i = 0; i < path.size(); i++){
+      //for(int i = path.size() - 1; i > 0; i--){
+
+      Pair<ARTElement, CFAEdge> pathElement = path.get(i);
       numberOfErrorPathElements++;
 
       boolean feasible = false;
 
       Collection<ReferencedVariable> referencedVariablesAtEdge = referencedVariableMapping.get(pathElement.getSecond());
-/*
-      int tracked = 0;
-      // if all variables are already part of the precision, nothing more to do here
-      for(ReferencedVariable var : referencedVariablesAtEdge) {
-        if(precision.allowsTrackingAt(pathElement.getSecond().getSuccessor(), var.getName())) {
-          tracked++;
+
+      if(skipRedundantChecks) {
+        int tracked = 0;
+        // if all variables are already part of the precision, nothing more to do here
+        for(ReferencedVariable var : referencedVariablesAtEdge) {
+          if(precision.allowsTrackingAt(pathElement.getSecond().getSuccessor(), var.getName())) {
+            tracked++;
+          }
+        }
+
+        if(tracked != 0) {
+          continue;
         }
       }
 
-      if(tracked != 0) {
-        continue;
-      }
-*/
       if(!referencedVariablesAtEdge.isEmpty()) {
         numberOfCounterExampleChecks++;
 
@@ -263,7 +274,8 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
         // ... add the "important" variables to the precision increment, and remove them from the irrelevant ones
         for(ReferencedVariable importantVariable : referencedVariablesAtEdge) {
           increment.put(pathElement.getSecond().getSuccessor(), importantVariable.getName());
-          irrelevantVariables.remove(importantVariable);
+          if(removeImportantVariables)
+            irrelevantVariables.remove(importantVariable);
         }
       }
     }
@@ -282,6 +294,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     // check if there was progress
     if (!hasMadeProgress()) {
+      System.out.println(path);
       throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
     }
 
