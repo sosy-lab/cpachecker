@@ -1,0 +1,231 @@
+/*
+NodeLL(builtin_plus(?y, numeric_const("8")), ?z) ~~> NodeLL(builtin_plus(?y, numeric_const("8")), ?z)
+*/
+
+
+/*************************************
+ * Simple subtraction rules from TACAS 2006 paper
+ *************************************/
+
+
+/****************numeric_const("0") rules******************/
+
+/*
+abstraction nil_neq_remove_nodell :
+  ?x != numeric_const("0") * NodeLL(?x,?y)
+~~>
+ NodeLL(?x,?y) 
+
+abstraction nil_neq_remove_field :
+  ?x != numeric_const("0") * field(?x,?f,?y) 
+~~>
+  field(?x,?f,?y) 
+
+abstraction nil_neq_remove_ls :
+  ?x != numeric_const("0") * ls(?x,?y) 
+~~>
+  ls(?x,?y) 
+*/
+
+/*************** Junk Rules *******************/
+
+abstraction garbage_garbage :
+ Garbage() * Garbage() 
+~~>
+ Garbage()
+
+
+
+abstraction gb1_ls :
+ls(_x,?e) ~~> Garbage()
+where 
+   _x notincontext 
+
+
+
+abstraction gb1_pto :
+ NodeLL(_x,?e) * NodeLL(builtin_plus(_x, numeric_const("8")), ?f) ~~> Garbage()
+where 
+   _x notincontext
+
+
+abstraction gb2_ls_ls:
+ ls(_x,_y) * ls(_y,_x) ~~> Garbage()
+where 
+   _x,_y notincontext
+
+
+
+abstraction gb2_ls_pto:
+ ls(_x,_y) * NodeLL(_y,_x) * NodeLL(builtin_plus(_y, numeric_const("8")), ?f) * NodeLL(builtin_plus(_x, numeric_const("8")), ?g) ~~> Garbage()
+where 
+   _x,_y notincontext
+
+
+
+abstraction gb2_pto_pto:
+ NodeLL(_x,_y) * NodeLL(_y,_x) * NodeLL(builtin_plus(_x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(_y, numeric_const("8")), ?dy) ~~> Garbage()
+where 
+   _x,_y notincontext
+
+
+
+/*************** End Junk Rules *******************/
+
+
+/*************** Abs1 Rule *******************/
+abstraction ls_ls:
+ ls(?x,_x) * ls(?y, numeric_const("0")) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(?y, numeric_const("8")), ?dex) ~~> ls(?x,numeric_const("0")) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx)
+ where 
+  _x notincontext;
+  _x notin ?x  ;
+  ?dx = ?dex pureguard 
+
+
+
+abstraction ls_pto:
+ ls(?x,_x) * NodeLL(_x,numeric_const("0")) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(_x, numeric_const("8")), ?dex) ~~>  ls(?x,numeric_const("0"))  * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx)
+where 
+  _x notincontext;
+  _x notin ?x;
+  ?dx = ?dex pureguard
+
+
+
+abstraction pto_ls:
+ NodeLL(?x,_x) * ls(_x,numeric_const("0")) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(_x, numeric_const("8")), ?dex) ~~> ls(?x,numeric_const("0")) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx)
+where 
+  _x notincontext;
+  _x notin ?x;
+  ?dx = ?dex pureguard
+
+
+
+abstraction pto_pto:
+ NodeLL(?x,_x) * NodeLL(_x,numeric_const("0")) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(_x, numeric_const("8")), ?dex) ~~> ls(?x,numeric_const("0")) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx)
+where 
+  _x notincontext;
+  _x notin ?x;
+  ?dx = ?dex pureguard
+
+abstraction pto_pto_2:
+ NodeLL(?x,_x) * NodeLL(_x,_y) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(_x, numeric_const("8")), ?dex) ~~> ls(?x,_y) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx)
+where 
+  _x notincontext;
+  _x notin ?x;
+  ?dx = ?dex pureguard;
+  _y notin ?x
+
+
+/*************** End Abs1 Rule *******************/
+
+
+
+/*************** Abs2 Rule *******************/
+abstraction ls_ls_ls:
+ ls(?x,_x) * ls(_x,?y) * ls(?y,?z) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(_x, numeric_const("8")), ?dex) * NodeLL(builtin_plus(?y, numeric_const("8")), ?dy) ~~> ls(?x,?y) * ls(?y,?z) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(?y, numeric_const("8")), ?dy)
+where 
+  _x notincontext;
+  _x notin ?x;
+  _x notin ?y;
+  _x notin ?z;
+  ?dx = ?dex pureguard
+
+
+
+abstraction ls_ls_pto:
+ ls(?x,_x) * ls(_x,?y) * NodeLL(?y,?z) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(_x, numeric_const("8")), ?dex) * NodeLL(builtin_plus(?y, numeric_const("8")), ?dy) ~~> ls(?x,?y) * NodeLL(?y,?z) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(?y, numeric_const("8")), ?dy)
+where 
+  _x notincontext;
+  _x notin ?x;
+  _x notin ?y;
+  _x notin ?z;
+  ?dx = ?dex pureguard
+
+
+
+abstraction ls_pto_ls:
+ ls(?x,_x) * NodeLL(_x,?y) * ls(?y,?z) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(_x, numeric_const("8")), ?dex) * NodeLL(builtin_plus(?y, numeric_const("8")), ?dy)  ~~> ls(?x,?y) * ls(?y,?z) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(?y, numeric_const("8")), ?dy)
+where 
+    _x notincontext;
+  _x notin ?x;
+  _x notin ?y;
+  _x notin ?z;
+  ?dx = ?dex pureguard
+
+
+
+
+abstraction ls_pto_pto:
+ ls(?x,_x) * NodeLL(_x,?y) * NodeLL(?y,?z) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(_x, numeric_const("8")), ?dex) * NodeLL(builtin_plus(?y, numeric_const("8")), ?dy) ~~> ls(?x,?y) * NodeLL(?y,?z) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(?y, numeric_const("8")), ?dy)
+where 
+  _x notincontext;
+  _x notin ?x;
+  _x notin ?y;
+  _x notin ?z;
+  ?dx = ?dex pureguard
+
+
+abstraction pto_ls_ls:
+ NodeLL(?x,_x) * ls(_x,?y) * ls(?y,?z) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(_x, numeric_const("8")), ?dex) * NodeLL(builtin_plus(?y, numeric_const("8")), ?dy) ~~> ls(?x,?y)  * ls(?y,?z) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(?y, numeric_const("8")), ?dy)
+where 
+  _x notincontext;
+  _x notin ?x;
+  _x notin ?y;
+  _x notin ?z;
+  ?dx = ?dex pureguard
+
+
+
+abstraction pto_ls_pto:
+ NodeLL(?x,_x) * ls(_x,?y) * NodeLL(?y,?z) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(_x, numeric_const("8")), ?dex) * NodeLL(builtin_plus(?y, numeric_const("8")), ?dy) ~~> ls(?x,?y)  * NodeLL(?y,?z) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(?y, numeric_const("8")), ?dy)
+where 
+  _x notincontext;
+  _x notin ?x;
+  _x notin ?y;
+  _x notin ?z;
+  ?dx = ?dex pureguard
+
+
+
+abstraction pto_pto_ls:
+ NodeLL(?x,_x) * NodeLL(_x,?y) * ls(?y,?z) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(_x, numeric_const("8")), ?dex) * NodeLL(builtin_plus(?y, numeric_const("8")), ?dy)  ~~> ls(?x,?y) * ls(?y,?z) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(?y, numeric_const("8")), ?dy)
+where 
+  _x notincontext;
+  _x notin ?x;
+  _x notin ?y;
+  _x notin ?z;
+  ?dx = ?dex pureguard
+
+
+
+
+abstraction pto_pto_pto:
+ NodeLL(?x,_x) * NodeLL(_x,?y) * NodeLL(?y,?z) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(_x, numeric_const("8")), ?dex) * NodeLL(builtin_plus(?y, numeric_const("8")), ?dy) ~~> ls(?x,?y) * NodeLL(?y,?z) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) * NodeLL(builtin_plus(?y, numeric_const("8")), ?dy)
+where 
+  _x notincontext;
+  _x notin ?x;
+  _x notin ?y;
+  _x notin ?z;
+  ?dx = ?dex pureguard
+
+
+
+/*************************************
+ *  Empty rules
+ ***********************************
+rule NodeLL_nil2:
+NodeLL(numeric_const("0"),?x) | |- 
+if
+
+rule NodeLL_not_nil:
+NodeLL(?x,?y) | ?x!=numeric_const("0") |-
+if
+| |-
+
+rule NodeLL_not_eq:
+NodeLL(?x,?y) * NodeLL(?z,?w) | ?x!=?z |-
+if
+| |-
+*/
+/*************** End Abs2 Rule *******************/

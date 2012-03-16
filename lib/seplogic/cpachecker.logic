@@ -1,0 +1,249 @@
+import "field_logic";
+/* import "boolean_logic"; */
+import "builtin_plus_logic";
+
+rule nc_eq_left:
+	| numeric_const(?x) = numeric_const(?y) |-
+without
+ 	?x = ?y
+if
+	| ?x = ?y |-
+
+rule ls_unroll_data :
+| NodeLL(?x,?y) * data(?x, ?dx) |- 
+if
+| NodeLL(?x,?y) * NodeLL(builtin_plus(?x, numeric_const("8")), ?dx) |- 
+
+/***************************************
+ *  This file defines 
+ *
+ *  NodeLL
+ *  ls
+ *  lspe
+ *
+ ***************************************/
+
+
+rule NodeLL_not_nil:
+  NodeLL(numeric_const("0"),?y) | |-
+if
+
+/*
+rule NodeLL_not_nil2nd:
+   | NodeLL(builtin_plus(?x, numeric_const("8")),?y) * ?x = numeric_const("0") |-
+if
+  | |-
+*/
+
+rule ls_not_nil:
+  ls(numeric_const("0"),?y) | |-
+if
+
+rule lspe_not_nil:
+  lspe(numeric_const("0"),?y) | |-
+if
+  | ?y=numeric_const("0") |-
+
+
+rule NodeLL_not_nil:
+  NodeLL(?x,?y) | |- ?x!=numeric_const("0")
+if
+  | |-
+
+rule NodeLL_not_eq:
+  NodeLL(?x,?y) * NodeLL(?x,?w) | |-
+if
+
+
+
+
+/*************************************
+ * Rule for unpacking Nodell 
+ *
+ *  These rules could potentially cycle forever
+ *  but due to their order cannot.
+ *************************************/
+
+//Unroll NodeLL if we are looking for its next field
+rule field_remove1a:
+  |   NodeLL(?x,?e1) |-  field(?x,"<NodeLL: NodeLL next>",?e2) 
+if
+  field(?x,"<NodeLL: NodeLL next>",?e1) | field(?x,"<NodeLL: java.lang.String content>",_w) |-  ?e1=?e2 
+
+//Unroll NodeLL if we are looking for its content field
+rule field_remove1b:
+  | NodeLL(?x,?e1) |- field(?x,"<NodeLL: java.lang.String content>",?e2) 
+if
+  field(?x,"<NodeLL: java.lang.String content>",w) |  field(?x,"<NodeLL: NodeLL next>",?e1) |-  w=?e2
+
+
+//Roll up a complete NodeLL if we have both fields.
+rule field_remove2:
+  | field(?x,"<NodeLL: NodeLL next>",?e1) * field(?x,"<NodeLL: java.lang.String content>",?z) |- 
+if
+  | NodeLL(?x,?e1) |-  
+
+
+
+
+
+/*************************************
+ * Simple subtraction rules 
+ *************************************/
+
+/*
+rule exists_not_equal : 
+ | |- _x != ?y
+where 
+  _x notincontext;
+  _x notin ?y
+if
+ | |- 
+*/
+
+rule NodeLL_match_exists_first:
+  | NodeLL(?y, ?x) |- NodeLL(?z, ?x)
+without
+  ?y != ?z
+if
+  NodeLL(?y, ?x) | |- ?y = ?z
+
+rule NodeLL_match_exists_second:
+  | NodeLL(?x, ?y) |- NodeLL(?x, ?z)
+without
+  ?y != ?z
+if
+  NodeLL(?x, ?y) |  |- ?y = ?z
+
+rule ls_match_exists_first:
+  | ls(?y, ?x) |- ls(?z, ?x)
+without
+  ?y != ?z
+if
+  ls(?y, ?x) | |-
+
+rule ls_match_exists_second:
+  | ls(?x, ?y) |- ls(?x, ?z)
+without
+  ?y != ?z
+if
+  ls(?x, ?y) | |-
+
+  
+rule NodeLL_ls_match_exists_first:
+  | NodeLL(?y, ?x) |- ls(?z, ?x)
+if
+  NodeLL(?y, ?x) | |- lspe(?z, ?y)
+
+rule NodeLL_match_exists_second:
+  | NodeLL(?x, ?y) |- ls(?x, ?z)
+if
+  NodeLL(?x, ?y) | |- lspe(?y, ?z)
+  
+rule ls_NodeLL_match_exists_first:
+  | ls(?y, ?x) |- NodeLL(?z, ?x)
+if
+  NodeLL(?z, ?x) | lspe(?y, ?z) |-
+
+rule ls_NodeLL_match_exists_second:
+  | ls(?x, ?y) |- NodeLL(?x, ?z)
+if
+  NodeLL(?x, ?z) | lspe(?z, ?y) |-  
+
+  
+rule ls_unroll_exists_left :
+| ls(?x,?y) |- field(?x,?w,?Z)
+if
+| NodeLL(?x,_fooz) * lspe(_fooz,?y) |- field(?x,?w,?Z)
+
+rule ls_unroll2_exists_left :
+| ls(?x,?y) |- NodeLL(?x,?z)
+if
+| NodeLL(?x,_fooz) * lspe(_fooz,?y) |- NodeLL(?x,?z)
+
+rule ls_unroll_exists_right :
+| field(?x,?w,?Z) |- ls(?x,?y)
+if
+| field(?x,?w,?Z) |- NodeLL(?x,_fooz) * lspe(_fooz,?y)
+
+rule ls_unroll2_exists_right :
+| NodeLL(?x,?z) |- ls(?x,?y)
+if
+| NodeLL(?x,?z) |- NodeLL(?x,_fooz) * lspe(_fooz,?y)
+
+
+rule ls_ls_match :
+  ls(?z,?w) | ls(?x,?y) |- ls(?x,?z)
+if
+  ls(?x,?y) | |- lspe(?y,?z)
+
+rule ls_NodeLL_match :
+  NodeLL(?z,?w) | ls(?x,?y) |- ls(?x,?z)
+if
+  ls(?x,?y) | |- lspe(?y,?z)
+
+rule ls_field_match :
+  field(?z,?f,?w) | ls(?x,?y) |- ls(?x,?z)
+if
+  ls(?x,?y) | |- lspe(?y,?z)
+
+
+
+rule nl_ls_match :
+  ls(?z,?w) | NodeLL(?x,?y) |- ls(?x,?z)
+if
+  NodeLL(?x,?y) | |- lspe(?y,?z)
+
+rule nl_NodeLL_match :
+  NodeLL(?z,?w) | NodeLL(?x,?y) |- ls(?x,?z)
+if
+  NodeLL(?x,?y) | |- lspe(?y,?z)
+
+rule nl_field_match :
+  field(?z,?f,?w) | NodeLL(?x,?y) |- ls(?x,?z)
+if
+  ls(?x,?y) | |- lspe(?y,?z)
+
+
+
+
+rule lspe_left :
+  | lspe(?x,?y) |- 
+if
+  | ls(?x,?y) |-
+or
+  | ?x=?y |- 
+
+
+rule lspe_right :
+  | |- lspe(?x,?y) 
+if
+  | |- ls(?x,?y) 
+or
+  | |- ?x=?y 
+
+
+/*************************************
+ * rules for contradictions 
+ *************************************/
+rule ls_field_contradiction1 :
+ls(?x,?t) * field(?x,"<NodeLL: NodeLL next>",?z) | |- 
+if
+
+rule ls_field_contradiction2 :
+ls(?x,?t) * field(?x,"<NodeLL: java.lang.String content>",?z) | |- 
+if
+
+rule ls_node_contradiction :
+ls(?x,?t) * NodeLL(?x,?z) | |- 
+if
+
+rule ls_ls_contr :
+ls(?x,?t) * ls(?x,?z) | |-
+if
+
+rule ls_ls_contr :
+ | |- ls(?x,?t) * ls(?x,?z)
+if
+ | |- x!=x 
+
