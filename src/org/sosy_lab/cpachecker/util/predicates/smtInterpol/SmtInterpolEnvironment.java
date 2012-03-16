@@ -429,8 +429,13 @@ public class SmtInterpolEnvironment implements Script {
   }
 
   @Override
-  public Term decimal(String decimal) {
-    throw new UnsupportedOperationException();
+  public Term decimal(String num) {
+    try {
+      return script.decimal(num);
+    } catch (SMTLIBException e) {
+      e.printStackTrace();
+      return null;
+    }
   }
 
   @Override

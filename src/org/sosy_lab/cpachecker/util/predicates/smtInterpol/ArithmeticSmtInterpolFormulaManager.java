@@ -113,8 +113,8 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
   }
 
   @Override
-  public Formula makeNumber(String i) { // TODO test: only Integers or more?
-    return encapsulate(env.numeral(i));
+  public Formula makeNumber(String i) {
+    return encapsulate(env.decimal(i));
   }
 
   @Override
