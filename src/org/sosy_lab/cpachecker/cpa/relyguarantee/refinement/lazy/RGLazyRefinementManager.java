@@ -323,7 +323,7 @@ public class RGLazyRefinementManager {
       if (isDataRefinement){
         prec = mergeDataPrecision(readdMap.get(parent), parent, reachedSets);
       } else {
-        prec = mergeLocationPrecision(parent, readdMap.get(parent), reachedSets);
+        prec = mergeLocationPrecision(readdMap.get(parent), parent, reachedSets);
       }
       Integer tid = parent.getTid();
       Pair<Integer, ARTElement> pair = Pair.of(tid, parent);
@@ -331,6 +331,106 @@ public class RGLazyRefinementManager {
     }
 
     return precisionToAdjust;
+  }
+
+
+  /**
+   * Merges data and location precision of arguments and addits to the existing
+   * precision of the element.
+   * @param set
+   * @param parent
+   * @param reachedSets
+   * @return
+   * @throws RefinementFailedException
+   */
+  private Precision mergeLocationPrecision(Set<DataPivot> set, ARTElement parent,
+      ARTReachedSet[] reachedSets) throws RefinementFailedException {
+
+    Builder<CFANode, AbstractionPredicate> artMapBldr =
+        ImmutableSetMultimap.<CFANode, AbstractionPredicate>builder();
+    com.google.common.collect.ImmutableSet.Builder<AbstractionPredicate> artGlobalBldr =
+        ImmutableSet.<AbstractionPredicate>builder();
+    Builder<CFANode, AbstractionPredicate> envMapBldr =
+        ImmutableSetMultimap.<CFANode, AbstractionPredicate>builder();
+    com.google.common.collect.ImmutableSet.Builder<AbstractionPredicate> envGlobalBldr =
+        ImmutableSet.<AbstractionPredicate>builder();
+    Builder<Path, Pair<CFANode, CFANode>> mismatchBldr =
+        ImmutableSetMultimap.<Path, Pair<CFANode, CFANode>>builder();
+
+    // add old precision for the elements
+    ARTPrecision aprec = (ARTPrecision) reachedSets[parent.getTid()].getPrecision(parent);
+    RGPrecision rgprec = Precisions.extractPrecisionByType(aprec, RGPrecision.class);
+
+    artMapBldr    = artMapBldr.putAll(rgprec.getARTPredicateMap());
+    artGlobalBldr = artGlobalBldr.addAll(rgprec.getARTGlobalPredicates());
+    envMapBldr    = envMapBldr.putAll(rgprec.getEnvPredicateMap());
+    envGlobalBldr = envGlobalBldr.addAll(rgprec.getEnvGlobalPredicates());
+    mismatchBldr  = mismatchBldr.putAll(aprec.getLocationMapping().getMismatchesForPath());
+
+
+    for (DataPivot piv : set){
+
+      if (this.addPredicatesGlobally){
+        artGlobalBldr = artGlobalBldr.addAll(piv.getArtPredicateMap().values());
+      } else {
+        artMapBldr    = artMapBldr.putAll(piv.getArtPredicateMap());
+      }
+
+      artGlobalBldr   = artGlobalBldr.addAll(piv.getArtGlobalPredicates());
+
+      if (this.addEnvPredicatesGlobally){
+        envGlobalBldr = envGlobalBldr.addAll(piv.getEnvPredicatesMap().values());
+      } else {
+        envMapBldr    = envMapBldr.putAll(piv.getEnvPredicatesMap());
+      }
+
+      envGlobalBldr   = envGlobalBldr.addAll(piv.getEnvGlobalPredicates());
+
+
+      mismatchBldr  = mismatchBldr.putAll(piv.getMismatchesPerPath());
+    }
+
+    RGLocationMapping newLM = locrefManager.monotonicLocationMapping(mismatchBldr.build(), parent.getTid());
+    ARTPrecision newARTPrec = new ARTPrecision(newLM, aprec.getWrappedPrecision());
+    RGPrecision newRgPrec = new RGPrecision(artMapBldr.build(), artGlobalBldr.build(),
+        envMapBldr.build(), envGlobalBldr.build());
+    Precision result = newARTPrec.replaceWrappedPrecision(newRgPrec, RGPrecision.class);
+    assert result != null;
+
+    return result;
+  }
+
+  /**
+   * Builds precision by merging location mistmatches for the arguments and creating
+   * new location mapping out of it.
+   * @param elem
+   * @param set
+   * @param reachedSets
+   * @return
+   * @throws RefinementFailedException
+   */
+  private Precision mergeLocationPrecision2(Set<DataPivot> set, ARTElement elem,
+      ARTReachedSet[] reachedSets) throws RefinementFailedException {
+
+    Builder<Path, Pair<CFANode, CFANode>> bldr = ImmutableSetMultimap.<Path, Pair<CFANode, CFANode>>builder();
+
+    Integer tid = null;
+    for (DataPivot piv : set){
+
+      if (tid == null){
+        tid = piv.getTid();
+      } else {
+        assert tid.equals(piv.getTid());
+      }
+
+      bldr = bldr.putAll(piv.getMismatchesPerPath());
+    }
+
+    ARTPrecision oldPrec = (ARTPrecision) reachedSets[tid].getPrecision(elem);
+    RGLocationMapping newLM = locrefManager.monotonicLocationMapping(bldr.build(), tid);
+    ARTPrecision newPrec = new ARTPrecision(newLM, oldPrec.getWrappedPrecision());
+
+    return newPrec;
   }
 
 
@@ -389,37 +489,7 @@ public class RGLazyRefinementManager {
     return prec;
   }
 
-  /**
-   * Builds precision by merging location mistmatches for the arguments and creating
-   * new location mapping out of it.
-   * @param elem
-   * @param set
-   * @param reachedSets
-   * @return
-   * @throws RefinementFailedException
-   */
-  private Precision mergeLocationPrecision(ARTElement elem, Set<DataPivot> set, ARTReachedSet[] reachedSets) throws RefinementFailedException {
 
-    Builder<Path, Pair<CFANode, CFANode>> bldr = ImmutableSetMultimap.<Path, Pair<CFANode, CFANode>>builder();
-
-    Integer tid = null;
-    for (DataPivot piv : set){
-
-      if (tid == null){
-        tid = piv.getTid();
-      } else {
-        assert tid.equals(piv.getTid());
-      }
-
-      bldr = bldr.putAll(piv.getMismatchesPerPath());
-    }
-
-    ARTPrecision oldPrec = (ARTPrecision) reachedSets[tid].getPrecision(elem);
-    RGLocationMapping newLM = locrefManager.monotonicLocationMapping(bldr.build(), tid);
-    ARTPrecision newPrec = new ARTPrecision(newLM, oldPrec.getWrappedPrecision());
-
-    return newPrec;
-  }
 
 
 
