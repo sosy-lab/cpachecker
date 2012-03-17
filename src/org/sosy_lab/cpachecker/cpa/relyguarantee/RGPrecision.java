@@ -127,6 +127,10 @@ import com.google.common.collect.ImmutableSetMultimap.Builder;
       return envGlobalPredicates;
     }
 
+    public  ImmutableSet<AbstractionPredicate> getEnvPredicates(CFANode pLoc) {
+      return this.envPredicateMap.get(pLoc);
+    }
+
     /**
      * Constructs a precision that contains all predicates from argument precisions.
      * @return
@@ -226,6 +230,8 @@ import com.google.common.collect.ImmutableSetMultimap.Builder;
 
       return bldr.build();
     }
+
+
 
 
 

@@ -227,11 +227,12 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
       predicates = ImmutableSet.of();
     }
     // TODO make-shift solution
-    this.topElement = new RGAbstractElement.AbstractionElement(absManager.makeTrueAbstractionFormula(null), pfManager.makeEmptyPathFormula(), pfManager.makeEmptyPathFormula(), pfManager.makeEmptyPathFormula(), ImmutableMap.<Integer, RGEnvTransition>of());
-    this.transfer.setData(pcfa.getCfa(tid));
     ImmutableSetMultimap<CFANode,AbstractionPredicate> emptyMultimap =
         ImmutableSetMultimap.<CFANode, AbstractionPredicate>of();
     this.initialPrecision= new RGPrecision(emptyMultimap, predicates, emptyMultimap, ImmutableSet.<AbstractionPredicate>of());
+    this.topElement = new RGAbstractElement.AbstractionElement(absManager.makeTrueAbstractionFormula(null), pfManager.makeEmptyPathFormula(), pfManager.makeEmptyPathFormula(), pfManager.makeEmptyPathFormula(), ImmutableMap.<Integer, RGEnvTransition>of(), this.initialPrecision);
+    this.transfer.setData(pcfa.getCfa(tid));
+
     this.envManager = envManager;
 
     this.locrefManager = RGLocationRefinementManager.getInstance(fManager, pfManager, etManager, absManager, ssaManager, thmProver, rManager, envManager, pcfa, config, logger);

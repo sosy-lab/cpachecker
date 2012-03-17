@@ -523,14 +523,14 @@ public class ParallelCFASCreator implements StatisticsProvider{
     List<CFANode> globalDeclNodes;
     CFANode executionStart;
 
-    if (useGlobalVars){
+    if (useGlobalVars && !c.getGlobalDeclarations().isEmpty()){
       // add global variables at the beginning of main
       Pair<List<CFANode>, CFANode> pair = insertGlobalDeclarations(c, threadInit, c.getGlobalDeclarations(), logger);
       globalDeclNodes = pair.getFirst();
       executionStart = pair.getSecond();
     } else {
       globalDeclNodes = Collections.emptyList();
-      executionStart = null;
+      executionStart = threadInit;
     }
 
     // remove irrelevant locations

@@ -139,13 +139,22 @@ public class RGAbstractElement implements AbstractElement, Partitionable {
     /** Information on env. app in the path formula that generated the abstraction. */
     private final ImmutableMap<Integer, RGEnvTransition> blockEnvApplicationMap;
 
-    public AbstractionElement(AbstractionFormula abs, PathFormula absPf, PathFormula refPf, PathFormula blockRefPf, ImmutableMap<Integer, RGEnvTransition> blockEnvAppMap) {
+    /** Precision used to abstract this element */
+    private final RGPrecision abstractionPrec;
+
+    public AbstractionElement(AbstractionFormula abs,
+        PathFormula absPf,
+        PathFormula refPf,
+        PathFormula blockRefPf,
+        ImmutableMap<Integer, RGEnvTransition> blockEnvAppMap,
+        RGPrecision abstractionPrec) {
       super(absPf, refPf, abs, emptyMap);
       assert absPf.getFormula().isTrue();
       assert refPf.getFormula().isTrue();
 
       this.blockRefPathFormula = blockRefPf;
       this.blockEnvApplicationMap = blockEnvAppMap;
+      this.abstractionPrec = abstractionPrec;
     }
 
 
@@ -168,6 +177,11 @@ public class RGAbstractElement implements AbstractElement, Partitionable {
 
     public ImmutableMap<Integer, RGEnvTransition> getBlockEnvApplicationMap() {
       return blockEnvApplicationMap;
+    }
+
+
+    public RGPrecision getAbstractionPrecision() {
+      return abstractionPrec;
     }
 
 

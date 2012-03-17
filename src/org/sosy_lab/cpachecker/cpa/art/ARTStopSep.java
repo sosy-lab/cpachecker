@@ -74,6 +74,11 @@ public class ARTStopSep implements StopOperator {
       return false;
     }
 
+    // may want to remove that (or may not...)
+    int brElem  = pElement.getRefinementBranches();
+    int brReach = pReachedElement.getRefinementBranches();
+
+
     AbstractElement wrappedElement = pElement.getWrappedElement();
     AbstractElement wrappedReachedElement = pReachedElement.getWrappedElement();
 

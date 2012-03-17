@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.interpolation;
 
 import java.util.Vector;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -148,7 +149,8 @@ public class InterpolationTreeNode  {
 
   @Override
   public String toString(){
-    return "itpTreeNode ("+tid+","+artElement.getElementId()+","+uniqueId+")";
+    CFANode loc = this.artElement.retrieveLocationElement().getLocationNode();
+    return "itpTreeNode ("+tid+","+artElement.getElementId()+","+loc+", "+uniqueId+")";
   }
 
   public boolean isARTAbstraction() {

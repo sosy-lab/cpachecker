@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.interpolation;
 
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -62,7 +62,7 @@ public class InterpolationTreeResult {
     SetMultimap<InterpolationTreeNode, AbstractionPredicate> artMap = LinkedHashMultimap.create();
     SetMultimap<InterpolationTreeNode, AbstractionPredicate> envMap = LinkedHashMultimap.create();
     Map<Path, List<Pair<ARTElement, Pair<CFANode, CFANode>>>>  locMap =
-        new HashMap<Path, List<Pair<ARTElement, Pair<CFANode, CFANode>>>>();
+        new LinkedHashMap<Path, List<Pair<ARTElement, Pair<CFANode, CFANode>>>>();
 
     return new InterpolationTreeResult(true, artMap, envMap, locMap, tree, null);
   }

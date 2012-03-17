@@ -134,6 +134,11 @@ public class RGCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvide
       System.out.println();
       System.out.println("------------------------------ Refinement "+stats.countIterations+" ------------------------------");
       stats.totalRefinement.start();
+
+      if (stats.countIterations == 103){
+        System.out.println();
+      }
+
       spurious = refiner.performRefinment(reachedSets, algorithm.getRelyGuaranteeEnvironment(), errorThread);
       long time = stats.totalRefinement.stop();
 

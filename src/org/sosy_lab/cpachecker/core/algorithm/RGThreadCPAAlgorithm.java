@@ -106,10 +106,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   private List<RGEnvCandidate>[] candidatesFromThread;
 
 
-  private int otherTid;
-
-
-
 
   public RGThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, ThreadCFA cfa, RGEnvironmentManager environment, ImmutableSet<CFANode> applyEnv, List<RGEnvCandidate>[] candidatesFromThread, Configuration config, LogManager logger,  int tid, int threadNo) {
     this.cpa = cpa;
@@ -136,7 +132,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
     this.candidatesFromThread = candidatesFromThread;
 
-    this.otherTid = tid == 0 ? 1 : 0;
   }
 
   @Override
@@ -187,12 +182,12 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       CFANode loc = aElement.retrieveLocationElement().getLocationNode();
 
       if (debug){
-        System.out.println("Successors of "+aElement);
+        System.out.println("Successors of "+aElement+", "+rgPrec);
       }
 
-      if (aElement.getElementId() == 128){
+      /*if (aElement.getElementId() == 128){
         System.out.println(this.getClass());
-      }
+      }*/
 
       stats.transferTimer.start();
       runStats.transferTimer.start();
@@ -431,9 +426,19 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
     CFANode loc = aElem.retrieveLocationElement().getLocationNode();
 
     /* get environmental edges */
-    if (applyEnv.contains(loc) && !candidatesFromThread[otherTid].isEmpty()){
+    if (applyEnv.contains(loc)){
 
-      List<RGEnvTransition> envTransitionToApply = environment.getEnvironmentalTransitionsToApply(aElem, candidatesFromThread[otherTid], artPrec);
+      // sum up candidates from other threads
+      List<RGEnvCandidate> sum = new Vector<RGEnvCandidate>();
+
+      for (int j=0; j<threadNo; j++){
+
+        if (j != tid){
+          sum.addAll(this.candidatesFromThread[j]);
+        }
+      }
+
+      List<RGEnvTransition> envTransitionToApply = environment.getEnvironmentalTransitionsToApply(aElem, sum, artPrec);
 
       for (RGEnvTransition et : envTransitionToApply){
           RGCFAEdge rgEdge = new RGCFAEdge(et, loc, loc);

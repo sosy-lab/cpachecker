@@ -387,7 +387,6 @@ public class RGTransferRelation  implements TransferRelation {
       result = result || isEnvEdge;
     }
 
-
     return result;
   }
 
@@ -494,7 +493,7 @@ public class RGTransferRelation  implements TransferRelation {
       PathFormula newRefPf = pfManager.makeEmptyPathFormula(pElement.getRefPathFormula());
 
       // TODO check if correct
-      return new RGAbstractElement.AbstractionElement(abs, newAbsPf, newRefPf, pElement.getRefPathFormula(), pElement.getEnvApplicationMap());
+      return new RGAbstractElement.AbstractionElement(abs, newAbsPf, newRefPf, pElement.getRefPathFormula(), pElement.getEnvApplicationMap(), null);
     }
   }
 

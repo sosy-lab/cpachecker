@@ -28,7 +28,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
 public class Pivots {
@@ -36,7 +36,7 @@ public class Pivots {
   private final Multimap<Integer, DataPivot> pivotsPerThread;
 
   public Pivots(){
-    this.pivotsPerThread = HashMultimap.create();
+    this.pivotsPerThread = LinkedHashMultimap.create();
   }
 
   public Multimap<Integer, DataPivot> getPivotMap() {

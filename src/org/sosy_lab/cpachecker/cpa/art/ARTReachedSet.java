@@ -89,6 +89,15 @@ public class ARTReachedSet {
     }
   }
 
+  public void removeSubtreeOf(ARTElement root) {
+    Set<ARTElement> elems = root.getLocalSubtree();
+
+    mReached.removeAll(elems);
+    for (ARTElement elem : elems){
+      elem.removeFromART();
+    }
+  }
+
   /**
    * Like {@link #removeSubtree(ARTElement)}, but when re-adding elements to the
    * waitlist adapts precisions with respect to the supplied precision p (see
@@ -97,15 +106,15 @@ public class ARTReachedSet {
    * @param p The new precision.
    */
   public void removeSubtree(ARTElement e, Precision p) {
+
     Set<ARTElement> toWaitlist = removeSubtree0(e);
 
+
     for (ARTElement ae : toWaitlist) {
-      if (ae.getElementId() == 582){
-        System.out.println(this.getClass());
-      }
       mReached.updatePrecision(ae, adaptPrecision(ae, p));
       mReached.reAddToWaitlist(ae);
     }
+
   }
 
   /**
@@ -117,12 +126,17 @@ public class ARTReachedSet {
    * @param pNewPrecision New precision.
    * @return The adapted precision.
    */
-  private Precision adaptPrecision(ARTElement pARTElement, Precision pNewPrecision) {
+  public Precision adaptPrecision(ARTElement pARTElement, Precision pNewPrecision) {
     Precision lOldPrecision = getPrecision(pARTElement);
 
     return Precisions.replaceByType(lOldPrecision, pNewPrecision, pNewPrecision.getClass());
   }
 
+
+  public void readdWithPrecision(ARTElement ae, Precision p){
+    mReached.updatePrecision(ae, adaptPrecision(ae, p));
+    mReached.reAddToWaitlist(ae);
+  }
 
   /**
    * Returns elements that would be readded to the waitlist if the argument was removed from the ART.
@@ -130,6 +144,7 @@ public class ARTReachedSet {
    * @return
    */
   public Set<ARTElement> readdedElements(ARTElement elem) {
+    System.out.println("Element "+elem.getElementId()+" dropps: ");
 
     Set<ARTElement> toUnreach = elem.getLocalSubtree();
 
@@ -141,6 +156,8 @@ public class ARTReachedSet {
     }
     toUnreach.addAll(newToUnreach);
 
+
+
     Set<ARTElement> toWaitlist = new LinkedHashSet<ARTElement>();
     for (ARTElement ae : toUnreach) {
 
@@ -150,16 +167,11 @@ public class ARTReachedSet {
         }
       }
     }
-
     return toWaitlist;
   }
 
   private Set<ARTElement> removeSubtree0(ARTElement e) {
     Preconditions.checkNotNull(e);
-    if (e.getLocalParents().isEmpty()){
-      System.out.println(this.getClass());
-    }
-
 
     Preconditions.checkArgument(!e.getLocalParents().isEmpty(), "May not remove the initial element from the ART/reached set");
 
@@ -179,6 +191,9 @@ public class ARTReachedSet {
 
     return toWaitlist;
   }
+
+
+
 
   /**
    * Remove a set of elements from the ART. There are no sanity checks.
@@ -383,6 +398,8 @@ public class ARTReachedSet {
       delegate.replaceWithBottom(pE);
     }
   }
+
+
 
 
 }

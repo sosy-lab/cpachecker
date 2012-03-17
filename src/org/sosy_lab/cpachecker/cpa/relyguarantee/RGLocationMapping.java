@@ -58,6 +58,11 @@ public class RGLocationMapping {
    */
   public static RGLocationMapping getEmpty(ParallelCFAS pcfa, int tid) {
 
+    if (pcfa.getThreadNo() == 1){
+
+      return new RGLocationMapping(ImmutableSet.<RGLocationClass>of(), ImmutableSetMultimap.<Path, Pair<CFANode, CFANode>>of());
+    }
+
     com.google.common.collect.ImmutableSet.Builder<CFANode> bldr = ImmutableSet.<CFANode>builder();
 
 

@@ -164,6 +164,7 @@ public class RGAbstractionManager implements StatisticsProvider {
       absKey = Pair.of(f, predicates);
       AbstractionFormula result = abstractionCache.get(absKey);
 
+
       if (result != null) {
         // create new abstraction object to have a unique abstraction id
         result = new AbstractionFormula(result.asRegion(), result.asPathFormula(), pathFormula);
@@ -172,8 +173,9 @@ public class RGAbstractionManager implements StatisticsProvider {
         stats.buildAbstractionTimer.stop();
         return result;
       }
+      System.out.println("#CACHE MISS");
     }
-
+    //System.out.print("\t-abs: "+pf);
     Region abs;
     if (cartesianAbstraction) {
       abs = buildCartesianAbstraction(pf, predicates);
@@ -286,7 +288,13 @@ public class RGAbstractionManager implements StatisticsProvider {
 
         for (AbstractionPredicate p : predicates) {
           Pair<Formula, AbstractionPredicate> cacheKey = Pair.of(f, p);
+
+          if (useCache){
+            stats.cartesianAbstractionCalls++;
+          }
+
           if (useCache && cartesianAbstractionCache.containsKey(cacheKey)) {
+            stats.cartesianAbstractionCH++;
             byte predVal = cartesianAbstractionCache.get(cacheKey);
 
             Region v = p.getAbstractVariable();
@@ -653,16 +661,21 @@ public class RGAbstractionManager implements StatisticsProvider {
     public int buildAbstractionNVCalls = 0;
     public int buildAbstractionNVCH    = 0;
     public final Timer bogus           = new Timer();
+    public int cartesianAbstractionCalls  = 0;
+    public int cartesianAbstractionCH     = 0;
+
 
     @Override
     public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached) {
       long totalTime = this.buildAbstractionTimer.getSumTime() + this.buildAbstractionNVTimer.getSumTime();
-      String baHitRation = " ("+toPercent(this.buildAbstractionCH, this.buildAbstractionCalls)+")";
-      String banvHitRation = " ("+toPercent(this.buildAbstractionNVCH, this.buildAbstractionNVCalls)+")";
+      String baHitRation    = " ("+toPercent(this.buildAbstractionCH, this.buildAbstractionCalls)+")";
+      String banvHitRation  = " ("+toPercent(this.buildAbstractionNVCH, this.buildAbstractionNVCalls)+")";
+      String cpHitRation    = " ("+toPercent(this.cartesianAbstractionCH, this.cartesianAbstractionCalls)+")";
       out.println("buildAbstraction time:           " + this.buildAbstractionTimer);
       out.println("buildAbstraction cach hits:        " + this.buildAbstractionCH+"/"+this.buildAbstractionCalls + baHitRation);
       out.println("buildNextValueAbstraction time:  " + this.buildAbstractionNVTimer);
       out.println("buildBextValueAbstraction c.h.:    " + this.buildAbstractionNVCH+"/"+this.buildAbstractionNVCalls + banvHitRation);
+      out.println("cartesian predicate c.h.:          " + this.cartesianAbstractionCH+"/"+this.cartesianAbstractionCalls + cpHitRation);
       out.println("time on P.A.Manager:               " + Timer.formatTime(totalTime));
     }
 

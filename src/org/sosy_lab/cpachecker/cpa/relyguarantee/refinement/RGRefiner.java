@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManage
 import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.interpolation.InterpolationTreeResult;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.interpolation.RGInterpolationManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.lazy.RGLazyRefinementManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.lazy.RGLazyRefinementResult;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.locations.RGLocationRefinementManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.restarting.RGRestartingRefinementManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -68,6 +69,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.SetMultimap;
 
 
 @Options(prefix="cpa.rg")
@@ -91,10 +93,6 @@ public class RGRefiner implements StatisticsProvider{
   private RGAlgorithm algorithm;
 
   private final Stats stats;
-
-
-
-
 
   private static RGRefiner singleton;
 
@@ -218,11 +216,13 @@ public class RGRefiner implements StatisticsProvider{
     System.out.println();
     System.out.println("\t\t\t ----- Lazy refinement -----");
 
-    Map<Integer, Map<ARTElement, Precision>> refMap = lazyManager.getRefinedElements(reachedSets, cexample);
+    RGLazyRefinementResult refResult = lazyManager.getRefinedElements(reachedSets, cexample);
 
-    dropPivots(reachedSets, refMap);
+    dropPivots(reachedSets, refResult);
     algorithm.removeDestroyedCandidates();
   }
+
+
 
 
 
@@ -259,6 +259,28 @@ public class RGRefiner implements StatisticsProvider{
         // TODO why does it take so long?
         reachedSets[tid].removeSubtree(root, precision);
       }
+    }
+  }
+
+  private void dropPivots(ARTReachedSet[] reachedSets, RGLazyRefinementResult result) {
+
+    SetMultimap<Integer, ARTElement> elementsToDrop = result.getElementsToDrop();
+
+    for (Integer tid : elementsToDrop.keySet()){
+
+      for (ARTElement root : elementsToDrop.get(tid)){
+        reachedSets[tid].removeSubtreeOf(root);
+      }
+
+    }
+
+    Map<Pair<Integer, ARTElement>, Precision> precisionToAdjust = result.getPrecisionToAdjust();
+
+    for (Pair<Integer, ARTElement> pair : precisionToAdjust.keySet()){
+      Integer tid = pair.getFirst();
+      ARTElement elem = pair.getSecond();
+      Precision prec = precisionToAdjust.get(pair);
+      reachedSets[tid].readdWithPrecision(elem, prec);
     }
   }
 

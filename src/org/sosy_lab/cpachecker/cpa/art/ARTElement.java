@@ -30,6 +30,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,7 +54,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 
-public class ARTElement extends AbstractSingleWrapperElement {
+public class ARTElement extends AbstractSingleWrapperElement implements Comparable {
 
   /** Parent ARTElement in the same thread and the edge between them. */
   private final HashMap<ARTElement, CFAEdge> localParentMap;
@@ -84,6 +85,9 @@ public class ARTElement extends AbstractSingleWrapperElement {
    */
   private final ImmutableMap<Integer, RGLocationClass> locationClasses;
 
+  /** The number of branches that the interpolation tree for this element would have */
+  private int refBranches = 0;
+  /** Env. transitions applied to on the paths from the root to this element */
   private ImmutableList<Pair<ARTElement, RGEnvTransition>> envApplied = ImmutableList.of();
 
   private static int nextArtElementId = 0;
@@ -195,7 +199,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
     mCoveredBy = pCoveredBy;
     if (pCoveredBy.mCoveredByThis == null) {
       // lazy initialization because rarely needed
-      pCoveredBy.mCoveredByThis = new HashSet<ARTElement>(2);
+      pCoveredBy.mCoveredByThis = new LinkedHashSet<ARTElement>(2);
     }
     pCoveredBy.mCoveredByThis.add(this);
   }
@@ -242,16 +246,21 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   public ImmutableList<Pair<ARTElement, RGEnvTransition>> getEnvApplied() {
     return envApplied;
+
   }
 
 
   public void setEnvApplied(ImmutableList<Pair<ARTElement, RGEnvTransition>> pEnvApplied) {
     envApplied = pEnvApplied;
+
+    for (Pair<ARTElement, RGEnvTransition> pair : envApplied){
+      refBranches += pair.getFirst().getRefinementBranches() + 1;
+    }
   }
 
-  public void addEnvApplied(Pair<ARTElement, RGEnvTransition> application) {
-    assert application != null;
-    envApplied.add(application);
+
+  public int getRefinementBranches() {
+    return refBranches;
   }
 
   @Override
@@ -319,7 +328,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
   // TODO check
   public Set<ARTElement> getLocalSubtree() {
     assert !destroyed;
-    Set<ARTElement> result = new HashSet<ARTElement>();
+    Set<ARTElement> result = new LinkedHashSet<ARTElement>();
     Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
 
     workList.add(this);
@@ -442,8 +451,8 @@ public class ARTElement extends AbstractSingleWrapperElement {
    * Returns env transitions that created a child of this element.
    * @return
    */
-  public Set<RGEnvTransition> getEnvTransitionsApplied() {
-    HashSet<RGEnvTransition> envTr = new HashSet<RGEnvTransition>();
+  public List<RGEnvTransition> getEnvTransitionsApplied() {
+    List<RGEnvTransition> envTr = new Vector<RGEnvTransition>();
 
     for (CFAEdge edge : this.localChildMap.values()){
       if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
@@ -453,6 +462,12 @@ public class ARTElement extends AbstractSingleWrapperElement {
     }
 
     return envTr;
+  }
+
+  @Override
+  public int compareTo(Object arg) {
+    ARTElement oelem = (ARTElement) arg;
+    return elementId < oelem.elementId ? -1 : (elementId == oelem.elementId) ? 0 : 1;
   }
 
 

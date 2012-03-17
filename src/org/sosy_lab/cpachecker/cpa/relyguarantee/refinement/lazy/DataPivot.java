@@ -30,8 +30,10 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.art.ARTPrecision;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import com.google.common.collect.ImmutableSetMultimap;
@@ -45,7 +47,7 @@ import com.google.common.collect.SetMultimap;
  * discovered by counterexample analysis. The new precision should be added to
  * the existing precision of the element.
  */
-public class DataPivot{
+public class DataPivot {
 
   private final ARTElement element;
   private final SetMultimap<CFANode, AbstractionPredicate> artPredicateMap;
@@ -53,6 +55,7 @@ public class DataPivot{
   private final Set<AbstractionPredicate> artGlobalPredicates;
   private final  Set<AbstractionPredicate> envGlobalPredicates;
   private final SetMultimap<Path, Pair<CFANode, CFANode>> mismatchesPerPath;
+  private final Set<ARTElement> localSubtree;
 
   public DataPivot(ARTElement element){
     assert !element.getLocalParents().isEmpty() : "Inital element cannot be a pivot";
@@ -63,6 +66,7 @@ public class DataPivot{
     this.artGlobalPredicates = new LinkedHashSet<AbstractionPredicate>();
     this.envGlobalPredicates = new LinkedHashSet<AbstractionPredicate>();
     this.mismatchesPerPath = LinkedHashMultimap.create();
+    this.localSubtree      = element.getLocalSubtree();
   }
 
   public ARTElement getElement() {
@@ -125,14 +129,25 @@ public class DataPivot{
     return mismatchesPerPath;
   }
 
-  public void addPrecisionOf(DataPivot pivot){
-    DataPivot datPiv = pivot;
+  public Set<ARTElement> getLocalSubtree() {
+    return localSubtree;
+  }
 
-    artPredicateMap.putAll(datPiv.artPredicateMap);
-    envPredicateMap.putAll(datPiv.envPredicateMap);
-    artGlobalPredicates.addAll(datPiv.artGlobalPredicates);
-    envGlobalPredicates.addAll(datPiv.envGlobalPredicates);
-    mismatchesPerPath.putAll(datPiv.mismatchesPerPath);
+  public boolean addPrecisionOf(DataPivot datPiv){
+    boolean newPrec;
+    newPrec = artPredicateMap.putAll(datPiv.artPredicateMap);
+    newPrec = envPredicateMap.putAll(datPiv.envPredicateMap) || newPrec;
+    newPrec = artGlobalPredicates.addAll(datPiv.artGlobalPredicates) || newPrec;
+    newPrec = envGlobalPredicates.addAll(datPiv.envGlobalPredicates) || newPrec;
+    newPrec = mismatchesPerPath.putAll(datPiv.mismatchesPerPath) || newPrec;
+
+    return newPrec;
+  }
+
+  public void addARTPrecision(ARTPrecision prec) {
+    mismatchesPerPath.putAll(prec.getLocationMapping().getMismatchesForPath());
+    RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
+    addRGPrecision(rgPrec);
   }
 
   public void addRGPrecision(RGPrecision prec) {
@@ -172,7 +187,7 @@ public class DataPivot{
     return bldr.toString();
   }
 
-  @Override
+ /* @Override
   public boolean equals(Object ob){
     if (ob instanceof DataPivot){
       DataPivot dpiv = (DataPivot) ob;
@@ -180,11 +195,12 @@ public class DataPivot{
           dpiv.artPredicateMap.equals(artPredicateMap) &&
           dpiv.artGlobalPredicates.equals(artGlobalPredicates) &&
           dpiv.envPredicateMap.equals(envPredicateMap) &&
-          dpiv.envGlobalPredicates.equals(envGlobalPredicates);
+          dpiv.envGlobalPredicates.equals(envGlobalPredicates) &&
+          dpiv.mismatchesPerPath.equals(mismatchesPerPath);
     }
 
     return false;
-  }
+  }*/
 
   @Override
   public int hashCode(){
@@ -192,5 +208,7 @@ public class DataPivot{
         (this.artPredicateMap.hashCode() + 11 *
             this.envPredicateMap.hashCode());
   }
+
+
 
 }

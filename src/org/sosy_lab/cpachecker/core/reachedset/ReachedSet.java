@@ -311,6 +311,9 @@ public class ReachedSet implements UnmodifiableReachedSet {
   public Precision getPrecision(AbstractElement element) {
     Preconditions.checkNotNull(element);
     Precision prec = reached.get(element);
+    if (prec == null){
+      System.out.println("ERROR on "+element);
+    }
     Preconditions.checkArgument(prec != null, "Element not in reached set.");
     return prec;
   }

@@ -145,8 +145,14 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
       int i = startThread;
       while(i != -1 && !error) {
 
-        int otherTid = i == 0 ? 1 : 0;
-        this.printTransitions("Transition from "+otherTid, allCandidatesFrom[otherTid]);
+        for (int j=0; j<threadNo; j++){
+
+          if (j != i){
+            this.printTransitions("Transition from "+j, allCandidatesFrom[j]);
+          }
+
+        }
+
 
         // construct ART for thread i
         error = runThread(i, reached[i]);

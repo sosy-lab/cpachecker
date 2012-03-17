@@ -35,6 +35,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -484,7 +486,7 @@ public class RGInterpolationManager<T1, T2> implements StatisticsProvider {
 
     InterpolationTreeNode prevNode = null;
 
-    Map<InterpolationTreeNode, T> idMap = new HashMap<InterpolationTreeNode, T>(tree.size());
+    Map<InterpolationTreeNode, T> idMap = new LinkedHashMap<InterpolationTreeNode, T>(tree.size());
 
     for (InterpolationTreeNode node : topList) {
 
@@ -910,7 +912,7 @@ public class RGInterpolationManager<T1, T2> implements StatisticsProvider {
    */
   private Set<AbstractionPredicate> getPredicates(Formula itp) {
 
-    Set <AbstractionPredicate> result = new HashSet<AbstractionPredicate>();
+    Set <AbstractionPredicate> result = new LinkedHashSet<AbstractionPredicate>();
     if (!itp.isTrue() && !itp.isFalse()){
 
       Collection<Formula> atoms = null;
@@ -934,7 +936,7 @@ public class RGInterpolationManager<T1, T2> implements StatisticsProvider {
    */
   private Set<AbstractionPredicate> getNextValPredicates(Formula itp, SSAMap ssa) {
 
-    Set <AbstractionPredicate> result = new HashSet<AbstractionPredicate>();
+    Set <AbstractionPredicate> result = new LinkedHashSet<AbstractionPredicate>();
     if (!itp.isTrue() && !itp.isFalse()){
       Collection<Formula> atoms = null;
       atoms = fmgr.extractNextValueAtoms(itp, ssa);
