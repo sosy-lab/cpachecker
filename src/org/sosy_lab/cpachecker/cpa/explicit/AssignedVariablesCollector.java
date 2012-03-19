@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
@@ -56,22 +55,22 @@ import com.google.common.collect.Multimap;
  * that they either appear on the left hand side of an assignment or within an assume edge.
  */
 public class AssignedVariablesCollector {
-  Set<String> globalVars = new HashSet<String>();
+  Set<String> globalVariables = new HashSet<String>();
 
   public AssignedVariablesCollector() {
   }
 
-  public Multimap<CFAEdge, ReferencedVariable> collectVars(Collection<CFAEdge> edges) {
-    Multimap<CFAEdge, ReferencedVariable> collectedVars = HashMultimap.create();
+  public Multimap<CFAEdge, String> collectVars(Collection<CFAEdge> edges) {
+    Multimap<CFAEdge, String> collectedVariables = HashMultimap.create();
 
     for(CFAEdge edge : edges) {
-      collectVars(edge, collectedVars);
+      collectVariables(edge, collectedVariables);
     }
 
-    return collectedVars;
+    return collectedVariables;
   }
 
-  private void collectVars(CFAEdge edge, Multimap<CFAEdge, ReferencedVariable> pCollectedVars) {
+  private void collectVariables(CFAEdge edge, Multimap<CFAEdge, String> collectedVariables) {
     String currentFunction = edge.getPredecessor().getFunctionName();
 
     switch(edge.getEdgeType()) {
@@ -85,67 +84,70 @@ public class AssignedVariablesCollector {
     case DeclarationEdge:
       IASTDeclaration declaration = ((DeclarationEdge)edge).getDeclaration();
       if(declaration.getName() != null && declaration.isGlobal()) {
-        globalVars.add(declaration.getName());
-        pCollectedVars.put(edge, new ReferencedVariable(declaration.getName(), false, false, null));
+        globalVariables.add(declaration.getName());
+        collectedVariables.put(edge, declaration.getName());
       }
       break;
 
     case AssumeEdge:
       AssumeEdge assumeEdge = (AssumeEdge)edge;
-      collectVars(currentFunction, assumeEdge, assumeEdge.getExpression(), null, pCollectedVars);
+      collectVariables(assumeEdge, assumeEdge.getExpression(), collectedVariables);
       break;
 
     case StatementEdge:
       StatementEdge statementEdge = (StatementEdge)edge;
       if (statementEdge.getStatement() instanceof IASTAssignment) {
         IASTAssignment assignment = (IASTAssignment)statementEdge.getStatement();
-        String lhsVarName = assignment.getLeftHandSide().toASTString();
-        ReferencedVariable lhsVar = scoped(new ReferencedVariable(lhsVarName, false, true, null), currentFunction);
-        pCollectedVars.put(edge, lhsVar);
+        String assignedVariable = assignment.getLeftHandSide().toASTString();
+        collectedVariables.put(edge, scoped(assignedVariable, currentFunction));
       }
       break;
     }
   }
 
-  private void collectVars(String pCurrentFunction, CFAEdge edge, IASTRightHandSide pNode, ReferencedVariable lhsVar, Multimap<CFAEdge, ReferencedVariable> pCollectedVars) {
-    pNode.accept(new CollectVariablesVisitor(edge, pCurrentFunction, lhsVar, pCollectedVars));
+  /**
+   * This method prefixes the name of a non-global variable with a given function name.
+   *
+   * @param variableName the variable name
+   * @param functionName the function name
+   * @return the prefixed variable name
+   */
+  private String scoped(String variableName, String functionName) {
+    if (globalVariables.contains(variableName)) {
+      return variableName;
+    } else {
+      return functionName + "::" + variableName;
+    }
+  }
+
+  private void collectVariables(CFAEdge edge, IASTRightHandSide rightHandSide, Multimap<CFAEdge, String> collectedVariables) {
+    rightHandSide.accept(new CollectVariablesVisitor(edge, collectedVariables));
   }
 
   private class CollectVariablesVisitor extends DefaultExpressionVisitor<Void, RuntimeException>
                                                implements RightHandSideVisitor<Void, RuntimeException> {
 
     private final CFAEdge currentEdge;
-    private final String currentFunction;
-    private final ReferencedVariable lhsVar;
-    private final Multimap<CFAEdge, ReferencedVariable> collectedVars;
+    private final Multimap<CFAEdge, String> collectedVariables;
 
-
-    public CollectVariablesVisitor(CFAEdge edge, String pCurrentFunction,
-        ReferencedVariable pLhsVar, Multimap<CFAEdge, ReferencedVariable> pCollectedVars) {
-      currentEdge     = edge;
-      currentFunction = pCurrentFunction;
-      lhsVar          = pLhsVar;
-      collectedVars   = pCollectedVars;
+    public CollectVariablesVisitor(CFAEdge edge, Multimap<CFAEdge, String> collectedVariables) {
+      this.currentEdge          = edge;
+      this.collectedVariables   = collectedVariables;
     }
 
-    private void collectVar(String var) {
-      if(lhsVar == null) {
-        collectedVars.put(currentEdge, scoped(new ReferencedVariable(var, true, false, null), currentFunction));
-      }
-      else {
-        collectedVars.put(currentEdge, scoped(new ReferencedVariable(var, false, false, lhsVar), currentFunction));
-      }
+    private void collectVariable(String var) {
+      collectedVariables.put(currentEdge, scoped(var, currentEdge.getPredecessor().getFunctionName()));
     }
 
     @Override
     public Void visit(IASTIdExpression pE) {
-      collectVar(pE.getName());
+      collectVariable(pE.getName());
       return null;
     }
 
     @Override
     public Void visit(IASTArraySubscriptExpression pE) {
-      collectVar(pE.toASTString());
+      collectVariable(pE.toASTString());
       pE.getArrayExpression().accept(this);
       pE.getSubscriptExpression().accept(this);
       return null;
@@ -166,7 +168,7 @@ public class AssignedVariablesCollector {
 
     @Override
     public Void visit(IASTFieldReference pE) {
-      collectVar(pE.toASTString());
+      collectVariable(pE.toASTString());
       pE.getFieldOwner().accept(this);
       return null;
     }
@@ -187,7 +189,7 @@ public class AssignedVariablesCollector {
       switch(op) {
       case AMPER:
       case STAR:
-        collectVar(pE.toASTString());
+        collectVariable(pE.toASTString());
       default:
         pE.getOperand().accept(this);
       }
@@ -198,14 +200,6 @@ public class AssignedVariablesCollector {
     @Override
     protected Void visitDefault(IASTExpression pExp) {
       return null;
-    }
-  }
-
-  private ReferencedVariable scoped(ReferencedVariable var, String function) {
-    if (globalVars.contains(var.getName())) {
-      return var;
-    } else {
-      return new ReferencedVariable(function + "::" + var, var.occursInCondition(), var.occursOnLhs(), var.getLhsVariable());
     }
   }
 }

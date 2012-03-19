@@ -43,7 +43,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -119,7 +118,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   boolean useTopMostInterpolationPoint                      = true;
 
   @Option(description="whether or not to remove important variables again")
-  boolean removeImportantVariables                          = true;
+  boolean keepTrackingImportantVariables                          = true;
 
   @Option(description="whether or not to skip counter-example checks of variables that already are in the precision")
   boolean skipRedundantChecks                               = true;
@@ -200,7 +199,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     explicitCpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(ExplicitCPA.class);
   }
 
-  private Multimap<CFAEdge, ReferencedVariable> determineReferencedVariableMapping(List<CFAEdge> cfaTrace) {
+  private Multimap<CFAEdge, String> determineReferencedVariableMapping(List<CFAEdge> cfaTrace) {
     AssignedVariablesCollector collector = new AssignedVariablesCollector();
 
     return collector.collectVars(cfaTrace);
@@ -218,25 +217,25 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       cfaTrace.add(pathElement.getSecond());
     }
 
-    Set<ReferencedVariable> irrelevantVariables = new HashSet<ReferencedVariable>();
+    Set<String> irrelevantVariables = new HashSet<String>();
 
-    Multimap<CFAEdge, ReferencedVariable> referencedVariableMapping = determineReferencedVariableMapping(cfaTrace);
+    Multimap<CFAEdge, String> referencedVariableMapping = determineReferencedVariableMapping(cfaTrace);
 
     for(int i = 0; i < path.size(); i++){
-      //for(int i = path.size() - 1; i > 0; i--){
+    //for(int i = path.size() - 1; i > 0; i--){
 
       Pair<ARTElement, CFAEdge> pathElement = path.get(i);
       numberOfErrorPathElements++;
 
       boolean feasible = false;
 
-      Collection<ReferencedVariable> referencedVariablesAtEdge = referencedVariableMapping.get(pathElement.getSecond());
+      Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(pathElement.getSecond());
 
       if(skipRedundantChecks) {
         int tracked = 0;
         // if all variables are already part of the precision, nothing more to do here
-        for(ReferencedVariable var : referencedVariablesAtEdge) {
-          if(precision.allowsTrackingAt(pathElement.getSecond().getSuccessor(), var.getName())) {
+        for(String variableName : referencedVariablesAtEdge) {
+          if(precision.allowsTrackingAt(pathElement.getSecond().getSuccessor(), variableName)) {
             tracked++;
           }
         }
@@ -272,9 +271,9 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       // in case the path becomes feasible ...
       if(feasible) {
         // ... add the "important" variables to the precision increment, and remove them from the irrelevant ones
-        for(ReferencedVariable importantVariable : referencedVariablesAtEdge) {
-          increment.put(pathElement.getSecond().getSuccessor(), importantVariable.getName());
-          if(removeImportantVariables)
+        for(String importantVariable : referencedVariablesAtEdge) {
+          increment.put(pathElement.getSecond().getSuccessor(), importantVariable);
+          if(keepTrackingImportantVariables)
             irrelevantVariables.remove(importantVariable);
         }
       }
