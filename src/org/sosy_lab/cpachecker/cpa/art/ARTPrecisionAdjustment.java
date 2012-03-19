@@ -106,7 +106,9 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     ARTElement resultElement = new ARTElement(newElement, parents, envParents, newLocClasses, element.getTid());
+    resultElement.setDistanceFromRoot(element.getDistanceFromRoot());
     resultElement.setEnvApplied(element.getEnvApplied());
+
 
     Map<ARTElement, CFAEdge> localChildren = element.getLocalChildMap();
     Map<ARTElement, RGCFAEdge> envChildren = element.getEnvChildMap();

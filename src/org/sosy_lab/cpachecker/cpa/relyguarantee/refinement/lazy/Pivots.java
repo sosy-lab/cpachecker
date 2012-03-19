@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.lazy;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
@@ -33,48 +34,58 @@ import com.google.common.collect.Multimap;
 
 public class Pivots {
 
-  private final Multimap<Integer, DataPivot> pivotsPerThread;
+  private final Multimap<Integer, Pivot> pivotsPerThread;
+  /** ARTElement in the subtrees of pivots */
+  private final Set<ARTElement> elemsInSubtrees;
 
   public Pivots(){
-    this.pivotsPerThread = LinkedHashMultimap.create();
+    this.pivotsPerThread  = LinkedHashMultimap.create();
+    this.elemsInSubtrees          = new HashSet<ARTElement>();
   }
 
-  public Multimap<Integer, DataPivot> getPivotMap() {
+
+  public Pivots(Pivots pivs){
+    this.pivotsPerThread = LinkedHashMultimap.create(pivs.pivotsPerThread);
+    this.elemsInSubtrees         = new HashSet<ARTElement>(pivs.elemsInSubtrees);
+  }
+
+  public Multimap<Integer, Pivot> getPivotMap() {
     return pivotsPerThread;
   }
 
-  public boolean addAll(Multimap<Integer, DataPivot> pPivotsPerThread) {
+  /*
+  public boolean addAll(Multimap<Integer, Pivot> pPivotsPerThread) {
     return this.pivotsPerThread.putAll(pPivotsPerThread);
+  }*/
+
+  public void addAll(Pivots pivs) {
+    this.pivotsPerThread.putAll(pivs.pivotsPerThread);
+    this.elemsInSubtrees.addAll(pivs.elemsInSubtrees);
   }
 
   public boolean isEmpty() {
     return pivotsPerThread.isEmpty();
   }
 
+  public Set<ARTElement> getElemsInSubtrees() {
+    return elemsInSubtrees;
+  }
+
   public  Set<Integer> getTids() {
     return pivotsPerThread.keySet();
   }
 
-  public Collection<DataPivot> getPivotsForThread(int tid) {
+  public Collection<Pivot> getPivotsForThread(int tid) {
     return pivotsPerThread.get(tid);
   }
 
   public boolean containsPivotsWithElement(ARTElement element) {
-    boolean contains = false;
-    int tid = element.getTid();
-
-    for (DataPivot piv : this.pivotsPerThread.get(tid)){
-      if (piv.getElement().equals(element)){
-        contains = true;
-        break;
-      }
-    }
-
-    return contains;
+    return elemsInSubtrees.contains(element);
   }
 
-  public boolean addPivot(DataPivot pivot) {
+  public boolean addPivot(Pivot pivot) {
     int tid = pivot.getTid();
+    elemsInSubtrees.addAll(pivot.getLocalSubtree());
     return pivotsPerThread.put(tid, pivot);
   }
 
@@ -85,11 +96,14 @@ public class Pivots {
     for (Integer tid : pivotsPerThread.keySet()){
       bldr.append("Pivots for thread "+tid+"\n");
 
-      for (DataPivot piv : pivotsPerThread.get(tid)){
+      for (Pivot piv : pivotsPerThread.get(tid)){
         bldr.append("\t-"+piv+"\n");
       }
     }
 
     return bldr.toString();
   }
+
+
+
 }

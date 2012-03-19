@@ -111,6 +111,10 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
       succLocCl = element.getLocationClasses();
     }
 
+    Integer oldDistance = element.getDistanceFromRoot();
+    assert oldDistance != null;
+    Integer newDistance = oldDistance + 1;
+
 
     // TODO statistics
     if (succLocCl == null){
@@ -137,6 +141,7 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
     Collection<ARTElement> wrappedSuccessors = new ArrayList<ARTElement>();
     for (AbstractElement absElement : successors) {
       ARTElement successorElem = new ARTElement(absElement, localParents, envParents, succLocCl, tid);
+      successorElem.setDistanceFromRoot(newDistance);
       successorElem.setEnvApplied(envApplied);
       wrappedSuccessors.add(successorElem);
     }

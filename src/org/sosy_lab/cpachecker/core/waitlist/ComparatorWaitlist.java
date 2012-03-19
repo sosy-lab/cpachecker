@@ -31,6 +31,7 @@ import java.util.TreeSet;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionComparator;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 
 /**
@@ -144,7 +145,27 @@ public class ComparatorWaitlist implements Waitlist {
       public Waitlist createWaitlistInstance() {
         return new ComparatorWaitlist(new EnvAppMinTopMax());
       }
+    },
+
+    ENVAPP_MIN_TOP_MIN_DISTANCE_MIN {
+
+      @Override
+      public Waitlist createWaitlistInstance() {
+        return new ComparatorWaitlist(new EnvAppMinTopMinDistMin());
+      }
+    },
+
+    ENVAPP_LIMIT_TOP_MIN_DISTANCE_MIN {
+
+      @Override
+      public Waitlist createWaitlistInstance() {
+        return new ComparatorWaitlist(new  EnvLimitMinTopMinDistMin());
+      }
     }
+
+
+
+
 
 
   }
@@ -673,6 +694,228 @@ public class ComparatorWaitlist implements Waitlist {
 
       return id1 > id2 ? 1 : (id1 < id2) ? -1 : 0;
     }
+  }
+
+
+  /**
+   * Minimize env. app, minimize topological id, min. distance from root,
+   *
+   */
+  public static class EnvAppMinTopMinDistMin implements Comparator<AbstractElement>{
+
+    @Override
+    public int compare(AbstractElement elem1, AbstractElement elem2) {
+
+      if (elem1.equals(elem2)){
+        return 0;
+      }
+
+
+      ARTElement aelem1 = (ARTElement) elem1;
+      ARTElement aelem2 = (ARTElement) elem2;
+
+      List<Pair<ARTElement, RGEnvTransition>> appbf1 = aelem1.getEnvApplied();
+      List<Pair<ARTElement, RGEnvTransition>> appbf2 = aelem2.getEnvApplied();
+
+      // compare ref branches
+      if (appbf1.size() < appbf2.size()){
+        return 1;
+      }
+
+      if (appbf1.size() > appbf2.size()){
+        return -1;
+      }
+
+      if (!appbf1.isEmpty()){
+
+        // max top of application point
+        for (int i=0; i<appbf1.size(); i++){
+          Pair<ARTElement, RGEnvTransition> pair1 = appbf1.get(i);
+          Pair<ARTElement, RGEnvTransition> pair2 = appbf2.get(i);
+
+          ARTElement app1 = pair1.getFirst();
+          ARTElement app2 = pair2.getFirst();
+
+          int appTop1 = app1.retrieveLocationElement().getLocationNode()
+              .getTopologicalSortId();
+          int appTop2 = app2.retrieveLocationElement().getLocationNode()
+              .getTopologicalSortId();
+
+          if (appTop1 > appTop2){
+            return 1;
+          }
+
+          if (appTop1 < appTop2){
+            return -1;
+          }
+
+
+          Integer appD1 = app1.getDistanceFromRoot();
+          Integer appD2 = app2.getDistanceFromRoot();
+          assert appD1 != null && appD2 != null;
+
+          if (appD1 < appD2){
+            return 1;
+          }
+
+          if (appD1 > appD2){
+            return -1;
+          }
+
+          int envCmp = RGEnvTransitionComparator.ENVAPP_MIN_DISTANCE_MIN_TOP_MAX.
+              compare(pair1.getSecond(), pair2.getSecond());
+
+          if (envCmp != 0){
+            return envCmp;
+          }
+        }
+      }
+
+      // env. applications are equivalent, compare topological id
+      int top1 = aelem1.retrieveLocationElement().getLocationNode().getTopologicalSortId();
+      int top2 = aelem2.retrieveLocationElement().getLocationNode().getTopologicalSortId();
+
+      if (top1 < top2){
+        return 1;
+      }
+
+      if (top1 > top2){
+        return -1;
+      }
+
+      // compare distance
+      Integer d1 = aelem1.getDistanceFromRoot();
+      Integer d2 = aelem2.getDistanceFromRoot();
+      assert d1 != null && d2 != null;
+
+      if (d1 < d2){
+        return 1;
+      }
+
+      if (d1 > d2){
+        return -1;
+      }
+
+      assert false;
+      return 0;
+    }
+
+  }
+
+  /**
+   * Limit env. app, minimize topological id, min. distance from root,
+   *
+   */
+  public static class EnvLimitMinTopMinDistMin implements Comparator<AbstractElement>{
+
+    @Override
+    public int compare(AbstractElement elem1, AbstractElement elem2) {
+
+      if (elem1.equals(elem2)){
+        return 0;
+      }
+
+
+      ARTElement aelem1 = (ARTElement) elem1;
+      ARTElement aelem2 = (ARTElement) elem2;
+
+      int itpSize1 = aelem1.getInterpolationSize();
+      int itpSize2 = aelem2.getInterpolationSize();
+      int diff = itpSize1 - itpSize2;
+
+      if (diff < 50){
+        return 1;
+      }
+
+      if (diff > 50){
+        return -1;
+      }
+
+      List<Pair<ARTElement, RGEnvTransition>> appbf1 = aelem1.getEnvApplied();
+      List<Pair<ARTElement, RGEnvTransition>> appbf2 = aelem2.getEnvApplied();
+
+      // compare ref branches
+      for (int i=0; i<Math.max(appbf1.size(), appbf2.size()); i++){
+
+        if (appbf2.size() <= i){
+          return 1;
+        }
+
+        if (appbf1.size() <= i){
+          return -1;
+        }
+
+        Pair<ARTElement, RGEnvTransition> pair1 = appbf1.get(i);
+        Pair<ARTElement, RGEnvTransition> pair2 = appbf2.get(i);
+
+        ARTElement app1 = pair1.getFirst();
+        ARTElement app2 = pair2.getFirst();
+
+        int appTop1 = app1.retrieveLocationElement().getLocationNode()
+            .getTopologicalSortId();
+        int appTop2 = app2.retrieveLocationElement().getLocationNode()
+            .getTopologicalSortId();
+
+        if (appTop1 > appTop2){
+          return 1;
+        }
+
+        if (appTop1 < appTop2){
+          return -1;
+        }
+
+
+        Integer appD1 = app1.getDistanceFromRoot();
+        Integer appD2 = app2.getDistanceFromRoot();
+        assert appD1 != null && appD2 != null;
+
+        if (appD1 < appD2){
+          return 1;
+        }
+
+        if (appD1 > appD2){
+          return -1;
+        }
+
+        int envCmp = RGEnvTransitionComparator.ENVAPP_MIN_DISTANCE_MIN_TOP_MAX.
+            compare(pair1.getSecond(), pair2.getSecond());
+
+        if (envCmp != 0){
+          return envCmp;
+        }
+
+      }
+
+
+      // env. applications are equivalent, compare topological id
+      int top1 = aelem1.retrieveLocationElement().getLocationNode().getTopologicalSortId();
+      int top2 = aelem2.retrieveLocationElement().getLocationNode().getTopologicalSortId();
+
+      if (top1 < top2){
+        return 1;
+      }
+
+      if (top1 > top2){
+        return -1;
+      }
+
+      // compare distance
+      Integer d1 = aelem1.getDistanceFromRoot();
+      Integer d2 = aelem2.getDistanceFromRoot();
+      assert d1 != null && d2 != null;
+
+      if (d1 < d2){
+        return 1;
+      }
+
+      if (d1 > d2){
+        return -1;
+      }
+
+      assert false;
+      return 0;
+    }
+
   }
 
 

@@ -223,6 +223,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
     }
 
     stats.candidateTimer.start();
+    RGLocationMapping lm = prec.getLocationMapping();
     Vector<RGEnvCandidate> candidates = new Vector<RGEnvCandidate>(toProcess);
 
     /* Remove candidates whose application is pointless */
@@ -259,8 +260,9 @@ public class RGEnvironmentManager implements StatisticsProvider{
           continue;
         }
 
-        boolean leq = candManager.isLessOrEqual(candI, candJ, element, prec);
-        boolean geq = candManager.isLessOrEqual(candJ, candI, element, prec);
+
+        boolean leq = candManager.isLessOrEqual(candI, candJ, lm);
+        boolean geq = candManager.isLessOrEqual(candJ, candI, lm);
 
         if (leq && geq){
           // candI = candJ
@@ -314,8 +316,8 @@ public class RGEnvironmentManager implements StatisticsProvider{
     for (RGEnvCandidate cand1 : newMGCandidates){
       for (RGEnvCandidate cand2 : newMGCandidates){
         if (cand1 != cand2){
-          assert !candManager.isLessOrEqual(cand2, cand1, elem, prec);
-          assert !candManager.isLessOrEqual(cand1, cand2, elem, prec);
+          assert !candManager.isLessOrEqual(cand2, cand1, lm);
+          assert !candManager.isLessOrEqual(cand1, cand2, lm);
         }
       }
     }
@@ -324,7 +326,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
     for (RGEnvCandidate nCand : newCandidates){
       boolean existsGeq = false;
       for (RGEnvCandidate mgCand : newMGCandidates){
-        if (candManager.isLessOrEqual(nCand, mgCand, elem, prec)){
+        if (candManager.isLessOrEqual(nCand, mgCand, lm)){
           existsGeq = true;
           break;
         }

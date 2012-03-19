@@ -26,22 +26,22 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee.environment;
 import java.util.Comparator;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 
-public enum RGEnvTransitionComparator implements Comparator<RGEnvTransition>{
+public enum RGEnvCandidateComparator implements Comparator<RGEnvCandidate>{
 
 
   ARTID_MAX {
 
     @Override
-    public int compare(RGEnvTransition et1, RGEnvTransition et2) {
+    public int compare(RGEnvCandidate pO1, RGEnvCandidate pO2) {
 
-      if (et1.equals(et2)){
+      if (pO1.equals(pO2)){
         return 0;
       }
 
-      int br1 = et1.getSourceARTElement().getRefinementBranches();
-      int br2 = et2.getSourceARTElement().getRefinementBranches();
+      int br1 = pO1.getElement().getRefinementBranches();
+      int br2 = pO2.getElement().getRefinementBranches();
 
       if (br1 < br2){
         return 1;
@@ -51,8 +51,8 @@ public enum RGEnvTransitionComparator implements Comparator<RGEnvTransition>{
         return -1;
       }
 
-      int id1 = et1.getSourceARTElement().getElementId();
-      int id2 = et2.getSourceARTElement().getElementId();
+      int id1 = pO1.getElement().getElementId();
+      int id2 = pO2.getElement().getElementId();
 
       if (id1 > id2){
         return 1;
@@ -62,11 +62,11 @@ public enum RGEnvTransitionComparator implements Comparator<RGEnvTransition>{
         return -1;
       }
 
-      int tarid1 = et1.getTargetARTElement().getElementId();
-      int tarid2 = et2.getTargetARTElement().getElementId();
-      assert tarid1 != tarid2;
+      int sid1 = pO1.getSuccessor().getElementId();
+      int sid2 = pO2.getSuccessor().getElementId();
 
-      return (tarid1 > tarid2) ? 1 : -1;
+      assert sid1 != sid2;
+      return sid1 > sid2 ? 1 : -1;
 
     }
   },
@@ -74,14 +74,14 @@ public enum RGEnvTransitionComparator implements Comparator<RGEnvTransition>{
   ENVAPP_MIN_DISTANCE_MIN_TOP_MAX {
 
     @Override
-    public int compare(RGEnvTransition et1, RGEnvTransition et2) {
+    public int compare(RGEnvCandidate et1, RGEnvCandidate et2) {
 
       if (et1.equals(et2)){
         return 0;
       }
 
-      ARTElement src1 = et1.getSourceARTElement();
-      ARTElement src2 = et2.getSourceARTElement();
+      ARTElement src1 = et1.getElement();
+      ARTElement src2 = et2.getElement();
 
       int br1 = src1.getRefinementBranches();
       int br2 = src2.getRefinementBranches();
@@ -128,8 +128,8 @@ public enum RGEnvTransitionComparator implements Comparator<RGEnvTransition>{
         return -1;
       }
 
-      ARTElement trg1 = et1.getTargetARTElement();
-      ARTElement trg2 = et2.getTargetARTElement();
+      ARTElement trg1 = et1.getSuccessor();
+      ARTElement trg2 = et2.getSuccessor();
 
       int topT1 = trg1.retrieveLocationElement().getLocationNode()
           .getTopologicalSortId();
@@ -156,13 +156,10 @@ public enum RGEnvTransitionComparator implements Comparator<RGEnvTransition>{
         return -1;
       }
 
-     // assert false;
+      assert false;
       return 0;
     }
 
   }
 
-
 }
-
-

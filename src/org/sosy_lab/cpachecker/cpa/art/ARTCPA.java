@@ -170,11 +170,14 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
       }
     }
 
-    return new ARTElement(getWrappedCpa().getInitialElement(pNode),
+    ARTElement aelem = new ARTElement(getWrappedCpa().getInitialElement(pNode),
         Collections.<ARTElement, CFAEdge> emptyMap(),
         Collections.<ARTElement, RGCFAEdge> emptyMap(),
         bldr.build(),
         tid);
+
+    aelem.setDistanceFromRoot(0);
+    return aelem;
   }
 
   protected LogManager getLogger() {

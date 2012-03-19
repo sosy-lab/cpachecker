@@ -85,10 +85,15 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
    */
   private final ImmutableMap<Integer, RGLocationClass> locationClasses;
 
+
   /** The number of branches that the interpolation tree for this element would have */
   private int refBranches = 0;
+
+  private int interpolationSize = 0;
   /** Env. transitions applied to on the paths from the root to this element */
   private ImmutableList<Pair<ARTElement, RGEnvTransition>> envApplied = ImmutableList.of();
+
+  private Integer distanceFromRoot;
 
   private static int nextArtElementId = 0;
 
@@ -255,12 +260,27 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
 
     for (Pair<ARTElement, RGEnvTransition> pair : envApplied){
       refBranches += pair.getFirst().getRefinementBranches() + 1;
+      interpolationSize += pair.getFirst().getInterpolationSize();
     }
   }
 
 
   public int getRefinementBranches() {
     return refBranches;
+  }
+
+
+  public int getInterpolationSize() {
+    return interpolationSize;
+  }
+
+  public Integer getDistanceFromRoot() {
+    return distanceFromRoot;
+  }
+
+  public void setDistanceFromRoot(Integer pDistanceFromRoot) {
+    distanceFromRoot = pDistanceFromRoot;
+    interpolationSize = distanceFromRoot;
   }
 
   @Override
@@ -276,8 +296,9 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     sb.append(elementId);
     sb.append(", tid: ");
     sb.append(tid);
-    sb.append(", Location: "+loc+" "+locationClasses);
+    sb.append(", distance: "+distanceFromRoot+", ");
     sb.append(", env. applied: "+envAppliedToString());
+    sb.append(", Location: "+loc+" "+locationClasses);
     if (!destroyed) {
       sb.append(", Local parents: ");
       List<Integer> list = new ArrayList<Integer>();

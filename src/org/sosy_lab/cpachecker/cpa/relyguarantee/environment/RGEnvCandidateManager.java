@@ -170,7 +170,7 @@ public class RGEnvCandidateManager {
    * @param c2
    * @return
    */
-  public boolean isLessOrEqual(RGEnvCandidate c1, RGEnvCandidate c2, ARTElement elem, ARTPrecision prec) {
+  public boolean isLessOrEqual(RGEnvCandidate c1, RGEnvCandidate c2, RGLocationMapping lm) {
     /*
      *
      */
@@ -195,7 +195,6 @@ public class RGEnvCandidateManager {
      *  are equivalent w.r.t to the precision. It remains to check if the location classes of
      *  their successor are also equivalent.
      */
-    RGLocationMapping lm = prec.getLocationMapping();
     RGLocationClass succ1lc = lm.getLocationClass(c2.getSuccessorLoc());
     RGLocationClass succ2lc = lm.getLocationClass(c2.getSuccessorLoc());
 

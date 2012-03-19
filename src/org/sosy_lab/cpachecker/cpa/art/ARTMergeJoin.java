@@ -136,6 +136,7 @@ public class ARTMergeJoin implements MergeOperator {
     artElement2.setMergedWith(mergedElement);
 
     // set the number of env. applications
+    //mergedElement.setDistanceFromRoot(e)
     mergedElement.setEnvApplied(eapp1);
 
     return mergedElement;

@@ -189,8 +189,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         System.out.println(this.getClass());
       }*/
 
-      stats.transferTimer.start();
-      runStats.transferTimer.start();
+
 
       Collection<CFAEdge> edges = getEdgesForElement(aElement, artPrec);
 
@@ -198,8 +197,10 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         System.out.println();
       }
 
-      Collection<Pair<AbstractElement,CFAEdge>> successors = new LinkedHashSet<Pair<AbstractElement,CFAEdge>>(edges.size());
 
+      stats.transferTimer.start();
+      runStats.transferTimer.start();
+      Collection<Pair<AbstractElement,CFAEdge>> successors = new LinkedHashSet<Pair<AbstractElement,CFAEdge>>(edges.size());
 
       for (CFAEdge edge : edges){
         Collection<? extends AbstractElement> newSucc = transferRelation.getAbstractSuccessors(element, precision, edge);
@@ -617,7 +618,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
       RGTransferRelation tr = (RGTransferRelation) cpa.getTransferRelation();
 
-      out.println("number of iterations "+tid+" :         " + formatInt(countIterations));
       out.println("number of iterations "+tid+" :         " + formatInt(countIterations));
       out.println("max size of waitlist "+tid+" :         " + formatInt(maxWaitlistSize));
       out.println("average size of waitlist "+tid+" :     " + formatInt(countWaitlistSize/ countIterations));

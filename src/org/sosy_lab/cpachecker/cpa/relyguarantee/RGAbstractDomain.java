@@ -66,6 +66,10 @@ public class RGAbstractDomain implements AbstractDomain {
       Formula f1 = e1.getAbsPathFormula().getFormula();
       Formula f2 = e2.getAbsPathFormula().getFormula();
 
+      if (f1.isFalse() || e1.getAbstractionFormula().isFalse()){
+        return true;
+      }
+
       if (f1.isTrue() && f2.isTrue()) {
         bddCoverageCheckTimer.start();
 
