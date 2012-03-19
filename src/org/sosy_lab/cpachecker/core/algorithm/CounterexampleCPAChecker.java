@@ -116,6 +116,9 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       throw new CounterexampleAnalysisFailed("Invalid configuration in counterexample-check config: " + e.getMessage(), e);
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed(e.getMessage(), e);
+    } finally {
+      // delete temp file so it is gone even if JVM is killed
+      automatonFile.delete();
     }
   }
 
