@@ -36,6 +36,8 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
@@ -47,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 import com.google.common.collect.HashMultimap;
@@ -155,6 +158,21 @@ public class ReferencedVariablesCollector {
         if(dependingVariables.contains(assignedVariable)) {
           collectedVariables.put(edge.getSuccessor(), assignedVariable);
           collectVariables(statementEdge, assignment.getRightHandSide(), collectedVariables);
+        }
+      }
+    }
+
+    else if(edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+      FunctionCallEdge functionCallEdge = (FunctionCallEdge)edge;
+      IASTFunctionCall functionCall     = functionCallEdge.getSummaryEdge().getExpression();
+
+      if(functionCall instanceof IASTFunctionCallAssignmentStatement) {
+        IASTFunctionCallAssignmentStatement funcAssign = (IASTFunctionCallAssignmentStatement)functionCall;
+        String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), currentFunction);
+
+        if(dependingVariables.contains(assignedVariable)) {
+          collectedVariables.put(functionCallEdge.getSummaryEdge().getSuccessor(), assignedVariable);
+          collectVariables(functionCallEdge, funcAssign.getRightHandSide(), collectedVariables);
         }
       }
     }
