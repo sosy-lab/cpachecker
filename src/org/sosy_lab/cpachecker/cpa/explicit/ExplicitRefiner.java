@@ -45,6 +45,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCPAChecker;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -225,17 +226,23 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     //for(int i = path.size() - 1; i > 0; i--){
 
       Pair<ARTElement, CFAEdge> pathElement = path.get(i);
+      CFAEdge currentEdge = pathElement.getSecond();
+
       numberOfErrorPathElements++;
 
       boolean feasible = false;
 
-      Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(pathElement.getSecond());
+      if(currentEdge instanceof FunctionReturnEdge) {
+        currentEdge = ((FunctionReturnEdge)currentEdge).getSummaryEdge();
+      }
+
+      Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge);
 
       if(skipRedundantChecks) {
         int tracked = 0;
         // if all variables are already part of the precision, nothing more to do here
         for(String variableName : referencedVariablesAtEdge) {
-          if(precision.allowsTrackingAt(pathElement.getSecond().getSuccessor(), variableName)) {
+          if(precision.allowsTrackingAt(currentEdge.getSuccessor(), variableName)) {
             tracked++;
           }
         }
@@ -261,6 +268,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
           feasible = checker.checkCounterexample(path.get(0).getFirst(),
                                                   path.get(path.size() - 1).getFirst(),
                                                   artTrace);
+          //feasible = true;
         } catch (InterruptedException e) {
           throw new CPAException("counterexample-check failed: ", e);
         } catch (InvalidConfigurationException e) {
@@ -280,7 +288,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     }
 
     timerCounterExampleChecks.stop();
-
+//System.out.println(increment);
     return increment;
   }
 

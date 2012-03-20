@@ -269,7 +269,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
         String assignedVarName = getScopedVariableName(op1.toASTString(), callerFunctionName);
 
-        if(element.contains(returnVarName)) {
+        if(currentPrecision.isTracking(assignedVarName) && element.contains(returnVarName)) {
           newElement.assignConstant(assignedVarName, element.getValueFor(returnVarName));
         } else {
           newElement.forget(assignedVarName);

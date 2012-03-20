@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
@@ -44,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 import com.google.common.collect.HashMultimap;
@@ -76,7 +79,6 @@ public class AssignedVariablesCollector {
     switch(edge.getEdgeType()) {
     case BlankEdge:
     case CallToReturnEdge:
-    case FunctionCallEdge:
     case ReturnStatementEdge:
       //nothing to do
       break;
@@ -96,10 +98,28 @@ public class AssignedVariablesCollector {
 
     case StatementEdge:
       StatementEdge statementEdge = (StatementEdge)edge;
-      if (statementEdge.getStatement() instanceof IASTAssignment) {
+      if(statementEdge.getStatement() instanceof IASTAssignment) {
         IASTAssignment assignment = (IASTAssignment)statementEdge.getStatement();
         String assignedVariable = assignment.getLeftHandSide().toASTString();
         collectedVariables.put(edge, scoped(assignedVariable, currentFunction));
+      }
+      break;
+
+    case FunctionCallEdge:
+      FunctionCallEdge functionCallEdge = (FunctionCallEdge)edge;
+      IASTFunctionCall functionCall     = functionCallEdge.getSummaryEdge().getExpression();
+
+      if(functionCall instanceof IASTFunctionCallAssignmentStatement) {
+        IASTFunctionCallAssignmentStatement funcAssign = (IASTFunctionCallAssignmentStatement)functionCall;
+        String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), currentFunction);
+
+        // track it at return (2nd statement below), not at call (next, commented statement)
+        //collectedVariables.put(edge.getSuccessor(), assignedVariable);
+        collectedVariables.put(functionCallEdge.getSummaryEdge(), assignedVariable);
+
+
+        collectedVariables.put(edge, assignedVariable);
+        collectVariables(functionCallEdge, funcAssign.getRightHandSide(), collectedVariables);
       }
       break;
     }
