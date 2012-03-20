@@ -28,8 +28,6 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 
@@ -42,22 +40,24 @@ public class CFATopologicalSortSparse {
   public void assignSorting(CFANode rootNode) {
     Set<CFANode> visited = new HashSet<CFANode>(1000);
     Queue<CFANode> forwardAndForkNodes = new ArrayDeque<CFANode>();
-    List<CFANode> joinNodes = new LinkedList<CFANode>();
+    Set<CFANode> joinNodes = new HashSet<CFANode>(50);
 
     rootNode.setSparseTopoSortId(-1);
     forwardAndForkNodes.add(rootNode);
 
     while (forwardAndForkNodes.size() > 0) {
+      // Forward-Nodes (Non-Join-Nodes): Assign them the sorting-number of the predecessor.
+      // Join-Nodes: Assign them the sorting-number of the predecessor - 1
       while (forwardAndForkNodes.size() > 0) {
         CFANode u = forwardAndForkNodes.remove();
-        assert (u.getSparseTopoSortId() < 0);
-
         visited.add(u);
+
         for(CFAEdge e : leavingEdges(u)) {
           CFANode v = e.getSuccessor();
 
           if (!visited.contains(v)) {
             if ((v.getNumEnteringEdges() > 1) && !v.isLoopStart()) {
+              // If it is a join-node AND not the start of a loop
               v.setSparseTopoSortId(u.getSparseTopoSortId() - 1);
               joinNodes.add(v);
             } else {
@@ -71,6 +71,7 @@ public class CFATopologicalSortSparse {
       // Move join-nodes to forward-nodes
       // if all predecessors have been processed.
       Iterator<CFANode> it = joinNodes.iterator();
+      System.out.println(joinNodes.size());
       while (it.hasNext()) {
         CFANode v = it.next();
 
