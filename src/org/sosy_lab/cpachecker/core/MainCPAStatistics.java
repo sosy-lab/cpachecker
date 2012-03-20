@@ -57,6 +57,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -336,6 +338,8 @@ class MainCPAStatistics implements Statistics {
           out.println("    Time for AST to CFA:      " + cfaCreator.conversionTime);
           out.println("    Time for CFA sanity check:" + cfaCreator.checkTime);
           out.println("    Time for post-processing: " + cfaCreator.processingTime);
+          out.println("    Time for strict topological sorting: " + cfaCreator.strictToposortTimer);
+          out.println("    Time for sparse topological sorting: " + cfaCreator.sparseToposortTimer);
           if (cfaCreator.pruningTime.getNumberOfIntervals() > 0) {
             out.println("    Time for CFA pruning:     " + cfaCreator.pruningTime);
           }
@@ -392,6 +396,9 @@ class MainCPAStatistics implements Statistics {
       int blankEdges = 0;
       int callToReturnEdges = 0;
       int declarationEdges = 0;
+      int localDeclarationEdges = 0;
+      int globalDeclarationEdges = 0;
+      int functionParameters = 0;
       int functionCallEdges = 0;
       int functionReturnEdges = 0;
       int returnStatementEdges = 0;
@@ -402,6 +409,10 @@ class MainCPAStatistics implements Statistics {
       int loopStarts = 0;
 
       for (CFANode node : cfa.getAllNodes()) {
+        if (node instanceof FunctionDefinitionNode) {
+          // there is no separate decalartion-edge for function parameters.
+          functionParameters += ((FunctionDefinitionNode) node).getFunctionParameters().size();
+        }
 
         int numberOfLeavingEdges = node.getNumLeavingEdges();
         if (numberOfLeavingEdges > 1) {
@@ -416,7 +427,14 @@ class MainCPAStatistics implements Statistics {
             case AssumeEdge: assumeEdges++; break;
             case BlankEdge: blankEdges++; break;
             case CallToReturnEdge: callToReturnEdges++; break;
-            case DeclarationEdge: declarationEdges++; break;
+            case DeclarationEdge:
+                declarationEdges++;
+                if (((DeclarationEdge) outgoingEdge).getDeclaration().isGlobal()) {
+                  globalDeclarationEdges++;
+                } else {
+                  localDeclarationEdges++;
+                }
+                break;
             case FunctionCallEdge: functionCallEdges++; break;
             case FunctionReturnEdge: functionReturnEdges++; break;
             case ReturnStatementEdge: returnStatementEdges++; break;
@@ -440,6 +458,9 @@ class MainCPAStatistics implements Statistics {
       out.println(String.format("CFA number of blank edges: %d", blankEdges));
       out.println(String.format("CFA number of return call edges: %d", callToReturnEdges));
       out.println(String.format("CFA number of declaration edges: %d", declarationEdges));
+      out.println(String.format("CFA number of global declaration edges: %d", globalDeclarationEdges));
+      out.println(String.format("CFA number of local declarations edges: %d", localDeclarationEdges));
+      out.println(String.format("CFA number of function parameters: %d", functionParameters));
       out.println(String.format("CFA number of function call edges: %d", functionCallEdges));
       out.println(String.format("CFA number of function return edges: %d", functionReturnEdges));
       out.println(String.format("CFA number of return statement edges: %d", returnStatementEdges));

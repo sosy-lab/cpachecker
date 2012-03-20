@@ -125,6 +125,7 @@ public class ControlFlowStatistics {
     PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(pTargetFile)));
 
     String[] csvFields = new String[]{
+        "Sourcefile",
         "Functionname",
         "Nodes",
         "Edges",
@@ -149,6 +150,7 @@ public class ControlFlowStatistics {
     for (CFAFunctionDefinitionNode fnDefNode : functionStats.keySet()) {
       FunctionStats fs = functionStats.get(fnDefNode);
       Object[] line = new Object[]{
+          "TODO",
           fnDefNode.getFunctionName(),
           fs.nodeCount,
           fs.edgeCount,

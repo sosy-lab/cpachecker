@@ -105,6 +105,8 @@ public class CFACreator {
   public final Timer conversionTime;
   public final Timer checkTime = new Timer();
   public final Timer processingTime = new Timer();
+  public final Timer sparseToposortTimer = new Timer();
+  public final Timer strictToposortTimer = new Timer();
   public final Timer pruningTime = new Timer();
   public final Timer exportTime = new Timer();
 
@@ -171,8 +173,13 @@ public class CFACreator {
       CFATopologicalSortSparse sparseTopoSorter = new CFATopologicalSortSparse();
 
       for(CFAFunctionDefinitionNode function : cfa.getAllFunctionHeads()){
+        strictToposortTimer.start();
         strictTopoSorter.assignSorting(function);
-        //sparseTopoSorter.assignSorting(function);
+        strictToposortTimer.stop();
+
+        sparseToposortTimer.start();
+        sparseTopoSorter.assignSorting(function);
+        sparseToposortTimer.stop();
       }
 
       // get loop information
