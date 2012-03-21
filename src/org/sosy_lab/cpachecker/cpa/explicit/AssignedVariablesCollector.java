@@ -88,7 +88,7 @@ public class AssignedVariablesCollector {
       IASTDeclaration declaration = ((DeclarationEdge)edge).getDeclaration();
       if(declaration.getName() != null && declaration.isGlobal()) {
         globalVariables.add(declaration.getName());
-        collectedVariables.put(edge, declaration.getName());
+        collectedVariables.put(edge.getSuccessor(), declaration.getName());
       }
       break;
 
@@ -102,7 +102,7 @@ public class AssignedVariablesCollector {
       if(statementEdge.getStatement() instanceof IASTAssignment) {
         IASTAssignment assignment = (IASTAssignment)statementEdge.getStatement();
         String assignedVariable = assignment.getLeftHandSide().toASTString();
-        collectedVariables.put(edge, scoped(assignedVariable, currentFunction));
+        collectedVariables.put(edge.getSuccessor(), scoped(assignedVariable, currentFunction));
       }
       break;
 
@@ -116,10 +116,10 @@ public class AssignedVariablesCollector {
 
         // track it at return (2nd statement below), not at call (next, commented statement)
         //collectedVariables.put(edge.getSuccessor(), assignedVariable);
-        collectedVariables.put(functionCallEdge.getSummaryEdge(), assignedVariable);
+        collectedVariables.put(functionCallEdge.getSummaryEdge().getSuccessor(), assignedVariable);
 
 
-        collectedVariables.put(edge, assignedVariable);
+        collectedVariables.put(edge.getSuccessor(), assignedVariable);
         collectVariables(functionCallEdge, funcAssign.getRightHandSide(), collectedVariables);
       }
       break;
@@ -141,7 +141,7 @@ public class AssignedVariablesCollector {
     }
   }
 
-  private void collectVariables(CFAEdge edge, IASTRightHandSide rightHandSide, Multimap<CFAEdge, String> collectedVariables) {
+  private void collectVariables(CFAEdge edge, IASTRightHandSide rightHandSide, Multimap<CFANode, String> collectedVariables) {
     rightHandSide.accept(new CollectVariablesVisitor(edge, collectedVariables));
   }
 
@@ -149,15 +149,15 @@ public class AssignedVariablesCollector {
                                                implements RightHandSideVisitor<Void, RuntimeException> {
 
     private final CFAEdge currentEdge;
-    private final Multimap<CFAEdge, String> collectedVariables;
+    private final Multimap<CFANode, String> collectedVariables;
 
-    public CollectVariablesVisitor(CFAEdge edge, Multimap<CFAEdge, String> collectedVariables) {
+    public CollectVariablesVisitor(CFAEdge edge, Multimap<CFANode, String> collectedVariables) {
       this.currentEdge          = edge;
       this.collectedVariables   = collectedVariables;
     }
 
     private void collectVariable(String var) {
-      collectedVariables.put(currentEdge, scoped(var, currentEdge.getPredecessor().getFunctionName()));
+      collectedVariables.put(currentEdge.getSuccessor(), scoped(var, currentEdge.getPredecessor().getFunctionName()));
     }
 
     @Override
