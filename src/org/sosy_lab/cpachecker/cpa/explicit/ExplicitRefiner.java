@@ -200,7 +200,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     explicitCpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(ExplicitCPA.class);
   }
 
-  private Multimap<CFAEdge, String> determineReferencedVariableMapping(List<CFAEdge> cfaTrace) {
+  private Multimap<CFANode, String> determineReferencedVariableMapping(List<CFAEdge> cfaTrace) {
     AssignedVariablesCollector collector = new AssignedVariablesCollector();
 
     return collector.collectVars(cfaTrace);
@@ -220,7 +220,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     Set<String> irrelevantVariables = new HashSet<String>();
 
-    Multimap<CFAEdge, String> referencedVariableMapping = determineReferencedVariableMapping(cfaTrace);
+    Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(cfaTrace);
 
     for(int i = 0; i < path.size(); i++){
     //for(int i = path.size() - 1; i > 0; i--){
@@ -236,7 +236,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
         currentEdge = ((FunctionReturnEdge)currentEdge).getSummaryEdge();
       }
 
-      Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge);
+      Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge.getSuccessor());
 
       if(skipRedundantChecks) {
         int tracked = 0;

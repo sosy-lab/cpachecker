@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
@@ -63,8 +64,8 @@ public class AssignedVariablesCollector {
   public AssignedVariablesCollector() {
   }
 
-  public Multimap<CFAEdge, String> collectVars(Collection<CFAEdge> edges) {
-    Multimap<CFAEdge, String> collectedVariables = HashMultimap.create();
+  public Multimap<CFANode, String> collectVars(Collection<CFAEdge> edges) {
+    Multimap<CFANode, String> collectedVariables = HashMultimap.create();
 
     for(CFAEdge edge : edges) {
       collectVariables(edge, collectedVariables);
@@ -73,7 +74,7 @@ public class AssignedVariablesCollector {
     return collectedVariables;
   }
 
-  private void collectVariables(CFAEdge edge, Multimap<CFAEdge, String> collectedVariables) {
+  private void collectVariables(CFAEdge edge, Multimap<CFANode, String> collectedVariables) {
     String currentFunction = edge.getPredecessor().getFunctionName();
 
     switch(edge.getEdgeType()) {
