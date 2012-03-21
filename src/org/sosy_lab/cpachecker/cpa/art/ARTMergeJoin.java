@@ -27,19 +27,17 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationClass;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public class ARTMergeJoin implements MergeOperator {
 
@@ -76,15 +74,13 @@ public class ARTMergeJoin implements MergeOperator {
       return pElement2;
     }
 
-    // merge elements only with the same env. applications
-    ImmutableList<Pair<ARTElement, RGEnvTransition>> eapp1 = artElement1.getEnvApplied();
-    ImmutableList<Pair<ARTElement, RGEnvTransition>> eapp2 = artElement2.getEnvApplied();
 
-    // merge only if eapp1 and eapp2 are equal or are both null
-    if (eapp1 != eapp2 && (eapp1 == null || eapp2 == null || !eapp1.equals(eapp2))){
+    // merge only if elements have the same application points
+    ImmutableSet<ARTElement> eapp1 = artElement1.getEnvAppliedPoints();
+    ImmutableSet<ARTElement> eapp2 = artElement2.getEnvAppliedPoints();
+    if (!eapp1.equals(eapp2)){
       return pElement2;
     }
-
 
     AbstractElement wrappedElement1 = artElement1.getWrappedElement();
     AbstractElement wrapppedElement2 = artElement2.getWrappedElement();
@@ -94,7 +90,11 @@ public class ARTMergeJoin implements MergeOperator {
       return pElement2;
     }
 
-    ARTElement mergedElement = new ARTElement(retElement, Collections.<ARTElement, CFAEdge> emptyMap(), Collections.<ARTElement, RGCFAEdge> emptyMap(), locations1, artElement1.getTid());
+    ARTElement mergedElement = new ARTElement(retElement,
+        Collections.<ARTElement, CFAEdge> emptyMap(),
+        Collections.<ARTElement, RGEnvTransition>emptyMap(),
+        locations1,
+        artElement1.getTid());
 
     // add local and environmental parents
     for ( Entry<ARTElement, CFAEdge> entry : artElement1.getLocalParentMap().entrySet()){
@@ -105,11 +105,11 @@ public class ARTMergeJoin implements MergeOperator {
       mergedElement.addLocalParent(entry.getKey(), entry.getValue());
     }
 
-    for ( Entry<ARTElement, RGCFAEdge> entry : artElement1.getEnvParentMap().entrySet()){
+    for ( Entry<ARTElement, RGEnvTransition> entry : artElement1.getEnvParentMap().entrySet()){
       mergedElement.addEnvParent(entry.getKey(), entry.getValue());
     }
 
-    for ( Entry<ARTElement, RGCFAEdge> entry : artElement2.getEnvParentMap().entrySet()){
+    for ( Entry<ARTElement, RGEnvTransition> entry : artElement2.getEnvParentMap().entrySet()){
       mergedElement.addEnvParent(entry.getKey(), entry.getValue());
     }
 
@@ -123,7 +123,7 @@ public class ARTMergeJoin implements MergeOperator {
       entry.getKey().addLocalParent(mergedElement, entry.getValue());
     }
 
-    for (Entry<ARTElement, RGCFAEdge> entry : artElement2.getEnvChildMap().entrySet()){
+    for (Entry<ARTElement, RGEnvTransition> entry : artElement2.getEnvChildMap().entrySet()){
       entry.getKey().addEnvParent(mergedElement, entry.getValue());
     }
 
@@ -136,8 +136,9 @@ public class ARTMergeJoin implements MergeOperator {
     artElement2.setMergedWith(mergedElement);
 
     // set the number of env. applications
-    //mergedElement.setDistanceFromRoot(e)
-    mergedElement.setEnvApplied(eapp1);
+    mergedElement.setDistanceFromRoot(Math.max(artElement1.getDistanceFromRoot(), artElement2.getDistanceFromRoot()));
+    mergedElement.setEnvApplied(artElement1.getEnvApplied());
+    mergedElement.computeLocalChildren();
 
     return mergedElement;
   }

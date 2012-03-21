@@ -110,7 +110,7 @@ public class RGCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvide
     System.out.println("------------------------ Rely-guarantee analysis "+stats.countIterations+" -------------------------");
 
     stats.totalAnal.start();
-    int errorThread = switchThreadsAfterRefinement ? stats.countIterations % 2 : 0;
+    int errorThread = switchThreadsAfterRefinement ? stats.countIterations % reachedSets.length : 0;
     errorThread = algorithm.run(reachedSets, errorThread);
     long time = stats.totalAnal.stop();
 

@@ -40,6 +40,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.RGAlgorithm;
@@ -252,6 +254,16 @@ public class RGRefiner implements StatisticsProvider{
       for(ARTElement root : refMap.get(tid).keySet()){
         Precision precision = refMap.get(tid).get(root);
 
+        for (ARTElement parent : root.getLocalParentMap().keySet()){
+          CFAEdge edgeToParent = root.getLocalParentMap().get(parent);
+
+          if (edgeToParent.getEdgeType() != CFAEdgeType.RelyGuaranteeCFAEdge &&
+              edgeToParent.getEdgeType() != CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
+            parent.computeLocalChildren();
+          }
+
+        }
+
         if (debug){
           System.out.println("\t-"+root+",\n\t "+precision+"\n");
         }
@@ -269,6 +281,18 @@ public class RGRefiner implements StatisticsProvider{
     for (Integer tid : elementsToDrop.keySet()){
 
       for (ARTElement root : elementsToDrop.get(tid)){
+
+        for (ARTElement parent : root.getLocalParentMap().keySet()){
+          CFAEdge edgeToParent = root.getLocalParentMap().get(parent);
+
+          if (edgeToParent.getEdgeType() != CFAEdgeType.RelyGuaranteeCFAEdge &&
+              edgeToParent.getEdgeType() != CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
+            parent.computeLocalChildren();
+          }
+
+        }
+
+
         reachedSets[tid].removeSubtreeOf(root);
       }
 

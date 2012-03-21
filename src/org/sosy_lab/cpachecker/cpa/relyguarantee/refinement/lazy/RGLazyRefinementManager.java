@@ -842,6 +842,10 @@ public class RGLazyRefinementManager {
       assert absElem != null;
 
       RGPrecision currentPrec = absElem.getAbstractionPrecision();
+      if (currentPrec != null){
+        System.out.println();
+      }
+
       Set<AbstractionPredicate> currentEnvPreds = new HashSet<AbstractionPredicate>(currentPrec.getEnvGlobalPredicates());
       currentEnvPreds.addAll(currentPrec.getEnvPredicates(loc));
 

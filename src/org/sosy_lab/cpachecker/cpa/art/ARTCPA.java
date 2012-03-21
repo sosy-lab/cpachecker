@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationClass;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
@@ -172,7 +172,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
     ARTElement aelem = new ARTElement(getWrappedCpa().getInitialElement(pNode),
         Collections.<ARTElement, CFAEdge> emptyMap(),
-        Collections.<ARTElement, RGCFAEdge> emptyMap(),
+        Collections.<ARTElement, RGEnvTransition>emptyMap(),
         bldr.build(),
         tid);
 

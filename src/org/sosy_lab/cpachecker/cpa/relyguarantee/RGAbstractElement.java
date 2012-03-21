@@ -59,11 +59,26 @@ public class RGAbstractElement implements AbstractElement, Partitionable {
    */
   private RGAbstractElement mergedInto = null;
 
-  public RGAbstractElement(PathFormula absPf, PathFormula refPf,  AbstractionFormula abs,  ImmutableMap<Integer, RGEnvTransition> envRefMap) {
+  private final int blockItpSize;
+
+  private final int itpSize;
+
+  public RGAbstractElement(PathFormula absPf,
+      PathFormula refPf,
+      AbstractionFormula abs,
+      ImmutableMap<Integer, RGEnvTransition> envRefMap,
+      int itpSize) {
     this.absPathFormula = absPf;
     this.refPathFormula = refPf;
     this.abstractionFormula = abs;
     this.envApplicationMap = envRefMap;
+    this.blockItpSize = itpSize;
+
+    int size = itpSize + this.absPathFormula.getLength();
+    for (RGEnvTransition et : envRefMap.values()){
+      size += et.getTargetARTElement().getInterpolationSize();
+    }
+    this.itpSize = size;
   }
 
 
@@ -104,6 +119,14 @@ public class RGAbstractElement implements AbstractElement, Partitionable {
 
   public void setMergedInto(RGAbstractElement pMergedInto) {
     mergedInto = pMergedInto;
+  }
+
+  public int getBlockItpSize() {
+    return blockItpSize;
+  }
+
+  public int getItpSize(){
+    return itpSize;
   }
 
 
@@ -147,8 +170,9 @@ public class RGAbstractElement implements AbstractElement, Partitionable {
         PathFormula refPf,
         PathFormula blockRefPf,
         ImmutableMap<Integer, RGEnvTransition> blockEnvAppMap,
-        RGPrecision abstractionPrec) {
-      super(absPf, refPf, abs, emptyMap);
+        RGPrecision abstractionPrec,
+        int blockItpSize) {
+      super(absPf, refPf, abs, emptyMap, blockItpSize);
       assert absPf.getFormula().isTrue();
       assert refPf.getFormula().isTrue();
 
@@ -184,6 +208,11 @@ public class RGAbstractElement implements AbstractElement, Partitionable {
       return abstractionPrec;
     }
 
+    @Override
+    public int getItpSize(){
+      return super.blockItpSize;
+    }
+
 
     @Override
     public String toString() {
@@ -196,8 +225,13 @@ public class RGAbstractElement implements AbstractElement, Partitionable {
     private final CFANode location;
 
 
-    public ComputeAbstractionElement(PathFormula absPf, PathFormula refPf,  AbstractionFormula abs,  ImmutableMap<Integer, RGEnvTransition> envRefMap, CFANode loc) {
-      super(absPf, refPf,  abs, envRefMap);
+    public ComputeAbstractionElement(PathFormula absPf,
+        PathFormula refPf,
+        AbstractionFormula abs,
+        ImmutableMap<Integer, RGEnvTransition> envRefMap,
+        CFANode loc,
+        int blockItpSize) {
+      super(absPf, refPf,  abs, envRefMap, blockItpSize);
       this.location = loc;
     }
 

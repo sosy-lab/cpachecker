@@ -254,6 +254,65 @@ public class RGAbstractionManager implements StatisticsProvider {
   }
 
 
+  /**
+   * Builds abstraction formula that shows the change between oldPf and newPf.
+   * @param aFormula
+   * @param pf
+   * @param hiPf
+   * @param predicates
+   * @param tid
+   * @return
+   */
+  public AbstractionFormula buildNextValueAbstraction(PathFormula aFormula, PathFormula lowPf,PathFormula highPf, Collection<AbstractionPredicate> predicates, int tid) {
+    stats.buildAbstractionNVCalls++;
+    stats.buildAbstractionNVTimer.start();
+
+    /* if (predicates.isEmpty()) {
+       stats.numSymbolicAbstractions++;
+       return makeTrueAbstractionFormula(pathFormula);
+     }*/
+
+    // formula for abstraction
+     PathFormula lowAPf = pmgr.makeAnd(lowPf, aFormula);
+     PathFormula highAPf = pmgr.makeAnd(highPf, aFormula);
+
+     // caching
+     Triple<PathFormula, PathFormula, Collection<AbstractionPredicate>> absKey = null;
+     if (useCache){
+       absKey = Triple.of(lowAPf, highAPf, predicates);
+
+       AbstractionFormula result = abstractionNextValueCache.get(absKey);
+
+       if (result != null) {
+         result = new AbstractionFormula(result.asRegion(), result.asPathFormula(), highPf);
+         stats.buildAbstractionNVCH++;
+         stats.buildAbstractionNVTimer.stop();
+         return result;
+       }
+     }
+
+     Region abs = null;
+     if (cartesianNextValAbstraction) {
+       abs = buildNextValueCartesianAbstraction(lowAPf, highAPf, predicates, tid);
+     } else {
+       abs = buildNextValueBooleanAbstraction(lowAPf, highAPf, predicates);
+     }
+
+     // a little work-around : symbolicPathAbs is a path formula without indexes
+     Formula symbolicAbs = amgr.toConcrete(abs);
+     //Formula symbolicAbs = fmgr.instantiateNextVal(amgr.toConcrete(abs), oldPf.getSsa(), newPf.getSsa());
+     PathFormula symbolicPathAbs = new PathFormula(symbolicAbs, highPf.getSsa(), 0);
+     AbstractionFormula result = new AbstractionFormula(abs, symbolicPathAbs, highPf);
+
+     if (useCache) {
+       abstractionNextValueCache.put(absKey, result);
+     }
+
+     stats.buildAbstractionNVTimer.stop();
+     return result;
+  }
+
+
 
   private Region buildCartesianAbstraction(final PathFormula pf, Collection<AbstractionPredicate> predicates) {
     final RegionManager rmgr = amgr.getRegionManager();

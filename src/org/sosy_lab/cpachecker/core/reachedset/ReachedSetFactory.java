@@ -67,7 +67,7 @@ public class ReachedSetFactory {
 
   @Option(name = "traversal.comparator",
         description = "Choose comparator for comparator waitlist.")
-  private ComparatorWaitlistFactory comparator = ComparatorWaitlistFactory.MIN_ENVAPP_MAX_TOP;
+  private ComparatorWaitlistFactory comparator = ComparatorWaitlistFactory.ENVAPP_MIN_TOP_MIN_DISTANCE_MIN;
 
   @Option(name = "reachedSet",
       description = "which reached set implementation to use?"

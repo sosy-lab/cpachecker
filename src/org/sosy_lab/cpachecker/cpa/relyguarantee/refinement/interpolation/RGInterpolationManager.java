@@ -259,8 +259,12 @@ public class RGInterpolationManager<T1, T2> implements StatisticsProvider {
 
     // Is element is destroyed, it means that it has been merged into another one.
     // Use that one instead.
+    if (target == null){
+      System.out.println();
+    }
     while (target.isDestroyed()){
       target = target.getMergedWith();
+
     }
     assert !target.isDestroyed();
 

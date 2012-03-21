@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -46,12 +47,12 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationClass;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdgeCombined;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public class ARTTransferRelation implements TransferRelation, StatisticsProvider {
 
@@ -71,19 +72,22 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
     ARTElement element = (ARTElement)pElement;
     ARTPrecision prec = (ARTPrecision) pPrecision;
     int tid = element.getTid();
-    RGCFAEdge rgEdge = null;
 
-    ImmutableList<Pair<ARTElement, RGEnvTransition>> envApplied;
+    ImmutableSet<Pair<ARTElement, RGEnvTransition>> envApplied;
     ImmutableMap<Integer, RGLocationClass> succLocCl;
 
+    Map<ARTElement, RGEnvTransition> envParents;
+
     if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
-      Builder<Pair<ARTElement, RGEnvTransition>> envAppliedBldr = ImmutableList.<Pair<ARTElement, RGEnvTransition>>builder();
-      rgEdge = (RGCFAEdge) edge;
+
+      RGCFAEdge rgEdge = (RGCFAEdge) edge;
       RGEnvTransition et = rgEdge.getRgEnvTransition();
+
+      com.google.common.collect.ImmutableSet.Builder<Pair<ARTElement, RGEnvTransition>> envAppliedBldr =
+          ImmutableSet.<Pair<ARTElement, RGEnvTransition>>builder();
+      envAppliedBldr = envAppliedBldr.addAll(element.getEnvApplied());
       Pair<ARTElement, RGEnvTransition> application = Pair.of(element, et);
-      envApplied = envAppliedBldr.addAll(element.getEnvApplied())
-          .add(application)
-          .build();
+      envApplied = envAppliedBldr.add(application).build();
 
       RGLocationMapping lm = prec.getLocationMapping();
       CFANode succLoc = et.getTargetARTElement().retrieveLocationElement().getLocationNode();
@@ -105,16 +109,39 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
         }
       }
 
+      envParents = new LinkedHashMap<ARTElement, RGEnvTransition>(1);
+      envParents.put(et.getAbstractionElement(), et);
+
       succLocCl = locClBldr.build();
+    } else if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
+      RGCFAEdgeCombined rgEdge = (RGCFAEdgeCombined) edge;
+
+      com.google.common.collect.ImmutableSet.Builder<Pair<ARTElement, RGEnvTransition>> envAppliedBldr =
+          ImmutableSet.<Pair<ARTElement, RGEnvTransition>>builder();
+      envAppliedBldr = envAppliedBldr.addAll(element.getEnvApplied());
+
+      envParents = new LinkedHashMap<ARTElement, RGEnvTransition>(rgEdge.getEnvTransitions().size());
+
+      for (RGEnvTransition et : rgEdge.getEnvTransitions()){
+        envAppliedBldr = envAppliedBldr.add(Pair.of(element, et));
+        envParents.put(et.getAbstractionElement(), et);
+      }
+
+      envApplied = envAppliedBldr.build();
+
+      // TODO add successor classes handling
+      succLocCl = element.getLocationClasses();
+
+
     } else {
       envApplied = element.getEnvApplied();
       succLocCl = element.getLocationClasses();
+      envParents = Collections.emptyMap();
     }
 
     Integer oldDistance = element.getDistanceFromRoot();
     assert oldDistance != null;
     Integer newDistance = oldDistance + 1;
-
 
     // TODO statistics
     if (succLocCl == null){
@@ -131,12 +158,6 @@ public class ARTTransferRelation implements TransferRelation, StatisticsProvider
 
     Map<ARTElement, CFAEdge> localParents = new HashMap<ARTElement, CFAEdge>(1);
     localParents.put(element, edge);
-
-    Map<ARTElement, RGCFAEdge> envParents = new HashMap<ARTElement, RGCFAEdge>(1);
-    if (rgEdge != null){
-      ARTElement abstraction = rgEdge.getRgEnvTransition().getAbstractionElement();
-      envParents.put(abstraction, rgEdge);
-    }
 
     Collection<ARTElement> wrappedSuccessors = new ArrayList<ARTElement>();
     for (AbstractElement absElement : successors) {

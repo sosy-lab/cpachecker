@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGTransferRelation;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdgeCombined;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -88,6 +89,8 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   @Option(description="If true, then change treads after a number of operations.")
   private boolean changeThread = false;
 
+  private boolean combineEnvTransitions = false;
+
   public final Stats stats;
   private RunStats runStats;
   private final ConfigurableProgramAnalysis cpa;
@@ -104,6 +107,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   private final List<RGEnvCandidate> candidates;
   /** Candidates for env. transitions from all threads */
   private List<RGEnvCandidate>[] candidatesFromThread;
+
 
 
 
@@ -185,9 +189,9 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         System.out.println("Successors of "+aElement+", "+rgPrec);
       }
 
-      /*if (aElement.getElementId() == 128){
+      if (aElement.getElementId() == 44){
         System.out.println(this.getClass());
-      }*/
+      }
 
 
 
@@ -441,18 +445,29 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
       List<RGEnvTransition> envTransitionToApply = environment.getEnvironmentalTransitionsToApply(aElem, sum, artPrec);
 
-      for (RGEnvTransition et : envTransitionToApply){
+      if (combineEnvTransitions){
+
+        if (!envTransitionToApply.isEmpty()){
+          RGCFAEdgeCombined rgEdge = new RGCFAEdgeCombined(envTransitionToApply, loc, loc);
+          edges.add(rgEdge);
+        }
+
+      } else {
+
+        for (RGEnvTransition et : envTransitionToApply){
           RGCFAEdge rgEdge = new RGCFAEdge(et, loc, loc);
           edges.add(rgEdge);
+        }
       }
     }
 
     /* get local edges */
-    if (!aElem.hasLocalChild()){
+    if (!aElem.localChildrenComputed()){
 
       for (int i=0; i<loc.getNumLeavingEdges(); i++){
         CFAEdge edge = loc.getLeavingEdge(i);
-        if (edge.getEdgeType() != CFAEdgeType.RelyGuaranteeCFAEdge){
+        if (edge.getEdgeType() != CFAEdgeType.RelyGuaranteeCFAEdge &&
+            edge.getEdgeType() != CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
           edges.add(edge);
         }
       }
@@ -493,7 +508,8 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
   // returns true if an environmental transition should be created by the edge
   private boolean createsEnvTransition(CFAEdge edge){
-    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge ||
+        edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
       return false;
     }
 

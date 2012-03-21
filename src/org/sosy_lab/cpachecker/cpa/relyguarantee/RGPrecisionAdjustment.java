@@ -134,7 +134,7 @@ public class RGPrecisionAdjustment implements PrecisionAdjustment {
     PathFormula newAbsPf = pfManager.makeEmptyPathFormula(absPf);
     PathFormula newRefPf = pfManager.makeEmptyPathFormula(refPf);
 
-    return new RGAbstractElement.AbstractionElement(newAbstractionFormula, newAbsPf, newRefPf, refPf, element.getEnvApplicationMap(), precision);
+    return new RGAbstractElement.AbstractionElement(newAbstractionFormula, newAbsPf, newRefPf, refPf, element.getEnvApplicationMap(), precision, element.getItpSize());
   }
 
   protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {

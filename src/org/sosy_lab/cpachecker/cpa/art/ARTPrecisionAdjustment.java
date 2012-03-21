@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationClass;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGLocationMapping;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Functions;
@@ -81,7 +81,7 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     Map<ARTElement, CFAEdge> parents = element.getLocalParentMap();
-    Map<ARTElement, RGCFAEdge> envParents = element.getEnvParentMap();
+    Map<ARTElement, RGEnvTransition> envParents = element.getEnvParentMap();
 
     // adjust the precison of the location classes
     ImmutableMap<Integer, RGLocationClass> newLocClasses;
@@ -111,7 +111,7 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
 
 
     Map<ARTElement, CFAEdge> localChildren = element.getLocalChildMap();
-    Map<ARTElement, RGCFAEdge> envChildren = element.getEnvChildMap();
+    Map<ARTElement, RGEnvTransition> envChildren = element.getEnvChildMap();
     resultElement.addLocalChildren(localChildren);
     resultElement.addEnvChildren(envChildren);
 

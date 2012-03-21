@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.LogManager;
@@ -38,8 +39,6 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
-import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.rg")
 public class RGMergeOperator implements MergeOperator {
@@ -101,8 +100,7 @@ public class RGMergeOperator implements MergeOperator {
       // don't merge if the elements are in different blocks (they have different abstractions)
       if (!elem1.getAbstractionFormula().equals(elem2.getAbstractionFormula())) {
         merged = elem2;
-
-      } else {
+      }  else {
         totalMergeTime.start();
         // create a new element
 
@@ -110,15 +108,26 @@ public class RGMergeOperator implements MergeOperator {
         PathFormula mergedRefPf = formulaManager.makeOr(elem1.getRefPathFormula(), elem2.getRefPathFormula());
 
         // merge keys
-        Map<Integer, RGEnvTransition> map1 = elem1.getEnvApplicationMap();
-        Map<Integer, RGEnvTransition> map2 = elem2.getEnvApplicationMap();
-        // the keys should be unique
-        assert Sets.intersection(map1.keySet(), map2.keySet()).isEmpty();
+        ImmutableMap<Integer, RGEnvTransition> imMap;
 
-        Builder<Integer, RGEnvTransition> bldr = ImmutableMap.builder();
-        ImmutableMap<Integer, RGEnvTransition> mergedMap = bldr.putAll(map1).putAll(map2).build();
+        ImmutableMap<Integer, RGEnvTransition> map1 = elem1.getEnvApplicationMap();
+        ImmutableMap<Integer, RGEnvTransition> map2 = elem2.getEnvApplicationMap();
 
-        merged = new RGAbstractElement(mergedAbsPf, mergedRefPf, elem1.getAbstractionFormula(), mergedMap);
+        if (map1.isEmpty()){
+          imMap = map2;
+        }
+        else if (map2.isEmpty()){
+          imMap = map1;
+        }
+        else {
+          Map<Integer, RGEnvTransition> mergedMap = new LinkedHashMap<Integer, RGEnvTransition>(map1);
+          mergedMap.putAll(map2);
+          imMap = ImmutableMap.copyOf(mergedMap);
+        }
+
+        int blkItpSize = elem1.getBlockItpSize();
+
+        merged = new RGAbstractElement(mergedAbsPf, mergedRefPf, elem1.getAbstractionFormula(), imMap, blkItpSize);
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

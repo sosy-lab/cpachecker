@@ -160,6 +160,96 @@ public enum RGEnvTransitionComparator implements Comparator<RGEnvTransition>{
       return 0;
     }
 
+  },
+
+  ITP_MIN_DIST_MAX {
+
+    @Override
+    public int compare(RGEnvTransition et1, RGEnvTransition et2) {
+
+      if (et1.equals(et2)){
+        return 0;
+      }
+
+      ARTElement src1 = et1.getSourceARTElement();
+      ARTElement src2 = et2.getSourceARTElement();
+
+      int br1 = src1.getRefinementBranches();
+      int br2 = src2.getRefinementBranches();
+
+      if (br1 < br2){
+        return 1;
+      }
+
+      if (br1 > br2){
+        return -1;
+      }
+
+      Integer d1 = src1.getDistanceFromRoot();
+      Integer d2 = src2.getDistanceFromRoot();
+      assert d1 != null && d2 != null;
+
+      if (d1 > d2){
+        return 1;
+      }
+
+      if (d1 < d2){
+        return -1;
+      }
+
+      Integer top1 = src1.retrieveLocationElement().getLocationNode().getTopologicalSortId();
+      Integer top2 = src2.retrieveLocationElement().getLocationNode().getTopologicalSortId();
+
+      if (top1 < top2){
+        return 1;
+      }
+
+      if (top1 > top2){
+        return -1;
+      }
+
+      int id1 = src1.getElementId();
+      int id2 = src2.getElementId();
+
+      if (id1 > id2){
+        return 1;
+      }
+
+      if (id1 < id2){
+        return -1;
+      }
+
+      ARTElement trg1 = et1.getTargetARTElement();
+      ARTElement trg2 = et2.getTargetARTElement();
+
+      int topT1 = trg1.retrieveLocationElement().getLocationNode()
+          .getTopologicalSortId();
+      int topT2 = trg2.retrieveLocationElement().getLocationNode()
+          .getTopologicalSortId();
+
+      if (topT1 < topT2){
+        return 1;
+      }
+
+      if (topT1 > topT2){
+        return -1;
+      }
+
+
+      int idT1 = trg1.getElementId();
+      int idT2 = trg2.getElementId();
+
+      if (idT1 > idT2){
+        return 1;
+      }
+
+      if (idT1 < idT2){
+        return -1;
+      }
+
+      assert false;
+      return 0;
+    }
   }
 
 

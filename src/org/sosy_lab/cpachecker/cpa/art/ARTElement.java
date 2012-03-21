@@ -49,9 +49,9 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTr
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 
 
 public class ARTElement extends AbstractSingleWrapperElement implements Comparable {
@@ -61,10 +61,13 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
   /** Child ARTElement in the same thread and the edge between them. */
   private final HashMap<ARTElement, CFAEdge> localChildMap;
 
+  /** Should local child be computed? */
+  private boolean localChildComputed = false;
+
   /** Parent ARTElement in another thread that created the env. edge */
-  private final HashMap<ARTElement, RGCFAEdge> envParentMap;
+  private final HashMap<ARTElement, RGEnvTransition> envParentMap;
   /** Child ARTElement in another thread that was created by the env. edge*/
-  private final HashMap<ARTElement, RGCFAEdge> envChildMap;
+  private final HashMap<ARTElement, RGEnvTransition> envChildMap;
   /** Thread id. */
   private final int tid;
 
@@ -87,19 +90,21 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
 
 
   /** The number of branches that the interpolation tree for this element would have */
-  private int refBranches = 0;
+  private int refBranches = 1;
 
-  private int interpolationSize = 0;
+  private final int interpolationSize;
   /** Env. transitions applied to on the paths from the root to this element */
-  private ImmutableList<Pair<ARTElement, RGEnvTransition>> envApplied = ImmutableList.of();
-
+  private ImmutableSet<Pair<ARTElement, RGEnvTransition>> envApplied = ImmutableSet.of();
+  /** ART elements from {@link #envApplied}.*/
+  private ImmutableSet<ARTElement> envAppliedPoints;
   private Integer distanceFromRoot;
+
 
   private static int nextArtElementId = 0;
 
   public ARTElement(AbstractElement pWrappedElement,
       Map<ARTElement, CFAEdge> parentEdges,
-      Map<ARTElement, RGCFAEdge> parentEnvEdges,
+      Map<ARTElement, RGEnvTransition> parentEnvEdges,
       ImmutableMap<Integer, RGLocationClass> locCl,
       int tid) {
     super(pWrappedElement);
@@ -109,8 +114,8 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     this.elementId = ++nextArtElementId;
     this.localParentMap = new LinkedHashMap<ARTElement, CFAEdge>(parentEdges);
     this.localChildMap = new LinkedHashMap<ARTElement, CFAEdge>();
-    this.envParentMap = new LinkedHashMap<ARTElement, RGCFAEdge>(parentEnvEdges);
-    this.envChildMap = new LinkedHashMap<ARTElement, RGCFAEdge>();
+    this.envParentMap = new LinkedHashMap<ARTElement, RGEnvTransition>(parentEnvEdges);
+    this.envChildMap = new LinkedHashMap<ARTElement, RGEnvTransition>();
     this.tid = tid;
 
     // TODO move it somewhere
@@ -118,18 +123,24 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     for (ARTElement parent : parentEdges.keySet()){
       CFAEdge edge = parentEdges.get(parent);
       parent.localChildMap.put(this, edge);
+
+      if (edge.getEdgeType() != CFAEdgeType.RelyGuaranteeCFAEdge
+          && edge.getEdgeType() != CFAEdgeType.RelyGuaranteeCombinedCFAEdge ){
+        parent.localChildComputed = true;
+      }
     }
 
     for (ARTElement parent : this.envParentMap.keySet()){
-      RGCFAEdge edge = this.envParentMap.get(parent);
-      assert edge != null;
-      parent.envChildMap.put(this, edge);
+      RGEnvTransition et = this.envParentMap.get(parent);
+      assert et != null;
+      parent.envChildMap.put(this, et);
     }
 
     this.locationClasses = locCl;
 
     this.rgElement = AbstractElements.extractElementByType(this, RGAbstractElement.class);
     assert this.rgElement != null;
+    this.interpolationSize = rgElement.getItpSize();
   }
 
   public ImmutableSet<ARTElement> getLocalParents(){
@@ -151,41 +162,59 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     return Collections.unmodifiableMap(localChildMap);
   }
 
-  public Map<ARTElement, RGCFAEdge> getEnvParentMap() {
+  public Map<ARTElement, RGEnvTransition> getEnvParentMap() {
     return Collections.unmodifiableMap(envParentMap);
   }
 
-  public Map<ARTElement, RGCFAEdge> getEnvChildMap() {
+  public Map<ARTElement, RGEnvTransition> getEnvChildMap() {
     return Collections.unmodifiableMap(envChildMap);
   }
 
   public void addLocalParent(ARTElement element, CFAEdge edge) {
     localParentMap.put(element, edge);
+
+    if (edge.getEdgeType() != CFAEdgeType.RelyGuaranteeCFAEdge
+        && edge.getEdgeType() != CFAEdgeType.RelyGuaranteeCombinedCFAEdge ){
+      element.localChildComputed = true;
+    }
+
     element.localChildMap.put(this, edge);
   }
 
   public void addLocalChildren(Map<ARTElement, CFAEdge> children) {
     localChildMap.putAll(children);
+    localChildComputed = checkIfLocalChildExists(children);
   }
 
-  public void addEnvParent(ARTElement element, RGCFAEdge edge) {
+  public void addEnvParent(ARTElement element, RGEnvTransition edge) {
     envParentMap.put(element, edge);
     element.envChildMap.put(this, edge);
   }
 
-  public void addEnvChildren(Map<ARTElement, RGCFAEdge> children){
+  public void addEnvChildren(Map<ARTElement, RGEnvTransition> children){
     envChildMap.putAll(children);
   }
 
 
-  public boolean hasLocalChild() {
-    for (CFAEdge edge : this.localChildMap.values()){
-      if (edge.getEdgeType() != CFAEdgeType.RelyGuaranteeCFAEdge){
+
+
+  private boolean checkIfLocalChildExists(Map<ARTElement, CFAEdge> children) {
+    for (CFAEdge edge : children.values()){
+      if (edge.getEdgeType() != CFAEdgeType.RelyGuaranteeCFAEdge &&
+          edge.getEdgeType() != CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
         return true;
       }
     }
 
     return false;
+  }
+
+  public boolean localChildrenComputed() {
+    return localChildComputed;
+  }
+
+  public void computeLocalChildren() {
+    localChildComputed = false;
   }
 
 
@@ -248,20 +277,28 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
   }
 
 
-
-  public ImmutableList<Pair<ARTElement, RGEnvTransition>> getEnvApplied() {
+  public ImmutableSet<Pair<ARTElement, RGEnvTransition>> getEnvApplied() {
     return envApplied;
-
   }
 
+  public ImmutableSet<ARTElement> getEnvAppliedPoints() {
+    return envAppliedPoints;
+  }
 
-  public void setEnvApplied(ImmutableList<Pair<ARTElement, RGEnvTransition>> pEnvApplied) {
+  public void setEnvApplied(ImmutableSet<Pair<ARTElement, RGEnvTransition>> pEnvApplied) {
     envApplied = pEnvApplied;
 
+
     for (Pair<ARTElement, RGEnvTransition> pair : envApplied){
-      refBranches += pair.getFirst().getRefinementBranches() + 1;
-      interpolationSize += pair.getFirst().getInterpolationSize();
+      refBranches += pair.getSecond().getAbstractionElement().getRefinementBranches();
     }
+
+    Builder<ARTElement> bldr = ImmutableSet.<ARTElement>builder();
+    for (Pair<ARTElement, RGEnvTransition> pair : pEnvApplied){
+      bldr = bldr.add(pair.getFirst());
+    }
+
+    envAppliedPoints = bldr.build();
   }
 
 
@@ -280,7 +317,6 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
 
   public void setDistanceFromRoot(Integer pDistanceFromRoot) {
     distanceFromRoot = pDistanceFromRoot;
-    interpolationSize = distanceFromRoot;
   }
 
   @Override
@@ -297,8 +333,11 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     sb.append(", tid: ");
     sb.append(tid);
     sb.append(", distance: "+distanceFromRoot+", ");
+    sb.append(", itp size "+getInterpolationSize()+", ");
+    sb.append(", itp br "+getRefinementBranches()+", ");
     sb.append(", env. applied: "+envAppliedToString());
-    sb.append(", Location: "+loc+" "+locationClasses);
+    sb.append(", Location: "+loc+", ");
+   // sb.append(", Location: "+loc+" "+locationClasses);
     if (!destroyed) {
       sb.append(", Local parents: ");
       List<Integer> list = new ArrayList<Integer>();
@@ -476,7 +515,8 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     List<RGEnvTransition> envTr = new Vector<RGEnvTransition>();
 
     for (CFAEdge edge : this.localChildMap.values()){
-      if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+      if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge &&
+          edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
         RGCFAEdge rgEdge = (RGCFAEdge) edge;
         envTr.add(rgEdge.getRgEnvTransition());
       }

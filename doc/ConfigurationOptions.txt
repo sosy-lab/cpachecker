@@ -25,8 +25,8 @@ analysis.restartAfterUnknown = false
 analysis.stopAfterError = true
 
 # Choose comparator for comparator waitlist.
-analysis.traversal.comparator = MIN_ENVAPP_MAX_TOP
-  enum:     [ARTID_MAX, MIN_ENVAPP_MIN_TOP, MIN_ENVAPP_MIN_TOP2, MIX, MIX2, MIX3, MIN_ENVAPP_MAX_TOP, ENVAPP_MIN_TOP_MIN_DISTANCE_MIN, ENVAPP_LIMIT_TOP_MIN_DISTANCE_MIN]
+analysis.traversal.comparator = ENVAPP_MIN_TOP_MIN_DISTANCE_MIN
+  enum:     [ARTID_MAX, ENVAPP_MIN_TOP_MIN_DISTANCE_MIN, ENVAPP_LIMIT_TOP_MIN_DISTANCE_MIN, LBE_TEST]
 
 # which strategy to adopt for visiting states?
 analysis.traversal.order = DFS
@@ -543,11 +543,11 @@ cpa.rg.targetStateSatCheck = true
 
 # Comparator that specifies which env. candidates should be explored first
 cpa.rg.traversal.candidateComparator = ARTID_MAX
-  enum:     [ARTID_MAX, ENVAPP_MIN_DISTANCE_MIN_TOP_MAX]
+  enum:     [ARTID_MAX, ENVAPP_MIN_DISTANCE_MIN_TOP_MAX, ITP_MIN_DIST_MAX]
 
 # Comparator that specifies which env. transitions should be explored first
 cpa.rg.traversal.etComparator = ARTID_MAX
-  enum:     [ARTID_MAX, ENVAPP_MIN_DISTANCE_MIN_TOP_MAX]
+  enum:     [ARTID_MAX, ENVAPP_MIN_DISTANCE_MIN_TOP_MAX, ITP_MIN_DIST_MAX]
 
 # Use a theorem prover for comparing environmental transitions.
 cpa.rg.useProverForComparing = false

@@ -230,7 +230,7 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
     ImmutableSetMultimap<CFANode,AbstractionPredicate> emptyMultimap =
         ImmutableSetMultimap.<CFANode, AbstractionPredicate>of();
     this.initialPrecision= new RGPrecision(emptyMultimap, predicates, emptyMultimap, ImmutableSet.<AbstractionPredicate>of());
-    this.topElement = new RGAbstractElement.AbstractionElement(absManager.makeTrueAbstractionFormula(null), pfManager.makeEmptyPathFormula(), pfManager.makeEmptyPathFormula(), pfManager.makeEmptyPathFormula(), ImmutableMap.<Integer, RGEnvTransition>of(), this.initialPrecision);
+    this.topElement = new RGAbstractElement.AbstractionElement(absManager.makeTrueAbstractionFormula(null), pfManager.makeEmptyPathFormula(), pfManager.makeEmptyPathFormula(), pfManager.makeEmptyPathFormula(), ImmutableMap.<Integer, RGEnvTransition>of(), this.initialPrecision, 0);
     this.transfer.setData(pcfa.getCfa(tid));
 
     this.envManager = envManager;

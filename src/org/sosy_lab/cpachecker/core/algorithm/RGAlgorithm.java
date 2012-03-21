@@ -153,7 +153,6 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
         }
 
-
         // construct ART for thread i
         error = runThread(i, reached[i]);
         if (error) {

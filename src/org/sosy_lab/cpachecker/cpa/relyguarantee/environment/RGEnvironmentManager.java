@@ -48,11 +48,9 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.waitlist.ComparatorWaitlist.EnvAppMinTopMin2;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTPrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
@@ -336,6 +334,8 @@ public class RGEnvironmentManager implements StatisticsProvider{
     }
     stats.checkingTimer.stop();
   }
+
+
 
 
   /**
@@ -631,6 +631,97 @@ public class RGEnvironmentManager implements StatisticsProvider{
     return laARTElement;
   }
 
+/*
+  public List<RGEnvTransitionChain> getEnvironmentalChainsToApply(ARTElement elem, List<RGEnvCandidate> allCandidates, ARTPrecision prec){
+
+    // find most general candidates w.r.t to the location mapping
+    List<RGEnvCandidate> candidates = findMostGeneralCandidates(allCandidates, elem, prec);
+
+    if (debug){
+      printCandidates("Most general candidates:", candidates);
+      System.out.println();
+    }
+
+    RGLocationMapping lm = prec.getLocationMapping();
+    CFANode loc = elem.retrieveLocationElement().getLocationNode();
+    RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
+    Set<AbstractionPredicate> preds = new LinkedHashSet<AbstractionPredicate>(rgPrec.getEnvGlobalPredicates());
+    preds.addAll(rgPrec.getEnvPredicateMap().get(loc));
+
+    List<RGEnvTransition> newTransitions = findMostGeneralEnvTransitions(candidates, preds, lm);
+
+    List<RGEnvTransitionChain> newChains = new Vector<RGEnvTransitionChain>();
+
+    for (RGEnvTransition et : newTransitions){
+
+      RGFullyAbstracted fa = (RGFullyAbstracted) et;
+      Formula formula = fa.getAbstractTransition();
+      Vector<RGEnvTransition> singleton = new Vector<RGEnvTransition>(1);
+      singleton.add(et);
+      RGEnvTransitionChain chain = new RGEnvTransitionChain(singleton, formula, loc, loc);
+      newChains.add(chain);
+    }
+
+    List<RGEnvTransitionChain> mgChains = new Vector<RGEnvTransitionChain>();
+
+
+    // lfp
+    while (!mgChains.containsAll(newChains)){
+
+      mgChains.addAll(newChains);
+      List<RGEnvTransitionChain> chainCandidates = new Vector<RGEnvTransitionChain>();
+
+      for (RGEnvTransitionChain chainI : newChains){
+        for (RGEnvTransitionChain chainII : newChains){
+
+          // compose
+          RGEnvTransitionChain chainI_II = composeChains(elem.getTid(), preds,
+              chainI, chainII, elem.getRgElement().getAbsPathFormula());
+          chainCandidates.add(chainI_II);
+        }
+      }
+
+
+      newChains = findMostGeneralChains(chainCandidates, mgChains);
+    }
+
+
+    return mgChains;
+  }
+
+
+  private RGEnvTransitionChain composeChains(int sourceTid, Collection<AbstractionPredicate> preds,
+      RGEnvTransitionChain chainA,
+      RGEnvTransitionChain chainB,
+      PathFormula oldPf) {
+
+    RGFullyAbstractedManager fetManager = (RGFullyAbstractedManager) etManager;
+    Formula filter1 = chainA.getChainAbstraction();
+    Formula filter2 = chainB.getChainAbstraction();
+
+    AbstractionFormula af = fetManager.compose(sourceTid, oldPf, preds, filter1, filter2);
+
+
+    return null;
+  }
+
+
+  private List<RGEnvTransitionChain> findMostGeneralChains(
+      List<RGEnvTransitionChain> pChainCandidates,
+      List<RGEnvTransitionChain> pMgChains) {
+
+    List<RGEnvTransitionChain> allChains = new Vector<RGEnvTransitionChain>();
+    allChains.addAll(pChainCandidates);
+    allChains.addAll(pMgChains);
+
+    Set<RGEnvTransitionChain> covered = new Vector<RGEnvTransitionChain>();
+
+
+
+
+  }*/
+
+
 
   /**
    * Find new env. transitions that should be applied.
@@ -753,49 +844,6 @@ public class RGEnvironmentManager implements StatisticsProvider{
 
       return -1;
     }
-  }
-
-
-  public static class EnvComparator implements Comparator<RGEnvTransition> {
-
-    private Comparator<AbstractElement> elementComparator;
-
-    public EnvComparator(){
-      elementComparator = new EnvAppMinTopMin2();
-    }
-
-
-    @Override
-    public int compare(RGEnvTransition et1, RGEnvTransition et2) {
-
-      if (et1.equals(et2)){
-        return 0;
-      }
-
-      ARTElement s1 = et1.getSourceARTElement();
-      ARTElement s2 = et2.getSourceARTElement();
-
-      int b1 = s1.getRefinementBranches();
-      int b2 = s2.getRefinementBranches();
-
-      if (b1 < b2){
-        return 1;
-      }
-
-      if (b1 > b2){
-        return -1;
-      }
-
-      int top1 = s1.retrieveLocationElement().getLocationNode().getTopologicalSortId();
-      int top2 = s2.retrieveLocationElement().getLocationNode().getTopologicalSortId();
-
-      if (top1 > top2){
-        return 1;
-      }
-
-      return -1;
-    }
-
   }
 
   /**

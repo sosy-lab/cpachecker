@@ -25,13 +25,12 @@ package org.sosy_lab.cpachecker.core.waitlist;
 
 import java.util.Comparator;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Set;
 import java.util.TreeSet;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionComparator;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 
 /**
@@ -99,54 +98,6 @@ public class ComparatorWaitlist implements Waitlist {
       }
     },
 
-    MIN_ENVAPP_MIN_TOP {
-
-      @Override
-      public Waitlist createWaitlistInstance() {
-        return new ComparatorWaitlist(new EnvAppMinTopMin());
-      }
-    },
-
-    MIN_ENVAPP_MIN_TOP2 {
-
-      @Override
-      public Waitlist createWaitlistInstance() {
-        return new ComparatorWaitlist(new EnvAppMinTopMin2());
-      }
-    },
-
-    MIX {
-
-      @Override
-      public Waitlist createWaitlistInstance() {
-        return new ComparatorWaitlist(new Mix());
-      }
-    },
-
-    MIX2 {
-
-      @Override
-      public Waitlist createWaitlistInstance() {
-        return new ComparatorWaitlist(new Mix2());
-      }
-    },
-
-    MIX3 {
-
-      @Override
-      public Waitlist createWaitlistInstance() {
-        return new ComparatorWaitlist(new Mix3());
-      }
-    },
-
-    MIN_ENVAPP_MAX_TOP {
-
-      @Override
-      public Waitlist createWaitlistInstance() {
-        return new ComparatorWaitlist(new EnvAppMinTopMax());
-      }
-    },
-
     ENVAPP_MIN_TOP_MIN_DISTANCE_MIN {
 
       @Override
@@ -161,18 +112,22 @@ public class ComparatorWaitlist implements Waitlist {
       public Waitlist createWaitlistInstance() {
         return new ComparatorWaitlist(new  EnvLimitMinTopMinDistMin());
       }
+    },
+
+    LBE_TEST {
+
+      @Override
+      public Waitlist createWaitlistInstance() {
+        return new ComparatorWaitlist(new LBETest());
+      }
+
     }
-
-
-
-
-
 
   }
 
-  /**
+  /*
    * Minimize env. applications and then minimizes topological numbers.
-   */
+
   public static class EnvAppMinTopMin implements Comparator<AbstractElement>{
 
     @Override
@@ -184,8 +139,8 @@ public class ComparatorWaitlist implements Waitlist {
         return 0;
       }
 
-      List<Pair<ARTElement, RGEnvTransition>> eapp1 = aelem1.getEnvApplied();
-      List<Pair<ARTElement, RGEnvTransition>> eapp2 = aelem2.getEnvApplied();
+      Set<Pair<ARTElement, RGEnvTransition>> eapp1 = aelem1.getEnvApplied();
+      Set<Pair<ARTElement, RGEnvTransition>> eapp2 = aelem2.getEnvApplied();
 
       // compare the number of env. applications
       if (eapp1.size() < eapp2.size()){
@@ -244,12 +199,12 @@ public class ComparatorWaitlist implements Waitlist {
 
       return id1 > id2 ? 1 : (id1 < id2) ? -1 : 0;
     }
-  }
+  }*/
 
 
-  /**
+  /*
    * Minimize env. applications and then minimizes topological numbers.
-   */
+
   public static class EnvAppMinTopMin2 implements Comparator<AbstractElement>{
 
     @Override
@@ -320,12 +275,12 @@ public class ComparatorWaitlist implements Waitlist {
 
       return id1 > id2 ? 1 : (id1 < id2) ? -1 : 0;
     }
-  }
+  }*/
 
 
-  /**
+  /*
    * Minimize env. applications and then minimizes topological numbers.
-   */
+
   public static class Mix implements Comparator<AbstractElement>{
 
     @Override
@@ -396,196 +351,8 @@ public class ComparatorWaitlist implements Waitlist {
 
       return id1 > id2 ? 1 : (id1 < id2) ? -1 : 0;
     }
-  }
+  }*/
 
-
-  /**
-   * Minimize env. applications and then minimizes topological numbers.
-   */
-  public static class Mix2 implements Comparator<AbstractElement>{
-
-    @Override
-    public int compare(AbstractElement elem1, AbstractElement elem2) {
-      ARTElement aelem1 = (ARTElement) elem1;
-      ARTElement aelem2 = (ARTElement) elem2;
-
-      if (aelem1.equals(aelem2)){
-        return 0;
-      }
-
-      int branches1 = aelem1.getRefinementBranches();
-      int branches2 = aelem2.getRefinementBranches();
-
-      // compare the number of env. applications
-      if (branches1 < branches2){
-        return 1;
-      }
-
-      if (branches1 > branches2){
-        return -1;
-      }
-
-      // compare topological numbers, children before parents
-      int top1 = aelem1.retrieveLocationElement().getLocationNode().getTopologicalSortId();
-      int top2 = aelem2.retrieveLocationElement().getLocationNode().getTopologicalSortId();
-
-      if (top1 < top2){
-        return 1;
-      }
-
-      if (top1 > top2){
-        return -1;
-      }
-
-      // compare first application point
-      List<Pair<ARTElement, RGEnvTransition>> eapp1 = aelem1.getEnvApplied();
-      List<Pair<ARTElement, RGEnvTransition>> eapp2 = aelem2.getEnvApplied();
-
-      if (eapp1.size() > 0){
-        Pair<ARTElement, RGEnvTransition> app1 = eapp1.get(0);
-        Pair<ARTElement, RGEnvTransition> app2 = eapp2.get(0);
-
-        // compare application points - parents before children
-        int t1top = app1.getFirst().retrieveLocationElement().getLocationNode().getTopologicalSortId();
-        int t2top = app2.getFirst().retrieveLocationElement().getLocationNode().getTopologicalSortId();
-
-        if (t1top > t1top){
-          return 1;
-        }
-
-        if (t1top < t1top){
-          return -1;
-        }
-
-        // compare generating points - parents before children
-        int s1top = app1.getSecond().getSourceARTElement().retrieveLocationElement().
-            getLocationNode().getTopologicalSortId();
-
-        int s2top = app2.getSecond().getSourceARTElement().retrieveLocationElement().
-            getLocationNode().getTopologicalSortId();
-
-        if (s1top > s2top){
-          return 1;
-        }
-
-        if (s1top < s2top){
-          return -1;
-        }
-
-
-      }
-      // compare ART element ids
-      int id1 = aelem1.getElementId();
-      int id2 = aelem2.getElementId();
-
-      return id1 > id2 ? 1 : -1;
-    }
-
-    private int countBranches(ARTElement elem){
-      int size = 0;
-
-      List<Pair<ARTElement, RGEnvTransition>> envApplied = elem.getEnvApplied();
-
-      for (Pair<ARTElement, RGEnvTransition> pair : envApplied){
-        size += countBranches(pair.getFirst()) + 1;
-      }
-
-      return size;
-    }
-  }
-
-
-
-  public static class Mix3 implements Comparator<AbstractElement>{
-
-    @Override
-    public int compare(AbstractElement elem1, AbstractElement elem2) {
-      ARTElement aelem1 = (ARTElement) elem1;
-      ARTElement aelem2 = (ARTElement) elem2;
-
-      if (aelem1.equals(aelem2)){
-        return 0;
-      }
-
-      int branches1 = aelem1.getRefinementBranches();
-      int branches2 = aelem2.getRefinementBranches();
-
-      // compare the number of env. applications
-      if (branches1 < branches2){
-        return 1;
-      }
-
-      if (branches1 > branches2){
-        return -1;
-      }
-
-      // compare first application point
-      List<Pair<ARTElement, RGEnvTransition>> eapp1 = aelem1.getEnvApplied();
-      List<Pair<ARTElement, RGEnvTransition>> eapp2 = aelem2.getEnvApplied();
-
-      if (eapp1.size() > 0){
-        Pair<ARTElement, RGEnvTransition> app1 = eapp1.get(0);
-        Pair<ARTElement, RGEnvTransition> app2 = eapp2.get(0);
-
-        int appId1 = app1.getFirst().getElementId();
-        int appId2 = app2.getFirst().getElementId();
-
-        if (appId1 > appId2){
-          return 1;
-        }
-
-        if (appId1 < appId2){
-          return -1;
-        }
-
-        // compare application points - parents before children
-        /*int t1top = app1.getFirst().retrieveLocationElement().getLocationNode().getTopologicalSortId();
-        int t2top = app2.getFirst().retrieveLocationElement().getLocationNode().getTopologicalSortId();
-
-        if (t1top > t1top){
-          return 1;
-        }
-
-        if (t1top < t1top){
-          return -1;
-        }*/
-
-        // compare generating points - parents before children
-        /*int s1top = app1.getSecond().getSourceARTElement().retrieveLocationElement().
-            getLocationNode().getTopologicalSortId();
-
-        int s2top = app2.getSecond().getSourceARTElement().retrieveLocationElement().
-            getLocationNode().getTopologicalSortId();
-
-        if (s1top > s2top){
-          return 1;
-        }
-
-        if (s1top < s2top){
-          return -1;
-        }*/
-
-
-        int srcId1 = app1.getSecond().getSourceARTElement().getElementId();
-        int srcId2 = app2.getSecond().getSourceARTElement().getElementId();
-
-        if (srcId1 > srcId2){
-          return 1;
-        }
-
-        if (srcId1 < srcId2){
-          return -1;
-        }
-
-
-      }
-      // compare ART element ids
-      int id1 = aelem1.getElementId();
-      int id2 = aelem2.getElementId();
-
-      return id1 > id2 ? 1 : -1;
-    }
-  }
 
 
 
@@ -618,9 +385,8 @@ public class ComparatorWaitlist implements Waitlist {
 
 
 
-  /**
+  /*
    * Minimize env. applications and maximizes then topological numbers.
-   */
   public static class EnvAppMinTopMax implements Comparator<AbstractElement>{
 
     @Override
@@ -694,7 +460,7 @@ public class ComparatorWaitlist implements Waitlist {
 
       return id1 > id2 ? 1 : (id1 < id2) ? -1 : 0;
     }
-  }
+  }*/
 
 
   /**
@@ -714,10 +480,10 @@ public class ComparatorWaitlist implements Waitlist {
       ARTElement aelem1 = (ARTElement) elem1;
       ARTElement aelem2 = (ARTElement) elem2;
 
-      List<Pair<ARTElement, RGEnvTransition>> appbf1 = aelem1.getEnvApplied();
-      List<Pair<ARTElement, RGEnvTransition>> appbf2 = aelem2.getEnvApplied();
+      Set<Pair<ARTElement, RGEnvTransition>> appbf1 = aelem1.getEnvApplied();
+      Set<Pair<ARTElement, RGEnvTransition>> appbf2 = aelem2.getEnvApplied();
 
-      // compare ref branches
+
       if (appbf1.size() < appbf2.size()){
         return 1;
       }
@@ -726,7 +492,7 @@ public class ComparatorWaitlist implements Waitlist {
         return -1;
       }
 
-      if (!appbf1.isEmpty()){
+     /* if (!appbf1.isEmpty()){
 
         // max top of application point
         for (int i=0; i<appbf1.size(); i++){
@@ -769,7 +535,7 @@ public class ComparatorWaitlist implements Waitlist {
             return envCmp;
           }
         }
-      }
+      }*/
 
       // env. applications are equivalent, compare topological id
       int top1 = aelem1.retrieveLocationElement().getLocationNode().getTopologicalSortId();
@@ -793,6 +559,117 @@ public class ComparatorWaitlist implements Waitlist {
       }
 
       if (d1 > d2){
+        return -1;
+      }
+
+      int id1 = aelem1.getElementId();
+      int id2 = aelem2.getElementId();
+
+      if (id1 < id2){
+        return 1;
+      }
+
+      if (id1 > id2){
+        return -1;
+      }
+
+      assert false;
+      return 0;
+    }
+
+  }
+
+
+
+  /**
+   * Minimize env. app, maximize topological id, min. distance from root,
+   *
+   */
+  public static class LBETest implements Comparator<AbstractElement>{
+
+    @Override
+    public int compare(AbstractElement elem1, AbstractElement elem2) {
+
+      if (elem1.equals(elem2)){
+        return 0;
+      }
+
+
+      ARTElement aelem1 = (ARTElement) elem1;
+      ARTElement aelem2 = (ARTElement) elem2;
+
+      Set<ARTElement> appbf1 = aelem1.getEnvAppliedPoints();
+      Set<ARTElement> appbf2 = aelem2.getEnvAppliedPoints();
+
+      int br1 = aelem1.getRefinementBranches();
+      int br2 = aelem2.getRefinementBranches();
+
+      if (br1 < br2){
+        return 1;
+      }
+
+      if (br1 > br2){
+        return -1;
+      }
+
+      if (br1 > 0){
+
+        // choose element with application points with lower topological ids
+        int totalTop1 = 0;
+
+        for (ARTElement app1 : appbf1){
+          totalTop1 += app1.retrieveLocationElement().getLocationNode().getTopologicalSortId();
+        }
+
+        int totalTop2 = 0;
+
+        for (ARTElement app2 : appbf2){
+          totalTop2 += app2.retrieveLocationElement().getLocationNode().getTopologicalSortId();
+        }
+
+        if (totalTop1 < totalTop2){
+          return 1;
+        }
+
+        if (totalTop1 > totalTop2){
+          return -1;
+        }
+
+      }
+
+      // env. applications are equivalent, compare topological id
+      int top1 = aelem1.retrieveLocationElement().getLocationNode().getTopologicalSortId();
+      int top2 = aelem2.retrieveLocationElement().getLocationNode().getTopologicalSortId();
+
+      if (top1 > top2){
+        return 1;
+      }
+
+      if (top1 < top2){
+        return -1;
+      }
+
+      // compare distance
+     /* Integer d1 = aelem1.getDistanceFromRoot();
+      Integer d2 = aelem2.getDistanceFromRoot();
+      assert d1 != null && d2 != null;
+
+      if (d1 < d2){
+        return 1;
+      }
+
+      if (d1 > d2){
+        return -1;
+      }*/
+
+      int id1 = aelem1.getElementId();
+      int id2 = aelem2.getElementId();
+
+      if (id1 > id2){
+        return 1;
+      }
+
+      if (id1 < id2){
         return -1;
       }
 
@@ -831,10 +708,10 @@ public class ComparatorWaitlist implements Waitlist {
         return -1;
       }
 
-      List<Pair<ARTElement, RGEnvTransition>> appbf1 = aelem1.getEnvApplied();
-      List<Pair<ARTElement, RGEnvTransition>> appbf2 = aelem2.getEnvApplied();
+      Set<Pair<ARTElement, RGEnvTransition>> appbf1 = aelem1.getEnvApplied();
+      Set<Pair<ARTElement, RGEnvTransition>> appbf2 = aelem2.getEnvApplied();
 
-      // compare ref branches
+      /* compare ref branches
       for (int i=0; i<Math.max(appbf1.size(), appbf2.size()); i++){
 
         if (appbf2.size() <= i){
@@ -884,7 +761,7 @@ public class ComparatorWaitlist implements Waitlist {
           return envCmp;
         }
 
-      }
+      }*/
 
 
       // env. applications are equivalent, compare topological id
