@@ -97,6 +97,7 @@ public class SeplogicCPA implements ConfigurableProgramAnalysis, StatisticsProvi
 
   private SeplogicCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
+    CorestarInterface.prepare(config);
     CorestarInterface.getInstance().setLogger(logger);
   }
 

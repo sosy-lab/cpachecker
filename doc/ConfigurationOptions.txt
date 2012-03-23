@@ -53,6 +53,9 @@ rootDirectory = "."
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
 
+# use biabduction in seperation logic cpa
+analysis.analysis.useBiabduction = false
+
 # stop CPAchecker after startup (internal option, not intended for users)
 analysis.disable = false
 
@@ -615,6 +618,19 @@ cpa.predicate.useBitwiseAxioms = false
 
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
+
+# path to a file with abstraction rules for CoreStar
+cpa.seplogic.csint.abstractionfile = no default value
+
+# path to run_prover from CoreStar
+cpa.seplogic.csint.corestarpath = no default value
+
+# path to a file with logic rules for CoreStar
+cpa.seplogic.csint.logicsfile = no default value
+
+# path to the executable that mimics an SMT solver that accepts SMTLIB2
+# commands via stdin
+cpa.seplogic.csint.smtsolverpath = no default value
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"

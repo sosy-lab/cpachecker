@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.seplogic.csif;
 
 import static org.parboiled.errors.ErrorUtils.printParseErrors;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,12 +40,17 @@ import org.parboiled.parserunners.TracingParseRunner;
 import org.parboiled.support.ParsingResult;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cpa.seplogic.SeplogicParser;
 import org.sosy_lab.cpachecker.cpa.seplogic.nodes.Formula;
 import org.sosy_lab.cpachecker.cpa.seplogic.nodes.SeplogicNode;
 
 
-
+@Options(prefix="cpa.seplogic.csint")
 public class CorestarInterface {
   private Process csProcess, absProcess;
   private SeplogicParser parser;
@@ -62,6 +68,27 @@ public class CorestarInterface {
   private static final byte[] HOLDS = "1\n".getBytes();
   private static final byte[] HOLDSNOT = "0\n".getBytes();
   private byte[] holdsBuffer = new byte[HOLDS.length];
+
+  @Option(name="smtsolverpath", required=true,
+      description="path to the executable that mimics an SMT solver that accepts SMTLIB2 commands via stdin")
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private File smtSolverPath = null;
+
+  @Option(name="logicsfile", required=true,
+      description="path to a file with logic rules for CoreStar")
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private File logicsFile = null;
+
+  @Option(name="abstractionfile", required=true,
+      description="path to a file with abstraction rules for CoreStar")
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private File abstractionFile = null;
+
+  @Option(name="corestarpath", required=true,
+      description="path to run_prover from CoreStar")
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private File csPath = null;
+
 
   public Timer getParsingTimer() {
     return parsingTimer;
@@ -87,7 +114,9 @@ public class CorestarInterface {
     return abstractionTimer;
   }
 
-  private CorestarInterface() {
+
+  private CorestarInterface(Configuration config) throws InvalidConfigurationException {
+    config.inject(this, CorestarInterface.class);
     try {
       csProcess = createProcess(false);
       absProcess = createProcess(true);
@@ -102,8 +131,7 @@ public class CorestarInterface {
     // ugh, java ...
     Map<String, String> envMap = (new ProcessBuilder("")).environment();
     if (useSMT) {
-      //envMap.put("JSTAR_SMT_PATH", "/home/xoraxax/dev/smtsolvers/z3/bin/z3");
-      envMap.put("JSTAR_SMT_PATH", "/home/xoraxax/vcs/jstar/corestar-git/myz3.sh");
+      envMap.put("JSTAR_SMT_PATH", smtSolverPath.getAbsolutePath());
     }
     String[] envp = new String[envMap.size()];
     int i = 0;
@@ -111,23 +139,35 @@ public class CorestarInterface {
       envp[i++] = item.getKey() + "=" + item.getValue();
     }
 
-    // XXX parameterize
-    return Runtime.getRuntime().exec(new String[] { "/home/xoraxax/vcs/jstar/corestar-git/bin/run_prover",
-        "-l", "/home/xoraxax/vcs/jstar/corestar-git/cpachecker.logic",
-        "-a", "/home/xoraxax/vcs/jstar/corestar-git/cpachecker.abs"
+    return Runtime.getRuntime().exec(new String[] { csPath.getAbsolutePath(),
+        "-l", logicsFile.getAbsolutePath(),
+        "-a", abstractionFile.getAbsolutePath()
         }, envp);
   }
 
   public static CorestarInterface getInstance() {
-    if (singleton == null)
-      singleton = new CorestarInterface();
+    if (singleton == null) {
+      throw new java.lang.IllegalStateException("CoreStar Interface was not initialized correctly.");
+    }
+
     return singleton;
+  }
+
+  public static void prepare(Configuration config) throws InvalidConfigurationException {
+    singleton = new CorestarInterface(config);
   }
 
   private void writeToProcess(Process process, byte[] data) throws IOException {
     logger.log(Level.FINER, "Query:\n", new String(data));
     process.getOutputStream().write(data);
-    process.getOutputStream().flush();
+    try {
+      process.getOutputStream().flush();
+    } catch (IOException e) {
+      byte[] b = new byte[1024];
+      process.getErrorStream().read(b, 0, 1024);
+      logger.log(Level.SEVERE, "Error in CoreStar I/O:\n" + new String(b));
+      throw e;
+    }
   }
 
   private void readFromProcess(Process process, byte[] buffer, int len) throws IOException {
