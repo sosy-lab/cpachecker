@@ -119,10 +119,15 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   boolean useTopMostInterpolationPoint                      = true;
 
   @Option(description="whether or not to remove important variables again")
-  boolean keepTrackingImportantVariables                          = true;
+  boolean keepImportantVariablesInCounterexampleCheck       = true;
 
   @Option(description="whether or not to skip counter-example checks of variables that already are in the precision")
   boolean skipRedundantChecks                               = true;
+
+  @Option(description="whether or not to use assumption-closure for explicit refinement")
+  boolean useAssumptionClosure                              = false;
+
+  private boolean fullPrecCheckIsFeasable                   = false;
 
   // statistics for explicit refinement
   private int numberOfExplicitRefinements                   = 0;
@@ -201,9 +206,15 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   }
 
   private Multimap<CFANode, String> determineReferencedVariableMapping(List<CFAEdge> cfaTrace) {
-    AssignedVariablesCollector collector = new AssignedVariablesCollector();
+    if(useAssumptionClosure) {
+      AssumptionVariablesCollector coll = new AssumptionVariablesCollector();
+      return coll.collectVariables(cfaTrace);
+    }
 
-    return collector.collectVars(cfaTrace);
+    else {
+      AssignedVariablesCollector collector = new AssignedVariablesCollector();
+      return collector.collectVars(cfaTrace);
+    }
   }
 
   private Multimap<CFANode, String> determinePrecisionIncrement(CegarPrecision precision) throws CPAException {
@@ -217,6 +228,8 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       artTrace.add(pathElement.getFirst());
       cfaTrace.add(pathElement.getSecond());
     }
+
+    fullPrecCheckIsFeasable = doFullPrecisionCheck(artTrace);
 
     Set<String> irrelevantVariables = new HashSet<String>();
 
@@ -281,15 +294,35 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
         // ... add the "important" variables to the precision increment, and remove them from the irrelevant ones
         for(String importantVariable : referencedVariablesAtEdge) {
           increment.put(pathElement.getSecond().getSuccessor(), importantVariable);
-          if(keepTrackingImportantVariables)
+          if(keepImportantVariablesInCounterexampleCheck)
             irrelevantVariables.remove(importantVariable);
         }
       }
     }
 
     timerCounterExampleChecks.stop();
-//System.out.println(increment);
     return increment;
+  }
+
+  private boolean doFullPrecisionCheck(Set<ARTElement> artTrace) {
+    try {
+      CounterexampleCPAChecker checkerFirst = new CounterexampleCPAChecker(Configuration.builder().setOption("counterexample.checker.ignoreGlobally", "").build(),
+          explicitCpa.getLogger(),
+          new ReachedSetFactory(explicitCpa.getConfiguration(), explicitCpa.getLogger()),
+          explicitCpa.getCFA());
+
+    if(checkerFirst.checkCounterexample(path.get(0).getFirst(),
+        path.get(path.size() - 1).getFirst(),
+        artTrace)) {
+      return true;
+    }
+    else
+      return false;
+    } catch(Exception e) {
+      System.out.println("CounterexampleCPAChecker failed: " + e.getMessage());
+    }
+
+    return false;
   }
 
   @Override
@@ -423,6 +456,14 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
       else {
         numberOfExplicitRefinements++;
+
+        Set<ARTElement> artTrace = new HashSet<ARTElement>();
+        List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
+        for(Pair<ARTElement, CFAEdge> pathElement : path){
+          artTrace.add(pathElement.getFirst());
+          cfaTrace.add(pathElement.getSecond());
+        }
+        fullPrecCheckIsFeasable = doFullPrecisionCheck(artTrace);
 
         // determine the precision increment
         precisionIncrement = predicateMap.determinePrecisionIncrement(fmgr);
@@ -612,5 +653,6 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       out.println("  max. time for syntactical path analysis:   " + timerSyntacticalPathAnalysis.printMaxTime());
       out.println("  total time for syntactical path analysis:  " + timerSyntacticalPathAnalysis);
     }
+    out.println("  full-precision-check is feasable:        " + fullPrecCheckIsFeasable);
   }
 }
