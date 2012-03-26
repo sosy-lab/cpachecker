@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUtil.*;
 
+import java.io.StringReader;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -181,8 +182,9 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
     Term t1 = getTerm(f1);
     Term t2 = getTerm(f2);
     Sort booleanSort = env.sort(Type.BOOL);
-    assert t1.getSort() == booleanSort;
-    assert t2.getSort() == booleanSort;
+    assert t1.getSort() == booleanSort && t2.getSort() == booleanSort :
+      "Cannot make equivalence of non-boolean terms:\nTerm 1:\n" +
+      t1.toStringDirect() + "\nTerm 2:\n" + t2.toStringDirect();
     return encapsulate(env.term("=", t1, t2));
   }
 
@@ -307,7 +309,24 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
   @Override
   public Formula parse(String s) {
-    throw new UnsupportedOperationException();
+    return encapsulate(parseStringToTerms(s)[0]);
+  }
+
+  /** Parse a String to Terms and Declarations.
+   * The String may contain terms and function-declarations in SMTLIB2-format.
+   * Use Prefix-notation! */
+  private Term[] parseStringToTerms(String s) {
+    Parser parser = new Parser(env, new StringReader(s));
+
+    try {
+      parser.parse();
+    } catch (Exception e) {
+      e.printStackTrace();
+      throw new AssertionError("something went wrong while parsing a term:\n" + s);
+    }
+
+    Term[] terms = parser.getTerms();
+    return terms;
   }
 
   @Override

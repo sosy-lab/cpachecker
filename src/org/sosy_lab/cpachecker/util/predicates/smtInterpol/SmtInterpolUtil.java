@@ -39,10 +39,6 @@ public class SmtInterpolUtil {
 
   static boolean log = false; // debug
 
-  /* comment in mathsat-class:
-  msat_term_is_atom (msat_term t): nonzero if t is an atom,
-  i.e. either a boolean variable or a relation between terms.
-  TODO: what is atom?? */
   /** A Term is an Atom, iff its function is no element of {"And", "Or", "Not"}.*/
   public static boolean isAtom(Term t) {
     boolean is = !isAnd(t) && !isOr(t) && !isNot(t);
@@ -51,7 +47,8 @@ public class SmtInterpolUtil {
   }
 
   public static boolean isVariable(Term t) {
-    boolean is = (t instanceof ApplicationTerm)
+    boolean is = !isTrue(t) && !isFalse(t)
+        && (t instanceof ApplicationTerm)
         && ((ApplicationTerm) t).getParameters().length == 0;
     if (log) System.out.println("   isVariable (" + is +"): " + t);
     return is;
@@ -188,11 +185,19 @@ public class SmtInterpolUtil {
   public static Term replaceArgs(SmtInterpolEnvironment env, Term t, Term[] newParams) {
     if (t instanceof ApplicationTerm) {
       ApplicationTerm at = (ApplicationTerm) t;
-      assert at.getParameters().length == newParams.length;
+      Term[] oldParams = at.getParameters();
+
+      assert oldParams.length == newParams.length;
+      for (int i=0; i < newParams.length; i++) {
+        assert oldParams[i].getSort() == newParams[i].getSort() :
+          "Cannot replace " + oldParams[i] + " with " + newParams[i] + ".";
+      }
 
       FunctionSymbol funcSymb = at.getFunction();
       return env.term(funcSymb.getName(), newParams);
-    } else { // numeral
+    } else {
+      // ConstantTerm:            numeral, nothing to replace
+      // AnnotatedTerm, LetTerm:  should not happen here
       return t;
     }
   }
