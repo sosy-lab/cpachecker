@@ -118,6 +118,11 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       throw new CounterexampleAnalysisFailed("CBMC took too long to verify the counterexample.");
 
     } finally {
+      if (cbmcFile == null) {
+        // delete temp file so it is gone even if JVM is killed
+        cFile.delete();
+      }
+
       cbmcTime.stop();
       logger.log(Level.FINER, "CBMC finished.");
     }

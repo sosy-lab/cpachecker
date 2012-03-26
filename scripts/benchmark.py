@@ -638,7 +638,7 @@ class OutputHandler:
         get info about CPAchecker from local svn- or git-svn-directory
         '''
         version = ''
-        exe = findExecutable("cpachecker", "scripts/cpa.sh")
+        exe = findExecutable("cpa.sh", "scripts/cpa.sh")
         try:
             cpaFolder = subprocess.Popen(['which', exe],
                               stdout=subprocess.PIPE).communicate()[0].strip('\n')
@@ -683,7 +683,7 @@ class OutputHandler:
 
         version = ''
         if (tool == "cpachecker"):
-            exe = findExecutable("cpachecker", "scripts/cpa.sh")
+            exe = findExecutable("cpa.sh", "scripts/cpa.sh")
             try:
                 versionHelpStr = subprocess.Popen([exe, '-help'],
                     stdout=subprocess.PIPE).communicate()[0]
@@ -1576,7 +1576,7 @@ def run_cpachecker(options, sourcefile, columns, rlimits, file):
     if ("-stats" not in options):
         options = options + ["-stats"]
 
-    exe = findExecutable("cpachecker", "scripts/cpa.sh")
+    exe = findExecutable("cpa.sh", "scripts/cpa.sh")
     args = [exe] + options + [sourcefile]
     (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 

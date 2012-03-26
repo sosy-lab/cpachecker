@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -37,7 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.explicit.precision")
 public class ExplicitPrecision implements Precision {
@@ -176,7 +178,7 @@ public class ExplicitPrecision implements Precision {
     /**
      * the collection that determines which variables are tracked at a specific location - if it is null, all variables are tracked
      */
-    private SetMultimap<CFANode, String> mapping = null;
+    private HashMultimap<CFANode, String> mapping = null;
 
     @Option(description="whether or not to use refinement or not")
     private boolean useRefinement = false;
@@ -219,14 +221,12 @@ public class ExplicitPrecision implements Precision {
      *
      * @param additionalMapping the addition mapping to be added to the current mapping
      */
-    void addToMapping(SetMultimap<CFANode, String> additionalMapping) {
-      //int before = mapping.size();
+    void addToMapping(Multimap<CFANode, String> additionalMapping) {
       mapping.putAll(additionalMapping);
-      //int after = mapping.size();
+    }
 
-      //if((before + additionalMapping.size()) != after) {
-      //System.out.println("redundancy !!!");
-      //}
+    Collection<String> getVariablesInPrecision() {
+      return new HashSet<String>(mapping.values());
     }
 
     @Override

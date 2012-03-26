@@ -81,6 +81,11 @@ function cKeyPressed(event) {
 	return (event.keyCode == 67 && event.ctrlKey == false);
 }
 
+function fKeyPressed(event) {
+	// only "f" is pressed, not in combination with Ctrl-key
+	return (event.keyCode == 70 && event.ctrlKey == false);
+}
+
 var headerArray = [];
 
 function createHeaderArray() {
@@ -215,13 +220,13 @@ function createColumnToggleButtons() {
                        tableHead.children[4].cells[testNum].textContent;
     
         // TODO can we make next block more OO-like?
-        buttonList = '<ul>' + testName;
+        buttonList = '<ul onclick="toggleCompleteColumn(event, this)">' + testName;
         for (var i=1; i<columnTitles.length; i++) { // do not use first column (i!=0)
             if (testNum != testNums[i]) {
                 testNum = testNums[i];
                 testName = tableHead.children[3].cells[headerArray[3][i]].textContent + " " + 
                            tableHead.children[4].cells[testNum].textContent;
-                buttonList += '</ul><ul>' + testName;
+                buttonList += '</ul><ul onclick="toggleCompleteColumn(event, this)">' + testName;
             }
     
             var toggleFunction = 'onclick="toggleColumn(this,' + i + ')"';
@@ -239,6 +244,25 @@ function createColumnToggleButtons() {
         .append(buttonListCache)
         .appendTo($("#contentPane"));
     showContentPane();
+}
+
+// function to (un)hide a complete test run, with all of its columns at once
+function toggleCompleteColumn(event, listOfCheckboxes) {
+  if(event.originalTarget == listOfCheckboxes) {
+
+    checkboxes = ($(listOfCheckboxes).find('input'));
+    checkedState = !checkboxes[0].checked;
+
+    for(var i = 0; i < checkboxes.length; i++) {
+      if(checkboxes[i].checked != checkedState) {
+	      id = checkboxes[i].id.replace("check", "");
+	      // first uncheck ...
+	      checkboxes[i].checked = checkedState;
+	      // ... then call the toggle function (the order matters!)
+	      toggleColumn(checkboxes[i], parseInt(id));
+      }
+    }
+  }
 }
 
 function createRowFilterButtons() {
@@ -337,7 +361,7 @@ $(document).ready(function(){
             return createColumnToggleButtons(); });
 
     $('body').keydown(function (event) {
-			    if(event.keyCode == 70)
+			    if(fKeyPressed(event))
 			      return createRowFilterButtons(); 
 			  });
 });
