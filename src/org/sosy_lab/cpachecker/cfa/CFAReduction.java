@@ -54,7 +54,7 @@ import com.google.common.collect.ImmutableSet;
 /**
  * Perform a (very) simple cone-of-influence reduction on the given CFA.
  * That is, get rid of all the nodes/edges that are not reachable from the
- * error location(s) and assert(s).
+ * potential error states (according to the specification).
  *
  * In fact, this should probably *not* be called ConeOfInfluenceCFAReduction,
  * since it is *much* more trivial (and less powerful) than that.
@@ -69,7 +69,7 @@ public class CFAReduction {
     config.inject(this);
 
     if (config.getProperty("specification") == null) {
-      throw new InvalidConfigurationException("Option cfa.removeIrrelevantForErrorLocations is only valid if a specification is given!");
+      throw new InvalidConfigurationException("Option cfa.removeIrrelevantForSpecification is only valid if a specification is given!");
     }
 
     this.config = config;
@@ -77,7 +77,7 @@ public class CFAReduction {
   }
 
 
-  public void removeIrrelevantForErrorLocations(final MutableCFA cfa) throws InterruptedException {
+  public void removeIrrelevantForSpecification(final MutableCFA cfa) throws InterruptedException {
     Collection<CFANode> errorNodes = getErrorNodesWithCPA(cfa);
 
     if (errorNodes.isEmpty()) {
