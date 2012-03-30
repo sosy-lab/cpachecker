@@ -127,7 +127,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   @Option(description="whether or not to use assumption-closure for explicit refinement")
   boolean useAssumptionClosure                              = false;
 
-  private boolean fullPrecCheckIsFeasable                   = false;
+  private Boolean fullPrecCheckIsFeasable                   = null;
 
   // statistics for explicit refinement
   private int numberOfExplicitRefinements                   = 0;
@@ -228,8 +228,6 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       artTrace.add(pathElement.getFirst());
       cfaTrace.add(pathElement.getSecond());
     }
-
-    fullPrecCheckIsFeasable = doFullPrecisionCheck(artTrace);
 
     Set<String> irrelevantVariables = new HashSet<String>();
 
@@ -334,7 +332,16 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     // check if there was progress
     if (!hasMadeProgress()) {
+
       System.out.println(path);
+      Set<ARTElement> artTrace = new HashSet<ARTElement>();
+      List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
+      for(Pair<ARTElement, CFAEdge> pathElement : path){
+        artTrace.add(pathElement.getFirst());
+        cfaTrace.add(pathElement.getSecond());
+      }
+
+      fullPrecCheckIsFeasable = doFullPrecisionCheck(artTrace);
       throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
     }
 
@@ -456,14 +463,6 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
       else {
         numberOfExplicitRefinements++;
-
-        Set<ARTElement> artTrace = new HashSet<ARTElement>();
-        List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
-        for(Pair<ARTElement, CFAEdge> pathElement : path){
-          artTrace.add(pathElement.getFirst());
-          cfaTrace.add(pathElement.getSecond());
-        }
-        fullPrecCheckIsFeasable = doFullPrecisionCheck(artTrace);
 
         // determine the precision increment
         precisionIncrement = predicateMap.determinePrecisionIncrement(fmgr);
@@ -653,6 +652,6 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       out.println("  max. time for syntactical path analysis:   " + timerSyntacticalPathAnalysis.printMaxTime());
       out.println("  total time for syntactical path analysis:  " + timerSyntacticalPathAnalysis);
     }
-    out.println("  full-precision-check is feasable:        " + fullPrecCheckIsFeasable);
+    out.println("  full-precision-check is feasable:        " + ((fullPrecCheckIsFeasable == null) ? " - " : (fullPrecCheckIsFeasable ? "yes" : "no")));
   }
 }
