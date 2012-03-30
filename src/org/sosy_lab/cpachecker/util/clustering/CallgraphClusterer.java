@@ -186,7 +186,7 @@ public class CallgraphClusterer extends AbstractGraphClusterer {
               GraphEdge callEdge = new GraphEdge("CALL", callerVertex, calledVertex, 1);
               result.insertEdge(callEdge);
 
-              System.out.println("CALL\t" + callerFunctionName + "\t" + calledFunctionName);
+//              System.out.println("CALL\t" + callerFunctionName + "\t" + calledFunctionName);
             }
           }
         }
@@ -243,7 +243,7 @@ public class CallgraphClusterer extends AbstractGraphClusterer {
                 GraphEdge callEdge = new GraphEdge("CALL", callerVertex, calledVertex, 1);
                 result.insertEdge(callEdge);
 
-                System.out.println("CALL\t" + callerFunctionName + "\t" + calledFunctionName);
+//                System.out.println("CALL\t" + callerFunctionName + "\t" + calledFunctionName);
               }
             }
           } else if (edge instanceof StatementEdge) {
@@ -313,7 +313,7 @@ public class CallgraphClusterer extends AbstractGraphClusterer {
     org.sosy_lab.ccvisu.Options options = new org.sosy_lab.ccvisu.Options();
     options.graph = graph;
     options.getOption(OptionsEnum.iter).set(1000);
-    options.getOption(OptionsEnum.autoStopIterating).set(true);
+    //options.getOption(OptionsEnum.autoStopIterating).set(true);
 
     // Maybe write the call graph to a file.
     writeGraph(options, graph, callGraphFile);
@@ -326,9 +326,11 @@ public class CallgraphClusterer extends AbstractGraphClusterer {
     do {
       try {
         minimizer.minimizeEnergy();
-      } catch (Exception e) {
+      } catch (java.lang.StackOverflowError e) {
         // Interruption should not occur in this case.
         // Maybe a stack overflow occurs because of invalid positions.
+        graph.setNodesToRandomPositions(graph.getVertices(), 2);
+      } catch (Exception e) {
         graph.setNodesToRandomPositions(graph.getVertices(), 2);
       }
       tries = 0;
@@ -356,15 +358,16 @@ public class CallgraphClusterer extends AbstractGraphClusterer {
       // Store the cluster of each function.
       int uniqueClusterId = 0;
       for (int i = 0; i<graph.getNumberOfGroups(); i++) {
-        uniqueClusterId++;
         Group group = graph.getGroup(i);
         if (group.getKind().equals(GroupKind.CLUSTER)) {
+          uniqueClusterId++;
           for (GraphVertex vertex :  group.getNodes()) {
             System.out.println(String.format("Cluster %d: %s", uniqueClusterId, vertex.getName()));
             clustersOfFunctions.put(vertex.getName(), uniqueClusterId);
           }
         }
       }
+      System.out.println(String.format("Number of clusters: %d", uniqueClusterId));
 
       // Store the cluster in each CFANode.
       assignClusterIdsFromMap(clustersOfFunctions, pCfa);

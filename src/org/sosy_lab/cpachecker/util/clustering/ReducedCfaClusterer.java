@@ -40,6 +40,7 @@ import org.sosy_lab.ccvisu.graph.GraphEdge;
 import org.sosy_lab.ccvisu.graph.GraphVertex;
 import org.sosy_lab.ccvisu.graph.Group;
 import org.sosy_lab.ccvisu.graph.Group.GroupKind;
+import org.sosy_lab.ccvisu.layout.Minimizer;
 import org.sosy_lab.ccvisu.layout.TwoPhaseMinimizer;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -197,8 +198,20 @@ public class ReducedCfaClusterer extends AbstractGraphClusterer implements Block
     writeGraph(options, graph, reducedCfaFile);
 
     // Run the minimizer/laouter.
-    TwoPhaseMinimizer minimizer = new TwoPhaseMinimizer(options);
-    minimizer.minimizeEnergy();
+    int tries = 5;
+    Minimizer minimizer = new TwoPhaseMinimizer(options);
+    do {
+      try {
+        minimizer.minimizeEnergy();
+      } catch (java.lang.StackOverflowError e) {
+        // Interruption should not occur in this case.
+        // Maybe a stack overflow occurs because of invalid positions.
+        graph.setNodesToRandomPositions(graph.getVertices(), 2);
+      } catch (Exception e) {
+        graph.setNodesToRandomPositions(graph.getVertices(), 2);
+      }
+      tries = 0;
+    } while (tries-- > 0);
 
     // Maybe we should write the layout to a file.
     writeGraphLayout(options, graph, graphLayoutFile);
@@ -220,14 +233,15 @@ public class ReducedCfaClusterer extends AbstractGraphClusterer implements Block
 
       int uniqueClusterId = 0;
       for (int i = 0; i<graph.getNumberOfGroups(); i++) {
-        uniqueClusterId++;
         Group group = graph.getGroup(i);
         if (group.getKind().equals(GroupKind.CLUSTER)) {
+          uniqueClusterId++;
           for (GraphVertex vertex :  group.getNodes()) {
             clustersOfNodes.put(Integer.parseInt(vertex.getName()), uniqueClusterId);
           }
         }
       }
+      System.out.println(String.format("Number of clusters: %d", uniqueClusterId));
     } catch (InterruptedException e) {
       logger.logDebugException(e);
     }
