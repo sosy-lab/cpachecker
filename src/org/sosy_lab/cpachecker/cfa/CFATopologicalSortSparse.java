@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.Queue;
 import java.util.Set;
 
@@ -40,7 +41,10 @@ public class CFATopologicalSortSparse {
   public void assignSorting(CFANode rootNode) {
     Set<CFANode> visited = new HashSet<CFANode>(1000);
     Queue<CFANode> forwardAndForkNodes = new ArrayDeque<CFANode>();
-    Set<CFANode> joinNodes = new HashSet<CFANode>(50);
+    // A deterministic traversal order has to be ensured.
+    // Sets/lists have to be implemented in a deterministic fashion if we
+    // need to iterate over them e.g. use LinkedHashSet instead of a HashSet.
+    Set<CFANode> joinNodes = new LinkedHashSet<CFANode>();
 
     rootNode.setSparseTopoSortId(-1);
     forwardAndForkNodes.add(rootNode);
@@ -71,7 +75,6 @@ public class CFATopologicalSortSparse {
       // Move join-nodes to forward-nodes
       // if all predecessors have been processed.
       Iterator<CFANode> it = joinNodes.iterator();
-      System.out.println(joinNodes.size());
       while (it.hasNext()) {
         CFANode v = it.next();
 
