@@ -66,6 +66,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
     private volatile int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
+    private int statesInvalidatedByRefinement = 0;
     private int countFailedRefinements = 0;
 
     @Override
@@ -80,6 +81,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Number of refinements:            " + countRefinements);
 
       if (countRefinements > 0) {
+        out.println("Number of states invalidated by refinements: " + statesInvalidatedByRefinement);
         out.println("Number of successful refinements: " + countSuccessfulRefinements);
         out.println("Number of failed refinements:     " + countFailedRefinements);
         out.println("");
@@ -239,6 +241,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         try {
           refinementResult = mRefiner.performRefinement(reached);
 
+          int sizeOfReachedSetAfterRefinement = reached.size();
+          int invalidatedStates = (sizeOfReachedSetBeforeRefinement - sizeOfReachedSetAfterRefinement);
+          stats.statesInvalidatedByRefinement += invalidatedStates;
         } catch (RefinementFailedException e) {
           stats.countFailedRefinements++;
           throw e;
