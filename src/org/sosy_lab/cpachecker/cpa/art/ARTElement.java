@@ -183,7 +183,6 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
 
   public void addLocalChildren(Map<ARTElement, CFAEdge> children) {
     localChildMap.putAll(children);
-    localChildComputed = checkIfLocalChildExists(children);
   }
 
   public void addEnvParent(ARTElement element, RGEnvTransition edge) {
@@ -209,12 +208,16 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     return false;
   }
 
-  public boolean localChildrenComputed() {
+  public boolean wereLocalChildrenComputed() {
     return localChildComputed;
   }
 
-  public void computeLocalChildren() {
+  public void localChildrenNotComputed() {
     localChildComputed = false;
+  }
+
+  public void localChildrenComputed() {
+    localChildComputed = true;
   }
 
 
@@ -497,10 +500,7 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
   public CFAEdge getEdgeToChild(ARTElement pChild) {
     Preconditions.checkArgument(localChildMap.containsKey(pChild));
 
-    CFANode currentLoc = this.retrieveLocationElement().getLocationNode();
-    CFANode childNode = pChild.retrieveLocationElement().getLocationNode();
-
-    return currentLoc.getEdgeTo(childNode);
+    return localChildMap.get(pChild);
   }
 
   public boolean isDestroyed() {

@@ -46,6 +46,8 @@ public class ThreadCFA extends CFA {
   public final ImmutableSet<CFANode> execNodes;
   /** nodes where other threads cannot interfere */
   public final ImmutableSet<CFANode> atomic;
+  /** error locations */
+  public final ImmutableSet<CFANode> errorLocations;
   /** The first node of the CFA. */
   public final CFAFunctionDefinitionNode initalNode;
   /** The first node after the global declaration, i.e. the predecessor of "Function start dummy edge". */
@@ -55,10 +57,17 @@ public class ThreadCFA extends CFA {
   public final ImmutableSet<String> localVars;
 
 
-  public ThreadCFA(CFA cfa, int tid, Collection<CFANode> globalDecl, Collection<CFANode> atomic, Collection<String> localVars, CFAFunctionDefinitionNode initalNode, CFANode threadStart, String name){
+  public ThreadCFA(CFA cfa, int tid, Collection<CFANode> globalDecl,
+      Collection<CFANode> atomic,
+      Collection<CFANode> errorLocs,
+      Collection<String> localVars,
+      CFAFunctionDefinitionNode initalNode,
+      CFANode threadStart,
+      String name){
     super(cfa.getFunctions(), cfa.getCFANodes(), cfa.getGlobalDeclarations());
     this.tid = tid;
     this.globalDeclNodes = ImmutableSet.copyOf(globalDecl);
+    this.errorLocations = ImmutableSet.copyOf(errorLocs);
     this.initalNode = initalNode;
     this.executionStart = threadStart;
 
@@ -109,5 +118,11 @@ public class ThreadCFA extends CFA {
   public ImmutableSet<CFANode> getAtomic() {
     return atomic;
   }
+
+  public ImmutableSet<CFANode> getErrorLocations() {
+    return errorLocations;
+  }
+
+
 
 }

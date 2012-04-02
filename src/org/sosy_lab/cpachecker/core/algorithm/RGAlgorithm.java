@@ -189,66 +189,6 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     return -1;
   }
 
-
-  /*
-   * Finds new list of most general candidates and returns true if the list has grown.
-   * @param newCandidates
-   * @param mgCandidates
-   * @return
-
-  private Pair<List<RGEnvCandidate>, Boolean> processCandidates(List<RGEnvCandidate> newCandidates, List<RGEnvCandidate> mgCandidates) {
-    stats.allCandidates += newCandidates.size();
-
-    List<RGEnvCandidate> newMG = environment.findMostGeneralCandidates(mgCandidates, newCandidates);
-    boolean foundNew = !mgCandidates.containsAll(newMG);
-
-    return Pair.of(newMG, foundNew);
-  }*/
-
-
-  /**
-   * Generate environmental transitions from the part of ART that was constructed.
-   * @param i
-   */
- /* private boolean processEnvironment(int i) {
-    System.out.println();
-    System.out.println("\t\t\t----- Processing Env Transitions -----");
-    if (debug){
-      environment.printUnprocessedTransitions(threadCPA[i].getCandidates());
-      environment.resetProcessStats();
-    }
-
-
-    List<RGEnvTransition> newValid = environment.processCandidates(i, threadCPA[i].getCandidates(), validEnvEdgesFromThread[i]);
-    List<RGEnvTransition> deltaValid = new Vector<RGEnvTransition>(newValid);
-    deltaValid.removeAll(validEnvEdgesFromThread[i]);
-    validEnvEdgesFromThread[i] = newValid;
-
-    threadCPA[i].getCandidates().clear();
-
-    if (debug){
-      Statistics prStats = environment.getProcessStats();
-      System.out.println();
-      System.out.println("\t\t\t----- Environment processing stats -----");
-      prStats.printStatistics(System.out, null, null);
-    }
-
-    return !deltaValid.isEmpty();
-  }*/
-
-  /**
-   * Add env. transitions to CFA and read relevant elements to the waitlist.
-   * @param i
-   * @param reached
-   */
-  /*private void addEnvTransitions(int i, ReachedSet[] reached) {
-    stats.applyEnvTimer.start();
-    ListMultimap<CFANode, CFAEdge> envEdgesMap = addEnvTransitionsToCFA(i);
-    // add relevant states to the wait list
-    setWaitlist(reached[i], envEdgesMap);
-    stats.applyEnvTimer.stop();
-  }*/
-
   /**
    * Put relevant states into the waitlist
    * @param pEnvEdgesMap
@@ -301,6 +241,15 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
       System.out.println();
       System.out.println("\t\t\t----- CPA statistics -----");
       runStats.printStatistics(System.out, null, null);
+      // TODO remove
+      /*ARTCPA artCPA = (ARTCPA) this.cpas[0];
+      RGCPA rgCPA = artCPA.retrieveWrappedCpa(RGCPA.class);
+      RGAbstractionManager absManager = rgCPA.getAbstractionManager();
+      HashSet<Statistics> scoll = new HashSet<Statistics>();
+      absManager.collectStatistics(scoll);
+      for (Statistics s : scoll){
+        s.printStatistics(System.out, null, null);
+      }*/
     }
 
     if (sound) {
@@ -405,21 +354,40 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
         continue;
       }
 
+      boolean addToApply;
+
       if (global){
+
         // apply at the exeuctution start and after global reads and writes
+        addToApply = false;
+
         if (cfa.getExecutionStart().equals(node)){
-          toApply.add(node);
+          addToApply = true;
         }
 
         for (int j=0; j<node.getNumEnteringEdges(); j++){
           CFAEdge edge = node.getEnteringEdge(j);
 
           if (edge.isGlobalRead() || edge.isGlobalWrite()){
-            toApply.add(node);
+            addToApply = true;
           }
         }
       }
       else {
+        addToApply = true;
+      }
+
+      // dont apply to nodes wtih an error successor
+      for (int j=0; j<node.getNumLeavingEdges() && addToApply; j++){
+        CFAEdge edge = node.getLeavingEdge(j);
+        CFANode succ = edge.getSuccessor();
+
+        if (cfa.getErrorLocations().contains(succ)){
+          addToApply = false;
+        }
+      }
+
+      if (addToApply){
         toApply.add(node);
       }
     }

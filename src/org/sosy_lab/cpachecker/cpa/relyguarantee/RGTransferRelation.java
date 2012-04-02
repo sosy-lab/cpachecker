@@ -159,7 +159,7 @@ public class RGTransferRelation  implements TransferRelation {
     Triple<PathFormula, PathFormula, ImmutableMap<Integer, RGEnvTransition>> triple =
         convertEdgeToPathFormula(element, edge);
     PathFormula newAbsPf = triple.getFirst();
-    PathFormula newRefPf = triple.getSecond();
+    PathFormula newRefPf = newAbsPf;
     ImmutableMap<Integer, RGEnvTransition> newMap = triple.getThird();
     AbstractionFormula abstraction = element.getAbstractionFormula();
 
@@ -209,10 +209,10 @@ public class RGTransferRelation  implements TransferRelation {
     else {
       // local application
       PathFormula oldAbsPf = element.getAbsPathFormula();
-      PathFormula oldRefPf = element.getRefPathFormula();
+      //PathFormula oldRefPf = element.getRefPathFormula();
       PathFormula newAbsPf = pfManager.makeAnd(oldAbsPf, edge);
-      PathFormula newRefPf = pfManager.makeAnd(oldRefPf, edge);
-      triple = Triple.of(newAbsPf, newRefPf, element.getEnvApplicationMap());
+      //PathFormula newRefPf = pfManager.makeAnd(oldRefPf, edge);
+      triple = Triple.of(newAbsPf, null, element.getEnvApplicationMap());
     }
 
     pfConstructionTimer.stop();
@@ -236,7 +236,7 @@ public class RGTransferRelation  implements TransferRelation {
     // renamed & apply env transition
     Triple<PathFormula, PathFormula, Integer> triple = renamedEnvApplication(element, rgEdge.getRgEnvTransition());
     PathFormula appPf = triple.getFirst();
-    PathFormula refPf = triple.getSecond();
+    //PathFormula refPf = triple.getSecond();
 
     // add local formula
     PathFormula localAbsPf = element.getAbsPathFormula();
@@ -244,7 +244,7 @@ public class RGTransferRelation  implements TransferRelation {
 
     if (!appPf.getFormula().isFalse()){
       appPf = pfManager.makeAnd(appPf, localAbsPf);
-      refPf = pfManager.makeAnd(refPf, localRefPf);
+      //refPf = pfManager.makeAnd(refPf, localRefPf);
     }
 
     // remember the env. application number
@@ -254,7 +254,7 @@ public class RGTransferRelation  implements TransferRelation {
         .put(unique, rgEdge.getRgEnvTransition())
         .build();
 
-    return Triple.of(appPf, refPf, newMap);
+    return Triple.of(appPf, null, newMap);
   }
 
 
@@ -377,7 +377,7 @@ public class RGTransferRelation  implements TransferRelation {
     if (appPf.getFormula().isFalse()){
       refPf = pfManager.makeFalsePathFormula();
     } else {
-      refPf = etManager.formulaForRefinement(element, et, uniqueIdRef);
+     // refPf = etManager.formulaForRefinement(element, et, uniqueIdRef);
     }
 
     // increment unique number

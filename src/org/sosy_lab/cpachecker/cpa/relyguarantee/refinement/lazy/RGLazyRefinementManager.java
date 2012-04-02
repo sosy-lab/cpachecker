@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.lazy;
 
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -33,13 +34,18 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ParallelCFAS;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTPrecision;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
@@ -66,7 +72,7 @@ import com.google.common.collect.SetMultimap;
  * Performs lazy abstraction for rely-guarantee analysis.
  */
 @Options(prefix="cpa.rg")
-public class RGLazyRefinementManager {
+public class RGLazyRefinementManager implements StatisticsProvider {
 
   @Option(description="Print debugging info?")
   private boolean debug=false;
@@ -85,13 +91,18 @@ public class RGLazyRefinementManager {
           + "to all the locations in the abstract trace")
   private boolean addEnvPredicatesGlobally = true;
 
+  private boolean dropEnvApp = true;
+
   private final RGLocationRefinementManager locrefManager;
   private final ParallelCFAS pcfa;
+
+  public final Stats stats;
 
   public RGLazyRefinementManager(RGLocationRefinementManager pLocrefManager, ParallelCFAS pcfa, Configuration config) throws InvalidConfigurationException {
     config.inject(this, RGLazyRefinementManager.class);
     this.locrefManager  = pLocrefManager;
     this.pcfa           = pcfa;
+    this.stats          = new Stats();
   }
 
 
@@ -104,6 +115,7 @@ public class RGLazyRefinementManager {
    */
   public RGLazyRefinementResult getRefinedElements(ARTReachedSet[] reachedSets, InterpolationTreeResult info) throws RefinementFailedException {
     assert info.isSpurious();
+    stats.total.start();
     /*
      * The interpolation tree is an unwinding of the ART, so the same ART element may
      * appear several times with different predicates. Moreover, when an element
@@ -113,11 +125,15 @@ public class RGLazyRefinementManager {
      */
 
     boolean isDataRefinement = info.getPathRefinementMap().isEmpty();
-
+    boolean containsDeadNode = info.getDeadNode() != null;
     Pivots pivots;
-    if (isDataRefinement){
+    if (containsDeadNode){
+      pivots = getDeadNode(info);
+    }
+    else if (isDataRefinement){
       pivots = getInitalDataPivots2(reachedSets, info);
-    } else {
+    }
+    else {
       pivots = getInitalLocationPivots2(reachedSets, info);
     }
 
@@ -127,7 +143,10 @@ public class RGLazyRefinementManager {
       System.out.println();
     }
 
-    addPivotsByEnvironmentalApplications(pivots);
+    if (dropEnvApp){
+      addPivotsByEnvironmentalApplications(pivots);
+    }
+
 
     if (debug){
       System.out.println("Pivots with env. applications");
@@ -170,14 +189,28 @@ public class RGLazyRefinementManager {
     result.addPrecisionToAdjust(precisionToAdjust);
 
 
-    if (debug){
+    // TODO time-consuming
+    if (debug && false){
+      stats.correctnessCheck.start();
       assert result.checkCorrectness();
+      stats.correctnessCheck.stop();
       System.out.println(result);
       System.out.println();
     }
 
-
+    stats.total.stop();
     return result;
+  }
+
+
+  private Pivots getDeadNode(InterpolationTreeResult info) {
+    InterpolationTreeNode node = info.getDeadNode();
+    assert node != null;
+    Pivot pivot = new Pivot(node.getArtElement());
+    Pivots pivots = new Pivots();
+    pivots.addPivot(pivot);
+
+    return pivots;
   }
 
 
@@ -207,7 +240,8 @@ public class RGLazyRefinementManager {
    * @param pPivots
    */
   private void addPivotsByCoverage(Pivots pivots) {
-   Pivots newPivots = new Pivots();
+    stats.addPivsByCov.start();
+    Pivots newPivots = new Pivots();
    //Multimap<Integer, Pivot> newPivots = LinkedHashMultimap.create();
 
     for (Integer tid : pivots.getTids()){
@@ -222,7 +256,7 @@ public class RGLazyRefinementManager {
          for (ARTElement cov : covered){
            assert cov.isCovered();
            Pivot covPiv = new Pivot(cov);
-           covPiv.addPrecisionOf(piv);
+           //covPiv.addPrecisionOf(piv);
            newPivots.addPivot(covPiv);
          }
         }
@@ -230,6 +264,7 @@ public class RGLazyRefinementManager {
     }
 
     pivots.addAll(newPivots);
+    stats.addPivsByCov.stop();
   }
 
 
@@ -240,12 +275,12 @@ public class RGLazyRefinementManager {
    * @param pivots
    */
   private void addDroppedPrecision(ARTReachedSet[] reachedSets, Pivots pivots) {
-
+    stats.addDroppedPrec.start();
     for (Integer tid : pivots.getTids()){
 
       for (Pivot piv : pivots.getPivotsForThread(tid)){
 
-        Set<ARTElement> subtree = piv.getElement().getLocalSubtree();
+        Set<ARTElement> subtree = piv.getLocalSubtree();
         Set<ARTPrecision> seenPrecision = new HashSet<ARTPrecision>();
 
         for (ARTElement elem : subtree){
@@ -264,6 +299,7 @@ public class RGLazyRefinementManager {
       }
     }
 
+    stats.addDroppedPrec.stop();
     return;
   }
 
@@ -278,6 +314,7 @@ public class RGLazyRefinementManager {
    */
   private Map<Pair<Integer, ARTElement>, Precision> createPrecisionsToAdjust(Pivots pivots,
       ARTReachedSet[] reachedSets, boolean isDataRefinement) throws RefinementFailedException {
+    stats.createPrec.start();
 
     // readMap: elements that will be readded -> pivots that cause it
     SetMultimap<ARTElement, Pivot> readdMap = LinkedHashMultimap.create();
@@ -328,6 +365,7 @@ public class RGLazyRefinementManager {
       precisionToAdjust.put(pair, prec);
     }
 
+    stats.createPrec.stop();
     return precisionToAdjust;
   }
 
@@ -612,6 +650,7 @@ public class RGLazyRefinementManager {
    * @return
    */
   public void  addPivotsByEnvironmentalApplications(Pivots pivots) {
+    stats.addPivsByEnv.start();
     Pivots unprocessed = new Pivots(pivots);
 
     while (!unprocessed.isEmpty()){
@@ -646,7 +685,7 @@ public class RGLazyRefinementManager {
       unprocessed = newUnprocessed;
     }
 
-    return;
+    stats.addPivsByEnv.stop();
   }
 
 
@@ -672,7 +711,7 @@ public class RGLazyRefinementManager {
         Set<Pivot> coveredByPiv = new LinkedHashSet<Pivot>();
         map.put(piv, coveredByPiv);
 
-        Set<ARTElement> subtree = piv.getElement().getLocalSubtree();
+        Set<ARTElement> subtree = piv.getLocalSubtree();
 
         for (Pivot otherPiv : pivs.getPivotsForThread(tid)){
           // compare only uncovered nodes
@@ -706,6 +745,7 @@ public class RGLazyRefinementManager {
    * @return
    */
   public Pivots mergePivotsIntoTop(Pivots pivs){
+    stats.mergePivs.start();
     Pivots topPivs = new Pivots();
 
     Map<Pivot, Set<Pivot>> coverage = determinePivotCoverage(pivs);
@@ -720,6 +760,7 @@ public class RGLazyRefinementManager {
       topPivs.addPivot(topPiv);
     }
 
+    stats.mergePivs.stop();
     return topPivs;
   }
 
@@ -787,6 +828,7 @@ public class RGLazyRefinementManager {
    * @return
    */
   private Pivots getInitalDataPivots2(ARTReachedSet[] reachedSets, InterpolationTreeResult info) {
+    stats.initPivots.start();
     Pivots pivs = new Pivots();
 
     InterpolationTreeNode root = info.getTree().getRoot();
@@ -863,6 +905,7 @@ public class RGLazyRefinementManager {
 
     assert foundNewPrec : "No new data predicates found.";
 
+    stats.initPivots.stop();
     return pivs;
   }
 
@@ -905,7 +948,7 @@ public class RGLazyRefinementManager {
 
 
   private Pivots getInitalLocationPivots2(ARTReachedSet[] reachedSets, InterpolationTreeResult info) {
-
+    stats.initPivots.start();
     Pivots ordPivs = this.getInitalLocationPivots(reachedSets, info);
 
     InterpolationTreeNode root = info.getTree().getRoot();
@@ -918,6 +961,7 @@ public class RGLazyRefinementManager {
     }
 
 
+    stats.initPivots.stop();
     return ordPivs;
   }
 
@@ -956,6 +1000,45 @@ public class RGLazyRefinementManager {
 
     }
     return false;
+  }
+
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
+  }
+
+  public static class Stats implements Statistics {
+
+    public final Timer total          = new Timer();
+    public final Timer initPivots     = new Timer();
+    public final Timer addDroppedPrec = new Timer();
+    public final Timer createPrec     = new Timer();
+    public final Timer mergePivs      = new Timer();
+    public final Timer addPivsByCov   = new Timer();
+    public final Timer addPivsByEnv   = new Timer();
+    public final Timer correctnessCheck = new Timer();
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult,
+        ReachedSet pReached) {
+      out.println("time on constructing lazy pivots:" + total);
+      out.println("time on finding initial pivots  :" + initPivots);
+      out.println("time on adding pivots by env tr.:" + addPivsByEnv);
+      out.println("time on adding pivots by cover. :" + addPivsByCov);
+      out.println("time on merging pivots into top: " + mergePivs);
+      out.println("time on adding dropped precision:" + addDroppedPrec);
+      out.println("time on creating precision:      " + createPrec);
+      out.println("time on correctness check:       " + correctnessCheck);
+    }
+
+    @Override
+    public String getName() {
+      return "RGLazyRefinementManager";
+    }
+
+
+
   }
 
 

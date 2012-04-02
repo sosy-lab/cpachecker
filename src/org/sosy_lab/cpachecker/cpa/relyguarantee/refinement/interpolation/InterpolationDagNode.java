@@ -64,6 +64,10 @@ public class InterpolationDagNode{
 
   protected InterpolationDagNodeKey key;
 
+  /** True iff the node is an application of enviromnental transition that has been removed
+   * from the ART. */
+  private boolean isDeadApplication;
+
 
   /**
    * Makes a deep copy of the node, except for children and parents.
@@ -165,6 +169,16 @@ public class InterpolationDagNode{
 
     return key.equals(oNode.key);
   }
+
+  public void markAsDeadApplication() {
+    isDeadApplication = true;
+  }
+
+  public boolean isDeadApplication() {
+    return isDeadApplication;
+  }
+
+
 
 
 

@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -553,12 +554,17 @@ public class ParallelCFASCreator implements StatisticsProvider{
     export(c, threadName);
     Set<String> localVars = getLocalVars(c);
     Collection<CFANode> atomic = getAtomicNodes(executionStart);
+    Collection<CFANode> errorLocs = getErrorNodes(executionStart);
 
     // wrap the CFA as a RGCFA
-    ThreadCFA rgCFA = new ThreadCFA(c, tid, globalDeclNodes, atomic, localVars, threadInit, executionStart, threadName);
+    ThreadCFA rgCFA = new ThreadCFA(c, tid, globalDeclNodes, atomic, errorLocs, localVars, threadInit, executionStart, threadName);
 
     return rgCFA;
   }
+
+
+
+
 
 
   /**
@@ -814,6 +820,41 @@ public class ParallelCFASCreator implements StatisticsProvider{
   }
 
 
+  private Collection<CFANode> getErrorNodes(CFANode start) {
+
+    Deque<CFANode> queue = new LinkedList<CFANode>();
+    Set<CFANode> errorLocs = new LinkedHashSet<CFANode>();
+    Set<CFANode> visisted = new HashSet<CFANode>();
+    queue.add(start);
+
+    while (!queue.isEmpty()){
+      CFANode node = queue.pop();
+
+      if (visisted.contains(node)){
+        continue;
+      }
+
+      visisted.add(node);
+
+      for (int i=0; i<node.getNumLeavingEdges(); i++){
+        CFAEdge edge = node.getLeavingEdge(i);
+        String stmt = edge.getRawStatement();
+        CFANode succ = edge.getSuccessor();
+
+        if (stmt.contains("ERROR") ||
+            stmt.contains("_assert_fail")){
+
+          errorLocs.add(succ);
+        }
+        else {
+          queue.add(succ);
+        }
+      }
+
+    }
+
+    return errorLocs;
+  }
 
 
   /**

@@ -91,6 +91,8 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private boolean combineEnvTransitions = false;
 
+  private boolean localChildrenFirst = true;
+
   public final Stats stats;
   private RunStats runStats;
   private final ConfigurableProgramAnalysis cpa;
@@ -189,13 +191,13 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         System.out.println("Successors of "+aElement+", "+rgPrec);
       }
 
-      if (aElement.getElementId() == 44){
+      if (aElement.getElementId() == 130){
         System.out.println(this.getClass());
       }
 
 
 
-      Collection<CFAEdge> edges = getEdgesForElement(aElement, artPrec);
+      Collection<CFAEdge> edges = getEdgesForElement(aElement, artPrec, reachedSet);
 
       if (debug && edges.isEmpty()){
         System.out.println();
@@ -209,7 +211,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       for (CFAEdge edge : edges){
         Collection<? extends AbstractElement> newSucc = transferRelation.getAbstractSuccessors(element, precision, edge);
 
-        if (newSucc.isEmpty()){
+        if (debug && newSucc.isEmpty()){
           this.printSuccessor(null, edge, null);
         }
 
@@ -272,6 +274,14 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
           // successors left that otherwise would be forgotten
           reachedSet.reAddToWaitlist(element);
           reachedSet.add(successor, successorPrecision);
+
+          // TODO don't apply env. before error
+          // add all other successors
+          /*for (Pair<AbstractElement,CFAEdge> pair2 : successors){
+            AbstractElement ae = pair2.getFirst();
+            reachedSet.add(ae, precision);
+          }*/
+
           stats.totalTimer.stop();
           runStats.totalTimer.stop();
           return true;
@@ -367,9 +377,9 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
             System.out.println();
           }
 
-          if (((ARTElement) successor).getElementId() == 117){
+          /*if (((ARTElement) successor).getElementId() == 117){
             System.out.println(this.getClass());
-          }
+          }*/
 
           reachedSet.add(successor, successorPrecision);
           // if changeThread is true, then we stop expanding local successor
@@ -421,48 +431,18 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
    * Returns local and environmental edges to be applied at the element.
    * @param aElem
    * @param artPrec
+   * @param reachedSet
    * @return
    */
-  private List<CFAEdge> getEdgesForElement(ARTElement aElem, ARTPrecision artPrec) {
+  private List<CFAEdge> getEdgesForElement(ARTElement aElem, ARTPrecision artPrec, ReachedSet reachedSet) {
     assert aElem != null;
     assert artPrec != null;
 
     List<CFAEdge> edges = new Vector<CFAEdge>();
     CFANode loc = aElem.retrieveLocationElement().getLocationNode();
 
-    /* get environmental edges */
-    if (applyEnv.contains(loc)){
-
-      // sum up candidates from other threads
-      List<RGEnvCandidate> sum = new Vector<RGEnvCandidate>();
-
-      for (int j=0; j<threadNo; j++){
-
-        if (j != tid){
-          sum.addAll(this.candidatesFromThread[j]);
-        }
-      }
-
-      List<RGEnvTransition> envTransitionToApply = environment.getEnvironmentalTransitionsToApply(aElem, sum, artPrec);
-
-      if (combineEnvTransitions){
-
-        if (!envTransitionToApply.isEmpty()){
-          RGCFAEdgeCombined rgEdge = new RGCFAEdgeCombined(envTransitionToApply, loc, loc);
-          edges.add(rgEdge);
-        }
-
-      } else {
-
-        for (RGEnvTransition et : envTransitionToApply){
-          RGCFAEdge rgEdge = new RGCFAEdge(et, loc, loc);
-          edges.add(rgEdge);
-        }
-      }
-    }
-
     /* get local edges */
-    if (!aElem.localChildrenComputed()){
+    if (!aElem.wereLocalChildrenComputed()){
 
       for (int i=0; i<loc.getNumLeavingEdges(); i++){
         CFAEdge edge = loc.getLeavingEdge(i);
@@ -471,12 +451,68 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
           edges.add(edge);
         }
       }
+
+      aElem.localChildrenComputed();
+
+      if (this.localChildrenFirst && applyEnv.contains(loc)){
+        reachedSet.reAddToWaitlist(aElem);
+        return edges;
+      }
+    }
+
+
+    /* get environmental edges */
+    if (applyEnv.contains(loc)){
+      List<CFAEdge> envEdges = getEnvEdgesForElement(aElem, loc, artPrec);
+      edges.addAll(envEdges);
     }
 
 
     return edges;
   }
 
+
+  /**
+   * Return env. edges for an element.
+   * @param aElem
+   * @param loc
+   * @param loc
+   * @param artPrec
+   * @return
+   */
+  private List<CFAEdge> getEnvEdgesForElement(ARTElement aElem, CFANode loc, ARTPrecision artPrec) {
+
+
+    List<CFAEdge> edges = new Vector<CFAEdge>();
+    // sum up candidates from other threads
+    List<RGEnvCandidate> sum = new Vector<RGEnvCandidate>();
+
+    for (int j=0; j<threadNo; j++){
+
+      if (j != tid){
+        sum.addAll(this.candidatesFromThread[j]);
+      }
+    }
+
+    List<RGEnvTransition> envTransitionToApply = environment.getEnvironmentalTransitionsToApply(aElem, sum, artPrec);
+
+    if (combineEnvTransitions){
+
+      if (!envTransitionToApply.isEmpty()){
+        RGCFAEdgeCombined rgEdge = new RGCFAEdgeCombined(envTransitionToApply, loc, loc);
+        edges.add(rgEdge);
+      }
+
+    } else {
+
+      for (RGEnvTransition et : envTransitionToApply){
+        RGCFAEdge rgEdge = new RGCFAEdge(et, loc, loc);
+        edges.add(rgEdge);
+      }
+    }
+
+    return edges;
+  }
 
   private void printCovered(AbstractElement pSuccessor, Collection<AbstractElement> reached) {
     System.out.println("\t covered");

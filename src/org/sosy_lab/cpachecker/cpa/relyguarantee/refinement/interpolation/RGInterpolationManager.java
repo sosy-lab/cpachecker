@@ -33,10 +33,12 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,6 +52,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -62,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvTransitionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvTransition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -261,6 +266,7 @@ public class RGInterpolationManager<T1, T2> implements StatisticsProvider {
     // Use that one instead.
     if (target == null){
       System.out.println();
+      assert false;
     }
     while (target.isDestroyed()){
       target = target.getMergedWith();
@@ -290,16 +296,10 @@ public class RGInterpolationManager<T1, T2> implements StatisticsProvider {
       // create a node or use a cached one for this element
       InterpolationDagNode node = dag.getNode(tid, artElement.getElementId());
       if (node == null){
-        /*
-        RGApplicationInfo appInfo = rgElement.getBlockAppInfo();
-        PathFormula pf;
-        if (appInfo != null){
-          pf = appInfo.getRefinementPf();
-        } else {
-          pf = rgElement.getAbstractionFormula().getBlockPathFormula();
-        }*/
-        PathFormula pf = rgElement.getBlockRefPathFormula();
         ImmutableMap<Integer, RGEnvTransition> appMap = rgElement.getBlockEnvApplicationMap();
+        PathFormula pf = getRefinementPahFormula(artElement, lastNode, appMap);
+        assert pf.getSsa().equals(rgElement.getBlockRefPathFormula().getSsa());
+
 
         node = new InterpolationDagNode(artElement, pf, appMap, tid);
         dag.getNodeMap().put(node.getKey(), node);
@@ -317,45 +317,45 @@ public class RGInterpolationManager<T1, T2> implements StatisticsProvider {
         }
       }
 
-      // retrieve info about env. edges applied
-      /*Map<Integer, RGEnvTransition> envMap = null;
-      if (rgElement.getBlockAppInfo() != null){
-        envMap = rgElement.getBlockAppInfo().getEnvMap();
-      } else {
-        envMap = new HashMap<Integer, RGEnvTransition>(0);
-      }*/
       ImmutableMap<Integer, RGEnvTransition> envMap = rgElement.getBlockEnvApplicationMap();
 
-      // rename env. transitions to their source thread numbers
       for(Integer id : envMap.keySet()){
         RGEnvTransition rgEdge = envMap.get(id);
         ARTElement targetARTElement = rgEdge.getAbstractionElement();
 
-        if (targetARTElement.isDestroyed()){
-          targetARTElement = targetARTElement.getMergedWith();
+        if (!targetARTElement.isDestroyed()){
+          Integer sourceTid           = rgEdge.getTid();
+          assert sourceTid != tid;
+
+          // construct missing nodes for the source element
+          constructDagForElement(reachedSets, targetARTElement, sourceTid, dag);
+
+          // get nodes for the last abstraction for the source element.
+          Path envCfaPath = computePath(targetARTElement);
+          List<Triple<ARTElement, CFANode, RGAbstractElement>> envPath = transformFullPath(envCfaPath);
+          assert envPath.size() > 0;
+          ARTElement sourceAbstrElement = envPath.get(envPath.size()-1).getFirst();
+
+          InterpolationDagNode envNode = dag.getNode(sourceTid, sourceAbstrElement.getElementId());
+          assert envNode != null;
+
+          // envNode is a parent of node
+          if (!envNode.getChildren().contains(node)){
+            envNode.getChildren().add(node);
+            assert !node.getParents().contains(envNode);
+            node.getParents().add(envNode);
+          }
+        }
+        else {
+          // The source element does not exists, since it was removed the ART.
+          if (debug){
+            System.out.println("Dead node: "+node);
+            System.out.println();
+          }
+          node.markAsDeadApplication();
         }
 
-        Integer sourceTid           = rgEdge.getTid();
-        assert sourceTid != tid;
 
-        // construct missing nodes for the source element
-        constructDagForElement(reachedSets, targetARTElement, sourceTid, dag);
-
-        // get nodes for the last abstraction for the source element.
-        Path envCfaPath = computePath(targetARTElement);
-        List<Triple<ARTElement, CFANode, RGAbstractElement>> envPath = transformFullPath(envCfaPath);
-        assert envPath.size() > 0;
-        ARTElement sourceAbstrElement = envPath.get(envPath.size()-1).getFirst();
-
-        InterpolationDagNode envNode = dag.getNode(sourceTid, sourceAbstrElement.getElementId());
-        assert envNode != null;
-
-        // envNode is a parent of node
-        if (!envNode.getChildren().contains(node)){
-          envNode.getChildren().add(node);
-          assert !node.getParents().contains(envNode);
-          node.getParents().add(envNode);
-        }
       }
 
       lastNode = node;
@@ -366,6 +366,61 @@ public class RGInterpolationManager<T1, T2> implements StatisticsProvider {
     }
   }
 
+
+  /**
+   * Get refinement path formula between two abstraction elements.
+   * @param appMap
+   * @param pArtElement
+   * @param pObject
+   * @return
+   * @throws CPATransferException
+   */
+  private PathFormula getRefinementPahFormula(ARTElement stop, InterpolationDagNode startNode, ImmutableMap<Integer, RGEnvTransition> appMap) throws CPATransferException {
+
+    if (startNode == null){
+      return pmgr.makeEmptyPathFormula();
+    }
+
+    // find the edge between the points
+    ARTElement start = startNode.getArtElement();
+    Collection<Path> paths = ARTUtils.getAllPathsBetween(start, stop);
+    assert paths.size() == 1;
+    Path pi = paths.iterator().next();
+    assert pi.size() >= 1;
+
+    PathFormula pf = startNode.getPathFormula();
+    pf = pmgr.makeEmptyPathFormula(pf);
+
+    for (int i=pi.size()-1; i>=0; i--){
+      Pair<ARTElement, CFAEdge> pair = pi.get(i);
+      ARTElement aelem = pair.getFirst();
+      CFAEdge edge = pair.getSecond();
+
+      if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+        RGCFAEdge rgEdge = (RGCFAEdge) edge;
+        RGEnvTransition et = rgEdge.getRgEnvTransition();
+
+        Integer unique = null;
+        for (int u : appMap.keySet()){
+          if (appMap.get(u).equals(et)){
+            unique = u;
+            break;
+          }
+        }
+        assert unique != null;
+
+        PathFormula appPf = etManager.formulaForRefinement(aelem.getRgElement(), et, unique);
+        pf = pmgr.makeAnd(appPf, pf);
+      }
+      else {
+
+        pf = pmgr.makeAnd(pf, edge);
+      }
+    }
+
+    assert pf != null;
+    return pf;
+  }
 
   /**
    * Check the correctness of a Dag
@@ -444,13 +499,50 @@ public class RGInterpolationManager<T1, T2> implements StatisticsProvider {
 
    stats.formulaTimer.stop();
 
-   InterpolationTreeResult info = interpolateTree(tree, itpProver);
+   InterpolationTreeResult info = findDeadApplications(tree);
+
+   if (info != null){
+     return info;
+   }
+
+   info = interpolateTree(tree, itpProver);
 
    return info;
   }
 
 
 
+
+  private InterpolationTreeResult findDeadApplications(InterpolationTree pTree) {
+
+    Deque<InterpolationTreeNode> queue = new LinkedList<InterpolationTreeNode>();
+    queue.add(pTree.getRoot());
+    InterpolationTreeNode deadNode = null;
+
+    while (!queue.isEmpty()){
+      InterpolationTreeNode node = queue.pop();
+
+      if (node.isDeadApplication()){
+        deadNode = node;
+        break;
+
+      }
+      for (InterpolationTreeNode child : node.getChildren()){
+        queue.addLast(child);
+      }
+
+    }
+
+    if (deadNode == null){
+      return null;
+    }
+
+    InterpolationTreeResult info = InterpolationTreeResult.spurious(pTree);
+    info.setDeadNode(deadNode);
+
+
+    return info;
+  }
 
   /**
    * Interpolates counterexample tree.
@@ -691,76 +783,55 @@ public class RGInterpolationManager<T1, T2> implements StatisticsProvider {
       // add the node to the tree
       tree.addNode(treeNode);
 
-      // construct and attach subtrees for env. applications
-      ImmutableMap<Integer, RGEnvTransition> envMap = treeNode.getEnvMap();
+      // construct and attach subtrees for env. applications if they are not dead
+
+      if (!treeNode.isDeadApplication){
+        ImmutableMap<Integer, RGEnvTransition> envMap = treeNode.getEnvMap();
 
 
-      for (Integer id : envMap.keySet()){
-        RGEnvTransition rgEdge = envMap.get(id);
+        for (Integer id : envMap.keySet()){
+          RGEnvTransition rgEdge = envMap.get(id);
 
-        // create a sub-tree for the the element that generated the transition
-        ARTElement sARTElement = rgEdge.getAbstractionElement();
-        ARTElement tARTElement = rgEdge.getTargetARTElement();
-        int sTid = rgEdge.getTid();
-        Pair<InterpolationTree, Integer> pair = unwindDag(dag, sARTElement, appUniqueId);
-        InterpolationTree genTree = pair.getFirst();
-        InterpolationTreeNode genNode = genTree.getRoot();
-        assert genNode.getTid() == sTid && genNode.getArtElement().getElementId() == sARTElement.getElementId() && genNode.getUniqueId() == appUniqueId;
+          // create a sub-tree for the the element that generated the transition
+          ARTElement sARTElement = rgEdge.getAbstractionElement();
+          ARTElement tARTElement = rgEdge.getTargetARTElement();
+          int sTid = rgEdge.getTid();
+          Pair<InterpolationTree, Integer> pair = unwindDag(dag, sARTElement, appUniqueId);
+          InterpolationTree genTree = pair.getFirst();
+          InterpolationTreeNode genNode = genTree.getRoot();
+          assert genNode.getTid() == sTid && genNode.getArtElement().getElementId() == sARTElement.getElementId() && genNode.getUniqueId() == appUniqueId;
 
-        // add node for env. transition abstraction
+          // add node for env. transition abstraction
 
-        PathFormula appPf = rgEdge.getFormulaAddedForAbstraction();
-        if (appPf != null){
-          // the formula was abstracted, so create an env. abstraction node
-          HashMap<Integer, Integer> auxMap = new HashMap<Integer, Integer>(1);
-          auxMap.put(-1, appUniqueId);
-          appPf = this.pmgr.changePrimedNo(appPf, auxMap);
-          InterpolationTreeNode appNode = new InterpolationTreeNode(tARTElement, appPf, genNode.getEnvMap(), sTid, appUniqueId, false, true);
+          PathFormula appPf = rgEdge.getFormulaAddedForAbstraction();
+          if (appPf != null){
+            // the formula was abstracted, so create an env. abstraction node
+            HashMap<Integer, Integer> auxMap = new HashMap<Integer, Integer>(1);
+            auxMap.put(-1, appUniqueId);
+            appPf = this.pmgr.changePrimedNo(appPf, auxMap);
+            InterpolationTreeNode appNode = new InterpolationTreeNode(tARTElement, appPf, genNode.getEnvMap(), sTid, appUniqueId, false, true);
 
-          appNode.getChildren().add(genNode);
-          genNode.setParent(appNode);
-          genTree.addNode(appNode);
-          treeNode.getChildren().add(appNode);
-          appNode.setParent(treeNode);
-        } else {
-          // no abstraction for env. transition
-          treeNode.getChildren().add(genNode);
-          genNode.setParent(treeNode);
+            appNode.getChildren().add(genNode);
+            genNode.setParent(appNode);
+            genTree.addNode(appNode);
+            treeNode.getChildren().add(appNode);
+            appNode.setParent(treeNode);
+          } else {
+            // no abstraction for env. transition
+            treeNode.getChildren().add(genNode);
+            genNode.setParent(treeNode);
+          }
+
+
+
+          // add the sub tree to the main tree
+          tree.addSubTree(genTree);
+
+          renameMap.put(id, appUniqueId);
+
+          // get the next free unique id
+          appUniqueId = pair.getSecond();
         }
-
-
-
-        /*if (abstractEnvTransitions.equals("FA")){
-          // TODO make more elegant
-          RGFullyAbstracted fa = (RGFullyAbstracted) rgEdge;
-          PathFormula newPf = genNode.getPathFormula();
-          // rename filter SSAMap
-          SSAMap fSsa = fa.getHighSSA();
-          HashMap<Integer, Integer> auxMap = new HashMap<Integer, Integer>(1);
-          auxMap.put(-1, appUniqueId);
-          SSAMap rfSsa = ssaManager.changePrimeNo(fSsa, auxMap);
-
-          // add equivalences so the path formula's indexes match the filter
-          Pair<Pair<Formula, Formula>, SSAMap> equivs = ssaManager.mergeSSAMaps(newPf.getSsa(), rfSsa);
-          Formula newrF = this.fmgr.makeAnd(newPf.getFormula(), equivs.getFirst().getFirst());
-          newPf = new PathFormula(newrF, equivs.getSecond(), 0);
-
-          genNode.setPathFormula(newPf);
-        }
-
-        // the root of the subtree is an environmental abstraction only
-        if (abstractEnvTransitions.equals("SA") || abstractEnvTransitions.equals("FA")){
-          genNode.setEnvAbstraction(true);
-          genNode.setARTAbstraction(false);
-        }*/
-
-        // add the sub tree to the main tree
-        tree.addSubTree(genTree);
-
-        renameMap.put(id, appUniqueId);
-
-        // get the next free unique id
-        appUniqueId = pair.getSecond();
       }
 
 

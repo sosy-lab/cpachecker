@@ -71,6 +71,57 @@ public enum RGEnvCandidateComparator implements Comparator<RGEnvCandidate>{
     }
   },
 
+  ARTID_MAX_ENVAPP_MIN {
+
+    @Override
+    public int compare(RGEnvCandidate pO1, RGEnvCandidate pO2) {
+
+      if (pO1.equals(pO2)){
+        return 0;
+      }
+
+      int br1 = pO1.getElement().getRefinementBranches();
+      int br2 = pO2.getElement().getRefinementBranches();
+
+      if (br1 < br2){
+        return 1;
+      }
+
+      if (br1 > br2){
+        return -1;
+      }
+
+      int appCount1 = pO1.getElement().getEnvChildMap().size();
+      int appCount2 = pO2.getElement().getEnvChildMap().size();
+
+      if (appCount1 < appCount2){
+        return 1;
+      }
+
+      if (appCount1 > appCount2){
+        return -1;
+      }
+
+      int id1 = pO1.getElement().getElementId();
+      int id2 = pO2.getElement().getElementId();
+
+      if (id1 > id2){
+        return 1;
+      }
+
+      if (id1 < id2){
+        return -1;
+      }
+
+      int sid1 = pO1.getSuccessor().getElementId();
+      int sid2 = pO2.getSuccessor().getElementId();
+
+      assert sid1 != sid2;
+      return sid1 > sid2 ? 1 : -1;
+
+    }
+  },
+
   ENVAPP_MIN_DISTANCE_MIN_TOP_MAX {
 
     @Override

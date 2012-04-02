@@ -187,7 +187,13 @@ public class RGRefiner implements StatisticsProvider{
     System.out.println();
     System.out.println("\t\t\t ----- Interpolation -----");
     InterpolationTreeResult cexample = refManager.refine(targetElement, reachedSets, errorThr);
-    cexample = locrefManager.refine(cexample);
+
+
+    if (cexample.getDeadNode() == null){
+      cexample = locrefManager.refine(cexample);
+    } else {
+      assert lazy;
+    }
 
     // if error is spurious refine
     if (cexample.isSpurious()) {
@@ -220,6 +226,7 @@ public class RGRefiner implements StatisticsProvider{
 
     RGLazyRefinementResult refResult = lazyManager.getRefinedElements(reachedSets, cexample);
 
+
     dropPivots(reachedSets, refResult);
     algorithm.removeDestroyedCandidates();
   }
@@ -242,7 +249,7 @@ public class RGRefiner implements StatisticsProvider{
 
 
   private void dropPivots(ARTReachedSet[] reachedSets, Map<Integer, Map<ARTElement, Precision>> refMap) {
-
+    stats.dropTimer.start();
 
     // drop subtrees and change precision
     for(int tid : refMap.keySet()){
@@ -259,7 +266,7 @@ public class RGRefiner implements StatisticsProvider{
 
           if (edgeToParent.getEdgeType() != CFAEdgeType.RelyGuaranteeCFAEdge &&
               edgeToParent.getEdgeType() != CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
-            parent.computeLocalChildren();
+            parent.localChildrenNotComputed();
           }
 
         }
@@ -272,10 +279,12 @@ public class RGRefiner implements StatisticsProvider{
         reachedSets[tid].removeSubtree(root, precision);
       }
     }
+
+    stats.dropTimer.stop();
   }
 
   private void dropPivots(ARTReachedSet[] reachedSets, RGLazyRefinementResult result) {
-
+    stats.dropTimer.start();
     SetMultimap<Integer, ARTElement> elementsToDrop = result.getElementsToDrop();
 
     for (Integer tid : elementsToDrop.keySet()){
@@ -287,7 +296,7 @@ public class RGRefiner implements StatisticsProvider{
 
           if (edgeToParent.getEdgeType() != CFAEdgeType.RelyGuaranteeCFAEdge &&
               edgeToParent.getEdgeType() != CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
-            parent.computeLocalChildren();
+            parent.localChildrenNotComputed();
           }
 
         }
@@ -306,6 +315,8 @@ public class RGRefiner implements StatisticsProvider{
       Precision prec = precisionToAdjust.get(pair);
       reachedSets[tid].readdWithPrecision(elem, prec);
     }
+
+    stats.dropTimer.stop();
   }
 
 
@@ -314,22 +325,27 @@ public class RGRefiner implements StatisticsProvider{
     scoll.add(stats);
     refManager.collectStatistics(scoll);
     locrefManager.collectStatistics(scoll);
+    if (lazy){
+      lazyManager.collectStatistics(scoll);
+    }
   }
 
 
   public static class  Stats implements Statistics {
 
-    public final Timer totalTimer          = new Timer();
+    public final Timer totalTimer           = new Timer();
+    public final Timer dropTimer            = new Timer();
     public int maxPredicatesPerLoc      = 0;
 
     @Override
     public String getName() {
-      return "RGRefiners";
+      return "RGRefiner";
     }
 
     @Override
     public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached){
-      out.println("total time on refinement:        " + totalTimer);
+      out.println("time on refinement:              " + totalTimer);
+      out.println("tim on dropping subtrees:        " + dropTimer);
       out.println("max. predicates per location     " + formatInt(maxPredicatesPerLoc));
 
     }

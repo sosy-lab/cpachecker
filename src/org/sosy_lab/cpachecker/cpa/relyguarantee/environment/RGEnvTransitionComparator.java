@@ -71,6 +71,58 @@ public enum RGEnvTransitionComparator implements Comparator<RGEnvTransition>{
     }
   },
 
+
+  ARTID_MAX_ENVAPP_MIN {
+
+    @Override
+    public int compare(RGEnvTransition et1, RGEnvTransition et2) {
+
+      if (et1.equals(et2)){
+        return 0;
+      }
+
+      int br1 = et1.getSourceARTElement().getRefinementBranches();
+      int br2 = et2.getSourceARTElement().getRefinementBranches();
+
+      if (br1 < br2){
+        return 1;
+      }
+
+      if (br1 > br2){
+        return -1;
+      }
+
+      int appCount1 = et1.getAbstractionElement().getEnvChildMap().size();
+      int appCount2 = et2.getAbstractionElement().getEnvChildMap().size();
+
+      if (appCount1 < appCount2){
+        return 1;
+      }
+
+      if (appCount1 > appCount2){
+        return -1;
+      }
+
+      int id1 = et1.getSourceARTElement().getElementId();
+      int id2 = et2.getSourceARTElement().getElementId();
+
+      if (id1 > id2){
+        return 1;
+      }
+
+      if (id1 < id2){
+        return -1;
+      }
+
+      int tarid1 = et1.getTargetARTElement().getElementId();
+      int tarid2 = et2.getTargetARTElement().getElementId();
+      assert tarid1 != tarid2;
+
+      return (tarid1 > tarid2) ? 1 : -1;
+
+    }
+  },
+
   ENVAPP_MIN_DISTANCE_MIN_TOP_MAX {
 
     @Override

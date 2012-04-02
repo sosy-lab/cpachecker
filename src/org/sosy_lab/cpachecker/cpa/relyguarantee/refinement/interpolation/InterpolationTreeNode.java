@@ -67,6 +67,8 @@ public class InterpolationTreeNode  {
 
   protected final InterpolationTreeNodeKey key;
 
+  public final boolean isDeadApplication;
+
 
 
   public InterpolationTreeNode(InterpolationDagNode node, int uniqueId) {
@@ -80,6 +82,7 @@ public class InterpolationTreeNode  {
     this.key          = new InterpolationTreeNodeKey(node.key, uniqueId);
     this.isARTAbstraction = true;
     this.isEnvAbstraction = false;
+    this.isDeadApplication = node.isDeadApplication();
   }
 
   public InterpolationTreeNode(InterpolationDagNode node, int uniqueId, boolean isARTAbstraction, boolean isEnvAbstraction) {
@@ -93,6 +96,7 @@ public class InterpolationTreeNode  {
     this.key          = new InterpolationTreeNodeKey(node.key, uniqueId);
     this.isARTAbstraction = isARTAbstraction;
     this.isEnvAbstraction = isEnvAbstraction;
+    this.isDeadApplication = node.isDeadApplication();
   }
 
   public InterpolationTreeNode(ARTElement artElement, PathFormula pathFormula, ImmutableMap<Integer, RGEnvTransition> envMap, int tid, int uniqueId, boolean isARTAbstraction, boolean isEnvAbstraction){
@@ -109,6 +113,7 @@ public class InterpolationTreeNode  {
     this.uniqueId     = uniqueId;
     this.isARTAbstraction = isARTAbstraction;
     this.isEnvAbstraction = isEnvAbstraction;
+    this.isDeadApplication = false;
   }
 
   public int getUniqueId() {
@@ -208,6 +213,12 @@ public class InterpolationTreeNode  {
 
     return lChild;
   }
+
+  public boolean isDeadApplication() {
+    return isDeadApplication;
+  }
+
+
 
 
 

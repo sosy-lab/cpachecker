@@ -52,6 +52,7 @@ public class InterpolationTreeResult {
   private final InterpolationTree tree;
   /** witness path for a feasible counterexample */
   private final Path path;
+  private InterpolationTreeNode deadNode;
 
 
   /**
@@ -146,7 +147,14 @@ public class InterpolationTreeResult {
   }
 
 
+  public InterpolationTreeNode getDeadNode() {
+    return deadNode;
+  }
 
+  public void setDeadNode(InterpolationTreeNode pDeadNode) {
+    assert pDeadNode.isDeadApplication();
+    deadNode = pDeadNode;
+  }
 
 
 
