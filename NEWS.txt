@@ -1,5 +1,10 @@
 Changes since CPAchecker 1.1
 ----------------------------
+* r5958: The log level for the console can now be adjusted during runtime.
+  You need a JMX client to do that, e.g., jconsole or VisualVM.
+  Connect to the CPAchecker process,
+  locate the MXBean "org.sosy_lab.common:type=LogManager",
+  and set the attribute.
 * r5953: The option "cpa.removeIrrelevantForErrorLocations" was renamed to
   "cfa.removeIrrelevantForSpecification", as this name is more appropriate.
 * r5060: A time limit of 15 minutes is now enabled by default in most configurations.
