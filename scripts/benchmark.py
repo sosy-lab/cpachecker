@@ -626,6 +626,7 @@ class OutputHandler:
                  'satabs'    : 'SatAbs',
                  'blast'     : 'BLAST',
                  'wolverine' : 'WOLVERINE',
+                 'ufo'       : 'UFO',
                  'acsar'     : 'Acsar'}
         if tool in names:
             return names[tool]
@@ -1478,6 +1479,28 @@ def run_wolverine(options, sourcefile, columns, rlimits, file):
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
+def run_ufo(options, sourcefile, columns, rlimits, file):
+    exe = findExecutable("ufo.sh", None)
+    args = [exe, sourcefile] + options
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    if returnsignal == 9 or returnsignal == (128+9):
+        if isTimeout(cpuTimeDelta, rlimits):
+            status = "TIMEOUT"
+        else:
+            status = "KILLED BY SIGNAL 9"
+    elif returncode == 1 and "program correct: ERROR unreachable" in output:
+        status = "SAFE"
+    elif returncode != 0:
+        status = "ERROR ({0})".format(returncode)
+    elif "ERROR reachable" in output:
+        status = "UNSAFE"
+    elif "program correct: ERROR unreachable" in output:
+        status = "SAFE"
+    else:
+        status = "FAILURE"
+    return (status, cpuTimeDelta, wallTimeDelta, args)
+
+
 def run_acsar(options, sourcefile, columns, rlimits, file):
     exe = findExecutable("acsar", None)
 
@@ -1729,7 +1752,7 @@ class Worker(threading.Thread):
 def runBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile)
 
-    assert benchmark.tool in ["cbmc", "satabs", "cpachecker", "blast", "acsar", "wolverine",
+    assert benchmark.tool in ["cbmc", "satabs", "cpachecker", "blast", "acsar", "wolverine", "ufo",
                               "safe", "unsafe", "random"]
 
     if len(benchmark.tests) == 1:
