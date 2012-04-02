@@ -31,12 +31,10 @@ import java.io.PrintStream;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
-import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryUsage;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -107,6 +105,18 @@ class MainCPAStatistics implements Statistics {
    * According to the man page this includes "all code, data and shared libraries
    * plus pages that pages that have been mapped but not used" (and thus this
    * measure includes more than we would like).
+   *
+   *
+   * With the {@link java.lang.management.MemoryPoolMXBean}, one can configure
+   * thresholds for notification when they are full. There is also a threshold
+   * for notification when they are full even after a GC
+   * (see {@link java.lang.management.MemoryPoolMXBean#setCollectionUsageThreshold(long)}).
+   * However, as of 2012-04-02 with OpenJDK 6 on Linux, this is not really
+   * helpful. First, there is one pool (the "Survivor" pool), which supports
+   * thresholds but has a weird maximum size set (the pool grows beyond the
+   * maximum size). Second, there seem to be a lot of notifications even while
+   * GC is still running. I still haven't found a way how to reliably detect
+   * that an OutOfMemoryError would come soon.
    */
   private static class MemoryStatistics extends Thread {
 
@@ -149,39 +159,8 @@ class MainCPAStatistics implements Statistics {
     public void run() {
       MemoryMXBean mxBean = ManagementFactory.getMemoryMXBean();
 
-      List<MemoryPoolMXBean> poolBeans = ManagementFactory.getMemoryPoolMXBeans();
-      for (Iterator<MemoryPoolMXBean> it = poolBeans.iterator(); it.hasNext(); ) {
-        MemoryPoolMXBean pool = it.next();
-        if (pool.isCollectionUsageThresholdSupported()
-            && !pool.getName().contains("Survivor")) {
-          long threshold = (long) (pool.getUsage().getMax() * 0.99);
-          pool.setCollectionUsageThreshold(threshold);
-          logger.log(Level.INFO, "Setting threshold of pool", pool.getName(), "to", formatMem(threshold).trim());
-
-        } else {
-          it.remove();
-        }
-      }
-      long[] poolCollectionUsageThresholdCounts = new long[poolBeans.size()];
-
-
       while (true) { // no stop condition, call Thread#interrupt() to stop it
         count++;
-
-        int i = 0;
-        for (MemoryPoolMXBean pool : poolBeans) {
-          if (pool.isCollectionUsageThresholdExceeded()) {
-            long collectionUsageThresholdCount = pool.getCollectionUsageThresholdCount();
-            if (collectionUsageThresholdCount > poolCollectionUsageThresholdCounts[i]) {
-
-              logger.log(Level.WARNING, "Collection threshold exceeded in pool", pool.getName() + ":",
-                  pool.getCollectionUsage());
-                  //formatMem(pool.getUsage().getUsed()).trim(), "of", formatMem(pool.getUsage().getMax()).trim(), "used.");
-              poolCollectionUsageThresholdCounts[i] = collectionUsageThresholdCount;
-            }
-          }
-          i++;
-        }
 
         // get Java heap usage
         MemoryUsage currentHeap = mxBean.getHeapMemoryUsage();
