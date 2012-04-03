@@ -423,6 +423,12 @@ public class BlockedCFAReducer implements BlockComputer {
       String[] cs = rn.getCallstack();
       CFANode cn = rn.getWrapped();
 
+      if (cn.getNumEnteringEdges() == 0
+       || cn.getNumLeavingEdges() == 0) {
+        // We can skip nodes that have no leaving edges or no entering edges.
+        continue;
+      }
+
       switch (rn.getNodeKind()) {
         case FUNCTIONENTRY: if (allowAbstOnFunctionEntry) addAbstNode(result, cs, cn); break;
         case FUNCTIONEXIT: if (allowAbstOnFunctionExit) addAbstNode(result, cs, cn); break;
@@ -471,10 +477,14 @@ public class BlockedCFAReducer implements BlockComputer {
       writeReducedCfaRsf(reducedCfaFile, reducedProgram, result);
     }
 
+    //result.print();
+
     // TODO: The following should be moved to a more general position in CPAchecker.
     controlFlowStatistics.writeStatistics(pCfa);
 
-    System.out.println(String.format("CFANodes: %d, AbstNodes: %d, summarizationThresold: %d", pCfa.getAllNodes().size(), result.getNumberOfLeafs(), reductionThreshold));
+    System.out.println(String.format("Nodes in reduced CFA: %d", pCfa.getAllNodes().size()));
+    System.out.println(String.format("Abstraction nodes in reduced CFA: %d", result.getNumberOfLeafs(false)));
+    System.out.println(String.format("Summarization threshold: %d", reductionThreshold));
     return result;
   }
 }
