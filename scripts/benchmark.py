@@ -336,7 +336,7 @@ class Run():
         self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.benchmark.columns]
 
         # dummy values, for output in case of interrupt
-        self.resultline = self.sourcefile
+        self.resultline = None
         self.status = ""
         self.cpuTime = 0
         self.cpuTimeStr = ""
@@ -792,10 +792,15 @@ class OutputHandler:
             logging.debug("test {0} consists of {1} sourcefiles.".format(
                     numberOfTest, len(self.test.runs)))
 
+        fileNames = [run.sourcefile for run in self.test.runs]
+
+        # common prefix of file names
+        self.commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
+        self.commonPrefix = self.commonPrefix[: self.commonPrefix.rfind('/') + 1] # only foldername
+
         # length of the first column in terminal
-        self.maxLengthOfFileName = 20
-        for run in self.test.runs:
-            self.maxLengthOfFileName = max(len(run.sourcefile), self.maxLengthOfFileName)
+        self.maxLengthOfFileName = max([len(file) for file in fileNames])
+        self.maxLengthOfFileName = max(20, self.maxLengthOfFileName - len(self.commonPrefix))
 
         # write testname to terminal
         numberOfFiles = len(self.test.runs)
@@ -872,7 +877,7 @@ class OutputHandler:
 
             timeStr = time.strftime("%H:%M:%S", time.localtime()) + "   "
             if run.benchmark.numOfThreads == 1:
-                sys.stdout.write(timeStr + run.sourcefile.ljust(self.maxLengthOfFileName + 4))
+                sys.stdout.write(timeStr + self.formatSourceFileName(run.sourcefile))
                 sys.stdout.flush()
             else:
                 print(timeStr + "starting   " + run.sourcefile)
@@ -928,7 +933,7 @@ class OutputHandler:
                     print(valueStr)
                 else:
                     timeStr = time.strftime("%H:%M:%S", time.localtime()) + " "*14
-                    print(timeStr + run.sourcefile.ljust(self.maxLengthOfFileName + 4) + valueStr)
+                    print(timeStr + self.formatSourceFileName(run.sourcefile) + valueStr)
 
             # write resultline in TXTFile
             run.resultline = self.createOutputLine(run.sourcefile, run.status,
@@ -964,7 +969,7 @@ class OutputHandler:
 
         # store values of each run
         for run in test.runs:
-            lines.append(run.resultline)
+            lines.append(run.resultline or self.formatSourceFileName(run.sourcefile))
 
         lines.append(test.simpleLine)
 
@@ -1077,7 +1082,7 @@ class OutputHandler:
         lengthOfTime = 11
         minLengthOfColumns = 8
 
-        outputLine = sourcefile.ljust(self.maxLengthOfFileName + 4) + \
+        outputLine = self.formatSourceFileName(sourcefile) + \
                      status.ljust(lengthOfStatus) + \
                      cpuTimeDelta.rjust(lengthOfTime) + \
                      wallTimeDelta.rjust(lengthOfTime)
@@ -1115,6 +1120,14 @@ class OutputHandler:
             fileName += testname + "."
 
         return fileName + fileExtension
+
+
+    def formatSourceFileName(self, fileName):
+        '''
+        Formats the file name of a program for printing on console.
+        '''
+        fileName = fileName.replace(self.commonPrefix, '', 1)
+        return fileName.ljust(self.maxLengthOfFileName + 4)
 
 
 class Statistics:
