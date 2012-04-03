@@ -90,12 +90,22 @@ public class ItemTree<N, L> {
     }
   }
 
-  public int getNumberOfLeafs() {
-    int result = this.leafs.size();
+  public int getNumberOfLeafs(boolean pIncludeNodesOnRoot) {
+    int result = (!pIncludeNodesOnRoot && this.parentTree == null) ? 0 : this.leafs.size();
     for (ItemTree<N,L> child: this.childTrees.values()) {
-      result += child.getNumberOfLeafs();
+      result += child.getNumberOfLeafs(pIncludeNodesOnRoot);
     }
     return result;
+  }
+
+  public void print() {
+    for (N childKey: this.childTrees.keySet()) {
+      System.out.print(childKey + ":");
+      for (L leave : this.leafs) {
+        System.out.println(leave);
+      }
+      childTrees.get(childKey).print();
+    }
   }
 
 }
