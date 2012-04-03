@@ -67,7 +67,9 @@ public class CfaReductionBlockOperator extends AbstractBlockOperator implements 
   @Override
   public boolean isBlockEnd(AbstractElement pElement, CFAEdge pCfaEdge, PathFormula pPf) {
     CFANode succLoc = pCfaEdge.getSuccessor();
-    if (!considerCallstack) {
+    if (isLoopHead(succLoc)) {
+      return true;
+    } else if (!considerCallstack) {
       final String[] noCallstack = {};
       return abstractionNodes.containsLeaf(noCallstack, succLoc);
     }
