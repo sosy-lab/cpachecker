@@ -332,7 +332,6 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     // check if there was progress
     if (!hasMadeProgress()) {
-
       System.out.println(path);
       Set<ARTElement> artTrace = new HashSet<ARTElement>();
       List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
@@ -506,8 +505,6 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       }
     }
 
-    //    if(interpolationPoint != null)
-      //System.out.println(errorPath);
     assert interpolationPoint != null;
 
     return interpolationPoint;
