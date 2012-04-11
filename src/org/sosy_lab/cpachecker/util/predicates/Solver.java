@@ -92,12 +92,6 @@ public class Solver {
       trivialImplicationChecks++;
       return true;
     }
-    if (a.isTrue() || b.isFalse()) {
-      // "true" implies only "true", but b is not "true"
-      // "false" is implied only by "false", but a is not "false"
-      trivialImplicationChecks++;
-      return false;
-    }
     if (a.equals(b)) {
       trivialImplicationChecks++;
       return true;
