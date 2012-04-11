@@ -109,7 +109,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
       // Check whether abstraction is false.
       // Such elements might get created when precision adjustment computes an abstraction.
-      if (element.getAbstractionFormula().asFormula().isFalse()) {
+      if (element.getAbstractionFormula().isFalse()) {
         return Collections.emptySet();
       }
 
