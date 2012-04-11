@@ -203,19 +203,23 @@ import com.google.common.collect.Multimap;
         String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), currentFunction);
 
         if(dependingVariables.contains(assignedVariable)) {
-          // track it at return (2nd statement below), not at call (next, commented statement)
-          //collectedVariables.put(edge.getSuccessor(), assignedVariable);
           collectedVariables.put(functionCallEdge.getSummaryEdge().getSuccessor(), assignedVariable);
           collectVariables(functionCallEdge, funcAssign.getRightHandSide(), collectedVariables);
         }
       }
 
       String functionName = functionCallEdge.getSuccessor().getFunctionDefinition().getName();
+
+      int i = 0;
       for(IASTParameterDeclaration parameter : functionCallEdge.getSuccessor().getFunctionDefinition().getDeclSpecifier().getParameters()) {
         String parameterName = functionName + "::" + parameter.getName();
+
+        // collect the formal parameter, and make the argument a depending variable
         if(dependingVariables.contains(parameterName)) {
           collectedVariables.put(functionCallEdge.getSuccessor(), parameterName);
+          dependingVariables.add(functionCallEdge.getPredecessor().getFunctionName() + "::" + functionCallEdge.getArguments().get(i).toASTString());
         }
+        i++;
       }
 
       break;
