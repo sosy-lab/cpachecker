@@ -382,13 +382,6 @@ cpa.explicit.stop = "SEP"
 # blacklist regex for variables that won't be tracked by ExplicitCPA
 cpa.explicit.variableBlacklist = ""
 
-# whether or not to remove important variables again
-cpa.explict.refiner.keepImportantVariablesInCounterexampleCheck = true
-
-# whether or not to skip counter-example checks of variables that already are
-# in the precision
-cpa.explict.refiner.skipRedundantChecks = true
-
 # whether or not to use assumption-closure for explicit refinement
 cpa.explict.refiner.useAssumptionClosure = false
 

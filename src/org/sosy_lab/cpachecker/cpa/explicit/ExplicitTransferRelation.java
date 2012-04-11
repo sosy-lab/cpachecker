@@ -278,7 +278,12 @@ public class ExplicitTransferRelation implements TransferRelation
 
       // a* = b(); TODO: for now, nothing is done here, but cloning the current element
       else if(op1 instanceof IASTUnaryExpression && ((IASTUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
-          return newElement;
+        return newElement;
+      }
+
+      // a[x] = b(); TODO: for now, nothing is done here, but cloning the current element
+      else if(op1 instanceof IASTArraySubscriptExpression) {
+        return newElement;
       }
 
       else {

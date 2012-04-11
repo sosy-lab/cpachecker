@@ -70,7 +70,7 @@ public abstract class PredicateAbstractElement implements AbstractElement, Parti
 
     @Override
     public Object getPartitionKey() {
-      if (super.abstractionFormula.asFormula().isFalse()) {
+      if (super.abstractionFormula.isFalse()) {
         // put unreachable states in a separate partition to avoid merging
         // them with any reachable states
         return Boolean.FALSE;

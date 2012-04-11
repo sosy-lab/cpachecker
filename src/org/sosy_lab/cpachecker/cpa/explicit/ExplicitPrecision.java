@@ -209,7 +209,7 @@ public class ExplicitPrecision implements Precision {
      */
     boolean allowsTrackingOf(String variable) {
       return mapping == null
-          || mapping.containsEntry(currentLocation, variable);
+             || mapping.containsEntry(currentLocation, variable);
     }
 
     boolean allowsTrackingAt(CFANode location, String variable) {

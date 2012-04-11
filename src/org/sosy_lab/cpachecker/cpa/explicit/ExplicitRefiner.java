@@ -118,12 +118,6 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   @Option(description="whether or not to use the top most interpolation point")
   boolean useTopMostInterpolationPoint                      = true;
 
-  @Option(description="whether or not to remove important variables again")
-  boolean keepImportantVariablesInCounterexampleCheck       = true;
-
-  @Option(description="whether or not to skip counter-example checks of variables that already are in the precision")
-  boolean skipRedundantChecks                               = true;
-
   @Option(description="whether or not to use assumption-closure for explicit refinement")
   boolean useAssumptionClosure                              = false;
 
@@ -249,18 +243,8 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
       Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge.getSuccessor());
 
-      if(skipRedundantChecks) {
-        int tracked = 0;
-        // if all variables are already part of the precision, nothing more to do here
-        for(String variableName : referencedVariablesAtEdge) {
-          if(precision.allowsTrackingAt(currentEdge.getSuccessor(), variableName)) {
-            tracked++;
-          }
-        }
-
-        if(tracked != 0) {
-          continue;
-        }
+      if(isRedundant(precision, currentEdge, referencedVariablesAtEdge)) {
+        continue;
       }
 
       if(!referencedVariablesAtEdge.isEmpty()) {
@@ -272,14 +256,13 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
         try {
           // create a new CPA, which disallows tracking the "irrelevant variables"
           CounterexampleCPAChecker checker = new CounterexampleCPAChecker(Configuration.builder().setOption("counterexample.checker.ignoreGlobally", Joiner.on(",").join(irrelevantVariables)).build(),
-                                                                        explicitCpa.getLogger(),
-                                                                        new ReachedSetFactory(explicitCpa.getConfiguration(), explicitCpa.getLogger()),
-                                                                        explicitCpa.getCFA());
+                                                                          explicitCpa.getLogger(),
+                                                                          new ReachedSetFactory(explicitCpa.getConfiguration(), explicitCpa.getLogger()),
+                                                                          explicitCpa.getCFA());
 
           feasible = checker.checkCounterexample(path.get(0).getFirst(),
                                                   path.get(path.size() - 1).getFirst(),
                                                   artTrace);
-          //feasible = true;
         } catch (InterruptedException e) {
           throw new CPAException("counterexample-check failed: ", e);
         } catch (InvalidConfigurationException e) {
@@ -292,14 +275,32 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
         // ... add the "important" variables to the precision increment, and remove them from the irrelevant ones
         for(String importantVariable : referencedVariablesAtEdge) {
           increment.put(pathElement.getSecond().getSuccessor(), importantVariable);
-          if(keepImportantVariablesInCounterexampleCheck)
-            irrelevantVariables.remove(importantVariable);
+          irrelevantVariables.remove(importantVariable);
         }
       }
     }
 
     timerCounterExampleChecks.stop();
     return increment;
+  }
+
+
+  /**
+   * This method checks whether or not all variables are already part of the precision.
+   *
+   * @param precision the current precision
+   * @param currentEdge the current CFA edge
+   * @param referencedVariablesAtEdge the variables referenced at the current edge
+   * @return true, if adding the set of given variables would be redundant, else false
+   */
+  private boolean isRedundant(CegarPrecision precision, CFAEdge currentEdge, Collection<String> referencedVariablesAtEdge) {
+    boolean isRedundant = true;
+
+    for(String variableName : referencedVariablesAtEdge) {
+      isRedundant = isRedundant && precision.allowsTrackingAt(currentEdge.getSuccessor(), variableName);
+    }
+
+    return isRedundant;
   }
 
   private boolean doFullPrecisionCheck(Set<ARTElement> artTrace) {
@@ -332,7 +333,6 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     // check if there was progress
     if (!hasMadeProgress()) {
-
       System.out.println(path);
       Set<ARTElement> artTrace = new HashSet<ARTElement>();
       List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
@@ -506,8 +506,6 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       }
     }
 
-    //    if(interpolationPoint != null)
-      //System.out.println(errorPath);
     assert interpolationPoint != null;
 
     return interpolationPoint;
