@@ -104,12 +104,11 @@ public class ProofGenerator {
         o.writeObject(GlobalInfo.getInstance().getHelperStorage(i));
       }
 
+      o.flush();
       zos.closeEntry();
-
-      o.close();
       zos.close();
     } catch (IOException e) {
-      System.err.println(e);
+      throw new RuntimeException(e);
     } finally {
       try {
         fos.close();
