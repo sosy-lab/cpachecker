@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm.impact;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.io.IOException;
+import java.io.NotSerializableException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -43,6 +45,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
  * but allows only one parent and additionally stores a modifiable state formula.
  */
 class Vertex extends AbstractSingleWrapperElement {
+  /* Boilerplate code to avoid serializing this class */
+  private static final long serialVersionUID = 0xDEADBEEF;
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    throw new NotSerializableException();
+  }
 
   private static int nextId = 0;
   private final int id = nextId++;
