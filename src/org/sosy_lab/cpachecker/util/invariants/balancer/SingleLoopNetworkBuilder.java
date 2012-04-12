@@ -174,9 +174,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     Pair<ARTElement, CFAEdge> rootPair = cePath.getFirst();
     ARTElement ae = rootPair.getFirst();
     CFANode root = AbstractElements.extractLocation(ae);
-    CFATraversal.NodeCollectingCFAVisitor visitor = new CFATraversal.NodeCollectingCFAVisitor();
-    CFATraversal.dfs().traverse(root, visitor);
-    return visitor.getVisitedNodes();
+    return CFATraversal.dfs().collectNodesReachableFrom(root);
   }
 
   private PathFormula buildEntryFormula(Path pPath, CFANode loopHead) {

@@ -53,7 +53,7 @@ public final class DOTBuilder {
 
   public static String generateDOT(Collection<CFAFunctionDefinitionNode> cfasMapList, CFAFunctionDefinitionNode cfa) {
     DotGenerator dotGenerator = new DotGenerator();
-    CFATraversal.dfs().traverse(cfa, new CFATraversal.NodeCollectingCFAVisitor(dotGenerator));
+    CFATraversal.dfs().traverseOnce(cfa, dotGenerator);
 
     StringBuilder sb = new StringBuilder();
     sb.append("digraph " + "CFA" + " {\n");
