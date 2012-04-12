@@ -298,6 +298,15 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Override
   public boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement) throws CPAException {
-    return getAbstractDomain().formulaBasedIsLessOrEqual(pElement, pOtherElement);
+    // isLessOrEqual for proof checking; formula based; elements can be trusted (i.e., invariants do not have to be checked)
+
+    PredicateAbstractElement e1 = (PredicateAbstractElement) pElement;
+    PredicateAbstractElement e2 = (PredicateAbstractElement) pOtherElement;
+
+    if (e1.isAbstractionElement() && e2.isAbstractionElement()) {
+      return predicateManager.checkCoverage(e1.getAbstractionFormula(), pathFormulaManager.makeEmptyPathFormula(e1.getPathFormula()), e2.getAbstractionFormula());
+    } else {
+      return false;
+    }
   }
 }

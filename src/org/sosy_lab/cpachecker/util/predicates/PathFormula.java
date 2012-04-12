@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 public class PathFormula implements Serializable {
 
   private static final long serialVersionUID = -7716850731790578619L;
-  private final Formula formula;
+  private final transient Formula formula;
   private final SSAMap ssa;
   private final int length;
 
