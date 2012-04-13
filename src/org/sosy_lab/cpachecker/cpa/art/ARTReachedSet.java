@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 /**
  * This class is a modifiable live view of a reached set, which shows the ART
@@ -151,6 +152,44 @@ public class ARTReachedSet {
       ae.removeFromART();
     }
     return toWaitlist;
+  }
+
+  /**
+   * Remove all covering relations from a node so that this node does not cover
+   * any other node anymore.
+   * Also adds any now uncovered leaf nodes to the waitlist.
+   *
+   * Call this method when you have changed (strengthened) an abstract element.
+   */
+  public void removeCoverageOf(ARTElement v) {
+    for (ARTElement coveredByChildOfV : ImmutableList.copyOf(v.getCoveredByThis())) {
+      uncover(coveredByChildOfV);
+    }
+    assert v.getCoveredByThis().isEmpty();
+  }
+
+  /**
+   * Mark a covered element as non-covered.
+   * This method also re-adds all leaves in that part of the ART to the waitlist.
+   *
+   * @param element The covered ARTElement to uncover.
+   */
+  public void uncover(ARTElement element) {
+    element.uncover();
+
+    // this is the subtree of elements which now become uncovered
+    Set<ARTElement> uncoveredSubTree = element.getSubtree();
+
+    for (ARTElement e : uncoveredSubTree) {
+      assert !e.isCovered();
+
+      e.setCovering();
+
+      if (!e.wasExpanded()) {
+        // its a leaf
+        mReached.reAddToWaitlist(e);
+      }
+    }
   }
 
   public static class ForwardingARTReachedSet extends ARTReachedSet {
