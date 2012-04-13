@@ -53,7 +53,6 @@
 ../../test/programs/benchmarks/ssh/s3_srvr.blast.10.i.cil.c
 ../../test/programs/benchmarks/ssh/s3_srvr.blast.12.i.cil.c
 ../../test/programs/benchmarks/ssh/s3_srvr.blast.15.i.cil.c
-../../test/programs/benchmarks/ssh/s3_srvr.blast.16.i.cil.c
 ../../test/programs/benchmarks/locks/*.BUG.c
 ../../test/programs/benchmarks/locks/test_locks_11.c
 ../../test/programs/benchmarks/locks/test_locks_12.c
