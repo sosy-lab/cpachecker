@@ -46,16 +46,10 @@ public class ARTReachedSet {
 
   private final ReachedSet mReached;
 //  private final UnmodifiableReachedSet mUnmodifiableReached;
-  private final ARTCPA mCpa;
 
   public ARTReachedSet(ReachedSet pReached) {
-    this(pReached, null);
-  }
-
-  public ARTReachedSet(ReachedSet pReached, ARTCPA pCpa) {
     mReached = checkNotNull(pReached);
 //    mUnmodifiableReached = new UnmodifiableReachedSetWrapper(mReached);
-    mCpa = pCpa;
   }
 
   public ReachedSet asReachedSet() {
@@ -197,7 +191,7 @@ public class ARTReachedSet {
     protected final ARTReachedSet delegate;
 
     public ForwardingARTReachedSet(ARTReachedSet pReached) {
-      super(pReached.mReached, pReached.mCpa);
+      super(pReached.mReached);
       delegate = pReached;
     }
 

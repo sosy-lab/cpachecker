@@ -100,7 +100,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     AbstractElement lastElement = pReached.getLastElement();
     assert lastElement instanceof ARTElement : "Element in reached set which is not an ARTElement";
     assert ((ARTElement)lastElement).isTarget() : "Last element in reached is not a target element before refinement";
-    ARTReachedSet reached = new ARTReachedSet(pReached, mArtCpa);
+    ARTReachedSet reached = new ARTReachedSet(pReached);
 
     Path path = computePath((ARTElement)lastElement, reached);
 
