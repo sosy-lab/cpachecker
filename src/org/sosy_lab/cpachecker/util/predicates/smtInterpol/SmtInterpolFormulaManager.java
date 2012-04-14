@@ -90,11 +90,13 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   // ----------------- Helper function -----------------
 
   /** ApplicationTerms can be wrapped with "|".
-   * This function replaces those chars with "\"". */
+   * This function removes those chars. */
   private static String dequote(String s) {
     return s.replace("|", "");
   }
 
+  /** ApplicationTerms can be wrapped with "|".
+   * This function replaces those chars with "\"". */
   private static String convertQuotes(String s) {
     return s.replace("|", "\"");
   }

@@ -61,7 +61,7 @@ Numeral = 0 | [1-9][0-9]*
 Decimal = {Numeral} "."  0* {Numeral}
 HexaDecimal = "#x" [0-9a-fA-F]+
 Binary = "#b" [01]+
-QuotedString = "\""  [^\"]*  "\""
+QuotedString = "\""  [^\"]*  "\"" | "|"  [^|]*  "|"
 String = {Letter} {LetterDigit}* | {QuotedString}
 
 %%
