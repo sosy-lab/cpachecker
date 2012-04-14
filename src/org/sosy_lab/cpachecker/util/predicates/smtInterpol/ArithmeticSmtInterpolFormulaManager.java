@@ -54,7 +54,7 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
   // TODO there are some bitVektor-functions in smtinterpol.theory, can we use them?
   // TODO why use "_" in functionNames?
   private final String bitwiseAndUfDecl = "_&_";
-  private final String bitwiseOrUfDecl = "_|_";
+  private final String bitwiseOrUfDecl = "_OR_";
   private final String bitwiseXorUfDecl = "_^_";
   private final String bitwiseNotUfDecl = "_~_";
   private final String leftShiftUfDecl = "_<<_";

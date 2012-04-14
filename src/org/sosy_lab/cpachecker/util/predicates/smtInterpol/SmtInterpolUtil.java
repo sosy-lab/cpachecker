@@ -31,6 +31,7 @@ import com.google.common.collect.Sets;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ConstantTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
+import de.uni_freiburg.informatik.ultimate.logic.Rational;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 /** This is a Class similiar to Mathsat-NativeApi,
@@ -58,11 +59,12 @@ public class SmtInterpolUtil {
    * ApplicationTerm with negative Number */
   public static boolean isNumber(Term t) {
     boolean is = false;
-
     // ConstantTerm with Number --> "123"
-    if (t instanceof ConstantTerm
-        && ((ConstantTerm) t).getValue() instanceof Number) {
-      is = true;
+    if (t instanceof ConstantTerm) {
+      Object value = ((ConstantTerm) t).getValue();
+      if (value instanceof Number || value instanceof Rational) {
+        is = true;
+      }
 
     } else if (t instanceof ApplicationTerm) {
       ApplicationTerm at = (ApplicationTerm) t;
@@ -98,6 +100,9 @@ public class SmtInterpolUtil {
       Object value = ((ConstantTerm) t).getValue();
       if (value instanceof Number) {
         return ((Number) value).doubleValue();
+      } else if (value instanceof Rational) {
+        Rational rat = (Rational) value;
+        return rat.numerator().divide(rat.denominator()).doubleValue();
       }
 
       // ApplicationTerm with negative Number --> "-123"
@@ -106,9 +111,9 @@ public class SmtInterpolUtil {
 
       if ("-".equals(at.getFunction().getName())) {
         return - toNumber(at.getParameters()[0]);
-      } else if ("/".equals(at.getFunction().getName())) {
-        return toNumber(at.getParameters()[0]) /
-          toNumber(at.getParameters()[1]);
+//      } else if ("/".equals(at.getFunction().getName())) {
+//        return toNumber(at.getParameters()[0]) /
+//          toNumber(at.getParameters()[1]);
       }
     }
 

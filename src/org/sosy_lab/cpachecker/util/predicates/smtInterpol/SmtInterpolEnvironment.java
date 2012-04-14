@@ -46,6 +46,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Annotation;
 import de.uni_freiburg.informatik.ultimate.logic.Assignments;
 import de.uni_freiburg.informatik.ultimate.logic.LoggingScript;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
+import de.uni_freiburg.informatik.ultimate.logic.Model;
 import de.uni_freiburg.informatik.ultimate.logic.QuotedString;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Script;
@@ -53,10 +54,13 @@ import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
 import de.uni_freiburg.informatik.ultimate.logic.Valuation;
-import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.Benchmark;
+import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.SMTInterpol;
 
-/** This is a Wrapper around the SmtInterpolScript.
- * It guarantees the stack-behavior towards the wrapped Script */
+/** This is a Wrapper around SmtInterpol.
+ * It guarantees the stack-behavior of function-declarations towards the SmtSolver,
+ * so functions remain declared, if levels are popped.
+ * This Wrapper allows to set a logfile for all Smt-Queries (default "smtinterpol.smt2").
+ */
 @Options(prefix="cpa.predicate.smtinterpol")
 public class SmtInterpolEnvironment implements Script {
 
@@ -113,9 +117,9 @@ public class SmtInterpolEnvironment implements Script {
     // levels: ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF:
     logger.setLevel(Level.OFF);
 
-    Benchmark benchmark = new Benchmark(logger);
+    SMTInterpol smtInterpol = new SMTInterpol(logger);
     if (smtLogfile == null) { // option -noout
-      script = benchmark;
+      script = smtInterpol;
 
     } else {
       String filename = getFilename(smtLogfile.getAbsolutePath());
@@ -123,7 +127,7 @@ public class SmtInterpolEnvironment implements Script {
         // create a thin wrapper around Benchmark,
         // this allows to write most formulas of the solver to outputfile
         // TODO how much faster is SmtInterpol without this Wrapper?
-        script = new LoggingScript(benchmark, filename, true);
+        script = new LoggingScript(smtInterpol, filename, true);
       } catch (FileNotFoundException e) {
         e.printStackTrace();
       }
@@ -204,7 +208,8 @@ public class SmtInterpolEnvironment implements Script {
   }
 
   /** This function declares a function.
-   * It can check, if the function was declared before. */
+   * It is possible to check, if the function was declared before.
+   * If both ('check' and 'declared before') are true, nothing is done. */
   private void declareFun(String fun, Sort[] paramSorts, Sort resultSort, boolean check) {
     String funRepr = functionToString(fun, paramSorts, resultSort);
     if (check != declaredFunctions.contains(funRepr)) {
@@ -221,6 +226,7 @@ public class SmtInterpolEnvironment implements Script {
   }
 
   /** This function returns a String-representation of a function-declaration.
+   * It can be used to get a hashable representation of a function.
    * example:   "bool f (int int )"   */
   private String functionToString(String fun, Sort[] paramSorts, Sort resultSort) {
     StringBuilder str = new StringBuilder(resultSort.getName())
@@ -320,6 +326,11 @@ public class SmtInterpolEnvironment implements Script {
   }
 
   @Override
+  public Model getModel() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public Valuation getValue(Term[] terms) {
     try {
       return script.getValue(terms);
@@ -349,6 +360,7 @@ public class SmtInterpolEnvironment implements Script {
     throw new UnsupportedOperationException();
   }
 
+  /** This function returns the Sort for a Type. */
   public Sort sort(Type type) {
     return sort(type.toString());
   }
@@ -405,7 +417,12 @@ public class SmtInterpolEnvironment implements Script {
 
   @Override
   public Term let(TermVariable[] pVars, Term[] pValues, Term pBody) {
-    throw new UnsupportedOperationException();
+    try {
+      return script.let(pVars, pValues, pBody);
+    } catch (SMTLIBException e) {
+      e.printStackTrace();
+      return null;
+    }
   }
 
   @Override
@@ -489,7 +506,8 @@ public class SmtInterpolEnvironment implements Script {
     throw new UnsupportedOperationException();
   }
 
-  public String getVersion(){
+  /** This function returns the version of SmtInterpol, for logging. */
+  public String getVersion() {
     Object[] program = script.getInfo(":name");
     Object[] version = script.getInfo(":version");
 

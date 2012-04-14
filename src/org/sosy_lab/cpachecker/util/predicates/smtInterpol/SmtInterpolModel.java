@@ -151,8 +151,11 @@ public class SmtInterpolModel {
       // TODO we are assuming numbers as values
       if (!(SmtInterpolUtil.isNumber(lValueTerm)
             || SmtInterpolUtil.isBoolean(lValueTerm))) {
-        throw new IllegalArgumentException("term is not a number: " + lValueTerm);
-      }
+        // TODO do nothing, is there a bug in SmtInterpol??
+        // with new version from 2012.04.09 there can be ApplicationTerms in the model
+
+        // throw new IllegalArgumentException("term is not a number: " + lValueTerm);
+      } else {
 
       String lTermRepresentation = lValueTerm.toString();
 
@@ -180,6 +183,7 @@ public class SmtInterpolModel {
       }
 
       model.put(lAssignable, lValue);
+    }
     }
 
     return new Model(model.build(), new SmtInterpolFormula(modelFormula));

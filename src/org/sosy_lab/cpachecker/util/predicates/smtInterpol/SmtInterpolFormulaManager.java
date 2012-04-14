@@ -89,12 +89,22 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
   // ----------------- Helper function -----------------
 
+  /** ApplicationTerms can be wrapped with "|".
+   * This function replaces those chars with "\"". */
+  private static String dequote(String s) {
+    return s.replace("|", "");
+  }
+
+  private static String convertQuotes(String s) {
+    return s.replace("|", "\"");
+  }
+
   private String makeName(String name, int idx) {
     return name + INDEX_SEPARATOR + idx;
   }
 
   static Pair<String, Integer> parseName(String var) {
-    String[] s = var.split(INDEX_SEPARATOR);
+    String[] s = dequote(var).split(INDEX_SEPARATOR);
     if (s.length != 2) { throw new IllegalArgumentException(
         "Not an instantiated variable: " + var); }
 
@@ -293,7 +303,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   public Formula createPredicateVariable(Formula f) {
     Term t = getTerm(f);
     // TODO is something better than hashcode??
-    String repr = (isAtom(t) ? t.toString() : ("#" + t.hashCode()));
+    String repr = (isAtom(t) ? convertQuotes(t.toStringDirect()) : ("#" + t.hashCode()));
     return encapsulate(buildVariable("\"PRED" + repr + "\"", env.sort(Type.BOOL)));
   }
 
