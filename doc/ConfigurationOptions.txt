@@ -543,11 +543,11 @@ cpa.rg.targetStateSatCheck = true
 
 # Comparator that specifies which env. candidates should be explored first
 cpa.rg.traversal.candidateComparator = ARTID_MAX
-  enum:     [ARTID_MAX, ENVAPP_MIN_DISTANCE_MIN_TOP_MAX, ITP_MIN_DIST_MAX]
+  enum:     [ARTID_MAX, ARTID_MAX_ENVAPP_MIN, ENVAPP_MIN_DISTANCE_MIN_TOP_MAX, ITP_MIN_DIST_MAX]
 
 # Comparator that specifies which env. transitions should be explored first
 cpa.rg.traversal.etComparator = ARTID_MAX
-  enum:     [ARTID_MAX, ENVAPP_MIN_DISTANCE_MIN_TOP_MAX, ITP_MIN_DIST_MAX]
+  enum:     [ARTID_MAX, ARTID_MAX_ENVAPP_MIN, ENVAPP_MIN_DISTANCE_MIN_TOP_MAX, ITP_MIN_DIST_MAX]
 
 # Use a theorem prover for comparing environmental transitions.
 cpa.rg.useProverForComparing = false
