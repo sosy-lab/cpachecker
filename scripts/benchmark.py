@@ -1282,7 +1282,10 @@ def killSubprocess(process):
     '''
     this function kills the process and the children in its group.
     '''
-    os.killpg(process.pid, signal.SIGTERM)
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except OSError: # process itself returned and exited before killing
+        pass
 
 
 def run(args, rlimits, outputfilename):
