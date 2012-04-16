@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
@@ -430,6 +431,13 @@ class CFAFunctionBuilder extends ASTVisitor {
                                                                         (org.sosy_lab.cpachecker.cfa.ast.IASTExpression) exp),
                                   filelocStart, prevNode, lastNode);
         addToCFA(edge);
+      } else if (exp instanceof org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression) {
+        edge  = new StatementEdge(condExp.getRawSignature(),
+                                  new IASTFunctionCallAssignmentStatement(astCreator.convert(condExp.getFileLocation()),
+                                                                          tempVar,
+                                                                          (IASTFunctionCallExpression) exp),
+                                  filelocStart, prevNode, lastNode);
+        addToCFA(edge);
       } else {
         CFANode middle = new CFANode(filelocStart, cfa.getFunctionName());
         cfaNodes.add(middle);
@@ -505,8 +513,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     CFANode prevNode = locStack.pop ();
-
-    assert astCreator.numberOfSideAssignments() == 0;
 
     org.sosy_lab.cpachecker.cfa.ast.IASTStatement statement = astCreator.convert(exprStatement);
     String rawSignature = exprStatement.getRawSignature();
@@ -733,7 +739,6 @@ class CFAFunctionBuilder extends ASTVisitor {
       buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), filelocStart, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, true);
 
     } else {
-      assert astCreator.numberOfSideAssignments() == 0;
 
       final org.sosy_lab.cpachecker.cfa.ast.IASTExpression exp = astCreator.convertBooleanExpression(condition);
       String rawSignature = condition.getRawSignature();
@@ -877,8 +882,6 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private CFANode addDeclarationsToCFA(final IASTSimpleDeclaration sd,
       final int filelocStart, CFANode prevNode) {
-
-    assert astCreator.numberOfSideAssignments() == 0;
 
     final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> declList =
         astCreator.convert(sd);
