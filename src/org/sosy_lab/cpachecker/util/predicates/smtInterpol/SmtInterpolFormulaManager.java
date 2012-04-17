@@ -357,7 +357,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
       if (isVariable(t)) {
         toProcess.pop();
-        String name = t.toString();
+        String name = dequote(t.toString());
         int idx = ssa.getIndex(name);
         if (idx > 0) {
           // ok, the variable has an instance in the SSA, replace it
