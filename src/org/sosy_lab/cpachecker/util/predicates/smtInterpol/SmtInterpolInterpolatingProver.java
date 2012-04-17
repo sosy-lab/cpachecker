@@ -105,8 +105,6 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
           }
         }
 
-        Term[] itp = null; // TODO why array? only itp[0] is used
-
         // get terms with names
         Term[] groupOfA = new Term[termNamesOfA.size()];
         int i=0;
@@ -133,9 +131,10 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
           termB = env.term("and", groupOfB);
         }
 
-        itp = env.getInterpolants(new Term[] {termA, termB});
+        // get interpolant of groups
+        Term[] itp = env.getInterpolants(new Term[] {termA, termB});
+        assert itp.length == 1; // 2 groups -> 1 interpolant
 
-        // there are more interpolants, we only use the first one, TODO correct??
         return new SmtInterpolFormula(itp[0]);
     }
 
