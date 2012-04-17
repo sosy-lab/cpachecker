@@ -366,16 +366,6 @@ public class SmtInterpolEnvironment implements Script {
   }
 
   @Override
-  public Sort sort(String sortname) {
-    try {
-      return script.sort(sortname);
-    } catch (SMTLIBException e) {
-      e.printStackTrace();
-      return null;
-    }
-  }
-
-  @Override
   public Sort sort(String sortname, Sort... params) {
     try {
       return script.sort(sortname, params);
