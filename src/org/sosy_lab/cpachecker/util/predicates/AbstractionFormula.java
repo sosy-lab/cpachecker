@@ -29,10 +29,16 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 /**
- * Instances of this class should hold the same formula in two representations:
- * as a Region and as a Formula
+ * Instances of this class should hold a state formula (the result of an
+ * abstraction computation) in several representations:
+ * First, as an abstract region (usually this would be a BDD).
+ * Second, as a symbolic formula.
+ * Third, again as a symbolic formula, but this time all variables have names
+ * which include their SSA index at the time of the abstraction computation.
  *
- * The former one has no SSA indices, while the latter DOES have SSA indices added.
+ * Additionally the formula for the block immediately before the abstraction
+ * computation is stored (this also has SSA indices as it is a path formula,
+ * even if it is not of the type PathFormula).
  *
  * Abstractions are not considered equal even if they have the same formula.
  */
@@ -41,6 +47,7 @@ public class AbstractionFormula implements Serializable {
   private static final long serialVersionUID = -7756517128231447936L;
   private transient final Region region;
   private final Formula formula;
+  private final Formula instantiatedFormula;
 
   /**
    * The formula of the block directly before this abstraction.
@@ -51,27 +58,38 @@ public class AbstractionFormula implements Serializable {
   private static int nextId = 0;
   private final int id = nextId++;
 
-  public AbstractionFormula(Region pFirst, Formula pSecond,
-      Formula pBlockFormula) {
-    this.region = pFirst;
-    this.formula = pSecond;
+  public AbstractionFormula(Region pRegion, Formula pFormula,
+      Formula pInstantiatedFormula, Formula pBlockFormula) {
+    this.region = pRegion;
+    this.formula = pFormula;
+    this.instantiatedFormula = pInstantiatedFormula;
     this.blockFormula = pBlockFormula;
   }
 
   public boolean isTrue() {
-    return asFormula().isTrue();
+    return formula.isTrue();
   }
 
   public boolean isFalse() {
-    return asFormula().isFalse();
+    return formula.isFalse();
   }
 
   public Region asRegion() {
     return region;
   }
 
+  /**
+   * Returns the formula representation where all variables do not have SSA indices.
+   */
   public Formula asFormula() {
     return formula;
+  }
+
+  /**
+   * Returns the formula representation where all variables DO have SSA indices.
+   */
+  public Formula asInstantiatedFormula() {
+    return instantiatedFormula;
   }
 
   public Formula getBlockFormula() {

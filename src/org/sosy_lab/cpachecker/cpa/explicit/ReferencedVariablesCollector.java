@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
@@ -149,20 +150,22 @@ public class ReferencedVariablesCollector {
   private void collectVariables(CFAEdge edge, Multimap<CFANode, String> collectedVariables) {
     String currentFunction = edge.getPredecessor().getFunctionName();
 
-    if(edge.getEdgeType() == CFAEdgeType.StatementEdge) {
+    switch(edge.getEdgeType()) {
+    case StatementEdge:
       StatementEdge statementEdge = (StatementEdge)edge;
       if (statementEdge.getStatement() instanceof IASTAssignment) {
         IASTAssignment assignment = (IASTAssignment)statementEdge.getStatement();
         String assignedVariable = scoped(assignment.getLeftHandSide().toASTString(), currentFunction);
 
+        // assigned variable is tracked, then also track assigning variables
         if(dependingVariables.contains(assignedVariable)) {
           collectedVariables.put(edge.getSuccessor(), assignedVariable);
           collectVariables(statementEdge, assignment.getRightHandSide(), collectedVariables);
         }
       }
-    }
+      break;
 
-    else if(edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+    case FunctionCallEdge:
       FunctionCallEdge functionCallEdge = (FunctionCallEdge)edge;
       IASTFunctionCall functionCall     = functionCallEdge.getSummaryEdge().getExpression();
 
@@ -170,11 +173,24 @@ public class ReferencedVariablesCollector {
         IASTFunctionCallAssignmentStatement funcAssign = (IASTFunctionCallAssignmentStatement)functionCall;
         String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), currentFunction);
 
+        // assigned variable is tracked, then also track variables of function call
         if(dependingVariables.contains(assignedVariable)) {
           collectedVariables.put(functionCallEdge.getSummaryEdge().getSuccessor(), assignedVariable);
           collectVariables(functionCallEdge, funcAssign.getRightHandSide(), collectedVariables);
         }
       }
+      break;
+
+    case AssumeEdge:
+      AssumeEdge assumeEdge = (AssumeEdge)edge;
+      IASTExpression assumeExpression = assumeEdge.getExpression();
+
+      // always inspect assume edges
+      collectVariables(assumeEdge, assumeExpression, collectedVariables);
+      break;
+
+    default:
+      break;
     }
   }
 
@@ -231,9 +247,23 @@ public class ReferencedVariablesCollector {
     }
 
     private void collectVariables(String variableName) {
-      dependingVariables.add(scoped(variableName, currentEdge.getPredecessor().getFunctionName()));
 
-      collectedVariables.put(currentEdge.getSuccessor(), scoped(variableName, currentEdge.getPredecessor().getFunctionName()));
+      String scopedVariableName = scoped(variableName, currentEdge.getPredecessor().getFunctionName());
+
+      // only collect variables of assume edges if they are depended on
+      if(currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+        // @TODO: maybe try tracking "all" of these - or at least, when one variable is tracked, also track the other ones in an assume edge (if any)
+        // or track only those that are conjuncted (&&), but not those that are disjuncted (||)
+        if(dependingVariables.contains(scopedVariableName)) {
+          collectedVariables.put(currentEdge.getSuccessor(), scopedVariableName);
+        }
+      }
+      // for other CFA edge types, collect the variables (selection done beforehand based on assigned variable, see above)
+      else {
+        dependingVariables.add(scopedVariableName);
+
+        collectedVariables.put(currentEdge.getSuccessor(), scopedVariableName);
+      }
     }
 
     @Override

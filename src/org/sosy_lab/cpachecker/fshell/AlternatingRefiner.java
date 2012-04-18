@@ -85,7 +85,6 @@ public class AlternatingRefiner implements Refiner {
   private final CallstackCPA mCallStackCPA;
   private final AssumeCPA mAssumeCPA;
   private final CFAPathCPA mCFAPathCPA;
-  private final ARTCPA mARTCPA;
 
   private final CFAFunctionDefinitionNode mEntryNode;
   private final CFANode mEndNode;
@@ -102,7 +101,6 @@ public class AlternatingRefiner implements Refiner {
     mCallStackCPA = pCallStackCPA;
     mAssumeCPA = pAssumeCPA;
     mCFAPathCPA = pCFAPathCPA;
-    mARTCPA = pARTCPA;
 
     mPredicateRefiner = pPredicateRefiner;
 
@@ -359,7 +357,7 @@ public class AlternatingRefiner implements Refiner {
       lRemoveElements.put(lParent, lNewPrecision);
     }
 
-    ARTReachedSet lARTReached = new ARTReachedSet(pReached, mARTCPA);
+    ARTReachedSet lARTReached = new ARTReachedSet(pReached);
 
     for (Map.Entry<ARTElement, Precision> lEntry : lRemoveElements.entrySet()) {
       // TODO parents wieder zur Waitlist hinzufuegen?

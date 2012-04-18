@@ -44,7 +44,6 @@ public class ExplicitTest {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA",
         "specification",     "test/config/automata/tmpSpecification.spc",
-        "cfa.removeIrrelevantForErrorLocations", "false",
         "cpa.explicit.variableBlacklist", "main::__SELECTED_FEATURE_(\\w)*",
         "cpa.explicit.threshold", "200000"
       );
@@ -62,7 +61,6 @@ public class ExplicitTest {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA",
         "specification",     "test/config/automata/tmpSpecification.spc",
-        "cfa.removeIrrelevantForErrorLocations", "false",
         "cpa.explicit.variableBlacklist", "somethingElse",
         "cpa.explicit.threshold", "200000"
       );

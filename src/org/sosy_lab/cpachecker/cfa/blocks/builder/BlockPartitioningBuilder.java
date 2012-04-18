@@ -46,6 +46,8 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
  */
 public class BlockPartitioningBuilder {
 
+  private static final CFATraversal TRAVERSE_CFA_INSIDE_FUNCTION = CFATraversal.dfs().ignoreFunctionCalls();
+
   private final ReferencedVariablesCollector referenceCollector;
 
   private final Map<CFANode, Set<ReferencedVariable>> referencedVariablesMap = new HashMap<CFANode, Set<ReferencedVariable>>();
@@ -69,10 +71,8 @@ public class BlockPartitioningBuilder {
           Set<CFANode> functionBody = blockNodesMap.get(calledFun);
           if(functionVars == null || functionBody == null) {
             assert functionVars == null && functionBody == null;
-            CFATraversal.NodeCollectingCFAVisitor visitor = new CFATraversal.NodeCollectingCFAVisitor();
-            CFATraversal.dfs().ignoreFunctionCalls().traverse(calledFun, visitor);
             //compute it only the fly
-            functionBody = visitor.getVisitedNodes();
+            functionBody = TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(calledFun);
             functionVars = collectReferencedVariables(functionBody);
             //and save it
             blockNodesMap.put(calledFun, functionBody);

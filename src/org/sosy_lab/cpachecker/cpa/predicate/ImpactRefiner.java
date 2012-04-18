@@ -128,7 +128,8 @@ public class ImpactRefiner extends org.sosy_lab.cpachecker.cpa.impact.ImpactRefi
     AbstractionFormula af = predElement.getAbstractionFormula();
 
     Formula newFormula = fmgr.makeAnd(f, af.asFormula());
-    AbstractionFormula newAF = new AbstractionFormula(new SymbolicRegionManager.SymbolicRegion(newFormula), newFormula, af.getBlockFormula());
+    Formula instantiatedNewFormula = fmgr.instantiate(newFormula, predElement.getPathFormula().getSsa());
+    AbstractionFormula newAF = new AbstractionFormula(new SymbolicRegionManager.SymbolicRegion(newFormula), newFormula, instantiatedNewFormula, af.getBlockFormula());
     predElement.setAbstraction(newAF);
   }
 

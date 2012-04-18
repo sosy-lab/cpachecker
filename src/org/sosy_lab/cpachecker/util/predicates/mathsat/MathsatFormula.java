@@ -139,7 +139,7 @@ class MathsatFormula implements Formula, Serializable {
 
         String storageFormulaRepresentation = GlobalInfo.getInstance().getFormulaManager().dumpFormula(storageFormula);
 
-        //avoid quotation marks in formulae
+        //avoid quotation marks in formulae to workaround a bug in MSAT4
         storageFormulaRepresentation = storageFormulaRepresentation.replaceAll("\"", "");
 
         //work around for MathSat bug

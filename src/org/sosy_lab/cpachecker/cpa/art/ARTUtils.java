@@ -287,7 +287,7 @@ public class ARTUtils {
     PredicateAbstractElement abstraction = AbstractElements.extractElementByType(currentElement, PredicateAbstractElement.class);
     if(abstraction != null && abstraction.isAbstractionElement()) {
       builder.append("\\n");
-      builder.append(abstraction.getAbstractionFormula().asFormula().toString());
+      builder.append(abstraction.getAbstractionFormula());
     }
 
     ExplicitElement explicit = AbstractElements.extractElementByType(currentElement, ExplicitElement.class);

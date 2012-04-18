@@ -78,9 +78,9 @@ public class CFACreator {
       description="combine sequences of simple edges into a single edge")
   private boolean useMultiEdges = false;
 
-  @Option(name="cfa.removeIrrelevantForErrorLocations",
-      description="remove paths from CFA that cannot lead to a error location")
-  private boolean removeIrrelevantForErrorLocations = false;
+  @Option(name="cfa.removeIrrelevantForSpecification",
+      description="remove paths from CFA that cannot lead to a specification violation")
+  private boolean removeIrrelevantForSpecification = false;
 
   @Option(name="cfa.export",
       description="export CFA as .dot file")
@@ -119,7 +119,7 @@ public class CFACreator {
     parsingTime = parser.getParseTime();
     conversionTime = parser.getCFAConstructionTime();
 
-    if (removeIrrelevantForErrorLocations) {
+    if (removeIrrelevantForSpecification) {
       cfaReduction = new CFAReduction(config, logger);
     } else {
       cfaReduction = null;
@@ -193,13 +193,13 @@ public class CFACreator {
       // remove irrelevant locations
       if (cfaReduction != null) {
         pruningTime.start();
-        cfaReduction.removeIrrelevantForErrorLocations(cfa);
+        cfaReduction.removeIrrelevantForSpecification(cfa);
         pruningTime.stop();
 
         if (cfa.isEmpty()) {
-          logger.log(Level.INFO, "No error locations reachable from " + mainFunction.getFunctionName()
+          logger.log(Level.INFO, "No states which violate the specification are syntactically reachable from the function " + mainFunction.getFunctionName()
                 + ", analysis not necessary. "
-                + "If the code contains no error location named ERROR, set the option cfa.removeIrrelevantForErrorLocations to false.");
+                + "If you want to run the analysis anyway, set the option cfa.removeIrrelevantForSpecification to false.");
 
           return ImmutableCFA.empty();
         }

@@ -357,10 +357,6 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
       lPropertiesFile.deleteOnExit();
 
       PrintWriter lWriter = new PrintWriter(new FileOutputStream(lPropertiesFile));
-      // we do not use a fixed error location (error label) therefore
-      // we do not want to remove parts of the CFA
-      lWriter.println("cfa.removeIrrelevantForErrorLocations = false");
-
       //lWriter.println("log.consoleLevel = ALL");
 
       lWriter.println("analysis.traversal.order = topsort");

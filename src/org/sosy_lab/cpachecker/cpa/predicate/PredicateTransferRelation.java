@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -88,6 +90,8 @@ public class PredicateTransferRelation implements TransferRelation {
 
   private final BlockOperator blk;
 
+  private final Map<PredicateAbstractElement, PathFormula> computedPathFormulae = new HashMap<PredicateAbstractElement, PathFormula>();
+
   public PredicateTransferRelation(PredicateCPA pCpa, BlockOperator pBlk) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this, PredicateTransferRelation.class);
 
@@ -109,7 +113,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
       // Check whether abstraction is false.
       // Such elements might get created when precision adjustment computes an abstraction.
-      if (element.getAbstractionFormula().asFormula().isFalse()) {
+      if (element.getAbstractionFormula().isFalse()) {
         return Collections.emptySet();
       }
 
@@ -326,11 +330,16 @@ public class PredicateTransferRelation implements TransferRelation {
 
   boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge, Collection<? extends AbstractElement> pSuccessors) throws CPATransferException, InterruptedException {
     PredicateAbstractElement predicateElement = (PredicateAbstractElement)pElement;
+    PathFormula pathFormula = computedPathFormulae.get(predicateElement);
+    if (pathFormula == null) {
+      pathFormula = pathFormulaManager.makeEmptyPathFormula(predicateElement.getPathFormula());
+    }
     boolean result = true;
 
-    if(pSuccessors.isEmpty()) {
+    if (pSuccessors.isEmpty()) {
       satCheckTimer.start();
-      Collection<? extends AbstractElement> foundSuccessors = getAbstractSuccessors(pElement, null, pCfaEdge);
+      PathFormula pFormula = convertEdgeToPathFormula(pathFormula, pCfaEdge);
+      Collection<? extends AbstractElement> foundSuccessors = handleNonAbstractionFormulaLocation(pFormula, predicateElement.getAbstractionFormula());
       //if we found successors, they all have to be unsat
       for(AbstractElement e : foundSuccessors) {
         PredicateAbstractElement successor = (PredicateAbstractElement)e;
@@ -346,36 +355,25 @@ public class PredicateTransferRelation implements TransferRelation {
       PredicateAbstractElement successor = (PredicateAbstractElement)e;
 
       if(successor.isAbstractionElement()) {
-        //check abstraction
+        // check abstraction
         abstractionCheckTimer.start();
-        if(!formulaManager.checkCoverage(predicateElement.getAbstractionFormula(), predicateElement.getPathFormula(), successor.getAbstractionFormula())) {
+        if(!formulaManager.checkCoverage(predicateElement.getAbstractionFormula(), pathFormula, successor.getAbstractionFormula())) {
           result = false;
+          System.out.println(predicateElement.getAbstractionFormula() + "\n----\n" + pathFormula + "\n----\n" + successor.getAbstractionFormula());
         }
         abstractionCheckTimer.stop();
-
-        //check path formula
-        pathFormulaCheckTimer.start();
-        if(!successor.getPathFormula().equals(pathFormulaManager.makeEmptyPathFormula(predicateElement.getPathFormula()))) {
-          result = false;
-        }
-        pathFormulaCheckTimer.stop();
       }
       else {
-        //check abstraction
+        // check abstraction
         abstractionCheckTimer.start();
         if(!successor.getAbstractionFormula().equals(predicateElement.getAbstractionFormula())) {
           result = false;
         }
         abstractionCheckTimer.stop();
 
-        //check path formula
-        pathFormulaCheckTimer.start();
-        PathFormula successorPathFormula = successor.getPathFormula();
-        PathFormula computedPathFormula = convertEdgeToPathFormula(predicateElement.getPathFormula(), pCfaEdge);
-        if(!formulaManager.checkCoverage(computedPathFormula, successorPathFormula, pathFormulaManager)) {
-          result = false;
-        }
-        pathFormulaCheckTimer.stop();
+        // compute path formula
+        PathFormula computedPathFormula = convertEdgeToPathFormula(pathFormula, pCfaEdge);
+        computedPathFormulae.put(successor, computedPathFormula);
       }
     }
 
