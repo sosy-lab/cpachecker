@@ -105,39 +105,6 @@ public class PredicateAbstractDomain implements AbstractDomain {
     }
   }
 
-  boolean formulaBasedIsLessOrEqual(AbstractElement element1, AbstractElement element2) throws CPAException {
-    //isLessOrEqual for proof checking; formula based; elements can be trusted (i.e., invariants do not have to be checked)
-
-    PredicateAbstractElement e1 = (PredicateAbstractElement) element1;
-    PredicateAbstractElement e2 = (PredicateAbstractElement) element2;
-
-    if (e1.isAbstractionElement() && e2.isAbstractionElement()) {
-
-      // if e1's predicate abstraction entails e2's pred. abst.
-      boolean result = mgr.checkCoverage(e1.getAbstractionFormula(), e1.getPathFormula(), e2.getAbstractionFormula());
-
-      return result;
-
-    } else if (e2.isAbstractionElement()) {
-      if (symbolicCoverageCheck) {
-
-        boolean result =
-            mgr.checkCoverage(e1.getAbstractionFormula(), e1.getPathFormula(), e2.getAbstractionFormula());
-
-        return result;
-
-      } else {
-        return false;
-      }
-
-    } else if (e1.isAbstractionElement()) {
-      return false;
-
-    } else {
-      return false;
-    }
-  }
-
   @Override
   public AbstractElement join(AbstractElement pElement1,
       AbstractElement pElement2) throws CPAException {

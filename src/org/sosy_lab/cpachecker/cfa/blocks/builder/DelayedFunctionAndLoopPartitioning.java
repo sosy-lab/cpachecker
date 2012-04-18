@@ -40,6 +40,8 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
  */
 public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartitioning {
 
+  private static final CFATraversal TRAVERSE_CFA_INSIDE_FUNCTION = CFATraversal.dfs().ignoreFunctionCalls();
+
   public DelayedFunctionAndLoopPartitioning(LogManager pLogger, CFA pCfa) {
     super(pLogger, pCfa);
   }
@@ -47,9 +49,8 @@ public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartition
   @Override
   protected Set<CFANode> getBlockForNode(CFANode pNode) {
     if(pNode instanceof CFAFunctionDefinitionNode) {
-      CFATraversal.NodeCollectingCFAVisitor visitor = new CFATraversal.NodeCollectingCFAVisitor();
-      CFATraversal.dfs().ignoreFunctionCalls().traverse(pNode, visitor);
-      return removeInitialDeclarations(pNode, visitor.getVisitedNodes());
+      Set<CFANode> blockNodes = TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
+      return removeInitialDeclarations(pNode, blockNodes);
     }
 
     return super.getBlockForNode(pNode);

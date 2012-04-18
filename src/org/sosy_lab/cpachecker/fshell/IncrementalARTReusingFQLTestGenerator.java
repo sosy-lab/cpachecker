@@ -829,7 +829,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         throw new RuntimeException();
       }
 
-      modifyART(pReachedSet, pARTCPA, pProductAutomatonIndex, pPreviousAutomaton, pCurrentAutomaton);
+      modifyART(pReachedSet, pProductAutomatonIndex, pPreviousAutomaton, pCurrentAutomaton);
     }
   }
 
@@ -890,8 +890,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
   }
 
-  private void modifyART(ReachedSet pReachedSet, ARTCPA pARTCPA, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
-    ARTReachedSet lARTReachedSet = new ARTReachedSet(pReachedSet, pARTCPA);
+  private void modifyART(ReachedSet pReachedSet, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
+    ARTReachedSet lARTReachedSet = new ARTReachedSet(pReachedSet);
 
     Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> lFrontier = determineFrontier(pPreviousAutomaton, pCurrentAutomaton);
 

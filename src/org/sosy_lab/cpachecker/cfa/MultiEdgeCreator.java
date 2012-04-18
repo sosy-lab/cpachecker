@@ -43,8 +43,8 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 class MultiEdgeCreator extends DefaultCFAVisitor {
 
   static void createMultiEdges(MutableCFA cfa) {
-    CFATraversal.dfs().ignoreSummaryEdges().traverse(cfa.getMainFunction(),
-        new CFATraversal.NodeCollectingCFAVisitor(new MultiEdgeCreator(cfa)));
+    CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(cfa.getMainFunction(),
+                                                         new MultiEdgeCreator(cfa));
   }
 
   private final MutableCFA cfa;

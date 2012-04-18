@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cpa.functionpointer;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
+import java.io.IOException;
+import java.io.NotSerializableException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -42,6 +44,11 @@ import com.google.common.collect.Maps;
  * Represents one abstract state of the FunctionPointer CPA.
  */
 class FunctionPointerElement extends AbstractSingleWrapperElement  {
+  /* Boilerplate code to avoid serializing this class */
+  private static final long serialVersionUID = 0xDEADBEEF;
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    throw new NotSerializableException();
+  }
 
   // java reference counting + immutable objects should help us
   // to reduce memory consumption.

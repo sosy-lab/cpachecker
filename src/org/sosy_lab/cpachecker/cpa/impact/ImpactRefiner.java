@@ -215,13 +215,13 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
 
     stats.artUpdate.start();
     for (ARTElement w : changedElements) {
-      removeCoverageOf(w, reached);
+      pReached.removeCoverageOf(w);
     }
 
     Set<ARTElement> infeasibleSubtree = infeasiblePartOfART.getSubtree();
     assert infeasibleSubtree.contains(lastElement);
 
-    uncover(infeasibleSubtree, reached);
+    uncover(infeasibleSubtree, pReached);
 
     for (ARTElement removedNode : infeasibleSubtree) {
       removedNode.removeFromART();
@@ -234,7 +234,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
     stats.coverTime.start();
     try {
       for (ARTElement w : changedElements) {
-        if (cover(w, reached)) {
+        if (cover(w, pReached)) {
           break; // all further elements are covered anyway
         }
       }
@@ -246,8 +246,9 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
   }
 
 
-  private boolean cover(ARTElement v, ReachedSet reached) throws CPAException {
+  private boolean cover(ARTElement v, ARTReachedSet pReached) throws CPAException {
     assert v.mayCover();
+    ReachedSet reached = pReached.asReachedSet();
 
     getArtCpa().getStopOperator().stop(v, reached.getReached(v), reached.getPrecision(v));
     // ignore return value of stop, because it will always be false
@@ -259,7 +260,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
 
       // first, uncover all necessary states
 
-      uncover(subtree, reached);
+      uncover(subtree, pReached);
 
       // second, clean subtree of covered element
       subtree.remove(v); // but no not clean v itself
@@ -287,43 +288,13 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
     return false;
   }
 
-  /**
-   * Remove all covering relations from a node so that this node does not cover
-   * any other node anymore.
-   * Also adds any now uncovered lead nodes to the waitlist.
-   */
-  private void removeCoverageOf(ARTElement v, ReachedSet reached) {
-    for (ARTElement coveredByChildOfV : ImmutableList.copyOf(v.getCoveredByThis())) {
-      uncover(coveredByChildOfV, reached);
-    }
-    assert v.getCoveredByThis().isEmpty();
-  }
-
-  private void uncover(Set<ARTElement> subtree, ReachedSet reached) {
+  private void uncover(Set<ARTElement> subtree, ARTReachedSet reached) {
     Set<ARTElement> coveredStates = ARTUtils.getCoveredBy(subtree);
     for (ARTElement coveredState : coveredStates) {
       // uncover each previously covered state
-      uncover(coveredState, reached);
+      reached.uncover(coveredState);
     }
     assert ARTUtils.getCoveredBy(subtree).isEmpty() : "Subtree of covered node still covers other elements";
-  }
-
-  private void uncover(ARTElement v, ReachedSet reached) {
-    v.uncover();
-
-    // this is the subtree of elements which now become uncovered
-    Set<ARTElement> uncoveredSubTree = v.getSubtree();
-
-    for (ARTElement e : uncoveredSubTree) {
-      assert !e.isCovered();
-
-      e.setCovering();
-
-      if (!e.wasExpanded()) {
-        // its a leaf
-        reached.reAddToWaitlist(e);
-      }
-    }
   }
 
   protected Formula getStateFormula(ARTElement pARTElement) {

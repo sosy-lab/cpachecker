@@ -115,8 +115,8 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   @Option(description="whether or not to use explicit interpolation")
   boolean useExplicitInterpolation                          = false;
 
-  @Option(description="whether or not to use the top most interpolation point")
-  boolean useTopMostInterpolationPoint                      = true;
+  @Option(description="whether or not to always use the inital node as starting point for the next iteration")
+  boolean useInitialNodeAsRestartingPoint                   = true;
 
   @Option(description="whether or not to use assumption-closure for explicit refinement")
   boolean useAssumptionClosure                              = false;
@@ -243,6 +243,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
       Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge.getSuccessor());
 
+      // if the referenced variables are already known to be important, skip the redundant test and continue
       if(isRedundant(precision, currentEdge, referencedVariablesAtEdge)) {
         continue;
       }
@@ -326,43 +327,42 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
   @Override
   protected void performRefinement(ARTReachedSet pReached, List<Pair<ARTElement, CFANode>> errorPath,
-      CounterexampleTraceInfo<Collection<AbstractionPredicate>> counterexampleTraceInfo,
-      boolean pRepeatedCounterexample) throws CPAException {
-
-    precisionUpdate.start();
-
-    // check if there was progress
+                                    CounterexampleTraceInfo<Collection<AbstractionPredicate>> counterexampleTraceInfo,
+                                    boolean pRepeatedCounterexample) throws CPAException {
+    // check if there was progress ...
     if (!hasMadeProgress()) {
-      System.out.println(path);
       Set<ARTElement> artTrace = new HashSet<ARTElement>();
       List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
       for(Pair<ARTElement, CFAEdge> pathElement : path){
         artTrace.add(pathElement.getFirst());
         cfaTrace.add(pathElement.getSecond());
       }
-
       fullPrecCheckIsFeasable = doFullPrecisionCheck(artTrace);
+
+      // ... if not, stop the analysis
       throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
     }
 
-    // get previous precision
-    UnmodifiableReachedSet reached = pReached.asReachedSet();
-    Precision oldPrecision = reached.getPrecision(reached.getLastElement());
+    // ... otherwise, proceed the refining the analysis
+    else {
+      UnmodifiableReachedSet reached = pReached.asReachedSet();
+      Precision oldPrecision = reached.getPrecision(reached.getLastElement());
 
-    Pair<ARTElement, Precision> refinementResult =
-            performRefinement(oldPrecision, errorPath, counterexampleTraceInfo);
-    precisionUpdate.stop();
+      precisionUpdate.start();
+      Pair<ARTElement, Precision> refinementResult = performRefinement(oldPrecision, errorPath, counterexampleTraceInfo);
+      precisionUpdate.stop();
 
-    artUpdate.start();
+      artUpdate.start();
 
-    ARTElement root = refinementResult.getFirst();
+      ARTElement root = refinementResult.getFirst();
 
-    logger.log(Level.FINEST, "Found spurious counterexample,",
-        "trying strategy 1: remove everything below", root, "from ART.");
+      logger.log(Level.FINEST, "Found spurious counterexample,",
+          "trying strategy 1: remove everything below", root, "from ART.");
 
-    pReached.removeSubtree(root, refinementResult.getSecond());
+      pReached.removeSubtree(root, refinementResult.getSecond());
 
-    artUpdate.stop();
+      artUpdate.stop();
+    }
   }
 
   @Override
@@ -480,7 +480,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       }
     }
 
-    // when predicate refinement is done, the interpolation point has been set already
+    // when predicate refinement is done, the interpolation point has been already set
     // for explicit refinement it is done here
     if(interpolationPoint == null)
       interpolationPoint = determineInterpolationPoint(errorPath, precisionIncrement);
@@ -490,13 +490,20 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
   private ARTElement determineInterpolationPoint(List<Pair<ARTElement, CFANode>> errorPath, Multimap<CFANode, String> precisionIncrement) {
     ARTElement interpolationPoint = null;
+    ARTElement initialNode        = errorPath.get(0).getFirst();
 
-    // just use first node in error path
-    if(useExplicitInterpolation && useTopMostInterpolationPoint) {
-      interpolationPoint = errorPath.get(0).getFirst();
+    // just use initial node of error path if the respective option is set
+    if(useInitialNodeAsRestartingPoint) {
+      interpolationPoint = initialNode;
     }
 
-    // use the first node where new information is present
+    // when doing explicit interpolation, the increment may be empty (due to redundancy of the increment)
+    // in this case, also use the initial node of the error path
+    else if(useExplicitInterpolation && precisionIncrement.isEmpty()) {
+      interpolationPoint = initialNode;
+    }
+
+    // otherwise, use the first node where new information is present
     else {
       for(Pair<ARTElement, CFAEdge> element : path) {
         if(precisionIncrement.containsKey(element.getSecond().getSuccessor())) {

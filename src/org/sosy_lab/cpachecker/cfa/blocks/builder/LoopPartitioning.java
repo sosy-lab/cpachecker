@@ -48,6 +48,7 @@ import com.google.common.collect.Iterables;
  */
 public class LoopPartitioning extends PartitioningHeuristic {
 
+  private static final CFATraversal TRAVERSE_CFA_INSIDE_FUNCTION = CFATraversal.dfs().ignoreFunctionCalls();
   private Map<CFANode, Set<CFANode>> loopHeaderToLoopBody;
   private final CFA cfa;
 
@@ -102,9 +103,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   @Override
   protected Set<CFANode> getBlockForNode(CFANode pNode) {
     if(pNode instanceof CFAFunctionDefinitionNode) {
-      CFATraversal.NodeCollectingCFAVisitor visitor = new CFATraversal.NodeCollectingCFAVisitor();
-      CFATraversal.dfs().ignoreFunctionCalls().traverse(pNode, visitor);
-      return visitor.getVisitedNodes();
+      return TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
     }
     if(pNode.isLoopStart()) {
       Set<CFANode> loopBody = new HashSet<CFANode>();

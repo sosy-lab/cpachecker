@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.monitor;
 
+import java.io.IOException;
+import java.io.NotSerializableException;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -34,6 +37,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import com.google.common.base.Preconditions;
 
 public class MonitorElement extends AbstractSingleWrapperElement implements AvoidanceReportingElement {
+  /* Boilerplate code to avoid serializing this class */
+  private static final long serialVersionUID = 0xDEADBEEF;
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    throw new NotSerializableException();
+  }
 
   static enum TimeoutElement implements AbstractElement {
     INSTANCE;

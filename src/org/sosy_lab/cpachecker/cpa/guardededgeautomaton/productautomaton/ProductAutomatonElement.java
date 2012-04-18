@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton;
 
+import java.io.IOException;
+import java.io.NotSerializableException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -34,6 +36,12 @@ import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.IGuardedEdgeAutomatonSta
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 
 public abstract class ProductAutomatonElement extends CompositeElement {
+
+  /* Boilerplate code to avoid serializing this class */
+  private static final long serialVersionUID = 0xDEADBEEF;
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    throw new NotSerializableException();
+  }
 
   public static ProductAutomatonElement createElement(List<AbstractElement> pElements) {
     List<ECPPredicate> lPredicates = new LinkedList<ECPPredicate>();
@@ -57,6 +65,11 @@ public abstract class ProductAutomatonElement extends CompositeElement {
   }
 
   public static class StateElement extends ProductAutomatonElement {
+    /* Boilerplate code to avoid serializing this class */
+    private static final long serialVersionUID = 0xDEADBEEF;
+    private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+      throw new NotSerializableException();
+    }
 
     public StateElement(List<AbstractElement> pElements) {
       super(pElements);
@@ -65,6 +78,11 @@ public abstract class ProductAutomatonElement extends CompositeElement {
   }
 
   public static class PredicateElement extends ProductAutomatonElement {
+    /* Boilerplate code to avoid serializing this class */
+    private static final long serialVersionUID = 0xDEADBEEF;
+    private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+      throw new NotSerializableException();
+    }
 
     private final List<ECPPredicate> mPredicates;
 

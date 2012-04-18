@@ -388,8 +388,9 @@ cpa.explict.refiner.useAssumptionClosure = false
 # whether or not to use explicit interpolation
 cpa.explict.refiner.useExplicitInterpolation = false
 
-# whether or not to use the top most interpolation point
-cpa.explict.refiner.useTopMostInterpolationPoint = true
+# whether or not to always use the inital node as starting point for the next
+# iteration
+cpa.explict.refiner.useInitialNodeAsRestartingPoint = true
 
 # whitelist regex for variables that will be tracked by FeatureVarsCPA
 cpa.featurevars.variableWhitelist = ""
