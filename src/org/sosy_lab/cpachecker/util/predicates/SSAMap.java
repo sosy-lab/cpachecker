@@ -200,7 +200,7 @@ public class SSAMap implements Serializable {
   }
 
   private static <T> Multiset<T> merge(Multiset<T> s1, Multiset<T> s2) {
-    Multiset<T> result = LinkedHashMultiset.create(Math.max(s1.size(), s2.size()));
+    Multiset<T> result = LinkedHashMultiset.create(Math.max(s1.elementSet().size(), s2.elementSet().size()));
     for (Entry<T> entry : s1.entrySet()) {
       T key = entry.getElement();
       int i1 = entry.getCount();
@@ -213,6 +213,7 @@ public class SSAMap implements Serializable {
         result.setCount(key, entry.getCount());
       }
     }
+
     return result;
   }
 

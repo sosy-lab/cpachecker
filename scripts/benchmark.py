@@ -1680,8 +1680,9 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
             status = 'OUT OF NATIVE MEMORY'
         elif 'SIGSEGV' in line:
             status = 'SEGMENTATION FAULT'
-        elif (returncode == 0 or returncode == 1) \
-            and ('Exception' in line or 'java.lang.AssertionError' in line):
+        elif ((returncode == 0 or returncode == 1)
+                and ('Exception' in line or 'java.lang.AssertionError' in line)
+                and not line.startswith('cbmc')): # ignore "cbmc error output: ... Minisat::OutOfMemoryException"
             status = 'EXCEPTION'
         elif 'Could not reserve enough space for object heap' in line:
             status = 'JAVA HEAP ERROR'

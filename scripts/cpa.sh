@@ -58,9 +58,7 @@ if [ ! -e "$PATH_TO_CPACHECKER/bin/org/sosy_lab/cpachecker/cmdline/CPAMain.class
   fi
 fi
 
-SMT_DIRS=$PATH_TO_CPACHECKER/../SmtInterpol/bin:$PATH_TO_CPACHECKER/../SmtInterpol/*
-
-export CLASSPATH="$CLASSPATH:$SMT_DIRS:$PATH_TO_CPACHECKER/bin:$PATH_TO_CPACHECKER/cpachecker.jar:$PATH_TO_CPACHECKER/lib/*:$PATH_TO_CPACHECKER/lib/java/runtime/*"
+export CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/bin:$PATH_TO_CPACHECKER/cpachecker.jar:$PATH_TO_CPACHECKER/lib/*:$PATH_TO_CPACHECKER/lib/java/runtime/*"
 
 # where to find the native binaries
 arch_platform_path="$PATH_TO_CPACHECKER/lib/native/$arch_platform/"

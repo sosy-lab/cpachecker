@@ -5,9 +5,9 @@
   <test>
     <sourcefiles>
       <includesfile>test/programs/benchmarks/Concurrency.set</includesfile>
-      <includesfile>test/test-sets/integration-ControlFlowInteger.set</includesfile>
+      <includesfile>test/test-sets/integration-ControlFlowInteger-abm.set</includesfile>
       <includesfile>test/test-sets/integration-HeapManipulation-abm.set</includesfile>
-      <includesfile>test/test-sets/integration-SystemC.set</includesfile>
+      <includesfile>test/test-sets/integration-SystemC-abm.set</includesfile>
       <includesfile>test/programs/benchmarks/DeviceDrivers.set</includesfile>
     </sourcefiles>
     <sourcefiles>
