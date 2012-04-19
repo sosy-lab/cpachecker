@@ -283,19 +283,27 @@ class MainCPAStatistics implements Statistics {
         }
 
         for (Statistics s : subStats) {
-            String name = s.getName();
-            if (!Strings.isNullOrEmpty(name)) {
-              name = name + " statistics";
-              out.println(name);
-              out.println(Strings.repeat("-", name.length()));
-            }
+          String name = s.getName();
+          if (!Strings.isNullOrEmpty(name)) {
+            name = name + " statistics";
+            out.println(name);
+            out.println(Strings.repeat("-", name.length()));
+          }
 
+          try {
             s.printStatistics(out, result, reached);
+          } catch (OutOfMemoryError e) {
+            logger.logUserException(Level.WARNING, e,
+                "Out of memory while generating statistics and writing output files");
+          }
 
-            if (!Strings.isNullOrEmpty(name)) {
-              out.println();
-            }
+          if (!Strings.isNullOrEmpty(name)) {
+            out.println();
+          }
         }
+        // In theory, we could catch OOM in the following code, too.
+        // However, usually the statistics are not the problematic part,
+        // only the output files. Thus we don't bother here.
 
         if (reached instanceof ForwardingReachedSet) {
           reached = ((ForwardingReachedSet)reached).getDelegate();
