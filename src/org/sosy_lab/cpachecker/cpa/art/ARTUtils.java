@@ -95,7 +95,6 @@ public class ARTUtils {
     // edge to its successor
 
     ARTElement currentARTElement = pLastElement;
-    assert pLastElement.isTarget();
     // add the error node and its -first- outgoing edge
     // that edge is not important so we pick the first even
     // if there are more outgoing edges
