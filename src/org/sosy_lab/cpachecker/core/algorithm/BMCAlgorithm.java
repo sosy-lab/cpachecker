@@ -619,7 +619,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     private final Timer invariantGeneration = new Timer();
 
     private final LogManager logger;
-    private final ConfigurableProgramAnalysis invariantCPAs;
+    private final Algorithm invariantAlgorithm;
     private final ReachedSet reached;
 
     private CFANode initialLocation = null;
@@ -641,12 +641,15 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
         }
 
-        invariantCPAs = new CPABuilder(invariantConfig, logger, reachedSetFactory).buildCPAs(cfa);
+        ConfigurableProgramAnalysis invariantCPAs = new CPABuilder(invariantConfig, logger, reachedSetFactory).buildCPAs(cfa);
+        invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger);
+
         reached = new ReachedSetFactory(invariantConfig, logger).create();
+        reached.add(invariantCPAs.getInitialElement(initialLocation), invariantCPAs.getInitialPrecision(initialLocation));
 
       } else {
         // invariant generation is disabled
-        invariantCPAs = null;
+        invariantAlgorithm = null;
         reached = new ReachedSetFactory(config, logger).create(); // create reached set that will stay empty
       }
     }
@@ -655,7 +658,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       checkState(initialLocation == null);
       initialLocation = pInitialLocation;
 
-      if (invariantCPAs == null) {
+      if (!reached.hasWaitingElement()) {
         // invariant generation disabled
         return;
       }
@@ -698,7 +701,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     private ReachedSet findInvariants() throws CPAException, InterruptedException {
       checkState(initialLocation != null);
 
-      if (invariantCPAs == null) {
+      if (!reached.hasWaitingElement()) {
         // invariant generation disabled
         return reached;
       }
@@ -707,16 +710,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.INFO, "Finding invariants");
 
       try {
-        reached.add(invariantCPAs.getInitialElement(initialLocation), invariantCPAs.getInitialPrecision(initialLocation));
-
-        Algorithm invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger);
-
+        assert invariantAlgorithm != null;
         invariantAlgorithm.run(reached);
 
         return reached;
 
       } finally {
-        invariantGeneration.start();
+        invariantGeneration.stop();
       }
     }
   }
