@@ -32,7 +32,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 
@@ -42,33 +41,37 @@ import com.google.common.collect.Lists;
 public class ExplictPathChecker {
 
   /**
-   * a set of variables not the be tracked
+   * This method acts as the constructor of the class.
    */
-  private Set<String> irrelevantVariables;
+  public ExplictPathChecker() {}
 
-  public ExplictPathChecker(Set<String> irrelevantVariables) {
-    this.irrelevantVariables = irrelevantVariables;
-  }
-
-  public boolean checkPath(ARTElement pRootElement, List<CFAEdge> cfaTrace)
+  /**
+   * This method checks if the given path is feasible, when not tracking the given set of variables.
+   *
+   * @param path the path to check
+   * @param variablesToBeIgnored the variables to ignore; may be empty for a full-precision check
+   * @return true, if the path is feasible, else false
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  public boolean checkPath(List<CFAEdge> path, Set<String> variablesToBeIgnored)
       throws CPAException, InterruptedException {
-
     try {
       Configuration lConfig = Configuration.builder()
-              .setOption("cpa.explicit.precision.ignore.asString", Joiner.on(",").join(irrelevantVariables))
+              .setOption("cpa.explicit.precision.ignore.asString", Joiner.on(",").join(variablesToBeIgnored))
               .build();
 
       TransferRelation transfer   = new ExplicitTransferRelation(lConfig);
       AbstractElement next        = new ExplicitElement();
       ExplicitPrecision precision = new ExplicitPrecision("", lConfig);
 
-      for(CFAEdge cfaEdge : cfaTrace) {
-        Collection<? extends AbstractElement> successors = transfer.getAbstractSuccessors(next, precision, cfaEdge);
+      for(CFAEdge edge : path) {
+        Collection<? extends AbstractElement> successors = transfer.getAbstractSuccessors(next, precision, edge);
 
-        next = determineNextElement(successors);
+        next = extractNextElement(successors);
 
         // path is not feasible
-        if(next == null && cfaEdge != cfaTrace.get(cfaTrace.size() - 1)) {
+        if(next == null && edge != path.get(path.size() - 1)) {
           return false;
         }
       }
@@ -80,7 +83,13 @@ public class ExplictPathChecker {
     }
   }
 
-  private AbstractElement determineNextElement(Collection<? extends AbstractElement> successors) {
+  /**
+   * This method extracts the single successor out of the (hopefully singleton) successor collection.
+   *
+   * @param successors the collection of successors
+   * @return the successor, or null if none exists
+   */
+  private AbstractElement extractNextElement(Collection<? extends AbstractElement> successors) {
     if(successors.isEmpty()) {
       return null;
     }

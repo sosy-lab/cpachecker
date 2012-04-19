@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
@@ -109,8 +108,6 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
   private List<Pair<ARTElement, CFAEdge>> path              = null;
 
-  private ExplicitCPA explicitCpa                           = null;
-
   @Option(description="whether or not to use explicit interpolation")
   boolean useExplicitInterpolation                          = false;
 
@@ -194,20 +191,155 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     this.fmgr                   = pFmgr;
     this.pathFormulaManager     = pPathFormulaManager;
     this.predicateCpaAvailable  = predicateCpaInUse;
-
-    explicitCpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(ExplicitCPA.class);
   }
 
-  private Multimap<CFANode, String> determineReferencedVariableMapping(List<CFAEdge> cfaTrace) {
-    if(useAssumptionClosure) {
-      AssumptionVariablesCollector coll = new AssumptionVariablesCollector();
-      return coll.collectVariables(cfaTrace);
+  @Override
+  protected final List<Pair<ARTElement, CFANode>> transformPath(Path errorPath) {
+    path = errorPath;
+
+    // determine whether to refine explicit or predicate precision
+    refinePredicatePrecision = determineRefinementStrategy();
+
+    List<Pair<ARTElement, CFANode>> result = Lists.newArrayList();
+
+    for (ARTElement ae : transform(errorPath, Pair.<ARTElement>getProjectionToFirst())) {
+      if(refinePredicatePrecision) {
+        PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
+        if (pe.isAbstractionElement()) {
+          CFANode location = AbstractElements.extractLocation(ae);
+          result.add(Pair.of(ae, location));
+        }
+      }
+      else {
+        result.add(Pair.of(ae, AbstractElements.extractLocation(ae)));
+      }
+    }
+
+    assert errorPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
+    return result;
+  }
+
+  @Override
+  protected List<Formula> getFormulasForPath(List<Pair<ARTElement, CFANode>> errorPath, ARTElement initialElement) throws CPATransferException {
+
+    if(refinePredicatePrecision) {
+      List<Formula> formulas = transform(errorPath,
+          Functions.compose(
+              GET_BLOCK_FORMULA,
+          Functions.compose(
+              AbstractElements.extractElementByTypeFunction(PredicateAbstractElement.class),
+              Pair.<ARTElement>getProjectionToFirst())));
+
+      return formulas;
     }
 
     else {
-      AssignedVariablesCollector collector = new AssignedVariablesCollector();
-      return collector.collectVars(cfaTrace);
+      PathFormula currentPathFormula = pathFormulaManager.makeEmptyPathFormula();
+
+      List<Formula> formulas = new ArrayList<Formula>(path.size());
+
+      // iterate over edges (not nodes)
+      for (Pair<ARTElement, CFAEdge> pathElement : path) {
+        currentPathFormula = pathFormulaManager.makeAnd(currentPathFormula, pathElement.getSecond());
+
+        formulas.add(currentPathFormula.getFormula());
+
+        // reset the formula
+        currentPathFormula = pathFormulaManager.makeEmptyPathFormula(currentPathFormula);
+      }
+
+      return formulas;
     }
+  }
+
+  @Override
+  protected void performRefinement(ARTReachedSet pReached, List<Pair<ARTElement, CFANode>> errorPath,
+                                    CounterexampleTraceInfo<Collection<AbstractionPredicate>> counterexampleTraceInfo,
+                                    boolean pRepeatedCounterexample) throws CPAException {
+    // check if there was progress ...
+    if (!hasMadeProgress()) {
+      List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
+      for(Pair<ARTElement, CFAEdge> pathElement : path){
+        cfaTrace.add(pathElement.getSecond());
+      }
+
+      // ... if not, do a full precision check to find out if path could have been ruled out ...
+      fullPrecCheckIsFeasable = isPathFeasable(cfaTrace, Collections.<String>emptySet());
+
+      // ... and kill the analysis
+      throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
+    }
+
+    // ... otherwise, proceed the refining the analysis
+    else {
+      UnmodifiableReachedSet reached = pReached.asReachedSet();
+      Precision oldPrecision = reached.getPrecision(reached.getLastElement());
+
+      precisionUpdate.start();
+      Pair<ARTElement, Precision> refinementResult = performRefinement(oldPrecision, errorPath, counterexampleTraceInfo);
+      precisionUpdate.stop();
+
+      artUpdate.start();
+
+      ARTElement root = refinementResult.getFirst();
+
+      logger.log(Level.FINEST, "Found spurious counterexample,",
+          "trying strategy 1: remove everything below", root, "from ART.");
+
+      pReached.removeSubtree(root, refinementResult.getSecond());
+
+      artUpdate.stop();
+    }
+  }
+
+  private Pair<ARTElement, Precision> performRefinement(Precision oldPrecision,
+      List<Pair<ARTElement, CFANode>> errorPath,
+      CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException {
+
+    Precision precision                           = null;
+    Multimap<CFANode, String> precisionIncrement  = null;
+    ARTElement interpolationPoint                 = null;
+
+    if(useExplicitInterpolation) {
+      precisionIncrement = determinePrecisionIncrement(extractExplicitPrecision(oldPrecision).getCegarPrecision());
+      precision = createExplicitPrecision(extractExplicitPrecision(oldPrecision), precisionIncrement);
+    }
+
+    else {
+      // create the mapping of CFA nodes to predicates, based on the counter example trace info
+      PredicateMap predicateMap = new PredicateMap(pInfo.getPredicatesForRefinement(), errorPath);
+
+      if(refinePredicatePrecision) {
+        numberOfPredicateRefinements++;
+        precision = createPredicatePrecision(extractPredicatePrecision(oldPrecision), predicateMap);
+        interpolationPoint = predicateMap.firstInterpolationPoint.getFirst();
+      }
+
+      else {
+        numberOfExplicitRefinements++;
+
+        // determine the precision increment
+        precisionIncrement = predicateMap.determinePrecisionIncrement(fmgr);
+
+        ExplicitPrecision explicitPrecision = extractExplicitPrecision(oldPrecision);
+
+        // get variables referenced by precision increment in the error path
+        Multimap<CFANode, String> referencedVariablesInPath = determineReferencedVariablesInPath(explicitPrecision, precisionIncrement);
+
+        // add those to the precision increment
+        precisionIncrement.putAll(referencedVariablesInPath);
+
+        // create the new precision
+        precision = createExplicitPrecision(explicitPrecision, precisionIncrement);
+      }
+    }
+
+    // when predicate refinement is done, the interpolation point has been already set
+    // for explicit refinement it is done here
+    if(interpolationPoint == null)
+      interpolationPoint = determineInterpolationPoint(errorPath, precisionIncrement);
+
+    return Pair.of(interpolationPoint, precision);
   }
 
   private Multimap<CFANode, String> determinePrecisionIncrement(CegarPrecision precision) throws CPAException {
@@ -273,6 +405,18 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     return increment;
   }
 
+  private Multimap<CFANode, String> determineReferencedVariableMapping(List<CFAEdge> cfaTrace) {
+    if(useAssumptionClosure) {
+      AssumptionVariablesCollector coll = new AssumptionVariablesCollector();
+      return coll.collectVariables(cfaTrace);
+    }
+
+    else {
+      AssignedVariablesCollector collector = new AssignedVariablesCollector();
+      return collector.collectVars(cfaTrace);
+    }
+  }
+
 
   /**
    * This method checks whether or not all variables are already part of the precision.
@@ -292,82 +436,24 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     return isRedundant;
   }
 
-  private boolean isPathFeasable(List<CFAEdge> cfaTrace, Set<String> variablesToBeIgnored) throws CPAException {
+  /**
+   * This method checks if the given path is feasible, when not tracking the given set of variables.
+   *
+   * @param path the path to check
+   * @param variablesToBeIgnored the variables to ignore
+   * @return true, if the path is feasible, else false
+   * @throws CPAException
+   */
+  private boolean isPathFeasable(List<CFAEdge> path, Set<String> variablesToBeIgnored) throws CPAException {
     try {
       // create a new ExplicitPathChecker, which does not track any of the given variables
-      ExplictPathChecker checker = new ExplictPathChecker(variablesToBeIgnored);
+      ExplictPathChecker checker = new ExplictPathChecker();
 
-      return checker.checkPath(path.get(0).getFirst(), cfaTrace);
+      return checker.checkPath(path, variablesToBeIgnored);
     }
     catch (InterruptedException e) {
       throw new CPAException("counterexample-check failed: ", e);
     }
-  }
-
-  @Override
-  protected void performRefinement(ARTReachedSet pReached, List<Pair<ARTElement, CFANode>> errorPath,
-                                    CounterexampleTraceInfo<Collection<AbstractionPredicate>> counterexampleTraceInfo,
-                                    boolean pRepeatedCounterexample) throws CPAException {
-    // check if there was progress ...
-    if (!hasMadeProgress()) {
-      List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
-      for(Pair<ARTElement, CFAEdge> pathElement : path){
-        cfaTrace.add(pathElement.getSecond());
-      }
-
-      // ... if not, do a full precision check ...
-      fullPrecCheckIsFeasable = isPathFeasable(cfaTrace, Collections.<String>emptySet());
-
-      // ... and kill the analysis
-      throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
-    }
-
-    // ... otherwise, proceed the refining the analysis
-    else {
-      UnmodifiableReachedSet reached = pReached.asReachedSet();
-      Precision oldPrecision = reached.getPrecision(reached.getLastElement());
-
-      precisionUpdate.start();
-      Pair<ARTElement, Precision> refinementResult = performRefinement(oldPrecision, errorPath, counterexampleTraceInfo);
-      precisionUpdate.stop();
-
-      artUpdate.start();
-
-      ARTElement root = refinementResult.getFirst();
-
-      logger.log(Level.FINEST, "Found spurious counterexample,",
-          "trying strategy 1: remove everything below", root, "from ART.");
-
-      pReached.removeSubtree(root, refinementResult.getSecond());
-
-      artUpdate.stop();
-    }
-  }
-
-  @Override
-  protected final List<Pair<ARTElement, CFANode>> transformPath(Path errorPath) {
-    path = errorPath;
-
-    // determine whether to refine explicit or predicate precision
-    refinePredicatePrecision = determineRefinementStrategy();
-
-    List<Pair<ARTElement, CFANode>> result = Lists.newArrayList();
-
-    for (ARTElement ae : skip(transform(errorPath, Pair.<ARTElement>getProjectionToFirst()), 0)) {
-      if(refinePredicatePrecision) {
-        PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
-        if (pe.isAbstractionElement()) {
-          CFANode location = AbstractElements.extractLocation(ae);
-          result.add(Pair.of(ae, location));
-        }
-      }
-      else {
-        result.add(Pair.of(ae, AbstractElements.extractLocation(ae)));
-      }
-    }
-
-    assert errorPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
-    return result;
   }
 
   private static final Function<PredicateAbstractElement, Formula> GET_BLOCK_FORMULA
@@ -378,89 +464,6 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
                       return e.getAbstractionFormula().getBlockFormula();
                     };
                   };
-
-  @Override
-  protected List<Formula> getFormulasForPath(List<Pair<ARTElement, CFANode>> errorPath, ARTElement initialElement) throws CPATransferException {
-
-    if(refinePredicatePrecision) {
-      List<Formula> formulas = transform(errorPath,
-          Functions.compose(
-              GET_BLOCK_FORMULA,
-          Functions.compose(
-              AbstractElements.extractElementByTypeFunction(PredicateAbstractElement.class),
-              Pair.<ARTElement>getProjectionToFirst())));
-
-      return formulas;
-    }
-
-    else {
-      PathFormula currentPathFormula = pathFormulaManager.makeEmptyPathFormula();
-
-      List<Formula> formulas = new ArrayList<Formula>(path.size());
-
-      // iterate over edges (not nodes)
-      for (Pair<ARTElement, CFAEdge> pathElement : path) {
-        currentPathFormula = pathFormulaManager.makeAnd(currentPathFormula, pathElement.getSecond());
-
-        formulas.add(currentPathFormula.getFormula());
-
-        // reset the formula
-        currentPathFormula = pathFormulaManager.makeEmptyPathFormula(currentPathFormula);
-      }
-
-      return formulas;
-    }
-  }
-
-  private Pair<ARTElement, Precision> performRefinement(Precision oldPrecision,
-      List<Pair<ARTElement, CFANode>> errorPath,
-      CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException {
-
-    Precision precision                           = null;
-    Multimap<CFANode, String> precisionIncrement  = null;
-    ARTElement interpolationPoint                 = null;
-
-    if(useExplicitInterpolation) {
-      precisionIncrement = determinePrecisionIncrement(extractExplicitPrecision(oldPrecision).getCegarPrecision());
-      precision = createExplicitPrecision(extractExplicitPrecision(oldPrecision), precisionIncrement);
-    }
-
-    else {
-      // create the mapping of CFA nodes to predicates, based on the counter example trace info
-      PredicateMap predicateMap = new PredicateMap(pInfo.getPredicatesForRefinement(), errorPath);
-
-      if(refinePredicatePrecision) {
-        numberOfPredicateRefinements++;
-        precision = createPredicatePrecision(extractPredicatePrecision(oldPrecision), predicateMap);
-        interpolationPoint = predicateMap.firstInterpolationPoint.getFirst();
-      }
-
-      else {
-        numberOfExplicitRefinements++;
-
-        // determine the precision increment
-        precisionIncrement = predicateMap.determinePrecisionIncrement(fmgr);
-
-        ExplicitPrecision explicitPrecision = extractExplicitPrecision(oldPrecision);
-
-        // get variables referenced by precision increment in the error path
-        Multimap<CFANode, String> referencedVariablesInPath = determineReferencedVariablesInPath(explicitPrecision, precisionIncrement);
-
-        // add those to the precision increment
-        precisionIncrement.putAll(referencedVariablesInPath);
-
-        // create the new precision
-        precision = createExplicitPrecision(explicitPrecision, precisionIncrement);
-      }
-    }
-
-    // when predicate refinement is done, the interpolation point has been already set
-    // for explicit refinement it is done here
-    if(interpolationPoint == null)
-      interpolationPoint = determineInterpolationPoint(errorPath, precisionIncrement);
-
-    return Pair.of(interpolationPoint, precision);
-  }
 
   private ARTElement determineInterpolationPoint(List<Pair<ARTElement, CFANode>> errorPath, Multimap<CFANode, String> precisionIncrement) {
     ARTElement interpolationPoint = null;
