@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
+import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
 
 import java.util.ArrayDeque;
@@ -38,7 +39,6 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
 
@@ -78,21 +78,21 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
   }
 
   public void addParent(ARTElement pOtherParent){
-    assert !destroyed : "Don't use destroyed ARTElements!";
+    assert !destroyed : "Don't use destroyed ARTElement " + this;
     if(parents.add(pOtherParent)){
       pOtherParent.children.add(this);
     }
   }
 
   public Set<ARTElement> getChildren() {
-    assert !destroyed : "Don't use destroyed ARTElements!";
+    assert !destroyed : "Don't use destroyed ARTElement " + this;
     return children;
   }
 
   public void setCovered(ARTElement pCoveredBy) {
-    assert !isCovered();
-    assert pCoveredBy != null;
-    assert pCoveredBy.mayCover;
+    checkState(!isCovered(), "Cannot cover already covered element %s", this);
+    checkNotNull(pCoveredBy);
+    checkArgument(pCoveredBy.mayCover, "Trying to cover with non-covering element %s", pCoveredBy);
 
     mCoveredBy = pCoveredBy;
     if (pCoveredBy.mCoveredByThis == null) {
@@ -111,17 +111,17 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
   }
 
   public boolean isCovered() {
-    assert !destroyed : "Don't use destroyed ARTElements!";
+    assert !destroyed : "Don't use destroyed ARTElement " + this;
     return mCoveredBy != null;
   }
 
   public ARTElement getCoveringElement() {
-    Preconditions.checkState(isCovered());
+    checkState(isCovered());
     return mCoveredBy;
   }
 
   public Set<ARTElement> getCoveredByThis() {
-    assert !destroyed : "Don't use destroyed ARTElements!";
+    assert !destroyed : "Don't use destroyed ARTElement " + this;
     if (mCoveredByThis == null) {
       return Collections.emptySet();
     } else {
@@ -130,8 +130,8 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
   }
 
   protected void setMergedWith(ARTElement pMergedWith) {
-    assert !destroyed : "Don't use destroyed ARTElements!";
-    assert mergedWith == null;
+    assert !destroyed : "Don't use destroyed ARTElement " + this;
+    assert mergedWith == null : "Second merging of element " + this;
 
     mergedWith = pMergedWith;
   }
@@ -145,12 +145,12 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
   }
 
   public void setNotCovering() {
-    assert !destroyed : "Don't use destroyed ARTElements!";
+    assert !destroyed : "Don't use destroyed ARTElement " + this;
     mayCover = false;
   }
 
   public void setCovering() {
-    assert !destroyed : "Don't use destroyed ARTElements!";
+    assert !destroyed : "Don't use destroyed ARTElement " + this;
     mayCover = true;
   }
 
@@ -203,7 +203,7 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
 
   // TODO check
   public Set<ARTElement> getSubtree() {
-    assert !destroyed : "Don't use destroyed ARTElements!";
+    assert !destroyed : "Don't use destroyed ARTElement " + this;
     Set<ARTElement> result = new HashSet<ARTElement>();
     Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
 
@@ -231,7 +231,7 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
    * elements will not be removed from the covered set.
    */
   public void removeFromART() {
-    assert !destroyed : "Don't use destroyed ARTElements!";
+    assert !destroyed : "Don't use destroyed ARTElement " + this;
 
     // clear children
     for (ARTElement child : children) {
@@ -276,21 +276,21 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
    * @param replacement
    */
   protected void replaceInARTWith(ARTElement replacement) {
-    assert !destroyed : "Don't use destroyed ARTElements!";
-    assert !replacement.destroyed : "Don't use destroyed ARTElements!";
-    assert !isCovered();
-    assert !replacement.isCovered();
+    assert !destroyed : "Don't use destroyed ARTElement " + this;
+    assert !replacement.destroyed : "Don't use destroyed ARTElement " + replacement;
+    assert !isCovered() : "Not implemented: Replacement of covered element " + this;
+    assert !replacement.isCovered() : "Cannot replace with covered element " + replacement;
 
     // copy children
     for (ARTElement child : children) {
-      assert (child.parents.contains(this));
+      assert (child.parents.contains(this)) : "Inconsistent ART at " + this;
       child.parents.remove(this);
       child.addParent(replacement);
     }
     children.clear();
 
     for (ARTElement parent : parents) {
-      assert (parent.children.contains(this));
+      assert (parent.children.contains(this)) : "Inconsistent ART at " + this;
       parent.children.remove(this);
       replacement.addParent(parent);
     }
@@ -303,7 +303,7 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
       }
 
       for (ARTElement covered : mCoveredByThis) {
-        assert covered.mCoveredBy == this;
+        assert covered.mCoveredBy == this : "Inconsistent coverage relation at " + this;
         covered.mCoveredBy = replacement;
         replacement.mCoveredByThis.add(covered);
       }
@@ -320,7 +320,7 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
   }
 
   public CFAEdge getEdgeToChild(ARTElement pChild) {
-    Preconditions.checkArgument(children.contains(pChild));
+    checkArgument(children.contains(pChild));
 
     CFANode currentLoc = extractLocation(this);
     CFANode childNode = extractLocation(pChild);

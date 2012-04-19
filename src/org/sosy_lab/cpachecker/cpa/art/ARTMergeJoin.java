@@ -43,7 +43,7 @@ public class ARTMergeJoin implements MergeOperator {
     ARTElement artElement1 = (ARTElement)pElement1;
     ARTElement artElement2 = (ARTElement)pElement2;
 
-    assert !artElement1.isCovered();
+    assert !artElement1.isCovered() : "Trying to merge covered element " + artElement1;
 
     if (!artElement2.mayCover()) {
       // elements that may not cover should also not be used for merge
