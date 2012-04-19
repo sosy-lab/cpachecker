@@ -293,7 +293,7 @@ public class ABMTransferRelation implements TransferRelation {
   public ABMTransferRelation(Configuration pConfig, LogManager pLogger, ABMCPA abmCpa, ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
-    algorithm = new CPAAlgorithm(abmCpa, logger);
+    algorithm = new CPAAlgorithm(abmCpa, logger, pConfig);
     reachedSetFactory = pReachedSetFactory;
     wrappedTransfer = abmCpa.getWrappedCpa().getTransferRelation();
     wrappedReducer = abmCpa.getReducer();

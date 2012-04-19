@@ -29,15 +29,22 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.configuration.ClassOption;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ForcedCovering;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -51,6 +58,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.collect.Iterables;
 
+@Options(prefix="cpa")
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CPAStatistics implements Statistics {
@@ -102,15 +110,30 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  @Option(description="Which strategy to use for forced coverings (empty for none)",
+          name="forcedCovering")
+  @ClassOption(packagePrefix="org.sosy_lab.cpachecker")
+  private Class<? extends ForcedCovering> forcedCoveringClass = null;
+  private final ForcedCovering forcedCovering;
+
   private final CPAStatistics               stats = new CPAStatistics();
 
   private final ConfigurableProgramAnalysis cpa;
 
   private final LogManager                  logger;
 
-  public CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger) {
+  public CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger, Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
     this.cpa = cpa;
     this.logger = logger;
+
+    if (forcedCoveringClass != null) {
+      forcedCovering = Classes.createInstance(ForcedCovering.class, forcedCoveringClass,
+          new Class<?>[] {Configuration.class, LogManager.class, ConfigurableProgramAnalysis.class},
+          new Object[]   {config,              logger,           cpa});
+    } else {
+      forcedCovering = null;
+    }
   }
 
   @Override
@@ -157,6 +180,13 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.FINER, "Retrieved element from waitlist");
       logger.log(Level.ALL, "Current element is", element, "with precision",
           precision);
+
+      if (forcedCovering != null) {
+        if (forcedCovering.tryForcedCovering(element, precision, reachedSet)) {
+          // TODO: remove element from reached set?
+          continue;
+        }
+      }
 
       stats.transferTimer.start();
       Collection<? extends AbstractElement> successors =

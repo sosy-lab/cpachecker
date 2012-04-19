@@ -642,7 +642,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         }
 
         ConfigurableProgramAnalysis invariantCPAs = new CPABuilder(invariantConfig, logger, reachedSetFactory).buildCPAs(cfa);
-        invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger);
+        invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger, invariantConfig);
 
         reached = new ReachedSetFactory(invariantConfig, logger).create();
         reached.add(invariantCPAs.getInitialElement(initialLocation), invariantCPAs.getInitialPrecision(initialLocation));

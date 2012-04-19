@@ -331,7 +331,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
-    Algorithm algorithm = new CPAAlgorithm(cpa, logger);
+    Algorithm algorithm = new CPAAlgorithm(cpa, logger, pConfig);
 
     if (pOptions.useRefinement) {
       algorithm = new CEGARAlgorithm(algorithm, cpa, pConfig, logger);

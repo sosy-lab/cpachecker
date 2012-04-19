@@ -100,7 +100,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
 
       CPABuilder lBuilder = new CPABuilder(lConfig, logger, reachedSetFactory);
       ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs(cfa);
-      Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger);
+      Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger, lConfig);
       PartitionedReachedSet lReached = new PartitionedReachedSet(TraversalMethod.DFS);
       lReached.add(lCpas.getInitialElement(entryNode), lCpas.getInitialPrecision(entryNode));
 
