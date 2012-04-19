@@ -70,6 +70,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private Timer mergeTimer         = new Timer();
     private Timer stopTimer          = new Timer();
     private Timer addTimer           = new Timer();
+    private Timer forcedCoveringTimer = new Timer();
 
     private int   countIterations   = 0;
     private int   maxWaitlistSize   = 0;
@@ -100,6 +101,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       out.println();
       out.println("Total time for CPA algorithm:     " + totalTimer + " (Max: " + totalTimer.printMaxTime() + ")");
       out.println("  Time for choose from waitlist:  " + chooseTimer);
+      if (forcedCoveringTimer.getNumberOfIntervals() > 0) {
+        out.println("  Time for forced covering:       " + forcedCoveringTimer);
+      }
       out.println("  Time for precision adjustment:  " + precisionTimer);
       out.println("  Time for transfer relation:     " + transferTimer);
       if (mergeTimer.getNumberOfIntervals() > 0) {
@@ -149,6 +153,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       stats.mergeTimer.stop();
       stats.stopTimer.stop();
       stats.addTimer.stop();
+      stats.forcedCoveringTimer.stop();
     }
   }
 
@@ -182,7 +187,11 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           precision);
 
       if (forcedCovering != null) {
-        if (forcedCovering.tryForcedCovering(element, precision, reachedSet)) {
+        stats.forcedCoveringTimer.start();
+        boolean stop = forcedCovering.tryForcedCovering(element, precision, reachedSet);
+        stats.forcedCoveringTimer.stop();
+
+        if (stop) {
           // TODO: remove element from reached set?
           continue;
         }
@@ -306,6 +315,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (forcedCovering instanceof StatisticsProvider) {
+      ((StatisticsProvider)forcedCovering).collectStatistics(pStatsCollection);
+    }
     pStatsCollection.add(stats);
   }
 }
