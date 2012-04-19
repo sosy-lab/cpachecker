@@ -116,6 +116,20 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   @Override
   public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     stats.totalTimer.start();
+    try {
+      return run0(reachedSet);
+    } finally {
+      stats.totalTimer.stop();
+      stats.chooseTimer.stop();
+      stats.precisionTimer.stop();
+      stats.transferTimer.stop();
+      stats.mergeTimer.stop();
+      stats.stopTimer.stop();
+      stats.addTimer.stop();
+    }
+  }
+
+  private boolean run0(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
     final StopOperator stopOperator = cpa.getStopOperator();
@@ -197,7 +211,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
               reachedSet.reAddToWaitlist(element);
             }
 
-            stats.totalTimer.stop();
             return true;
           }
         }
@@ -258,7 +271,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         }
       }
     }
-    stats.totalTimer.stop();
     return true;
   }
 

@@ -41,7 +41,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -217,59 +216,58 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     boolean sound = true;
 
     stats.totalTimer.start();
+    try {
+      boolean refinementSuccessful;
+      do {
+        refinementSuccessful = false;
 
-    boolean continueAnalysis;
-    do {
-      continueAnalysis = false;
+        // run algorithm
+        sound &= algorithm.run(reached);
 
-      // run algorithm
-      sound &= algorithm.run(reached);
+        // if the last element is a target element do refinement
+        if (AbstractElements.isTargetElement(reached.getLastElement())) {
 
-      AbstractElement lastElement = reached.getLastElement();
-
-      // if the element is a target element do refinement
-      if (AbstractElements.isTargetElement(lastElement)) {
-
-        logger.log(Level.FINE, "Error found, performing CEGAR");
-        stats.countRefinements++;
-        sizeOfReachedSetBeforeRefinement = reached.size();
-
-        stats.refinementTimer.start();
-        boolean refinementResult;
-        try {
-          refinementResult = mRefiner.performRefinement(reached);
-
-        } catch (RefinementFailedException e) {
-          stats.countFailedRefinements++;
-          throw e;
-        } finally {
-          stats.refinementTimer.stop();
+          refinementSuccessful = refine(reached);
         }
 
-        if (refinementResult) {
-          // successful refinement
+      } while (refinementSuccessful);
 
-          logger.log(Level.FINE, "Refinement successful");
-          stats.countSuccessfulRefinements++;
-
-          if (restartOnRefinement) {
-            // TODO
-          }
-
-          runGC();
-
-          continueAnalysis = true;
-
-        } else {
-          // no refinement found, because the counterexample is not spurious
-          logger.log(Level.FINE, "Refinement unsuccessful");
-        }
-      } // if lastElement is target element
-
-    } while (continueAnalysis);
-
-    stats.totalTimer.stop();
+    } finally {
+      stats.totalTimer.stop();
+    }
     return sound;
+  }
+
+  private boolean refine(ReachedSet reached) throws CPAException, InterruptedException {
+    logger.log(Level.FINE, "Error found, performing CEGAR");
+    stats.countRefinements++;
+    sizeOfReachedSetBeforeRefinement = reached.size();
+
+    stats.refinementTimer.start();
+    boolean refinementResult;
+    try {
+      refinementResult = mRefiner.performRefinement(reached);
+
+    } catch (RefinementFailedException e) {
+      stats.countFailedRefinements++;
+      throw e;
+    } finally {
+      stats.refinementTimer.stop();
+    }
+
+    logger.log(Level.FINE, "Refinement successful:", refinementResult);
+
+    if (refinementResult) {
+      stats.countSuccessfulRefinements++;
+
+      if (restartOnRefinement) {
+        // TODO
+      }
+
+      runGC();
+    }
+
+    return refinementResult;
   }
 
   private void runGC() {
