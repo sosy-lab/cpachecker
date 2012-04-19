@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -45,14 +46,13 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCPAChecker;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
@@ -85,7 +85,6 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
@@ -216,22 +215,25 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     Multimap<CFANode, String> increment = HashMultimap.create();
 
-    Set<ARTElement> artTrace = new HashSet<ARTElement>();
     List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
     for(Pair<ARTElement, CFAEdge> pathElement : path){
-      artTrace.add(pathElement.getFirst());
-      cfaTrace.add(pathElement.getSecond());
+      // expand any multi-edge
+      if(pathElement.getSecond() instanceof MultiEdge) {
+        for(CFAEdge singleEdge : (MultiEdge)pathElement.getSecond()) {
+          cfaTrace.add(singleEdge);
+        }
+      }
+      else {
+        cfaTrace.add(pathElement.getSecond());
+      }
     }
 
     Set<String> irrelevantVariables = new HashSet<String>();
 
     Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(cfaTrace);
 
-    for(int i = 0; i < path.size(); i++){
-    //for(int i = path.size() - 1; i > 0; i--){
-
-      Pair<ARTElement, CFAEdge> pathElement = path.get(i);
-      CFAEdge currentEdge = pathElement.getSecond();
+    for(int i = 0; i < cfaTrace.size(); i++){
+      CFAEdge currentEdge = cfaTrace.get(i);
 
       numberOfErrorPathElements++;
 
@@ -254,28 +256,14 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
         // variables to ignore in the current run
         irrelevantVariables.addAll(referencedVariablesAtEdge);
 
-        try {
-          // create a new CPA, which disallows tracking the "irrelevant variables"
-          CounterexampleCPAChecker checker = new CounterexampleCPAChecker(Configuration.builder().setOption("counterexample.checker.ignoreGlobally", Joiner.on(",").join(irrelevantVariables)).build(),
-                                                                          explicitCpa.getLogger(),
-                                                                          new ReachedSetFactory(explicitCpa.getConfiguration(), explicitCpa.getLogger()),
-                                                                          explicitCpa.getCFA());
-
-          feasible = checker.checkCounterexample(path.get(0).getFirst(),
-                                                  path.get(path.size() - 1).getFirst(),
-                                                  artTrace);
-        } catch (InterruptedException e) {
-          throw new CPAException("counterexample-check failed: ", e);
-        } catch (InvalidConfigurationException e) {
-          throw new CPAException("counterexample-check failed: ", e);
-        }
+        feasible = isPathFeasable(cfaTrace, irrelevantVariables);
       }
 
       // in case the path becomes feasible ...
       if(feasible) {
         // ... add the "important" variables to the precision increment, and remove them from the irrelevant ones
         for(String importantVariable : referencedVariablesAtEdge) {
-          increment.put(pathElement.getSecond().getSuccessor(), importantVariable);
+          increment.put(currentEdge.getSuccessor(), importantVariable);
           irrelevantVariables.remove(importantVariable);
         }
       }
@@ -304,25 +292,16 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     return isRedundant;
   }
 
-  private boolean doFullPrecisionCheck(Set<ARTElement> artTrace) {
+  private boolean isPathFeasable(List<CFAEdge> cfaTrace, Set<String> variablesToBeIgnored) throws CPAException {
     try {
-      CounterexampleCPAChecker checkerFirst = new CounterexampleCPAChecker(Configuration.builder().setOption("counterexample.checker.ignoreGlobally", "").build(),
-          explicitCpa.getLogger(),
-          new ReachedSetFactory(explicitCpa.getConfiguration(), explicitCpa.getLogger()),
-          explicitCpa.getCFA());
+      // create a new ExplicitPathChecker, which does not track any of the given variables
+      ExplictPathChecker checker = new ExplictPathChecker(variablesToBeIgnored);
 
-    if(checkerFirst.checkCounterexample(path.get(0).getFirst(),
-        path.get(path.size() - 1).getFirst(),
-        artTrace)) {
-      return true;
+      return checker.checkPath(path.get(0).getFirst(), cfaTrace);
     }
-    else
-      return false;
-    } catch(Exception e) {
-      System.out.println("CounterexampleCPAChecker failed: " + e.getMessage());
+    catch (InterruptedException e) {
+      throw new CPAException("counterexample-check failed: ", e);
     }
-
-    return false;
   }
 
   @Override
@@ -331,15 +310,15 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
                                     boolean pRepeatedCounterexample) throws CPAException {
     // check if there was progress ...
     if (!hasMadeProgress()) {
-      Set<ARTElement> artTrace = new HashSet<ARTElement>();
       List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
       for(Pair<ARTElement, CFAEdge> pathElement : path){
-        artTrace.add(pathElement.getFirst());
         cfaTrace.add(pathElement.getSecond());
       }
-      fullPrecCheckIsFeasable = doFullPrecisionCheck(artTrace);
 
-      // ... if not, stop the analysis
+      // ... if not, do a full precision check ...
+      fullPrecCheckIsFeasable = isPathFeasable(cfaTrace, Collections.<String>emptySet());
+
+      // ... and kill the analysis
       throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
     }
 
@@ -374,7 +353,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     List<Pair<ARTElement, CFANode>> result = Lists.newArrayList();
 
-    for (ARTElement ae : skip(transform(errorPath, Pair.<ARTElement>getProjectionToFirst()), 1)) {
+    for (ARTElement ae : skip(transform(errorPath, Pair.<ARTElement>getProjectionToFirst()), 0)) {
       if(refinePredicatePrecision) {
         PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
         if (pe.isAbstractionElement()) {
@@ -420,12 +399,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       List<Formula> formulas = new ArrayList<Formula>(path.size());
 
       // iterate over edges (not nodes)
-      int i = 0;
       for (Pair<ARTElement, CFAEdge> pathElement : path) {
-        i++;
-
-        if(i == 1)
-          continue;
         currentPathFormula = pathFormulaManager.makeAnd(currentPathFormula, pathElement.getSecond());
 
         formulas.add(currentPathFormula.getFormula());
@@ -490,7 +464,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
   private ARTElement determineInterpolationPoint(List<Pair<ARTElement, CFANode>> errorPath, Multimap<CFANode, String> precisionIncrement) {
     ARTElement interpolationPoint = null;
-    ARTElement initialNode        = errorPath.get(0).getFirst();
+    ARTElement initialNode        = errorPath.get(1).getFirst();
 
     // just use initial node of error path if the respective option is set
     if(useInitialNodeAsRestartingPoint) {

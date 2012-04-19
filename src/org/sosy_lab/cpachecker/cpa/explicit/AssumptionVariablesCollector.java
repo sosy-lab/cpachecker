@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
@@ -153,7 +154,25 @@ import com.google.common.collect.Multimap;
 
         if(dependingVariables.contains(assignedVariable)) {
           collectedVariables.put(callToReturnEdge.getSuccessor(), assignedVariable);
-          collectVariables(returnEdge.getPredecessor().getEnteringEdge(0), ((ReturnStatementEdge)returnEdge.getPredecessor().getEnteringEdge(0)).getExpression(), collectedVariables);
+
+
+          ReturnStatementEdge returnStatementEdge;
+          CFAEdge currentEdge = null;
+          CFAEdge enteringEdge = returnEdge.getPredecessor().getEnteringEdge(0);
+
+          if(enteringEdge instanceof MultiEdge) {
+            for(CFAEdge singleEdge : (MultiEdge)enteringEdge) {
+              currentEdge = singleEdge;
+            }
+
+            enteringEdge = currentEdge;
+          }
+
+          assert(enteringEdge instanceof ReturnStatementEdge);
+
+          returnStatementEdge = (ReturnStatementEdge)enteringEdge;
+
+          collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables);
         }
       }
       break;
