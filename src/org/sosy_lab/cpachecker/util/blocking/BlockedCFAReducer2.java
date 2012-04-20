@@ -60,16 +60,16 @@ public class BlockedCFAReducer2 implements BlockComputer {
   private int reductionThreshold = 100;
 
   @Option(description="Allow reduction of loop heads; calculate abstractions alwasy at loop heads?")
-  private boolean alwaysAbstractOnLoopHeads = false;
+  private boolean alwaysAbstractOnLoopHeads = true;
 
   @Option(description="Allow reduction of function entries; calculate abstractions alwasy at function entries?")
-  private boolean alwaysAbstractOnFunctionEntries = true;
+  private boolean alwaysAbstractOnFunctionEntries = false;
 
   @Option(description="Allow reduction of function exits; calculate abstractions alwasy at function exits?")
-  private boolean alwaysAbstractOnFunctionExits = true;
+  private boolean alwaysAbstractOnFunctionExits = false;
 
   @Option(description="Allow generic nodes to be abstraction nodes?")
-  private boolean allowAbstOnGenericNodes = true;
+  private boolean allowAbstOnGenericNodes = false;
 
   @Option(description="Allow function-entry nodes to be abstraction nodes?")
   private boolean allowAbstOnFunctionEntry = true;
