@@ -50,7 +50,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
+import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer2;
 import org.sosy_lab.cpachecker.util.blocking.container.ItemTree;
 import org.sosy_lab.cpachecker.util.blocking.container.ReducedEdge;
 import org.sosy_lab.cpachecker.util.blocking.container.ReducedFunction;
@@ -78,7 +78,7 @@ public class ReducedCfaClusterer extends AbstractGraphClusterer implements Block
 
   @Option(name="graphLayoutFile", description="Write the layout of the clustered callgraph to this file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File graphLayoutFile = new File("CallGraph.lay");
+  private File graphLayoutFile = new File("ReducedCfa.lay");
 
   @Option(name="reducedCfaFile", description="write the call-graph to the specified file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -182,7 +182,7 @@ public class ReducedCfaClusterer extends AbstractGraphClusterer implements Block
   @Override
   public ItemTree<String, CFANode> computeAbstractionNodes(CFA pCfa) throws InvalidConfigurationException {
     ItemTree<String, CFANode> result = new ItemTree<String, CFANode>();
-    BlockedCFAReducer reducer = new BlockedCFAReducer(this.config, this.logger);
+    BlockedCFAReducer2 reducer = new BlockedCFAReducer2(this.config, this.logger);
     Map<Integer, Integer> clustersOfNodes = new HashMap<Integer, Integer>();
 
     ReducedFunction reducedProgram = reducer.inlineAndSummarize(pCfa.getMainFunction());
@@ -192,7 +192,7 @@ public class ReducedCfaClusterer extends AbstractGraphClusterer implements Block
     org.sosy_lab.ccvisu.Options options = new org.sosy_lab.ccvisu.Options();
     options.graph = graph;
     options.getOption(OptionsEnum.iter).set(1000);
-    options.getOption(OptionsEnum.autoStopIterating).set(true);
+    options.getOption(OptionsEnum.autoStopIterating).set(false);
 
     // Maybe we should write the graph data to a file.
     writeGraph(options, graph, reducedCfaFile);
