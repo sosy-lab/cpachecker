@@ -25,18 +25,18 @@ package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
 public class ExplictPathChecker {
 
@@ -54,16 +54,16 @@ public class ExplictPathChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean checkPath(List<CFAEdge> path, Set<String> variablesToBeIgnored)
+  public boolean checkPath(List<CFAEdge> path, Multimap<CFANode, String> variablesToBeIgnored)
       throws CPAException, InterruptedException {
     try {
-      Configuration lConfig = Configuration.builder()
-              .setOption("cpa.explicit.precision.ignore.asString", Joiner.on(",").join(variablesToBeIgnored))
-              .build();
+      Configuration config = Configuration.builder().build();
 
-      TransferRelation transfer   = new ExplicitTransferRelation(lConfig);
+      TransferRelation transfer   = new ExplicitTransferRelation(config);
       AbstractElement next        = new ExplicitElement();
-      ExplicitPrecision precision = new ExplicitPrecision("", lConfig);
+      ExplicitPrecision precision = new ExplicitPrecision("", config);
+
+      precision.getIgnore().setMapping(variablesToBeIgnored);
 
       for(CFAEdge edge : path) {
         Collection<? extends AbstractElement> successors = transfer.getAbstractSuccessors(next, precision, edge);

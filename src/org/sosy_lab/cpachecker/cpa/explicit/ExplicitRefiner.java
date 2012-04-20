@@ -29,7 +29,6 @@ import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -264,7 +263,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       }
 
       // ... if not, do a full precision check to find out if path could have been ruled out ...
-      fullPrecCheckIsFeasable = isPathFeasable(cfaTrace, Collections.<String>emptySet());
+      fullPrecCheckIsFeasable = isPathFeasable(cfaTrace, HashMultimap.<CFANode, String>create());
 
       // ... and kill the analysis
       throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
@@ -360,7 +359,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       }
     }
 
-    Set<String> irrelevantVariables = new HashSet<String>();
+    Multimap<CFANode, String> irrelevantVariables = HashMultimap.create();
 
     Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(cfaTrace);
 
@@ -386,7 +385,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
         numberOfCounterExampleChecks++;
 
         // variables to ignore in the current run
-        irrelevantVariables.addAll(referencedVariablesAtEdge);
+        irrelevantVariables.putAll(currentEdge.getSuccessor(), referencedVariablesAtEdge);
 
         feasible = isPathFeasable(cfaTrace, irrelevantVariables);
       }
@@ -396,7 +395,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
         // ... add the "important" variables to the precision increment, and remove them from the irrelevant ones
         for(String importantVariable : referencedVariablesAtEdge) {
           increment.put(currentEdge.getSuccessor(), importantVariable);
-          irrelevantVariables.remove(importantVariable);
+          irrelevantVariables.remove(currentEdge.getSuccessor(), importantVariable);
         }
       }
     }
@@ -416,7 +415,6 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       return collector.collectVars(cfaTrace);
     }
   }
-
 
   /**
    * This method checks whether or not all variables are already part of the precision.
@@ -444,7 +442,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
    * @return true, if the path is feasible, else false
    * @throws CPAException
    */
-  private boolean isPathFeasable(List<CFAEdge> path, Set<String> variablesToBeIgnored) throws CPAException {
+  private boolean isPathFeasable(List<CFAEdge> path, Multimap<CFANode, String> variablesToBeIgnored) throws CPAException {
     try {
       // create a new ExplicitPathChecker, which does not track any of the given variables
       ExplictPathChecker checker = new ExplictPathChecker();
