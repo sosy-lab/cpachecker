@@ -99,10 +99,6 @@ public class BlockedCFAReducer2 implements BlockComputer {
     this.logger = pLogger;
   }
 
-  private boolean isCouldOrMustAbstractNode(ReducedNode pNode) {
-    return isCouldAbstractNode(pNode) || isMustAbstractNode(pNode);
-  }
-
   private boolean isCouldAbstractNode(ReducedNode pNode) {
     switch (pNode.getNodeKind()) {
       case GENERIC:       return allowAbstOnGenericNodes;
@@ -157,7 +153,7 @@ public class BlockedCFAReducer2 implements BlockComputer {
         // if the threshold of the incoming edges is reached.
         // But it can always be removed if it is not a "couldOrMustAbstractNode".
         // Node other than couldOrMustAbstractNode can always be removed.
-        if (isCouldOrMustAbstractNode(v) && (uv.getReductions() >= reductionThreshold)) {
+        if (isCouldAbstractNode(v) && (uv.getReductions() >= reductionThreshold)) {
           toTraverse.add(v);
           continue;
         }

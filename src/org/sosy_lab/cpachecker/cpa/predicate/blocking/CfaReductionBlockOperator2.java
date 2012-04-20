@@ -83,14 +83,11 @@ public class CfaReductionBlockOperator2 extends AbstractBlockOperator implements
 
     if (considerCallstack) {
       String[] callstackFnc = pCallstackElement.getCallstackFunctions(succLoc.getFunctionName());
-      boolean result = abstractionNodes.containsLeaf(callstackFnc, succLoc);
       if (isLoopHead(succLoc)) {
-        if (!result) {
-          throw new RuntimeException("Abstraction on loop-heads is required!");
-        }
+        return true;
+      } else {
+        return abstractionNodes.containsLeaf(callstackFnc, succLoc);
       }
-      return result;
-
     }
 
     return false;
