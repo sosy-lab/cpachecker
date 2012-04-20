@@ -134,7 +134,6 @@ public class ControlFlowStatistics {
     PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(pTargetFile)));
 
     String[] csvFields = new String[]{
-        "Sourcefile",
         "Functionname",
         "StaticFunctionCalls",
         "Parameters",
@@ -161,7 +160,6 @@ public class ControlFlowStatistics {
     for (CFAFunctionDefinitionNode fnDefNode : functionStats.keySet()) {
       FunctionStats fs = functionStats.get(fnDefNode);
       Object[] line = new Object[]{
-          fnDefNode.getFilename(),
           fnDefNode.getFunctionName(),
           fs.staticFunctionCalls,
           fs.parameters,
