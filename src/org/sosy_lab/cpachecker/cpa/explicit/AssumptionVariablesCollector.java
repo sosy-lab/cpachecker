@@ -172,7 +172,7 @@ import com.google.common.collect.Multimap;
 
           returnStatementEdge = (ReturnStatementEdge)enteringEdge;
 
-          collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables);
+          collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables, true);
         }
       }
       break;
@@ -194,7 +194,7 @@ import com.google.common.collect.Multimap;
 
         if(dependingVariables.contains(assignedVariable)) {
           collectedVariables.put(callToReturnEdge2.getSuccessor(), assignedVariable);
-          collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables);
+          collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables, true);
         }
       }
 
@@ -223,7 +223,7 @@ import com.google.common.collect.Multimap;
 
         if(dependingVariables.contains(assignedVariable)) {
           collectedVariables.put(functionCallEdge.getSummaryEdge().getSuccessor(), assignedVariable);
-          collectVariables(functionCallEdge, funcAssign.getRightHandSide(), collectedVariables);
+          collectVariables(functionCallEdge, funcAssign.getRightHandSide(), collectedVariables, true);
         }
       }
 
@@ -246,7 +246,7 @@ import com.google.common.collect.Multimap;
     case AssumeEdge:
       // System.out.println("inspecting edge " + edge.getRawStatement());
       AssumeEdge assumeEdge = (AssumeEdge)edge;
-      collectVariables(assumeEdge, assumeEdge.getExpression(), collectedVariables);
+      collectVariables(assumeEdge, assumeEdge.getExpression(), collectedVariables, true);
       break;
 
     case StatementEdge:
@@ -258,7 +258,7 @@ import com.google.common.collect.Multimap;
 
         if(dependingVariables.contains(assignedVariable)) {
           collectedVariables.put(edge.getSuccessor(), assignedVariable);
-          collectVariables(statementEdge, assignment.getRightHandSide(), collectedVariables);
+          collectVariables(statementEdge, assignment.getRightHandSide(), collectedVariables, false);
         }
       }
       break;
@@ -287,8 +287,11 @@ import com.google.common.collect.Multimap;
    * @param rightHandSide the right hand side of the assignment
    * @param collectedVariables the current mapping of locations to variable names up to the current edge
    */
-  private void collectVariables(CFAEdge edge, IASTRightHandSide rightHandSide, Multimap<CFANode, String> collectedVariables) {
-    rightHandSide.accept(new CollectVariablesVisitor(edge, collectedVariables));
+  private void collectVariables(CFAEdge edge,
+                                IASTRightHandSide rightHandSide,
+                                Multimap<CFANode, String> collectedVariables,
+                                boolean dependOnly) {
+    rightHandSide.accept(new CollectVariablesVisitor(edge, collectedVariables, dependOnly));
   }
 
   /**
@@ -306,22 +309,27 @@ import com.google.common.collect.Multimap;
      */
     private final CFAEdge currentEdge;
 
+    boolean doCollect = true;
     /**
      * This method acts as the constructor of the class.
      *
      * @param currentEdge the assignment edge to analyze
      * @param collectedVariables the mapping of locations to variable names up to the current edge
      */
-    public CollectVariablesVisitor(CFAEdge currentEdge, Multimap<CFANode, String> collectedVariables) {
+    public CollectVariablesVisitor(CFAEdge currentEdge, Multimap<CFANode, String> collectedVariables, boolean dependOnly) {
       this.currentEdge         = currentEdge;
       this.collectedVariables  = collectedVariables;
+      this.doCollect           = dependOnly;
     }
 
     private void collectVariables(String variableName) {
       //System.out.println("adding new depending variable " + scoped(variableName, currentEdge.getPredecessor().getFunctionName()));
 
       dependingVariables.add(scoped(variableName, currentEdge.getPredecessor().getFunctionName()));
-      collectedVariables.put(currentEdge.getSuccessor(), scoped(variableName, currentEdge.getPredecessor().getFunctionName()));
+
+      if(doCollect) {
+        collectedVariables.put(currentEdge.getSuccessor(), scoped(variableName, currentEdge.getPredecessor().getFunctionName()));
+      }
     }
 
     @Override
@@ -360,7 +368,6 @@ import com.google.common.collect.Multimap;
 
     @Override
     public Void visit(IASTFunctionCallExpression pE) {
-      pE.getFunctionNameExpression().accept(this);
       for (IASTExpression param : pE.getParameterExpressions()) {
         param.accept(this);
       }

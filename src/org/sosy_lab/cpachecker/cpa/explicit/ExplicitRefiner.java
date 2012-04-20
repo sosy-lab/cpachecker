@@ -359,8 +359,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       }
     }
 
-    Multimap<CFANode, String> irrelevantVariables = HashMultimap.create();
-
+    Multimap<CFANode, String> variablesToBeIgnored      = HashMultimap.create();
     Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(cfaTrace);
 
     for(int i = 0; i < cfaTrace.size(); i++){
@@ -368,34 +367,35 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
       numberOfErrorPathElements++;
 
-      boolean feasible = false;
-
       if(currentEdge instanceof FunctionReturnEdge) {
         currentEdge = ((FunctionReturnEdge)currentEdge).getSummaryEdge();
       }
 
       Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge.getSuccessor());
 
-      // if the referenced variables are already known to be important, skip the redundant test and continue
+      // no potentially interesting variables referenced - skip
+      if(referencedVariablesAtEdge.isEmpty()) {
+        continue;
+      }
+
+      // referenced variables are already known to be important - skip
       if(isRedundant(precision, currentEdge, referencedVariablesAtEdge)) {
         continue;
       }
 
-      if(!referencedVariablesAtEdge.isEmpty()) {
+      // check for each variable, if ignoring it makes the error path feasible
+      // it might be more reasonable to do this once for all variables referenced in this edge (esp. for assumes)
+      for(String importantVariable : referencedVariablesAtEdge) {
         numberOfCounterExampleChecks++;
 
         // variables to ignore in the current run
-        irrelevantVariables.putAll(currentEdge.getSuccessor(), referencedVariablesAtEdge);
+        variablesToBeIgnored.put(currentEdge.getSuccessor(), importantVariable);
 
-        feasible = isPathFeasable(cfaTrace, irrelevantVariables);
-      }
-
-      // in case the path becomes feasible ...
-      if(feasible) {
-        // ... add the "important" variables to the precision increment, and remove them from the irrelevant ones
-        for(String importantVariable : referencedVariablesAtEdge) {
+        // if path becomes feasible, remove it from the set of variables to be ignored,
+        // and add the variable to the precision increment
+        if(isPathFeasable(cfaTrace, variablesToBeIgnored)) {
+          variablesToBeIgnored.remove(currentEdge.getSuccessor(), importantVariable);
           increment.put(currentEdge.getSuccessor(), importantVariable);
-          irrelevantVariables.remove(currentEdge.getSuccessor(), importantVariable);
         }
       }
     }
