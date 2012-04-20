@@ -31,14 +31,14 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
+import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducerOld;
 import org.sosy_lab.cpachecker.util.blocking.container.ReducedFunction;
 import org.sosy_lab.cpachecker.util.blocking.container.ReducedNode;
 
 @SuppressWarnings("unused")
-public class BlockedCFAReducerTest {
+public class BlockedCFAReducerOldTest {
 
-  public class ReducerUnderTest extends BlockedCFAReducer {
+  public class ReducerUnderTest extends BlockedCFAReducerOld {
 
     public ReducerUnderTest(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
       super(pConfig, pLogger);
@@ -575,6 +575,65 @@ public class BlockedCFAReducerTest {
      } while (reducer.applyChoiceRule(funct));
 
      assertEquals(4, funct.getNumOfActiveNodes());
+
+    } catch (InvalidConfigurationException e) {
+      e.printStackTrace();
+    }
+  }
+
+
+
+  @Test
+  public void testApplySequenceRule_Summarization() {
+   try {
+     ReducedNode entryNode = new ReducedNode(new CFANode(1, "test"));
+     ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"));
+
+     ReducedNode n1 = new ReducedNode(new CFANode(2, "test"));
+     ReducedNode n2 = new ReducedNode(new CFANode(3, "test"));
+     ReducedNode n3 = new ReducedNode(new CFANode(4, "test"));
+     ReducedNode n4 = new ReducedNode(new CFANode(5, "test"));
+
+     ReducedNode n5 = new ReducedNode(new CFANode(6, "test"));
+     ReducedNode n6 = new ReducedNode(new CFANode(7, "test"));
+     ReducedNode n7 = new ReducedNode(new CFANode(8, "test"));
+
+     ReducedNode n8 = new ReducedNode(new CFANode(9, "test"));
+     ReducedNode n9 = new ReducedNode(new CFANode(10, "test"));
+     ReducedNode n10 = new ReducedNode(new CFANode(11, "test"));
+     ReducedNode n11 = new ReducedNode(new CFANode(12, "test"));
+
+     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
+
+     funct.addEdge(entryNode, n1);
+     funct.addEdge(n1, n2);
+     funct.addEdge(n2, n3);
+     funct.addEdge(n3, n4);
+
+     funct.addEdge(n4, n5);
+     funct.addEdge(n5, n7);
+     funct.addEdge(n7, n9);
+     funct.addEdge(n9, n11);
+
+     funct.addEdge(n4, n6);
+     funct.addEdge(n6, n8);
+     funct.addEdge(n8, n10);
+     funct.addEdge(n10, n11);
+     funct.addEdge(n11, exitNode);
+
+     assertEquals(13, funct.getNumOfActiveNodes());
+
+     ReducerUnderTest reducer = new ReducerUnderTest(null, null);
+     reducer.setReductionThreshold(5);
+     do  {
+     } while (reducer.applySequenceRule(funct));
+
+     assertEquals(5, entryNode.getSummarizations());
+     assertEquals(2, n5.getSummarizations());
+     assertEquals(2, n6.getSummarizations());
+     assertEquals(2, funct.getLeavingEdges(entryNode).length);
+     assertEquals(5, funct.getNumOfActiveNodes());
+
 
     } catch (InvalidConfigurationException e) {
       e.printStackTrace();

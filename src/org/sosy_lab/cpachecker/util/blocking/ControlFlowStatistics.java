@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 
 @Options(prefix="controlflow.statistics")
 public class ControlFlowStatistics {
@@ -57,6 +58,8 @@ public class ControlFlowStatistics {
     public int edgeCount = 0;
     public int branchCount = 0;
 
+    public int staticFunctionCalls = 0;
+    public int parameters = 0;
     public int blankEdges = 0;
     public int assumeEdges = 0;
     public int statementEdges = 0;
@@ -70,20 +73,26 @@ public class ControlFlowStatistics {
   }
 
   public ControlFlowStatistics(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
-    pConfig.inject(this);
+    if (pConfig != null) {
+      pConfig.inject(this);
+    }
     this.logger = pLogger;
   }
 
   public Map<CFAFunctionDefinitionNode, FunctionStats> getFunctionFlowStats(CFA pCfa) {
     Map<CFAFunctionDefinitionNode, FunctionStats> result = new HashMap<CFAFunctionDefinitionNode, FunctionStats>();
     for (CFANode node : pCfa.getAllNodes()) {
-      CFAFunctionDefinitionNode fnDefNode = pCfa.getFunctionHead(node.getFunctionName());
-      assert(fnDefNode != null);
+      CFAFunctionDefinitionNode cfaFnDefNode = pCfa.getFunctionHead(node.getFunctionName());
+      assert(cfaFnDefNode instanceof FunctionDefinitionNode);
+      FunctionDefinitionNode fnDefNode = (FunctionDefinitionNode)cfaFnDefNode;
 
       FunctionStats fnStat = result.get(fnDefNode);
       if (fnStat == null) {
         fnStat = new FunctionStats();
         result.put(fnDefNode, fnStat);
+
+        fnStat.staticFunctionCalls = fnDefNode.getNumEnteringEdges();
+        fnStat.parameters = fnDefNode.getFunctionParameters().size();
       }
 
       fnStat.nodeCount++;
@@ -127,6 +136,8 @@ public class ControlFlowStatistics {
     String[] csvFields = new String[]{
         "Sourcefile",
         "Functionname",
+        "StaticFunctionCalls",
+        "Parameters",
         "Nodes",
         "Edges",
         "Branches",
@@ -150,8 +161,10 @@ public class ControlFlowStatistics {
     for (CFAFunctionDefinitionNode fnDefNode : functionStats.keySet()) {
       FunctionStats fs = functionStats.get(fnDefNode);
       Object[] line = new Object[]{
-          "TODO",
+          fnDefNode.getFilename(),
           fnDefNode.getFunctionName(),
+          fs.staticFunctionCalls,
+          fs.parameters,
           fs.nodeCount,
           fs.edgeCount,
           fs.branchCount,

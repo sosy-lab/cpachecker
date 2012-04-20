@@ -40,8 +40,8 @@ import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 import org.sosy_lab.cpachecker.util.clustering.ReducedCfaClusterer;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
-@Options(prefix="cpa.predicate.blk.cfareduction")
-public class CfaReductionBlockOperator extends AbstractBlockOperator implements BlockOperator  {
+@Options(prefix="cpa.predicate.blk.cfareduction2")
+public class CfaReductionBlockOperator2 extends AbstractBlockOperator implements BlockOperator  {
 
   @Option(description="Consider the callstack for the explicitly computed abstraction nodes.")
   private boolean considerCallstack = true;
@@ -51,7 +51,7 @@ public class CfaReductionBlockOperator extends AbstractBlockOperator implements 
 
   private final ItemTree<String, CFANode> abstractionNodes;
 
-  public CfaReductionBlockOperator(Configuration pConfig, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
+  public CfaReductionBlockOperator2(Configuration pConfig, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
     super(pConfig, pLogger, pCFA);
     pConfig.inject(this);
 

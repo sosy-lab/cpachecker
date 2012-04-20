@@ -52,14 +52,14 @@ public class ReducedNode {
   private int summarizations;
   private boolean isAbstractioNode;
   private int functionCallId;
-  private String[] callstack;
+  private String[] callstack = {};
 
   public String[] getCallstack() {
     return this.callstack;
   }
 
   public ReducedNode(CFANode pWrappedNode) {
-    this(pWrappedNode, null);
+    this(pWrappedNode, new String[]{});
   }
 
   public ReducedNode(CFANode pWrappedNode, String[] pCallstack) {
@@ -129,5 +129,10 @@ public class ReducedNode {
 
   public int getFunctionCallId() {
     return this.functionCallId;
+  }
+
+  @Override
+  public String toString() {
+    return String.format("%s@%d,%d", this.getNodeKind(), this.wrappedNode.getLineNumber(), this.getUniqueNodeId());
   }
 }

@@ -72,6 +72,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       ComputeAbstractionElement element = (ComputeAbstractionElement)pElement;
       PredicatePrecision precision = (PredicatePrecision)pPrecision;
 
+      //System.out.println("Doing abstraction on " + element.getLocation().getLineNumber());
       pElement = computeAbstraction(element, precision);
     }
 

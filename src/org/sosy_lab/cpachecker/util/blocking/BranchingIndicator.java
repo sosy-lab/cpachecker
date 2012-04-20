@@ -21,29 +21,17 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.blocking.container;
+package org.sosy_lab.cpachecker.util.blocking;
 
-import java.util.HashSet;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.util.blocking.container.ItemTree;
+import org.sosy_lab.cpachecker.util.blocking.container.ReducedFunction;
 
 
-public class ReducedEdge {
-  private HashSet<ReducedEdge> reduces = new HashSet<ReducedEdge>();
-  private ReducedNode pointsTo;
+public class BranchingIndicator {
 
-  public void addEdge(ReducedEdge pEdge) {
-    this.reduces.add(pEdge);
-    this.reduces.addAll(pEdge.reduces);
-  }
-
-  public ReducedEdge(ReducedNode pPointsTo) {
-    this.pointsTo = pPointsTo;
-  }
-
-  public ReducedNode getPointsTo() {
-    return this.pointsTo;
-  }
-
-  public int getReductions() {
-    return Math.max(0, this.reduces.size() - 1);
+  public int calculateBranchingIndicator(ReducedFunction pInlinedProg, ItemTree<String, CFANode> pAbstrNodes) {
+    // A join point belongs to a merge point.
+    return 0;
   }
 }

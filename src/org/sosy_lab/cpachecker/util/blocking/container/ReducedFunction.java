@@ -69,7 +69,7 @@ public class ReducedFunction {
     activeNodes.add(pFrom);
     activeNodes.add(pTo);
 
-    //System.out.println(String.format("add: %d --> %d", pFrom.getWrapped().getLineNumber(), pTo.getWrapped().getLineNumber()));
+    //System.out.println(String.format("add: %d --> %d: %d", pFrom.getWrapped().getLineNumber(), pTo.getWrapped().getLineNumber(), pEdge.getReductions()));
 
     assert (activeNodes.count(pFrom) > 0);
     assert (activeNodes.count(pTo) > 0);
