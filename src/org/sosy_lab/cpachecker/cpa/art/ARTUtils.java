@@ -44,8 +44,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
+import org.sosy_lab.cpachecker.cpa.seplogic.SeplogicElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 
 /**
@@ -276,6 +278,15 @@ public class ARTUtils {
     if(explicit != null) {
       builder.append("\\n");
       builder.append(explicit.toCompactString());
+    }
+
+    SeplogicElement slElement = AbstractElements.extractElementByType(currentElement, SeplogicElement.class);
+    if (slElement != null) {
+      builder.append("\\n");
+      builder.append(slElement.getHeap().toString().replace("\"", "\\\"").replace(" * ", " *\\n"));
+      // builder.append("\\n--------------\\n");
+      // builder.append(slElement.getMissing().getRepr().replace("\"", "\\\"").replace(" * ", " *\\n"));
+      builder.append(Joiner.on(", ").join(slElement.getNamespaces()));
     }
 
     return builder.toString();
