@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.Model.Function;
 import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -42,11 +43,11 @@ public class SmtInterpolModel {
 
   private static TermType toSmtInterpolType(Sort sort) {
 
-    if ("Bool".equals(sort.getName())) {
+    if (Type.BOOL.toString().equals(sort.getName())) {
       return TermType.Boolean;
-    } else if ("Int".equals(sort.getName())) {
+    } else if (Type.INT.toString().equals(sort.getName())) {
       return TermType.Integer;
-    } else if ("Real".equals(sort.getName())) {
+    } else if (Type.REAL.toString().equals(sort.getName())) {
       return TermType.Real;
 
       // TODO TermType.Uninterpreted; TermType.Bitvector;
@@ -151,10 +152,10 @@ public class SmtInterpolModel {
       // TODO we are assuming numbers as values
       if (!(SmtInterpolUtil.isNumber(lValueTerm)
             || SmtInterpolUtil.isBoolean(lValueTerm))) {
-        // TODO do nothing, is there a bug in SmtInterpol??
+        // TODO is there a bug in SmtInterpol??
         // with new version from 2012.04.09 there can be ApplicationTerms in the model
-
-        // throw new IllegalArgumentException("term is not a number: " + lValueTerm);
+        // we put the Term into the model
+        model.put(lAssignable, SmtInterpolFormulaManager.dequote(lValueTerm.toStringDirect()));
       } else {
 
       String lTermRepresentation = lValueTerm.toString();

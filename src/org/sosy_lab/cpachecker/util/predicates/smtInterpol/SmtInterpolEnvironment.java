@@ -72,6 +72,7 @@ public class SmtInterpolEnvironment implements Script {
     INT("Int"),
     REAL("Real");
     // TODO more types?
+    // TODO merge enum with ModelTypes?
 
 	private final String name;
 

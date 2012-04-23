@@ -91,7 +91,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
   /** ApplicationTerms can be wrapped with "|".
    * This function removes those chars. */
-  private static String dequote(String s) {
+  static String dequote(String s) {
     return s.replace("|", "");
   }
 
