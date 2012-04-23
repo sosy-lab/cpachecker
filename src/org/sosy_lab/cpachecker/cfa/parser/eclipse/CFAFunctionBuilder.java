@@ -48,6 +48,7 @@ import org.eclipse.cdt.core.dom.ast.IASTContinueStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarationStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDefaultStatement;
+import org.eclipse.cdt.core.dom.ast.IASTDoStatement;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
@@ -389,12 +390,44 @@ class CFAFunctionBuilder extends ASTVisitor {
       // TODO: I think we can ignore these here...
     } else if (statement instanceof IASTProblemStatement) {
       visit(((IASTProblemStatement)statement).getProblem());
+    } else if (statement instanceof IASTDoStatement) {
+      handleDoWhileStatement((IASTDoStatement)statement, fileloc);
     } else {
       throw new CFAGenerationRuntimeException("Unknown AST node "
           + statement.getClass().getSimpleName(), statement);
     }
 
     return PROCESS_CONTINUE;
+  }
+
+  private void handleDoWhileStatement(IASTDoStatement doStatement, IASTFileLocation fileloc) {
+    final CFANode prevNode = locStack.pop();
+
+    final CFANode loopStart = new CFANode(fileloc.getStartingLineNumber(),
+        cfa.getFunctionName());
+    cfaNodes.add(loopStart);
+    loopStart.setLoopStart();
+    loopStartStack.push(loopStart);
+
+    final CFANode firstLoopNode = new CFANode(fileloc.getStartingLineNumber(),
+        cfa.getFunctionName());
+    cfaNodes.add(firstLoopNode);
+
+    final CFANode postLoopNode = new CFALabelNode(fileloc.getEndingLineNumber(),
+        cfa.getFunctionName(), "");
+    cfaNodes.add(postLoopNode);
+    loopNextStack.push(postLoopNode);
+
+    // inverse order here!
+    locStack.push(postLoopNode);
+    locStack.push(firstLoopNode);
+
+    final BlankEdge blankEdge = new BlankEdge("", fileloc.getStartingLineNumber(),
+        prevNode, firstLoopNode, "do");
+    addToCFA(blankEdge);
+
+    createConditionEdges(doStatement.getCondition(), fileloc.getStartingLineNumber(),
+        loopStart, firstLoopNode, postLoopNode);
   }
 
   private void handleConditionalStatement(IASTConditionalExpression condExp, CFANode rootNode, CFANode lastNode, org.sosy_lab.cpachecker.cfa.ast.IASTNode statement) {
@@ -1317,7 +1350,17 @@ class CFAFunctionBuilder extends ASTVisitor {
               prevNode, startNode, "");
           addToCFA(blankEdge);
         }
+        CFANode nextNode = loopNextStack.pop();
+        assert nextNode == locStack.peek();
+      } else if (statement.getPropertyInParent() == IASTDoStatement.BODY) {
+        CFANode prevNode = locStack.pop();
+        CFANode startNode = loopStartStack.pop();
 
+        if (isReachableNode(prevNode)) {
+          BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(),
+              prevNode, startNode, "");
+          addToCFA(blankEdge);
+        }
         CFANode nextNode = loopNextStack.pop();
         assert nextNode == locStack.peek();
       }
