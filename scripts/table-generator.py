@@ -370,6 +370,22 @@ def mergeFilelists(listOfTests, filenames):
             result.filelist.append(fileResult)
 
 
+def findCommonSourceFiles(listOfTests):
+    filesInFirstTest = listOfTests[0].getSourceFileNames()
+
+    fileSet = set(filesInFirstTest)
+    for result in listOfTests:
+        fileSet = fileSet & set(result.getSourceFileNames())
+
+    fileList = []
+    if not fileSet:
+        print('No files are present in all benchmark results.')
+    else:
+        fileList = [file for file in filesInFirstTest if file in fileSet]
+        mergeFilelists(listOfTests, fileList)
+
+    return fileList
+
 def ensureEqualSourceFiles(listOfTests):
     # take the files of the first test
     fileNames = listOfTests[0].getSourceFileNames()
@@ -824,9 +840,18 @@ def main(args=None):
         help="If resultfiles with distinct sourcefiles are found, " \
             + "should the sourcefilenames be merged?"
     )
+    parser.add_option("-c", "--common",
+        action="store_true", dest="common",
+        help="If resultfiles with distinct sourcefiles are found, " \
+            + "use only the sourcefiles common to all resultfiles."
+    )
 
     options, args = parser.parse_args(args)
     args = args[1:] # skip args[0] which is the name of this script
+
+    if options.merge and options.common:
+        print("Invalid combination of arguments (--merge and --common)")
+        exit()
 
     if options.outputPath:
         global OUTPUT_PATH
@@ -867,6 +892,8 @@ def main(args=None):
     if options.merge:
         # merge list of tests, so that all tests contain the same filenames
         fileNames = mergeSourceFiles(listOfTests)
+    elif options.common:
+        fileNames = findCommonSourceFiles(listOfTests)
     else:
         fileNames, listOfTests = ensureEqualSourceFiles(listOfTests)
 
