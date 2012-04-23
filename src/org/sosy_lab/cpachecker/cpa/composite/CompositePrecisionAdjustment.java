@@ -126,7 +126,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     AbstractElement outElement = modified ? new CompositeElement(outElements.build())     : pElement;
     Precision outPrecision     = modified ? new CompositePrecision(outPrecisions.build()) : pPrecision;
 
-    return new Triple<AbstractElement, Precision, Action>(outElement, outPrecision, action);
+    return Triple.of(outElement, outPrecision, action);
   }
 
 }

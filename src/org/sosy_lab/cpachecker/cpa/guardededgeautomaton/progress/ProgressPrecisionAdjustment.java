@@ -58,10 +58,10 @@ public class ProgressPrecisionAdjustment implements PrecisionAdjustment {
 
       Precision lAdjustedPrecision = lPrecision.remove(lElement.getTransition());
 
-      return new Triple<AbstractElement, Precision, Action>(new AlternationElement(lStateElement), lAdjustedPrecision, Action.BREAK);
+      return Triple.<AbstractElement, Precision, Action>of(new AlternationElement(lStateElement), lAdjustedPrecision, Action.BREAK);
     }
     else {
-      return new Triple<AbstractElement, Precision, Action>(lElement.getWrappedElement(), pPrecision, Action.CONTINUE);
+      return Triple.<AbstractElement, Precision, Action>of(lElement.getWrappedElement(), pPrecision, Action.CONTINUE);
     }
   }
 

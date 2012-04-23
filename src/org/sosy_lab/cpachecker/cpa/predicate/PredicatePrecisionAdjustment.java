@@ -76,8 +76,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     }
 
     totalPrecTime.stop();
-    return new Triple<AbstractElement, Precision, Action>(
-        pElement, pPrecision, Action.CONTINUE);
+    return Triple.of(pElement, pPrecision, Action.CONTINUE);
   }
 
   /**
