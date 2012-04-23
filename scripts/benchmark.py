@@ -1683,7 +1683,7 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
         elif ((returncode == 0 or returncode == 1)
                 and ('Exception' in line)
                 and not line.startswith('cbmc')): # ignore "cbmc error output: ... Minisat::OutOfMemoryException"
-            status = 'EXCEPTION'
+            status = 'ASSERTION' if 'java.lang.AssertionError' in line else 'EXCEPTION'
         elif 'Could not reserve enough space for object heap' in line:
             status = 'JAVA HEAP ERROR'
         elif (status is None) and line.startswith('Verification result: '):
