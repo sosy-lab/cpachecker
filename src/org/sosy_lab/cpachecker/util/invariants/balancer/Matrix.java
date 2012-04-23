@@ -935,6 +935,10 @@ public class Matrix implements MatrixI {
 
   }
 
+  // Set a limit on the width of any column. Any entry going over this width will be
+  // given an abbreviation, and displayed in full underneath the matrix.
+  // Set to 0 if you don't want to impose any maximum.
+  private int colWidthCap = 6;
   @Override
   public String toString() {
     // End caps and gaps:
@@ -946,8 +950,13 @@ public class Matrix implements MatrixI {
     int maxLen = 150;
 
     // How many chars for max row number?
+    // I.e. how many decimal digits in the decimal representation of the number of rows
+    // in the matrix?
     int maxrownumchars = Integer.toString(rowNum-1).length();
-    maxLen -= maxrownumchars; // if maxrownumchars >= 150, you're nuts.
+    maxLen -= maxrownumchars;
+    // This is okay as long as maxrownumchars < 150.
+    // If not, then you have a matrix of at least 10^150 rows!!
+    // Your computer doesn't have that much memory....
 
     // Get the width of each column.
     int[] widths = new int[colNum];
@@ -956,7 +965,20 @@ public class Matrix implements MatrixI {
       for (int i = 0; i < rowNum; i++) {
         l = entry[i][j].toString().length();
         if (l > w) {
-          w = l;
+          // Then this entry is longer than those seen before.
+          if (colWidthCap > 0 && l > colWidthCap) {
+            // In this case, we are limiting column widths, and this entry exceeds
+            // the limit. So we do not update w, except to try to make sure it is
+            // at least wide enough for the substitution string we will put in for
+            // this entry. We'll go for a width of 3 here permitting %0 up to %99.
+            // If there are more than 100 abbreviated entries, your matrix is
+            // probably too bad to browse anyway.
+            if (w < 3) {
+              w = 3;
+            }
+          } else {
+            w = l;
+          }
         }
       }
       widths[j] = w;
@@ -1005,6 +1027,7 @@ public class Matrix implements MatrixI {
     String spaces = new String(sps);
 
     // Now write.
+    List<String> abbreviatedEntries = new Vector<String>();
     String s = "";
     String e;
     int W;
@@ -1014,6 +1037,10 @@ public class Matrix implements MatrixI {
       s += left;
       for (int j = 0; j < colNum; j++) {
         e = entry[i][j].toString();
+        if (colWidthCap > 0 && e.length() > colWidthCap) {
+          abbreviatedEntries.add(e);
+          e = "%"+Integer.toString(abbreviatedEntries.size());
+        }
         if (widths[j] < maxLen) {
           W = widths[j] - e.length();
           s += pre[j] + spaces.substring(0,W) + e;
@@ -1023,6 +1050,15 @@ public class Matrix implements MatrixI {
       }
       s += right;
     }
+
+    if (colWidthCap > 0 && abbreviatedEntries.size() > 0) {
+      s += "\n";
+      for (int i = 0; i < abbreviatedEntries.size(); i++) {
+        s += "%"+Integer.toString(i+1)+": "+abbreviatedEntries.get(i)+"\n";
+      }
+      s += "\n";
+    }
+
     return s;
   }
 
