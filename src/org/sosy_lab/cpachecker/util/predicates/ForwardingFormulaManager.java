@@ -49,6 +49,11 @@ public class ForwardingFormulaManager implements FormulaManager {
   }
 
   @Override
+  public boolean isPurelyConjunctive(Formula pF) {
+    return delegate.isPurelyConjunctive(pF);
+  }
+
+  @Override
   public Formula makeTrue() {
     return delegate.makeTrue();
   }

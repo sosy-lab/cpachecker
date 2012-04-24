@@ -137,7 +137,8 @@ public class CtoFormulaConverter {
   @Option(description = "the machine model used for functions sizeof and alignof")
   private MachineModel machineModel = MachineModel.LINUX32;
 
-  @Option(description = "handle Pointers")
+  @Option(description = "Handle aliasing of pointers. "
+        + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
   private boolean handlePointerAliasing = true;
 
   @Option(description = "list of functions that provide new memory on the heap."

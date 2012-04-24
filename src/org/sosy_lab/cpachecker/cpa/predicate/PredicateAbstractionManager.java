@@ -89,6 +89,8 @@ public class PredicateAbstractionManager {
   @Option(name="abs.useCache", description="use caching of abstractions")
   private boolean useCache = true;
 
+  private boolean warnedOfCartesianAbstraction = false;
+
   private final Map<Pair<Formula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
@@ -208,6 +210,11 @@ public class PredicateAbstractionManager {
       if (!feasibility) {
         // abstract post leads to false, we can return immediately
         return rmgr.makeFalse();
+      }
+
+      if (!warnedOfCartesianAbstraction && !fmgr.isPurelyConjunctive(f)) {
+        logger.log(Level.WARNING, "Using cartesian abstraction when formulas contain disjunctions may be imprecise. This might lead to failing refinements.");
+        warnedOfCartesianAbstraction = true;
       }
 
       try {
