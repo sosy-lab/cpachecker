@@ -132,8 +132,6 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private boolean printedAsmWarning = false;
 
-  private boolean caseStatementFallThrough = false;
-
   public CFAFunctionBuilder(LogManager pLogger, boolean pIgnoreCasts,
       Scope pScope, ASTConverter pAstCreator) {
 
@@ -1019,9 +1017,6 @@ class CFAFunctionBuilder extends ASTVisitor {
         cfa.getFunctionName());
     cfaNodes.add(nextNode);
     locStack.push(nextNode);
-
-    // when this is the end of an case-statement, fall-through is set to false
-    caseStatementFallThrough = false;
   }
 
   private void handleContinueStatement(IASTContinueStatement continueStatement,
@@ -1264,14 +1259,13 @@ class CFAFunctionBuilder extends ASTVisitor {
     cfaNodes.add(notCaseNode);
 
     // fall-through (case before has no "break")
-    if (caseStatementFallThrough) {
-      final CFANode oldNode = locStack.pop();
+    final CFANode oldNode = locStack.pop();
+    if (oldNode.getNumEnteringEdges() > 0) {
       final BlankEdge blankEdge =
           new BlankEdge("", filelocStart, oldNode, caseNode, "fall through");
       addToCFA(blankEdge);
-    } else {
-      locStack.pop();
     }
+
 
     switchCaseStack.push(notCaseNode);
     locStack.push(caseNode);
@@ -1286,8 +1280,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         filelocStart, rootNode, caseNode, binExp, true);
     addToCFA(assumeEdgeTrue);
 
-    // when there is NO fall-through this variable is set to false in handleBreakStatement
-    caseStatementFallThrough = true;
+
   }
 
   private void handleDefaultStatement(final IASTDefaultStatement statement,
@@ -1303,12 +1296,11 @@ class CFAFunctionBuilder extends ASTVisitor {
     cfaNodes.add(notCaseNode);
 
     // fall-through (case before has no "break")
-    if (caseStatementFallThrough) {
-      final CFANode oldNode = locStack.pop();
-      final BlankEdge blankEdge = new BlankEdge("", filelocStart, oldNode, caseNode, "fall through");
+    final CFANode oldNode = locStack.pop();
+    if (oldNode.getNumEnteringEdges() > 0) {
+      final BlankEdge blankEdge =
+          new BlankEdge("", filelocStart, oldNode, caseNode, "fall through");
       addToCFA(blankEdge);
-    } else {
-      locStack.pop();
     }
 
     switchCaseStack.push(notCaseNode); // for later cases, only reachable through jumps
@@ -1318,9 +1310,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     final BlankEdge trueEdge =
         new BlankEdge(statement.getRawSignature(), filelocStart, rootNode, caseNode, "default");
     addToCFA(trueEdge);
-
-    // this is the end of a switch-statement so fall through should be false
-    caseStatementFallThrough = false;
   }
 
   /* (non-Javadoc)
