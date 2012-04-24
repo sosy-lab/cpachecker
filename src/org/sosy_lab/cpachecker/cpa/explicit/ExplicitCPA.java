@@ -174,11 +174,11 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
     return precisionAdjustment;
   }
 
-  protected Configuration getConfiguration() {
+  public Configuration getConfiguration() {
     return config;
   }
 
-  protected LogManager getLogger() {
+  public LogManager getLogger() {
     return logger;
   }
 
@@ -192,11 +192,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
     pStatsCollection.add(statistics);
   }
 
-  ExplicitCPAStatistics getStats() {
+  public ExplicitCPAStatistics getStats() {
     return statistics;
-  }
-
-  CFA getCFA() {
-    return cfa;
   }
 }

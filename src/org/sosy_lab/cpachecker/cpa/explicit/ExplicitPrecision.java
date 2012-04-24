@@ -174,7 +174,7 @@ public class ExplicitPrecision implements Precision {
   }
 
   @Options(prefix="analysis")
-  class CegarPrecision {
+  public class CegarPrecision {
     /**
      * the collection that determines which variables are tracked at a specific location - if it is null, all variables are tracked
      */
@@ -212,7 +212,7 @@ public class ExplicitPrecision implements Precision {
              || mapping.containsEntry(currentLocation, variable);
     }
 
-    boolean allowsTrackingAt(CFANode location, String variable) {
+    public boolean allowsTrackingAt(CFANode location, String variable) {
       return mapping != null && mapping.containsEntry(location, variable);
     }
 
@@ -221,11 +221,11 @@ public class ExplicitPrecision implements Precision {
      *
      * @param additionalMapping the additional mapping to be added to the current mapping
      */
-    void addToMapping(Multimap<CFANode, String> additionalMapping) {
+    public void addToMapping(Multimap<CFANode, String> additionalMapping) {
       mapping.putAll(additionalMapping);
     }
 
-    Collection<String> getVariablesInPrecision() {
+    public Collection<String> getVariablesInPrecision() {
       return new HashSet<String>(mapping.values());
     }
 
