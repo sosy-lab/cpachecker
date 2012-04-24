@@ -41,12 +41,14 @@ public class IComplexType extends IType {
 
   @Override
   public boolean isConst() {
-    throw new UnsupportedOperationException();
+    // TODO is this correct?
+    return false;
   }
 
   @Override
   public boolean isVolatile() {
-    throw new UnsupportedOperationException();
+    // TODO is this correct?
+    return false;
   }
 
   @Override

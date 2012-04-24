@@ -28,6 +28,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.base.Joiner;
+
 public interface Type {
 
   /**
@@ -634,7 +636,8 @@ public static final class ArrayType extends AbstractType {
 
     @Override
     public String toString() {
-      return name + "()";
+      return returnType + " " + name + "(" + Joiner.on(", ").join(parameters.values())
+          + (hasVarArgs ? ", ..." : "") + ")";
     }
 
     @Override
