@@ -1360,49 +1360,19 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     } else if (statement instanceof IASTCompoundStatement) {
       scope.leaveBlock();
-      if (statement.getPropertyInParent() == IASTWhileStatement.BODY) {
-        CFANode prevNode = locStack.pop();
-        CFANode startNode = loopStartStack.pop();
 
-        if (isReachableNode(prevNode)) {
-          BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(),
-              prevNode, startNode, "");
-          addToCFA(blankEdge);
-        }
-        CFANode nextNode = loopNextStack.pop();
-        assert nextNode == locStack.peek();
-      } else if (statement.getPropertyInParent() == IASTDoStatement.BODY) {
-        CFANode prevNode = locStack.pop();
-        CFANode startNode = loopStartStack.pop();
-
-        if (isReachableNode(prevNode)) {
-          BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(),
-              prevNode, startNode, "");
-          addToCFA(blankEdge);
-        }
-        CFANode nextNode = loopNextStack.pop();
-        assert nextNode == locStack.peek();
-      }
-
-    } else if (statement instanceof IASTWhileStatement) { // Code never hit due to bug in Eclipse CDT
-      /* Commented out, because with CDT 6, the branch above _and_ this branch
-       * are hit, which would result in an exception.
+    } else if (statement instanceof IASTWhileStatement
+            || statement instanceof IASTDoStatement) {
       CFANode prevNode = locStack.pop();
+      CFANode startNode = loopStartStack.pop();
 
-      if (!prevNode.hasJumpEdgeLeaving())
-      {
-        CFANode startNode = loopStartStack.peek();
-
-        if (!prevNode.hasEdgeTo(startNode))
-        {
-          BlankEdge blankEdge = new BlankEdge("");
-          blankEdge.initialize(prevNode, startNode);
-        }
+      if (isReachableNode(prevNode)) {
+        BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(),
+            prevNode, startNode, "");
+        addToCFA(blankEdge);
       }
-
-      loopStartStack.pop();
-      loopNextStack.pop();
-      */
+      CFANode nextNode = loopNextStack.pop();
+      assert nextNode == locStack.peek();
     }
     return PROCESS_CONTINUE;
   }
