@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,9 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.PredicateMap;
@@ -56,12 +59,16 @@ import com.google.common.collect.Multimap;
 
 public class PredicatingExplicitRefiner implements IExplicitRefiner {
 
-  private int previousPathHash = -1;
+  private int previousPathHash                                = -1;
 
-  protected List<Pair<ARTElement, CFAEdge>> currentErrorPath = null;
+  protected List<Pair<ARTElement, CFAEdge>> currentErrorPath  = null;
+
+  private int numberOfPredicateRefinements                    = 0;
+  private int numberOfPredicateRefinementsDone                = 0;
 
   @Override
   public final List<Pair<ARTElement, CFANode>> transformPath(Path errorPath) {
+    numberOfPredicateRefinements++;
 
     List<Pair<ARTElement, CFANode>> result = Lists.newArrayList();
 
@@ -93,21 +100,19 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
   public Pair<ARTElement, Precision> performRefinement(Precision oldPrecision,
       List<Pair<ARTElement, CFANode>> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException {
-
-    Precision precision                           = null;
-    Multimap<CFANode, String> precisionIncrement  = null;
-    ARTElement interpolationPoint                 = null;
-
+    numberOfPredicateRefinementsDone++;
     // create the mapping of CFA nodes to predicates, based on the counter example trace info
     PredicateMap predicateMap = new PredicateMap(pInfo.getPredicatesForRefinement(), errorPath);
 
-    //numberOfPredicateRefinements++;
-    precision = createPredicatePrecision(extractPredicatePrecision(oldPrecision), predicateMap);
-    interpolationPoint = predicateMap.firstInterpolationPoint.getFirst();
+    Precision precision = createPredicatePrecision(extractPredicatePrecision(oldPrecision), predicateMap);
+    ARTElement interpolationPoint = predicateMap.firstInterpolationPoint.getFirst();
 
     return Pair.of(interpolationPoint, precision);
   }
 
+  /**
+   * This helper function is used to extract the block formula from an abstraction node.
+   */
   private static final Function<PredicateAbstractElement, Formula> GET_BLOCK_FORMULA
                 = new Function<PredicateAbstractElement, Formula>() {
                     @Override
@@ -131,6 +136,13 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
     return predicatePrecision;
   }
 
+  /**
+   * This method creates the new predicate precision based on the old precision and the increment.
+   *
+   * @param oldPredicatePrecision the old predicate precision to build on
+   * @param predicateMap the precision increment
+   * @return the new predicate precision
+   */
   private PredicatePrecision createPredicatePrecision(PredicatePrecision oldPredicatePrecision,
                                                     PredicateMap predicateMap) {
     Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPredicatePrecision.getPredicateMap();
@@ -160,5 +172,12 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
   @Override
   public void setCurrentErrorPath(List<Pair<ARTElement, CFAEdge>> currentErrorPath) {
     this.currentErrorPath = currentErrorPath;
+  }
+
+  @Override
+  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+    out.println(this.getClass().getSimpleName() + ":");
+    out.println("  number of predicate refinements:           " + numberOfPredicateRefinements);
+    out.println("  number of predicate refinements done:      " + numberOfPredicateRefinementsDone);
   }
 }

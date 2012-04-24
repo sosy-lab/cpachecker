@@ -67,6 +67,9 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
 
   private Set<Integer> pathHashes = new HashSet<Integer>();
 
+  // statistics
+  protected int numberOfExplicitRefinements                   = 0;
+
   @Option(description="whether or not to always use the inital node as starting point for the next iteration")
   boolean useInitialNodeAsRestartingPoint = true;
 
@@ -113,6 +116,8 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
       Precision oldPrecision,
       List<Pair<ARTElement, CFANode>> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> traceInfo) throws CPAException {
+    numberOfExplicitRefinements++;
+
     currentNodePath   = errorPath;
     currentTraceInfo  = traceInfo;
 

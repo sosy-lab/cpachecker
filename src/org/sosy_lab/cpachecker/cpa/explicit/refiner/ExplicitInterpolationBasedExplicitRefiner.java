@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -36,6 +38,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.explicit.AssignedVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.AssumptionVariablesCollector;
@@ -52,7 +56,12 @@ import com.google.common.collect.Multimap;
 public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
 
   @Option(description="whether or not to use assumption-closure for explicit refinement")
-  boolean useAssumptionClosure = false;
+  boolean useAssumptionClosure = true;
+
+  // statistics
+  private int numberOfCounterExampleChecks                  = 0;
+  private int numberOfErrorPathElements                     = 0;
+  private Timer timerCounterExampleChecks                   = new Timer();
 
   protected ExplicitInterpolationBasedExplicitRefiner(
       Configuration config, PathFormulaManager
@@ -63,7 +72,7 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
 
   @Override
   protected Multimap<CFANode, String> determinePrecisionIncrement(ExplicitPrecision oldPrecision) throws CPAException {
-    //timerCounterExampleChecks.start();
+    timerCounterExampleChecks.start();
 
     Multimap<CFANode, String> increment = HashMultimap.create();
 
@@ -86,7 +95,7 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
     for(int i = 0; i < cfaTrace.size(); i++){
       CFAEdge currentEdge = cfaTrace.get(i);
 
-      //numberOfErrorPathElements++;
+      numberOfErrorPathElements++;
 
       if(currentEdge instanceof FunctionReturnEdge) {
         currentEdge = ((FunctionReturnEdge)currentEdge).getSummaryEdge();
@@ -107,7 +116,7 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
       // check for each variable, if ignoring it makes the error path feasible
       // it might be more reasonable to do this once for all variables referenced in this edge (esp. for assumes)
       for(String importantVariable : referencedVariablesAtEdge) {
-        //numberOfCounterExampleChecks++;
+        numberOfCounterExampleChecks++;
 
         // variables to ignore in the current run
         variablesToBeIgnored.put(currentEdge.getSuccessor(), importantVariable);
@@ -121,7 +130,7 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
       }
     }
 
-    //timerCounterExampleChecks.stop();
+    timerCounterExampleChecks.stop();
     return increment;
   }
 
@@ -195,5 +204,16 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
     catch (InterruptedException e) {
       throw new CPAException("counterexample-check failed: ", e);
     }
+  }
+
+  @Override
+  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+    out.println(this.getClass().getSimpleName() + ":");
+    out.println("  number of explicit refinements:           " + numberOfExplicitRefinements);
+    out.println("  number of counter-example checks:         " + numberOfCounterExampleChecks);
+    out.println("  total number of elements in error paths:  " + numberOfErrorPathElements);
+    out.println("  percentage of elements checked:           " + (Math.round(((double)numberOfCounterExampleChecks / (double)numberOfErrorPathElements) * 10000) / 100.00) + "%");
+    out.println("  max. time for singe check:                " + timerCounterExampleChecks.printMaxTime());
+    out.println("  total time for checks:                    " + timerCounterExampleChecks);
   }
 }

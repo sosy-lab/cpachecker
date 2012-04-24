@@ -23,15 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.PredicateMap;
 import org.sosy_lab.cpachecker.cpa.explicit.ReferencedVariablesCollector;
@@ -45,6 +49,9 @@ import com.google.common.collect.Multimap;
 public class SmtBasedExplicitRefiner extends ExplicitRefiner {
 
   private final ExtendedFormulaManager formulaManager;
+
+  // statistics
+  private Timer timerSyntacticalPathAnalysis                = new Timer();
 
   protected SmtBasedExplicitRefiner(
       Configuration config,
@@ -66,8 +73,6 @@ public class SmtBasedExplicitRefiner extends ExplicitRefiner {
     // also add variables occurring on the error path and referenced by variables in precision increment
     precisionIncrement.putAll(determineReferencedVariablesInPath(oldPrecision, precisionIncrement));
 
-    //numberOfExplicitRefinements++;
-
     // create the new precision
     return precisionIncrement;
   }
@@ -87,5 +92,13 @@ public class SmtBasedExplicitRefiner extends ExplicitRefiner {
     Multimap<CFANode, String> referencedVariables = collector.collectVariables(cfaTrace);
 
     return referencedVariables;
+  }
+
+  @Override
+  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+    out.println(this.getClass().getSimpleName() + ":");
+    out.println("  number of explicit refinements:            " + numberOfExplicitRefinements);
+    out.println("  max. time for syntactical path analysis:   " + timerSyntacticalPathAnalysis.printMaxTime());
+    out.println("  total time for syntactical path analysis:  " + timerSyntacticalPathAnalysis);
   }
 }

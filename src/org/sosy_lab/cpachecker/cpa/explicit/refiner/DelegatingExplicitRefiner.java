@@ -31,6 +31,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -77,12 +78,20 @@ public class DelegatingExplicitRefiner
 
   private final boolean predicateCpaAvailable;
 
-  private IExplicitRefiner refiner;
+  private final IExplicitRefiner explicitRefiner;
+
+  private IExplicitRefiner currentRefiner = null;
+
+  private IExplicitRefiner predicateRefiner = null;
 
   private Boolean fullPrecisionCheckIsFeasable              = null;
 
   @Option(description="whether or not to use explicit interpolation")
   boolean useExplicitInterpolation                          = false;
+
+  // statistics
+  final Timer precisionUpdate                               = new Timer();
+  final Timer artUpdate                                     = new Timer();
 
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -111,7 +120,7 @@ public class DelegatingExplicitRefiner
     PredicateCPA predicateCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class);
 
     boolean predicateCpaAvailable = predicateCpa != null;
-    if (predicateCpaAvailable) {
+    if(predicateCpaAvailable) {
       factory                     = predicateCpa.getFormulaManagerFactory();
       formulaManager              = predicateCpa.getFormulaManager();
       pathFormulaManager          = predicateCpa.getPathFormulaManager();
@@ -159,31 +168,56 @@ public class DelegatingExplicitRefiner
 
     config.inject(this, DelegatingExplicitRefiner.class);
 
-    this.predicateCpaAvailable  = predicateCpaAvailable;
-
     if(useExplicitInterpolation) {
-      refiner = new ExplicitInterpolationBasedExplicitRefiner(config, pathFormulaManager);
+      explicitRefiner = new ExplicitInterpolationBasedExplicitRefiner(config, pathFormulaManager);
     }
     else{
-      refiner = new SmtBasedExplicitRefiner(config, pathFormulaManager, formulaManager);
+      explicitRefiner = new SmtBasedExplicitRefiner(config, pathFormulaManager, formulaManager);
     }
+
+    this.predicateCpaAvailable = predicateCpaAvailable;
+  }
+
+  /**
+   * This method chooses the refiner to be used in the current iteration.
+   *
+   * The selection is based on the current error path, i.e. if it is a repeated counter-example, and the fact,
+   * if a PredicateCPA is available - if so, this PredicateCPA is refined if the ExplicitCPA is not powerful
+   * enough to prove a path as infeasible
+   *
+   * @param errorPath the current error path
+   * @return the refiner to be used in the current iteration
+   */
+  private IExplicitRefiner chooseCurrentRefiner(final Path errorPath) {
+    // explicit refiner made progress, so continue with that
+    if(explicitRefiner.hasMadeProgress(errorPath)) {
+      return explicitRefiner;
+    }
+    else {
+      if(predicateCpaAvailable) {
+        if(predicateRefiner == null) {
+          predicateRefiner = new PredicatingExplicitRefiner();
+        }
+
+        if(predicateRefiner.hasMadeProgress(errorPath)) {
+          return predicateRefiner;
+        }
+      }
+    }
+
+    return null;
   }
 
   @Override
   protected CounterexampleInfo performRefinement(final ARTReachedSet reached, final Path errorPath)
       throws CPAException, InterruptedException {
+    explicitRefiner.setCurrentErrorPath(errorPath);
 
-    refiner.setCurrentErrorPath(errorPath);
+    currentRefiner = chooseCurrentRefiner(errorPath);
 
-    if(!refiner.hasMadeProgress(errorPath)) {
-      List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
-      for(Pair<ARTElement, CFAEdge> pathElement : errorPath){
-        cfaTrace.add(pathElement.getSecond());
-      }
-
-      fullPrecisionCheckIsFeasable = isPathFeasable(cfaTrace);
-
-      throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
+    // no refiner is able to to disprove the current path, so stop the analysis
+    if(currentRefiner == null) {
+      stopRefinement(errorPath);
     }
 
     return super.performRefinement(reached, errorPath);
@@ -191,13 +225,13 @@ public class DelegatingExplicitRefiner
 
   @Override
   protected final List<Pair<ARTElement, CFANode>> transformPath(Path errorPath) {
-    return refiner.transformPath(errorPath);
+    return currentRefiner.transformPath(errorPath);
   }
 
   @Override
   protected List<Formula> getFormulasForPath(List<Pair<ARTElement, CFANode>> errorPath, ARTElement initialElement)
       throws CPATransferException {
-    return refiner.getFormulasForPath(errorPath, initialElement);
+    return currentRefiner.getFormulasForPath(errorPath, initialElement);
   }
 
   @Override
@@ -211,19 +245,16 @@ public class DelegatingExplicitRefiner
     UnmodifiableReachedSet reached = pReached.asReachedSet();
     Precision oldPrecision = reached.getPrecision(reached.getLastElement());
 
-    //precisionUpdate.start();
-    Pair<ARTElement, Precision> result = refiner.performRefinement(oldPrecision, errorPath, counterexampleTraceInfo);
-    //precisionUpdate.stop();
+    precisionUpdate.start();
+    Pair<ARTElement, Precision> result = currentRefiner.performRefinement(oldPrecision, errorPath, counterexampleTraceInfo);
+    precisionUpdate.stop();
 
-    //artUpdate.start();
+    artUpdate.start();
     ARTElement root = result.getFirst();
-
     logger.log(Level.FINEST, "Found spurious counterexample,",
         "trying strategy 1: remove everything below", root, "from ART.");
-
     pReached.removeSubtree(root, result.getSecond());
-
-    //artUpdate.stop();
+    artUpdate.stop();
   }
 
   /**
@@ -243,28 +274,39 @@ public class DelegatingExplicitRefiner
     }
   }
 
+  /**
+   * This method stops the refinement, and does a full precision check along the path to reason why no progress was made.
+   *
+   * @param errorPath the error path to reason on why no progress was made.
+   * @throws CPAException when the full precision check fails
+   */
+  private void stopRefinement(Path errorPath) throws CPAException {
+    List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
+    for(Pair<ARTElement, CFAEdge> pathElement : errorPath){
+      cfaTrace.add(pathElement.getSecond());
+    }
+
+    fullPrecisionCheckIsFeasable = isPathFeasable(cfaTrace);
+
+    throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
+  }
+
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     super.printStatistics(out, result, reached);
-/*
-    if(useExplicitInterpolation) {
-      out.println("Explicit Interpolator:");
-      out.println("  number of counter-example checks:         " + numberOfCounterExampleChecks);
-      out.println("  total number of elements in error paths:  " + numberOfErrorPathElements);
-      out.println("  percentage of elements checked:           " + (Math.round(((double)numberOfCounterExampleChecks / (double)numberOfErrorPathElements) * 10000) / 100.00) + "%");
-      out.println("  max. time for singe check:            " + timerCounterExampleChecks.printMaxTime());
-      out.println("  total time for checks:                " + timerCounterExampleChecks);
-    } else {
-      out.println("Explicit Refiner:");
-      out.println("  number of explicit refinements:            " + numberOfExplicitRefinements);
 
-      if(predicateCpaAvailable)
-        out.println("  number of predicate refinements:           " + numberOfPredicateRefinements);
+    out.println("Explicit Refinement:");
+    out.println("total time for refining precision:       " + precisionUpdate);
+    out.println("total time used for updating ART:        " + artUpdate);
 
-      out.println("  max. time for syntactical path analysis:   " + timerSyntacticalPathAnalysis.printMaxTime());
-      out.println("  total time for syntactical path analysis:  " + timerSyntacticalPathAnalysis);
+    if(fullPrecisionCheckIsFeasable != null) {
+      out.println("full-precision-check is feasable:        " + (fullPrecisionCheckIsFeasable ? "yes" : "no"));
     }
-    out.println("  full-precision-check is feasable:        " + ((fullPrecCheckIsFeasable == null) ? " - " : (fullPrecCheckIsFeasable ? "yes" : "no")));
-    */
+
+    explicitRefiner.printStatistics(out, result, reached);
+
+    if(predicateRefiner != null) {
+      predicateRefiner.printStatistics(out, result, reached);
+    }
   }
 }
