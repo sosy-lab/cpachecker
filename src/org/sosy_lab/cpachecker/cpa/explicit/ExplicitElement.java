@@ -52,7 +52,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
    */
   private final ExplicitElement previousElement;
 
-  ExplicitElement() {
+  public ExplicitElement() {
     constantsMap    = new HashMap<String, Long>();
     previousElement = null;
   }

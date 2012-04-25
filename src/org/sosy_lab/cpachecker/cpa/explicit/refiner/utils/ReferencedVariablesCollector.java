@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit;
+package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
@@ -49,22 +48,36 @@ import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 /**
- * Helper class that collects the set of variables on which all assume edges in the given path depend on (i.e. the transitive closure).
+ * Helper class that collects the set of variables on which the initial given set depend on (i.e. the transitive closure).
+ *
+ * This step is necessary for handling programs like this:
+ * <code>
+ *  x = 1; // <- this location will not have any associated predicates
+ *  y = x;
+ *  z = x;
+ *  if(y != z)
+ *    goto ERROR;
+ * </code>
+ *
+ * Something similar might be needed for programs, like this, where x is a global variable. This is not handled yet.
+ * <code>
+ *  x = 1;
+ *  y = getX();
+ *  z = getX();
+ *  if(y != z)
+ *    goto ERROR;
+ * </code>
  */
- public class AssumptionVariablesCollector {
+public class ReferencedVariablesCollector {
   /**
    * the set of global variables declared in the given path
    */
@@ -77,8 +90,12 @@ import com.google.common.collect.Multimap;
 
   /**
    * This method acts as the constructor of the class.
+   *
+   * @param initalVariables the initial set of depending variables
    */
-  public AssumptionVariablesCollector() { }
+  public ReferencedVariablesCollector(Collection<String> initalVariables) {
+    this.dependingVariables.addAll(initalVariables);
+  }
 
   /**
    * This method collects the respective referenced variables in the given path.
@@ -92,9 +109,7 @@ import com.google.common.collect.Multimap;
 
     Multimap<CFANode, String> collectedVariables = HashMultimap.create();
     for(int i = path.size() - 1; i >= 0; i--) {
-      CFAEdge edge = path.get(i);
-      CFAEdge succ = (i == path.size() - 1) ? null : path.get(i + 1);
-      collectVariables(edge, collectedVariables, succ);
+      collectVariables(path.get(i), collectedVariables);
     }
 
     return collectedVariables;
@@ -132,135 +147,49 @@ import com.google.common.collect.Multimap;
    * @param edge the edge to analyze
    * @param collectedVariables the mapping of collected variables
    */
-  private void collectVariables(CFAEdge edge, Multimap<CFANode, String> collectedVariables, CFAEdge succ) {
+  private void collectVariables(CFAEdge edge, Multimap<CFANode, String> collectedVariables) {
     String currentFunction = edge.getPredecessor().getFunctionName();
 
     switch(edge.getEdgeType()) {
-    case BlankEdge:
-    case CallToReturnEdge:
-      //nothing to do
-      break;
-
-    case FunctionReturnEdge:
-      FunctionReturnEdge returnEdge = (FunctionReturnEdge)edge;
-
-      CallToReturnEdge callToReturnEdge = returnEdge.getSummaryEdge();
-
-      IASTFunctionCall functionCall = callToReturnEdge.getExpression();
-
-      if(functionCall instanceof IASTFunctionCallAssignmentStatement) {
-        IASTFunctionCallAssignmentStatement funcAssign = (IASTFunctionCallAssignmentStatement)functionCall;
-        String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), returnEdge.getSuccessor().getFunctionName());
-
-        if(dependingVariables.contains(assignedVariable)) {
-          collectedVariables.put(callToReturnEdge.getSuccessor(), assignedVariable);
-
-
-          ReturnStatementEdge returnStatementEdge;
-          CFAEdge currentEdge = null;
-          CFAEdge enteringEdge = returnEdge.getPredecessor().getEnteringEdge(0);
-
-          if(enteringEdge instanceof MultiEdge) {
-            for(CFAEdge singleEdge : (MultiEdge)enteringEdge) {
-              currentEdge = singleEdge;
-            }
-
-            enteringEdge = currentEdge;
-          }
-
-          assert(enteringEdge instanceof ReturnStatementEdge);
-
-          returnStatementEdge = (ReturnStatementEdge)enteringEdge;
-
-          collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables, true);
-        }
-      }
-      break;
-
-    case ReturnStatementEdge:
-      if(succ == null)
-        break;
-      ReturnStatementEdge returnStatementEdge = (ReturnStatementEdge)edge;
-
-      FunctionReturnEdge returnEdge2 = (FunctionReturnEdge)succ;
-
-      CallToReturnEdge callToReturnEdge2 = returnEdge2.getSummaryEdge();
-
-      IASTFunctionCall functionCall2 = callToReturnEdge2.getExpression();
-
-      if(functionCall2 instanceof IASTFunctionCallAssignmentStatement) {
-        IASTFunctionCallAssignmentStatement funcAssign = (IASTFunctionCallAssignmentStatement)functionCall2;
-        String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), succ.getSuccessor().getFunctionName());
-
-        if(dependingVariables.contains(assignedVariable)) {
-          collectedVariables.put(callToReturnEdge2.getSuccessor(), assignedVariable);
-          collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables, true);
-        }
-      }
-
-      break;
-
-    case DeclarationEdge:
-      //System.out.println("inspecting edge " + edge.getRawStatement());
-      IASTDeclaration declaration = ((DeclarationEdge)edge).getDeclaration();
-      if(declaration.getName() != null && declaration.isGlobal()) {
-        globalVariables.add(declaration.getName());
-
-        if(dependingVariables.contains(declaration.getName()))
-          collectedVariables.put(edge.getSuccessor(), declaration.getName());
-      }
-      break;
-
-    case FunctionCallEdge:
-      //System.out.println("inspecting edge " + edge.getRawStatement());
-      FunctionCallEdge functionCallEdge = (FunctionCallEdge)edge;
-
-      IASTFunctionCall func = functionCallEdge.getSummaryEdge().getExpression();
-
-      if(func instanceof IASTFunctionCallAssignmentStatement) {
-        IASTFunctionCallAssignmentStatement funcAssign = (IASTFunctionCallAssignmentStatement)func;
-        String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), currentFunction);
-
-        if(dependingVariables.contains(assignedVariable)) {
-          collectedVariables.put(functionCallEdge.getSummaryEdge().getSuccessor(), assignedVariable);
-          collectVariables(functionCallEdge, funcAssign.getRightHandSide(), collectedVariables, true);
-        }
-      }
-
-      String functionName = functionCallEdge.getSuccessor().getFunctionDefinition().getName();
-
-      int i = 0;
-      for(IASTParameterDeclaration parameter : functionCallEdge.getSuccessor().getFunctionDefinition().getDeclSpecifier().getParameters()) {
-        String parameterName = functionName + "::" + parameter.getName();
-
-        // collect the formal parameter, and make the argument a depending variable
-        if(dependingVariables.contains(parameterName)) {
-          collectedVariables.put(functionCallEdge.getSuccessor(), parameterName);
-          dependingVariables.add(functionCallEdge.getPredecessor().getFunctionName() + "::" + functionCallEdge.getArguments().get(i).toASTString());
-        }
-        i++;
-      }
-
-      break;
-
-    case AssumeEdge:
-      // System.out.println("inspecting edge " + edge.getRawStatement());
-      AssumeEdge assumeEdge = (AssumeEdge)edge;
-      collectVariables(assumeEdge, assumeEdge.getExpression(), collectedVariables, true);
-      break;
-
     case StatementEdge:
-      //System.out.println("inspecting edge " + edge.getRawStatement());
       StatementEdge statementEdge = (StatementEdge)edge;
       if (statementEdge.getStatement() instanceof IASTAssignment) {
         IASTAssignment assignment = (IASTAssignment)statementEdge.getStatement();
         String assignedVariable = scoped(assignment.getLeftHandSide().toASTString(), currentFunction);
 
+        // assigned variable is tracked, then also track assigning variables
         if(dependingVariables.contains(assignedVariable)) {
           collectedVariables.put(edge.getSuccessor(), assignedVariable);
-          collectVariables(statementEdge, assignment.getRightHandSide(), collectedVariables, false);
+          collectVariables(statementEdge, assignment.getRightHandSide(), collectedVariables);
         }
       }
+      break;
+
+    case FunctionCallEdge:
+      FunctionCallEdge functionCallEdge = (FunctionCallEdge)edge;
+      IASTFunctionCall functionCall     = functionCallEdge.getSummaryEdge().getExpression();
+
+      if(functionCall instanceof IASTFunctionCallAssignmentStatement) {
+        IASTFunctionCallAssignmentStatement funcAssign = (IASTFunctionCallAssignmentStatement)functionCall;
+        String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), currentFunction);
+
+        // assigned variable is tracked, then also track variables of function call
+        if(dependingVariables.contains(assignedVariable)) {
+          collectedVariables.put(functionCallEdge.getSummaryEdge().getSuccessor(), assignedVariable);
+          collectVariables(functionCallEdge, funcAssign.getRightHandSide(), collectedVariables);
+        }
+      }
+      break;
+
+    case AssumeEdge:
+      AssumeEdge assumeEdge = (AssumeEdge)edge;
+      IASTExpression assumeExpression = assumeEdge.getExpression();
+
+      // always inspect assume edges
+      collectVariables(assumeEdge, assumeExpression, collectedVariables);
+      break;
+
+    default:
       break;
     }
   }
@@ -287,11 +216,8 @@ import com.google.common.collect.Multimap;
    * @param rightHandSide the right hand side of the assignment
    * @param collectedVariables the current mapping of locations to variable names up to the current edge
    */
-  private void collectVariables(CFAEdge edge,
-                                IASTRightHandSide rightHandSide,
-                                Multimap<CFANode, String> collectedVariables,
-                                boolean dependOnly) {
-    rightHandSide.accept(new CollectVariablesVisitor(edge, collectedVariables, dependOnly));
+  private void collectVariables(CFAEdge edge, IASTRightHandSide rightHandSide, Multimap<CFANode, String> collectedVariables) {
+    rightHandSide.accept(new CollectVariablesVisitor(edge, collectedVariables));
   }
 
   /**
@@ -309,26 +235,34 @@ import com.google.common.collect.Multimap;
      */
     private final CFAEdge currentEdge;
 
-    boolean doCollect = true;
     /**
      * This method acts as the constructor of the class.
      *
      * @param currentEdge the assignment edge to analyze
      * @param collectedVariables the mapping of locations to variable names up to the current edge
      */
-    public CollectVariablesVisitor(CFAEdge currentEdge, Multimap<CFANode, String> collectedVariables, boolean dependOnly) {
+    public CollectVariablesVisitor(CFAEdge currentEdge, Multimap<CFANode, String> collectedVariables) {
       this.currentEdge         = currentEdge;
       this.collectedVariables  = collectedVariables;
-      this.doCollect           = dependOnly;
     }
 
     private void collectVariables(String variableName) {
-      //System.out.println("adding new depending variable " + scoped(variableName, currentEdge.getPredecessor().getFunctionName()));
 
-      dependingVariables.add(scoped(variableName, currentEdge.getPredecessor().getFunctionName()));
+      String scopedVariableName = scoped(variableName, currentEdge.getPredecessor().getFunctionName());
 
-      if(doCollect) {
-        collectedVariables.put(currentEdge.getSuccessor(), scoped(variableName, currentEdge.getPredecessor().getFunctionName()));
+      // only collect variables of assume edges if they are depended on
+      if(currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+        // @TODO: maybe try tracking "all" of these - or at least, when one variable is tracked, also track the other ones in an assume edge (if any)
+        // or track only those that are conjuncted (&&), but not those that are disjuncted (||)
+        if(dependingVariables.contains(scopedVariableName)) {
+          collectedVariables.put(currentEdge.getSuccessor(), scopedVariableName);
+        }
+      }
+      // for other CFA edge types, collect the variables (selection done beforehand based on assigned variable, see above)
+      else {
+        dependingVariables.add(scopedVariableName);
+
+        collectedVariables.put(currentEdge.getSuccessor(), scopedVariableName);
       }
     }
 
@@ -368,6 +302,7 @@ import com.google.common.collect.Multimap;
 
     @Override
     public Void visit(IASTFunctionCallExpression pE) {
+      pE.getFunctionNameExpression().accept(this);
       for (IASTExpression param : pE.getParameterExpressions()) {
         param.accept(this);
       }

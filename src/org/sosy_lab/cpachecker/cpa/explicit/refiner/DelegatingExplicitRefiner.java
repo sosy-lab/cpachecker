@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplictPathChecker;
+import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictPathChecker;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
