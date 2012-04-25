@@ -426,7 +426,7 @@ function getTableData(header, sort) {
       var currentRow = tableBody.rows[i];
 
       if(!$(currentRow).is(":visible")) {
-	continue;
+          continue;
       }
 
       for (j = 0; j < indices.length; j++) {
@@ -439,7 +439,10 @@ function getTableData(header, sort) {
             else if (currentCell.className.indexOf('wrong') == 0)  value = 0;
             else                                                  value = -1;
         } else {
-          value = parseFloat(currentCell.textContent)
+          value = parseFloat(currentCell.textContent);
+          if (value == 0 && graphData.isLogScale) {
+              value = 0.00001; // zero is not part of log-scale
+          }
         }
         data[j].push([i, value]);
       }
@@ -660,7 +663,7 @@ function showPlot() {
               renderer: (graphData.isLogScale && graphData.header !== 'status') ? $.jqplot.LogAxisRenderer : $.jqplot.LinearAxisRenderer,
               pad: 1.2,
               tickOptions:{
-                formatString:'%.2f'
+                formatString: (graphData.isLogScale ? '%.3f' : '%.2f')
               }
             }
           },
