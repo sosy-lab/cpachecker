@@ -51,6 +51,10 @@ import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
 
 public class MatrixBalancer implements Balancer {
 
+  // Options:
+  private boolean ignorePathFormulaDisjunctions = false;
+  //
+
   private final LogManager logger;
   private final RedlogInterface RLI;
   private final FormulaMatriciser formMat = new BasicFormulaMatriciser();
@@ -326,9 +330,12 @@ public class MatrixBalancer implements Balancer {
     logger.log(Level.ALL, "\nPurification definitions:\n", pur);
 
     // Compute Strong DNF of antecedent.
+    /* old method:
     TemplateBoolean antB = TemplateConjunction.conjoin((TemplateBoolean) t1, (TemplateBoolean) p);
     TemplateDisjunction antD = (TemplateDisjunction) antB.makeSDNF();
-    logger.log(Level.ALL, "\nSDNF of antecedent:\n", antD);
+    */
+    TemplateDisjunction antD = computeAntecedent((TemplateBoolean) t1, (TemplateBoolean) p);
+    logger.log(Level.ALL, "\nAntecedent:\n", antD);
 
     // Build variable manager.
     int n = amap.size();
@@ -353,6 +360,28 @@ public class MatrixBalancer implements Balancer {
     p.unpurify();
 
     return matrices;
+  }
+
+  private TemplateDisjunction computeAntecedent(TemplateBoolean t1, TemplateBoolean p) {
+    TemplateDisjunction antD = null;
+    TemplateBoolean antB = TemplateConjunction.conjoin(t1, p);
+    if (ignorePathFormulaDisjunctions) {
+      // In this case we ignore any conjuncts in t1 ^ p which are disjunctive. This includes
+      // both explicit disjunctions A v B, and inequations x != y (which translate
+      // to x > y v x < y).
+      // Method: We put antB into strong conjunctive normal form, and then delete any conjunct
+      // that is not a constraint.
+      logger.log(Level.ALL, "Warning: Ignoring path formula disjunctions.");
+      TemplateConjunction c = (TemplateConjunction) antB.makeSCNF();
+      c.deleteNonConstraints();
+      Vector<TemplateBoolean> onedisjunct = new Vector<TemplateBoolean>(1);
+      onedisjunct.add(c);
+      antD = new TemplateDisjunction(onedisjunct);
+    } else {
+      // In this case, we compute the actual strong disjunctive normal form of t1 ^ p.
+      antD = (TemplateDisjunction) antB.makeSDNF();
+    }
+    return antD;
   }
 
   private List<Matrix> consec(TemplateDisjunction ant, TemplateFormula t2,

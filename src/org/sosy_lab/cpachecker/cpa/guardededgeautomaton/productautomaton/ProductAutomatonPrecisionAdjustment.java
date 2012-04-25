@@ -49,10 +49,10 @@ public class ProductAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     ProductAutomatonElement lElement = (ProductAutomatonElement)pElement;
 
     if (lElement.isFinalState()) {
-      return new Triple<AbstractElement, Precision, Action>(pElement, pPrecision, Action.BREAK);
+      return Triple.of(pElement, pPrecision, Action.BREAK);
     }
     else {
-      return new Triple<AbstractElement, Precision, Action>(pElement, pPrecision, Action.CONTINUE);
+      return Triple.of(pElement, pPrecision, Action.CONTINUE);
     }
   }
 

@@ -73,10 +73,10 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
   private class TemplateChooserStrategy {
 
     private TemplateChooserMethod[] methods = {
-        //TemplateChooserMethod.LOOPVARSFREECOMBANDLOOPHEADFREECOMB,
+        TemplateChooserMethod.LOOPVARSFREECOMBANDLOOPHEADFREECOMB,
+        TemplateChooserMethod.LOOPVARSFREECOMB,
         TemplateChooserMethod.EXITTAILCOMB,
         TemplateChooserMethod.EXITHEADNEGATION,
-        TemplateChooserMethod.LOOPVARSFREECOMB,
         TemplateChooserMethod.TOPLEVELTERMFORMS
     };
     private InfixReln[] relns = {

@@ -449,6 +449,19 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
   	return atoms;
   }
 
+  /*
+   * Delete all conjuncts which are not constraints.
+   */
+  public void deleteNonConstraints() {
+    Vector<TemplateBoolean> newconj = new Vector<TemplateBoolean>();
+    for (TemplateBoolean tb : conjuncts) {
+      if (tb instanceof TemplateConstraint) {
+        newconj.add(tb);
+      }
+    }
+    conjuncts = newconj;
+  }
+
   @Override
   public Set<TermForm> getTopLevelTermForms() {
     Set<TermForm> forms = new HashSet<TermForm>();

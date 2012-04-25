@@ -23,11 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -147,34 +145,36 @@ public class ExplicitPrecision implements Precision {
 
   @Options(prefix="cpa.explicit.precision.ignore")
   class Ignore {
-    @Option(description="csv list of variables never to track")
-    private String asString = "";
-    private List<String> asList = null;
+    private Multimap<CFANode, String> mapping = null;
 
     private Ignore(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
 
-      if(!asString.isEmpty()) {
-        asList = Arrays.asList(asString.split(","));
-      }
+      mapping = HashMultimap.create();
     }
 
-    private Ignore(Ignore toBeIgnored) {
+    private Ignore(Ignore original) {
 
-      asString = toBeIgnored.asString;
-
-      if(!asString.isEmpty()) {
-        asList = Arrays.asList(asString.split(","));
-      }
+      if(original.mapping != null)
+        mapping = HashMultimap.create(original.mapping);
     }
 
     public boolean allowsTrackingOf(String variable) {
-      return asList == null || !asList.contains(variable);
+      return mapping == null || !mapping.containsEntry(currentLocation, variable);
+    }
+
+    /**
+     * This method sets the current mapping.
+     *
+     * @param mapping the mapping to be set
+     */
+    void setMapping(Multimap<CFANode, String> mapping) {
+      this.mapping.putAll(mapping);
     }
   }
 
   @Options(prefix="analysis")
-  class CegarPrecision {
+  public class CegarPrecision {
     /**
      * the collection that determines which variables are tracked at a specific location - if it is null, all variables are tracked
      */
@@ -212,20 +212,20 @@ public class ExplicitPrecision implements Precision {
              || mapping.containsEntry(currentLocation, variable);
     }
 
-    boolean allowsTrackingAt(CFANode location, String variable) {
+    public boolean allowsTrackingAt(CFANode location, String variable) {
       return mapping != null && mapping.containsEntry(location, variable);
     }
 
     /**
-     * This methods add the addition mapping to the current mapping, i.e., this precision can only grow in size, and never may get smaller.
+     * This method adds the additional mapping to the current mapping, i.e., this precision can only grow in size, and never gets smaller.
      *
-     * @param additionalMapping the addition mapping to be added to the current mapping
+     * @param additionalMapping the additional mapping to be added to the current mapping
      */
-    void addToMapping(Multimap<CFANode, String> additionalMapping) {
+    public void addToMapping(Multimap<CFANode, String> additionalMapping) {
       mapping.putAll(additionalMapping);
     }
 
-    Collection<String> getVariablesInPrecision() {
+    public Collection<String> getVariablesInPrecision() {
       return new HashSet<String>(mapping.values());
     }
 

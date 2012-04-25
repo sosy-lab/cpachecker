@@ -64,9 +64,6 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private File configFile = new File("config/explicitAnalysis-no-cbmc.properties");
 
-  @Option(description="comma sperated list of variables that are never tracked by the analysis")
-  private String ignoreGlobally = "";
-
   public CounterexampleCPAChecker(Configuration config, LogManager logger, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
     this.logger = logger;
     config.inject(this);
@@ -95,7 +92,6 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       Configuration lConfig = Configuration.builder()
               .loadFromFile(configFile)
               .setOption("specification", automatonFile.getAbsolutePath())
-              .setOption("cpa.explicit.precision.ignore.asString", ignoreGlobally)
               .build();
 
       CPABuilder lBuilder = new CPABuilder(lConfig, logger, reachedSetFactory);

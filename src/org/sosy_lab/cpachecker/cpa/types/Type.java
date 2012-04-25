@@ -27,6 +27,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import com.google.common.base.Joiner;
 
 public interface Type {
 
@@ -550,7 +553,7 @@ public static final class ArrayType extends AbstractType {
 
   public final static class FunctionType extends AbstractType {
 
-    private static int uniqueNameId = 0;
+    private static final AtomicInteger uniqueNameId = new AtomicInteger();
 
     private final String name;
     private final Type returnType;
@@ -574,9 +577,7 @@ public static final class ArrayType extends AbstractType {
         throw new IllegalArgumentException();
       }
       if (name ==  null || name.equals("")) {
-        synchronized (this.getClass()) {
-          name = "__cpa_anon_param_" + uniqueNameId++;
-        }
+        name = "__cpa_anon_param_" + uniqueNameId.incrementAndGet();
       }
       if (parameters.containsKey(name)) {
         throw new IllegalArgumentException("Parameter " + name + " already exists");
@@ -634,7 +635,8 @@ public static final class ArrayType extends AbstractType {
 
     @Override
     public String toString() {
-      return name + "()";
+      return returnType + " " + name + "(" + Joiner.on(", ").join(parameters.values())
+          + (hasVarArgs ? ", ..." : "") + ")";
     }
 
     @Override

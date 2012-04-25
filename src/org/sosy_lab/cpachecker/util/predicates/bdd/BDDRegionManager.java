@@ -192,11 +192,11 @@ public class BDDRegionManager implements RegionManager {
 
     BDD f = ((BDDRegion)pF).getBDD();
 
-    BDDRegion predicate = wrap(factory.ithVar(f.var()));
-    BDDRegion fThen = wrap(f.high());
-    BDDRegion fElse = wrap(f.low());
+    Region predicate = wrap(factory.ithVar(f.var()));
+    Region fThen = wrap(f.high());
+    Region fElse = wrap(f.low());
 
-    return new Triple<Region, Region, Region>(predicate, fThen, fElse);
+    return Triple.of(predicate, fThen, fElse);
   }
 
   @Override

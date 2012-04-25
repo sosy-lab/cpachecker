@@ -41,6 +41,14 @@ public interface FormulaManager {
   public boolean isBoolean(Formula pF);
 
   /**
+   * Returns true if there are only conjunctions and negation of atoms
+   * in the formula, i.e. the formula is of the form
+   * p1 & !p2 & p3 & ...
+   * where p1,p2,p3 do not contain any boolean operators.
+   */
+  public boolean isPurelyConjunctive(Formula f);
+
+  /**
    * @return a Formula representing logical truth
    */
   public Formula makeTrue();

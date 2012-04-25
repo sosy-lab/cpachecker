@@ -162,7 +162,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
 
     total.stop();
 
-    return new Triple<AbstractElement, Precision, Action>(outElement, outPrecision, action);
+    return Triple.of(outElement, outPrecision, action);
   }
 
   private ExplicitElement enforceReachedSetThreshold(ExplicitElement element, ExplicitPrecision precision, Collection<AbstractElement> reachedSetAtLocation) {
