@@ -342,6 +342,31 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   }
 
   @Override
+  public boolean isPurelyConjunctive(Formula f) {
+    Term t = getTerm(f);
+
+    if (isAtom(t) || uifs.contains(t)) {
+      // term is atom
+      return true;
+
+    } else if (isNot(t)) {
+      t = getArg(t, 0);
+      return (uifs.contains(t) || isAtom(t));
+
+    } else if (isAnd(t)) {
+      for (int i = 0; i < getArity(t); ++i) {
+        if (!isPurelyConjunctive(encapsulate(getArg(t, i)))) {
+          return false;
+        }
+      }
+      return true;
+
+    } else {
+      return false;
+    }
+  }
+
+  @Override
   public Formula instantiate(Formula f, SSAMap ssa) {
     Deque<Formula> toProcess = new ArrayDeque<Formula>();
     Map<Formula, Formula> cache = new HashMap<Formula, Formula>();
