@@ -31,6 +31,7 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
@@ -704,8 +705,8 @@ public final class ErrorPathShrinker {
         //check, if the last edge was an assumption
         if (assumeExp instanceof IASTBinaryExpression
             && lastEdge instanceof AssumeEdge) {
-          final IASTExpression lastExp =
-              ((AssumeEdge) lastEdge).getExpression();
+          final AssumeEdge lastAss = (AssumeEdge) lastEdge;
+          final IASTExpression lastExp = lastAss.getExpression();
 
           // check, if the last egde was like "a==b"
           if (lastExp instanceof IASTBinaryExpression) {
@@ -718,14 +719,12 @@ public final class ErrorPathShrinker {
             final boolean isEqualVarName = currentBinExpOp1.toASTString().
             equals(lastBinExpOp1.toASTString());
 
-            // switchStatement:     !(x==3);(x==4);   -> operator "=="
-            // similar assumption:  (x>3);(x>4);      -> operator ">"
-            // the operator is stored as 'int'
-            final boolean isEqualOperator =
-                ((IASTBinaryExpression) assumeExp).getOperator()
-                == ((IASTBinaryExpression) lastExp).getOperator();
+            // check, if lastEdge is the true-branch of "==" or the false-branch of "!="
+            final BinaryOperator op = ((IASTBinaryExpression) lastExp).getOperator();
+            final boolean isEqualOp = (op == BinaryOperator.EQUALS && lastAss.getTruthAssumption())
+                || (op == BinaryOperator.NOT_EQUALS && !lastAss.getTruthAssumption());
 
-            return (isEqualVarName && isEqualOperator);
+            return (isEqualVarName && isEqualOp);
           }
         }
       }
