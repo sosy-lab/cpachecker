@@ -50,6 +50,26 @@
 
 
 <script type="text/javascript">
+
+var currentlySelectedCell = null;
+
+// callback that is fired when user clicks on cellsWithUrls (see down below)
+function highlightCell(event) {
+    var target = event.target;
+    if(target.nodeName === 'A') {
+      target = target.parentNode;
+
+      // unhighlight currentlySelectedCell
+      if(currentlySelectedCell != null) {
+	  	currentlySelectedCell.style.borderColor = 'black';
+      }
+
+      // highlight cell that has been just clicked on
+      target.style.borderColor = 'red';
+      currentlySelectedCell = target;
+    }
+}
+
 function debug(logInfo) {
   if(!true) {
     console.log(logInfo);
@@ -161,7 +181,7 @@ $(document).ready(function(){
     //console.log(cellsWithUrls);
     cellsWithUrls.each(
         function(index, elem){
-            $(elem).click(loadContentWrapper);
+            $(elem).click(highlightCell).click(loadContentWrapper);
         });
 });
 </script>
