@@ -28,13 +28,14 @@ import junit.framework.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.fshell.FShell3Result;
 import org.sosy_lab.cpachecker.fshell.Main;
+import org.sosy_lab.cpachecker.fshell.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class StatementCoverage2 extends ExperimentalSeries {
 
   @Test
   public void test_locks_001() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.STATEMENT_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_5.c",
                                         "main",
                                         true);
@@ -50,7 +51,7 @@ public class StatementCoverage2 extends ExperimentalSeries {
 
   @Test
   public void test_locks_002() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.STATEMENT_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_6.c",
                                         "main",
                                         true);
@@ -66,7 +67,7 @@ public class StatementCoverage2 extends ExperimentalSeries {
 
   @Test
   public void test_locks_003() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.STATEMENT_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_7.c",
                                         "main",
                                         true);
@@ -82,7 +83,7 @@ public class StatementCoverage2 extends ExperimentalSeries {
 
   @Test
   public void test_locks_004() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.STATEMENT_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_8.c",
                                         "main",
                                         true);
@@ -98,7 +99,7 @@ public class StatementCoverage2 extends ExperimentalSeries {
 
   @Test
   public void test_locks_005() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.STATEMENT_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_9.c",
                                         "main",
                                         true);
@@ -114,7 +115,7 @@ public class StatementCoverage2 extends ExperimentalSeries {
 
   @Test
   public void test_locks_006() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.STATEMENT_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_10.c",
                                         "main",
                                         true);
@@ -130,7 +131,7 @@ public class StatementCoverage2 extends ExperimentalSeries {
 
   @Test
   public void test_locks_007() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.STATEMENT_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_11.c",
                                         "main",
                                         true);
@@ -146,7 +147,7 @@ public class StatementCoverage2 extends ExperimentalSeries {
 
   @Test
   public void test_locks_008() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.STATEMENT_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_12.c",
                                         "main",
                                         true);
@@ -162,7 +163,7 @@ public class StatementCoverage2 extends ExperimentalSeries {
 
   @Test
   public void test_locks_009() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.STATEMENT_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_13.c",
                                         "main",
                                         true);
@@ -178,7 +179,7 @@ public class StatementCoverage2 extends ExperimentalSeries {
 
   @Test
   public void test_locks_010() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.STATEMENT_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_14.c",
                                         "main",
                                         true);
@@ -194,7 +195,7 @@ public class StatementCoverage2 extends ExperimentalSeries {
 
   @Test
   public void test_locks_011() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.STATEMENT_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_15.c",
                                         "main",
                                         true);

@@ -28,6 +28,7 @@ import junit.framework.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.fshell.FShell3Result;
 import org.sosy_lab.cpachecker.fshell.Main;
+import org.sosy_lab.cpachecker.fshell.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class LiftControl extends ExperimentalSeries {
@@ -35,7 +36,7 @@ public class LiftControl extends ExperimentalSeries {
   @Test
   public void test_lift_bb() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.BASIC_BLOCK_COVERAGE,
+        PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE,
         "test/programs/fql/lift_control/lift.cil.c",
         "main", true);
 
@@ -51,7 +52,7 @@ public class LiftControl extends ExperimentalSeries {
   @Test
   public void test_lift_bb2() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.BASIC_BLOCK_2_COVERAGE,
+        PredefinedCoverageCriteria.BASIC_BLOCK_2_COVERAGE,
         "test/programs/fql/lift_control/lift.cil.c",
         "main", true);
 
@@ -67,7 +68,7 @@ public class LiftControl extends ExperimentalSeries {
   @Test
   public void test_lift_bb3() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.BASIC_BLOCK_3_COVERAGE,
+        PredefinedCoverageCriteria.BASIC_BLOCK_3_COVERAGE,
         "test/programs/fql/lift_control/lift.cil.c",
         "main", true);
 
@@ -99,7 +100,7 @@ public class LiftControl extends ExperimentalSeries {
   @Test
   public void test_lift_2_bb() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.BASIC_BLOCK_COVERAGE,
+        PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE,
         "test/programs/fql/lift_control/lift_no_dbgCnt.c",
         "main", true);
 
@@ -115,7 +116,7 @@ public class LiftControl extends ExperimentalSeries {
   @Test
   public void test_lift_3_bb() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.BASIC_BLOCK_COVERAGE,
+        PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE,
         "test/programs/fql/lift_control/lift_no_dbgCnt_modified_ioinit.c",
         "main", true);
 

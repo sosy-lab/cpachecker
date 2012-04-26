@@ -28,13 +28,14 @@ import junit.framework.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.fshell.FShell3Result;
 import org.sosy_lab.cpachecker.fshell.Main;
+import org.sosy_lab.cpachecker.fshell.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class KBFilterTest extends ExperimentalSeries {
 
   @Test
   public void test003() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.STATEMENT_COVERAGE,
                                         "test/programs/fql/ntdrivers-simplified/kbfiltr_simpl2.cil.c",
                                         "main",
                                         true);
@@ -55,7 +56,7 @@ public class KBFilterTest extends ExperimentalSeries {
 
   @Test
   public void test002() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.STATEMENT_COVERAGE,
                                         "test/programs/fql/ntdrivers-simplified/kbfiltr_simpl2_BUG.cil.c",
                                         "main",
                                         true);
@@ -76,7 +77,7 @@ public class KBFilterTest extends ExperimentalSeries {
 
   @Test
   public void test001() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.STATEMENT_COVERAGE,
                                         "test/programs/fql/ntdrivers-simplified/kbfiltr_simpl1.cil.c",
                                         "main",
                                         true);

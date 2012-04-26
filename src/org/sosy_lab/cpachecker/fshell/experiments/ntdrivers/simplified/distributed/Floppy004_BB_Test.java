@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.fshell.experiments.ntdrivers.simplified.distribu
 import java.util.LinkedList;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.fshell.Main;
 import org.sosy_lab.cpachecker.fshell.MultiprocessFShell3;
+import org.sosy_lab.cpachecker.fshell.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class Floppy004_BB_Test extends ExperimentalSeries {
@@ -38,7 +38,7 @@ public class Floppy004_BB_Test extends ExperimentalSeries {
 
     LinkedList<String> lArguments = new LinkedList<String>();
 
-    lArguments.add(Main.BASIC_BLOCK_COVERAGE);
+    lArguments.add(PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE);
     lArguments.add("test/programs/fql/ntdrivers-simplified/" + lCFile);
     lArguments.add("main");
     lArguments.add("4");

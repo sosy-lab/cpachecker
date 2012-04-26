@@ -128,7 +128,7 @@ public class MainTest extends ExperimentalSeries {
   @Test
   public void testMain005() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.STATEMENT_COVERAGE,
+        PredefinedCoverageCriteria.STATEMENT_COVERAGE,
         "test/programs/fql/conditioncoverage.cil.c",
         "foo",
         true
@@ -147,7 +147,7 @@ public class MainTest extends ExperimentalSeries {
   @Test
   public void testMain006() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.STATEMENT_COVERAGE,
+        PredefinedCoverageCriteria.STATEMENT_COVERAGE,
         "test/programs/fql/conditioncoverage.c",
         "foo",
         false
@@ -223,7 +223,7 @@ public class MainTest extends ExperimentalSeries {
   @Test
   public void testMain010() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.STATEMENT_COVERAGE,
+        PredefinedCoverageCriteria.STATEMENT_COVERAGE,
         "test/programs/fql/basic/minimal.cil.c",
         "main",
         true
@@ -245,7 +245,7 @@ public class MainTest extends ExperimentalSeries {
   @Test
   public void testMain011() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.STATEMENT_COVERAGE,
+        PredefinedCoverageCriteria.STATEMENT_COVERAGE,
         "test/programs/fql/basic/variables.cil.c",
         "foo",
         true
@@ -267,7 +267,7 @@ public class MainTest extends ExperimentalSeries {
   @Test
   public void testMain012() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.STATEMENT_COVERAGE,
+        PredefinedCoverageCriteria.STATEMENT_COVERAGE,
         "test/programs/fql/basic/globals.cil.c",
         "main",
         true
@@ -289,7 +289,7 @@ public class MainTest extends ExperimentalSeries {
   @Test
   public void testMain013() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.STATEMENT_COVERAGE,
+        PredefinedCoverageCriteria.STATEMENT_COVERAGE,
         "test/programs/fql/basic/boolop-control-flow1.cil.c",
         "main",
         true
@@ -312,7 +312,7 @@ public class MainTest extends ExperimentalSeries {
   @Test
   public void testMain014() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.STATEMENT_COVERAGE,
+        PredefinedCoverageCriteria.STATEMENT_COVERAGE,
         "test/programs/fql/basic/boolop-control-flow2.cil.c",
         "main",
         true
@@ -335,7 +335,7 @@ public class MainTest extends ExperimentalSeries {
   @Test
   public void testMain015() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.STATEMENT_COVERAGE,
+        PredefinedCoverageCriteria.STATEMENT_COVERAGE,
         "test/programs/fql/basic/cov-union.cil.c",
         "main",
         true);
@@ -357,7 +357,7 @@ public class MainTest extends ExperimentalSeries {
   @Test
   public void testMain017() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.STATEMENT_COVERAGE,
+        PredefinedCoverageCriteria.STATEMENT_COVERAGE,
         //"COVER \"EDGES(ID)*\".EDGES(@LABEL(L)).\"EDGES(ID)*\"",
         "test/programs/fql/basic/repeat.cil.c",
         "foo",
@@ -376,7 +376,7 @@ public class MainTest extends ExperimentalSeries {
   @Test
   public void testMain018() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.STATEMENT_COVERAGE,
+        PredefinedCoverageCriteria.STATEMENT_COVERAGE,
         "test/programs/fql/basic/labels.cil.c",
         "main",
         true
@@ -399,7 +399,7 @@ public class MainTest extends ExperimentalSeries {
   @Test
   public void testMain019() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.STATEMENT_COVERAGE,
+        PredefinedCoverageCriteria.STATEMENT_COVERAGE,
         "test/programs/fql/basic/simple-control-flow.cil.c",
         "main",
         true
@@ -421,7 +421,7 @@ public class MainTest extends ExperimentalSeries {
 
   @Test
   public void testMain020() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.STATEMENT_COVERAGE,
                                         "test/programs/fql/test_locks_2.c",
                                         "main",
                                         false);
@@ -438,7 +438,7 @@ public class MainTest extends ExperimentalSeries {
   @Test
   public void testMain022() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.BASIC_BLOCK_COVERAGE,
+        PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE,
         "test/programs/fql/simple/functionCall.c",
         "main",
         false
@@ -456,7 +456,7 @@ public class MainTest extends ExperimentalSeries {
   @Test
   public void testMain022b() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.BASIC_BLOCK_COVERAGE,
+        PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE,
         "test/programs/fql/simple/functionCall2.c",
         "main",
         true
@@ -474,7 +474,7 @@ public class MainTest extends ExperimentalSeries {
   @Test
   public void testMain023() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.BASIC_BLOCK_COVERAGE,
+        PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE,
         "test/programs/fql/basic/globals.cil.c",
         "main",
         false);
@@ -496,7 +496,7 @@ public class MainTest extends ExperimentalSeries {
   @Test
   public void testMain024() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.BASIC_BLOCK_COVERAGE,
+        PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE,
         "test/programs/fql/conditioncoverage.cil.c",
         "foo",
         true); // disable CIL preprocessing
@@ -552,7 +552,7 @@ public class MainTest extends ExperimentalSeries {
   @Test
   public void testMain016() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.STATEMENT_COVERAGE,
+        PredefinedCoverageCriteria.STATEMENT_COVERAGE,
         "test/programs/fql/basic/undefined-func.cil.c",
         "main",
         true
@@ -574,7 +574,7 @@ public class MainTest extends ExperimentalSeries {
 
   @Test
   public void testMain021() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.STATEMENT_COVERAGE,
                                         "test/programs/fql/ntdrivers/kbfiltr.i.cil.c",
                                         "main",
                                         false);
@@ -595,7 +595,7 @@ public class MainTest extends ExperimentalSeries {
 
   @Test
   public void testMain025() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/ntdrivers/kbfiltr.i.cil.c",
                                         "main",
                                         true);
@@ -616,7 +616,7 @@ public class MainTest extends ExperimentalSeries {
 
   @Test
   public void testMain026() throws Exception {
-    String[] lArguments = Main.getParameters(Main.CONDITION_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.CONDITION_COVERAGE,
                                         "test/programs/fql/ntdrivers/kbfiltr.i.cil.c",
                                         //"/home/andreas/ase-experimente/kbfiltr.c",
                                         "main",

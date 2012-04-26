@@ -28,13 +28,14 @@ import junit.framework.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.fshell.FShell3Result;
 import org.sosy_lab.cpachecker.fshell.Main;
+import org.sosy_lab.cpachecker.fshell.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class DartExamples extends ExperimentalSeries {
 
   @Test
   public void test_page2_bb() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/DART/page2.c",
                                         "h",
                                         true);
@@ -50,7 +51,7 @@ public class DartExamples extends ExperimentalSeries {
 
   @Test
   public void test_page5_1_bb() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/DART/page5-1.c",
                                         "f",
                                         true);
@@ -66,7 +67,7 @@ public class DartExamples extends ExperimentalSeries {
 
   @Test
   public void test_page5_2_bb() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/DART/page5-2.c",
                                         "bar",
                                         true);
@@ -84,7 +85,7 @@ public class DartExamples extends ExperimentalSeries {
 
   @Test
   public void test_page5_3_bb() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/DART/page5-3.c",
                                         "foobar",
                                         true);
@@ -102,7 +103,7 @@ public class DartExamples extends ExperimentalSeries {
 
   @Test
   public void test_page6_bb() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/DART/page6.c",
                                         "ac_controller",
                                         true);

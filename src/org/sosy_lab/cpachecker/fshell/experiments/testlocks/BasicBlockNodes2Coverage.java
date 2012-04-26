@@ -28,13 +28,14 @@ import junit.framework.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.fshell.FShell3Result;
 import org.sosy_lab.cpachecker.fshell.Main;
+import org.sosy_lab.cpachecker.fshell.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class BasicBlockNodes2Coverage extends ExperimentalSeries {
 
   @Test
   public void test_locks_101() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_NODES_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_NODES_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_5.c",
                                         "main",
                                         true);
@@ -50,7 +51,7 @@ public class BasicBlockNodes2Coverage extends ExperimentalSeries {
 
   @Test
   public void test_locks_102() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_NODES_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_NODES_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_6.c",
                                         "main",
                                         true);
@@ -66,7 +67,7 @@ public class BasicBlockNodes2Coverage extends ExperimentalSeries {
 
   @Test
   public void test_locks_103() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_NODES_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_NODES_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_7.c",
                                         "main",
                                         true);
@@ -82,7 +83,7 @@ public class BasicBlockNodes2Coverage extends ExperimentalSeries {
 
   @Test
   public void test_locks_104() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_NODES_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_NODES_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_8.c",
                                         "main",
                                         true);
@@ -98,7 +99,7 @@ public class BasicBlockNodes2Coverage extends ExperimentalSeries {
 
   @Test
   public void test_locks_105() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_NODES_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_NODES_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_9.c",
                                         "main",
                                         true);
@@ -114,7 +115,7 @@ public class BasicBlockNodes2Coverage extends ExperimentalSeries {
 
   @Test
   public void test_locks_106() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_NODES_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_NODES_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_10.c",
                                         "main",
                                         true);
@@ -130,7 +131,7 @@ public class BasicBlockNodes2Coverage extends ExperimentalSeries {
 
   @Test
   public void test_locks_107() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_NODES_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_NODES_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_11.c",
                                         "main",
                                         true);
@@ -146,7 +147,7 @@ public class BasicBlockNodes2Coverage extends ExperimentalSeries {
 
   @Test
   public void test_locks_108() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_NODES_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_NODES_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_12.c",
                                         "main",
                                         true);
@@ -162,7 +163,7 @@ public class BasicBlockNodes2Coverage extends ExperimentalSeries {
 
   @Test
   public void test_locks_109() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_NODES_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_NODES_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_13.c",
                                         "main",
                                         true);
@@ -178,7 +179,7 @@ public class BasicBlockNodes2Coverage extends ExperimentalSeries {
 
   @Test
   public void test_locks_110() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_NODES_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_NODES_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_14.c",
                                         "main",
                                         true);
@@ -194,7 +195,7 @@ public class BasicBlockNodes2Coverage extends ExperimentalSeries {
 
   @Test
   public void test_locks_111() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_NODES_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_NODES_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_15.c",
                                         "main",
                                         true);

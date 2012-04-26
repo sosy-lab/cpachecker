@@ -28,6 +28,7 @@ import junit.framework.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.fshell.FShell3Result;
 import org.sosy_lab.cpachecker.fshell.Main;
+import org.sosy_lab.cpachecker.fshell.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class SSHSimplified011_BB extends ExperimentalSeries {
@@ -36,7 +37,7 @@ public class SSHSimplified011_BB extends ExperimentalSeries {
   public void ssh_011() throws Exception {
     String lCFile = "s3_srvr_1.cil.c";
 
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);

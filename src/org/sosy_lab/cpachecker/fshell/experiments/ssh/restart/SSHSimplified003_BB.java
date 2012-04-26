@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.fshell.experiments.ssh.restart;
 import java.util.LinkedList;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.fshell.Main;
+import org.sosy_lab.cpachecker.fshell.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.fshell.RestartingFShell3;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
@@ -38,7 +38,7 @@ public class SSHSimplified003_BB extends ExperimentalSeries {
 
     LinkedList<String> lArguments = new LinkedList<String>();
 
-    lArguments.add(Main.BASIC_BLOCK_COVERAGE);
+    lArguments.add(PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE);
     lArguments.add("test/programs/fql/ssh-simplified/" + lCFile);
     lArguments.add("main");
 

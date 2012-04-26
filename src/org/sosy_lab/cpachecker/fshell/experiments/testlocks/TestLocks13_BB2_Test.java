@@ -28,13 +28,14 @@ import junit.framework.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.fshell.FShell3Result;
 import org.sosy_lab.cpachecker.fshell.Main;
+import org.sosy_lab.cpachecker.fshell.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class TestLocks13_BB2_Test extends ExperimentalSeries {
 
   @Test
   public void testlocks() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_2_COVERAGE,
                                         "test/programs/fql/locks/test_locks_13.c",
                                         "main",
                                         true);

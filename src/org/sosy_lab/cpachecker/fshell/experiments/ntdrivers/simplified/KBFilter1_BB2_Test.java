@@ -29,7 +29,7 @@ import junit.framework.Assert;
 
 import org.junit.Test;
 import org.sosy_lab.cpachecker.fshell.FShell3Result;
-import org.sosy_lab.cpachecker.fshell.Main;
+import org.sosy_lab.cpachecker.fshell.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class KBFilter1_BB2_Test extends ExperimentalSeries {
@@ -48,7 +48,7 @@ public class KBFilter1_BB2_Test extends ExperimentalSeries {
 
     LinkedList<String> lArguments = new LinkedList<String>();
 
-    lArguments.add(Main.BASIC_BLOCK_2_COVERAGE);
+    lArguments.add(PredefinedCoverageCriteria.BASIC_BLOCK_2_COVERAGE);
     lArguments.add("test/programs/fql/ntdrivers-simplified/" + lCFile);
     lArguments.add("main");
     lArguments.add("--withoutCilPreprocessing");

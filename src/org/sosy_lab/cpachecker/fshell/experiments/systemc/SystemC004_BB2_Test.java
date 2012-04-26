@@ -28,6 +28,7 @@ import junit.framework.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.fshell.FShell3Result;
 import org.sosy_lab.cpachecker.fshell.Main;
+import org.sosy_lab.cpachecker.fshell.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class SystemC004_BB2_Test extends ExperimentalSeries {
@@ -36,7 +37,7 @@ public class SystemC004_BB2_Test extends ExperimentalSeries {
   public void systemc_001() throws Exception {
     String lCFile = "kundu2_BUG.cil.c";
 
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_2_COVERAGE,
+    String[] lArguments = Main.getParameters(PredefinedCoverageCriteria.BASIC_BLOCK_2_COVERAGE,
                                         "test/programs/fql/systemc/" + lCFile,
                                         "main",
                                         true);
