@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.fshell.artreuse.ARTReuse;
 import org.sosy_lab.cpachecker.fshell.cfa.Wrapper;
 import org.sosy_lab.cpachecker.fshell.clustering.ClusteredElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fshell.clustering.InfeasibilityPropagation;
@@ -143,7 +144,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   private long mRestartBound = 100000000; // 100 MB
 
   private boolean mUseAutomatonOptimization = true;
-  private boolean mUseGraphCPA = false; // TODO disabled it since it causes a bug when doing FQL queries with PASSING clause 
+  private boolean mUseGraphCPA = false; // TODO disabled it since it causes a bug when doing FQL queries with PASSING clause
   private boolean mReuseART = true;
   private boolean mUseInfeasibilityPropagation = true;
 
@@ -828,96 +829,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     mOutput.println("#Goals: " + mFeasibilityInformation.getNumberOfTestgoals() + ", #Feasible: " + mFeasibilityInformation.getNumberOfFeasibleTestgoals() + ", #Infeasible: " + mFeasibilityInformation.getNumberOfInfeasibleTestgoals() + ", #Imprecise: " + mFeasibilityInformation.getNumberOfImpreciseTestgoals());
   }
 
-  private Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> determineLocalDifference(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton, NondeterministicFiniteAutomaton.State pPreviousState, NondeterministicFiniteAutomaton.State pCurrentState) {
-    Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> lE1 = new HashSet<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>();
-    Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> lE2 = new HashSet<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>();
-
-    for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lEdge : pPreviousAutomaton.getOutgoingEdges(pPreviousState)) {
-      boolean lFound = false;
-
-      if (lEdge.getLabel().hasGuards()) {
-        // TODO extend implementation to guards
-        throw new RuntimeException("No support for guards!");
-      }
-
-      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOtherEdge : pCurrentAutomaton.getOutgoingEdges(pCurrentState)) {
-        if (lEdge.getTarget() == lOtherEdge.getTarget()) {
-          if (lEdge.getLabel().equals(lOtherEdge.getLabel())) {
-            lFound = true;
-          }
-        }
-      }
-
-      if (!lFound) {
-        lE1.add(lEdge);
-      }
-    }
-
-    for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lEdge : pCurrentAutomaton.getOutgoingEdges(pCurrentState)) {
-      boolean lFound = false;
-
-      if (lEdge.getLabel().hasGuards()) {
-        // TODO extend implementation to guards
-        throw new RuntimeException("No support for guards!");
-      }
-
-      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOtherEdge : pPreviousAutomaton.getOutgoingEdges(pPreviousState)) {
-        if (lEdge.getTarget() == lOtherEdge.getTarget()) {
-          if (lEdge.getLabel().equals(lOtherEdge.getLabel())) {
-            lFound = true;
-          }
-        }
-      }
-
-      if (!lFound) {
-        lE2.add(lEdge);
-      }
-    }
-
-    return Pair.of(lE1, lE2);
-  }
-
-  private Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> determineFrontier(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
-    Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> lF1 = new HashSet<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>();
-    Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> lF2 = new HashSet<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>();
-
-    LinkedList<Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>> lWorklist = new LinkedList<Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>>();
-
-    if (pPreviousAutomaton.getInitialState() != pCurrentAutomaton.getInitialState()) {
-      throw new RuntimeException();
-    }
-
-    lWorklist.add(Pair.of(pPreviousAutomaton.getInitialState(), pCurrentAutomaton.getInitialState()));
-
-    HashSet<Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>> lVisited = new HashSet<Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>>();
-
-    while (!lWorklist.isEmpty()) {
-      Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lCurrentPair = lWorklist.removeLast();
-
-      if (!lVisited.contains(lCurrentPair)) {
-        lVisited.add(lCurrentPair);
-
-        // determine local difference
-
-        Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> lFrontier = determineLocalDifference(pPreviousAutomaton, pCurrentAutomaton, lCurrentPair.getFirst(), lCurrentPair.getSecond());
-
-        if (lFrontier.getFirst().isEmpty() && lFrontier.getSecond().isEmpty()) {
-          // update worklist
-          for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lEdge : pPreviousAutomaton.getOutgoingEdges(lCurrentPair.getFirst())) {
-            // was mit !lFrontier.getFirst().isEmpty() machen?
-            lWorklist.add(Pair.of(lEdge.getTarget(), lEdge.getTarget()));
-          }
-        }
-        else {
-          lF1.addAll(lFrontier.getFirst());
-          lF2.addAll(lFrontier.getSecond());
-        }
-      }
-    }
-
-    return Pair.of(lF1, lF2);
-  }
-
   PredicatePrecision mPrecision;
   ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> mBuilder = new ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate>();
   HashSet<AbstractionPredicate> mGlobalPredicates = new HashSet<AbstractionPredicate>();
@@ -1012,7 +923,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     lAlgorithm.collectStatistics(lStatistics);
 
     if (mReuseART) {
-      modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
+      ARTReuse.modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
 
       if (mPrecision != null) {
         for (AbstractElement lWaitlistElement : pReachedSet.getWaitlist()) {
@@ -1154,21 +1065,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
   }
 
-  private void modifyReachedSet(ReachedSet pReachedSet, CFAFunctionDefinitionNode pEntryNode, ARTCPA pARTCPA, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
-    if (pReachedSet.isEmpty()) {
-      AbstractElement lInitialElement = pARTCPA.getInitialElement(pEntryNode);
-      Precision lInitialPrecision = pARTCPA.getInitialPrecision(pEntryNode);
 
-      pReachedSet.add(lInitialElement, lInitialPrecision);
-    }
-    else {
-      if (pPreviousAutomaton == null) {
-        throw new RuntimeException();
-      }
-
-      modifyART(pReachedSet, pARTCPA, pProductAutomatonIndex, pPreviousAutomaton, pCurrentAutomaton);
-    }
-  }
 
   private void modifyART(ReachedSet pReachedSet, ARTReachedSet pARTReachedSet, int pProductAutomatonIndex, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> pFrontierEdges) {
     //Set<Pair<ARTElement, ARTElement>> lPathEdges = Collections.emptySet();
@@ -1226,15 +1123,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         }
       }
     }
-  }
-
-  private void modifyART(ReachedSet pReachedSet, ARTCPA pARTCPA, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
-    ARTReachedSet lARTReachedSet = new ARTReachedSet(pReachedSet, pARTCPA);
-
-    Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> lFrontier = determineFrontier(pPreviousAutomaton, pCurrentAutomaton);
-
-    modifyART(pReachedSet, lARTReachedSet, pProductAutomatonIndex, lFrontier.getFirst());
-    modifyART(pReachedSet, lARTReachedSet, pProductAutomatonIndex, lFrontier.getSecond());
   }
 
   private boolean checkCoverage(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
@@ -1449,7 +1337,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
 
     if (mReuseART) {
-      modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
+      ARTReuse.modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
     }
     else {
       pReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.DFS);
