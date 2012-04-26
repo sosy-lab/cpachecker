@@ -74,7 +74,7 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
   boolean useInitialNodeAsRestartingPoint = true;
 
   protected ExplicitRefiner(Configuration config, PathFormulaManager pathFormulaManager) throws InvalidConfigurationException {
-    config.inject(this);
+    config.inject(this, ExplicitRefiner.class);
     this.pathFormulaManager = pathFormulaManager;
   }
 
