@@ -47,6 +47,8 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
   public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement,
       Precision oldPrecision, UnmodifiableReachedSet pElements) throws CPAException {
 
+    //long start_ = System.nanoTime();
+
     Preconditions.checkArgument(pElement instanceof ARTElement);
     ARTElement element = (ARTElement)pElement;
 
@@ -55,6 +57,44 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
 
     AbstractElement oldElement = element.getWrappedElement();
 
+    // TODO implement reachability cache
+    // This is a temporary hack
+    //CompositeElement composite_element_ = (CompositeElement)oldElement;
+    /*PredicateAbstractElement predicate_element_ = (PredicateAbstractElement)composite_element_.get(3);
+
+    boolean check_ = false;
+
+    if (predicate_element_ instanceof PredicateAbstractElement.ComputeAbstractionElement) {
+      CompositePrecision composite_precision_ = (CompositePrecision)oldPrecision;
+      PredicatePrecision predicate_precision_ = (PredicatePrecision)composite_precision_.get(3);
+
+      LocationElement location_element_ = (LocationElement)composite_element_.get(0);
+      CFANode cfa_node_ = location_element_.getLocationNode();
+
+      if (predicate_precision_.getPredicates(cfa_node_).isEmpty()) {
+        ARTElement parent_element_ = null;
+
+        Set<ARTElement> parents_ = element.getParents();
+
+        while (!parents_.isEmpty()) {
+          parent_element_ = parents_.iterator().next();
+
+          if (((CompositeElement)parent_element_.getWrappedElement()).get(3) instanceof PredicateAbstractElement.AbstractionElement) {
+            System.out.println("Location: " + cfa_node_ + " <- " + ((LocationElement)((CompositeElement)parent_element_.getWrappedElement()).get(0)).getLocationNode());
+
+            check_ = true;
+
+            break;
+          }
+          else {
+            parents_ = parent_element_.getParents();
+          }
+        }
+      }
+    }
+
+    long start_ = System.nanoTime();*/
+
     Triple<AbstractElement, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
 
     AbstractElement newElement = unwrappedResult.getFirst();
@@ -62,6 +102,10 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
     Action action = unwrappedResult.getThird();
 
     if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
+      //long end_ = System.nanoTime();
+
+      //System.out.println("ARTPrecisionAdjustment: " + (end_ - start_) + " ns");
+
       // nothing has changed
       return new Triple<AbstractElement, Precision, Action>(pElement, oldPrecision, action);
     }
@@ -82,6 +126,23 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
     for (ARTElement covered : coveredElements) {
       covered.setCovered(resultElement);
     }
+
+    /*if (check_) {
+      if (((PredicateAbstractElement.AbstractionElement)((CompositeElement)resultElement.getWrappedElement()).get(3)).getAbstractionFormula().isFalse()) {
+        System.out.println("UNSATISFIABLE");
+      }
+      else {
+        System.out.println("SATISFIABLE");
+      }
+
+      long end_ = System.nanoTime();
+
+      System.out.println((end_ - start_) + " ns");
+    }*/
+
+    //long end_ = System.nanoTime();
+
+    //System.out.println("ARTPrecisionAdjustment: " + (end_ - start_) + " ns");
 
     return new Triple<AbstractElement, Precision, Action>(resultElement, newPrecision, action);
   }

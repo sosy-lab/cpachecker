@@ -131,6 +131,31 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     //int lPredsBefore = preds.size();
 
+    /*boolean tmpCond = (loc.getNodeNumber() == 12) &&
+      (loc.getNodeNumber() == 199) &&
+      (loc.getNodeNumber() == 445) &&
+      (loc.getNodeNumber() == 463) &&
+      (loc.getNodeNumber() == 328) &&
+      (loc.getNodeNumber() == 403) &&
+      (loc.getNodeNumber() == 31) &&
+      (loc.getNodeNumber() == 188) &&
+      (loc.getNodeNumber() == 267) &&
+      (loc.getNodeNumber() == 344) &&
+      (loc.getNodeNumber() == 161) &&
+      (loc.getNodeNumber() == 210) &&
+      (loc.getNodeNumber() == 1) &&
+      (loc.getNodeNumber() == 218) &&
+      (loc.getNodeNumber() == 359) &&
+      (loc.getNodeNumber() == 338) &&
+      (loc.getNodeNumber() == 415) &&
+      (loc.getNodeNumber() == 252) &&
+      (loc.getNodeNumber() == 459) &&
+      (loc.getNodeNumber() == 157);*/
+    //boolean tmpCond = true;
+    //boolean tmpCond = (loc.getNodeNumber() == 466);
+    //mRemoveIrrelevantPredicates = false;
+    //mPredsSizeThreshold = 0;
+
     if (mRemoveIrrelevantPredicates && preds.size() > mPredsSizeThreshold) {
       HashSet<String> lVariables = new HashSet<String>();
       lVariables.addAll(mMathsatFormulaManager.getVariables(abstractionFormula.asFormula()));
@@ -144,6 +169,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       Collection<AbstractionPredicate> lRemainingPredicates = new HashSet<AbstractionPredicate>();
 
       for (AbstractionPredicate lPredicate : preds) {
+        // TODO replace Strings with ids ?
         Collection<String> lPredicateVariables = mMathsatFormulaManager.getVariables2(lPredicate.getSymbolicAtom());
 
         boolean lFound = false;
@@ -185,8 +211,16 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       }
     }
 
+    //System.out.println("Location: " + loc + " " + preds.size());
+
     /*if (lPredsBefore != preds.size()) {
-      System.out.println("Removed " + (lPredsBefore - preds.size()) + " predictates!");
+      //System.out.println("Removed " + (lPredsBefore - preds.size()) + " predictates!");
+
+      System.out.println("Location: " + loc + " (REDUCED)");
+      //throw new RuntimeException();
+    }
+    else {
+      System.out.println("Location: " + loc + " (NONREDUCED)");
     }*/
 
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());

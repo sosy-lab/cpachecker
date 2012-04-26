@@ -121,7 +121,7 @@ public class ExperimentsRunner {
 	 */
 	public static void main(String[] args) throws IOException, InterruptedException {
 
-	  boolean lUse64BitSetting = true;
+	  boolean lUse64BitSetting = false;
 
 	  LinkedList<String> lTmpArguments = new LinkedList<String>();
 
@@ -150,13 +150,13 @@ public class ExperimentsRunner {
 		lCommand.add("java");
 		if (lUse64BitSetting) {
 		  lCommand.add("-Xms10240M");
-	    lCommand.add("-Xmx10240M");
+	    	  lCommand.add("-Xmx10240M");
 	    lCommand.add("-Djava.library.path=lib/native/x86_64-linux");
 		}
 		else {
-		  lCommand.add("-Xms1024M");
-	    lCommand.add("-Xmx1024M");
-	    lCommand.add("-Djava.library.path=lib/native/x86-linux");
+		  lCommand.add("-Xms2560M");
+	    	  lCommand.add("-Xmx2560M");
+	    	  lCommand.add("-Djava.library.path=lib/native/x86-linux");
 		}
 		lCommand.add("-cp");
 		lCommand.add(ExperimentsRunner.CLASSPATH);
