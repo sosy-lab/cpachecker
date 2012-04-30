@@ -40,6 +40,7 @@
         <!-- Clean subprojects -->
         <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" target="clean" inheritAll="false"/>
         <ant antfile="src/org/sosy_lab/cpachecker/fshell/fql2/parser/build.xml" target="clean" inheritAll="false"/>
+        <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/smtInterpol/build.xml" target="clean" inheritAll="false"/>
     </target>
     <target depends="clean" name="cleanall"/>
 
