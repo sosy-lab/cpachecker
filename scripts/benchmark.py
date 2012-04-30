@@ -1681,7 +1681,7 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
         elif 'SIGSEGV' in line:
             status = 'SEGMENTATION FAULT'
         elif ((returncode == 0 or returncode == 1)
-                and ('Exception' in line)
+                and ('Exception' in line or 'java.lang.AssertionError' in line)
                 and not line.startswith('cbmc')): # ignore "cbmc error output: ... Minisat::OutOfMemoryException"
             status = 'ASSERTION' if 'java.lang.AssertionError' in line else 'EXCEPTION'
         elif 'Could not reserve enough space for object heap' in line:

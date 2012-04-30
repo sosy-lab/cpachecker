@@ -43,6 +43,10 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat5.BitwiseMathsat5FormulaMa
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5InterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.ArithmeticSmtInterpolFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolInterpolatingProver;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolTheoremProver;
 
 @Options(prefix="cpa.predicate")
 public class FormulaManagerFactory {
@@ -67,7 +71,15 @@ public class FormulaManagerFactory {
     private int bitWidth = 32;
   }
 
-  @Option(values={"MATHSAT4", "MATHSAT5", "YICES"}, toUppercase=true,
+  @Options(prefix="cpa.predicate.smtinterpol")
+  private static class SmtInterpolOptions {
+
+    @Option(description="encode program variables as INTEGERs in SmtInterpol, "
+        + "instead of using REALs.")
+    private boolean useIntegers = false;
+  }
+
+  @Option(values={"MATHSAT4", "MATHSAT5", "YICES", "SMTINTERPOL"}, toUppercase=true,
       description="Whether to use MathSAT 4, MathSAT 5 or YICES (in combination with Mathsat 4) as SMT solver")
   private String solver = "MATHSAT4";
 
@@ -76,6 +88,14 @@ public class FormulaManagerFactory {
 
   public FormulaManagerFactory(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
+
+    if (solver.equals("SMTINTERPOL")) {
+      SmtInterpolOptions options = new SmtInterpolOptions();
+      config.inject(options);
+      fmgr = new ArithmeticSmtInterpolFormulaManager(config, logger, options.useIntegers);
+      prover = new SmtInterpolTheoremProver((SmtInterpolFormulaManager) fmgr);
+      return;
+    }
 
     MathsatOptions options = new MathsatOptions();
     config.inject(options);
@@ -153,6 +173,8 @@ public class FormulaManagerFactory {
     if (solver.equals("MATHSAT5")) {
       return new Mathsat5InterpolatingProver((Mathsat5FormulaManager) fmgr, shared);
 
+    } else if (solver.equals("SMTINTERPOL")) {
+      return new SmtInterpolInterpolatingProver((SmtInterpolFormulaManager) fmgr);
     } else {
       assert solver.equals("MATHSAT4") || solver.equals("YICES");
       return new MathsatInterpolatingProver((MathsatFormulaManager) fmgr, shared);

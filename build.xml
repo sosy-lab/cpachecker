@@ -91,6 +91,8 @@
             <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>
             <echo message="Generate FQL parser if necessary" level="info"/>
             <ant antfile="src/org/sosy_lab/cpachecker/fshell/fql2/parser/build.xml" inheritAll="false"/>
+            <echo message="Generate parser for SmtInterpol-Terms if necessary" level="info"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/smtInterpol/build.xml" inheritAll="false"/>
     </target>
 
 
