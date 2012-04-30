@@ -504,32 +504,15 @@ cpa.predicate.handlePointerAliasing = true
 # initialize all variables to 0 when they are declared
 cpa.predicate.initAllVars = false
 
+# use uninterpreted functions for *, & and array access
+cpa.predicate.lvalsAsUIFs = false
+
 # the machine model used for functions sizeof and alignof
 cpa.predicate.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
 
-# With of the bitvectors if useBitwise is true.
-cpa.predicate.mathsat.bitWidth = 32
-
-# use uninterpreted functions for *, & and array access
-cpa.predicate.mathsat.lvalsAsUIFs = false
-
-# Whether to use signed or unsigned variables if useBitwise is true.
-cpa.predicate.mathsat.signed = true
-
-# Encode program variables of bitvectors of a fixed size,instead of using
-# REALS. No interpolation and thus no refinement issupported in this case.
-cpa.predicate.mathsat.useBitwise = false
-
 # use a combination of theories (this is incomplete)
 cpa.predicate.mathsat.useDtc = false
-
-# encode program variables as INTEGERs in MathSAT, instead of using REALs.
-# Since interpolation is not really supported by the laz solver, when
-# computing interpolants we still use the LA solver, but encoding variables
-# as ints might still be a good idea: we can tighten strict inequalities, and
-# split negated equalities
-cpa.predicate.mathsat.useIntegers = false
 
 # Use UIFs (recommended because its more precise)
 cpa.predicate.mathsat.useUIFs = true
@@ -628,14 +611,24 @@ cpa.predicate.satCheck = 0
 # export solverqueries in smtlib-format
 cpa.predicate.smtinterpol.logfile = "smtinterpol.smt2"
 
-# encode program variables as INTEGERs in SmtInterpol, instead of using
-# REALs.
-cpa.predicate.smtinterpol.useIntegers = false
-
 # Whether to use MathSAT 4, MathSAT 5 or YICES (in combination with Mathsat
 # 4) as SMT solver
 cpa.predicate.solver = MATHSAT4
   allowed values: [MATHSAT4, MATHSAT5, YICES, SMTINTERPOL]
+
+# With of the bitvectors if useBitvectors is true.
+cpa.predicate.solver.bitWidth = 32
+
+# Whether to use signed or unsigned variables if useBitvectors is true.
+cpa.predicate.solver.signed = true
+
+# Encode program variables as bitvectors of a fixed size,instead of using
+# REALS. Not all solvers might support this.
+cpa.predicate.solver.useBitvectors = false
+
+# Encode program variables as INTEGER variables, instead of using REALs. Not
+# all solvers might support this.
+cpa.predicate.solver.useIntegers = false
 
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks

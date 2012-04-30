@@ -58,33 +58,24 @@ public class FormulaManagerFactory {
   private static final String SMTINTERPOL = "SMTINTERPOL";
   private static final String YICES = "YICES";
 
-  @Options(prefix="cpa.predicate.mathsat")
-  private static class MathsatOptions {
+  @Option(name="solver.useIntegers",
+      description="Encode program variables as INTEGER variables, instead of "
+      + "using REALs. Not all solvers might support this.")
+  private boolean useIntegers = false;
 
-    @Option(description="encode program variables as INTEGERs in MathSAT, instead of "
-        + "using REALs. Since interpolation is not really supported by the laz solver, "
-        + "when computing interpolants we still use the LA solver, "
-        + "but encoding variables as ints might still be a good idea: "
-        + "we can tighten strict inequalities, and split negated equalities")
-    private boolean useIntegers = false;
+  @Option(name="solver.useBitvectors",
+      description="Encode program variables as bitvectors of a fixed size,"
+      + "instead of using REALS. Not all solvers might support this.")
+  private boolean useBitvectors = false;
 
-    @Option(description="Encode program variables of bitvectors of a fixed size,"
-        + "instead of using REALS. No interpolation and thus no refinement is"
-        + "supported in this case.")
-    private boolean useBitwise = false;
+  @Option(name="solver.bitWidth",
+      description="With of the bitvectors if useBitvectors is true.")
+  @IntegerOption(min=1, max=128)
+  private int bitWidth = 32;
 
-    @Option(description="With of the bitvectors if useBitwise is true.")
-    @IntegerOption(min=1, max=128)
-    private int bitWidth = 32;
-  }
-
-  @Options(prefix="cpa.predicate.smtinterpol")
-  private static class SmtInterpolOptions {
-
-    @Option(description="encode program variables as INTEGERs in SmtInterpol, "
-        + "instead of using REALs.")
-    private boolean useIntegers = false;
-  }
+  @Option(name="solver.signed",
+      description="Whether to use signed or unsigned variables if useBitvectors is true.")
+  private boolean signed = true;
 
   @Option(values={MATHSAT4, MATHSAT5, YICES, SMTINTERPOL}, toUppercase=true,
       description="Whether to use MathSAT 4, MathSAT 5 or YICES (in combination with Mathsat 4) as SMT solver")
@@ -96,24 +87,22 @@ public class FormulaManagerFactory {
   public FormulaManagerFactory(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
 
+    if (useBitvectors && useIntegers) {
+      throw new InvalidConfigurationException("Can use either integers or bitvecors, not both!");
+    }
+
     FormulaManager lFmgr = null;
     TheoremProver lProver = null;
 
     if (!solver.equals(SMTINTERPOL)) {
       try {
-        MathsatOptions options = new MathsatOptions();
-        config.inject(options);
-
-        if (options.useBitwise && options.useIntegers) {
-          throw new InvalidConfigurationException("Can use either integers or bitvecors, not both!");
-        }
 
         if (solver.equals(MATHSAT5)) {
-          if (options.useBitwise) {
-            lFmgr = new BitwiseMathsat5FormulaManager(config, logger, options.bitWidth);
+          if (useBitvectors) {
+            lFmgr = new BitwiseMathsat5FormulaManager(config, logger, bitWidth, signed);
 
           } else {
-            lFmgr = new ArithmeticMathsat5FormulaManager(config, logger, options.useIntegers);
+            lFmgr = new ArithmeticMathsat5FormulaManager(config, logger, useIntegers);
           }
 
           lProver = new Mathsat5TheoremProver((Mathsat5FormulaManager) lFmgr);
@@ -121,11 +110,11 @@ public class FormulaManagerFactory {
         } else {
           assert solver.equals(MATHSAT4) || solver.equals(YICES);
 
-          if (options.useBitwise) {
-            lFmgr = new BitwiseMathsatFormulaManager(config, logger, options.bitWidth);
+          if (useBitvectors) {
+            lFmgr = new BitwiseMathsatFormulaManager(config, logger, bitWidth, signed);
 
           } else {
-            lFmgr = new ArithmeticMathsatFormulaManager(config, logger, options.useIntegers);
+            lFmgr = new ArithmeticMathsatFormulaManager(config, logger, useIntegers);
           }
 
           if (solver.equals(YICES)) {
@@ -143,9 +132,11 @@ public class FormulaManagerFactory {
     }
 
     if (solver.equals(SMTINTERPOL)) {
-      SmtInterpolOptions options = new SmtInterpolOptions();
-      config.inject(options);
-      lFmgr = new ArithmeticSmtInterpolFormulaManager(config, logger, options.useIntegers);
+      if (useBitvectors) {
+        throw new InvalidConfigurationException("Using bitvectors for program variables is not supported when SMTInterpol is used.");
+      }
+
+      lFmgr = new ArithmeticSmtInterpolFormulaManager(config, logger, useIntegers);
       lProver = new SmtInterpolTheoremProver((SmtInterpolFormulaManager) lFmgr);
     }
 

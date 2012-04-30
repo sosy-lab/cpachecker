@@ -117,7 +117,7 @@ public class CtoFormulaConverter {
 
   // if true, handle lvalues as *x, &x, s.x, etc. using UIFs. If false, just
   // use variables
-  @Option(name="mathsat.lvalsAsUIFs",
+  @Option(name="lvalsAsUIFs",
       description="use uninterpreted functions for *, & and array access")
   private boolean lvalsAsUif = false;
 
