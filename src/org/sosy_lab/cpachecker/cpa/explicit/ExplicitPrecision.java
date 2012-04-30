@@ -144,7 +144,7 @@ public class ExplicitPrecision implements Precision {
   }
 
   @Options(prefix="cpa.explicit.precision.ignore")
-  class Ignore {
+  public class Ignore {
     private Multimap<CFANode, String> mapping = null;
 
     private Ignore(Configuration config) throws InvalidConfigurationException {
@@ -168,7 +168,7 @@ public class ExplicitPrecision implements Precision {
      *
      * @param mapping the mapping to be set
      */
-    void setMapping(Multimap<CFANode, String> mapping) {
+    public void setMapping(Multimap<CFANode, String> mapping) {
       this.mapping.putAll(mapping);
     }
   }

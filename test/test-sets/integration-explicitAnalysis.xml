@@ -9,7 +9,7 @@
 
   <test>
     <option name="-setprop">analysis.useRefinement=true</option>
-    <option name="-setprop">cegar.refiner=cpa.explicit.ExplicitRefiner</option>
+    <option name="-setprop">cegar.refiner=cpa.explicit.refiner.DelegatingExplicitRefiner</option>
     <sourcefiles>
       <includesfile>test/programs/benchmarks/Concurrency.set</includesfile>
       <includesfile>test/test-sets/integration-ControlFlowInteger.set</includesfile>
