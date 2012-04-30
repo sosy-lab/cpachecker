@@ -377,7 +377,7 @@ cpa.explicit.stop = "SEP"
 cpa.explicit.variableBlacklist = ""
 
 # whether or not to use assumption-closure for explicit refinement
-cpa.explict.refiner.useAssumptionClosure = false
+cpa.explict.refiner.useAssumptionClosure = true
 
 # whether or not to use explicit interpolation
 cpa.explict.refiner.useExplicitInterpolation = false
