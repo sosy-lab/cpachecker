@@ -1624,7 +1624,7 @@ def run_cpachecker(options, sourcefile, columns, rlimits, file):
 
     # Segmentation faults reference a file with more information.
     # We append this file to the log.
-    if status == 'SEGMENTATION FAULT':
+    if status == 'SEGMENTATION FAULT' or status.startswith('ERROR'):
         next = False
         for line in output.splitlines():
             if next:
