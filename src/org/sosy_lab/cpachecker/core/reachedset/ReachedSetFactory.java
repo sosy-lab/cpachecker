@@ -61,6 +61,11 @@ public class ReachedSetFactory {
       + "The secondary strategy may not be RPO.")
   boolean useReversePostorder = false;
 
+  @Option(name = "traversal.useTopsort",
+      description="This option was renamed to analysis.traversal.useTopsort and will soon get removed.")
+  @Deprecated
+  boolean useTopsort = false;
+
   @Option(name = "traversal.useExplicitInformation",
       description = "handle more abstract states (with less information) first? (only for ExplicitCPA)")
   boolean useExplicitInformation = false;
@@ -88,7 +93,7 @@ public class ReachedSetFactory {
 
   public ReachedSet create() {
     WaitlistFactory waitlistFactory = traversalMethod;
-    if (useReversePostorder) {
+    if (useReversePostorder || useTopsort) {
       waitlistFactory = ReversePostorderSortedWaitlist.factory(waitlistFactory);
     }
     if (useCallstack) {

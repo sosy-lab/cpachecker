@@ -101,6 +101,10 @@ analysis.traversal.useExplicitInformation = false
 # 'analysis.traversal.order'. The secondary strategy may not be RPO.
 analysis.traversal.useReversePostorder = false
 
+# DEPRECATED: This option was renamed to analysis.traversal.useTopsort and
+# will soon get removed.
+analysis.traversal.useTopsort = false
+
 # use adjustable conditions algorithm
 analysis.useAdjustableConditions = false
 
