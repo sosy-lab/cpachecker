@@ -50,7 +50,7 @@ public class FeatureVarsTest {
 
       prop = new HashMap<String, String>(prop);
       prop.put("analysis.traversal.order", "bfs");
-      prop.put("analysis.traversal.useTopsort", "true");
+      prop.put("analysis.traversal.useReversePostorder", "true");
       prop.put("analysis.traversal.useCallstack", "true");
       prop.put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA");
 

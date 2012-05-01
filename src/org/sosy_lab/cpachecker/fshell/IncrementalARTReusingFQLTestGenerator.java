@@ -351,7 +351,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     int lNumberOfCFAInfeasibleGoals = 0;
 
-    ReachedSet lPredicateReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    ReachedSet lPredicateReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.RPO);
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> lPreviousGoalAutomaton = null;
 
     ReachedSet lGraphReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.DFS);
@@ -795,7 +795,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
     }
     else {
-      pReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+      pReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.RPO);
 
       AbstractElement lInitialElement = lARTCPA.getInitialElement(pEntryNode);
       Precision lInitialPrecision = lARTCPA.getInitialPrecision(pEntryNode);
@@ -937,7 +937,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
 
-    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.RPO);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
@@ -1016,7 +1016,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
 
-    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.RPO);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {

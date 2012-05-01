@@ -52,8 +52,8 @@ public class CFANode implements Comparable<CFANode> {
   private CallToReturnEdge leavingSummaryEdge = null;
   private CallToReturnEdge enteringSummaryEdge = null;
 
-  // topological sort id, smaller if it appears later in sorting
-  private int topologicalSortId = 0;
+  // reverse postorder sort id, smaller if it appears later in sorting
+  private int reversePostorderId = 0;
 
   public CFANode(int pLineNumber, String pFunctionName) {
     assert !pFunctionName.isEmpty();
@@ -71,12 +71,12 @@ public class CFANode implements Comparable<CFANode> {
     return nodeNumber;
   }
 
-  public int getTopologicalSortId() {
-    return topologicalSortId;
+  public int getReversePostorderId() {
+    return reversePostorderId;
   }
 
-  public void setTopologicalSortId(int pId) {
-    topologicalSortId = pId;
+  public void setReversePostorderId(int pId) {
+    reversePostorderId = pId;
   }
 
   public void addLeavingEdge(CFAEdge pNewLeavingEdge) {

@@ -376,15 +376,21 @@ cpa.explicit.stop = "SEP"
 # blacklist regex for variables that won't be tracked by ExplicitCPA
 cpa.explicit.variableBlacklist = ""
 
+# whether or not to remove important variables again
+cpa.explict.refiner.keepImportantVariablesInCounterexampleCheck = true
+
+# whether or not to skip counter-example checks of variables that already are
+# in the precision
+cpa.explict.refiner.skipRedundantChecks = true
+
 # whether or not to use assumption-closure for explicit refinement
-cpa.explict.refiner.useAssumptionClosure = true
+cpa.explict.refiner.useAssumptionClosure = false
 
 # whether or not to use explicit interpolation
 cpa.explict.refiner.useExplicitInterpolation = false
 
-# whether or not to always use the inital node as starting point for the next
-# iteration
-cpa.explict.refiner.useInitialNodeAsRestartingPoint = true
+# whether or not to use the top most interpolation point
+cpa.explict.refiner.useTopMostInterpolationPoint = true
 
 # whitelist regex for variables that will be tracked by FeatureVarsCPA
 cpa.featurevars.variableWhitelist = ""

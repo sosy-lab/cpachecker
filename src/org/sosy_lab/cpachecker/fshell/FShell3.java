@@ -359,7 +359,7 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
       PrintWriter lWriter = new PrintWriter(new FileOutputStream(lPropertiesFile));
       //lWriter.println("log.consoleLevel = ALL");
 
-      lWriter.println("analysis.traversal.order = topsort");
+      lWriter.println("analysis.traversal.order = RPO");
       lWriter.println("analysis.entryFunction = " + pEntryFunction);
 
       // we want to use CEGAR algorithm

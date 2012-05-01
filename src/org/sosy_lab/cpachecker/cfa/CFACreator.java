@@ -166,10 +166,10 @@ public class CFACreator {
 
       processingTime.start();
 
-      // annotate CFA nodes with topological information for later use
+      // annotate CFA nodes with reverse postorder information for later use
       for(CFAFunctionDefinitionNode function : cfa.getAllFunctionHeads()){
-        CFATopologicalSort topSort = new CFATopologicalSort();
-        topSort.topologicalSort(function);
+        CFAReversePostorder sorter = new CFAReversePostorder();
+        sorter.assignSorting(function);
       }
 
       // get loop information
