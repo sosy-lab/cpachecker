@@ -28,12 +28,12 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Preconditions;
 
-public class TopologicallySortedWaitlist extends AbstractSortedWaitlist<Integer> {
+public class ReversePostorderSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 
   @SuppressWarnings("deprecation")
-  protected TopologicallySortedWaitlist(WaitlistFactory pSecondaryStrategy) {
+  protected ReversePostorderSortedWaitlist(WaitlistFactory pSecondaryStrategy) {
     super(pSecondaryStrategy);
-    Preconditions.checkArgument(pSecondaryStrategy != TraversalMethod.TOPSORT);
+    Preconditions.checkArgument(pSecondaryStrategy != TraversalMethod.RPO);
   }
 
   @Override
@@ -44,7 +44,7 @@ public class TopologicallySortedWaitlist extends AbstractSortedWaitlist<Integer>
 
   @Override
   protected Integer getSortKey(AbstractElement pElement) {
-    return AbstractElements.extractLocation(pElement).getTopologicalSortId();
+    return AbstractElements.extractLocation(pElement).getReversePostorderId();
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
@@ -52,7 +52,7 @@ public class TopologicallySortedWaitlist extends AbstractSortedWaitlist<Integer>
 
       @Override
       public Waitlist createWaitlistInstance() {
-        return new TopologicallySortedWaitlist(pSecondaryStrategy);
+        return new ReversePostorderSortedWaitlist(pSecondaryStrategy);
       }
     };
   }
