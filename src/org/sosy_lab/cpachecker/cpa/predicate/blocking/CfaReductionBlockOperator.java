@@ -34,13 +34,13 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackElement;
 import org.sosy_lab.cpachecker.cpa.predicate.interfaces.BlockOperator;
-import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer2;
+import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.container.ItemTree;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 import org.sosy_lab.cpachecker.util.clustering.ReducedCfaClusterer;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
-@Options(prefix="cpa.predicate.blk.cfareduction")
+@Options(prefix="cpa.predicate.blk.cfareduction2")
 public class CfaReductionBlockOperator extends AbstractBlockOperator implements BlockOperator  {
 
   @Option(description="Consider the callstack for the explicitly computed abstraction nodes.")
@@ -59,7 +59,7 @@ public class CfaReductionBlockOperator extends AbstractBlockOperator implements 
       ReducedCfaClusterer cfaClusterer = new ReducedCfaClusterer(config, logger);
       this.abstractionNodes = cfaClusterer.computeAbstractionNodes(cfa);
     } else {
-      BlockComputer blockComputer = new BlockedCFAReducer2(config, logger);
+      BlockComputer blockComputer = new BlockedCFAReducer(config, logger);
       this.abstractionNodes = blockComputer.computeAbstractionNodes(cfa);
     }
   }
@@ -83,14 +83,11 @@ public class CfaReductionBlockOperator extends AbstractBlockOperator implements 
 
     if (considerCallstack) {
       String[] callstackFnc = pCallstackElement.getCallstackFunctions(succLoc.getFunctionName());
-      boolean result = abstractionNodes.containsLeaf(callstackFnc, succLoc);
       if (isLoopHead(succLoc)) {
-        if (!result) {
-          throw new RuntimeException("There was a bug");
-        }
+        return true;
+      } else {
+        return abstractionNodes.containsLeaf(callstackFnc, succLoc);
       }
-      return result;
-
     }
 
     return false;

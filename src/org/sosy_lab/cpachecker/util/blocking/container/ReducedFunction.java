@@ -40,6 +40,7 @@ public class ReducedFunction {
   private final Multiset<ReducedNode> activeNodes;
   private final ReducedNode entryNode;
   private final ReducedNode exitNode;
+  private int maxRedctions = 0;
 
   public ReducedFunction(ReducedNode pEntryNode, ReducedNode pExitNode) {
     assert(pEntryNode != null);
@@ -69,10 +70,16 @@ public class ReducedFunction {
     activeNodes.add(pFrom);
     activeNodes.add(pTo);
 
+    this.maxRedctions = Math.max(maxRedctions, pEdge.getReductions());
+
     //System.out.println(String.format("add: %d --> %d: %d", pFrom.getWrapped().getLineNumber(), pTo.getWrapped().getLineNumber(), pEdge.getReductions()));
 
     assert (activeNodes.count(pFrom) > 0);
     assert (activeNodes.count(pTo) > 0);
+  }
+
+  public int getMaxReductions() {
+    return this.maxRedctions;
   }
 
   public void removeEdge(ReducedNode pFrom, ReducedNode pTo, ReducedEdge pEdge) {

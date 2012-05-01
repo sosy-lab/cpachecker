@@ -50,7 +50,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer2;
+import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.container.ItemTree;
 import org.sosy_lab.cpachecker.util.blocking.container.ReducedEdge;
 import org.sosy_lab.cpachecker.util.blocking.container.ReducedFunction;
@@ -182,7 +182,7 @@ public class ReducedCfaClusterer extends AbstractGraphClusterer implements Block
   @Override
   public ItemTree<String, CFANode> computeAbstractionNodes(CFA pCfa) throws InvalidConfigurationException {
     ItemTree<String, CFANode> result = new ItemTree<String, CFANode>();
-    BlockedCFAReducer2 reducer = new BlockedCFAReducer2(this.config, this.logger);
+    BlockedCFAReducer reducer = new BlockedCFAReducer(this.config, this.logger);
     Map<Integer, Integer> clustersOfNodes = new HashMap<Integer, Integer>();
 
     ReducedFunction reducedProgram = reducer.inlineAndSummarize(pCfa.getMainFunction());

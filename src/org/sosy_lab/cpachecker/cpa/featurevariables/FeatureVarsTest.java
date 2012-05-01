@@ -51,7 +51,7 @@ public class FeatureVarsTest {
       prop = new HashMap<String, String>(prop);
       prop.put("cfa.removeIrrelevantForErrorLocations", "false");
       prop.put("analysis.traversal.order", "bfs");
-      prop.put("analysis.traversal.useTopsort", "true");
+      prop.put("analysis.traversal.useReversePostorder", "true");
       prop.put("analysis.traversal.useCallstack", "true");
       prop.put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA");
 
@@ -81,7 +81,7 @@ public class FeatureVarsTest {
       prop = new HashMap<String, String>(prop);
       prop.put("cfa.removeIrrelevantForErrorLocations", "false");
       prop.put("analysis.traversal.order", "bfs");
-      prop.put("analysis.traversal.useTopsort", "true");
+      prop.put("analysis.traversal.useReversePostorder", "true");
       prop.put("analysis.traversal.useCallstack", "true");
       prop.put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA");
 
@@ -112,7 +112,7 @@ public class FeatureVarsTest {
       prop = new HashMap<String, String>(prop);
       prop.put("cfa.removeIrrelevantForErrorLocations", "false");
       prop.put("analysis.traversal.order", "bfs");
-      prop.put("analysis.traversal.useTopsort", "true");
+      prop.put("analysis.traversal.useReversePostorder", "true");
       prop.put("analysis.traversal.useCallstack", "true");
       prop.put("cpa","cpa.art.ARTCPA");
       prop.put("ARTCPA.cpa","cpa.composite.CompositeCPA");
@@ -142,7 +142,7 @@ public class FeatureVarsTest {
       prop.put("cfa.removeIrrelevantForErrorLocations", "false");
       prop.put("cpa","cpa.art.ARTCPA");
       prop.put("analysis.traversal.order", "bfs");
-      prop.put("analysis.traversal.useTopsort", "true");
+      prop.put("analysis.traversal.useReversePostorder", "true");
       prop.put("analysis.traversal.useCallstack", "true");
       prop.put("ARTCPA.cpa","cpa.composite.CompositeCPA");
       prop.put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA");

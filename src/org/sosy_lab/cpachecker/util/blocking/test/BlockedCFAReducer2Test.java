@@ -31,7 +31,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer2;
+import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.container.ItemTree;
 import org.sosy_lab.cpachecker.util.blocking.container.ReducedFunction;
 import org.sosy_lab.cpachecker.util.blocking.container.ReducedNode;
@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.blocking.container.ReducedNode;
 @SuppressWarnings("unused")
 public class BlockedCFAReducer2Test {
 
-  public class ReducerUnderTest extends BlockedCFAReducer2 {
+  public class ReducerUnderTest extends BlockedCFAReducer {
 
     public ReducerUnderTest(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
       super(pConfig, pLogger);

@@ -76,14 +76,13 @@ public class GoalReordering {
           ECPEdgeSet lEdgeSet = lLabel.getEdgeSet();
 
           if (lEdgeSet.size() == 1) {
-            int lTopSortId = Integer.MAX_VALUE;
+            int lReversePostorderId = Integer.MAX_VALUE;
 
             for (CFAEdge lTmpCFAEdge : lEdgeSet) {
-              lTopSortId = Math.min(lTmpCFAEdge.getPredecessor().getStrictTopoSortId(), lTmpCFAEdge.getSuccessor().getStrictTopoSortId());
+              lReversePostorderId = Math.min(lTmpCFAEdge.getPredecessor().getReversePostorderId(), lTmpCFAEdge.getSuccessor().getReversePostorderId());
             }
 
-            //lGoalWeight = Math.min(lGoalWeight, lTopSortId);
-            lGoalWeight = lGoalWeight + lTopSortId;
+            lGoalWeight = lGoalWeight + lReversePostorderId;
           }
         }
       }

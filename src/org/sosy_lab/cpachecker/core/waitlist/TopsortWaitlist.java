@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
  * Waitlist implementation that sorts the abstract elements topologically
  * considering the location they belong to.
  * This implementation does not allow to choose a secondary strategy for elements
- * with the same topsort id. Also, the method pop() has a complexity of O(n).
+ * with the same reverse postorder id. Also, the method pop() has a complexity of O(n).
  * Therefore, this implementation should be considered as deprecated and
  * replaced by TopologiallySortedWaitlist.
  */
@@ -50,10 +50,10 @@ public class TopsortWaitlist extends AbstractWaitlist<LinkedList<AbstractElement
     int resultTopSortId = Integer.MIN_VALUE;
     for (AbstractElement currentElement : waitlist) {
       if ((result == null)
-          || (extractLocation(currentElement).getStrictTopoSortId() >
+          || (extractLocation(currentElement).getReversePostorderId() >
               resultTopSortId)) {
         result = currentElement;
-        resultTopSortId = extractLocation(result).getStrictTopoSortId();
+        resultTopSortId = extractLocation(result).getReversePostorderId();
       }
     }
     waitlist.remove(result);

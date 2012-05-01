@@ -52,9 +52,10 @@ public class CFANode implements Comparable<CFANode> {
   private CallToReturnEdge leavingSummaryEdge = null;
   private CallToReturnEdge enteringSummaryEdge = null;
 
-  // topological sort id, smaller if it appears later in sorting
-  private int strictTopoSortId = 0;
-  private int sparseTopoSortId = 0;
+  // reverse postorder order id, smaller if it appears later in sorting
+  private int reversePostorderId = 0;
+  // wait-at-meet order id, smaller if it appears later in sorting
+  private int waitAtMeetOrderId = 0;
 
   // Cluster membership
   private int clusterId = 0;
@@ -75,20 +76,20 @@ public class CFANode implements Comparable<CFANode> {
     return nodeNumber;
   }
 
-  public int getStrictTopoSortId() {
-    return this.strictTopoSortId;
+  public int getReversePostorderId() {
+    return this.reversePostorderId;
   }
 
-  public void setStrictTopoSortId(int pId) {
-    this.strictTopoSortId = pId;
+  public void setReversePostorderId(int pId) {
+    this.reversePostorderId = pId;
   }
 
-  public int getSparseTopoSortId() {
-    return this.sparseTopoSortId;
+  public int getWaitAtMeetOrderId() {
+    return this.waitAtMeetOrderId;
   }
 
-  public void setSparseTopoSortId(int pId) {
-    this.sparseTopoSortId = pId;
+  public void setWaitAtMeetOrderId(int pId) {
+    this.waitAtMeetOrderId = pId;
   }
 
   public int getClusterId() {

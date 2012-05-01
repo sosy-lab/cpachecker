@@ -114,7 +114,7 @@ public class ControlFlowStatistics {
         }
         fnStat.edgeCount++;
         if (outgoingEdge.getSuccessor() != null) {
-          if (outgoingEdge.getSuccessor().getStrictTopoSortId() < node.getStrictTopoSortId()) {
+          if (outgoingEdge.getSuccessor().getReversePostorderId() < node.getReversePostorderId()) {
             fnStat.topoBackEdges++;
           }
         }

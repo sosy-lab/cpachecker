@@ -32,8 +32,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
-import org.sosy_lab.cpachecker.core.waitlist.SparseTopoSortedWaitlist;
-import org.sosy_lab.cpachecker.core.waitlist.StrictTopoSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.WaitAtMeetSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
@@ -47,7 +47,7 @@ public class ReachedSetFactory {
 
   @Option(name="traversal.order",
       description="which strategy to adopt for visiting states? "
-      		      + "TOPSORT is deprecated, use the option analysis.traversal.useTopsort instead")
+      		      + "TOPSORT is deprecated, use the option analysis.traversal.useReversePostorder instead")
   Waitlist.TraversalMethod traversalMethod = Waitlist.TraversalMethod.DFS;
 
   @Option(name = "traversal.useCallstack",
@@ -55,17 +55,16 @@ public class ReachedSetFactory {
       + "\nThis needs the CallstackCPA to have any effect.")
   boolean useCallstack = false;
 
-  @Option(name = "traversal.useTopsort",
-      description = "Use an implementation of topsort strategy that allows to select "
-      + "a secondary strategy that is used if there are two elements with the same topsort id. "
-      + "The secondary strategy is selected with 'analysis.traversal.order'. "
-      + "The secondary strategy may not be TOPSORT.")
-  boolean useStrictTopoSort = false;
+  @Option(name = "traversal.useReversePostorder",
+      description = "Use an implementation of reverse postorder strategy that allows to select "
+      + "a secondary strategy that is used if there are two elements with the same reverse postorder id. "
+      + "The secondary strategy is selected with 'analysis.traversal.order'. ")
+  boolean useReversePostorder = false;
 
-  @Option(name = "traversal.useSparseTopsort",
-      description = "Use an implementation of topsort strategy that computes sparser ids. "
+  @Option(name = "traversal.useWaitAtMeetOrder",
+      description = "Use an implementation of wait-at-meet strategy that computes ids according to the wait-at-meet order. "
       + "This leaves the second strategy more choices 'analysis.traversal.order'. ")
-  boolean useSparseTopoSort = false;
+  boolean useWaitAtMeetOrder = false;
 
   @Option(name = "traversal.useExplicitInformation",
       description = "handle more abstract states (with less information) first? (only for ExplicitCPA)")
@@ -84,21 +83,21 @@ public class ReachedSetFactory {
     config.inject(this);
 
     if (traversalMethod == TraversalMethod.TOPSORT) {
-      logger.log(Level.WARNING, "Using the option 'analysis.traversal.order = TOPSORT' is deprecated, please switch to 'analysis.traversal.useTopSort = true'");
+      logger.log(Level.WARNING, "Using the option 'analysis.traversal.order = TOPSORT' is deprecated, please switch to 'analysis.traversal.useReversePostorder = true'");
 
-      if (useStrictTopoSort || useSparseTopoSort) {
-        throw new InvalidConfigurationException("Cannot use both 'analysis.traversal.order = TOPSORT' and 'analysis.traversal.useTopSort = true'");
+      if (useReversePostorder || useWaitAtMeetOrder) {
+        throw new InvalidConfigurationException("Cannot use both 'analysis.traversal.order = TOPSORT' and 'analysis.traversal.useReversePostorder = true'");
       }
     }
   }
 
   public ReachedSet create() {
     WaitlistFactory waitlistFactory = traversalMethod;
-    if (useStrictTopoSort) {
-      waitlistFactory = StrictTopoSortedWaitlist.factory(waitlistFactory);
+    if (useReversePostorder) {
+      waitlistFactory = ReversePostorderSortedWaitlist.factory(waitlistFactory);
     }
-    if (useSparseTopoSort) {
-      waitlistFactory = SparseTopoSortedWaitlist.factory(waitlistFactory);
+    if (useWaitAtMeetOrder) {
+      waitlistFactory = WaitAtMeetSortedWaitlist.factory(waitlistFactory);
     }
     if (useCallstack) {
       waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);

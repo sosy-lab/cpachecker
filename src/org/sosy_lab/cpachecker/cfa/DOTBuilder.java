@@ -107,13 +107,15 @@ public final class DOTBuilder {
 
       if(node.isLoopStart()){
         nodes.add(formatNode(node, "doublecircle"));
+      } else {
+        nodes.add(formatNode(node, "circle"));
       }
 
       return CFATraversal.TraversalProcess.CONTINUE;
     }
 
     private static String formatNode(CFANode node, String shape) {
-      return node.getNodeNumber() + " [shape=\"" + shape + "\"]";
+      return node.getNodeNumber() + " [label=\"" + String.format("%d", node.getLineNumber()) + "\", shape=\"" + shape + "\"]";
     }
 
     private static String formatEdge(CFAEdge edge) {

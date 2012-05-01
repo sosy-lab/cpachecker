@@ -442,10 +442,10 @@ class MainCPAStatistics implements Statistics {
           }
           edgeCount++;
           if (outgoingEdge.getSuccessor() != null) {
-            if (outgoingEdge.getSuccessor().getStrictTopoSortId() < node.getStrictTopoSortId()) {
+            if (outgoingEdge.getSuccessor().getReversePostorderId() < node.getReversePostorderId()) {
               strictTopoBackEdges++;
             }
-            if (outgoingEdge.getSuccessor().getSparseTopoSortId() < node.getSparseTopoSortId()) {
+            if (outgoingEdge.getSuccessor().getWaitAtMeetOrderId() < node.getWaitAtMeetOrderId()) {
               sparseTopoBackEdges++;
             }
 
