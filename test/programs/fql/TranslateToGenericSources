@@ -72,6 +72,18 @@ done
 grep -r "__BLAST_NONDET" ssh-simplified/generic | \
   egrep -v '(#  define|int __BLAST_NONDET|//__BLAST_NONDET = random\(\);)'
 # systemc
+mkdir -p systemc/generic
+for f in bist_cell.cil.c kundu1_BUG.cil.c kundu2_BUG.cil.c kundu.cil.c mem_slave_tlm.1.cil.c mem_slave_tlm.2.cil.c mem_slave_tlm.3.cil.c \
+  mem_slave_tlm.4.cil.c mem_slave_tlm.5.cil.c pc_sfifo_1.cil.c pc_sfifo_2.cil.c pipeline.cil.c token_ring.01.cil.c \
+  token_ring.02.cil.c token_ring.03.cil.c token_ring.04.cil.c token_ring.05.cil.c token_ring.06.cil.c token_ring.07.cil.c token_ring.08.cil.c \
+  token_ring.09.cil.c token_ring.10.cil.c token_ring.11.cil.c token_ring.12.cil.c token_ring.13.cil.c toy1_BUG.cil.c toy2_BUG.cil.c \
+  toy.cil.c transmitter.01.BUG.cil.c transmitter.02.BUG.cil.c transmitter.03.BUG.cil.c transmitter.04.BUG.cil.c transmitter.05.BUG.cil.c transmitter.06.BUG.cil.c \
+  transmitter.07.BUG.cil.c transmitter.08.BUG.cil.c transmitter.09.BUG.cil.c transmitter.10.BUG.cil.c transmitter.11.BUG.cil.c transmitter.12.BUG.cil.c transmitter.13.BUG.cil.c ; do
+  convert_input systemc/$f systemc/generic/$f
+done
+grep -r "__BLAST_NONDET" ssh-simplified/generic | \
+  egrep -v '(#  define|int __BLAST_NONDET|//__BLAST_NONDET = random\(\);)'
+# systemc
 #mkdir -p systemc/fshell2
 #./NondetToInput systemc/bist_cell.cil.c systemc/fshell2/bist_cell.cil.c
 #./NondetToInput systemc/kundu.cil.c systemc/fshell2/kundu.cil.c
@@ -85,7 +97,7 @@ grep -r "__BLAST_NONDET" ssh-simplified/generic | \
 #./NondetToInput systemc/pc_sfifo_1.cil.c systemc/fshell2/pc_sfifo_1.cil.c
 #./NondetToInput systemc/pc_sfifo_2.cil.c systemc/fshell2/pc_sfifo_2.cil.c
 #./NondetToInput systemc/pipeline.cil.c systemc/fshell2/pipeline.cil.c
-#./NondetToInput systemc/token_ring.01.cil.c systemc/fshell2/token_ring.01.cil.c
+#./NondetToInput systemc/token_ring.01.cil.c systemcfshell2/token_ring.01.cil.c
 #./NondetToInput systemc/token_ring.02.cil.c systemc/fshell2/token_ring.02.cil.c
 #./NondetToInput systemc/token_ring.03.cil.c systemc/fshell2/token_ring.03.cil.c
 #./NondetToInput systemc/token_ring.04.cil.c systemc/fshell2/token_ring.04.cil.c
