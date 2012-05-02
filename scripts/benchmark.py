@@ -115,7 +115,7 @@ class Benchmark:
         keys = list(root.keys())
         if ("memlimit" in keys):
             limit = int(root.get("memlimit")) * BYTE_FACTOR * BYTE_FACTOR
-            self.rlimits[resource.RLIMIT_AS] = (limit, limit)
+            self.rlimits[options.memresource] = (limit, limit)
         if ("timelimit" in keys):
             limit = int(root.get("timelimit"))
             self.rlimits[resource.RLIMIT_CPU] = (limit, limit)
@@ -124,11 +124,11 @@ class Benchmark:
         if options.memorylimit != None:
             memorylimit = int(options.memorylimit)
             if memorylimit == -1: # infinity
-                if resource.RLIMIT_AS in self.rlimits:
-                    self.rlimits.pop(resource.RLIMIT_AS)                
+                if options.memresource in self.rlimits:
+                    self.rlimits.pop(options.memresource)                
             else:
                 memorylimit = memorylimit * BYTE_FACTOR * BYTE_FACTOR
-                self.rlimits[resource.RLIMIT_AS] = (memorylimit, memorylimit)
+                self.rlimits[options.memresource] = (memorylimit, memorylimit)
 
         if options.timelimit != None:
             timelimit = int(options.timelimit)
@@ -538,8 +538,8 @@ class OutputHandler:
 
         memlimit = None
         timelimit = None
-        if (resource.RLIMIT_AS in self.benchmark.rlimits):
-            memlimit = str(self.benchmark.rlimits[resource.RLIMIT_AS][0] // BYTE_FACTOR // BYTE_FACTOR) + " MB"
+        if (options.memresource in self.benchmark.rlimits):
+            memlimit = str(self.benchmark.rlimits[options.memresource][0] // BYTE_FACTOR // BYTE_FACTOR) + " MB"
         if (resource.RLIMIT_CPU in self.benchmark.rlimits):
             timelimit = str(self.benchmark.rlimits[resource.RLIMIT_CPU][0]) + " s"
 
@@ -1889,9 +1889,14 @@ from the output of this script.""")
                             "(starting with 1).",
                       metavar="a b")
 
+    parser.add_option("-D", "--memdata", dest="memdata",
+                      action="store_true",
+                      help="When limiting memory usage, restrict only the data segments instead of the virtual address space.")
+
     global options, OUTPUT_PATH
     (options, args) = parser.parse_args(argv)
     OUTPUT_PATH = options.output_path
+    options.memresource = resource.RLIMIT_DATA if getattr(options, "memdata", False) else resource.RLIMIT_AS
 
     if len(args) < 2:
         parser.error("invalid number of arguments")
