@@ -489,8 +489,8 @@ function sortData(data) {
 
         // compare numbers, NaN and Null are handled as positive infinity
         array.sort( function(a, b) {
-            if (!a || isNaN(a)) return 1;
-            if (!b || isNaN(b)) return -1;
+            if (a == null || isNaN(a)) return 1;
+            if (b == null || isNaN(b)) return -1;
             return a - b;
             } );
 
