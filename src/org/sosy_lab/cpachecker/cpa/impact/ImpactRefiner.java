@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.impact;
 
-import static com.google.common.collect.Iterables.*;
+import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
@@ -97,7 +97,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
   private final Stats stats = new Stats();
 
   public static ImpactRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
-    ImpactCPA impactCpa = getFirst(filter(CPAs.asIterable(pCpa), ImpactCPA.class), null);
+    ImpactCPA impactCpa = CPAs.retrieveCPA(pCpa, ImpactCPA.class);
     if (impactCpa == null) {
       throw new InvalidConfigurationException(ImpactRefiner.class.getSimpleName() + " needs an ImpactCPA");
     }

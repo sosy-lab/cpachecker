@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.collect.Iterables.*;
+import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
@@ -56,7 +56,7 @@ import com.google.common.collect.Iterables;
 public class ImpactRefiner extends org.sosy_lab.cpachecker.cpa.impact.ImpactRefiner {
 
   public static ImpactRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
-    PredicateCPA predicateCpa = getFirst(filter(CPAs.asIterable(pCpa), PredicateCPA.class), null);
+    PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(ImpactRefiner.class.getSimpleName() + " needs a PredicateCPA");
     }

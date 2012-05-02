@@ -190,7 +190,7 @@ public final class AbstractElements {
           return ((AbstractWrapperElement)element).getWrappedElements().iterator();
         }
 
-        return null;
+        return Iterators.emptyIterator();
       }
     };
 
