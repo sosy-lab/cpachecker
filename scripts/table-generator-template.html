@@ -30,9 +30,8 @@
 
     #contentPaneBackground { height:5000px; width:5000px;
              position:fixed; top:0px; left:0px;
-             background-image: url(http://www.house-events.de/schnee.gif);
-             background-color:grey; 
-             opacity:0.5; display:none }
+             background-color:green; 
+             opacity:0.2; display:none }
     #contentPane { height:90%; width:90%; position:fixed; top:5%; left:5%;
              border:solid 10px black; border-radius:15px;
              background-color:white; opacity:1; display:none }
@@ -410,6 +409,7 @@ $(document).ready(function(){
     #chart { height:100%; width:100% }
     #button-trend { position:absolute; bottom:30px; }
     #button-logScale { position:absolute; bottom:0px; }
+    #button-showCorrectOnly { position:absolute; bottom:0px; right:0px; }
 </style>
 
 <script type="text/javascript">
@@ -454,7 +454,9 @@ function getTableData(header, sort) {
         var currentCell = currentRow.cells[index];
 
         var value;
-        if (header === 'status') {
+        if (graphData.showCorrectOnly && currentCell.className.indexOf('correct') != 0) {
+            value = null;
+        } else if (header === 'status') {
             if (currentCell.className.indexOf('correct') == 0)     value = 1;
             else if (currentCell.className.indexOf('wrong') == 0)  value = -1;
             else                                                   value = 0;
@@ -485,7 +487,12 @@ function sortData(data) {
             array.push(line[j][1]);
         }
 
-        array.sort( function(a, b) { return a - b;} ); // compare numbers!
+        // compare numbers, NaN and Null are handled as positive infinity
+        array.sort( function(a, b) {
+            if (!a || isNaN(a)) return 1;
+            if (!b || isNaN(b)) return -1;
+            return a - b;
+            } );
 
         var newLine = [];
         for (j = 0; j < line.length; j++) {
@@ -612,6 +619,7 @@ var graphData = {
     header : null,
     isTrend : false,
     isLogScale : false,
+    showCorrectOnly : false,
 };
 
 function toggleTrend() {
@@ -624,6 +632,10 @@ function toggleLogScale() {
     showPlot();
 }
 
+function toggleShowCorrectOnly() {
+    graphData.showCorrectOnly = !graphData.showCorrectOnly;
+    showPlot();
+}
 
 function showPlot() {
     $('#contentPaneBackground').trigger('click'); // cleanup
@@ -634,7 +646,8 @@ function showPlot() {
 
     $('#contentPane').append('<div id="chart"></div>',
                    '<button id="button-trend"></button>',
-                   '<button id="button-logScale"></button>');
+                   '<button id="button-logScale"></button>',
+                   '<button id="button-showCorrectOnly"></button>');
 
     var button = $('#button-trend')[0];
     button.onclick = function() { toggleTrend(); };
@@ -643,6 +656,10 @@ function showPlot() {
     var button = $('#button-logScale')[0];
     button.onclick = function() { toggleLogScale(); };
     button.textContent = graphData.isLogScale ?  'Use linear scale' : 'Use log scale';
+
+    var button = $('#button-showCorrectOnly')[0];
+    button.onclick = function() { toggleShowCorrectOnly(); };
+    button.textContent = graphData.showCorrectOnly ?  'Show all files' : 'Show correct only';
 
     showContentPane();
     $('#contentPaneBackground').click(function(event){

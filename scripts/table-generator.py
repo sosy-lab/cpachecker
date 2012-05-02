@@ -497,7 +497,7 @@ class Test:
                             self.category, quote(self.logFile), value.lower()))
 
             else:
-                result.append('<td>{0}</td>'.format(value))
+                result.append('<td class="{0}Value">{1}</td>'.format(self.category, value))
         return "".join(result)
 
 
