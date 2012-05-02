@@ -108,58 +108,7 @@ class CFABuilder extends ASTVisitor {
    * @return global declarations
    */
   public List<Pair<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration, String>> getGlobalDeclarations() {
-    organizeGlobalDeclarations();
     return globalDeclarations;
-  }
-
-  private void organizeGlobalDeclarations() {
-    List<String> tmp = Lists.newArrayList();
-
-    for (int i = 0; i < globalDeclarations.size(); i++) {
-      String decl = globalDeclarations.get(i).getSecond();
-      if (decl.contains("=")) {
-        removeDuplicates(decl);
-        tmp.add(decl);
-      } else if (!isDeclInList(tmp, decl)) {
-        tmp.add(decl);
-      } else {
-        globalDeclarations.remove(i);
-
-        //restart loop because of changed indices after removing an element from the list
-        i = 0;
-      }
-    }
-  }
-
-  private boolean isDeclInList(List<String> list, String decl) {
-    boolean isInList = false;
-
-    String[] checkDecl = decl.split("\\s+");
-    checkDecl[1] = checkDecl[1].split(";")[0];
-    for(int i = 0; i < list.size(); i++) {
-      if(isInList) break;
-      String[] tmp = list.get(i).split("\\s+");
-      tmp[1] = tmp[1].split(";")[0];
-      if(tmp[0].equals(checkDecl[0]) && tmp[1].equals(checkDecl[1])){
-        isInList = true;
-        break;
-      }
-    }
-
-    return list.contains(decl) || isInList;
-  }
-
-  private void removeDuplicates(String decl) {
-    String[] checkDecl = decl.split("\\s+");
-    checkDecl[1] = checkDecl[1].split("=")[0];
-
-    for(int i = 0; i < globalDeclarations.size(); i++) {
-      String[] tmp = globalDeclarations.get(i).getSecond().split("\\s+");
-      tmp[1] = tmp[1].split(";")[0];
-      if(checkDecl[0].equals(tmp[0]) && checkDecl[1].equals(tmp[1])) {
-        globalDeclarations.remove(i);
-      }
-    }
   }
 
   /* (non-Javadoc)
