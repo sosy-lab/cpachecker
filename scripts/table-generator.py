@@ -581,8 +581,9 @@ def filterRowsWithDifferences(rows):
         (allEqual, oldStatus, newStatus) = allEqualResult(row.results)
         if not allEqual:
             rowsDiff.append(row)
-            print ('    difference found:  {0} : {1} --> {2}'.format(
-                        row.fileName.ljust(maxLen), oldStatus, newStatus))
+# TODO replace with call to log.debug when this script has logging
+#            print ('    difference found:  {0} : {1} --> {2}'.format(
+#                        row.fileName.ljust(maxLen), oldStatus, newStatus))
 
 
     if len(rowsDiff) == 0:
