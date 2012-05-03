@@ -31,56 +31,63 @@ public enum MachineModel {
    */
   LINUX32(
       // numeric types
-      2,  // short
-      4,  // int
-      4,  // long int
-      8,  // long long int
-      4,  // float
-      8,  // double
+      2, // short
+      4, // int
+      4, // long int
+      8, // long long int
+      4, // float
+      8, // double
       12, // long double
 
       // other
       1, // void
-      1  // bool
-      ),
+      1, // bool
+      4, // pointer
+      4  // padding
+  ),
 
   /**
    * Machine model representing a 64bit Linux machine
    */
   LINUX64(
       // numeric types
-      2,  // short
-      4,  // int
-      8,  // long int
-      8,  // long long int
-      4,  // float
-      8,  // double
+      2, // short
+      4, // int
+      8, // long int
+      8, // long long int
+      4, // float
+      8, // double
       16, // long double
 
       // other
       1, // void
-      1  // bool
-      );
+      1, // bool
+      8, // pointer
+      8 // padding
+  );
 
   // numeric types
-  private final int     sizeofShort;
-  private final int     sizeofInt;
-  private final int     sizeofLongInt;
-  private final int     sizeofLongLongInt;
-  private final int     sizeofFloat;
-  private final int     sizeofDouble;
-  private final int     sizeofLongDouble;
+  private final int sizeofShort;
+  private final int sizeofInt;
+  private final int sizeofLongInt;
+  private final int sizeofLongLongInt;
+  private final int sizeofFloat;
+  private final int sizeofDouble;
+  private final int sizeofLongDouble;
 
   // other
-  private final int     sizeofVoid;
-  private final int     sizeofBool;
+  private final int sizeofVoid;
+  private final int sizeofBool;
+  private final int sizeofPointer;
+  private final int sizeofPadding;
 
   // according to ANSI C, sizeof(char) is always 1
   private final int mSizeofChar = 1;
 
+
   private MachineModel(int pSizeofShort, int pSizeofInt, int pSizeofLongInt,
       int pSizeofLongLongInt, int pSizeofFloat, int pSizeofDouble,
-      int pSizeofLongDouble, int pSizeofVoid, int pSizeofBool) {
+      int pSizeofLongDouble, int pSizeofVoid, int pSizeofBool, int pSizeOfPointer, int pSizeOfPadding) {
     sizeofShort = pSizeofShort;
     sizeofInt = pSizeofInt;
     sizeofLongInt = pSizeofLongInt;
@@ -90,6 +97,8 @@ public enum MachineModel {
     sizeofLongDouble = pSizeofLongDouble;
     sizeofVoid = pSizeofVoid;
     sizeofBool = pSizeofBool;
+    sizeofPointer = pSizeOfPointer; // added pointerType
+    sizeofPadding = pSizeOfPadding; //added padding Allignment
   }
 
   public int getSizeofShort() {
@@ -132,13 +141,26 @@ public enum MachineModel {
     return mSizeofChar;
   }
 
+  public int getSizeofPointer() {
+    return sizeofPointer;
+  }
+
+  public int getSizeofPadding() {
+    return sizeofPadding;
+  }
+
   public int getSizeof(IASTSimpleDeclSpecifier type) {
     switch (type.getType()) {
-    case UNSPECIFIED: return getSizeofInt(); // the default type in C is int
-    case VOID:        return getSizeofVoid();
-    case BOOL:        return getSizeofBool();
-    case CHAR:        return getSizeofChar();
-    case FLOAT:       return getSizeofFloat();
+    case UNSPECIFIED:
+      return getSizeofInt(); // the default type in C is int
+    case VOID:
+      return getSizeofVoid();
+    case BOOL:
+      return getSizeofBool();
+    case CHAR:
+      return getSizeofChar();
+    case FLOAT:
+      return getSizeofFloat();
     case INT:
       if (type.isLongLong()) {
         return getSizeofLongLongInt();

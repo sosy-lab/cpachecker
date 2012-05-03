@@ -28,6 +28,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.cpachecker.util.MachineModel;
+
 public interface Type {
 
   /**
@@ -82,13 +85,13 @@ public interface Type {
 
     CHAR(1, "char"),
     SHORT(2, "short int"),
+    INT(4,"int"), // Added Int-Type
     LONG(4, "long int"),
     LONGLONG(8, "long long int"),
 
     FLOAT(4, "float"),
     DOUBLE(8, "double"),
-    LONGDOUBLE(12, "long double"),
-    ;
+    LONGDOUBLE(12, "long double"), ;
 
     private final int sizeOf;
     private final String name;
@@ -113,6 +116,10 @@ public interface Type {
     private final Primitive primitiveType;
     private final boolean signed;
 
+    // Get MachineModel for
+    @Option(description = "the machine model used for functions sizeof and alignof")
+    private MachineModel machineModel = MachineModel.LINUX32;
+
     /**
      * @param primitiveType
      * @param signed  ignored if not an integral type
@@ -129,6 +136,7 @@ public interface Type {
 
       case CHAR:
       case SHORT:
+      case INT:
       case LONG:
       case LONGLONG:
         this.signed = signed;
@@ -147,7 +155,32 @@ public interface Type {
 
     @Override
     public int sizeOf() {
-      return primitiveType.sizeOf();
+
+      // Determine size of primitive types via MachineModel
+      switch (primitiveType) {
+      case VOID:
+        return machineModel.getSizeofVoid();
+      case CHAR:
+        return machineModel.getSizeofChar();
+      case SHORT:
+        return machineModel.getSizeofShort();
+      case INT:
+          return machineModel.getSizeofInt();
+      case LONG:
+        return machineModel.getSizeofLongInt();
+      case LONGLONG:
+        return machineModel.getSizeofLongLongInt();
+      case FLOAT:
+        return machineModel.getSizeofFloat();
+      case DOUBLE:
+        return machineModel.getSizeofDouble();
+      case LONGDOUBLE:
+        return machineModel.getSizeofLongDouble();
+      default:
+        return primitiveType.sizeOf();
+      }
+
+
     }
 
     @Override
@@ -161,12 +194,10 @@ public interface Type {
 
     @Override
     public boolean equals(Object obj) {
-      if (obj == null || !(obj instanceof PrimitiveType)) {
-        return false;
-      }
-      PrimitiveType other = (PrimitiveType)obj;
+      if (obj == null || !(obj instanceof PrimitiveType)) { return false; }
+      PrimitiveType other = (PrimitiveType) obj;
       return (this == other)
-          || (   (primitiveType == other.primitiveType)
+          || ((primitiveType == other.primitiveType)
               && (signed == other.signed)
               && (super.equals(other)));
     }
@@ -179,7 +210,7 @@ public interface Type {
     @Override
     public String toString() {
       String signedString = "";
-      if (   primitiveType == Primitive.CHAR
+      if (primitiveType == Primitive.CHAR
           || primitiveType == Primitive.SHORT
           || primitiveType == Primitive.LONG
           || primitiveType == Primitive.LONGLONG) {
@@ -187,9 +218,9 @@ public interface Type {
         signedString = (signed ? "signed " : "unsigned ");
       }
 
-      return (isConst() ? "const "  : "")
-           + signedString
-           + primitiveType.toString();
+      return (isConst() ? "const " : "")
+          + signedString
+          + primitiveType.toString();
     }
   }
 
@@ -198,14 +229,16 @@ public interface Type {
     private final Type targetType; // target type
     private final int levelOfIndirection;
 
+    // Get MachineModel for size of pointer
+    @Option(description = "the machine model used for functions sizeof and alignof")
+    private MachineModel machineModel = MachineModel.LINUX32;
+
     public PointerType(Type targetType, boolean constant) {
       super(constant);
-      if (targetType == null) {
-        throw new IllegalArgumentException();
-      }
+      if (targetType == null) { throw new IllegalArgumentException(); }
       this.targetType = targetType;
       if (targetType instanceof PointerType) {
-        this.levelOfIndirection = ((PointerType)targetType).levelOfIndirection + 1;
+        this.levelOfIndirection = ((PointerType) targetType).levelOfIndirection + 1;
       } else {
         this.levelOfIndirection = 1;
       }
@@ -213,7 +246,7 @@ public interface Type {
 
     @Override
     public int sizeOf() {
-      return 4; // architecture dependent
+      return machineModel.getSizeofPointer(); // architecture dependent
     }
 
     @Override
@@ -231,13 +264,11 @@ public interface Type {
 
     @Override
     public boolean equals(Object obj) {
-      if (obj == null || !(obj instanceof PointerType)) {
-        return false;
-      }
-      PointerType other = (PointerType)obj;
+      if (obj == null || !(obj instanceof PointerType)) { return false; }
+      PointerType other = (PointerType) obj;
       return (this == obj)
-          || (   super.equals(other))
-              && targetType.equals(other.targetType);
+          || (super.equals(other))
+          && targetType.equals(other.targetType);
     }
 
     @Override
@@ -248,24 +279,20 @@ public interface Type {
     @Override
     public String toString() {
       return targetType.toString()
-           + (isConst() ? " const " : "")
-           + "*";
+          + (isConst() ? " const " : "")
+          + "*";
     }
   }
 
-public static final class ArrayType extends AbstractType {
+  public static final class ArrayType extends AbstractType {
 
     private final Type type; // target type
     private final int length;
 
     public ArrayType(Type type, int length) {
       super(false);
-      if (type == null) {
-        throw new IllegalArgumentException();
-      }
-      if (length < 0) {
-        throw new IllegalArgumentException();
-      }
+      if (type == null) { throw new IllegalArgumentException(); }
+      if (length < 0) { throw new IllegalArgumentException(); }
       this.type = type;
       this.length = length;
     }
@@ -286,13 +313,11 @@ public static final class ArrayType extends AbstractType {
 
     @Override
     public boolean equals(Object obj) {
-      if (obj == null || !(obj instanceof ArrayType)) {
-        return false;
-      }
-      ArrayType other = (ArrayType)obj;
+      if (obj == null || !(obj instanceof ArrayType)) { return false; }
+      ArrayType other = (ArrayType) obj;
       return (this == other)
-          || (   super.equals(other)
-              && type.equals(other.type));
+          || (super.equals(other)
+          && type.equals(other.type));
     }
 
 
@@ -304,8 +329,8 @@ public static final class ArrayType extends AbstractType {
     @Override
     public String toString() {
       return type.toString()
-           + (isConst() ? " const " : "")
-           + "[" + (length > 0 ? length : "") + "]";
+          + (isConst() ? " const " : "")
+          + "[" + (length > 0 ? length : "") + "]";
     }
   }
 
@@ -323,19 +348,14 @@ public static final class ArrayType extends AbstractType {
     public abstract int offsetOf(String name);
 
     protected void addMember(String name, Type type) {
-      if (name == null || type == null) {
-        throw new IllegalArgumentException();
-      }
-      if (members.containsKey(name)) {
-        throw new IllegalArgumentException("Member " + name + " exists already in type " + name);
-      }
+      if (name == null || type == null) { throw new IllegalArgumentException(); }
+      if (members.containsKey(name)) { throw new IllegalArgumentException("Member " + name + " exists already in type "
+          + name); }
       members.put(name, type);
     }
 
     public Type getMemberType(String name) {
-      if (!members.containsKey(name)) {
-        throw new IllegalArgumentException("No such member");
-      }
+      if (!members.containsKey(name)) { throw new IllegalArgumentException("No such member"); }
       return members.get(name);
     }
 
@@ -345,15 +365,13 @@ public static final class ArrayType extends AbstractType {
 
     @Override
     public boolean equals(Object obj) {
-      if (obj == null || !(obj instanceof CompositeType)) {
-        return false;
-      }
-      CompositeType other = (CompositeType)obj;
+      if (obj == null || !(obj instanceof CompositeType)) { return false; }
+      CompositeType other = (CompositeType) obj;
 
       return (obj == this)
-        || (   super.equals(other)
-            && name.equals(other.name)
-            && members.equals(other.members));
+          || (super.equals(other)
+              && name.equals(other.name)
+              && members.equals(other.members));
     }
 
     @Override
@@ -382,10 +400,15 @@ public static final class ArrayType extends AbstractType {
         sb.append("; ");
       }
       sb.append("}");
-      return sb.toString();    }
+      return sb.toString();
+    }
   }
 
   public static final class StructType extends CompositeType {
+
+    // Let MachineModel determine padding
+    @Option(description = "the machine model used for functions sizeof and alignof")
+    private MachineModel machineModel = MachineModel.LINUX32;
 
     public StructType(String name, boolean constant) {
       super(name, constant);
@@ -393,24 +416,24 @@ public static final class ArrayType extends AbstractType {
 
     @Override
     public int offsetOf(String name) {
-      if (!members.containsKey(name)) {
-        throw new IllegalArgumentException("No such member!");
-      }
+      int padding = machineModel.getSizeofPadding();
+      if (!members.containsKey(name)) { throw new IllegalArgumentException("No such member!"); }
       int result = 0;
       for (String member : members.keySet()) {
         if (member.equals(name)) {
           break;
         }
-        result += Math.ceil(members.get(name).sizeOf()/4.0)*4; // assume padding to 4 bytes
+        result += Math.ceil(members.get(name).sizeOf() / padding) * padding;
       }
       return result;
     }
 
     @Override
     public int sizeOf() {
+      int padding = machineModel.getSizeofPadding();
       int result = 0;
       for (Type member : members.values()) {
-        result += Math.ceil(member.sizeOf()/4.0)*4; // assume padding to 4 bytes
+        result += Math.ceil(member.sizeOf() / padding) * padding;
       }
       return result;
     }
@@ -469,19 +492,13 @@ public static final class ArrayType extends AbstractType {
     }
 
     public void addEnumerator(String name, long pL) {
-      if (name == null) {
-        throw new IllegalArgumentException();
-      }
-      if (enumerators.containsKey(name)) {
-        throw new IllegalArgumentException("Enumerator " + name + " exists already");
-      }
+      if (name == null) { throw new IllegalArgumentException(); }
+      if (enumerators.containsKey(name)) { throw new IllegalArgumentException("Enumerator " + name + " exists already"); }
       enumerators.put(name, pL);
     }
 
     public long getEnumerator(String name) {
-      if (!enumerators.containsKey(name)) {
-        throw new IllegalArgumentException("No such enumerator");
-      }
+      if (!enumerators.containsKey(name)) { throw new IllegalArgumentException("No such enumerator"); }
       return enumerators.get(name);
     }
 
@@ -501,15 +518,13 @@ public static final class ArrayType extends AbstractType {
 
     @Override
     public boolean equals(Object obj) {
-      if (obj == null || !(obj instanceof EnumType)) {
-        return false;
-      }
-      EnumType other = (EnumType)obj;
+      if (obj == null || !(obj instanceof EnumType)) { return false; }
+      EnumType other = (EnumType) obj;
 
       return (obj == this)
-        || (   super.equals(other)
-            && name.equals(other.name)
-            && enumerators.equals(other.enumerators));
+          || (super.equals(other)
+              && name.equals(other.name)
+              && enumerators.equals(other.enumerators));
     }
 
     @Override
@@ -535,14 +550,14 @@ public static final class ArrayType extends AbstractType {
       for (String enumerator : enumerators.keySet()) {
         sb.append(enumerator);
         long currentValue = enumerators.get(enumerator);
-        if (currentValue != lastValue+1) {
+        if (currentValue != lastValue + 1) {
           sb.append("=");
           sb.append(currentValue);
         }
         lastValue = currentValue;
         sb.append(", ");
       }
-      sb.deleteCharAt(sb.length()-2);
+      sb.deleteCharAt(sb.length() - 2);
       sb.append("}");
       return sb.toString();
     }
@@ -570,17 +585,13 @@ public static final class ArrayType extends AbstractType {
     }
 
     protected void addParameter(String name, Type type) {
-      if (type == null) {
-        throw new IllegalArgumentException();
-      }
-      if (name ==  null || name.equals("")) {
+      if (type == null) { throw new IllegalArgumentException(); }
+      if (name == null || name.equals("")) {
         synchronized (this.getClass()) {
           name = "__cpa_anon_param_" + uniqueNameId++;
         }
       }
-      if (parameters.containsKey(name)) {
-        throw new IllegalArgumentException("Parameter " + name + " already exists");
-      }
+      if (parameters.containsKey(name)) { throw new IllegalArgumentException("Parameter " + name + " already exists"); }
       parameters.put(name, type);
     }
 
@@ -589,9 +600,7 @@ public static final class ArrayType extends AbstractType {
     }
 
     public Type getParameterType(String name) {
-      if (!parameters.containsKey(name)) {
-        throw new IllegalArgumentException("No such parameter");
-      }
+      if (!parameters.containsKey(name)) { throw new IllegalArgumentException("No such parameter"); }
       return parameters.get(name);
     }
 
@@ -615,16 +624,14 @@ public static final class ArrayType extends AbstractType {
 
     @Override
     public boolean equals(Object obj) {
-      if (obj == null || !(obj instanceof FunctionType)) {
-        return false;
-      }
-      FunctionType other = (FunctionType)obj;
+      if (obj == null || !(obj instanceof FunctionType)) { return false; }
+      FunctionType other = (FunctionType) obj;
 
       return (obj == this)
-        || (   name.equals(other.name)
-            && returnType.equals(other.returnType)
-            && parameters.equals(other.parameters)
-            && hasVarArgs == other.hasVarArgs);
+          || (name.equals(other.name)
+              && returnType.equals(other.returnType)
+              && parameters.equals(other.parameters)
+              && hasVarArgs == other.hasVarArgs);
     }
 
     @Override
@@ -651,7 +658,7 @@ public static final class ArrayType extends AbstractType {
           sb.append(parameter);
           sb.append(", ");
         }
-        sb.deleteCharAt(sb.length()-2);
+        sb.deleteCharAt(sb.length() - 2);
       }
       sb.append(")");
       return sb.toString();
@@ -676,7 +683,7 @@ public static final class ArrayType extends AbstractType {
       if (obj == null || !(obj instanceof Type)) {
         return false;
       } else {
-        return equals((Type)obj);
+        return equals((Type) obj);
       }
     }
 
