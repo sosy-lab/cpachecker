@@ -106,6 +106,9 @@ function fKeyPressed(event) {
 }
 
 var headerArray = [];
+var TOOL_ROW = 0; // row-indices for some rows
+var DATE_ROW = 5;
+var TEST_ROW = 6;
 
 function createHeaderArray() {
     if (headerArray.length != 0) { return; } // headerArray already filled
@@ -233,18 +236,18 @@ function createColumnToggleButtons() {
 
         var tableHead = $("#dataTable > thead")[0];
         var columnTitles = $("#columnTitles > td");
-        var testNums = headerArray[4];
+        var testNums = headerArray[TEST_ROW];
         var testNum = testNums[1];
-        var testName = tableHead.children[3].cells[headerArray[3][1]].textContent + " " + 
-                       tableHead.children[4].cells[testNum].textContent;
+        var testName = tableHead.children[DATE_ROW].cells[headerArray[DATE_ROW][1]].textContent + " " + 
+                       tableHead.children[TEST_ROW].cells[testNum].textContent;
     
         // TODO can we make next block more OO-like?
         buttonList = '<ul onclick="toggleCompleteColumn(event, this)">' + testName;
         for (var i=1; i<columnTitles.length; i++) { // do not use first column (i!=0)
             if (testNum != testNums[i]) {
                 testNum = testNums[i];
-                testName = tableHead.children[3].cells[headerArray[3][i]].textContent + " " + 
-                           tableHead.children[4].cells[testNum].textContent;
+                testName = tableHead.children[DATE_ROW].cells[headerArray[DATE_ROW][i]].textContent + " " + 
+                           tableHead.children[TEST_ROW].cells[testNum].textContent;
                 buttonList += '</ul><ul onclick="toggleCompleteColumn(event, this)">' + testName;
             }
     
@@ -287,18 +290,18 @@ function toggleCompleteColumn(event, listOfCheckboxes) {
 function createRowFilterButtons() {
     var tableHead = $("#dataTable > thead")[0];
     var columnTitles = $("#columnTitles > td");
-    var testNums = headerArray[4];
+    var testNums = headerArray[TEST_ROW];
     var testNum = testNums[1];
-    var testName = tableHead.children[3].cells[headerArray[3][1]].textContent + " " + 
-		    tableHead.children[4].cells[testNum].textContent;
+    var testName = tableHead.children[DATE_ROW].cells[headerArray[DATE_ROW][1]].textContent + " " + 
+		    tableHead.children[TEST_ROW].cells[testNum].textContent;
 
     // TODO can we make next block more OO-like?
     buttonList = '<ul>' + testName;
     for (var i=1; i<columnTitles.length; i++) { // do not use first column (i!=0)
 	if (testNum != testNums[i]) {
 	    testNum = testNums[i];
-	    testName = tableHead.children[3].cells[headerArray[3][i]].textContent + " " + 
-			tableHead.children[4].cells[testNum].textContent;
+	    testName = tableHead.children[DATE_ROW].cells[headerArray[DATE_ROW][i]].textContent + " " + 
+			tableHead.children[TEST_ROW].cells[testNum].textContent;
 	    buttonList += '</ul><ul>' + testName;
 	}
 
@@ -550,14 +553,11 @@ function getLabels(header) {
 
     var indices = getColumnIndicesForHeader(header);
     var tableHead = $('#dataTable > thead')[0];
-    var tool = 0;  // rowindex for tool, date, test
-    var date = 3;
-    var test = 4;
     for (i = 0; i < indices.length; i++) {
         var index = indices[i];
-        labels.push(tableHead.rows[tool].cells[headerArray[tool][index]].textContent + " " +
-                    tableHead.rows[date].cells[headerArray[date][index]].textContent + " " +
-                    tableHead.rows[test].cells[headerArray[test][index]].textContent);
+        labels.push(tableHead.rows[TOOL_ROW].cells[headerArray[TOOL_ROW][index]].textContent + " " +
+                    tableHead.rows[DATE_ROW].cells[headerArray[DATE_ROW][index]].textContent + " " +
+                    tableHead.rows[TEST_ROW].cells[headerArray[TEST_ROW][index]].textContent);
     }
     return labels;
 };
