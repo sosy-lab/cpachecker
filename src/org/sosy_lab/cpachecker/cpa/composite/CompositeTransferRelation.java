@@ -79,6 +79,10 @@ public class CompositeTransferRelation implements TransferRelation{
 
     if (cfaEdge == null) {
       CFANode node = extractLocation(compositeElement);
+      if (node == null) {
+        throw new CPATransferException("Analysis without LocationCPA is not supported, please add one to the configuration");
+      }
+
       results = new ArrayList<CompositeElement>(node.getNumLeavingEdges());
 
       for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
