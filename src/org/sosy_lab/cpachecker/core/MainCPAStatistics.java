@@ -309,27 +309,31 @@ class MainCPAStatistics implements Statistics {
         if (reached instanceof LocationMappedReachedSet) {
           LocationMappedReachedSet l = (LocationMappedReachedSet)reached;
           int locs = l.getNumberOfPartitions();
-          out.println("  Number of locations:        " + locs);
-          out.println("    Avg states per loc.:      " + reachedSize / locs);
-          Map.Entry<Object, Collection<AbstractElement>> maxPartition = l.getMaxPartition();
-          out.println("    Max states per loc.:      " + maxPartition.getValue().size() + " (at node " + maxPartition.getKey() + ")");
+          if (locs > 0) {
+            out.println("  Number of locations:        " + locs);
+            out.println("    Avg states per loc.:      " + reachedSize / locs);
+            Map.Entry<Object, Collection<AbstractElement>> maxPartition = l.getMaxPartition();
+            out.println("    Max states per loc.:      " + maxPartition.getValue().size() + " (at node " + maxPartition.getKey() + ")");
+          }
 
         } else {
           HashMultiset<CFANode> allLocations = HashMultiset.create(AbstractElements.extractLocations(reached));
           int locs = allLocations.entrySet().size();
-          out.println("  Number of locations:        " + locs);
-          out.println("    Avg states per loc.:      " + reachedSize / locs);
+          if (locs > 0) {
+            out.println("  Number of locations:        " + locs);
+            out.println("    Avg states per loc.:      " + reachedSize / locs);
 
-          int max = 0;
-          CFANode maxLoc = null;
-          for (Multiset.Entry<CFANode> location : allLocations.entrySet()) {
-            int size = location.getCount();
-            if (size > max) {
-              max = size;
-              maxLoc = location.getElement();
+            int max = 0;
+            CFANode maxLoc = null;
+            for (Multiset.Entry<CFANode> location : allLocations.entrySet()) {
+              int size = location.getCount();
+              if (size > max) {
+                max = size;
+                maxLoc = location.getElement();
+              }
             }
+            out.println("    Max states per loc.:      " + max + " (at node " + maxLoc + ")");
           }
-          out.println("    Max states per loc.:      " + max + " (at node " + maxLoc + ")");
         }
 
         if (reached instanceof PartitionedReachedSet) {
