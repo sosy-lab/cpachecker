@@ -30,7 +30,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
@@ -81,13 +80,10 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
   private final ExplicitReducer reducer;
   private final ExplicitCPAStatistics statistics;
 
-  private final CFA cfa;
-
   private final Configuration config;
   private final LogManager logger;
 
-  private ExplicitCPA(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
-    this.cfa    = cfa;
+  private ExplicitCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     this.config = config;
     this.logger = logger;
 

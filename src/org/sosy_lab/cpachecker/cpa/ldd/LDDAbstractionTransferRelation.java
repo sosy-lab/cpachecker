@@ -68,15 +68,11 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
 
   private final Map<String, Integer> variables;
 
-  private final Set<String> constants;
-
   private final Set<String> usedVars = new HashSet<String>();
 
-  public LDDAbstractionTransferRelation(LDDRegionManager regionManager, Map<String, Integer> variables,
-      Set<String> constants) {
+  public LDDAbstractionTransferRelation(LDDRegionManager regionManager, Map<String, Integer> variables) {
     this.regionManager = regionManager;
     this.variables = variables;
-    this.constants = constants;
   }
 
   @Override
