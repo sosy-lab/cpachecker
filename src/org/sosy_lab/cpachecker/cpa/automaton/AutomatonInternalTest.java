@@ -30,6 +30,7 @@ import java.io.PrintStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
@@ -53,14 +54,14 @@ import com.google.common.io.NullOutputStream;
 /**
  * This class contains Tests for the AutomatonAnalysis
  */
-public class AutomatonInternalTests {
+public class AutomatonInternalTest {
 
   private final Configuration config;
   private final LogManager logger;
 
   private static final File defaultSpec = new File("test/config/automata/defaultSpecification.spc");
 
-  public AutomatonInternalTests() throws InvalidConfigurationException {
+  public AutomatonInternalTest() throws InvalidConfigurationException {
     config = Configuration.builder()
         .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
         .build();
@@ -126,6 +127,50 @@ public class AutomatonInternalTests {
   }
 
   @Test
+  public void testJokerReplacementInPattern() {
+    // tests the replacement of Joker expressions in the AST comparison
+    String result = AutomatonASTComparator.replaceJokersInPattern("$20 = $?");
+    Assert.assertTrue(result.contains("CPAChecker_AutomatonAnalysis_JokerExpression_Num20  =  CPAChecker_AutomatonAnalysis_JokerExpression"));
+    result = AutomatonASTComparator.replaceJokersInPattern("$1 = $?");
+    Assert.assertTrue(result.contains("CPAChecker_AutomatonAnalysis_JokerExpression_Num1  =  CPAChecker_AutomatonAnalysis_JokerExpression"));
+    result = AutomatonASTComparator.replaceJokersInPattern("$? = $?");
+    Assert.assertTrue(result.contains("CPAChecker_AutomatonAnalysis_JokerExpression  =  CPAChecker_AutomatonAnalysis_JokerExpression"));
+    result = AutomatonASTComparator.replaceJokersInPattern("$1 = $5");
+    Assert.assertTrue(result.contains("CPAChecker_AutomatonAnalysis_JokerExpression_Num1  =  CPAChecker_AutomatonAnalysis_JokerExpression_Num5 "));
+  }
+
+  @Test
+  public void testJokerReplacementInAST() throws InvalidAutomatonException {
+    // tests the replacement of Joker expressions in the AST comparison
+    ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST("$20 = $5($1, $?);");
+    IASTNode sourceAST  = AutomatonASTComparator.generateSourceAST("var1 = function(var2, egal);");
+    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null);
+
+    boolean result = patternAST.matches(sourceAST, args);
+    Assert.assertTrue(result);
+    Assert.assertTrue(args.getTransitionVariable(20).equals("var1"));
+    Assert.assertTrue(args.getTransitionVariable(1).equals("var2"));
+    Assert.assertTrue(args.getTransitionVariable(5).equals("function"));
+  }
+
+  @Test
+  public void transitionVariableReplacement() throws Exception {
+    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, logger);
+    args.putTransitionVariable(1, "hi");
+    args.putTransitionVariable(2, "hello");
+    // actual test
+    String result = args.replaceVariables("$1 == $2");
+    Assert.assertTrue("hi == hello".equals(result));
+    result = args.replaceVariables("$1 == $1");
+    Assert.assertTrue("hi == hi".equals(result));
+
+    logger.log(Level.WARNING, "Warning expected in the next line (concerning $5)");
+    result = args.replaceVariables("$1 == $5");
+    Assert.assertTrue(result == null); // $5 has not been found
+    // this test should issue a log message!
+  }
+
+  @Test
   public void testASTcomparison() throws InvalidAutomatonException {
 
    testAST("x=5;", "x= $?;", true);
@@ -137,6 +182,7 @@ public class AutomatonInternalTests {
 
    testAST("init(a);", "init($?);", true);
    testAST("init();", "init($?);", true);
+   testAST("init();", "init($1);", false);
 
    testAST("init(a, b);", "init($?, b);", true);
    testAST("init(a, b);", "init($?, c);", false);
@@ -166,7 +212,4 @@ public class AutomatonInternalTests {
 
     Assert.assertEquals(result, patternAST.matches(sourceAST, args));
   }
-
-
-
 }

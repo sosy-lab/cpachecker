@@ -65,6 +65,8 @@ import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StatementVisitor;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
+import com.google.common.annotations.VisibleForTesting;
+
 /**
  * Provides methods for generating, comparing and printing the ASTs generated from String.
  */
@@ -95,7 +97,8 @@ class AutomatonASTComparator {
     return parse(tmp);
   }
 
-  private static String replaceJokersInPattern(String pPattern) {
+  @VisibleForTesting
+  static String replaceJokersInPattern(String pPattern) {
     String tmp = pPattern.replaceAll("\\$\\?", " " + JOKER_EXPR + " ");
     Matcher matcher = NUMBERED_JOKER_PATTERN.matcher(tmp);
     StringBuffer result = new StringBuffer();
