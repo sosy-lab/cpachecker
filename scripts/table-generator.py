@@ -630,7 +630,13 @@ def getTableHead(listOfTests, commonFileNamePrefix):
     limits      = formatLine('timelimit: {timelimit}, memlimit: {memlimit}')
     limitRow    = getHtmlRow('Limits', limits, testWidths, collapse=True)
 
-    systems     = formatLine('host: {host}<br>os: {os}<br>cpu: {cpu}<br>cores: {cores}, frequency: {freq}, ram: {ram}')
+    hosts       = formatLine('{host}')
+    hostRow     = getHtmlRow('Host', hosts, testWidths, collapse=True)
+
+    os          = formatLine('{os}')
+    osRow       = getHtmlRow('OS', os, testWidths, collapse=True)
+
+    systems     = formatLine('CPU: {cpu} with {cores} cores, frequency: {freq}; RAM: {ram}')
     systemRow   = getHtmlRow('System', systems, testWidths, collapse=True)
 
     dates       = formatLine('{date}')
@@ -651,7 +657,7 @@ def getTableHead(listOfTests, commonFileNamePrefix):
     titleRow    = getHtmlRow(commonFileNamePrefix, titles, testWidths1, id='columnTitles')
     titleLine   = getCsvRow(commonFileNamePrefix, titles, testWidths1)
 
-    return ('\n'.join([toolRow, limitRow, systemRow, dateRow, testRow, branchesRow, optionsRow, titleRow]),
+    return ('\n'.join([toolRow, limitRow, hostRow, osRow, systemRow, dateRow, testRow, branchesRow, optionsRow, titleRow]),
             '\n'.join([toolLine, testLine, titleLine]))
 
 
