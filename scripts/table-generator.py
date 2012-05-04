@@ -649,8 +649,10 @@ def getTableHead(listOfTests, commonFileNamePrefix):
     branches    = formatLine('{branch}')
     branchesRow = getHtmlRow('Branch', branches, testWidths)
 
-    options     = formatLine('{options}')
-    optionsRow  = getHtmlRow('Options', options, testWidths).replace(' -', '<br>-')
+    options     = [str.replace(' -', '<br/>-')
+                      .replace('=', '=<wbr/>')
+                      for str in formatLine('{options}')] 
+    optionsRow  = getHtmlRow('Options', options, testWidths)
 
     titles      = [column.title for test in listOfTests for column in test.columns]
     testWidths1 = [1]*sum(testWidths)
