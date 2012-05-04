@@ -23,9 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
@@ -214,7 +220,7 @@ public class SmtInterpolUtil {
     for (Term t : termList) {
       getVars(t, vars);
     }
-    return vars.toArray(new Term[0]);
+    return toTermArray(vars);
   }
 
   private static void getVars(Term t, Set<Term> vars) {
@@ -263,14 +269,14 @@ public class SmtInterpolUtil {
     Term[] params = at.getParameters();
     assert params.length >= 2 && ("and".equals(function) || "or".equals(function));
 
-    Term neutral = env.term("and".equals(function) ? "true" : "false");
     String childFunction = "and".equals(function) ? "or" : "and";
-    Set<Term>[] children = new Set[params.length];
-    for (int i = 0; i < params.length; i++) {
-      if (params[i] instanceof ApplicationTerm) {
-        ApplicationTerm atChild = (ApplicationTerm) params[i];
-        if (childFunction.equals(atChild.getFunction().getName())) {
-          children[i] = Sets.newHashSet(atChild.getParameters());
+    List<Set<Term>> children = new ArrayList<Set<Term>>(params.length);
+
+    for (Term param : params) {
+      if (param instanceof ApplicationTerm) {
+        ApplicationTerm appTerm = (ApplicationTerm) param;
+        if (childFunction.equals(appTerm.getFunction().getName())) {
+          children.add(Sets.newHashSet(appTerm.getParameters()));
         } else {
           return at; // if one child is no AND/OR, there is no common child
         }
@@ -278,32 +284,44 @@ public class SmtInterpolUtil {
         return at; // if one child is no AND/OR, there is no common child
       }
     }
-    Set<Term> commonTerms = children[0];
-    for (int i = 1; i < children.length; i++) {
-      commonTerms = Sets.intersection(commonTerms, children[i]);
-    }
+
+    Set<Term> commonTerms = intersection(children);
     if (commonTerms.isEmpty()) {
       return at;
     }
-    Term[] newChildren = new Term[children.length];
-    for (int i = 0; i < children.length; i++) {
-      Set<Term> diff = Sets.difference(children[i], commonTerms);
-      if (diff.size() == 0) {
-        newChildren[i] = neutral;
-      } else if (diff.size() == 1) {
-        newChildren[i] = diff.toArray(new Term[1])[0];
-      } else {
-        newChildren[i] = env.term(childFunction, diff.toArray(new Term[0]));
+
+    List<Term> newChildren = new ArrayList<Term>(children.size());
+    for (Set<Term> currentChildren : children) {
+      currentChildren.removeAll(commonTerms);
+
+      if (currentChildren.size() == 1) {
+        newChildren.add(Iterables.getOnlyElement(currentChildren));
+      } else if (currentChildren.size() > 1) {
+        newChildren.add(env.term(childFunction, toTermArray(currentChildren)));
       }
     }
+
     Term[] ts = commonTerms.toArray(new Term[commonTerms.size()+1]);
-    ts[commonTerms.size()] = env.term(function, newChildren);
-    if (ts.length == 1) {
-      return ts[0];
-    } else {
-      assert ts.length > 1;
-      return env.term(childFunction, ts);
+    ts[commonTerms.size()] = env.term(function, toTermArray(newChildren));
+    assert ts.length > 1;
+    return env.term(childFunction, ts);
+  }
+
+  static Term[] toTermArray(Collection<? extends Term> terms) {
+    return terms.toArray(new Term[terms.size()]);
+  }
+
+  static <T> Set<T> intersection(Iterable<Set<T>> sets) {
+    Iterator<Set<T>> it = sets.iterator();
+    if (!it.hasNext()) {
+      return ImmutableSet.of();
     }
+
+    HashSet<T> result = Sets.newHashSet(it.next());
+    while (it.hasNext()) {
+      result.retainAll(it.next());
+    }
+    return result;
   }
 
   /** this function can be used to print a bigger term*/
