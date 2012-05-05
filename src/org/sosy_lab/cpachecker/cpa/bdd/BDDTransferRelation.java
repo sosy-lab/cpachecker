@@ -109,7 +109,6 @@ public class BDDTransferRelation implements TransferRelation {
     default:
       successor = elem;
     }
-    System.out.println("successor: " + successor);
 
     if (successor == null) {
       return Collections.emptySet();
@@ -128,20 +127,26 @@ public class BDDTransferRelation implements TransferRelation {
     BDDElement result = element;
     if (lhs instanceof IASTIdExpression || lhs instanceof IASTFieldReference
         || lhs instanceof IASTArraySubscriptExpression) {
-      String varName = lhs.toASTString();//this.getvarName(op.getRawSignature(), functionName);
+      String varName = lhs.toASTString();
       IASTRightHandSide rhs = assignment.getRightHandSide();
       if (rhs instanceof IASTIntegerLiteralExpression) {
 
-        /* This will only work with the first assignment to the variable!
-         * If the variable gets a second assignment we would have to delete the current value from the bdd first.
-         */
-
+        // make variable
         BigInteger value = ((IASTIntegerLiteralExpression) rhs).getValue();
-        Region operand = rmgr.createPredicate(varName);
+        Region var = rmgr.createPredicate(varName);
+
+        // delete variable, if used before. this is done with an existential operator
+        Region newRegion = rmgr.makeExists(element.getRegion(), var);
+
+        // convert new variable to match its value.
         if (BigInteger.ZERO.equals(value)) {
-          operand = rmgr.makeNot(operand);
+          var = rmgr.makeNot(var);
         }
-        result = new BDDElement(rmgr.makeAnd(element.getRegion(), operand), rmgr);
+
+        // add new variable to region
+        newRegion = rmgr.makeAnd(newRegion, var);
+
+        result = new BDDElement(newRegion, rmgr);
       }
     }
     assert !result.getRegion().isFalse();
