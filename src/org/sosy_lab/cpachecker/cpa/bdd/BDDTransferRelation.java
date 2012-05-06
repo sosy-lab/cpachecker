@@ -64,7 +64,6 @@ public class BDDTransferRelation implements TransferRelation {
   public Collection<BDDElement> getAbstractSuccessors(
       AbstractElement element, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException {
-    System.out.println("getSuccessor: " + cfaEdge + "  " + cfaEdge.getEdgeType());
     BDDElement elem = (BDDElement) element;
 
     if (elem.getRegion().isFalse()) { return Collections.emptyList(); }
@@ -118,7 +117,8 @@ public class BDDTransferRelation implements TransferRelation {
     }
   }
 
-  private BDDElement handleStatementEdge(BDDElement element, StatementEdge cfaEdge) {
+  private BDDElement handleStatementEdge(BDDElement element, StatementEdge cfaEdge)
+      throws UnrecognizedCCodeException {
     IASTStatement statement = cfaEdge.getStatement();
     if (!(statement instanceof IASTAssignment)) { return element; }
     IASTAssignment assignment = (IASTAssignment) statement;
@@ -127,48 +127,31 @@ public class BDDTransferRelation implements TransferRelation {
     BDDElement result = element;
     if (lhs instanceof IASTIdExpression || lhs instanceof IASTFieldReference
         || lhs instanceof IASTArraySubscriptExpression) {
+
+      // make variable (predicate) for LEFT SIDE of assignment,
+      // delete variable, if it was used before, this is done with an existential operator
       String varName = lhs.toASTString();
+      Region var = rmgr.createPredicate(varName);
+      Region newRegion = rmgr.makeExists(element.getRegion(), var);
+
       IASTRightHandSide rhs = assignment.getRightHandSide();
-      if (rhs instanceof IASTIntegerLiteralExpression) {
+      if (rhs instanceof IASTExpression) {
 
-        // make variable
-        BigInteger value = ((IASTIntegerLiteralExpression) rhs).getValue();
-        Region var = rmgr.createPredicate(varName);
+        // make region for RIGHT SIDE
+        String functionName = cfaEdge.getPredecessor().getFunctionName();
+        Region regRHS = propagateBooleanExpression(
+            (IASTExpression) rhs, functionName, cfaEdge, false);
 
-        // delete variable, if used before. this is done with an existential operator
-        Region newRegion = rmgr.makeExists(element.getRegion(), var);
+        // make variable equal to region of right side
+        Region assignRegion = makeEqual(var, regRHS);
 
-        // convert new variable to match its value.
-        if (BigInteger.ZERO.equals(value)) {
-          var = rmgr.makeNot(var);
-        }
-
-        // add new variable to region
-        newRegion = rmgr.makeAnd(newRegion, var);
-
-        result = new BDDElement(newRegion, rmgr);
-      } else if (rhs instanceof IASTIdExpression) {
-        String varNameRHS = rhs.toASTString();
-
-        // make variables
-        Region var = rmgr.createPredicate(varName);
-        Region varRHS = rmgr.createPredicate(varNameRHS);
-
-        // delete variable, if used before. this is done with an existential operator
-        Region newRegion = rmgr.makeExists(element.getRegion(), var);
-
-        // create new region, var is equal to the RHS-variable.
-        var = rmgr.makeOr(
-            rmgr.makeAnd(var, varRHS),
-            rmgr.makeAnd(rmgr.makeNot(var), rmgr.makeNot(varRHS))
-            );
-
-        // add new variable to region
-        newRegion = rmgr.makeAnd(newRegion, var);
-
-        result = new BDDElement(newRegion, rmgr);
+        // add assignment to region
+        newRegion = rmgr.makeAnd(newRegion, assignRegion);
       }
+
+      result = new BDDElement(newRegion, rmgr);
     }
+
     assert !result.getRegion().isFalse();
     return result;
   }
@@ -270,10 +253,7 @@ public class BDDTransferRelation implements TransferRelation {
       returnValue = rmgr.makeOr(operand1, operand2);
       break;
     case EQUALS:
-      returnValue = rmgr.makeOr(
-          rmgr.makeAnd(operand1, operand2),
-          rmgr.makeAnd(rmgr.makeNot(operand1), rmgr.makeNot(operand2))
-          );
+      returnValue = makeEqual(operand1, operand2);
       break;
     case NOT_EQUALS:
       returnValue = rmgr.makeOr(
@@ -302,5 +282,13 @@ public class BDDTransferRelation implements TransferRelation {
       Precision precision) throws UnrecognizedCCodeException {
     // do nothing
     return null;
+  }
+
+  /** returns (reg1 == reg2) */
+  private Region makeEqual(Region reg1, Region reg2) {
+    return rmgr.makeOr(
+        rmgr.makeAnd(reg1, reg2),
+        rmgr.makeAnd(rmgr.makeNot(reg1), rmgr.makeNot(reg2))
+        );
   }
 }
