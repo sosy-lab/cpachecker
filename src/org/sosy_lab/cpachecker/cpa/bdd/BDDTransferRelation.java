@@ -147,6 +147,26 @@ public class BDDTransferRelation implements TransferRelation {
         newRegion = rmgr.makeAnd(newRegion, var);
 
         result = new BDDElement(newRegion, rmgr);
+      } else if (rhs instanceof IASTIdExpression) {
+        String varNameRHS = rhs.toASTString();
+
+        // make variables
+        Region var = rmgr.createPredicate(varName);
+        Region varRHS = rmgr.createPredicate(varNameRHS);
+
+        // delete variable, if used before. this is done with an existential operator
+        Region newRegion = rmgr.makeExists(element.getRegion(), var);
+
+        // create new region, var is equal to the RHS-variable.
+        var = rmgr.makeOr(
+            rmgr.makeAnd(var, varRHS),
+            rmgr.makeAnd(rmgr.makeNot(var), rmgr.makeNot(varRHS))
+            );
+
+        // add new variable to region
+        newRegion = rmgr.makeAnd(newRegion, var);
+
+        result = new BDDElement(newRegion, rmgr);
       }
     }
     assert !result.getRegion().isFalse();
