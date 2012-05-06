@@ -158,35 +158,31 @@ public class BDDTransferRelation implements TransferRelation {
       throws UnrecognizedCCodeException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
-    BDDElement result = handleBooleanExpression(element, expression, functionName, truthValue, cfaEdge);
-    if (result.getRegion().isFalse()) {
-      return null; // assumption is not fulfilled / not possible
-    } else {
-      return result;
-    }
-  }
+    Region operand = propagateBooleanExpression(expression, functionName, cfaEdge, false);
 
-  private BDDElement handleBooleanExpression(BDDElement element,
-      IASTExpression op, String functionName, boolean truthValue, CFAEdge edge)
-      throws UnrecognizedCCodeException {
-
-    Region operand = propagateBooleanExpression(op, functionName, edge);
-    if (operand == null) {
+    if (operand == null) { // assumption cannot be evaluated
       return element;
+
     } else {
       if (!truthValue) {
         operand = rmgr.makeNot(operand);
       }
       Region newRegion = rmgr.makeAnd(element.getRegion(), operand);
-      return new BDDElement(newRegion, rmgr);
+      if (newRegion.isFalse()) { // assumption is not fulfilled / not possible
+        return null;
+      } else {
+        return new BDDElement(newRegion, rmgr);
+      }
     }
   }
 
   /** Chooses function to propagate, depending on class of exp:
    * IASTIdExpression (&Co), IASTUnaryExpression, IASTBinaryExpression, IASTIntegerLiteralExpression.
-   * @throws UnrecognizedCCodeException */
+   * @param ignoreLiterals ignore all numbers except Zero
+   * @throws UnrecognizedCCodeException
+   * @returns region containing all vars from the expression */
   private Region propagateBooleanExpression(IASTExpression exp, String functionName,
-      CFAEdge edge)
+      CFAEdge edge, boolean ignoreLiterals)
       throws UnrecognizedCCodeException {
     Region region = null;
 
@@ -205,7 +201,7 @@ public class BDDTransferRelation implements TransferRelation {
       IASTIntegerLiteralExpression number = (IASTIntegerLiteralExpression) exp;
       if (number.getValue().equals(BigInteger.ZERO)) {
         region = rmgr.makeFalse();
-      } else {
+      } else if (!ignoreLiterals) {
         region = rmgr.makeTrue();
       }
     }
@@ -217,7 +213,7 @@ public class BDDTransferRelation implements TransferRelation {
       String functionName, CFAEdge edge)
       throws UnrecognizedCCodeException {
 
-    Region operand = propagateBooleanExpression(unExp.getOperand(), functionName, edge);
+    Region operand = propagateBooleanExpression(unExp.getOperand(), functionName, edge, false);
 
     if (operand == null) { return null; }
 
@@ -239,8 +235,8 @@ public class BDDTransferRelation implements TransferRelation {
       String functionName, CFAEdge edge)
       throws UnrecognizedCCodeException {
 
-    Region operand1 = propagateBooleanExpression(binExp.getOperand1(), functionName, edge);
-    Region operand2 = propagateBooleanExpression(binExp.getOperand2(), functionName, edge);
+    Region operand1 = propagateBooleanExpression(binExp.getOperand1(), functionName, edge, true);
+    Region operand2 = propagateBooleanExpression(binExp.getOperand2(), functionName, edge, true);
 
     if (operand1 == null || operand2 == null) { return null; }
 
