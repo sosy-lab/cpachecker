@@ -28,19 +28,29 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.ast.Defaults;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -52,11 +62,17 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 /** This Transfer Relation tracks variables and handles them as boolean,
  * so only the case ==0 and the case !=0 are tracked. */
+@Options(prefix = "cpa.bdd")
 public class BDDTransferRelation implements TransferRelation {
 
   private final NamedRegionManager rmgr;
 
-  public BDDTransferRelation(NamedRegionManager manager) {
+  @Option(description = "initialize all variables to 0 when they are declared")
+  private boolean initAllVars = false;
+
+  public BDDTransferRelation(NamedRegionManager manager, Configuration config)
+      throws InvalidConfigurationException {
+    config.inject(this);
     this.rmgr = manager;
   }
 
@@ -84,6 +100,10 @@ public class BDDTransferRelation implements TransferRelation {
       break;
     }
 
+    case DeclarationEdge:
+      successor = handleDeclarationEdge(elem, (DeclarationEdge) cfaEdge);
+      break;
+
     case MultiEdge: {
       successor = elem;
       Collection<BDDElement> c = null;
@@ -100,7 +120,6 @@ public class BDDTransferRelation implements TransferRelation {
     }
 
     case ReturnStatementEdge:
-    case DeclarationEdge: // TODO int a=0;
     case BlankEdge:
     case FunctionCallEdge:
     case FunctionReturnEdge:
@@ -117,6 +136,7 @@ public class BDDTransferRelation implements TransferRelation {
     }
   }
 
+  /** handles statements like "a = 0;" and "b = !a;" */
   private BDDElement handleStatementEdge(BDDElement element, StatementEdge cfaEdge)
       throws UnrecognizedCCodeException {
     IASTStatement statement = cfaEdge.getStatement();
@@ -157,6 +177,49 @@ public class BDDTransferRelation implements TransferRelation {
 
     assert !result.getRegion().isFalse();
     return result;
+  }
+
+  /** handles declarations like "int a = 0;" and "int b = !a;" */
+  private BDDElement handleDeclarationEdge(BDDElement element, DeclarationEdge cfaEdge)
+      throws UnrecognizedCCodeException {
+
+    IASTDeclaration decl = cfaEdge.getDeclaration();
+
+    if (decl instanceof IASTVariableDeclaration) {
+      IASTVariableDeclaration vdecl = (IASTVariableDeclaration) decl;
+      IASTInitializer initializer = vdecl.getInitializer();
+
+      IASTExpression init = null;
+      if (initializer == null && initAllVars) { // auto-initialize variables to zero
+        init = Defaults.forType(decl.getDeclSpecifier(), decl.getFileLocation());
+      } else if (initializer instanceof IASTInitializerExpression) {
+        init = ((IASTInitializerExpression) initializer).getExpression();
+      }
+
+      if (init != null) { // initializer on right side available
+
+        // make variable (predicate) for LEFT SIDE of declaration,
+        String varName = vdecl.getName();
+        Region var = rmgr.createPredicate(varName);
+        Region newRegion = element.getRegion();
+
+        // make region for RIGHT SIDE
+        String functionName = cfaEdge.getPredecessor().getFunctionName();
+        Region regRHS = propagateBooleanExpression(init, functionName, cfaEdge, false);
+
+        if (regRHS != null) { // right side can be evaluated
+
+          // make variable equal to region of right side
+          Region assignRegion = makeEqual(var, regRHS);
+
+          // add assignment to region
+          newRegion = rmgr.makeAnd(newRegion, assignRegion);
+          return new BDDElement(newRegion, rmgr);
+        }
+      }
+    }
+
+    return element; // if we know nothing, we return the old element
   }
 
   private BDDElement handleAssumption(BDDElement element,

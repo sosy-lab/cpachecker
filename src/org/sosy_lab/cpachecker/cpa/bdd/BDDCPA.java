@@ -63,7 +63,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis {
     abstractDomain = new BDDDomain(manager);
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator =  new StopSepOperator(abstractDomain);
-    transferRelation = new BDDTransferRelation(manager);
+    transferRelation = new BDDTransferRelation(manager, config);
   }
 
   @Override
