@@ -142,11 +142,14 @@ public class BDDTransferRelation implements TransferRelation {
         Region regRHS = propagateBooleanExpression(
             (IASTExpression) rhs, functionName, cfaEdge, false);
 
-        // make variable equal to region of right side
-        Region assignRegion = makeEqual(var, regRHS);
+        if (regRHS != null) { // right side can be evaluated
 
-        // add assignment to region
-        newRegion = rmgr.makeAnd(newRegion, assignRegion);
+          // make variable equal to region of right side
+          Region assignRegion = makeEqual(var, regRHS);
+
+          // add assignment to region
+          newRegion = rmgr.makeAnd(newRegion, assignRegion);
+        }
       }
 
       result = new BDDElement(newRegion, rmgr);
@@ -225,11 +228,10 @@ public class BDDTransferRelation implements TransferRelation {
     case NOT:
       returnValue = rmgr.makeNot(operand);
       break;
-    case STAR: // *exp, don't know anything
-      break;
+    case MINUS: // (-X == 0) <==> (X == 0)
+      returnValue = operand;
     default:
-      throw new UnrecognizedCCodeException("Unhandled case "
-          + unExp.toASTString(), edge);
+      // *exp --> don't know anything
     }
     return returnValue;
   }
@@ -256,14 +258,15 @@ public class BDDTransferRelation implements TransferRelation {
       returnValue = makeEqual(operand1, operand2);
       break;
     case NOT_EQUALS:
+    case LESS_THAN:
+    case GREATER_THAN:
       returnValue = rmgr.makeOr(
           rmgr.makeAnd(rmgr.makeNot(operand1), operand2),
           rmgr.makeAnd(operand1, rmgr.makeNot(operand2))
           );
       break;
     default:
-      // nothing, we don't know something
-      // throw new UnrecognizedCCodeException("Only &&, ||, == and != are implemented, other operators are missing.", edge);
+      // a+b, a-b, etc --> don't know anything
     }
     return returnValue;
   }
