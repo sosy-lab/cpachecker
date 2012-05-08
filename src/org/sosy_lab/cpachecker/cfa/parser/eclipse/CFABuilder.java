@@ -38,7 +38,6 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
@@ -60,6 +59,7 @@ class CFABuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
   private Queue<IASTFunctionDefinition> functionDeclarations = new LinkedList<IASTFunctionDefinition>();
+  private List<Pair<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration, String>> probablyDuplicateDeclarations = Lists.newArrayList();
   private final Map<String, CFAFunctionDefinitionNode> cfas = new HashMap<String, CFAFunctionDefinitionNode>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
@@ -108,7 +108,38 @@ class CFABuilder extends ASTVisitor {
    * @return global declarations
    */
   public List<Pair<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration, String>> getGlobalDeclarations() {
+    organizeGlobalDeclarations();
     return globalDeclarations;
+  }
+
+  private void organizeGlobalDeclarations() {
+    for(Pair<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration, String> decl : probablyDuplicateDeclarations) {
+      org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD = decl.getFirst();
+      String rawSignature = decl.getSecond();
+      if(newD instanceof IASTFunctionDeclaration) {
+        scope.registerFunctionDeclaration((IASTFunctionDeclaration) newD);
+      } else if (newD instanceof IASTVariableDeclaration) {
+        scope.registerDeclaration(newD);
+      }
+
+      globalDeclarations.add(Pair.of(newD, rawSignature));
+    }
+
+    for (IASTFunctionDefinition declaration : functionDeclarations) {
+      CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, ignoreCasts,
+          scope, astCreator);
+
+      declaration.accept(functionBuilder);
+
+      CFAFunctionDefinitionNode startNode = functionBuilder.getStartNode();
+      String functionName = startNode.getFunctionName();
+
+      if (cfas.containsKey(functionName)) {
+        throw new CFAGenerationRuntimeException("Duplicate function " + functionName);
+      }
+      cfas.put(functionName, startNode);
+      cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
+    }
   }
 
   /* (non-Javadoc)
@@ -125,7 +156,7 @@ class CFABuilder extends ASTVisitor {
       IASTFunctionDefinition fd = (IASTFunctionDefinition) declaration;
       functionDeclarations.add(fd);
 
-      // add forward declaration to list of global declarations
+   // add forward declaration to list of global declarations
       org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration functionDefinition = astCreator.convert(fd);
       if (astCreator.numberOfSideAssignments() > 0) {
         throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
@@ -171,12 +202,15 @@ class CFABuilder extends ASTVisitor {
 
     for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
       if (newD instanceof IASTVariableDeclaration) {
-        scope.registerDeclaration(newD);
-      } else if (newD instanceof IASTFunctionDeclaration) {
-        scope.registerFunctionDeclaration((IASTFunctionDeclaration) newD);
+        if(((IASTVariableDeclaration) newD).getInitializer() != null) {
+          scope.registerDeclaration(newD);
+          globalDeclarations.add(Pair.of(newD, rawSignature));
+        } else {
+          probablyDuplicateDeclarations.add(Pair.of(newD, rawSignature));
+        }
+      } else {
+        probablyDuplicateDeclarations.add(Pair.of(newD, rawSignature));
       }
-
-      globalDeclarations.add(Pair.of(newD, rawSignature));
     }
 
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
@@ -191,23 +225,4 @@ class CFABuilder extends ASTVisitor {
     throw new CFAGenerationRuntimeException(problem.getMessage(), problem);
   }
 
-  @Override
-  public int leave(IASTTranslationUnit translationUnit) {
-    for (IASTFunctionDefinition declaration : functionDeclarations) {
-      CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, ignoreCasts,
-          scope, astCreator);
-
-      declaration.accept(functionBuilder);
-
-      CFAFunctionDefinitionNode startNode = functionBuilder.getStartNode();
-      String functionName = startNode.getFunctionName();
-
-      if (cfas.containsKey(functionName)) {
-        throw new CFAGenerationRuntimeException("Duplicate function " + functionName);
-      }
-      cfas.put(functionName, startNode);
-      cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
-    }
-    return PROCESS_CONTINUE;
-  }
 }
