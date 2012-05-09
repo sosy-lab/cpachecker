@@ -151,6 +151,16 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
+  public Region makeEqual(Region pF1, Region pF2) {
+    return delegate.makeEqual(pF1, pF2);
+  }
+
+  @Override
+  public Region makeUnequal(Region pF1, Region pF2) {
+    return delegate.makeUnequal(pF1, pF2);
+  }
+
+  @Override
   public Region makeExists(Region pF1, Region pF2) {
     return delegate.makeExists(pF1, pF2);
   }

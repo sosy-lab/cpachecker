@@ -101,6 +101,16 @@ public class SymbolicRegionManager implements RegionManager {
   }
 
   @Override
+  public Region makeEqual(Region pF1, Region pF2) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Region makeUnequal(Region pF1, Region pF2) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public Region makeExists(Region pF1, Region pF2) {
     throw new UnsupportedOperationException();
   }
