@@ -41,8 +41,6 @@ except ImportError: # 'quote' was moved into 'parse' in Python 3
   from urllib.parse import quote
 
 
-OUTPUT_PATH = "test/results/"
-
 NAME_START = "results" # first part of filename of html-table
 
 CSV_SEPARATOR = '\t'
@@ -412,7 +410,7 @@ class Test:
         self.category = category
 
     @staticmethod
-    def createTestFromXML(sourcefileTag, listOfColumns, fileIsUnsafe):
+    def createTestFromXML(sourcefileTag, resultFilename, listOfColumns, fileIsUnsafe):
         '''
         This function collects the values from one tests for one file.
         Only columns, that should be part of the table, are collected.
@@ -445,6 +443,7 @@ class Test:
             """
             # stop after the first line, that contains the searched text
             value = "-" # default value
+            if not content: return value
             for line in content.splitlines():
                 if identifier in line:
                     startPosition = line.find(':') + 1
@@ -471,7 +470,14 @@ class Test:
 
             elif sourcefileTag.logfile != None: # collect values from logfile
                 if logfileContent == None: # cache content
-                    logfileContent = open(OUTPUT_PATH + sourcefileTag.logfile).read()
+                    baseDir = os.path.dirname(resultFilename)
+                    logfileName = os.path.join(baseDir, sourcefileTag.logfile)
+                    try:
+                        logfile = open(logfileName)
+                        logfileContent = logfile.read()
+                        logfile.close
+                    except IOError as e:
+                        print('WARNING: Could not read value from logfile: {}'.format(e))
 
                 value = getValueFromLogfile(logfileContent, column.text)
 
@@ -515,16 +521,6 @@ class Row:
     def fileIsUnsafe(self):
         return Util.containsAny(self.fileName.lower(), BUG_SUBSTRING_LIST)
 
-    def getPathToSourceFile(self):
-        '''
-        This method expand a filename of a sourcefile to a path to the sourcefile.
-        An absolute filename will not be changed,
-        a filename, that is relative to CPAcheckerDir, will get a prefix.
-        '''
-        if not os.path.isabs(self.fileName): # not absolute -> relative
-            return os.path.relpath(self.fileName, OUTPUT_PATH)
-        return self.fileName
-
     def toCSV(self, commonPrefix):
         """
         generate CSV representation of rows with filename as first column
@@ -533,15 +529,18 @@ class Row:
         allValues = [value for test in self.results for value in test.values]
         return CSV_SEPARATOR.join([fileName] + allValues)
 
-    def toHTML(self, commonPrefix):
+    def toHTML(self, commonPrefix, outputPath):
         """
         generate HTML representation of rows with filename as first column
         """
-        filePath = quote(self.getPathToSourceFile())
+        # make path relative to directory of output file if necessary
+        filePath = self.fileName if os.path.isabs(self.fileName) \
+                                 else os.path.relpath(self.fileName, outputPath)
+
         fileName = self.fileName.replace(commonPrefix, '', 1)
 
         HTMLrow = [test.toHTML() for test in self.results]
-        return '<tr><td><a href="{0}">{1}</a></td>{2}</tr>'.format(filePath, fileName, "".join(HTMLrow))
+        return '<tr><td><a href="{0}">{1}</a></td>{2}</tr>'.format(quote(filePath), fileName, "".join(HTMLrow))
 
 def rowsToColumns(rows):
     """
@@ -560,7 +559,7 @@ def getRows(listOfTests, fileNames):
     for result in listOfTests:
         # get values for each file in a test
         for fileResult, row in zip(result.filelist, rows):
-            row.addTest(Test.createTestFromXML(fileResult, result.columns, row.fileIsUnsafe()))
+            row.addTest(Test.createTestFromXML(fileResult, result.filename, result.columns, row.fileIsUnsafe()))
 
     return rows
 
@@ -778,7 +777,7 @@ def getCounts(rows): # for options.dumpCounts
 
 
 
-def createTables(name, listOfTests, fileNames, rows, rowsDiff):
+def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath):
     '''
     create tables and write them to files
     '''
@@ -790,9 +789,10 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff):
     HTMLhead, CSVhead = getTableHead(listOfTests, commonPrefix)
 
     def writeTable(outfile, name, rows):
+        outfile = os.path.join(outputPath, outfile)
         print ('writing html into {0} ...'.format(outfile + ".html"))
 
-        HTMLbody = '\n'.join([row.toHTML(commonPrefix) for row in rows])
+        HTMLbody = '\n'.join([row.toHTML(commonPrefix, outputPath) for row in rows])
         HTMLfoot = '\n'.join(getStatsHTML(rows))
         CSVbody  = '\n'.join([row.toCSV(commonPrefix) for row in rows])
 
@@ -813,11 +813,11 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff):
 
 
     # write normal tables
-    writeTable(OUTPUT_PATH + name + ".table", name, rows)
+    writeTable(name + ".table", name, rows)
 
     # write difference tables
     if len(rowsDiff) > 1:
-        writeTable(OUTPUT_PATH + name + ".diff", name + " differences", rowsDiff)
+        writeTable(name + ".diff", name + " differences", rowsDiff)
 
 
 def main(args=None):
@@ -837,6 +837,7 @@ def main(args=None):
     parser.add_option("-o", "--outputpath",
         action="store",
         type="string",
+        default="test/results",
         dest="outputPath",
         help="outputPath for table. if it does not exist, it is created."
     )
@@ -862,11 +863,7 @@ def main(args=None):
         print("Invalid combination of arguments (--merge and --common)")
         exit()
 
-    if options.outputPath:
-        global OUTPUT_PATH
-        OUTPUT_PATH = options.outputPath if options.outputPath.endswith('/') \
-                 else options.outputPath + '/'
-    if not os.path.isdir(OUTPUT_PATH): os.makedirs(OUTPUT_PATH)
+    if not os.path.isdir(options.outputPath): os.makedirs(options.outputPath)
 
     if options.xmltablefile:
         if args:
@@ -879,8 +876,8 @@ def main(args=None):
         if args:
             inputFiles = args
         else:
-            print ("searching resultfiles in '{}'...".format(OUTPUT_PATH))
-            inputFiles = [os.path.join(OUTPUT_PATH, '*.results*.xml')]
+            print ("searching resultfiles in '{}'...".format(options.outputPath))
+            inputFiles = [os.path.join(options.outputPath, '*.results*.xml')]
 
         inputFiles = Util.extendFileList(inputFiles) # expand wildcards
         listOfTestFiles = [(file, None) for file in inputFiles]
@@ -911,7 +908,7 @@ def main(args=None):
     rowsDiff = filterRowsWithDifferences(rows)
 
     print ('generating table ...')
-    createTables(name, listOfTests, fileNames, rows, rowsDiff)
+    createTables(name, listOfTests, fileNames, rows, rowsDiff, options.outputPath)
 
     print ('done')
 
