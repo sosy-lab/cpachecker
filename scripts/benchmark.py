@@ -627,7 +627,8 @@ class OutputHandler:
                  'blast'     : 'BLAST',
                  'wolverine' : 'WOLVERINE',
                  'ufo'       : 'UFO',
-                 'acsar'     : 'Acsar'}
+                 'acsar'     : 'Acsar',
+                 'feaver'    : 'Feaver'}
         if tool in names:
             return names[tool]
         else:
@@ -1579,6 +1580,56 @@ def prepareSourceFileForAcsar(sourcefile):
     return newFilename
 
 
+def run_feaver(options, sourcefile, columns, rlimits, file):
+    exe = findExecutable("feaver_cmd", None)
+
+    # create tmp-files for acsar, acsar needs special error-labels
+    prepSourcefile = prepareSourceFileForFeaver(sourcefile)
+
+    args = [exe] + options + [prepSourcefile]
+
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    if "error: " in output or "Error: " in output:
+        status = "ERROR"
+
+    elif "collect2: ld returned 1 exit status" in output:
+        status = "COMPILE ERROR"
+
+    elif "Error (parse error" in output:
+        status = "PARSE ERROR"
+
+    elif "error: (\"model\":" in output:
+        status = "MODEL ERROR"
+
+    elif "Error Found:" in output:
+        status = "UNSAFE"
+
+    elif "No Errors Found" in output:
+        status = "SAFE"
+
+    else:
+        status = "UNKNOWN"
+
+    # delete tmp-files
+    for file in [prepSourcefile, prepSourcefile[0:-1] + "M",
+                 "_modex_main.spn", "_modex_.h", "_modex_.cln", "_modex_.drv",
+                 "model", "pan.b", "pan.c", "pan.h", "pan.m", "pan.t"]:
+        try:
+            os.remove(file)
+        except OSError:
+            pass
+
+    return (status, cpuTimeDelta, wallTimeDelta, args)
+
+
+def prepareSourceFileForFeaver(sourcefile):
+    content = open(sourcefile, "r").read()
+    content = content.replace("goto ERROR;", "assert(0);")
+    newFilename = "tmp_benchmark_feaver.c"
+    preparedFile = FileWriter(newFilename, content)
+    return newFilename
+
+
 # the next 3 functions are for imaginary tools, that return special results,
 # perhaps someone can use these function again someday,
 # to use them you need a normal benchmark-xml-file 
@@ -1769,7 +1820,7 @@ def runBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile)
 
     assert benchmark.tool in ["cbmc", "satabs", "cpachecker", "blast", "acsar", "wolverine", "ufo",
-                              "safe", "unsafe", "random"]
+                              "safe", "unsafe", "random", "feaver"]
 
     if len(benchmark.tests) == 1:
         logging.debug("I'm benchmarking {0} consisting of 1 test.".format(repr(benchmarkFile)))
