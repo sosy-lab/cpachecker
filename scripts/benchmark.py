@@ -1589,10 +1589,7 @@ def run_feaver(options, sourcefile, columns, rlimits, file):
     args = [exe] + options + [prepSourcefile]
 
     (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
-    if "error: " in output or "Error: " in output:
-        status = "ERROR"
-
-    elif "collect2: ld returned 1 exit status" in output:
+    if "collect2: ld returned 1 exit status" in output:
         status = "COMPILE ERROR"
 
     elif "Error (parse error" in output:
@@ -1600,6 +1597,12 @@ def run_feaver(options, sourcefile, columns, rlimits, file):
 
     elif "error: (\"model\":" in output:
         status = "MODEL ERROR"
+
+    elif "Error: syntax error" in output:
+        status = "SYNTAX ERROR"
+
+    elif "error: " in output or "Error: " in output:
+        status = "ERROR"
 
     elif "Error Found:" in output:
         status = "UNSAFE"
