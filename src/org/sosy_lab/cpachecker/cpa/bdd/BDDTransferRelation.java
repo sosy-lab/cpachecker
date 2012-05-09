@@ -191,18 +191,11 @@ public class BDDTransferRelation implements TransferRelation {
       IASTRightHandSide rhs = assignment.getRightHandSide();
       if (rhs instanceof IASTExpression) {
 
-        // make region for RIGHT SIDE
+        // make region for RIGHT SIDE and build equality of var and region
         Region regRHS = propagateBooleanExpression(
             (IASTExpression) rhs, functionName, cfaEdge, false);
+        newRegion = addEquality(var, regRHS, newRegion);
 
-        if (regRHS != null) { // right side can be evaluated
-
-          // make variable equal to region of right side
-          Region assignRegion = rmgr.makeEqual(var, regRHS);
-
-          // add assignment to region
-          newRegion = rmgr.makeAnd(newRegion, assignRegion);
-        }
       } else {
         throw new UnrecognizedCCodeException(cfaEdge, rhs);
       }
@@ -241,15 +234,8 @@ public class BDDTransferRelation implements TransferRelation {
       // initializer on RIGHT SIDE available, make region for it
       if (init != null) {
         Region regRHS = propagateBooleanExpression(init, functionName, cfaEdge, false);
-        if (regRHS != null) { // right side can be evaluated
-
-          // make variable equal to region of right side
-          Region assignRegion = rmgr.makeEqual(var, regRHS);
-
-          // add assignment to region
-          Region newRegion = rmgr.makeAnd(element.getRegion(), assignRegion);
-          return new BDDElement(newRegion, rmgr);
-        }
+        Region newRegion = addEquality(var, regRHS, element.getRegion());
+        return new BDDElement(newRegion, rmgr);
       }
     }
 
@@ -279,20 +265,13 @@ public class BDDTransferRelation implements TransferRelation {
       String innerFunctionName = cfaEdge.getSuccessor().getFunctionName();
       Region var = rmgr.createPredicate(buildVarName(varName, innerFunctionName));
 
-      // make region for arg
+      // make region for arg and build equality of var and arg
       String outerFunctionName = cfaEdge.getPredecessor().getFunctionName();
-      Region regArg = propagateBooleanExpression(args.get(i), outerFunctionName, cfaEdge, false);
-      if (regArg != null) { // right side can be evaluated
-
-        // make variable equal to region of arg
-        Region assignRegion = rmgr.makeEqual(var, regArg);
-
-        // add assignment to region
-        newRegion = rmgr.makeAnd(newRegion, assignRegion);
-        return new BDDElement(newRegion, rmgr);
-      }
+      Region arg = propagateBooleanExpression(args.get(i), outerFunctionName, cfaEdge, false);
+      newRegion = addEquality(var, arg, newRegion);
     }
-    return element; // if we know nothing, we return the old element
+
+    return new BDDElement(newRegion, rmgr);
   }
 
   private BDDElement handleFunctionReturnEdge(BDDElement element, FunctionReturnEdge cfaEdge)
@@ -329,11 +308,7 @@ public class BDDTransferRelation implements TransferRelation {
       // make region (predicate) for RIGHT SIDE
       Region retVar = rmgr.createPredicate(buildVarName(FUNCTION_RETURN_VARIABLE, innerFunctionName));
 
-      // make left variable equal to region of right side
-      Region assignRegion = rmgr.makeEqual(var, retVar);
-
-      // add assignment to region
-      newRegion = rmgr.makeAnd(newRegion, assignRegion);
+      newRegion = addEquality(var, retVar, newRegion);
 
       // LAST ACTION: delete varname of right side
       newRegion = rmgr.makeExists(newRegion, retVar);
@@ -357,15 +332,7 @@ public class BDDTransferRelation implements TransferRelation {
     if (rhs instanceof IASTExpression) {
       Region regRHS = propagateBooleanExpression(
           (IASTExpression) rhs, innerFunctionName, cfaEdge, false);
-
-      if (regRHS != null) { // right side can be evaluated
-
-        // make variable equal to region of right side
-        Region assignRegion = rmgr.makeEqual(retvar, regRHS);
-
-        // add assignment to region
-        newRegion = rmgr.makeAnd(newRegion, assignRegion);
-      }
+      newRegion = addEquality(retvar, regRHS, newRegion);
     }
     return new BDDElement(newRegion, rmgr);
   }
@@ -496,5 +463,16 @@ public class BDDTransferRelation implements TransferRelation {
       Precision precision) throws UnrecognizedCCodeException {
     // do nothing
     return null;
+  }
+
+  /** This function builds the equality of left and right side and adds it to the environment.
+   * If left or right side is null, the environment is returned unchanged. */
+  private Region addEquality(Region leftSide, Region rightSide, Region environment) {
+    if (leftSide == null || rightSide == null) {
+      return environment;
+    } else {
+      final Region assignRegion = rmgr.makeEqual(leftSide, rightSide);
+      return rmgr.makeAnd(environment, assignRegion);
+    }
   }
 }
