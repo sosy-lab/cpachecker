@@ -166,15 +166,17 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
   }
 
   private ExplicitElement enforceReachedSetThreshold(ExplicitElement element, ExplicitPrecision precision, Collection<AbstractElement> reachedSetAtLocation) {
+    // if an actual meaningful threshold is set
+    if(precision.getReachedSetThresholds().defaultThreshold != -1) {
+      // create the mapping from variable name to the number of different values this variable has
+      HashMultimap<String, Long> valueMapping = createMappingFromReachedSet(reachedSetAtLocation);
 
-    // create the mapping from variable name to the number of different values this variable has
-    HashMultimap<String, Long> valueMapping = createMappingFromReachedSet(reachedSetAtLocation);
-
-    // forget the value for all variables that exceed their threshold
-    for(String variable : valueMapping.keySet()) {
-      if(precision.getReachedSetThresholds().exceeds(variable, valueMapping.get(variable).size())) {
-        precision.getReachedSetThresholds().setExceeded(variable);
-        element.forget(variable);
+      // forget the value for all variables that exceed their threshold
+      for(String variable : valueMapping.keySet()) {
+        if(precision.getReachedSetThresholds().exceeds(variable, valueMapping.get(variable).size())) {
+          precision.getReachedSetThresholds().setExceeded(variable);
+          element.forget(variable);
+        }
       }
     }
 
