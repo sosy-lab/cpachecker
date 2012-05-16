@@ -186,7 +186,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 
   \\r                            { string.append('\r'); }
   \\\"                           { string.append('"'); }
-  \\                             { string.append('\\'); }
+  \\\\                           { string.append('\\'); }
 }
 <CURLYEXPR> {
   \}                             { yybegin(YYINITIAL); 
@@ -198,7 +198,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 
   \\r                            { string.append('\r'); }
   \\\}                           { string.append('}'); }
-  \\                             { string.append('\\'); }
+  \\\\                           { string.append('\\'); }
 }
 <SQUAREEXPR> {
   \]                             { yybegin(YYINITIAL); 
@@ -210,7 +210,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 
   \\r                            { string.append('\r'); }
   \\\]                           { string.append(']'); }
-  \\                             { string.append('\\'); }
+  \\\\                           { string.append('\\'); }
 }
 <<EOF>> {if (yymoreStreams()) { yypopStream(); filesStack.pop(); } else return symbol("EOF", AutomatonSym.EOF); }
 /* error fallback */

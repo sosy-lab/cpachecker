@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,17 +28,27 @@ import java.util.Collections;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+@Options(prefix="cpa.art")
 public class ARTStopSep implements StopOperator {
+
+  @Option(description="whether to keep covered states in the reached set as addition to keeping them in the ART")
+  private boolean keepCoveredStatesInReached = false;
 
   private final StopOperator wrappedStop;
   private final LogManager logger;
 
-  public ARTStopSep(StopOperator pWrappedStop, LogManager pLogger) {
+  public ARTStopSep(StopOperator pWrappedStop, LogManager pLogger, Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
     wrappedStop = pWrappedStop;
     logger = pLogger;
   }
@@ -48,6 +58,7 @@ public class ARTStopSep implements StopOperator {
       Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
 
     ARTElement artElement = (ARTElement)pElement;
+    assert !artElement.isCovered();
 
     // First check if we can take a shortcut:
     // If the new element was merged into an existing element,
@@ -65,6 +76,9 @@ public class ARTStopSep implements StopOperator {
           // merged and covered
           artElement.removeFromART();
           logger.log(Level.FINEST, "Element is covered by the element it was merged into");
+
+          // in this case, return true even if we should keep covered states
+          // because we should anyway not keep merged states
           return true;
 
         } else {
@@ -83,7 +97,8 @@ public class ARTStopSep implements StopOperator {
     for (AbstractElement reachedElement : pReached) {
       ARTElement artReachedElement = (ARTElement)reachedElement;
       if (stop(artElement, artReachedElement, pPrecision)) {
-        return true;
+        // if this option is true, we always return false here on purpose
+        return !keepCoveredStatesInReached;
       }
     }
     return false;
@@ -96,6 +111,16 @@ public class ARTStopSep implements StopOperator {
     if (!pReachedElement.mayCover()) {
       return false;
     }
+    if (pElement == pReachedElement) {
+      return false;
+    }
+    if (pElement.isOlderThan(pReachedElement)) {
+      // This is never the case in usual predicate abstraction,
+      // but possibly with other algorithms
+      // Checking this also implies that pElement gets not covered by
+      // one of its children (because they are all newer than pElement).
+      return false;
+    }
 
     AbstractElement wrappedElement = pElement.getWrappedElement();
     AbstractElement wrappedReachedElement = pReachedElement.getWrappedElement();
@@ -106,5 +131,15 @@ public class ARTStopSep implements StopOperator {
       pElement.setCovered(pReachedElement);
     }
     return stop;
+  }
+
+  boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement, ProofChecker wrappedProofChecker) throws CPAException {
+    ARTElement artElement = (ARTElement)pElement;
+    ARTElement otherArtElement = (ARTElement)pOtherElement;
+
+    AbstractElement wrappedElement = artElement.getWrappedElement();
+    AbstractElement wrappedOtherElement = otherArtElement.getWrappedElement();
+
+    return wrappedProofChecker.isCoveredBy(wrappedElement, wrappedOtherElement);
   }
 }

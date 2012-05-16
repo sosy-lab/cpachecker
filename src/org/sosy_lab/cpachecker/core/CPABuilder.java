@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -79,17 +79,15 @@ public class CPABuilder {
   private final Configuration config;
   private final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
-  private final CFA cfa;
 
-  public CPABuilder(Configuration pConfig, LogManager pLogger, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
+  public CPABuilder(Configuration pConfig, LogManager pLogger, ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException {
     this.config = pConfig;
     this.logger = pLogger;
     this.reachedSetFactory = pReachedSetFactory;
-    this.cfa = pCfa;
     config.inject(this);
   }
 
-  public ConfigurableProgramAnalysis buildCPAs() throws InvalidConfigurationException, CPAException {
+  public ConfigurableProgramAnalysis buildCPAs(final CFA cfa) throws InvalidConfigurationException, CPAException {
     Set<String> usedAliases = new HashSet<String>();
 
     // create automata cpas for specification given in specification file
@@ -115,10 +113,10 @@ public class CPABuilder {
         }
       }
     }
-    return buildCPAs(cpaName, CPA_OPTION_NAME, usedAliases, cpas);
+    return buildCPAs(cpaName, CPA_OPTION_NAME, usedAliases, cpas, cfa);
   }
 
-  private ConfigurableProgramAnalysis buildCPAs(String optionValue, String optionName, Set<String> usedAliases, List<ConfigurableProgramAnalysis> cpas) throws InvalidConfigurationException, CPAException {
+  private ConfigurableProgramAnalysis buildCPAs(String optionValue, String optionName, Set<String> usedAliases, List<ConfigurableProgramAnalysis> cpas, final CFA cfa) throws InvalidConfigurationException, CPAException {
     Preconditions.checkNotNull(optionValue);
 
     // parse option (may be of syntax "classname alias"
@@ -149,7 +147,7 @@ public class CPABuilder {
       factory.set(cfa, CFA.class);
     }
 
-    createAndSetChildrenCPAs(cpaName, cpaAlias, factory, usedAliases, cpas);
+    createAndSetChildrenCPAs(cpaName, cpaAlias, factory, usedAliases, cpas, cfa);
 
     if (cpas != null && !cpas.isEmpty()) {
       throw new InvalidConfigurationException("Option specification gave specification automata, but no CompositeCPA was used");
@@ -243,7 +241,8 @@ public class CPABuilder {
   }
 
   private void createAndSetChildrenCPAs(String cpaName, String cpaAlias,
-      CPAFactory factory, Set<String> usedAliases, List<ConfigurableProgramAnalysis> cpas) throws InvalidConfigurationException, CPAException {
+      CPAFactory factory, Set<String> usedAliases, List<ConfigurableProgramAnalysis> cpas,
+      final CFA cfa) throws InvalidConfigurationException, CPAException {
     String childOptionName = cpaAlias + ".cpa";
     String childrenOptionName = cpaAlias + ".cpas";
     String childCpaName = config.getProperty(childOptionName);
@@ -262,7 +261,7 @@ public class CPABuilder {
             + childOptionName + " and " + childrenOptionName + " are specified!");
       }
 
-      ConfigurableProgramAnalysis child = buildCPAs(childCpaName, childOptionName, usedAliases, cpas);
+      ConfigurableProgramAnalysis child = buildCPAs(childCpaName, childOptionName, usedAliases, cpas, cfa);
       try {
         factory.setChild(child);
       } catch (UnsupportedOperationException e) {
@@ -275,7 +274,7 @@ public class CPABuilder {
       ImmutableList.Builder<ConfigurableProgramAnalysis> childrenCpas = ImmutableList.builder();
 
       for (String currentChildCpaName : LIST_SPLITTER.split(childrenCpaNames)) {
-        childrenCpas.add(buildCPAs(currentChildCpaName, childrenOptionName, usedAliases, null));
+        childrenCpas.add(buildCPAs(currentChildCpaName, childrenOptionName, usedAliases, null, cfa));
       }
       if (cpas != null) {
         childrenCpas.addAll(cpas);

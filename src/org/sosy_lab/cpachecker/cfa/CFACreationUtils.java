@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +28,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -48,7 +47,6 @@ public class CFACreationUtils {
    */
   public static void addEdgeToCFA(CFAEdge edge, LogManager logger) {
     CFANode predecessor = edge.getPredecessor();
-    CFANode successor = edge.getSuccessor();
 
     // check control flow branching at predecessor
     if (edge instanceof AssumeEdge) {
@@ -61,15 +59,7 @@ public class CFACreationUtils {
       assert predecessor.getNumLeavingEdges() == 0;
     }
 
-    // check control flow merging at successor
-    if (   !(successor instanceof CFAFunctionExitNode)
-        && !(successor instanceof CFALabelNode)
-        && !(successor.isLoopStart())) {
-      // these two node types may have unlimited incoming edges,
-      // a loopStart can be reachable through 'continue' several times,
-      // all other may have at most two of them
-      assert successor.getNumEnteringEdges() <= 1;
-    }
+    // no check control flow merging at successor, we might have many incoming edges
 
     // check if predecessor is reachable
     // or if the predecessor is a loopStart of a forLoop
@@ -84,10 +74,10 @@ public class CFACreationUtils {
     } else {
       // unreachable edge, don't add it to the CFA
 
-      if (!edge.getRawStatement().isEmpty()) {
+      if (!edge.getDescription().isEmpty()) {
         // warn user, but not if its due to dead code produced by CIL
         Level level = Level.INFO;
-        if (edge.getRawStatement().matches("^Goto: (switch|while)_\\d+_[a-z0-9]+$")) {
+        if (edge.getDescription().matches("^Goto: (switch|while)_\\d+_[a-z0-9]+$")) {
           // don't mention dead code produced by CIL on normal log levels
           level = Level.FINER;
         }

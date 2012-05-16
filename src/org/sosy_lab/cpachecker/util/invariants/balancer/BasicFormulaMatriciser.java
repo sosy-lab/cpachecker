@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
 public class BasicFormulaMatriciser extends FormulaMatriciser {
 
   @Override
-  public Matrix buildMatrix(TemplateFormula t, VariableManager vmgr, Map<String, Variable> paramVars) {
+  public Matrix buildMatrix(TemplateFormula t, VariableManager vmgr, Map<String, Variable> paramVars, boolean prependTrue) {
     if (t.isTrue()) {
       return booleanMatrix(vmgr, true);
     }
@@ -62,6 +62,12 @@ public class BasicFormulaMatriciser extends FormulaMatriciser {
     Coeff rhs;
     InfixReln reln;
     List<Matrix> cols = new Vector<Matrix>();
+
+    // Prepend a "true" column, if requested.
+    if (prependTrue) {
+      cols.add(booleanMatrix(vmgr, true));
+    }
+
     for (int i = 0; i < constraints.size(); i++) {
 
       // Get the constraint, its infix reln, and the coeffs of all its variable terms.
@@ -96,10 +102,9 @@ public class BasicFormulaMatriciser extends FormulaMatriciser {
       }
     }
 
-    // Put the columns together, starting with a "true" column, i.e. a column encoding
-    // the inequality -1 <= 0. See the Colon, Sankararanayanan, Sipma paper.
-    Matrix a = booleanMatrix(vmgr, true);
-    for (int i = 0; i < cols.size(); i++) {
+    // Put the columns together.
+    Matrix a = cols.get(0);
+    for (int i = 1; i < cols.size(); i++) {
       a = a.concat(cols.get(i));
     }
 

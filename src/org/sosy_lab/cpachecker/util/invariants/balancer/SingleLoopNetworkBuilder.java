@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.invariants.balancer;
 import static com.google.common.base.Predicates.instanceOf;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.invariants.GraphUtil;
@@ -65,9 +67,11 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
   private final CFANode loopHead;
   private final CFANode error;
   private final PathFormula entryFormula;
+  private final PathFormula loopFormulaHead;
+  private final PathFormula loopFormulaTail;
   private final PathFormula loopFormula;
-  private final PathFormula exitHead;
-  private final PathFormula exitTail;
+  private final PathFormula exitFormulaHead;
+  private final PathFormula exitFormulaTail;
   private final PathFormula exitFormula;
   private final TemplateChooser chooser;
 
@@ -77,7 +81,6 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     tpfb = new TemplatePathFormulaBuilder();
 
     // If there is just one loop, get a hold of it. Otherwise throw exception.
-    //loop = oldGetSingleLoopOrDie();
     loop = getSingleLoopOrDie();
 
     // function edges do not count as incoming edges
@@ -116,17 +119,21 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     // loop formula, from loop head back to loop head, and
     // exit formula, from loop head to error location.
     entryFormula = buildEntryFormula(cePath, loopHead);
-    loopFormula = buildLoopFormula(loop);
+
+    List<PathFormula> loopFormulas = buildLoopFormulas(loop);
+    loopFormula = loopFormulas.get(0);
+    loopFormulaHead = loopFormulas.get(1);
+    loopFormulaTail = loopFormulas.get(2);
 
     Pair<PathFormula,PathFormula> exitHeadAndTail = buildExitFormulaHeadAndTail(cePath, loopHead);
-    exitHead = exitHeadAndTail.getFirst();
-    exitTail = exitHeadAndTail.getSecond();
+    exitFormulaHead = exitHeadAndTail.getFirst();
+    exitFormulaTail = exitHeadAndTail.getSecond();
     exitFormula = buildExitFormula(cePath, loopHead);
 
     logger.log(Level.ALL, "\nEntry, loop, and exit formulas:\nEntry: ", entryFormula, "\nLoop: ", loopFormula, "\nExit: ", exitFormula);
 
     // Choose an invariant template for the loop head.
-    chooser = buildChooser(entryFormula, loopFormula, exitFormula, exitHead, exitTail);
+    chooser = buildChooser(entryFormula, loopFormula, loopFormulaHead, loopFormulaTail, exitFormula, exitFormulaHead, exitFormulaTail);
 
   }
 
@@ -167,7 +174,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     Pair<ARTElement, CFAEdge> rootPair = cePath.getFirst();
     ARTElement ae = rootPair.getFirst();
     CFANode root = AbstractElements.extractLocation(ae);
-    return CFAUtils.transitiveSuccessors(root, true);
+    return CFATraversal.dfs().collectNodesReachableFrom(root);
   }
 
   private PathFormula buildEntryFormula(Path pPath, CFANode loopHead) {
@@ -189,13 +196,27 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     return entryFormula;
   }
 
-  private PathFormula buildLoopFormula(Loop loop) {
+  private List<PathFormula> buildLoopFormulas(Loop loop) {
     logger.log(Level.ALL, "Loop:\n",loop);
     Vector<CFANode> loopNodes = new Vector<CFANode>(loop.getLoopNodes());
     Vector<CFAEdge> loopEdges = GraphUtil.makeEdgeLoop(loopNodes, logger);
     logger.log(Level.ALL,"Sequence of edges in loop:\n",loopEdges);
+    // head:
+    Vector<CFAEdge> loopHead = new Vector<CFAEdge>(1);
+    loopHead.add(loopEdges.get(0));
+    // tail:
+    Vector<CFAEdge> loopTail = new Vector<CFAEdge>(loopEdges.size()-1);
+    loopTail.addAll(loopEdges);
+    loopTail.remove(0);
+    // Build path formulas.
     PathFormula loopFormula = tpfb.buildPathFormula(loopEdges);
-    return loopFormula;
+    PathFormula loopFormulaHead = tpfb.buildPathFormula(loopHead);
+    PathFormula loopFormulaTail = tpfb.buildPathFormula(loopTail);
+    List<PathFormula> three = new Vector<PathFormula>(3);
+    three.add(loopFormula);
+    three.add(loopFormulaHead);
+    three.add(loopFormulaTail);
+    return three;
   }
 
   private PathFormula buildExitFormula(Path pPath, CFANode loopHead) {
@@ -254,16 +275,23 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     return exitFormulae;
   }
 
-  private TemplateChooser buildChooser(PathFormula pEntryFormula, PathFormula pLoopFormula, PathFormula pExitFormula,
-      PathFormula pExitHead, PathFormula pExitTail) {
+  private TemplateChooser buildChooser(
+      PathFormula pEntryFormula,
+      PathFormula pLoopFormula, PathFormula pLoopFormulaHead, PathFormula pLoopFormulaTail,
+      PathFormula pExitFormula, PathFormula pExitHead, PathFormula pExitTail) {
     // Pull the Formulas out of the PathFormulas, cast them into TemplateFormulas,
-    // construct a TemplateChooser, and ask it to choose a template.
+    // construct a TemplateChooser, and return it.
     TemplateFormula entryFormula = (TemplateFormula) pEntryFormula.getFormula();
     TemplateFormula loopFormula = (TemplateFormula) pLoopFormula.getFormula();
+    TemplateFormula loopFormulaHead = (TemplateFormula) pLoopFormulaHead.getFormula();
+    TemplateFormula loopFormulaTail = (TemplateFormula) pLoopFormulaTail.getFormula();
     TemplateFormula exitFormula = (TemplateFormula) pExitFormula.getFormula();
-    TemplateFormula exitHead = (TemplateFormula) pExitHead.getFormula();
-    TemplateFormula exitTail = (TemplateFormula) pExitTail.getFormula();
-    TemplateChooser chooser = new SingleLoopTemplateChooser(logger, entryFormula, loopFormula, exitFormula, exitHead, exitTail);
+    TemplateFormula exitFormulaHead = (TemplateFormula) pExitHead.getFormula();
+    TemplateFormula exitFormulaTail = (TemplateFormula) pExitTail.getFormula();
+    TemplateChooser chooser = new SingleLoopTemplateChooser(
+        logger, entryFormula,
+        loopFormula, loopFormulaHead, loopFormulaTail,
+        exitFormula, exitFormulaHead, exitFormulaTail);
     return chooser;
   }
 

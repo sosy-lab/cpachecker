@@ -20,11 +20,11 @@
 
     <dependencies>
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.201" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.210" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="10.0" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava" rev="11.0.2" conf="runtime->default; contrib->sources"/>
 
         <!-- JSON.simple - A simple Java toolkit for JSON
              Used for dumping verification result as JSON for report builder. -->
@@ -65,5 +65,8 @@
         <!-- Eclipse CDT
              Used for parsing C code. -->
         <dependency org="org.eclipse.cdt" name="core" rev="5.3.1.201109151620" conf="runtime->default; contrib->sources"/>
+
+        <!-- SmtInterpol -->
+        <dependency org="de.uni-freiburg.informatik.ultimate" name="smtinterpol" rev="2.0-r5893qb-sosy0" conf="runtime->runtime; contrib->sources"/>
     </dependencies>
 </ivy-module>

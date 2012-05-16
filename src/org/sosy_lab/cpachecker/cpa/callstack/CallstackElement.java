@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,20 +25,25 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
+import java.io.Serializable;
+
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-public class CallstackElement implements AbstractElement, Partitionable, AbstractQueryableElement {
+public final class CallstackElement implements AbstractElement, Partitionable, AbstractQueryableElement, Serializable {
 
+  private static final long serialVersionUID = 3629687385150064994L;
   private final CallstackElement previousElement;
   private final String currentFunction;
-  private final CFANode callerNode;
+  private transient CFANode callerNode;
   private final int depth;
 
-  public CallstackElement(CallstackElement previousElement, String function, CFANode callerNode) {
+  CallstackElement(CallstackElement previousElement, String function, CFANode callerNode) {
     this.previousElement = previousElement;
     this.currentFunction = checkNotNull(function);
     this.callerNode = checkNotNull(callerNode);
@@ -83,7 +88,7 @@ public class CallstackElement implements AbstractElement, Partitionable, Abstrac
     if (obj == this) {
       return true;
     }
-    if (!(obj instanceof CallstackElement)) {
+    if (CallstackElement.class != obj.getClass()) {
       return false;
     }
 
@@ -95,7 +100,9 @@ public class CallstackElement implements AbstractElement, Partitionable, Abstrac
 
   @Override
   public int hashCode() {
-    return callerNode.hashCode();
+    return (((callerNode.hashCode() * 31)
+        + System.identityHashCode(previousElement)) * 17)
+        + currentFunction.hashCode();
   }
 
   @Override
@@ -123,5 +130,16 @@ public class CallstackElement implements AbstractElement, Partitionable, Abstrac
   @Override
   public void modifyProperty(String pModification) throws InvalidQueryException {
     throw new InvalidQueryException("modifyProperty not implemented by " + this.getClass().getCanonicalName());
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    out.defaultWriteObject();
+    out.writeInt(callerNode.getNodeNumber());
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+    int nodeNumber = in.readInt();
+    callerNode = GlobalInfo.getInstance().getCFAInfo().getNodeByNodeNumber(nodeNumber);
   }
 }

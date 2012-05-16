@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,12 +26,10 @@ package org.sosy_lab.cpachecker.cpa.art;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -39,17 +37,22 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
 
 public class ARTElement extends AbstractSingleWrapperElement implements Comparable<ARTElement> {
 
+  private static final long serialVersionUID = 2608287648397165040L;
   private final Set<ARTElement> children;
   private final Set<ARTElement> parents; // more than one parent if joining elements
 
   private ARTElement mCoveredBy = null;
   private Set<ARTElement> mCoveredByThis = null; // lazy initialization because rarely needed
 
+  // boolean which keeps track of which elements have already had their successors computed
+  private boolean wasExpanded = false;
   private boolean mayCover = true;
   private boolean destroyed = false;
 
@@ -62,14 +65,15 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
   public ARTElement(AbstractElement pWrappedElement, ARTElement pParentElement) {
     super(pWrappedElement);
     elementId = ++nextArtElementId;
-    parents = new LinkedHashSet<ARTElement>();
+    parents = new LinkedHashSet<ARTElement>(1); // TODO Is HashSet enough? It would be more memory-efficient.
     if(pParentElement != null){
       addParent(pParentElement);
     }
-    children = new LinkedHashSet<ARTElement>();
+    children = new LinkedHashSet<ARTElement>(1);
   }
 
   public Set<ARTElement> getParents(){
+    // TODO return unmodifiable view?
     return parents;
   }
 
@@ -85,7 +89,7 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     return children;
   }
 
-  protected void setCovered(ARTElement pCoveredBy) {
+  public void setCovered(ARTElement pCoveredBy) {
     assert !isCovered();
     assert pCoveredBy != null;
     assert pCoveredBy.mayCover;
@@ -96,6 +100,14 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
       pCoveredBy.mCoveredByThis = new HashSet<ARTElement>(2);
     }
     pCoveredBy.mCoveredByThis.add(this);
+  }
+
+  public void uncover() {
+    assert isCovered();
+    assert mCoveredBy.mCoveredByThis.contains(this);
+
+    mCoveredBy.mCoveredByThis.remove(this);
+    mCoveredBy = null;
   }
 
   public boolean isCovered() {
@@ -128,13 +140,26 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     return mergedWith;
   }
 
-  boolean mayCover() {
-    return mayCover;
+  public boolean mayCover() {
+    return mayCover && !isCovered();
   }
 
   public void setNotCovering() {
     assert !destroyed : "Don't use destroyed ARTElements!";
     mayCover = false;
+  }
+
+  public void setCovering() {
+    assert !destroyed : "Don't use destroyed ARTElements!";
+    mayCover = true;
+  }
+
+  public boolean wasExpanded() {
+    return wasExpanded;
+  }
+
+  void markExpanded() {
+    wasExpanded = true;
   }
 
   @Override
@@ -143,25 +168,37 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     if (destroyed) {
       sb.append("Destroyed ");
     }
+    if (mCoveredBy != null) {
+      sb.append("Covered ");
+    }
     sb.append("ART Element (Id: ");
     sb.append(elementId);
     if (!destroyed) {
       sb.append(", Parents: ");
-      List<Integer> list = new ArrayList<Integer>();
-      for (ARTElement e: parents) {
-        list.add(e.elementId);
-      }
-      sb.append(list);
+      sb.append(elementIdsOf(parents));
       sb.append(", Children: ");
-      list.clear();
-      for (ARTElement e: children) {
-        list.add(e.elementId);
+      sb.append(elementIdsOf(children));
+
+      if (mCoveredBy != null) {
+        sb.append(", Covered by: ");
+        sb.append(mCoveredBy.elementId);
+      } else {
+        sb.append(", Covering: ");
+        sb.append(elementIdsOf(getCoveredByThis()));
       }
-      sb.append(list);
     }
     sb.append(") ");
     sb.append(getWrappedElement());
     return sb.toString();
+  }
+
+  private final Iterable<Integer> elementIdsOf(Iterable<ARTElement> elements) {
+    return Iterables.transform(elements, new Function<ARTElement, Integer>() {
+      @Override
+      public Integer apply(ARTElement pInput) {
+        return pInput.elementId;
+      }
+    });
   }
 
   // TODO check
@@ -304,5 +341,9 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
   @Override
   public int compareTo(ARTElement pO) {
     return Ints.compare(this.elementId, pO.elementId);
+  }
+
+  public boolean isOlderThan(ARTElement other) {
+    return (elementId < other.elementId);
   }
 }

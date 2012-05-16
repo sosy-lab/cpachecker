@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -94,8 +94,8 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
               .setOption("specification", automatonFile.getAbsolutePath())
               .build();
 
-      CPABuilder lBuilder = new CPABuilder(lConfig, logger, reachedSetFactory, cfa);
-      ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs();
+      CPABuilder lBuilder = new CPABuilder(lConfig, logger, reachedSetFactory);
+      ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs(cfa);
       Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger);
       PartitionedReachedSet lReached = new PartitionedReachedSet(TraversalMethod.DFS);
       lReached.add(lCpas.getInitialElement(entryNode), lCpas.getInitialPrecision(entryNode));
@@ -112,6 +112,9 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       throw new CounterexampleAnalysisFailed("Invalid configuration in counterexample-check config: " + e.getMessage(), e);
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed(e.getMessage(), e);
+    } finally {
+      // delete temp file so it is gone even if JVM is killed
+      automatonFile.delete();
     }
   }
 

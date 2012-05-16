@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -61,8 +61,8 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -159,22 +159,20 @@ class FunctionPointerTransferRelation implements TransferRelation {
           IASTFunctionCall functionCall = (IASTFunctionCall)edge.getStatement();
           CFANode predecessorNode = edge.getPredecessor();
           CFANode successorNode = edge.getSuccessor();
-          IASTFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
           int lineNumber = edge.getLineNumber();
 
           CFAFunctionExitNode fExitNode = fDefNode.getExitNode();
 
-          List<IASTExpression> parameters = functionCallExpression.getParameterExpressions();
-
           // Create new edges.
-          CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(functionCall.asStatement().toASTString(), lineNumber, predecessorNode, successorNode, functionCall);
+          CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(edge.getRawStatement(),
+              lineNumber, predecessorNode, successorNode, functionCall);
 
-          FunctionPointerCallEdge callEdge = new FunctionPointerCallEdge(functionCallExpression.toASTString(), edge.getStatement(), lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, parameters, calltoReturnEdge);
+          FunctionPointerCallEdge callEdge = new FunctionPointerCallEdge(edge.getRawStatement(), lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, functionCall, calltoReturnEdge);
           predecessorNode.addLeavingEdge(callEdge);
           fDefNode.addEnteringEdge(callEdge);
 
           if (fExitNode.getNumEnteringEdges() > 0) {
-            FunctionPointerReturnEdge returnEdge = new FunctionPointerReturnEdge("Return Edge to " + successorNode.getNodeNumber(), lineNumber, fExitNode, successorNode, callEdge, calltoReturnEdge);
+            FunctionPointerReturnEdge returnEdge = new FunctionPointerReturnEdge(lineNumber, fExitNode, successorNode, callEdge, calltoReturnEdge);
             fExitNode.addLeavingEdge(returnEdge);
             successorNode.addEnteringEdge(returnEdge);
 
@@ -216,12 +214,12 @@ class FunctionPointerTransferRelation implements TransferRelation {
     Collection<? extends AbstractElement> newWrappedStates = wrappedTransfer.getAbstractSuccessors(oldState.getWrappedElement(), pPrecision, cfaEdge);
 
     for (AbstractElement newWrappedState : newWrappedStates) {
-      FunctionPointerElement newState = oldState.createDuplicateWithNewWrappedElement(newWrappedState);
+      FunctionPointerElement.Builder newState = oldState.createBuilderWithNewWrappedElement(newWrappedState);
 
       newState = handleEdge(newState, cfaEdge);
 
       if (newState != null) {
-        results.add(newState);
+        results.add(newState.build());
       }
     }
 
@@ -277,7 +275,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
   }
 
-  private FunctionPointerElement handleEdge(FunctionPointerElement newState, CFAEdge pCfaEdge) throws CPATransferException {
+  private FunctionPointerElement.Builder handleEdge(FunctionPointerElement.Builder newState, CFAEdge pCfaEdge) throws CPATransferException {
 
     switch(pCfaEdge.getEdgeType()) {
 
@@ -331,30 +329,31 @@ class FunctionPointerTransferRelation implements TransferRelation {
     return newState;
   }
 
-  private void handleDeclaration(FunctionPointerElement pNewState, DeclarationEdge declEdge) throws UnrecognizedCCodeException {
+  private void handleDeclaration(FunctionPointerElement.Builder pNewState, DeclarationEdge declEdge) throws UnrecognizedCCodeException {
 
-    if (declEdge.getStorageClass() != StorageClass.AUTO) {
+    if (!(declEdge.getDeclaration() instanceof IASTVariableDeclaration)) {
       // not a variable declaration
       return;
     }
+    IASTVariableDeclaration decl = (IASTVariableDeclaration)declEdge.getDeclaration();
 
     String functionName = declEdge.getPredecessor().getFunctionName();
 
     // get name of declaration
-    String name = declEdge.getName();
+    String name = decl.getName();
     if (name == null) {
       // not a variable declaration
       return;
     }
-    if (!declEdge.isGlobal()) {
+    if (!decl.isGlobal()) {
       name = scoped(name, functionName);
     }
 
     // get initial value
     FunctionPointerTarget initialValue = invalidFunctionPointerTarget;
 
-    if (declEdge.getInitializer() != null) {
-      IASTInitializer init = declEdge.getInitializer();
+    if (decl.getInitializer() != null) {
+      IASTInitializer init = decl.getInitializer();
       if (init instanceof IASTInitializerExpression) {
         initialValue = getValue(((IASTInitializerExpression) init).getExpression(), pNewState, functionName);
       }
@@ -364,7 +363,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     pNewState.setTarget(name, initialValue);
   }
 
-  private void handleStatement(FunctionPointerElement pNewState, IASTStatement pStatement,
+  private void handleStatement(FunctionPointerElement.Builder pNewState, IASTStatement pStatement,
         CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
 
     if (pStatement instanceof IASTAssignment) {
@@ -390,7 +389,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleFunctionCall(FunctionPointerElement pNewState, FunctionCallEdge callEdge) throws UnrecognizedCCodeException {
+  private void handleFunctionCall(FunctionPointerElement.Builder pNewState, FunctionCallEdge callEdge) throws UnrecognizedCCodeException {
 
     FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();
@@ -426,7 +425,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleReturnStatement(FunctionPointerElement pNewState, IASTExpression returnValue,
+  private void handleReturnStatement(FunctionPointerElement.Builder pNewState, IASTExpression returnValue,
       CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
 
     if (returnValue != null) {
@@ -438,7 +437,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
   }
 
 
-  private void handleFunctionReturn(FunctionPointerElement pNewState, FunctionReturnEdge pFunctionReturnEdge) throws UnrecognizedCCodeException {
+  private void handleFunctionReturn(FunctionPointerElement.Builder pNewState, FunctionReturnEdge pFunctionReturnEdge) throws UnrecognizedCCodeException {
     CallToReturnEdge summaryEdge = pFunctionReturnEdge.getSuccessor().getEnteringSummaryEdge();
     assert summaryEdge != null;
 
@@ -492,18 +491,18 @@ class FunctionPointerTransferRelation implements TransferRelation {
     return null;
   }
 
-  private FunctionPointerTarget getValue(IASTRightHandSide exp, FunctionPointerElement element, String function) throws UnrecognizedCCodeException {
+  private FunctionPointerTarget getValue(IASTRightHandSide exp, FunctionPointerElement.Builder element, String function) throws UnrecognizedCCodeException {
     return exp.accept(new ExpressionValueVisitor(element, function, invalidFunctionPointerTarget));
   }
 
   private static class ExpressionValueVisitor extends DefaultExpressionVisitor<FunctionPointerTarget, UnrecognizedCCodeException>
                                               implements RightHandSideVisitor<FunctionPointerTarget, UnrecognizedCCodeException> {
 
-    private final FunctionPointerElement element;
+    private final FunctionPointerElement.Builder element;
     private final String function;
     private final FunctionPointerTarget targetForInvalidPointers;
 
-    private ExpressionValueVisitor(FunctionPointerElement pElement, String pFunction,
+    private ExpressionValueVisitor(FunctionPointerElement.Builder pElement, String pFunction,
                                    FunctionPointerTarget pTargetForInvalidPointers) {
       element = pElement;
       function = pFunction;

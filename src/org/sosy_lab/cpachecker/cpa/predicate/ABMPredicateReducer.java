@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,10 +44,8 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -60,14 +58,12 @@ public class ABMPredicateReducer implements Reducer {
   static final Timer expandTimer = new Timer();
   static final Timer extractTimer = new Timer();
 
-  private final RegionManager rmgr;
   private final PathFormulaManager pmgr;
   private final PredicateAbstractionManager pamgr;
   private final RelevantPredicatesComputer relevantComputer;
   private final LogManager logger;
 
   public ABMPredicateReducer(ABMPredicateCPA cpa, RelevantPredicatesComputer pRelevantPredicatesComputer) {
-    this.rmgr = cpa.getRegionManager();
     this.pmgr = cpa.getPathFormulaManager();
     this.pamgr = cpa.getPredicateManager();
     this.logger = cpa.getLogger();
@@ -95,18 +91,10 @@ public class ABMPredicateReducer implements Reducer {
       Collection<AbstractionPredicate> removePredicates =
           relevantComputer.getIrrelevantPredicates(pContext, predicates);
 
-      Region newRegion = oldRegion;
-      for (AbstractionPredicate predicate : removePredicates) {
-        newRegion = rmgr.makeExists(newRegion, predicate.getAbstractVariable());
-      }
-
       PathFormula pathFormula = predicateElement.getPathFormula();
       assert pathFormula.getFormula().isTrue();
 
-      Formula newFormula = pamgr.toConcrete(newRegion, pathFormula.getSsa());
-
-      AbstractionFormula newAbstraction =
-            new AbstractionFormula(newRegion, newFormula, oldAbstraction.getBlockFormula());
+      AbstractionFormula newAbstraction = pamgr.reduce(oldAbstraction, removePredicates, pathFormula.getSsa());
 
       return PredicateAbstractElement.abstractionElement(pathFormula, newAbstraction);
     } finally {
@@ -127,21 +115,13 @@ public class ABMPredicateReducer implements Reducer {
     expandTimer.start();
     try {
 
-      Region rootRegion = rootElement.getAbstractionFormula().asRegion();
-      Region reducedRegion = reducedElement.getAbstractionFormula().asRegion();
+      AbstractionFormula rootAbstraction = rootElement.getAbstractionFormula();
+      AbstractionFormula reducedAbstraction = reducedElement.getAbstractionFormula();
 
-      Collection<AbstractionPredicate> rootPredicates = extractPredicates(rootRegion);
+      Collection<AbstractionPredicate> rootPredicates = extractPredicates(rootAbstraction.asRegion());
       Collection<AbstractionPredicate> relevantRootPredicates =
           relevantComputer.getRelevantPredicates(pReducedContext, rootPredicates);
       //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedElements region
-
-      Region removedInformationRegion = rootRegion;
-      for (AbstractionPredicate predicate : relevantRootPredicates) {
-        removedInformationRegion = rmgr.makeExists(removedInformationRegion,
-                                                   predicate.getAbstractVariable());
-      }
-
-      Region expandedRegion = rmgr.makeAnd(reducedRegion, removedInformationRegion);
 
       PathFormula oldPathFormula = reducedElement.getPathFormula();
       assert oldPathFormula.getFormula().isTrue();
@@ -161,11 +141,8 @@ public class ABMPredicateReducer implements Reducer {
       SSAMap newSSA = builder.build();
       PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA);
 
-      Formula newFormula = pamgr.toConcrete(expandedRegion, newSSA);
-      Formula blockFormula = reducedElement.getAbstractionFormula().getBlockFormula();
-
       AbstractionFormula newAbstractionFormula =
-          new AbstractionFormula(expandedRegion, newFormula, blockFormula);
+          pamgr.expand(reducedAbstraction, rootAbstraction, relevantRootPredicates, newSSA);
 
       return PredicateAbstractElement.abstractionElement(newPathFormula,
           newAbstractionFormula);

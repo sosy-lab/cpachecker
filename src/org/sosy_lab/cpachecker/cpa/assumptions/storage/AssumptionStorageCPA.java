@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,8 +40,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 
 /**
  * CPA used to capture the assumptions that ought to be dumped.
@@ -59,19 +60,20 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis {
   private final AbstractDomain abstractDomain;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
-  private final FormulaManager formulaManager;
+  private final ExtendedFormulaManager formulaManager;
   private final AssumptionStorageElement topElement;
 
   private AssumptionStorageCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
   {
-    formulaManager = AssumptionManagerImpl.createFormulaManager(config, logger);
+    formulaManager = new ExtendedFormulaManager(new FormulaManagerFactory(config, logger).getFormulaManager(), config, logger);
+    CtoFormulaConverter converter = new CtoFormulaConverter(config, formulaManager, logger);
     abstractDomain = new AssumptionStorageDomain(formulaManager);
     stopOperator = new AssumptionStorageStop();
     topElement = new AssumptionStorageElement(formulaManager.makeTrue(), formulaManager.makeTrue());
-    transferRelation = new AssumptionStorageTransferRelation(formulaManager, topElement);
+    transferRelation = new AssumptionStorageTransferRelation(converter, formulaManager, topElement);
   }
 
-  public FormulaManager getFormulaManager()
+  public ExtendedFormulaManager getFormulaManager()
   {
     return formulaManager;
   }

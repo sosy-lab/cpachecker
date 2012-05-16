@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -52,14 +52,15 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.invariants.Farkas;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Balancer;
+import org.sosy_lab.cpachecker.util.invariants.balancer.MatrixBalancer;
 import org.sosy_lab.cpachecker.util.invariants.balancer.NetworkBuilder;
 import org.sosy_lab.cpachecker.util.invariants.balancer.SingleLoopNetworkBuilder;
 import org.sosy_lab.cpachecker.util.invariants.balancer.TemplateNetwork;
-import org.sosy_lab.cpachecker.util.invariants.balancer.Balancer.UIFAxiomStrategy;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateConstraint;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormulaManager;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -77,7 +78,7 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
   private final PredicateCPA predicateCpa;
   private final Configuration config;
   private final LogManager logger;
-  private final PredicateAbstractionManager amgr;
+  private final AbstractionManager amgr;
   private final ExtendedFormulaManager emgr;
   private final TemplateFormulaManager tmgr;
   //private final TemplatePathFormulaBuilder tpfb;
@@ -100,7 +101,7 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
     config.inject(this, InvariantRefiner.class);
     logger = predicateCpa.getLogger();
 
-    amgr = predicateCpa.getPredicateManager();
+    amgr = predicateCpa.getAbstractionManager();
     emgr = predicateCpa.getFormulaManager();
 
     tmgr = new TemplateFormulaManager();
@@ -153,25 +154,23 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
     }
 
     TemplateNetwork tnet = nbuilder.nextNetwork();
-    Balancer balancer = new Balancer(logger);
-    UIFAxiomStrategy axiomStrategy = UIFAxiomStrategy.DONOTUSEAXIOMS;
+    //Balancer balancer = new BasicBalancer(logger);
+    Balancer balancer = new MatrixBalancer(logger);
     // Try template networks until one succeeds, or we run out of ideas.
     while (tnet != null) {
-
-      logger.log(Level.ALL, "\nAxiom strategy:\n", axiomStrategy);
 
       // Reset indices, so they do not grow needlessly out of bound.
       Farkas.resetConstantIndices();
       TemplateTerm.resetParameterIndices();
 
       // Attempt to balance the TemplateNetwork.
-      balancer.setAxiomStrategy(axiomStrategy);
       balancing.start();
       boolean balanced = balancer.balance(tnet);
       balancing.stop();
+      logger.log(Level.FINEST, "Balancer took",balancing.getSumTime(),"miliseconds.");
 
       if (balanced) {
-        // If the network balanced, then, since it put 'false' at the error
+        // If the network balanced, then, since all NetworkBuilders put 'false' at the error
         // location, it follows that the counterexample path was refuted.
 
         logger.log(Level.FINEST, "Invariants refuted counterexample path.");
@@ -187,19 +186,8 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
       } else {
         // Could not balance the template network.
         logger.log(Level.FINEST, "Could not balance template network.");
-
-        // If we were not using axioms, then we should try using them,
-        // on the same network.
-        if (axiomStrategy == UIFAxiomStrategy.DONOTUSEAXIOMS) {
-          axiomStrategy = UIFAxiomStrategy.USEAXIOMS;
-
-        // Else even axioms did not work, so try the next network, if
-        // there is one.
-        } else {
-          tnet = nbuilder.nextNetwork();
-          axiomStrategy = UIFAxiomStrategy.DONOTUSEAXIOMS;
-        }
-
+        // Get the next network.
+        tnet = nbuilder.nextNetwork();
         // If tnet is null, then we have run out of networks to try.
         // Fail.
         if (tnet == null) {
@@ -235,11 +223,21 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
       CFANode loc = pair.getSecond();
       phi = tnet.getTemplate(loc).getTemplateFormula();
       if (phi != null) {
-        Collection<AbstractionPredicate> phiPreds = makeAbstractionPredicates(phi);
+        boolean atomic = true;
+        //Collection<AbstractionPredicate> phiPreds = makeAbstractionPredicates(phi);
+        Collection<AbstractionPredicate> phiPreds = makeAbstrPreds(phi, atomic);
         ceti.addPredicatesForRefinement(phiPreds);
       } else {
         ceti.addPredicatesForRefinement(trueFormula);
       }
+    }
+  }
+
+  private Collection<AbstractionPredicate> makeAbstrPreds(TemplateFormula invariant, boolean atomic) {
+    if (atomic) {
+      return makeAbstractionPredicates(invariant);
+    } else {
+      return makeAbstractionPredicatesNonatomic(invariant);
     }
   }
 
@@ -267,6 +265,15 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
       }
     }
 
+    return preds;
+  }
+
+  private Collection<AbstractionPredicate> makeAbstractionPredicatesNonatomic(TemplateFormula invariant) {
+    // Like makeAbstractionPredicates, only does /not/ split the passed
+    // invariant into atoms, but keeps it whole.
+    Collection<AbstractionPredicate> preds = new Vector<AbstractionPredicate>();
+    Formula formula = invariant.translate(emgr.getDelegate());
+    preds.add( amgr.makePredicate(formula) );
     return preds;
   }
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.base.Strings;
 
 /**
  * This class represents the core components that occur in each declaration:
@@ -65,5 +67,11 @@ public abstract class IASTSimpleDeclaration extends IASTNode {
 
   public String getOrigName() {
     return origName;
+  }
+
+  @Override
+  public String toASTString() {
+    String name = Strings.nullToEmpty(getName());
+    return getDeclSpecifier().toASTString(name) + ";";
   }
 }

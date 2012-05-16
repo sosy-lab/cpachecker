@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,18 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cpa.monitor;
 
+import java.io.IOException;
+import java.io.NotSerializableException;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingElement;
-import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula;
-import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
+import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Preconditions;
 
 public class MonitorElement extends AbstractSingleWrapperElement implements AvoidanceReportingElement {
+  /* Boilerplate code to avoid serializing this class */
+  private static final long serialVersionUID = 0xDEADBEEF;
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    throw new NotSerializableException();
+  }
 
   static enum TimeoutElement implements AbstractElement {
     INSTANCE;
@@ -48,14 +55,14 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
   private final long totalTimeOnPath;
 
   // stores what caused the element to go further (may be null)
-  private final Pair<PreventingHeuristicType, Long> preventingCondition;
+  private final Pair<PreventingHeuristic, Long> preventingCondition;
 
   protected MonitorElement(AbstractElement pWrappedElement, long totalTimeOnPath) {
     this(pWrappedElement, totalTimeOnPath, null);
   }
 
   protected MonitorElement(AbstractElement pWrappedElement, long totalTimeOnPath,
-      Pair<PreventingHeuristicType, Long> preventingCondition) {
+      Pair<PreventingHeuristic, Long> preventingCondition) {
     super(pWrappedElement);
     Preconditions.checkArgument(!(pWrappedElement instanceof MonitorElement), "Don't wrap a MonitorCPA in a MonitorCPA, this makes no sense!");
     Preconditions.checkArgument(!(pWrappedElement == TimeoutElement.INSTANCE && preventingCondition == null), "Need a preventingCondition in case of TimeoutElement");
@@ -90,7 +97,7 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
     return preventingCondition != null;
   }
 
-  Pair<PreventingHeuristicType, Long> getPreventingCondition() {
+  Pair<PreventingHeuristic, Long> getPreventingCondition() {
     return preventingCondition;
   }
 
@@ -105,9 +112,7 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
   public Formula getReasonFormula(FormulaManager manager) {
 
     if (mustDumpAssumptionForAvoidance()) {
-      String preventingHeuristicStringFormula = HeuristicToFormula.getFormulaStringForHeuristic(preventingCondition.getFirst(), preventingCondition.getSecond());
-      return manager.parse(preventingHeuristicStringFormula);
-
+      return preventingCondition.getFirst().getFormula(manager, preventingCondition.getSecond());
     } else {
       return manager.makeTrue();
     }

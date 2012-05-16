@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.base.Preconditions;
 
-abstract class ImpactAbstractElement implements AbstractElement {
+public abstract class ImpactAbstractElement implements AbstractElement {
 
   private final PathFormula pathFormula;
 
@@ -47,6 +47,11 @@ abstract class ImpactAbstractElement implements AbstractElement {
 
   public abstract Formula getStateFormula();
 
+  @Override
+  public String toString() {
+    return getStateFormula().toString();
+  }
+
   static AbstractionElement getLastAbstraction(ImpactAbstractElement element) {
     if (element.isAbstractionElement()) {
       return (AbstractionElement)element;
@@ -55,12 +60,12 @@ abstract class ImpactAbstractElement implements AbstractElement {
     }
   }
 
-  static class AbstractionElement extends ImpactAbstractElement {
+  public static class AbstractionElement extends ImpactAbstractElement {
 
     private final PathFormula blockFormula;
     private Formula stateFormula;
 
-    public AbstractionElement(PathFormula pPathFormula, Formula pStateFormula, PathFormula pBlockFormula) {
+    AbstractionElement(PathFormula pPathFormula, Formula pStateFormula, PathFormula pBlockFormula) {
       super(pPathFormula);
 
       assert pPathFormula.getFormula().isTrue();

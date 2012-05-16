@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -85,7 +85,6 @@ public class AlternatingRefiner implements Refiner {
   private final CallstackCPA mCallStackCPA;
   private final AssumeCPA mAssumeCPA;
   private final CFAPathCPA mCFAPathCPA;
-  private final ARTCPA mARTCPA;
 
   private final CFAFunctionDefinitionNode mEntryNode;
   private final CFANode mEndNode;
@@ -102,7 +101,6 @@ public class AlternatingRefiner implements Refiner {
     mCallStackCPA = pCallStackCPA;
     mAssumeCPA = pAssumeCPA;
     mCFAPathCPA = pCFAPathCPA;
-    mARTCPA = pARTCPA;
 
     mPredicateRefiner = pPredicateRefiner;
 
@@ -207,7 +205,7 @@ public class AlternatingRefiner implements Refiner {
     AbstractElement lInitialElement = lCPA.getInitialElement(mEntryNode);
     Precision lInitialPrecision = lCPA.getInitialPrecision(mEntryNode);
 
-    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.RPO);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     boolean lMissesInput = false;
@@ -290,7 +288,7 @@ public class AlternatingRefiner implements Refiner {
         AbstractElement lInitialElement = lCPA.getInitialElement(mEntryNode);
         Precision lInitialPrecision = lCPA.getInitialPrecision(mEntryNode);
 
-        ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+        ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.RPO);
         lReachedSet.add(lInitialElement, lInitialPrecision);
 
         try {
@@ -359,7 +357,7 @@ public class AlternatingRefiner implements Refiner {
       lRemoveElements.put(lParent, lNewPrecision);
     }
 
-    ARTReachedSet lARTReached = new ARTReachedSet(pReached, mARTCPA);
+    ARTReachedSet lARTReached = new ARTReachedSet(pReached);
 
     for (Map.Entry<ARTElement, Precision> lEntry : lRemoveElements.entrySet()) {
       // TODO parents wieder zur Waitlist hinzufuegen?

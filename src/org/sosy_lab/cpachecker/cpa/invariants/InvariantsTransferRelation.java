@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,11 +35,9 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
@@ -47,8 +45,8 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
@@ -152,22 +150,20 @@ enum InvariantsTransferRelation implements TransferRelation {
   }
 
   private InvariantsElement handleDeclaration(InvariantsElement element, DeclarationEdge edge) throws UnrecognizedCCodeException {
-    if (edge.getName() == null
-        || edge.getDeclSpecifier() instanceof IASTFunctionTypeSpecifier
-        || edge.getDeclSpecifier() instanceof IASTCompositeTypeSpecifier
-        || edge.getStorageClass() == StorageClass.TYPEDEF) {
+    if (!(edge.getDeclaration() instanceof IASTVariableDeclaration)) {
 
       return element;
     }
+    IASTVariableDeclaration decl = (IASTVariableDeclaration)edge.getDeclaration();
 
-    String varName = edge.getName();
-    if (!edge.isGlobal()) {
+    String varName = decl.getName();
+    if (!decl.isGlobal()) {
       varName = edge.getSuccessor().getFunctionName() + "::" + varName;
     }
 
     SimpleInterval value = SimpleInterval.infinite();
-    if (edge.getInitializer() != null && edge.getInitializer() instanceof IASTInitializerExpression) {
-      IASTRightHandSide init = ((IASTInitializerExpression)edge.getInitializer()).getExpression();
+    if (decl.getInitializer() != null && decl.getInitializer() instanceof IASTInitializerExpression) {
+      IASTExpression init = ((IASTInitializerExpression)decl.getInitializer()).getExpression();
       value = init.accept(SimpleRightHandSideValueVisitor.VISITOR_INSTANCE);
     }
 

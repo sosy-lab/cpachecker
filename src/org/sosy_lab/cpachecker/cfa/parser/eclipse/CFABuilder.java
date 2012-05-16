@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,10 +38,10 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
@@ -59,6 +59,7 @@ class CFABuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
   private Queue<IASTFunctionDefinition> functionDeclarations = new LinkedList<IASTFunctionDefinition>();
+  private List<Pair<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration, String>> probablyDuplicateDeclarations = Lists.newArrayList();
   private final Map<String, CFAFunctionDefinitionNode> cfas = new HashMap<String, CFAFunctionDefinitionNode>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
@@ -107,7 +108,38 @@ class CFABuilder extends ASTVisitor {
    * @return global declarations
    */
   public List<Pair<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration, String>> getGlobalDeclarations() {
+    organizeGlobalDeclarations();
     return globalDeclarations;
+  }
+
+  private void organizeGlobalDeclarations() {
+    for(Pair<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration, String> decl : probablyDuplicateDeclarations) {
+      org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD = decl.getFirst();
+      String rawSignature = decl.getSecond();
+      if(newD instanceof IASTFunctionDeclaration) {
+        scope.registerFunctionDeclaration((IASTFunctionDeclaration) newD);
+      } else if (newD instanceof IASTVariableDeclaration) {
+        scope.registerDeclaration(newD);
+      }
+
+      globalDeclarations.add(Pair.of(newD, rawSignature));
+    }
+
+    for (IASTFunctionDefinition declaration : functionDeclarations) {
+      CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, ignoreCasts,
+          scope, astCreator);
+
+      declaration.accept(functionBuilder);
+
+      CFAFunctionDefinitionNode startNode = functionBuilder.getStartNode();
+      String functionName = startNode.getFunctionName();
+
+      if (cfas.containsKey(functionName)) {
+        throw new CFAGenerationRuntimeException("Duplicate function " + functionName);
+      }
+      cfas.put(functionName, startNode);
+      cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
+    }
   }
 
   /* (non-Javadoc)
@@ -121,7 +153,17 @@ class CFABuilder extends ASTVisitor {
       return handleSimpleDeclaration((IASTSimpleDeclaration)declaration, fileloc);
 
     } else if (declaration instanceof IASTFunctionDefinition) {
-      functionDeclarations.add((IASTFunctionDefinition) declaration);
+      IASTFunctionDefinition fd = (IASTFunctionDefinition) declaration;
+      functionDeclarations.add(fd);
+
+   // add forward declaration to list of global declarations
+      org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration functionDefinition = astCreator.convert(fd);
+      if (astCreator.numberOfSideAssignments() > 0) {
+        throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
+      }
+
+      globalDeclarations.add(Pair.of(functionDefinition, fd.getDeclSpecifier().getRawSignature() + " " + fd.getDeclarator().getRawSignature()));
+
       return PROCESS_SKIP;
 
     } else if (declaration instanceof IASTProblemDeclaration) {
@@ -152,22 +194,23 @@ class CFABuilder extends ASTVisitor {
     final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
 
-    for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
-      if (newD.getStorageClass() != StorageClass.TYPEDEF
-          && newD.getName() != null) {
-        // this is neither a typedef nor a struct prototype nor a function declaration,
-        // so it's a variable declaration
-
-        scope.registerDeclaration(newD);
-      }
+    if (astCreator.numberOfSideAssignments() > 0) {
+      throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
     }
-
-    assert (sd.getParent() instanceof IASTTranslationUnit) : "not a real global declaration";
 
     String rawSignature = sd.getRawSignature();
 
     for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
-      globalDeclarations.add(Pair.of(newD, rawSignature));
+      if (newD instanceof IASTVariableDeclaration) {
+        if(((IASTVariableDeclaration) newD).getInitializer() != null) {
+          scope.registerDeclaration(newD);
+          globalDeclarations.add(Pair.of(newD, rawSignature));
+        } else {
+          probablyDuplicateDeclarations.add(Pair.of(newD, rawSignature));
+        }
+      } else {
+        probablyDuplicateDeclarations.add(Pair.of(newD, rawSignature));
+      }
     }
 
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
@@ -182,23 +225,4 @@ class CFABuilder extends ASTVisitor {
     throw new CFAGenerationRuntimeException(problem.getMessage(), problem);
   }
 
-  @Override
-  public int leave(IASTTranslationUnit translationUnit) {
-    for (IASTFunctionDefinition declaration : functionDeclarations) {
-      CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, ignoreCasts,
-          scope, astCreator);
-
-      declaration.accept(functionBuilder);
-
-      CFAFunctionDefinitionNode startNode = functionBuilder.getStartNode();
-      String functionName = startNode.getFunctionName();
-
-      if (cfas.containsKey(functionName)) {
-        throw new CFAGenerationRuntimeException("Duplicate function " + functionName);
-      }
-      cfas.put(functionName, startNode);
-      cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
-    }
-    return PROCESS_CONTINUE;
-  }
 }

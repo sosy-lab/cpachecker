@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,5 +41,16 @@ public abstract class IType {
     return isVolatile;
   }
 
-  public abstract String toASTString();
+  /**
+   * Return a string representation of a variable declaration with a given name
+   * and this type.
+   *
+   * Example:
+   * If this type is array of int, and we call <code>toASTString("foo")</code>,
+   * the result is <pre>int foo[]</pre>.
+   *
+   * @param declarator The name of the variable to declare.
+   * @return A string representation of this type.
+   */
+  public abstract String toASTString(String declarator);
 }

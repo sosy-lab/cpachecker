@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -57,7 +57,7 @@ public final class IASTArraySubscriptExpression extends IASTExpression {
 
   @Override
   public String toASTString() {
-    return arrayExpression.toASTString()
-        + "[" + subscriptExpression.toASTString() + "]";
+    String left = (arrayExpression instanceof IASTArraySubscriptExpression) ? arrayExpression.toASTString() : arrayExpression.toParenthesizedASTString();
+    return left + "[" + subscriptExpression.toASTString() + "]";
   }
 }

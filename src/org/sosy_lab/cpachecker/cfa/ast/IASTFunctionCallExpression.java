@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -75,7 +75,7 @@ public class IASTFunctionCallExpression extends IASTRightHandSide {
   public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
 
-    lASTString.append(functionName.toASTString());
+    lASTString.append(functionName.toParenthesizedASTString());
     lASTString.append("(");
     Joiner.on(", ").appendTo(lASTString, new ASTStringIterable(parameters));
     lASTString.append(")");

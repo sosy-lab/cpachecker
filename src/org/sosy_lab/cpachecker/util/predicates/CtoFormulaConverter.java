@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,16 +42,12 @@ import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.Defaults;
 import org.sosy_lab.cpachecker.cfa.ast.ForwardingExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
@@ -62,12 +58,10 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNamedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
@@ -79,14 +73,16 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IComplexType;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StatementVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
+import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
@@ -121,7 +117,7 @@ public class CtoFormulaConverter {
 
   // if true, handle lvalues as *x, &x, s.x, etc. using UIFs. If false, just
   // use variables
-  @Option(name="mathsat.lvalsAsUIFs",
+  @Option(name="lvalsAsUIFs",
       description="use uninterpreted functions for *, & and array access")
   private boolean lvalsAsUif = false;
 
@@ -141,7 +137,8 @@ public class CtoFormulaConverter {
   @Option(description = "the machine model used for functions sizeof and alignof")
   private MachineModel machineModel = MachineModel.LINUX32;
 
-  @Option(description = "handle Pointers")
+  @Option(description = "Handle aliasing of pointers. "
+        + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
   private boolean handlePointerAliasing = true;
 
   @Option(description = "list of functions that provide new memory on the heap."
@@ -170,8 +167,11 @@ public class CtoFormulaConverter {
   public static final String NONDET_VARIABLE = "__nondet__";
   public static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
 
+  private static final String POINTER_VARIABLE = "__content_of__";
+  private static final Pattern POINTER_VARIABLE_PATTERN = Pattern.compile("\\Q__content_of__\\E.*\\Q__end\\E");
+
   /** The prefix used for variables representing memory locations. */
-  private static final String MEMORY_ADDRESS_VARIABLE_PREFIX = "&";
+  private static final String MEMORY_ADDRESS_VARIABLE_PREFIX = "__address_of__";
 
   /**
    * The prefix used for memory locations derived from malloc calls.
@@ -218,7 +218,7 @@ public class CtoFormulaConverter {
   private String getLogMessage(String msg, CFAEdge edge) {
     return "Line " + edge.getLineNumber()
             + ": " + msg
-            + ": " + edge.getRawStatement();
+            + ": " + edge.getDescription();
   }
 
   private void logDebug(String msg, IASTNode astNode) {
@@ -371,7 +371,7 @@ public class CtoFormulaConverter {
 
   /** Takes a (scoped) variable name and returns the pointer variable name. */
   private static String makePointerMask(String scopedId, SSAMapBuilder ssa) {
-    return "*<" + scopedId + "," + ssa.getIndex(scopedId) + ">";
+    return POINTER_VARIABLE + scopedId + "__at__" + ssa.getIndex(scopedId) + "__end";
   }
 
   /**
@@ -381,7 +381,7 @@ public class CtoFormulaConverter {
   private static String removePointerMask(String pointerVariable) {
     assert (isPointerVariable(pointerVariable));
 
-    return pointerVariable.substring(2, pointerVariable.indexOf(','));
+    return pointerVariable.substring(POINTER_VARIABLE.length(), pointerVariable.indexOf("__at__"));
   }
 
   /** Returns the pointer variable name corresponding to a given IdExpression */
@@ -422,58 +422,7 @@ public class CtoFormulaConverter {
     SSAMapBuilder ssa = oldFormula.getSsa().builder();
     Constraints constraints = new Constraints();
 
-    Formula edgeFormula;
-    switch (edge.getEdgeType()) {
-    case StatementEdge: {
-      StatementEdge statementEdge = (StatementEdge) edge;
-      StatementToFormulaVisitor v;
-      if (handlePointerAliasing) {
-        v = new StatementToFormulaVisitorPointers(function, ssa, constraints, edge);
-      } else {
-        v = new StatementToFormulaVisitor(function, ssa, constraints, edge);
-      }
-      edgeFormula = statementEdge.getStatement().accept(v);
-      break;
-    }
-
-    case ReturnStatementEdge: {
-      ReturnStatementEdge returnEdge = (ReturnStatementEdge)edge;
-      edgeFormula = makeReturn(returnEdge.getExpression(), returnEdge, function, ssa, constraints);
-      break;
-    }
-
-    case DeclarationEdge: {
-      DeclarationEdge d = (DeclarationEdge)edge;
-      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, ssa, constraints, edge);
-      break;
-    }
-
-    case AssumeEdge: {
-      edgeFormula = makeAssume((AssumeEdge)edge, function, ssa, constraints);
-      break;
-    }
-
-    case BlankEdge: {
-      assert false : "Handled above";
-      edgeFormula = fmgr.makeTrue();
-      break;
-    }
-
-    case FunctionCallEdge: {
-      edgeFormula = makeFunctionCall((FunctionCallEdge)edge, function, ssa, constraints);
-      break;
-    }
-
-    case FunctionReturnEdge: {
-      // get the expression from the summary edge
-      CallToReturnEdge ce = ((FunctionReturnEdge)edge).getSummaryEdge();
-      edgeFormula = makeExitFunction(ce, function, ssa, constraints);
-      break;
-    }
-
-    default:
-      throw new UnrecognizedCFAEdgeException(edge);
-    }
+    Formula edgeFormula = createForumlaForEdge(edge, function, ssa, constraints);
 
     if (useNondetFlags) {
       int lNondetIndex = ssa.getIndex(NONDET_VARIABLE);
@@ -508,103 +457,156 @@ public class CtoFormulaConverter {
     return new PathFormula(newFormula, newSsa, newLength);
   }
 
-  private Formula makeDeclaration(IType spec, boolean isGlobal,
-      DeclarationEdge edge, String function, SSAMapBuilder ssa,
-      Constraints constraints, CFAEdge cfaEdge) throws CPATransferException {
+  /**
+   * This helper method creates a formula for an CFA edge, given the current function, SSA map and constraints.
+   *
+   * @param edge the edge for which to create the formula
+   * @param function the current scope
+   * @param ssa the current SSA map
+   * @param constraints the current constraints
+   * @return the formula for the edge
+   * @throws CPATransferException
+   */
+  private Formula createForumlaForEdge(CFAEdge edge, String function, SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
+    switch (edge.getEdgeType()) {
+    case StatementEdge: {
+      StatementEdge statementEdge = (StatementEdge) edge;
+      StatementToFormulaVisitor v;
+      if (handlePointerAliasing) {
+        v = new StatementToFormulaVisitorPointers(function, ssa, constraints, edge);
+      } else {
+        v = new StatementToFormulaVisitor(function, ssa, constraints, edge);
+      }
+      return statementEdge.getStatement().accept(v);
+    }
 
-    if (spec instanceof IASTFunctionTypeSpecifier) {
+    case ReturnStatementEdge: {
+      ReturnStatementEdge returnEdge = (ReturnStatementEdge)edge;
+      return makeReturn(returnEdge.getExpression(), returnEdge, function, ssa, constraints);
+    }
+
+    case DeclarationEdge: {
+      DeclarationEdge d = (DeclarationEdge)edge;
+      return makeDeclaration(d, function, ssa, constraints);
+    }
+
+    case AssumeEdge: {
+      return makeAssume((AssumeEdge)edge, function, ssa, constraints);
+    }
+
+    case BlankEdge: {
+      assert false : "Handled above";
       return fmgr.makeTrue();
+    }
 
-    } else if (spec instanceof IASTCompositeTypeSpecifier) {
-      // this is the declaration of a struct, just ignore it...
-      logDebug("Ignoring declaration", edge);
-      return fmgr.makeTrue();
+    case FunctionCallEdge: {
+      return makeFunctionCall((FunctionCallEdge)edge, function, ssa, constraints);
+    }
 
-    } else if (spec instanceof IASTSimpleDeclSpecifier ||
-               spec instanceof IASTEnumerationSpecifier ||
-               spec instanceof IASTElaboratedTypeSpecifier ||
-               spec instanceof IASTNamedTypeSpecifier ||
-               spec instanceof IASTArrayTypeSpecifier ||
-               spec instanceof IASTPointerTypeSpecifier) {
+    case FunctionReturnEdge: {
+      // get the expression from the summary edge
+      CallToReturnEdge ce = ((FunctionReturnEdge)edge).getSummaryEdge();
+      return makeExitFunction(ce, function, ssa, constraints);
+    }
 
-      if (edge.getStorageClass() == StorageClass.TYPEDEF) {
-        logDebug("Ignoring typedef", edge);
-        return fmgr.makeTrue();
+    case MultiEdge: {
+      Formula multiEdgeFormula = fmgr.makeTrue();
+
+      // unroll the MultiEdge
+      for(CFAEdge singleEdge : (MultiEdge)edge) {
+        if(singleEdge instanceof BlankEdge) {
+          continue;
+        }
+        multiEdgeFormula = fmgr.makeAnd(multiEdgeFormula, createForumlaForEdge(singleEdge, function, ssa, constraints));
       }
 
-      // ignore type prototypes here
-      if (edge.getName() != null) {
+      return multiEdgeFormula;
+    }
 
-        String varNameWithoutFunction = edge.getName();
-        String varName;
-        if (isGlobal) {
-          varName = varNameWithoutFunction;
-        } else {
-          varName = scoped(varNameWithoutFunction, function);
-        }
-
-        // TODO get the type of the variable, and act accordingly
-
-        // if the var is unsigned, add the constraint that it should
-        // be > 0
-        //    if (((IASTSimpleDeclSpecifier)spec).isUnsigned()) {
-        //    long z = mathsat.api.msat_make_number(msatEnv, "0");
-        //    long mvar = buildMsatVariable(var, idx);
-        //    long t = mathsat.api.msat_make_gt(msatEnv, mvar, z);
-        //    t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
-        //    m1 = new MathsatFormula(t);
-        //    }
-
-        // just increment index of variable in SSAMap
-        // (a declaration contains an implicit assignment, even without initializer)
-        // In case of an existing initializer, we increment the index twice
-        // (here and below) so that the index 2 only occurs for uninitialized variables.
-        makeFreshIndex(varName, ssa);
-
-        // if there is an initializer associated to this variable,
-        // take it into account
-        IASTInitializer initializer = edge.getInitializer();
-        IASTRightHandSide init = null;
-
-        if (initializer == null) {
-          if (initAllVars) {
-            // auto-initialize variables to zero
-            logDebug("AUTO-INITIALIZING VAR: ", edge);
-            init = Defaults.forType(spec, null);
-          }
-
-        } else if (initializer instanceof IASTInitializerExpression) {
-          init = ((IASTInitializerExpression)initializer).getExpression();
-
-        } else {
-          logDebug("Ignoring unsupported initializer", initializer);
-        }
-
-        if (init != null) {
-          // initializer value present
-
-          Formula minit = buildTerm(init, function, ssa, constraints, cfaEdge);
-          Formula assignments = makeAssignment(varName, minit, ssa);
-
-          if (handlePointerAliasing) {
-            // we need to add the pointer alias
-            Formula pAssign = buildDirectSecondLevelAssignment(spec, varName,
-                removeCast(init), function, constraints, ssa);
-            assignments = fmgr.makeAnd(pAssign, assignments);
-
-            // no need to add pointer updates:
-            // the left hand variable cannot yet be aliased
-            // because it is newly created
-          }
-
-          return assignments;
-        }
-      }
-      return fmgr.makeTrue();
-
-    } else {
+    default:
       throw new UnrecognizedCFAEdgeException(edge);
     }
+  }
+
+  private Formula makeDeclaration(
+      DeclarationEdge edge, String function, SSAMapBuilder ssa,
+      Constraints constraints) throws CPATransferException {
+
+    if (!(edge.getDeclaration() instanceof IASTVariableDeclaration)) {
+      // struct prototype, function declaration, typedef etc.
+      logDebug("Ignoring declaration", edge);
+      return fmgr.makeTrue();
+    }
+
+    IASTVariableDeclaration decl = (IASTVariableDeclaration)edge.getDeclaration();
+
+    String varNameWithoutFunction = decl.getName();
+    String varName;
+    if (decl.isGlobal()) {
+      varName = varNameWithoutFunction;
+    } else {
+      varName = scoped(varNameWithoutFunction, function);
+    }
+
+    // TODO get the type of the variable, and act accordingly
+
+    // if the var is unsigned, add the constraint that it should
+    // be > 0
+    //    if (((IASTSimpleDeclSpecifier)spec).isUnsigned()) {
+    //    long z = mathsat.api.msat_make_number(msatEnv, "0");
+    //    long mvar = buildMsatVariable(var, idx);
+    //    long t = mathsat.api.msat_make_gt(msatEnv, mvar, z);
+    //    t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
+    //    m1 = new MathsatFormula(t);
+    //    }
+
+    // just increment index of variable in SSAMap
+    // (a declaration contains an implicit assignment, even without initializer)
+    // In case of an existing initializer, we increment the index twice
+    // (here and below) so that the index 2 only occurs for uninitialized variables.
+    // DO NOT OMIT THIS CALL, even without an initializer!
+    makeFreshIndex(varName, ssa);
+
+    // if there is an initializer associated to this variable,
+    // take it into account
+    IASTInitializer initializer = decl.getInitializer();
+    IASTExpression init = null;
+
+    if (initializer == null) {
+      if (initAllVars) {
+        // auto-initialize variables to zero
+        logDebug("AUTO-INITIALIZING VAR: ", edge);
+        init = Defaults.forType(decl.getDeclSpecifier(), null);
+      }
+
+    } else if (initializer instanceof IASTInitializerExpression) {
+      init = ((IASTInitializerExpression)initializer).getExpression();
+
+    } else {
+      logDebug("Ignoring unsupported initializer", initializer);
+    }
+
+    if (init == null) {
+      return fmgr.makeTrue();
+    }
+
+    // initializer value present
+
+    Formula minit = buildTerm(init, edge, function, ssa, constraints);
+    Formula assignments = makeAssignment(varName, minit, ssa);
+
+    if (handlePointerAliasing) {
+      // we need to add the pointer alias
+      Formula pAssign = buildDirectSecondLevelAssignment(decl.getDeclSpecifier(), varName,
+          removeCast(init), function, constraints, ssa);
+      assignments = fmgr.makeAnd(pAssign, assignments);
+
+      // no need to add pointer updates:
+      // the left hand variable cannot yet be aliased
+      // because it is newly created
+    }
+
+    return assignments;
   }
 
   private Formula makeExitFunction(CallToReturnEdge ce, String function,
@@ -724,11 +726,6 @@ public class CtoFormulaConverter {
         assume, function, ssa, constraints);
   }
 
-  private Formula buildTerm(IASTRightHandSide exp, String function,
-      SSAMapBuilder ssa, Constraints ax, CFAEdge edge) throws UnrecognizedCCodeException {
-    return toNumericFormula(exp.accept(new RightHandSideToFormulaVisitor(function, ssa, ax, edge)));
-  }
-
   private Formula buildTerm(IASTExpression exp, CFAEdge edge, String function,
       SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
     return toNumericFormula(exp.accept(getExpressionVisitor(edge, function, ssa, constraints)));
@@ -791,8 +788,14 @@ public class CtoFormulaConverter {
       removeOldPointerVariablesFromSsaMap(lPVarName, ssa);
       Formula lPVar = makeVariable(lPVarName, ssa);
 
-      IASTIdExpression rIdExpr = (IASTIdExpression)
-          removeCast(((IASTUnaryExpression) right).getOperand());
+      IASTExpression rExpr = removeCast(((IASTUnaryExpression) right).getOperand());
+      if (!(rExpr instanceof IASTIdExpression)) {
+        // these are statements like s1 = *(s2.f)
+        // TODO check whether doing nothing is correct
+        return fmgr.makeTrue();
+      }
+
+      IASTIdExpression rIdExpr = (IASTIdExpression)rExpr;
       Formula rPVar = makePointerVariable(rIdExpr, function, ssa);
 
       // the dealiased address of the right hand side may be a pointer itself.
@@ -850,6 +853,9 @@ public class CtoFormulaConverter {
       // s = 1
       // s = someFunction()
       // s = a + b
+      // s = x.f
+      // s = x->f
+      // s = a[i]
 
       // no second level assignment necessary
       return fmgr.makeTrue();
@@ -867,7 +873,7 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  protected Formula makePredicate(IASTExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
+  public Formula makePredicate(IASTExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     Constraints constraints = new Constraints();
     Formula f = makePredicate(exp, true, edge, function, ssa, constraints);
     return fmgr.makeAnd(f, constraints.get());
@@ -927,7 +933,7 @@ public class CtoFormulaConverter {
    * Returns whether the given variable name is a pointer variable name.
    */
   private static boolean isPointerVariable(String variableName) {
-    return variableName.matches("\\*<.*>");
+    return POINTER_VARIABLE_PATTERN.matcher(variableName).matches();
   }
 
   private boolean isMemoryLocation(IASTNode exp) {
@@ -1276,7 +1282,7 @@ public class CtoFormulaConverter {
         throws UnrecognizedCCodeException {
 
       if (tIdExp.getOperator() == TypeIdOperator.SIZEOF) {
-        IType lIType = tIdExp.getTypeId().getDeclSpecifier();
+        IType lIType = tIdExp.getType();
         return handleSizeof(tIdExp, lIType);
       } else {
         return visitDefault(tIdExp);

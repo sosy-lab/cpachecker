@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,13 +44,11 @@ class MergeNode {
     incomingElements = new ArrayList<FunctionBody>();
   }
 
-  public int addBranch(Edge pNextCBMCEdge) {
-
-    FunctionBody addedStackElement = pNextCBMCEdge.getStack().peek();
-    incomingElements.add(addedStackElement);
+  public int addBranch(FunctionBody currentFunction) {
+    incomingElements.add(currentFunction);
     Set<Integer> processedConditions = new HashSet<Integer>();
 
-    for (BasicBlock elementInStack: addedStackElement) {
+    for (BasicBlock elementInStack: currentFunction) {
       int idOfElementInStack = elementInStack.getElementId();
       boolean nextConditionValue = elementInStack.isCondition();
       boolean isClosedBefore = elementInStack.isClosedBefore();

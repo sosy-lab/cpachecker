@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import java.io.Serializable;
 import java.util.Collections;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -37,8 +38,9 @@ import com.google.common.base.Preconditions;
  * Base class for AbstractElements which wrap the abstract element of exactly
  * one CPA.
  */
-public abstract class AbstractSingleWrapperElement implements AbstractWrapperElement, Targetable, Partitionable {
+public abstract class AbstractSingleWrapperElement implements AbstractWrapperElement, Targetable, Partitionable, Serializable {
 
+  private static final long serialVersionUID = -332757795984736107L;
   private static Function<AbstractElement, AbstractElement> unwrapFunction
       = new Function<AbstractElement, AbstractElement>() {
 

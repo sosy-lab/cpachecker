@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,19 +25,22 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public enum BasicType {
 
-  UNSPECIFIED,
-  VOID,
-  BOOL,
-  CHAR,
-  INT,
-  FLOAT,
-  DOUBLE,
+  UNSPECIFIED(""),
+  VOID("void"),
+  BOOL("_Bool"),
+  CHAR("char"),
+  INT("int"),
+  FLOAT("float"),
+  DOUBLE("double"),
   ;
 
+  private final String code;
+
+  private BasicType(String pCode) {
+    code = pCode;
+  }
+
   public String toASTString() {
-    if(this == UNSPECIFIED){
-      return "";
-    }
-    return name().toLowerCase();
+    return code;
   }
 }

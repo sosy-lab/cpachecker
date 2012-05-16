@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa;
 import static org.sosy_lab.cpachecker.util.AbstractElements.*;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -43,7 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -55,7 +54,7 @@ import com.google.common.collect.ImmutableSet;
 /**
  * Perform a (very) simple cone-of-influence reduction on the given CFA.
  * That is, get rid of all the nodes/edges that are not reachable from the
- * error location(s) and assert(s).
+ * potential error states (according to the specification).
  *
  * In fact, this should probably *not* be called ConeOfInfluenceCFAReduction,
  * since it is *much* more trivial (and less powerful) than that.
@@ -70,7 +69,7 @@ public class CFAReduction {
     config.inject(this);
 
     if (config.getProperty("specification") == null) {
-      throw new InvalidConfigurationException("Option cfa.removeIrrelevantForErrorLocations is only valid if a specification is given!");
+      throw new InvalidConfigurationException("Option cfa.removeIrrelevantForSpecification is only valid if a specification is given!");
     }
 
     this.config = config;
@@ -78,7 +77,7 @@ public class CFAReduction {
   }
 
 
-  public void removeIrrelevantForErrorLocations(final MutableCFA cfa) throws InterruptedException {
+  public void removeIrrelevantForSpecification(final MutableCFA cfa) throws InterruptedException {
     Collection<CFANode> errorNodes = getErrorNodesWithCPA(cfa);
 
     if (errorNodes.isEmpty()) {
@@ -94,11 +93,13 @@ public class CFAReduction {
       return;
     }
 
+    CFATraversal.NodeCollectingCFAVisitor cfaVisitor = new CFATraversal.NodeCollectingCFAVisitor();
+    CFATraversal traversal = CFATraversal.dfs().backwards();
     // backwards search to determine all relevant nodes
-    Set<CFANode> relevantNodes = new HashSet<CFANode>();
     for (CFANode n : errorNodes) {
-      CFAUtils.dfs(n, relevantNodes, true, true);
+      traversal.traverse(n, cfaVisitor);
     }
+    Set<CFANode> relevantNodes = cfaVisitor.getVisitedNodes();
 
     assert allNodes.containsAll(relevantNodes) : "Inconsistent CFA";
 
@@ -131,8 +132,8 @@ public class CFAReduction {
                                            .clearOption("CompositeCPA.cpas")
                                            .build();
 
-      CPABuilder lBuilder = new CPABuilder(lConfig, logger, lReachedSetFactory, cfa);
-      ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs();
+      CPABuilder lBuilder = new CPABuilder(lConfig, logger, lReachedSetFactory);
+      ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs(cfa);
       Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger);
       ReachedSet lReached = lReachedSetFactory.create();
       lReached.add(lCpas.getInitialElement(cfa.getMainFunction()), lCpas.getInitialPrecision(cfa.getMainFunction()));

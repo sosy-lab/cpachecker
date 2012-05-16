@@ -4,7 +4,7 @@
 CPAchecker is a tool for configurable software verification.
 This file is part of CPAchecker.
 
-Copyright (C) 2007-2011  Dirk Beyer
+Copyright (C) 2007-2012  Dirk Beyer
 All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,13 +27,18 @@ CPAchecker web page:
 from datetime import date
 
 import threading
-import Queue
+try:
+  import Queue
+except ImportError: # Queue was renamed to queue in Python 3
+  import queue as Queue
 
 import time
 import glob
 import logging
+import optparse
 import os
 import platform
+import re
 import resource
 import signal
 import subprocess
@@ -110,7 +115,7 @@ class Benchmark:
         keys = list(root.keys())
         if ("memlimit" in keys):
             limit = int(root.get("memlimit")) * BYTE_FACTOR * BYTE_FACTOR
-            self.rlimits[resource.RLIMIT_AS] = (limit, limit)
+            self.rlimits[options.memresource] = (limit, limit)
         if ("timelimit" in keys):
             limit = int(root.get("timelimit"))
             self.rlimits[resource.RLIMIT_CPU] = (limit, limit)
@@ -119,11 +124,11 @@ class Benchmark:
         if options.memorylimit != None:
             memorylimit = int(options.memorylimit)
             if memorylimit == -1: # infinity
-                if resource.RLIMIT_AS in self.rlimits:
-                    self.rlimits.pop(resource.RLIMIT_AS)                
+                if options.memresource in self.rlimits:
+                    self.rlimits.pop(options.memresource)                
             else:
                 memorylimit = memorylimit * BYTE_FACTOR * BYTE_FACTOR
-                self.rlimits[resource.RLIMIT_AS] = (memorylimit, memorylimit)
+                self.rlimits[options.memresource] = (memorylimit, memorylimit)
 
         if options.timelimit != None:
             timelimit = int(options.timelimit)
@@ -331,7 +336,7 @@ class Run():
         self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.benchmark.columns]
 
         # dummy values, for output in case of interrupt
-        self.resultline = self.sourcefile
+        self.resultline = None
         self.status = ""
         self.cpuTime = 0
         self.cpuTimeStr = ""
@@ -533,8 +538,8 @@ class OutputHandler:
 
         memlimit = None
         timelimit = None
-        if (resource.RLIMIT_AS in self.benchmark.rlimits):
-            memlimit = str(self.benchmark.rlimits[resource.RLIMIT_AS][0] // BYTE_FACTOR // BYTE_FACTOR) + " MB"
+        if (options.memresource in self.benchmark.rlimits):
+            memlimit = str(self.benchmark.rlimits[options.memresource][0] // BYTE_FACTOR // BYTE_FACTOR) + " MB"
         if (resource.RLIMIT_CPU in self.benchmark.rlimits):
             timelimit = str(self.benchmark.rlimits[resource.RLIMIT_CPU][0]) + " s"
 
@@ -621,7 +626,9 @@ class OutputHandler:
                  'satabs'    : 'SatAbs',
                  'blast'     : 'BLAST',
                  'wolverine' : 'WOLVERINE',
-                 'acsar'     : 'Acsar'}
+                 'ufo'       : 'UFO',
+                 'acsar'     : 'Acsar',
+                 'feaver'    : 'Feaver'}
         if tool in names:
             return names[tool]
         else:
@@ -633,7 +640,7 @@ class OutputHandler:
         get info about CPAchecker from local svn- or git-svn-directory
         '''
         version = ''
-        exe = findExecutable("cpachecker", "scripts/cpa.sh")
+        exe = findExecutable("cpa.sh", "scripts/cpa.sh")
         try:
             cpaFolder = subprocess.Popen(['which', exe],
                               stdout=subprocess.PIPE).communicate()[0].strip('\n')
@@ -678,10 +685,11 @@ class OutputHandler:
 
         version = ''
         if (tool == "cpachecker"):
-            exe = findExecutable("cpachecker", "scripts/cpa.sh")
+            exe = findExecutable("cpa.sh", "scripts/cpa.sh")
             try:
                 versionHelpStr = subprocess.Popen([exe, '-help'],
                     stdout=subprocess.PIPE).communicate()[0]
+                versionHelpStr = Util.decodeToString(versionHelpStr)
                 version = ' '.join(versionHelpStr.splitlines()[0].split()[1:])  # first word is 'CPAchecker'
             except IndexError:
                 logging.critical('IndexError! Have you built CPAchecker?\n') # TODO better message
@@ -785,10 +793,15 @@ class OutputHandler:
             logging.debug("test {0} consists of {1} sourcefiles.".format(
                     numberOfTest, len(self.test.runs)))
 
+        fileNames = [run.sourcefile for run in self.test.runs]
+
+        # common prefix of file names
+        self.commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
+        self.commonPrefix = self.commonPrefix[: self.commonPrefix.rfind('/') + 1] # only foldername
+
         # length of the first column in terminal
-        self.maxLengthOfFileName = 20
-        for run in self.test.runs:
-            self.maxLengthOfFileName = max(len(run.sourcefile), self.maxLengthOfFileName)
+        self.maxLengthOfFileName = max([len(file) for file in fileNames])
+        self.maxLengthOfFileName = max(20, self.maxLengthOfFileName - len(self.commonPrefix))
 
         # write testname to terminal
         numberOfFiles = len(self.test.runs)
@@ -801,7 +814,7 @@ class OutputHandler:
         self.writeTestInfoToLog()
 
 
-    def outputForSkippingTest(self, test):
+    def outputForSkippingTest(self, test, reason=None):
         '''
         This function writes a simple message to terminal and logfile,
         when a test is skipped.
@@ -809,16 +822,18 @@ class OutputHandler:
         '''
 
         # print to terminal
-        print("\nskipping test" + \
-            (" '" + test.name + "'" if test.name is not None else ""))
+        print ("\nskipping test" +
+               (" '" + test.name + "'" if test.name else "") +
+               (" " + reason if reason else "")
+              )
 
         # write into TXTFile
         numberOfTest = self.benchmark.tests.index(test) + 1
         testInfo = "\n\n"
         if test.name is not None:
             testInfo += test.name + "\n"
-        testInfo += "test {0} of {1}: skipped\n".format(
-                numberOfTest, len(self.benchmark.tests))
+        testInfo += "test {0} of {1}: skipped {2}\n".format(
+                numberOfTest, len(self.benchmark.tests), reason or "")
         self.TXTFile.append(testInfo)
 
 
@@ -863,7 +878,7 @@ class OutputHandler:
 
             timeStr = time.strftime("%H:%M:%S", time.localtime()) + "   "
             if run.benchmark.numOfThreads == 1:
-                sys.stdout.write(timeStr + run.sourcefile.ljust(self.maxLengthOfFileName + 4))
+                sys.stdout.write(timeStr + self.formatSourceFileName(run.sourcefile))
                 sys.stdout.flush()
             else:
                 print(timeStr + "starting   " + run.sourcefile)
@@ -919,7 +934,7 @@ class OutputHandler:
                     print(valueStr)
                 else:
                     timeStr = time.strftime("%H:%M:%S", time.localtime()) + " "*14
-                    print(timeStr + run.sourcefile.ljust(self.maxLengthOfFileName + 4) + valueStr)
+                    print(timeStr + self.formatSourceFileName(run.sourcefile) + valueStr)
 
             # write resultline in TXTFile
             run.resultline = self.createOutputLine(run.sourcefile, run.status,
@@ -955,7 +970,7 @@ class OutputHandler:
 
         # store values of each run
         for run in test.runs:
-            lines.append(run.resultline)
+            lines.append(run.resultline or self.formatSourceFileName(run.sourcefile))
 
         lines.append(test.simpleLine)
 
@@ -1068,7 +1083,7 @@ class OutputHandler:
         lengthOfTime = 11
         minLengthOfColumns = 8
 
-        outputLine = sourcefile.ljust(self.maxLengthOfFileName + 4) + \
+        outputLine = self.formatSourceFileName(sourcefile) + \
                      status.ljust(lengthOfStatus) + \
                      cpuTimeDelta.rjust(lengthOfTime) + \
                      wallTimeDelta.rjust(lengthOfTime)
@@ -1106,6 +1121,14 @@ class OutputHandler:
             fileName += testname + "."
 
         return fileName + fileExtension
+
+
+    def formatSourceFileName(self, fileName):
+        '''
+        Formats the file name of a program for printing on console.
+        '''
+        fileName = fileName.replace(self.commonPrefix, '', 1)
+        return fileName.ljust(self.maxLengthOfFileName + 4)
 
 
 class Statistics:
@@ -1260,7 +1283,10 @@ def killSubprocess(process):
     '''
     this function kills the process and the children in its group.
     '''
-    os.killpg(process.pid, signal.SIGTERM)
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except OSError: # process itself returned and exited before killing
+        pass
 
 
 def run(args, rlimits, outputfilename):
@@ -1393,7 +1419,7 @@ def run_cbmc(options, sourcefile, columns, rlimits, file):
                 else:
                     status = "SAFE"
                 
-        except Exception, e: # catch all exceptions
+        except Exception as e: # catch all exceptions
             if isTimeout(cpuTimeDelta, rlimits):
                 # in this case an exception is expected as the XML is invaliddd
                 status = 'TIMEOUT'
@@ -1470,6 +1496,28 @@ def run_wolverine(options, sourcefile, columns, rlimits, file):
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
+def run_ufo(options, sourcefile, columns, rlimits, file):
+    exe = findExecutable("ufo.sh", None)
+    args = [exe, sourcefile] + options
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    if returnsignal == 9 or returnsignal == (128+9):
+        if isTimeout(cpuTimeDelta, rlimits):
+            status = "TIMEOUT"
+        else:
+            status = "KILLED BY SIGNAL 9"
+    elif returncode == 1 and "program correct: ERROR unreachable" in output:
+        status = "SAFE"
+    elif returncode != 0:
+        status = "ERROR ({0})".format(returncode)
+    elif "ERROR reachable" in output:
+        status = "UNSAFE"
+    elif "program correct: ERROR unreachable" in output:
+        status = "SAFE"
+    else:
+        status = "FAILURE"
+    return (status, cpuTimeDelta, wallTimeDelta, args)
+
+
 def run_acsar(options, sourcefile, columns, rlimits, file):
     exe = findExecutable("acsar", None)
 
@@ -1532,6 +1580,59 @@ def prepareSourceFileForAcsar(sourcefile):
     return newFilename
 
 
+def run_feaver(options, sourcefile, columns, rlimits, file):
+    exe = findExecutable("feaver_cmd", None)
+
+    # create tmp-files for acsar, acsar needs special error-labels
+    prepSourcefile = prepareSourceFileForFeaver(sourcefile)
+
+    args = [exe] + options + [prepSourcefile]
+
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    if "collect2: ld returned 1 exit status" in output:
+        status = "COMPILE ERROR"
+
+    elif "Error (parse error" in output:
+        status = "PARSE ERROR"
+
+    elif "error: (\"model\":" in output:
+        status = "MODEL ERROR"
+
+    elif "Error: syntax error" in output:
+        status = "SYNTAX ERROR"
+
+    elif "error: " in output or "Error: " in output:
+        status = "ERROR"
+
+    elif "Error Found:" in output:
+        status = "UNSAFE"
+
+    elif "No Errors Found" in output:
+        status = "SAFE"
+
+    else:
+        status = "UNKNOWN"
+
+    # delete tmp-files
+    for file in [prepSourcefile, prepSourcefile[0:-1] + "M",
+                 "_modex_main.spn", "_modex_.h", "_modex_.cln", "_modex_.drv",
+                 "model", "pan.b", "pan.c", "pan.h", "pan.m", "pan.t"]:
+        try:
+            os.remove(file)
+        except OSError:
+            pass
+
+    return (status, cpuTimeDelta, wallTimeDelta, args)
+
+
+def prepareSourceFileForFeaver(sourcefile):
+    content = open(sourcefile, "r").read()
+    content = content.replace("goto ERROR;", "assert(0);")
+    newFilename = "tmp_benchmark_feaver.c"
+    preparedFile = FileWriter(newFilename, content)
+    return newFilename
+
+
 # the next 3 functions are for imaginary tools, that return special results,
 # perhaps someone can use these function again someday,
 # to use them you need a normal benchmark-xml-file 
@@ -1553,17 +1654,43 @@ def run_random(options, sourcefile, columns, rlimits, file):
     status = 'safe' if random() < 0.5 else 'unsafe'
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
+def appendFileToFile(sourcename, targetname):
+    source = open(sourcename, 'r')
+    try:
+        target = open(targetname, 'a')
+        try:
+            target.writelines(source.readlines())
+        finally:
+            target.close()
+    finally:
+        source.close()
 
 def run_cpachecker(options, sourcefile, columns, rlimits, file):
     if ("-stats" not in options):
         options = options + ["-stats"]
 
-    exe = findExecutable("cpachecker", "scripts/cpa.sh")
+    exe = findExecutable("cpa.sh", "scripts/cpa.sh")
     args = [exe] + options + [sourcefile]
     (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
     status = getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
     getCPAcheckerColumns(output, columns)
+
+    # Segmentation faults reference a file with more information.
+    # We append this file to the log.
+    if status == 'SEGMENTATION FAULT' or status.startswith('ERROR'):
+        next = False
+        for line in output.splitlines():
+            if next:
+                try:
+                    dumpFile = line.strip(' #')
+                    appendFileToFile(dumpFile, file)
+                    os.remove(dumpFile)
+                except IOError as e:
+                    logging.warn('Could not append additional segmentation fault information (%s)' % e.strerror)
+                break
+            if line == '# An error report file with more information is saved as:':
+                next = True
 
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
@@ -1576,11 +1703,10 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
     @return: status of CPAchecker after running a testfile
     """
 
-    def isOutOfMemory(line):
-        return ('java.lang.OutOfMemoryError' in line
-             or 'std::bad_alloc'             in line # C++ out of memory exception
+    def isOutOfNativeMemory(line):
+        return ('std::bad_alloc'             in line # C++ out of memory exception (MathSAT)
              or 'Cannot allocate memory'     in line
-             or line.startswith('out of memory')
+             or line.startswith('out of memory')     # CuDD
              )
 
     if returnsignal == 0:
@@ -1602,12 +1728,16 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
         status = "ERROR ({0})".format(returnsignal)
 
     for line in output.splitlines():
-        if isOutOfMemory(line):
+        if 'java.lang.OutOfMemoryError' in line:
             status = 'OUT OF MEMORY'
+        elif isOutOfNativeMemory(line):
+            status = 'OUT OF NATIVE MEMORY'
         elif 'SIGSEGV' in line:
             status = 'SEGMENTATION FAULT'
-        elif (returncode == 0 or returncode == 1) and ('Exception' in line):
-            status = 'EXCEPTION'
+        elif ((returncode == 0 or returncode == 1)
+                and ('Exception' in line or 'java.lang.AssertionError' in line)
+                and not line.startswith('cbmc')): # ignore "cbmc error output: ... Minisat::OutOfMemoryException"
+            status = 'ASSERTION' if 'java.lang.AssertionError' in line else 'EXCEPTION'
         elif 'Could not reserve enough space for object heap' in line:
             status = 'JAVA HEAP ERROR'
         elif (status is None) and line.startswith('Verification result: '):
@@ -1692,8 +1822,8 @@ class Worker(threading.Thread):
 def runBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile)
 
-    assert benchmark.tool in ["cbmc", "satabs", "cpachecker", "blast", "acsar", "wolverine",
-                              "safe", "unsafe", "random"]
+    assert benchmark.tool in ["cbmc", "satabs", "cpachecker", "blast", "acsar", "wolverine", "ufo",
+                              "safe", "unsafe", "random", "feaver"]
 
     if len(benchmark.tests) == 1:
         logging.debug("I'm benchmarking {0} consisting of 1 test.".format(repr(benchmarkFile)))
@@ -1710,9 +1840,15 @@ def runBenchmark(benchmarkFile):
 
         if STOPPED_BY_INTERRUPT: break
 
-        if options.testRunOnly is not None \
-                and options.testRunOnly != test.name:
+        testnumber = benchmark.tests.index(test) + 1 # the first test has number 1
+        (mod, rest) = options.moduloAndRest
+
+        if (options.testRunOnly and test.name not in options.testRunOnly) \
+                or (testnumber % mod != rest):
             outputHandler.outputForSkippingTest(test)
+
+        elif not test.runs:
+            outputHandler.outputForSkippingTest(test, "because it has no files")
 
         else:
             # get times before test
@@ -1762,16 +1898,22 @@ def main(argv=None):
 
     if argv is None:
         argv = sys.argv
-    from optparse import OptionParser
-    parser = OptionParser(usage="usage: %prog [OPTION]... [FILE]...\n\n" + \
-        "INFO: documented example-files can be found in 'doc/examples'\n")
+    parser = optparse.OptionParser(usage=
+        """%prog [OPTION]... [FILE]...
+
+INFO: Documented example-files can be found as 'doc/examples/benchmark*.xml'.
+
+Use the table-generator.py script to create nice tables
+from the output of this script.""")
 
     parser.add_option("-d", "--debug",
                       action="store_true",
-                      help="enable debug output")
+                      help="Enable debug output")
 
     parser.add_option("-t", "--test", dest="testRunOnly",
-                      help="run only a special TEST from xml-file",
+                      action="append",
+                      help="Run only the given TEST from the xml-file. "
+                            + "This option can be specified several times.",
                       metavar="TEST")
 
     parser.add_option("-o", "--outputpath",
@@ -1781,26 +1923,34 @@ def main(argv=None):
 
     parser.add_option("-T", "--timelimit",
                       dest="timelimit", default=None,
-                      help="set timelimit for benchmarks, " + \
-                      "this option overrides the limit given in the xml-file, " + \
-                      "use -1 to delete the limit of xml, " + \
-                      "other negative numbers are useless")
+                      help="Time limit in seconds for each run (-1 to disable)",
+                      metavar="SECONDS")
 
     parser.add_option("-M", "--memorylimit",
                       dest="memorylimit", default=None,
-                      help="set memorylimit for benchmarks, " + \
-                      "this option overrides the limit given in the xml-file, " + \
-                      "use -1 to delete the limit of xml, " + \
-                      "other negative numbers are useless")
+                      help="Memory limit in MB (-1 to disable)",
+                      metavar="MB")
 
     parser.add_option("-N", "--numOfThreads",
                       dest="numOfThreads", default=None,
-                      help="set number of threads for benchmarks, " + \
-                      "this option overrides the number given in the xml-file")
+                      help="Run n benchmarks in parallel",
+                      metavar="n")
+
+    parser.add_option("-x", "--moduloAndRest",
+                      dest="moduloAndRest", default=(1,0), nargs=2, type="int",
+                      help="Run only a subset of tests for which (i % a == b) holds" +
+                            "with i being the index of the test in the xml-file " +
+                            "(starting with 1).",
+                      metavar="a b")
+
+    parser.add_option("-D", "--memdata", dest="memdata",
+                      action="store_true",
+                      help="When limiting memory usage, restrict only the data segments instead of the virtual address space.")
 
     global options, OUTPUT_PATH
     (options, args) = parser.parse_args(argv)
     OUTPUT_PATH = options.output_path
+    options.memresource = resource.RLIMIT_DATA if getattr(options, "memdata", False) else resource.RLIMIT_AS
 
     if len(args) < 2:
         parser.error("invalid number of arguments")
@@ -1813,6 +1963,14 @@ def main(argv=None):
     for arg in args[1:]:
         if not os.path.exists(arg) or not os.path.isfile(arg):
             parser.error("File {0} does not exist.".format(repr(arg)))
+
+    try:
+        processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
+        if len(re.findall("python.*benchmark\.py", processes)) > 1:
+            logging.warn("Already running instance of this script detected. " + \
+                         "Please make sure to not interfere with somebody else's benchmarks.")
+    except OSError:
+        pass # this does not work on Windows
 
     for arg in args[1:]:
         if STOPPED_BY_INTERRUPT: break

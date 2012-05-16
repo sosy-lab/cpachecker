@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,6 +28,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
+import com.google.common.base.Optional;
+
 public class StatementEdge extends AbstractCFAEdge {
 
   private final IASTStatement statement;
@@ -49,7 +51,12 @@ public class StatementEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public IASTStatement getRawAST() {
-    return statement;
+  public Optional<IASTStatement> getRawAST() {
+    return Optional.of(statement);
+  }
+
+  @Override
+  public String getCode() {
+    return statement.toASTString();
   }
 }

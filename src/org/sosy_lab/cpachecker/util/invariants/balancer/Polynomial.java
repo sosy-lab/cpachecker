@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -174,7 +174,7 @@ public class Polynomial {
   }
 
   /*
-   * Apply the substitution to the polynomial, replacing all occurences of the substituted variable
+   * Apply the substitution to the polynomial, replacing all occurrences of the substituted variable
    * by the polynomial substituted for it. Do not alter the passed polynomial; create a new one.
    */
   public static Polynomial applySubstitution(Substitution subs, Polynomial f) {
@@ -353,6 +353,11 @@ public class Polynomial {
     return d;
   }
 
+  public int getNumTerms() {
+    collect();
+    return terms.size();
+  }
+
   public Monomial getMonomialContent() {
     return Monomial.gcd(getMonomials());
   }
@@ -377,10 +382,106 @@ public class Polynomial {
   }
 
   /*
+   * Let an ... a0 be the coefficients of the polynomial.
+   * Let ai = pi/qi.
+   * Let l = lcm(qi).
+   * Let g = gcd(l*ai).
+   * Let bi = l*ai/g.
+   * Then polynomial equals g/l * (bn ... b0).
+   * We return g/l.
+   * Under this definition, it follows that if you multiply a polynomial by a rational number m,
+   * you multiply its rational content by m too.
+   * Therefore suppose f and g are polynomials, m a rational number, and we have g = m*f.
+   * Let c be the rational content of f. Then the rational content of g is m*c.
+   * Let h be f divided by c. Then g/mc = f/c = h.
+   * Therefore if one polynomial is a rational multiple of another, you can detect this fact by
+   * dividing each one by its own rational content, and checking whether the results are either
+   * equal, or are additive inverses.
+   */
+  public Rational getRationalContent() {
+    // Get the coefficients.
+    List<Rational> coeffs = getCoeffs();
+    // Get their denominators.
+    List<Integer> denoms = new Vector<Integer>(coeffs.size());
+    for (Rational r : coeffs) {
+      denoms.add(r.getDenominator());
+    }
+    // Get the least common multiple of the denominators.
+    int d = gcd(denoms);
+    int p = intProduct(denoms);
+    int l = p/d;
+    // Get the integer content of (l times this polynomial).
+    Polynomial lTimesThis = multiply(new Polynomial(l), this);
+    int g = lTimesThis.getIntegerContent();
+    // Return the rational content g/l.
+    Rational c = new Rational(g,l);
+    return c;
+  }
+
+  /*
+   * Return a new polynomial; namely, the one you get by dividing the present polynomial
+   * by its own rational content.
+   * Does NOT alter the present polynomial.
+   */
+  public Polynomial cancelRationalContent() {
+    Rational c = getRationalContent();
+    if (c.isZero()) {
+      return copy();
+    }
+    Rational r = c.makeReciprocal();
+    Polynomial p = multiply(new Polynomial(r), this);
+    return p;
+  }
+
+  /*
+   * If this is a rational constant multiple of that, then return this rational constant.
+   * Else return null.
+   */
+  public Rational rationalConstantQuotientOver(Polynomial that) {
+    Rational a = this.getRationalContent();
+    Rational b = that.getRationalContent();
+    Polynomial p = this.cancelRationalContent();
+    Polynomial q = that.cancelRationalContent();
+    if (subtract(p,q).isZero()) {
+      return a.div(b);
+    }
+    else if (add(p,q).isZero()) {
+      return a.div(b).makeNegative();
+    }
+    else {
+      return null;
+    }
+  }
+
+  public boolean isRationalConstantMultipleOf(Polynomial that) {
+    Polynomial p = this.cancelRationalContent();
+    Polynomial q = that.cancelRationalContent();
+    if (subtract(p,q).isZero()) {
+      return true;
+    }
+    else if (add(p,q).isZero()) {
+      return true;
+    }
+    else {
+      return false;
+    }
+  }
+
+  public List<Rational> getCoeffs() {
+    collect();
+    List<Rational> coeffs = new Vector<Rational>(terms.size());
+    for (Term t : terms) {
+      coeffs.add(t.getCoeff());
+    }
+    return coeffs;
+  }
+
+  /*
    * If all coefficients are integral, return their positive gcd.
-   * Else return 0.
+   * Else return 1.
    */
   public Integer getIntegerContent() {
+    collect();
     List<Integer> coeffs = new Vector<Integer>(terms.size());
     // Build the list of integer coefficients, or quit immediately if one of the
     // coeffs is not integral.
@@ -393,12 +494,12 @@ public class Polynomial {
           coeffs.add(t.getCoeff().makeInteger());
         }
       } else {
-        return new Integer(0);
+        return new Integer(1);
       }
     }
-    // If all the coeffs were 0, then return 0.
+    // If all the coeffs were 0, then return 1.
     if (coeffs.size() == 0) {
-      return new Integer(0);
+      return new Integer(1);
     }
     // Replace each coeff by its absolute value.
     List<Integer> absCoeffs = new Vector<Integer>(coeffs.size());
@@ -451,6 +552,14 @@ public class Polynomial {
     // There is one more " + " at the beginning than we need.
     s = s.substring(3);
     return s;
+  }
+
+  public static Integer intProduct(List<Integer> list) {
+    int p = 1;
+    for (Integer f : list) {
+      p *= f;
+    }
+    return new Integer(p);
   }
 
   public static Integer gcd(Integer... ma) {

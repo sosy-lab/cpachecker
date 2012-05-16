@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.featurevariables;
 
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -71,18 +73,60 @@ public class FeatureVarsTransferRelation implements TransferRelation {
    * a local variable with the same name)
    */
   @Override
-  public Collection<AbstractElement> getAbstractSuccessors(
+  public Collection<FeatureVarsElement> getAbstractSuccessors(
       AbstractElement element, Precision pPrecision, CFAEdge cfaEdge)
       throws CPATransferException {
     Preconditions.checkArgument(pPrecision instanceof FeatureVarsPrecision, "precision is no FeatureVarsPrecision");
     FeatureVarsPrecision precision = (FeatureVarsPrecision) pPrecision;
-    if (precision.isDisabled()) {
-      // this means that no variables should be tracked (whitelist is empty)
-      return Collections.singleton(element);
+    FeatureVarsElement fvElement = (FeatureVarsElement) element;
+    if (fvElement.getRegion().isFalse()) {
+      return Collections.emptyList();
     }
 
-    FeatureVarsElement fvElement = (FeatureVarsElement) element;
-    AbstractElement successor = fvElement;
+    //assert !fvElement.getRegion().isFalse();
+
+    if (precision.isDisabled()) {
+      // this means that no variables should be tracked (whitelist is empty)
+      return Collections.singleton(fvElement);
+    }
+
+    FeatureVarsElement successor;
+    // check the type of the edge
+    switch (cfaEdge.getEdgeType()) {
+
+    // this is an assumption, e.g. if(a == b)
+    case AssumeEdge: {
+      AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
+      successor =
+          handleAssumption(fvElement, assumeEdge.getExpression(), cfaEdge,
+              assumeEdge.getTruthAssumption(), precision);
+      break;
+    }
+
+    case MultiEdge: {
+      successor = fvElement;
+      for (CFAEdge innerEdge : (MultiEdge)cfaEdge) {
+        successor = getAbstractSuccessor(successor, precision, innerEdge);
+      }
+    }
+
+    default:
+     successor = getAbstractSuccessor(fvElement, precision, cfaEdge);
+    }
+
+    if (successor == null) {
+      return Collections.emptySet();
+    } else {
+      assert !successor.getRegion().isFalse();
+      return Collections.singleton(successor);
+    }
+  }
+
+  private FeatureVarsElement getAbstractSuccessor(
+      FeatureVarsElement fvElement, FeatureVarsPrecision precision, CFAEdge cfaEdge)
+      throws CPATransferException {
+
+    FeatureVarsElement successor = fvElement;
     // check the type of the edge
     switch (cfaEdge.getEdgeType()) {
     // if edge is a statement edge, e.g. a = b + c
@@ -96,19 +140,6 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     }
       // edge is a declaration edge, e.g. int a;
     case DeclarationEdge: {
-      break;
-    }
-      // this is an assumption, e.g. if(a == b)
-    case AssumeEdge: {
-      AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
-      successor =
-          handleAssumption(fvElement, assumeEdge.getExpression(), cfaEdge,
-              assumeEdge.getTruthAssumption(), precision);
-      /*if (successor != null && successor != element) {
-        System.out.println("FV new state: " + successor.toString()
-            + " after edge " + cfaEdge.getRawStatement()
-            + " in line" + cfaEdge.getLineNumber());
-      }*/
       break;
     }
     case BlankEdge: {
@@ -125,14 +156,13 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     default:
       throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
-    if (successor == null) {
-      return Collections.emptySet();
-    } else {
-      return Collections.singleton(successor);
-    }
+    assert successor != null;
+    assert !successor.getRegion().isFalse();
+
+    return successor;
   }
 
-  private AbstractElement handleStatementEdge(FeatureVarsElement element,
+  private FeatureVarsElement handleStatementEdge(FeatureVarsElement element,
       IASTStatement pIastStatement, StatementEdge cfaEdge,
       FeatureVarsPrecision pPrecision) {
 
@@ -166,14 +196,11 @@ public class FeatureVarsTransferRelation implements TransferRelation {
         }
       }
     }
-    if (result.getRegion().isFalse()) {
-      return null; // assumption is not fulfilled / not possible
-    } else {
-      return result;
-    }
+    assert !result.getRegion().isFalse();
+    return result;
   }
 
-  private AbstractElement handleAssumption(FeatureVarsElement element,
+  private FeatureVarsElement handleAssumption(FeatureVarsElement element,
       IASTExpression expression, CFAEdge cfaEdge, boolean truthValue,
       FeatureVarsPrecision precision) throws UnrecognizedCCodeException {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -318,6 +345,13 @@ public class FeatureVarsTransferRelation implements TransferRelation {
           propagateBinaryBooleanExpression(element, binExp.getOperator(),
               binExp.getOperand1(), binExp.getOperand2(), functionName,
               precision, edge);
+    } else if (op2 instanceof IASTIntegerLiteralExpression) {
+      IASTIntegerLiteralExpression number = (IASTIntegerLiteralExpression)op2;
+      if (number.getValue().equals(BigInteger.ZERO)) {
+        operand2 = rmgr.makeFalse();
+      } else {
+        operand2 = rmgr.makeTrue();
+      }
     }
     if (operand1 == null || operand2 == null) {
       return null;
@@ -332,7 +366,17 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       returnValue = rmgr.makeOr(operand1, operand2);
       break;
     case EQUALS:
+      returnValue = rmgr.makeOr(
+              rmgr.makeAnd(operand1, operand2),
+              rmgr.makeAnd(rmgr.makeNot(operand1), rmgr.makeNot(operand2))
+          );
+      break;
     case NOT_EQUALS:
+      returnValue = rmgr.makeOr(
+              rmgr.makeAnd(rmgr.makeNot(operand1), operand2),
+              rmgr.makeAnd(operand1, rmgr.makeNot(operand2))
+          );
+      break;
     default:
       throw new UnrecognizedCCodeException(
           "Cases ==, != and others are not implemented", edge);

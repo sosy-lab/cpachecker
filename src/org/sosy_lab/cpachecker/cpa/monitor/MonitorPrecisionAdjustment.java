@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorElement.TimeoutElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
+import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
@@ -78,7 +78,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
     // add total execution time to the total time of the previous element
     long updatedTotalTime = totalTimeOfExecution + element.getTotalTimeOnPath();
 
-    Pair<PreventingHeuristicType, Long> preventingCondition = element.getPreventingCondition();
+    Pair<PreventingHeuristic, Long> preventingCondition = element.getPreventingCondition();
     // TODO we should check for timeLimitForPath here
 //    if (preventingCondition != null) {
 //      if (timeLimitForPath > 0 && updatedTotalTime > timeLimitForPath) {

@@ -38,7 +38,7 @@ float4 volatile   vel[1024]  __attribute__((__aligned__(128)))  ;
 #line 63 "particle.c"
 float volatile   inv_mass[1024]  __attribute__((__aligned__(128)))  ;
 #line 82
-extern int ( /* missing proto */  __CPROVER_ndet_int)() ;
+extern int __VERIFIER_nondet_int() ;
 #line 82
 extern int ( /* missing proto */  __CROVER_ndet_int)() ;
 #line 65 "particle.c"
@@ -152,19 +152,19 @@ int spu_main(unsigned long long spu_id  __attribute__((__unused__)) , unsigned l
 #line 81
   mfc_get(__cil_tmp18, __cil_tmp19, __cil_tmp20, tag_id, 0U, 0U);
 #line 82
-  tmp = __CPROVER_ndet_int();
+  tmp = __VERIFIER_nondet_int();
 #line 82
   __cil_tmp21 = & ctx;
 #line 82
   *((int volatile   *)__cil_tmp21) = (int volatile   )tmp;
 #line 82
-  tmp___0 = __CPROVER_ndet_int();
+  tmp___0 = __VERIFIER_nondet_int();
 #line 82
   __cil_tmp22 = (unsigned long )(& ctx) + 8;
 #line 82
   *((void * volatile  *)__cil_tmp22) = (void * volatile  )tmp___0;
 #line 82
-  tmp___1 = __CPROVER_ndet_int();
+  tmp___1 = __VERIFIER_nondet_int();
 #line 82
   __cil_tmp23 = (unsigned long )(& ctx) + 16;
 #line 82
@@ -176,7 +176,7 @@ int spu_main(unsigned long long spu_id  __attribute__((__unused__)) , unsigned l
 #line 82
   *((float * volatile  *)__cil_tmp24) = (float * volatile  )tmp___2;
 #line 82
-  tmp___3 = __CPROVER_ndet_int();
+  tmp___3 = __VERIFIER_nondet_int();
 #line 82
   __cil_tmp25 = (unsigned long )(& ctx) + 32;
 #line 82

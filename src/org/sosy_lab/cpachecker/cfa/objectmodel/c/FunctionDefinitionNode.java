@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
@@ -34,24 +34,20 @@ import com.google.common.collect.ImmutableList;
 
 public class FunctionDefinitionNode extends CFAFunctionDefinitionNode {
 
-  private final IASTFunctionDefinition functionDefinition;
-  private final List<IASTParameterDeclaration> parameters;
+  private final IASTFunctionDeclaration functionDefinition;
   private final List<String> parameterNames;
 
   public FunctionDefinitionNode(final int pLineNumber,
-      final String pFunctionName,
-      final IASTFunctionDefinition pFunctionDefinition,
+      final IASTFunctionDeclaration pFunctionDefinition,
       final CFAFunctionExitNode pExitNode,
-      final List<IASTParameterDeclaration> pParameters,
       final List<String> pParameterNames) {
 
-    super(pLineNumber, pFunctionName, pExitNode);
+    super(pLineNumber, pFunctionDefinition.getName(), pExitNode);
     functionDefinition = pFunctionDefinition;
-    parameters = ImmutableList.copyOf(pParameters);
     parameterNames = ImmutableList.copyOf(pParameterNames);
   }
 
-  public IASTFunctionDefinition getFunctionDefinition() {
+  public IASTFunctionDeclaration getFunctionDefinition() {
     return functionDefinition;
   }
 
@@ -60,6 +56,6 @@ public class FunctionDefinitionNode extends CFAFunctionDefinitionNode {
   }
 
   public List<IASTParameterDeclaration> getFunctionParameters() {
-    return parameters;
+    return functionDefinition.getDeclSpecifier().getParameters();
   }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,22 +26,22 @@ package org.sosy_lab.cpachecker.cfa.ast;
 public final class IASTCastExpression extends IASTExpression {
 
   private final IASTExpression operand;
-  private final IASTTypeId     type;
+  private final IType     type;
 
   public IASTCastExpression(final IASTFileLocation pFileLocation,
-                            final IType pType,
+                            final IType pExpressionType,
                             final IASTExpression pOperand,
-                            final IASTTypeId pTypeId) {
-    super(pFileLocation, pType);
+                            final IType pType) {
+    super(pFileLocation, pExpressionType);
     operand = pOperand;
-    type = pTypeId;
+    type = pType;
   }
 
   public IASTExpression getOperand() {
     return operand;
   }
 
-  public IASTTypeId getTypeId() {
+  public IType getType() {
     return type;
   }
 
@@ -57,6 +57,6 @@ public final class IASTCastExpression extends IASTExpression {
 
   @Override
   public String toASTString() {
-    return "(" + type.toASTString() + ")" + operand.toASTString();
+    return "(" + type.toASTString("") + ")" + operand.toParenthesizedASTString();
   }
 }

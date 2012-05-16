@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +28,9 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -57,8 +59,8 @@ public class CompositeStopOperator implements StopOperator{
   }
 
   private boolean stop(CompositeElement compositeElement, CompositeElement compositeReachedElement, CompositePrecision compositePrecision) throws CPAException {
-    List<AbstractElement> compositeElements = compositeElement.getElements();
-    List<AbstractElement> compositeReachedElements = compositeReachedElement.getElements();
+    List<AbstractElement> compositeElements = compositeElement.getWrappedElements();
+    List<AbstractElement> compositeReachedElements = compositeReachedElement.getWrappedElements();
 
     List<Precision> compositePrecisions = compositePrecision.getPrecisions();
 
@@ -73,6 +75,31 @@ public class CompositeStopOperator implements StopOperator{
         return false;
       }
     }
+    return true;
+  }
+
+  boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement, List<ConfigurableProgramAnalysis> cpas) throws CPAException {
+    CompositeElement compositeElement = (CompositeElement)pElement;
+    CompositeElement compositeOtherElement = (CompositeElement)pOtherElement;
+
+    List<AbstractElement> componentElements = compositeElement.getWrappedElements();
+    List<AbstractElement> componentOtherElements = compositeOtherElement.getWrappedElements();
+
+    if(componentElements.size() != cpas.size()) {
+      return false;
+    }
+
+    for (int idx = 0; idx < componentElements.size(); idx++) {
+      ProofChecker componentProofChecker = (ProofChecker)cpas.get(idx);
+
+      AbstractElement absElem1 = componentElements.get(idx);
+      AbstractElement absElem2 = componentOtherElements.get(idx);
+
+      if (!componentProofChecker.isCoveredBy(absElem1, absElem2)){
+        return false;
+      }
+    }
+
     return true;
   }
 }

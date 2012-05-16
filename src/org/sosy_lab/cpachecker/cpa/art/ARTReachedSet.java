@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,21 +25,13 @@ package org.sosy_lab.cpachecker.cpa.art;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.base.Preconditions;
@@ -53,21 +45,15 @@ import com.google.common.collect.ImmutableList;
 public class ARTReachedSet {
 
   private final ReachedSet mReached;
-  private final UnmodifiableReachedSet mUnmodifiableReached;
-  private final ARTCPA mCpa;
+//  private final UnmodifiableReachedSet mUnmodifiableReached;
 
   public ARTReachedSet(ReachedSet pReached) {
-    this(pReached, null);
-  }
-
-  public ARTReachedSet(ReachedSet pReached, ARTCPA pCpa) {
     mReached = checkNotNull(pReached);
-    mUnmodifiableReached = new UnmodifiableReachedSetWrapper(mReached);
-    mCpa = pCpa;
+//    mUnmodifiableReached = new UnmodifiableReachedSetWrapper(mReached);
   }
 
-  public UnmodifiableReachedSet asReachedSet() {
-    return mUnmodifiableReached;
+  public ReachedSet asReachedSet() {
+    return mReached;
   }
 
   /**
@@ -97,15 +83,6 @@ public class ARTReachedSet {
 
     for (ARTElement ae : toWaitlist) {
       mReached.updatePrecision(ae, adaptPrecision(ae, p));
-      mReached.reAddToWaitlist(ae);
-    }
-  }
-  public void removeSubtree(ARTElement e, Precision p1, Precision p2) {
-    Set<ARTElement> toWaitlist = removeSubtree0(e);
-
-    for (ARTElement ae : toWaitlist) {
-      mReached.updatePrecision(ae, adaptPrecision(ae, p1));
-      mReached.updatePrecision(ae, adaptPrecision(ae, p2));
       mReached.reAddToWaitlist(ae);
     }
   }
@@ -172,132 +149,41 @@ public class ARTReachedSet {
   }
 
   /**
-   * Remove an element and all elements below it from the tree, which are not
-   * reachable via other paths through the ART (which in fact is a DAG, so there
-   * may be such paths). Re-add all those elements to the waitlist which have
-   * children which were covered by removed elements.
+   * Remove all covering relations from a node so that this node does not cover
+   * any other node anymore.
+   * Also adds any now uncovered leaf nodes to the waitlist.
    *
-   * The effect on the reached set is the same as if the transfer relation had
-   * returned bottom (e.g. no successor) instead of this element. The only
-   * exception is that the elements on such remaining paths may still be weaker
-   * than if they had not been merged with the removed elements.
-   *
-   * @param e The root of the removed subtree, may not be the initial element.
+   * Call this method when you have changed (strengthened) an abstract element.
    */
-  public void replaceWithBottom(ARTElement e) {
-    Preconditions.checkNotNull(e);
-    Preconditions.checkArgument(!e.getParents().isEmpty(), "May not remove the initial element from the ART/reached set");
-
-    Set<ARTElement> removedElements = new HashSet<ARTElement>();
-    Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
-
-    workList.addAll(e.getChildren());
-    removedElements.add(e);
-    removeCoverage(e);
-    e.removeFromART();
-
-    while (!workList.isEmpty()) {
-      ARTElement currentElement = workList.removeFirst();
-      if (currentElement.getParents().isEmpty()) {
-        // no other paths to this element
-
-        if (removedElements.add(currentElement)) {
-          // not yet handled
-          workList.addAll(currentElement.getChildren());
-
-          removedElements.addAll(currentElement.getCoveredByThis());
-          removeCoverage(currentElement);
-
-          currentElement.removeFromART();
-        }
-      }
+  public void removeCoverageOf(ARTElement v) {
+    for (ARTElement coveredByChildOfV : ImmutableList.copyOf(v.getCoveredByThis())) {
+      uncover(coveredByChildOfV);
     }
-
-    mReached.removeAll(removedElements);
+    assert v.getCoveredByThis().isEmpty();
   }
 
   /**
-   * Assume that one element does not cover any elements anymore.
-   * This re-adds the parents of elements previously covered to the waitlist.
+   * Mark a covered element as non-covered.
+   * This method also re-adds all leaves in that part of the ART to the waitlist.
    *
-   * You do not need to call this method if you removed elements through the
-   * other methods provided by this class, they already ensure the same effect.
-   *
-   * Be careful when using this method! It's only necessary when either the
-   * reached set is modified in some way that the ARTCPA doesn't notice,
-   * or elements in the reached set were made stronger after they were added,
-   * but elements should never be modified normally.
-   *
-   * @param element The element which does not cover anymore.
+   * @param element The covered ARTElement to uncover.
    */
-  public void removeCoverage(ARTElement element) {
-    for (ARTElement covered : ImmutableList.copyOf(element.getCoveredByThis())) {
-      for (ARTElement parent : covered.getParents()) {
-        mReached.reAddToWaitlist(parent);
-      }
-      covered.removeFromART(); // also removes from element.getCoveredByThis() set
-    }
-    assert element.getCoveredByThis().isEmpty();
-  }
+  public void uncover(ARTElement element) {
+    element.uncover();
 
-  /**
-   * Check if an element is covered by another element in the reached set. The
-   * element has to be in the reached set currently, so it was not covered when
-   * it was added. Children of the given element are not considered for the
-   * coverage check.
-   *
-   * If this method returns true, it already has done all the necessary
-   * modifications to the reached set and the ART to reflect the new situation.
-   * Both of them then look as if the element would have been covered at the time
-   * it was produced by the transfer relation.
-   *
-   * @param element
-   * @return
-   * @throws CPAException
-   */
-  public boolean checkForCoveredBy(ARTElement element) throws CPAException {
-    Preconditions.checkNotNull(element);
-    Preconditions.checkArgument(mReached.contains(element));
-    assert !element.isCovered() : "element in reached set but covered";
+    // this is the subtree of elements which now become uncovered
+    Set<ARTElement> uncoveredSubTree = element.getSubtree();
 
-    if (mCpa == null) {
-      throw new UnsupportedOperationException("Need CPA for coverage checks");
-    }
+    for (ARTElement e : uncoveredSubTree) {
+      assert !e.isCovered();
 
-    // get the reached set and remove the element itself and all its children
-    Set<AbstractElement> localReached = new HashSet<AbstractElement>(mReached.getReached(element));
-    Set<ARTElement> subtree = element.getSubtree();
-    localReached.removeAll(subtree);
+      e.setCovering();
 
-    StopOperator stopOp = mCpa.getStopOperator();
-    boolean stop = stopOp.stop(element, localReached, mReached.getPrecision(element));
-
-    if (stop) {
-      // remove subtree from ART, but not the element itself
-      Set<ARTElement> toUnreach = new HashSet<ARTElement>(subtree);
-      toUnreach.remove(element);
-
-      // collect all elements covered by the subtree
-      List<ARTElement> newToUnreach = new ArrayList<ARTElement>();
-
-      for (ARTElement ae : toUnreach) {
-        newToUnreach.addAll(ae.getCoveredByThis());
-      }
-      toUnreach.addAll(newToUnreach);
-
-      mReached.removeAll(toUnreach);
-      mReached.remove(element);
-
-      Set<ARTElement> toWaitlist = removeSet(toUnreach);
-      // do not add the element itself, because it is covered
-      toWaitlist.remove(element);
-
-      for (ARTElement ae : toWaitlist) {
-        mReached.reAddToWaitlist(ae);
+      if (!e.wasExpanded()) {
+        // its a leaf
+        mReached.reAddToWaitlist(e);
       }
     }
-
-    return stop;
   }
 
   public static class ForwardingARTReachedSet extends ARTReachedSet {
@@ -305,23 +191,13 @@ public class ARTReachedSet {
     protected final ARTReachedSet delegate;
 
     public ForwardingARTReachedSet(ARTReachedSet pReached) {
-      super(pReached.mReached, pReached.mCpa);
+      super(pReached.mReached);
       delegate = pReached;
     }
 
     @Override
-    public UnmodifiableReachedSet asReachedSet() {
+    public ReachedSet asReachedSet() {
       return delegate.asReachedSet();
-    }
-
-    @Override
-    public boolean checkForCoveredBy(ARTElement pElement) throws CPAException {
-      return delegate.checkForCoveredBy(pElement);
-    }
-
-    @Override
-    public void removeCoverage(ARTElement pElement) {
-      delegate.removeCoverage(pElement);
     }
 
     @Override
@@ -332,11 +208,6 @@ public class ARTReachedSet {
     @Override
     public void removeSubtree(ARTElement pE, Precision pP) {
       delegate.removeSubtree(pE, pP);
-    }
-
-    @Override
-    public void replaceWithBottom(ARTElement pE) {
-      delegate.replaceWithBottom(pE);
     }
   }
 }

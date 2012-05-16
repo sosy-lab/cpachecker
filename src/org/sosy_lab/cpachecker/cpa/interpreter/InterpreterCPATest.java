@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -131,7 +131,7 @@ public class InterpreterCPATest {
     AbstractElement lInitialElement = lCPA.getInitialElement(lWrapper.getEntry());
     Precision lInitialPrecision = lCPA.getInitialPrecision(lWrapper.getEntry());
 
-    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.RPO);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
@@ -222,7 +222,7 @@ public class InterpreterCPATest {
     AbstractElement lInitialElement = lCPA.getInitialElement(lWrapper.getEntry());
     Precision lInitialPrecision = lCPA.getInitialPrecision(lWrapper.getEntry());
 
-    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.RPO);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
@@ -313,7 +313,7 @@ public class InterpreterCPATest {
     AbstractElement lInitialElement = lCPA.getInitialElement(lWrapper.getEntry());
     Precision lInitialPrecision = lCPA.getInitialPrecision(lWrapper.getEntry());
 
-    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.RPO);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
@@ -404,7 +404,7 @@ public class InterpreterCPATest {
     AbstractElement lInitialElement = lCPA.getInitialElement(lWrapper.getEntry());
     Precision lInitialPrecision = lCPA.getInitialPrecision(lWrapper.getEntry());
 
-    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.RPO);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {

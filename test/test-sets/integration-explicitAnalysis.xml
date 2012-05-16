@@ -1,36 +1,34 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="60" memlimit="3000">
-	
-	<option name="-setprop">output.disable=true</option>
-	<option name="-heap">2000m</option>
-	<option name="-entryfunction">main</option>
-	<option name="-explicitAnalysis"></option>
+<benchmark tool="cpachecker" timelimit="120" memlimit="3000">
 
-	<test>
-        	<option name="-setprop">analysis.useRefinement=true</option>
-        	<option name="-setprop">cegar.refiner=cpa.explicit.ExplicitRefiner</option>
-            <sourcefiles>
-                    <includesfile>test/programs/benchmarks/Concurrency.set</includesfile>
-                    <includesfile>test/test-sets/integration-ControlFlowInteger.set</includesfile>
-                    <includesfile>test/programs/benchmarks/HeapManipulation.set</includesfile>
-                    <includesfile>test/test-sets/integration-SystemC.set</includesfile>
-            </sourcefiles>
-            <sourcefiles>
-                    <includesfile>test/programs/benchmarks/DeviceDrivers.set</includesfile>
-            </sourcefiles>
-            <sourcefiles>
-                    <includesfile>test/test-sets/integration-DeviceDrivers64.set</includesfile>
-                    <option name="-setprop">cpa.predicate.machineModel=Linux64</option>
-            </sourcefiles>
-	</test>
+  <option name="-noout"/>
+  <option name="-heap">2000m</option>
+  <option name="-explicitAnalysis"/>
+  <option name="-setprop">cpa.conditions.global.time.wall=1min</option>
 
-	<columns>
-		<column title="total">time for CPAchecker</column>
-		<column title="reached">reached set</column>
-                <column title="refinements">Number of refinements</column>
-                <column title="refinements_succ">Number of successful refinements</column>
-                <column title="refinements_fail">Number of failed refinements</column>
-                <column title="time_refinements">Time for refinements</column>
-	</columns>
+  <test>
+    <option name="-setprop">analysis.useRefinement=true</option>
+    <option name="-setprop">cegar.refiner=cpa.explicit.refiner.DelegatingExplicitRefiner</option>
+    <sourcefiles>
+      <includesfile>test/programs/benchmarks/Concurrency.set</includesfile>
+      <includesfile>test/test-sets/integration-ControlFlowInteger.set</includesfile>
+      <includesfile>test/programs/benchmarks/HeapManipulation.set</includesfile>
+      <includesfile>test/test-sets/integration-SystemC.set</includesfile>
+      <includesfile>test/programs/benchmarks/DeviceDrivers.set</includesfile>
+    </sourcefiles>
+    <sourcefiles>
+      <includesfile>test/test-sets/integration-DeviceDrivers64.set</includesfile>
+      <option name="-setprop">cpa.predicate.machineModel=Linux64</option>
+    </sourcefiles>
+  </test>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">reached set</column>
+    <column title="refinements">Number of refinements</column>
+    <column title="refinements_succ">Number of successful refinements</column>
+    <column title="refinements_fail">Number of failed refinements</column>
+    <column title="time_refinements">Time for refinements</column>
+  </columns>
 </benchmark>

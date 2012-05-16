@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.collect.Iterables;
@@ -48,6 +48,7 @@ import com.google.common.collect.Iterables;
  */
 public class LoopPartitioning extends PartitioningHeuristic {
 
+  private static final CFATraversal TRAVERSE_CFA_INSIDE_FUNCTION = CFATraversal.dfs().ignoreFunctionCalls();
   private Map<CFANode, Set<CFANode>> loopHeaderToLoopBody;
   private final CFA cfa;
 
@@ -102,8 +103,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   @Override
   protected Set<CFANode> getBlockForNode(CFANode pNode) {
     if(pNode instanceof CFAFunctionDefinitionNode) {
-      CFAFunctionDefinitionNode functionNode = (CFAFunctionDefinitionNode) pNode;
-      return CFAUtils.exploreSubgraph(functionNode, functionNode.getExitNode());
+      return TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
     }
     if(pNode.isLoopStart()) {
       Set<CFANode> loopBody = new HashSet<CFANode>();

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
@@ -834,28 +835,29 @@ class OctTransferRelation implements TransferRelation{
   private OctElement handleDeclaration(OctElement pElement,
       DeclarationEdge declarationEdge) throws UnrecognizedCCodeException {
 
-    if (declarationEdge.getName() != null) {
+    if (declarationEdge.getDeclaration() instanceof IASTVariableDeclaration) {
+      IASTVariableDeclaration decl = (IASTVariableDeclaration)declarationEdge.getDeclaration();
 
       // get the variable name in the declarator
-      String varName = declarationEdge.getName();
+      String varName = decl.getName();
 
       // TODO check other types of variables later - just handle primitive
       // types for the moment
       // don't add pointer variables to the list since we don't track them
-      if (declarationEdge.getDeclSpecifier() instanceof IASTPointerTypeSpecifier) {
+      if (decl.getDeclSpecifier() instanceof IASTPointerTypeSpecifier) {
         return pElement;
       }
       // if this is a global variable, add to the list of global variables
-      if(declarationEdge.isGlobal())
+      if(decl.isGlobal())
       {
         globalVars.add(varName);
 
         Long v;
 
-        IASTInitializer init = declarationEdge.getInitializer();
+        IASTInitializer init = decl.getInitializer();
         if (init != null) {
           if (init instanceof IASTInitializerExpression) {
-            IASTRightHandSide exp = ((IASTInitializerExpression)init).getExpression();
+            IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
 
             v = getExpressionValue(pElement, exp, varName, declarationEdge);
           } else {

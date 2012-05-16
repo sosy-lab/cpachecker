@@ -4,7 +4,7 @@
 CPAchecker is a tool for configurable software verification.
 This file is part of CPAchecker.
 
-Copyright (C) 2007-2011  Dirk Beyer
+Copyright (C) 2007-2012  Dirk Beyer
 All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +25,7 @@ CPAchecker web page:
 """
 
 import xml.etree.ElementTree as ET
+import collections
 import os.path
 import glob
 import shutil
@@ -34,438 +35,21 @@ import sys
 
 from datetime import date
 from decimal import *
-from urllib import quote
+try:
+  from urllib import quote
+except ImportError: # 'quote' was moved into 'parse' in Python 3
+  from urllib.parse import quote
 
-OUTPUT_PATH = "test/results/"
 
 NAME_START = "results" # first part of filename of html-table
 
 CSV_SEPARATOR = '\t'
 
+TEMPLATE_FILE_NAME = os.path.join(os.path.dirname(__file__), 'table-generator-template.html')
 
 # string searched in filenames to determine correct or incorrect status.
 # use lower case!
 BUG_SUBSTRING_LIST = ['bad', 'bug', 'unsafe']
-
-
-DOCTYPE = '''
-<!DOCTYPE HTML>
-'''
-
-
-CSS = '''
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-
-<style type="text/css">
-    <!--
-    table { outline:3px solid black; border-spacing:0px; font-family:arial, sans serif}
-    thead { text-align:center}
-    tbody { text-align:right}
-    tfoot { text-align:center}
-    tr:hover { background-color:yellow}
-    td { border:1px solid black}
-    td:first-child { text-align:left; white-space:nowrap}
-    tbody td:first-child { font-family: monospace; }
-    #options td:not(:first-child) {  text-align:left; font-size: x-small;
-                                     font-family: monospace; }
-    #columnTitles td:first-child { font-family: monospace; font-size: x-small; }
-    tbody tr:first-child td { border-top:3px solid black}
-    tfoot tr:first-child td { border-top:3px solid black}
-    .correctSafe, .correctUnsafe { text-align:center; color:green}
-    .wrongSafe, .wrongUnsafe { text-align:center; color:red; font-weight: bold; }
-    .unknown { text-align:center; color:orange; font-weight: bold; }
-    .error { text-align:center; color:magenta; font-weight: bold; }
-    .score { text-align:center; font-size:large; font-weight:bold; }
-    a { color: inherit; text-decoration: none; display: block; }
-    a:hover { background: lime }
-    -->
-</style>
-'''
-
-# TODO: copy external scripts to local repository? working offline?
-PLOTTING_SCRIPT = '''
-<script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
-<script type="text/javascript" src="http://www.jqplot.com/src/jquery.jqplot.min.js"></script>
-<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.highlighter.min.js"></script>
-<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.cursor.min.js"></script>
-<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.canvasTextRenderer.min.js"></script>
-<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.canvasAxisTickRenderer.min.js"></script>
-<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.enhancedLegendRenderer.min.js"></script>
-
-<style type="text/css">
-    .jqplot-title {font-family:arial, sans serif; font-size:large }
-    .jqplot-table-legend-swatch {width:20px; height:15px }
-    .jqplot-table-legend { border-style:none; outline:none }
-    .jqplot-table-legend tbody { border-style:none }
-    .jqplot-table-legend tbody tr td { border-top:none; cursor:pointer }
-    .jqplot-highlighter-tooltip {font-family:arial, sans serif; font-size:large;
-             border:solid 1px black; padding:2px;
-             border-radius:8px; border-bottom-left-radius:0px;
-             background-color:white; opacity:0.8; }
-    #chartWrapperBackground { height:5000px; width:5000px;
-             position:fixed; top:0px; left:0px;
-             background-image: url(http://www.house-events.de/schnee.gif);
-             background-color:grey; 
-             opacity:0.5; display:none }
-    #chartWrapper { height:90%; width:90%; position:fixed; top:5%; left:5%;
-             border:solid 10px black; border-radius:15px;
-             background-color:white; opacity:1; display:none }
-    #chart { height:100%; width:100% }
-    #button-trend { position:absolute; bottom:0px; }
-</style>
-
-<div id="chartWrapperBackground"></div>
-<div id="chartWrapper">
-  <div id="chart"></div>
-  <button id="button-trend"></button>
-</div>
-
-<script type="text/javascript">
-
-// this function collects the indices of columns with title "header"
-function getColumnIndicesForHeader(header) {
-    var columnIndizes = [];
-    var cells = document.getElementById('columnTitles').cells;
-
-    for(i = 0; i < cells.length; i++) {
-      var currentHeader = cells[i].textContent;
-      if (currentHeader == header) {
-        columnIndizes.push(i);
-      }
-    }
-
-    return columnIndizes;
-};
-
-// getTableData returns a list of arrays, 
-// each array is of the form: [[file1, value1], [file2, value1], ...]
-function getTableData(header) {
-    debug("data for: " + header);
-    var data = [];
-
-    var indices = getColumnIndicesForHeader(header);
-    for (j = 0; j < indices.length; j++) {
-      data.push([]);
-    }
-
-    var tableBody = $('#dataTable > tbody')[0];
-
-    for(i = 0; i < tableBody.rows.length; i++) {
-      var currentRow = tableBody.rows[i];
-
-      for (j = 0; j < indices.length; j++) {
-        var index = indices[j];
-        var currentCell = currentRow.cells[index];
-
-        var value;
-        if (header === 'status') {
-            if (currentCell.className.indexOf('correct') == 0)     value = 1;
-            else if (currentCell.className.indexOf('wrong') == 0)  value = 0;
-            else                                                  value = -1;
-        } else {
-          value = parseFloat(currentCell.textContent)
-        }
-        data[j].push([i, value]);
-      }
-    }
-
-    debug(data);
-    return function inner(){ return data;};
-};
-
-
-// this method returns sorted data for showTrend().
-function sortData(data) {
-    var newData = [];
-    for (i = 0; i < data.length; i++) {
-        var line = data[i];
-        var array = [];
-
-        for (j = 0; j < line.length; j++) {
-            if (line[j].length != 2) {debug("ERROR: data is invalid!");}
-            array.push(line[j][1]);
-        }
-
-        array.sort( function(a, b) { return a - b;} ); // compare numbers!
-
-        var newLine = [];
-        for (j = 0; j < line.length; j++) {
-            newLine.push([j, array[j]]);
-        }
-
-        newData.push(newLine);
-    }
-    return function inner(){ return newData;};
-}
-
-// get labels for x-direction
-function getXTicks(){
-    var xTicks = [];
-    var maxLength = 40;
-    var tableBody = $('#dataTable > tbody')[0];
-    for(i = 0; i < tableBody.rows.length; i++) {
-      var name = tableBody.rows[i].cells[0].textContent;
-      if (name.length > maxLength) { name = name.substring(0, maxLength) + "..."; }
-      xTicks.push([i, name]);
-    }
-    return xTicks;
-}
-
-// get labels for x-direction as [[0," 0"],[1," "],...] with a number in each 5th element
-function getXTicksWithNumbers(){
-    var xTicks = [];
-    var maxLength = 40;
-    var tableBody = $('#dataTable > tbody')[0];
-    for(i = 0; i < tableBody.rows.length; i++) {
-      xTicks.push([i, ((i%5)?" ":" " + i)]);
-    }
-    return xTicks;
-}
-
-// get labels for y-direction
-function getYTicks(header) {
-    if (header == "status") {
-      return [[-1.5, " "], [-1, "wrong"], [0, "unknown"], [1, "correct"], [1.5, " "]];
-    } else {
-      return [];
-    }
-}
-
-// returns a list of cells, each cell is multiplied by value of its colspan.
-function expandColSpan(row) {
-    var list = [];
-    for (i=0; i<row.cells.length; i++) {
-      var cell = row.cells[i];
-      for (j=0; j<parseInt(cell.colSpan); j++) {
-        list.push(cell);
-      }
-    }
-    return list;
-}
-
-
-// returns label of a test: 'tool+test+date'.
-function getLabels(header) {
-    debug("labels for: " + header);
-    var labels = [];
-
-    var indices = getColumnIndicesForHeader(header);
-    var tableHead = $('#dataTable > thead')[0];
-    var toolRow = expandColSpan(tableHead.rows[0]);
-    var dateRow = expandColSpan(tableHead.rows[3]);
-    var testRow = expandColSpan(tableHead.rows[4]);
-
-    // assertion
-    if ((toolRow.length != dateRow.length) || 
-        (toolRow.length != testRow.length)) {
-        debug("ERROR: number of columns is invalid!");
-    }
-
-    for (i = 0; i < indices.length; i++) {
-        var index = indices[i];
-        labels.push(toolRow[index].textContent + " " +
-                    testRow[index].textContent + " " +
-                    dateRow[index].textContent);
-    }
-
-    debug(labels);
-    return labels;
-};
-
-
-function addLegendActions() {
-    var legendButtons = $('tr.jqplot-table-legend');
-    var seriesLines = $('canvas.jqplot-series-canvas');
-
-    // assertion
-    if (legendButtons.length != seriesLines.length) {
-        debug("ERROR: number of series does not match buttons!");
-    }
-
-    for (i = 0; i<legendButtons.length; i++) {
-      var currentButton = legendButtons[i];
-      var currentLine = seriesLines[i];
-
-      currentButton.onclick = function(event) {
-        var hideOpacity = 0.3;
-        if (this.style.opacity == hideOpacity) {
-            this.style.opacity = 1;
-        } else {
-            this.style.opacity = hideOpacity;
-        }
-      }
-
-      currentButton.onmouseover = function(line) {
-        return function(event){ line.style.zIndex = 5; }
-      }(currentLine);
-
-      currentButton.onmouseout = function(line) {
-        return function(event){ line.style.zIndex = 0; }
-      }(currentLine);
-    }
-}
-
-
-function showPlot(header) {
-    debug("show plot of: " + header);
-    $('#chartWrapperBackground').trigger('click');
-
-    var yTicks = getYTicks(header);
-    var xTicks = getXTicks(); // filenames for labels
-    var data = getTableData(header);
-
-    drawPlot(header, data, xTicks, yTicks, "plot");
-
-    var button = $('#button-trend')[0];
-    button.onclick = function() { showTrend(header); };
-    button.textContent = 'Show Trend';
-};
-
-
-function showTrend(header) {
-    debug("show trend of: " + header);
-    $('#chartWrapperBackground').trigger('click');
-
-    var yTicks = getYTicks(header);
-    var xTicks = getXTicksWithNumbers();
-    var data = sortData(getTableData(header)());
-
-    drawPlot(header, data, xTicks, yTicks, "trend");
-
-    var button = $('#button-trend')[0];
-    button.onclick = function() { showPlot(header); };
-    button.textContent = 'Show Plot';
-};
-
-
-function getFormatter(labels, header) {
-    return function(str, seriesIndex, pointIndex){
-        debug(str, seriesIndex, pointIndex);
-        var filename = labels[pointIndex][1];
-        if (header == "status") {
-            if (str == 1)       str = "correct";
-            else if (str == 0)  str = "unknown";
-            else                str = "wrong";
-        }
-        if (filename.indexOf(" ") == 0) { // for showTrend(), all labels start with space.
-            filename = "";
-        } else {
-            filename = filename + "<br>";
-        }
-        return filename + str;
-    };
-}
-
-plotCache = {};
-
-function drawPlot(header, data, xTicks, yTicks, type) {
-    var background = $('#chartWrapperBackground')[0];
-    var wrapper = $('#chartWrapper')[0];
-
-    // show graph
-    background.style.display='block';
-    wrapper.style.display='block';
-
-    // add function for cleanup
-    background.onclick = function(event){
-      wrapper.style.display = 'none';
-      background.style.display = 'none';
-      $('#chart').empty();
-    };
-
-    var key = type + "@" + header;
-    if (plotCache.hasOwnProperty(key)) {
-        debug("object in cache: " + key);
-        var plot = plotCache[key];
-        plot.replot();
-
-    } else {
-        // data array is empty, we use "columnRenderer" option to get data.
-        var plot = $.jqplot('chart',[],{
-          title: header,
-          legend: {
-            show:true,
-            placement: 'outsideGrid',
-            renderer: $.jqplot.EnhancedLegendRenderer,
-            labels: getLabels(header),
-            location: 's',
-            rowSpacing: "0px",
-            showSwatches: true,
-          },
-          dataRenderer: data,
-          highlighter:{
-            show: true,
-            sizeAdjust: 10,
-            showMarker: true,
-            tooltipAxes: 'y',
-            tooltipLocation: 'ne',
-            tooltipContentEditor: getFormatter(xTicks, header),
-          },
-          seriesDefaults:{
-            shadow: false,
-          },
-          cursor:{
-            show: false,
-            zoom: false,
-            showTooltip: false,
-          },
-          axes:{
-            xaxis:{
-              ticks: xTicks,
-              tickRenderer: $.jqplot.CanvasAxisTickRenderer,
-              tickOptions: {
-                fontSize: '9px',
-                angle: -60,
-              }
-            },
-            yaxis:{
-              ticks: yTicks,
-              pad: 1.2,
-              tickOptions:{
-                formatString:'%.2f'
-              }
-            }
-          },
-        });
-
-        plotCache[key] = plot;
-    }
-
-    addLegendActions();
-};
-
-
-// this function adds the listeners to the table
-$(document).ready(function(){
-    var columnTitles = $('#columnTitles > td');
-    for (i = 1; i< columnTitles.length; i++) { // do not use first column (i!=0)
-      var column = columnTitles[i];
-      debug(column);
-      column.style.cursor = "pointer";
-      column.onclick = function (event) {
-          var header = event.target.textContent;
-          return showPlot(header);
-      }
-    }
-});
-
-function debug(logInfo) {
-  if(!true) {
-    console.log(logInfo);
-  }
-}
-
-</script>
-'''
-
-
-TITLE = '''
-<title>table of tests</title>
-'''
-
-# space in front of a line in htmlcode (4 spaces)
-HTML_SHIFT = '    '
-
 
 # scoreValues taken from http://sv-comp.sosy-lab.org/
 SCORE_CORRECT_SAFE = 2
@@ -475,639 +59,765 @@ SCORE_WRONG_UNSAFE = -2
 SCORE_WRONG_SAFE = -4
 
 
-def getListOfTests(file, filesFromXML=False):
+class Template():
+    """
+    a limited template "engine", similar to report-generator
+    """
+
+    def __init__(self, infileName, outfileName):
+        self.infileName = infileName
+        self.outfileName = outfileName
+
+    def render(self, **kws):
+        """
+        This function replaces every appearance of "{{{key}}}"
+        through the value of the key.
+        """
+        infile = open(self.infileName, 'r')
+        outfile = open(self.outfileName, 'w')
+
+        for line in infile:
+            for key in kws:
+                matcher = "{{{" + key + "}}}"
+                if matcher in line:
+                    line = line.replace(matcher, kws[key])
+            outfile.write(line)
+
+        infile.close()
+        outfile.close()
+
+
+class Util:
+    """
+    This Class contains some useful functions for Strings, Files and Lists.
+    """
+
+    @staticmethod
+    def getFileList(shortFile):
+        """
+        The function getFileList expands a short filename to a sorted list
+        of filenames. The short filename can contain variables and wildcards.
+        """
+
+        # expand tilde and variables
+        expandedFile = os.path.expandvars(os.path.expanduser(shortFile))
+
+        # expand wildcards
+        fileList = glob.glob(expandedFile)
+
+        # sort alphabetical,
+        # if list is emtpy, sorting returns None, so better do not sort
+        if len(fileList) != 0:
+            fileList.sort()
+        else:
+            print ('\nWarning: no file matches "{0}".'.format(shortFile))
+
+        return fileList
+
+
+    @staticmethod
+    def extendFileList(filelist):
+        '''
+        This function takes a list of files, expands wildcards
+        and returns a new list of files.
+        '''
+        return [file for wildcardFile in filelist for file in Util.getFileList(wildcardFile)]
+
+
+    @staticmethod
+    def containsAny(text, list):
+        """
+        This function returns True, iff any string in list is a substring of text.
+        """
+        for elem in list:
+            if elem in text:
+                return True
+        return False
+
+
+    @staticmethod
+    def formatNumber(value, numberOfDigits):
+        """
+        If the value is a number (or number plus one char),
+        this function returns a string-representation of the number
+        with a number of digits after the decimal separator.
+        If the number has more digits, it is rounded, else zeros are added.
+
+        If the value is no number, it is returned unchanged.
+        """
+        lastChar = ""
+        # if the number ends with "s" or another letter, remove it
+        if (not value.isdigit()) and value[-2:-1].isdigit():
+            lastChar = value[-1]
+            value = value[:-1]
+        try:
+            floatValue = float(value)
+            value = "{value:.{width}f}".format(width=numberOfDigits, value=floatValue)
+        except ValueError: # if value is no float, don't format it
+            pass
+        return value + lastChar
+
+
+    @staticmethod
+    def toDecimal(s):
+        s = s.strip()
+        if s.endswith('s'): # '1.23s'
+            s = s[:-1].strip() # remove last char
+        elif s in ['-', '']:
+            s = 0
+        return Decimal(s)
+
+
+    @staticmethod
+    def collapseEqualValues(values, counts):
+        """
+        Take a tuple (values, counts), remove consecutive values and increment their count instead.
+        """
+        assert len(values) == len(counts)
+        previousValue = values[0]
+        previousCount = 0
+
+        for value, count in zip(values, counts):
+            if value != previousValue:
+                yield (previousValue, previousCount)
+                previousCount = 0
+                previousValue = value
+            previousCount += count
+
+        yield (previousValue, previousCount)
+
+    @staticmethod
+    def getColumnValue(sourcefileTag, columnTitle, default=None):
+        for column in sourcefileTag.findall('column'):
+            if column.get('title') == columnTitle:
+                    return column.get('value')
+        return default
+
+def parseTableDefinitionFile(file):
     '''
     This function parses the input to get tests and columns.
-    The param 'file' is either a xml-file containing the testfiles
-    or a list of result-files (also called 'file', however used as list).
-
-    If the files are from xml-file, param 'filesFromXML' should be true.
-    Currently the tests are read also from xml-files.
+    The param 'file' is a xml-file defining the testfiles and columns.
 
     If columntitles are given in the xml-file,
     they will be searched in the testfiles.
     If no title is given, all columns of the testfile are taken.
 
-    If result-files are parsed, all columns are taken.
-
     @return: a list of tuples,
-    each tuple contains a testelement and a list of columntitles
+    each tuple contains a test file and a list of columntitles
     '''
-    listOfTests = []
+    print ("reading table definition from '{0}'...".format(file))
+    if not os.path.isfile(file):
+        print ('File {0!r} does not exist.'.format(file))
+        exit()
 
-    if filesFromXML:
-        tableGenFile = ET.ElementTree().parse(file)
-        if 'table' != tableGenFile.tag:
-            print ("ERROR:\n" \
-                + "    The XML-file seems to be invalid.\n" \
-                + "    The rootelement of table-definition-file is not named 'table'.")
-            exit()
+    listOfTestFiles = []
+    tableGenFile = ET.ElementTree().parse(file)
+    if 'table' != tableGenFile.tag:
+        print ("ERROR:\n" \
+            + "    The XML-file seems to be invalid.\n" \
+            + "    The rootelement of table-definition-file is not named 'table'.")
+        exit()
 
-        for test in tableGenFile.findall('test'):
-            columns = test.findall('column')
-            filelist = getFileList(test.get('filename')) # expand wildcards
-            appendTests(listOfTests, filelist, columns)
+    for test in tableGenFile.findall('test'):
+        columnsToShow = test.findall('column')
+        filelist = Util.getFileList(test.get('filename')) # expand wildcards
+        listOfTestFiles += [(file, columnsToShow) for file in filelist]
 
-    else:
-        appendTests(listOfTests, extendFileList(file)) # expand wildcards
-
-    return listOfTests
-
-
-def appendTests(listOfTests, filelist, columns=None):
-    for resultFile in filelist:
-        if os.path.exists(resultFile) and os.path.isfile(resultFile):
-            print ('    ' + resultFile)
-
-            resultElem = ET.ElementTree().parse(resultFile)
-
-            if 'test' != resultElem.tag:
-                print (("ERROR:\n" \
-                    + "XML-file seems to be invalid.\n" \
-                    + "The rootelement of testresult is not named 'test'.\n" \
-                    + "If you want to run a table-definition-file,\n"\
-                    + "you should use the option '-x' or '--xml'.").replace('\n','\n    '))
-                exit()
-
-            resultElem.set("filename", resultFile)
-
-            # check for equal files in the tests
-            if len(listOfTests) and not containEqualFiles(listOfTests[0][0], resultElem):
-                print ('        resultfile contains different files, skipping resultfile')
-                continue
-
-            availableColumnTitles = [column.get("title") for column in
-                                resultElem.find('sourcefile').findall('column')]
-            if columns: # not None
-                    columnTitles = [column.get("title") for column in columns
-                                    if column.get('title') in availableColumnTitles]
-            else:
-                columnTitles = availableColumnTitles
-
-            if options.logfilesInHtml: insertLogFileNames(resultFile, resultElem)
-
-            listOfTests.append((resultElem, columnTitles))
-        else:
-            print ('File {0} is not found.'.format(repr(resultFile)))
-            exit()
+    return listOfTestFiles
 
 
-def containEqualFiles(resultElem1, resultElem2):
-    list1 = resultElem1.findall('sourcefile')
-    list2 = resultElem2.findall('sourcefile')
-    if len(list1) != len(list2):
-        return False
-    for (sf1, sf2) in zip(list1, list2):
-        if sf1.get('name') != sf2.get('name'):
-            return False
-    return True
+
+class Column:
+    """
+    The class Column contains title, text (to identify a line in logFile),
+    and numberOfDigits of a column.
+    It does NOT contain the value of a column.
+    """
+    def __init__(self, title, text, numOfDigits):
+        self.title = title
+        self.text = text
+        self.numberOfDigits = numOfDigits
+
+
+class Result():
+    """
+    The Class Result is a wrapper for some columns to show and a filelist.
+    """
+    def __init__(self, resultXML, filename, columns):
+        self.filename = filename
+        self.filelist = resultXML.findall('sourcefile')
+        self.columns = columns
+
+        systemTag = resultXML.find('systeminfo')
+        cpuTag = systemTag.find('cpu')
+        self.attributes = {
+                'timelimit': None,
+                'memlimit':  None,
+                'options':   ' ',
+                'name':      resultXML.get('name', resultXML.get('benchmarkname')),
+                'branch':    os.path.basename(filename).split('#')[0] if '#' in filename else '',
+                'os':        systemTag.find('os').get('name'),
+                'cpu':       cpuTag.get('model'),
+                'cores':     cpuTag.get('cores'),
+                'freq':      cpuTag.get('frequency'),
+                'ram':       systemTag.find('ram').get('size'),
+                'host':      systemTag.get('hostname', 'unknown')
+                }
+        self.attributes.update(resultXML.attrib)
+
+    def getSourceFileNames(self):
+        return [file.get('name') for file in self.filelist]
+
+def parseTestFile(resultFile, columnsToShow=None):
+    '''
+    This function parses the resultfile to a resultElem and collects
+    all columntitles from the resultfile, that should be part of the table.
+    It returns a Result object.
+    '''
+    if not os.path.isfile(resultFile):
+        print ('File {0!r} is not found.'.format(resultFile))
+        exit()
+
+    print ('    ' + resultFile)
+
+    resultElem = ET.ElementTree().parse(resultFile)
+
+    if 'test' != resultElem.tag:
+        print (("ERROR:\n" \
+            + "XML-file seems to be invalid.\n" \
+            + "The rootelement of testresult is not named 'test'.\n" \
+            + "If you want to run a table-definition-file,\n"\
+            + "you should use the option '-x' or '--xml'.").replace('\n','\n    '))
+        exit()
+
+    if columnsToShow: # not None
+        columns = [Column(c.get("title"), c.text, c.get("numberOfDigits"))
+                   for c in columnsToShow]
+    else: # show all available columns
+        columns = [Column(c.get("title"), None, None)
+                   for c in resultElem.find('sourcefile').findall('column')]
+
+    insertLogFileNames(resultFile, resultElem)
+    return Result(resultElem, resultFile, columns)
 
 
 def insertLogFileNames(resultFile, resultElem):
-    filename = os.path.basename(resultElem.get("filename"))
-    parts = filename.split("#", 1)
+    resultFile = os.path.basename(resultFile)
+    parts = resultFile.split("#", 1)
 
     # get folder of logfiles
-    logFolder = resultElem.get('benchmarkname') + "." + resultElem.get('date') + ".logfiles/"
+    logFolder = '{benchmarkname}.{date}.logfiles/'.format(**resultElem.attrib)
     if len(parts) > 1:
-        logFolder = "%s#%s" % (parts[0], logFolder)
-
-    # create folder for txt-files (copies of the logfiles)
-    txtFolder = 'table/' + logFolder
-    if not os.path.isdir(OUTPUT_PATH + txtFolder):
-            os.makedirs(OUTPUT_PATH + txtFolder)
+        logFolder = parts[0] + '#' + logFolder
 
     # append begin of filename
     testname = resultElem.get('name')
     if testname is not None:
         logFolder += testname + "."
-        txtFolder += testname + "."
 
-    errorLogFileList = []
     # for each file: append original filename and insert logFileName into sourcefileElement
     for sourcefile in resultElem.findall('sourcefile'):
-        logFileName = os.path.basename(sourcefile.get('name'))
-
-        # copy logfiles to extra folder and rename them to '.txt'
-        logFile = (os.path.dirname(resultFile) or '.') + '/' + logFolder + logFileName + ".log"
-        txtFile = OUTPUT_PATH + txtFolder + logFileName + ".txt"
-        try:
-            shutil.copyfile(logFile, txtFile)
-        except IOError:
-            errorLogFileList.append(logFile)
-
-        sourcefile.set('logfileForHtml', txtFolder + logFileName + ".txt")
-
-    if errorLogFileList: # not empty
-        print ('logfile not found or not copied:\n' + \
-            '\n'.join(errorLogFileList))
+        logFileName = os.path.basename(sourcefile.get('name')) + ".log"
+        sourcefile.logfile = logFolder + logFileName
 
 
-def getFileList(shortFile):
+
+def mergeSourceFiles(listOfTests):
     """
-    The function getFileList expands a short filename to a sorted list
-    of filenames. The short filename can contain variables and wildcards.
+    This function merges the filelists of all Result objects.
+    If necessary, it can merge lists of names: [A,C] + [A,B] --> [A,B,C]
+    and add dummy elements to the filelists.
+    It also ensures the same order of files.
+    Returns a list of filenames
     """
+    nameList = []
+    nameSet = set()
+    for result in listOfTests:
+        index = -1
+        currentResultNameSet = set()
+        for name in result.getSourceFileNames():
+            if name in currentResultNameSet:
+                print ("File {0} is present twice in {1}, skipping it.".format(name, result.filename))
+            else:
+                currentResultNameSet.add(name)
+                if name not in nameSet:
+                    nameList.insert(index+1, name)
+                    nameSet.add(name)
+                    index += 1
+                else:
+                    index = nameList.index(name)
 
-    # expand tilde and variables
-    expandedFile = os.path.expandvars(os.path.expanduser(shortFile))
+    mergeFilelists(listOfTests, nameList)
+    return nameList
 
-    # expand wildcards
-    fileList = glob.glob(expandedFile)
+def mergeFilelists(listOfTests, filenames):
+    """
+    Set the filelists of all Result elements so that they contain the same files
+    in the same order. For missing files a dummy element is inserted.
+    """
+    for result in listOfTests:
+        # create mapping from name to sourcefile tag
+        dic = dict([(file.get('name'), file) for file in result.filelist])
+        result.filelist = [] # clear and repopulate filelist
+        for filename in filenames:
+            fileResult = dic.get(filename)
+            if fileResult == None:
+                fileResult = ET.Element('sourcefile') # create an empty dummy element
+                fileResult.logfile = None
+                print ('    no result for {0} in {1}'.format(filename, result.filename))
+            result.filelist.append(fileResult)
 
-    # sort alphabetical,
-    # if list is emtpy, sorting returns None, so better do not sort
-    if len(fileList) != 0:
-        fileList.sort()
+
+def findCommonSourceFiles(listOfTests):
+    filesInFirstTest = listOfTests[0].getSourceFileNames()
+
+    fileSet = set(filesInFirstTest)
+    for result in listOfTests:
+        fileSet = fileSet & set(result.getSourceFileNames())
+
+    fileList = []
+    if not fileSet:
+        print('No files are present in all benchmark results.')
     else:
-        print ('\nWarning: no file matches "{0}".'.format(shortFile))
+        fileList = [file for file in filesInFirstTest if file in fileSet]
+        mergeFilelists(listOfTests, fileList)
 
     return fileList
 
+def ensureEqualSourceFiles(listOfTests):
+    # take the files of the first test
+    fileNames = listOfTests[0].getSourceFileNames()
+    # check for equal files
+    def equalFiles(result):
+        if fileNames == result.getSourceFileNames(): return True
+        else: print ('    {0} contains different files, skipping resultfile'.format(result.filename))
 
-def extendFileList(filelist):
-    '''
-    This function takes a list of files, expands wildcards
-    and returns a new list of files.
-    '''
-    return [file for wildcardFile in filelist for file in getFileList(wildcardFile)]
+    listOfTests = filter(equalFiles, listOfTests)
+    return fileNames, listOfTests
 
 
-def getTableHead(listOfTests):
+
+class Test:
+    """
+    The class Test contains the results of one test for one file.
+    """
+    def __init__(self, status, category, logFile, columns, values):
+        assert(len(columns) == len(values))
+        self.status = status
+        self.logFile = logFile
+        self.columns = columns
+        self.values = values
+        self.category = category
+
+    @staticmethod
+    def createTestFromXML(sourcefileTag, resultFilename, listOfColumns, fileIsUnsafe):
+        '''
+        This function collects the values from one tests for one file.
+        Only columns, that should be part of the table, are collected.
+        '''
+
+        def getResultCategory(status):
+            status = status.lower()
+            if status == 'safe':
+                return 'correctSafe' if not fileIsUnsafe else 'wrongSafe'
+            elif status == 'unsafe':
+                return 'wrongUnsafe' if not fileIsUnsafe else 'correctUnsafe'
+            elif status == 'unknown':
+                return 'unknown'
+            else:
+                return 'error'
+
+        def calculateScore(category):
+            return {'correctSafe':   SCORE_CORRECT_SAFE,
+                    'wrongSafe':     SCORE_WRONG_SAFE,
+                    'correctUnsafe': SCORE_CORRECT_UNSAFE,
+                    'wrongUnsafe':   SCORE_WRONG_UNSAFE,
+                    }.get(category,  SCORE_UNKNOWN)
+
+        def getValueFromLogfile(content, identifier):
+            """
+            This method searches for values in lines of the content.
+            The format of such a line must be:    "identifier:  value  (rest)".
+
+            If a value is not found, the value is set to "-".
+            """
+            # stop after the first line, that contains the searched text
+            value = "-" # default value
+            if not content: return value
+            for line in content.splitlines():
+                if identifier in line:
+                    startPosition = line.find(':') + 1
+                    endPosition = line.find('(') # bracket maybe not found -> (-1)
+                    if (endPosition == -1):
+                        value = line[startPosition:].strip()
+                    else:
+                        value = line[startPosition: endPosition].strip()
+                    break
+            return value
+
+        status = Util.getColumnValue(sourcefileTag, 'status', 'unknown')
+        category = getResultCategory(status)
+        logfileContent = None
+
+        values = []
+
+        for column in listOfColumns: # for all columns that should be shown
+            value = "-" # default value
+            if column.title.lower() == 'score':
+                value = str(calculateScore(category))
+            elif column.text == None: # collect values from XML
+                value = Util.getColumnValue(sourcefileTag, column.title, '-')
+
+            elif sourcefileTag.logfile != None: # collect values from logfile
+                if logfileContent == None: # cache content
+                    baseDir = os.path.dirname(resultFilename)
+                    logfileName = os.path.join(baseDir, sourcefileTag.logfile)
+                    try:
+                        logfile = open(logfileName)
+                        logfileContent = logfile.read()
+                        logfile.close
+                    except IOError as e:
+                        print('WARNING: Could not read value from logfile: {}'.format(e))
+
+                value = getValueFromLogfile(logfileContent, column.text)
+
+            if column.numberOfDigits is not None:
+                value = Util.formatNumber(value, column.numberOfDigits)
+
+            values.append(value)
+
+        return Test(status, category, sourcefileTag.logfile, listOfColumns, values)
+
+    def toHTML(self):
+        """
+        This function returns a String for HTML.
+        If the columnTitle is 'status', different colors are used,
+        else the value is only wrapped in a table-cell.
+        """
+        result = []
+        for column, value in zip(self.columns, self.values):
+            if column.title == 'status' and self.logFile != None:
+                # different colors for correct and incorrect results
+
+                result.append('<td class="{0}"><a href="{1}">{2}</a></td>'.format(
+                            self.category, quote(self.logFile), value.lower()))
+
+            else:
+                result.append('<td class="{0}Value">{1}</td>'.format(self.category, value))
+        return "".join(result)
+
+
+class Row:
+    """
+    The class Row contains the results for one file (a list of Tests).
+    """
+    def __init__(self, fileName):
+        self.fileName = fileName
+        self.results = []
+
+    def addTest(self, test):
+        self.results.append(test)
+
+    def fileIsUnsafe(self):
+        return Util.containsAny(self.fileName.lower(), BUG_SUBSTRING_LIST)
+
+    def toCSV(self, commonPrefix):
+        """
+        generate CSV representation of rows with filename as first column
+        """
+        fileName = self.fileName.replace(commonPrefix, '', 1)
+        allValues = [value for test in self.results for value in test.values]
+        return CSV_SEPARATOR.join([fileName] + allValues)
+
+    def toHTML(self, commonPrefix, outputPath):
+        """
+        generate HTML representation of rows with filename as first column
+        """
+        # make path relative to directory of output file if necessary
+        filePath = self.fileName if os.path.isabs(self.fileName) \
+                                 else os.path.relpath(self.fileName, outputPath)
+
+        fileName = self.fileName.replace(commonPrefix, '', 1)
+
+        HTMLrow = [test.toHTML() for test in self.results]
+        return '<tr><td><a href="{0}">{1}</a></td>{2}</tr>'.format(quote(filePath), fileName, "".join(HTMLrow))
+
+def rowsToColumns(rows):
+    """
+    Convert a list of Rows into a column-wise list of list of Tests
+    """
+    return zip(*[row.results for row in rows])
+
+
+def getRows(listOfTests, fileNames):
+    """
+    Create list of rows with all data. Each row consists of several tests.
+    """
+    rows = [Row(fileName) for fileName in fileNames]
+
+    # get values for each test
+    for result in listOfTests:
+        # get values for each file in a test
+        for fileResult, row in zip(result.filelist, rows):
+            row.addTest(Test.createTestFromXML(fileResult, result.filename, result.columns, row.fileIsUnsafe()))
+
+    return rows
+
+
+def filterRowsWithDifferences(rows):
+    """
+    Find all rows with differences in the status column.
+    """
+    def allEqualResult(listOfResults):
+        for result in listOfResults:
+            if listOfResults[0].status != result.status:
+                return (False, listOfResults[0].status, result.status)
+        return (True, None, None)
+
+    maxLen = max(len(row.fileName) for row in rows)
+    rowsDiff = []
+    for row in rows:
+        (allEqual, oldStatus, newStatus) = allEqualResult(row.results)
+        if not allEqual:
+            rowsDiff.append(row)
+# TODO replace with call to log.debug when this script has logging
+#            print ('    difference found:  {0} : {1} --> {2}'.format(
+#                        row.fileName.ljust(maxLen), oldStatus, newStatus))
+
+
+    if len(rowsDiff) == 0:
+        print ("---> NO DIFFERENCE FOUND IN COLUMN 'STATUS'")
+    elif len(rowsDiff) == len(rows):
+        print ("---> DIFFERENCES FOUND IN ALL ROWS, NO NEED TO CREATE DIFFERENCE TABLE")
+        return []
+
+    return rowsDiff
+
+
+
+def getTableHead(listOfTests, commonFileNamePrefix):
     '''
     get tablehead (tools, limits, testnames, systeminfo, columntitles for html,
     testnames and columntitles for csv)
     '''
+    def formatLine(str):
+        return [str.format(**test.attributes) for test in listOfTests]
 
-    (columnRow, testWidths, titleLine) = getColumnsRowAndTestWidths(listOfTests)
-    (toolRow, toolLine) = getToolRow(listOfTests, testWidths)
-    limitRow = getLimitRow(listOfTests, testWidths)
-    systemRow = getSystemRow(listOfTests, testWidths)
-    dateRow = getDateRow(listOfTests, testWidths)
-    (testRow, testLine) = getTestRow(listOfTests, testWidths)
-    testBranches = getBranchRow(listOfTests, testWidths)
-    testOptions = getOptionsRow(listOfTests, testWidths)
+    def getHtmlRow(rowName, values, widths, collapse=False, id=None):
+        if not any(values): return '' # skip row without values completely
+        if not id:
+            id = rowName.lower().split(' ')[0]
 
-    return (('\n' + HTML_SHIFT).join([HTML_SHIFT + '<thead>', toolRow,
-            limitRow, systemRow, dateRow, testRow, testBranches, testOptions,
-            columnRow]) + '\n</thead>',
-            toolLine + '\n' + testLine + '\n' + titleLine + '\n')
+        valuesAndWidths = Util.collapseEqualValues(values, widths) \
+                          if collapse else zip(values, widths)
 
+        cells = ['<td colspan="{0}">{1}</td>'.format(width, value) for value, width in valuesAndWidths if width]
+        return '<tr id="{0}"><td>{1}</td>{2}</tr>'.format(id, rowName, "".join(cells))
 
-def getColumnsRowAndTestWidths(listOfTests):
-    '''
-    get columnsRow and testWidths, for all columns that should be shown
-    '''
+    def getCsvRow(rowName, values, widths):
+        cells = [CSV_SEPARATOR.join([value]*width) for value, width in zip(values, widths) if width]
 
-    # get common folder of sourcefiles
-    fileList = listOfTests[0][0].findall('sourcefile')
-    fileNames = [file.get("name") for file in fileList]
-    commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
-    commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
-
-    columnsTitles = [commonPrefix]
-    testWidths = []
-    for testResult, columns in listOfTests:
-        numberOfColumns = 0
-        for columnTitle in columns:
-            for column in testResult.find('columns').findall('column'):
-
-                if columnTitle == column.get('title'):
-                    numberOfColumns += 1
-                    columnsTitles.append(columnTitle)
-                    break
-
-        testWidths.append(numberOfColumns)
+        return CSV_SEPARATOR.join([rowName.lower()] + cells)
 
 
-    return ('<tr id="columnTitles"><td>' + \
-                '</td><td>'.join(columnsTitles) + \
-                '</td></tr>',
-            testWidths,
-            CSV_SEPARATOR.join(columnsTitles))
+    testWidths = [len(test.columns) for test in listOfTests]
+
+    tools       = formatLine('{tool} {version}')
+    toolRow     = getHtmlRow('Tool', tools, testWidths, collapse=True)
+    toolLine    = getCsvRow('Tool', tools, testWidths)
+
+    limits      = formatLine('timelimit: {timelimit}, memlimit: {memlimit}')
+    limitRow    = getHtmlRow('Limits', limits, testWidths, collapse=True)
+
+    hosts       = formatLine('{host}')
+    hostRow     = getHtmlRow('Host', hosts, testWidths, collapse=True)
+
+    os          = formatLine('{os}')
+    osRow       = getHtmlRow('OS', os, testWidths, collapse=True)
+
+    systems     = formatLine('CPU: {cpu} with {cores} cores, frequency: {freq}; RAM: {ram}')
+    systemRow   = getHtmlRow('System', systems, testWidths, collapse=True)
+
+    dates       = formatLine('{date}')
+    dateRow     = getHtmlRow('Date of run', dates, testWidths, collapse=True)
+
+    tests       = formatLine('{name}')
+    testRow     = getHtmlRow('Test', tests, testWidths)
+    testLine    = getCsvRow('Test', tests, testWidths)
+
+    branches    = formatLine('{branch}')
+    branchesRow = getHtmlRow('Branch', branches, testWidths)
+
+    options     = [str.replace(' -', '<br/>-')
+                      .replace('=', '=<wbr/>')
+                      for str in formatLine('{options}')] 
+    optionsRow  = getHtmlRow('Options', options, testWidths)
+
+    titles      = [column.title for test in listOfTests for column in test.columns]
+    testWidths1 = [1]*sum(testWidths)
+    titleRow    = getHtmlRow(commonFileNamePrefix, titles, testWidths1, id='columnTitles')
+    titleLine   = getCsvRow(commonFileNamePrefix, titles, testWidths1)
+
+    return ('\n'.join([toolRow, limitRow, hostRow, osRow, systemRow, dateRow, testRow, branchesRow, optionsRow, titleRow]),
+            '\n'.join([toolLine, testLine, titleLine]))
 
 
-def getToolRow(listOfTests, testWidths):
-    '''
-    get toolRow, each cell of it spans over all tests of this tool
-    '''
 
-    toolRow = '<tr><td>Tool</td>'
-    toolLine = ['tool']
-    tool = (listOfTests[0][0].get('tool'), listOfTests[0][0].get('version'))
-    toolWidth = 0
-
-    for (testResult, _), numberOfColumns in zip(listOfTests, testWidths):
-        newTool = (testResult.get('tool'), testResult.get('version'))
-        if newTool != tool:
-            toolRow += '<td colspan="{0}">{1} {2}</td>'.format(toolWidth, *tool)
-            toolWidth = 0
-            tool = newTool
-        toolWidth += numberOfColumns
-        for i in range(toolWidth):
-            toolLine.append(newTool[0] + ' ' + newTool[1])
-    toolRow += '<td colspan="{0}">{1} {2}</td></tr>'.format(toolWidth, *tool)
-
-    return (toolRow, CSV_SEPARATOR.join(toolLine))
-
-
-def getLimitRow(listOfTests, testWidths):
-    '''
-    get limitRow, each cell of it spans over all tests with this limit
-    '''
-
-    limitRow = '<tr><td>Limits</td>'
-    limitWidth = 0
-    limit = (listOfTests[0][0].get('timelimit'), listOfTests[0][0].get('memlimit'))
-
-    for (testResult, _), numberOfColumns in zip(listOfTests, testWidths):
-        newLimit = (testResult.get('timelimit'), testResult.get('memlimit'))
-        if newLimit != limit:
-            limitRow += '<td colspan="{0}">timelimit: {1}, memlimit: {2}</td>'\
-                            .format(limitWidth, *limit)
-            limitWidth = 0
-            limit = newLimit
-        limitWidth += numberOfColumns
-    limitRow += '<td colspan="{0}">timelimit: {1}, memlimit: {2}</td></tr>'\
-                    .format(limitWidth, *limit)
-
-    return limitRow
-
-
-def getSystemRow(listOfTests, testWidths):
-    '''
-    get systemRow, each cell of it spans over all tests with this system
-    '''
-
-    def getSystem(systemTag):
-        cpuTag = systemTag.find('cpu')
-        system = (systemTag.find('os').get('name'),
-                  cpuTag.get('model'),
-                  cpuTag.get('cores'),
-                  cpuTag.get('frequency'),
-                  systemTag.find('ram').get('size'),
-                  systemTag.get('hostname', 'unknown'))
-        return system
-
-    systemFormatString = '<td colspan="{0}">host: {6}<br>os: {1}<br>'\
-                       + 'cpu: {2}<br>cores: {3}, frequency: {4}, ram: {5}</td>'
-    systemLine = '<tr><td>System</td>'
-    systemWidth = 0
-    systemTag = listOfTests[0][0].find('systeminfo')
-    system = getSystem(systemTag)
-
-    for (testResult, columns), numberOfColumns in zip(listOfTests, testWidths):
-        systemTag = testResult.find('systeminfo')
-        newSystem = getSystem(systemTag)
-        if newSystem != system:
-            systemLine += systemFormatString.format(systemWidth, *system)
-            systemWidth = 0
-            system = newSystem
-        systemWidth += numberOfColumns
-    systemLine += systemFormatString.format(systemWidth, *system) + '</tr>'
-
-    return systemLine
-
-
-def getDateRow(listOfTests, testWidths):
-    '''
-    get dateRow, each cell of it spans over all tests with this date
-    '''
-
-    dateRow = '<tr><td>Date of run</td>'
-    dateWidth = 0
-    date = listOfTests[0][0].get('date')
-
-    for (testResult, _), numberOfColumns in zip(listOfTests, testWidths):
-        newDate = testResult.get('date')
-        if newDate != date:
-            dateRow += '<td colspan="{0}">{1}</td>'.format(dateWidth, date)
-            dateWidth = 0
-            date = newDate
-        dateWidth += numberOfColumns
-    dateRow += '<td colspan="{0}">{1}</td></tr>'.format(dateWidth, date)
-
-    return dateRow
-
-
-def getTestRow(listOfTests, testWidths):
-    '''
-    create testRow, each cell spans over all columns of this test
-    '''
-
-    testNames = [testResult.get('name', testResult.get('benchmarkname'))
-                                for (testResult, _) in listOfTests]
-    tests = ['<td colspan="{0}">{1}</td>'.format(width, testName)
-             for (testName, width) in zip(testNames, testWidths) if width]
-    testLine = CSV_SEPARATOR.join(['test'] + [CSV_SEPARATOR.join([testName]*width)
-             for (testName, width) in zip(testNames, testWidths) if width])
-
-    return ('<tr><td>Test set</td>' + ''.join(tests) + '</tr>',
-            testLine)
-
-
-def getBranchRow(listOfTests, testWidths):
-    '''
-    create branchRow, each cell spans over the columns of a test
-    '''
-    testBranches = [os.path.basename(testResult.get('filename', '?')) for (testResult, _) in listOfTests]
-    if not any("#" in branch for branch in testBranches):
-        return ""
-    testBranches = [testBranch.split("#", 1)[0] for testBranch in testBranches]
-    branches = ['<td colspan="{0}">{1}</td>'.format(width, testBranch)
-             for (testBranch, width) in zip(testBranches, testWidths) if width]
-    return '<tr id="branch"><td>branch</td>' + ''.join(branches) + '</tr>'
-
-
-def getOptionsRow(listOfTests, testWidths):
-    '''
-    create optionsRow, each cell spans over the columns of a test
-    '''
-
-    testOptions = [testResult.get('options', ' ') for (testResult, _) in listOfTests]
-    options = ['<td colspan="{0}">{1}</td>'.format(width, testOption.replace(' -','<br>-'))
-             for (testOption, width) in zip(testOptions, testWidths) if width]
-    return '<tr id="options"><td>Options</td>' + ''.join(options) + '</tr>'
-
-
-def getTableBody(listOfTests):
-    '''
-    This function build the body and the foot of the table.
-    It collects all values from the tests for the columns in the table.
-    The foot contains some statistics.
-    '''
-
-    rowsForHTML = []
-    rowsForCSV = []
-    fileList = listOfTests[0][0].findall('sourcefile')
-
-    # get filenames
-    fileNames = [file.get("name") for file in fileList]
-
-    maxScore = sum([SCORE_CORRECT_UNSAFE
-                    if containsAny(name.lower(), BUG_SUBSTRING_LIST)
-                    else SCORE_CORRECT_SAFE
-                        for name in fileNames])
+def getStatsHTML(rows):
+    maxScore = sum([SCORE_CORRECT_UNSAFE if row.fileIsUnsafe() else SCORE_CORRECT_SAFE
+                        for row in rows])
     rowsForStats = [['<td>total files</td>'],
                     ['<td title="(no bug exists + result is SAFE) OR ' + \
                      '(bug exists + result is UNSAFE)">correct results</td>'],
                     ['<td title="bug exists + result is SAFE">false negatives</td>'],
                     ['<td title="no bug exists + result is UNSAFE">false positives</td>'],
                     ['<td>score ({0} files, max score: {1})</td>'
-                        .format(len(fileList), maxScore)]]
+                        .format(len(rows), maxScore)]]
 
-
-    # get common folder
-    commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
-    commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
-
-    # generate text for filenames
-    for fileName in fileNames:
-        filePath = getPathOfSourceFile(fileName)
-
-        if options.logfilesInHtml:
-            rowsForHTML.append(['<td><a href="{0}">{1}</a></td>'.
-                            format(quote(filePath), fileName.replace(commonPrefix, '', 1))])
-        else:
-            rowsForHTML.append(['<td>{0}</td>'.
-                            format(fileName.replace(commonPrefix, '', 1))])
-        rowsForCSV.append([fileName.replace(commonPrefix, '', 1)])
-
-    # get values for each test
-    for testResult, columns in listOfTests:
-
-        valuesListHTML = []
-        valuesListCSV = []
-
-        # get values for each file in a test
-        for fileResult in testResult.findall('sourcefile'):
-            (valuesHTML, valuesCSV) = getValuesOfFileXTest(fileResult, columns)
-            valuesListHTML.append(valuesHTML)
-            valuesListCSV.append(valuesCSV)
-
-        # append values to html and csv
-        for row, values in zip(rowsForHTML, valuesListHTML): row.extend(values)
-        for row, values in zip(rowsForCSV, valuesListCSV): row.extend(values)
-
-        # get statistics
-        stats = getStatsOfTest(testResult.findall('sourcefile'), columns, valuesListCSV)
+    # get statistics
+    for tests in rowsToColumns(rows):
+        stats = getStatsOfTest(tests)
         for row, values in zip(rowsForStats, stats): row.extend(values)
 
-    rowsHTML = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(map(''.join, rowsForHTML))
-    statsHTML = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(map(''.join, rowsForStats))
-
-    return ('<tbody>\n{0}<tr>{1}</tr>\n</tbody>'.format(HTML_SHIFT, rowsHTML),
-            '<tfoot>\n{0}<tr>{1}</tr>\n</tfoot>'.format(HTML_SHIFT, statsHTML),
-            '\n'.join(map(CSV_SEPARATOR.join, rowsForCSV)))
+    return ['<tr>{0}</tr>'.format("".join(row)) for row in rowsForStats]
 
 
-def getPathOfSourceFile(filename):
-    '''
-    This method expand a filename of a sourcefile to a path to the sourcefile.
-    An absolute filename will not be changed,
-    a filename, that is relative to CPAchackerDir, will get a prefix.
-    '''
-    if not filename.startswith('/'): # not absolute -> relative, TODO: windows?
-        filename = os.path.relpath(filename, OUTPUT_PATH)
-    return filename
-
-
-def getValuesOfFileXTest(currentFile, listOfColumns):
-    '''
-    This function collects the values from all tests for one file.
-    Only columns, that should be part of the table, are collected.
-    '''
-
-    currentFile.status = 'unknown'
-
-    valuesForHTML = []
-    valuesForCSV = []
-    for columnTitle in listOfColumns: # for all columns that should be shown
-        for column in currentFile.findall('column'):
-            if columnTitle == column.get('title'):
-
-                value = column.get('value')
-
-                valuesForCSV.append(value)
-
-                if columnTitle == 'status':
-                    # different colors for correct and incorrect results
-                    status = value.lower()
-                    fileName = currentFile.get('name').lower()
-                    isSafeFile = not containsAny(fileName, BUG_SUBSTRING_LIST)
-
-                    if status == 'safe':
-                        if isSafeFile:
-                            currentFile.status = 'correctSafe'
-                        else:
-                            currentFile.status = 'wrongSafe'
-                    elif status == 'unsafe':
-                        if isSafeFile:
-                            currentFile.status = 'wrongUnsafe'
-                        else:
-                            currentFile.status = 'correctUnsafe'
-                    elif status == 'unknown':
-                        currentFile.status = 'unknown'
-                    else:
-                        currentFile.status = 'error'
-
-                    if options.logfilesInHtml:
-                        valuesForHTML.append('<td class="{0}"><a href="{1}">{2}</a></td>'
-                            .format(currentFile.status, quote(str(currentFile.get('logfileForHtml'))), status))
-                    else:
-                        valuesForHTML.append('<td class="{0}">{1}</td>'
-                            .format(currentFile.status, status))
-
-                else:
-                    valuesForHTML.append('<td>{0}</td>'.format(value))
-                break
-
-    return (valuesForHTML, valuesForCSV)
-
-
-def containsAny(text, list):
-    '''
-    This function returns True, iff any string in list is a substring of text.
-    '''
-    for elem in list:
-        if text.find(elem) != -1:
-            return True
-    return False
-
-
-def toDecimal(s):
-    s = s.strip()
-    if s.endswith('s'): # '1.23s'
-        s = s[:-1].strip() # remove last char
-    elif s == '-':
-        s = 0
-    return Decimal(s)
-
-
-def getStatsOfTest(fileResult, columns, valuesList):
-
-    # list for status of bug vs tool
-    statusList = [file.status for file in fileResult]
-    assert len(valuesList) == len(statusList)
+def getStatsOfTest(tests):
+    """
+    This function return HTML for the table-footer.
+    """
 
     # convert:
     # [['SAFE', 0,1], ['UNSAFE', 0,2]] -->  [['SAFE', 'UNSAFE'], [0,1, 0,2]]
-    # in python2 this is a list, in python3 this is the iterator of the list 
+    # in python2 this is a list, in python3 this is the iterator of the list
     # this works, because we iterate over the list some lines below
-    listsOfValues = zip(*valuesList)
+    listsOfValues = zip(*[test.values for test in tests])
+
+    columns = tests[0].columns
+    statusList = [test.category for test in tests]
 
     # collect some statistics
     sumRow = []
-    sumCorrectRow = []
+    correctRow = []
     wrongSafeRow = []
     wrongUnsafeRow = []
     scoreRow = []
 
-    for columnTitle, column in zip(columns, listsOfValues):
+    for column, values in zip(columns, listsOfValues):
+        if column.title == 'status':
+            sum, correctSafe, correctUnsafe, wrongSafe, wrongUnsafe = getStatsOfStatusColumn(statusList)
 
-        # count different elems in statusList
-        if columnTitle == 'status':
-            correctSafeNr = statusList.count('correctSafe')
-            correctUnsafeNr = statusList.count('correctUnsafe')
-            wrongSafeNr = statusList.count('wrongSafe')
-            wrongUnsafeNr = statusList.count('wrongUnsafe')
+            correct = correctSafe + correctUnsafe
+            score   = SCORE_CORRECT_SAFE   * correctSafe + \
+                      SCORE_CORRECT_UNSAFE * correctUnsafe + \
+                      SCORE_WRONG_SAFE     * wrongSafe + \
+                      SCORE_WRONG_UNSAFE   * wrongUnsafe
 
-            sumRow.append('<td>{0}</td>'.format(len(statusList)))
-            sumCorrectRow.append('<td>{0}</td>'.format(correctSafeNr + correctUnsafeNr))
-            wrongSafeRow.append('<td>{0}</td>'.format(wrongSafeNr))
-            wrongUnsafeRow.append('<td>{0}</td>'.format(wrongUnsafeNr))
-            scoreRow.append('<td class="score">{0}</td>'.format(
-                                SCORE_CORRECT_SAFE * correctSafeNr + \
-                                SCORE_CORRECT_UNSAFE * correctUnsafeNr + \
-                                SCORE_WRONG_SAFE * wrongSafeNr + \
-                                SCORE_WRONG_UNSAFE * wrongUnsafeNr))
-
-        # get sums for correct, wrong, etc
         else:
-            (sum, correctSum, wrongSafeNumber, wrongUnsafeNumber) \
-                = getStatsOfNumber(column, statusList)
-            sumRow.append('<td>{0}</td>'.format(sum))
-            sumCorrectRow.append('<td>{0}</td>'.format(correctSum))
-            wrongSafeRow.append('<td>{0}</td>'.format(wrongSafeNumber))
-            wrongUnsafeRow.append('<td>{0}</td>'.format(wrongUnsafeNumber))
-            scoreRow.append('<td></td>')
+            sum, correct, wrongSafe, wrongUnsafe = getStatsOfNumberColumn(values, statusList)
+            score = ''
 
-    # convert numbers to strings for output
-    return (sumRow, sumCorrectRow, wrongSafeRow, wrongUnsafeRow, scoreRow)
+        sumRow.append(sum)
+        correctRow.append(correct)
+        wrongSafeRow.append(wrongSafe)
+        wrongUnsafeRow.append(wrongUnsafe)
+        scoreRow.append(score)
+
+    sumRow         = map('<td>{0}</td>'.format, sumRow)
+    correctRow     = map('<td>{0}</td>'.format, correctRow)
+    wrongSafeRow   = map('<td>{0}</td>'.format, wrongSafeRow)
+    wrongUnsafeRow = map('<td>{0}</td>'.format, wrongUnsafeRow)
+    scoreRow       = map('<td class="score">{0}</td>'.format, scoreRow)
+
+    return (sumRow, correctRow, wrongSafeRow, wrongUnsafeRow, scoreRow)
 
 
-def getStatsOfNumber(column, statusList):
-    assert len(column) == len(statusList)
+def getStatsOfStatusColumn(categoryList):
+    # count different elems in statusList
+    counts = collections.defaultdict(int)
+    for category in categoryList:
+        counts[category] += 1
+
+    return (len(categoryList), counts['correctSafe'], counts['correctUnsafe'],
+            counts['wrongSafe'], counts['wrongUnsafe'])
+
+
+def getStatsOfNumberColumn(values, categoryList):
+    assert len(values) == len(categoryList)
     try:
-        valueList = [toDecimal(v) for v in column]
+        valueList = [Util.toDecimal(v) for v in values]
     except InvalidOperation:
         print ("Warning: NumberParseException. Statistics may be wrong.")
         return (0, 0, 0, 0)
 
-    correctSum = sum([value
-                      for value, status in zip(valueList, statusList)
-                      if (status == 'correctSafe' or status == 'correctUnsafe')])
-    wrongSafeNumber = sum([value
-                      for value, status in zip(valueList, statusList)
-                      if (status == 'wrongSafe')])
-    wrongUnsafeNumber = sum([value
-                      for value, status in zip(valueList, statusList)
-                      if (status == 'wrongUnsafe')])
+    valuesPerCategory = collections.defaultdict(int)
+    for value, category in zip(valueList, categoryList):
+        valuesPerCategory[category] += value
 
-    return (sum(valueList), correctSum, wrongSafeNumber, wrongUnsafeNumber)
+    return (sum(valueList),
+            valuesPerCategory['correctSafe'] + valuesPerCategory['correctUnsafe'],
+            valuesPerCategory['wrongSafe'], valuesPerCategory['wrongUnsafe'])
 
 
-def createTable(file, filesFromXML=False):
+
+def getCounts(rows): # for options.dumpCounts
+    countsList = []
+
+    for testResults in rowsToColumns(rows):
+        statusList = [test.category for test in testResults]
+        sum, correctSafe, correctUnsafe, wrongSafe, wrongUnsafe = getStatsOfStatusColumn(statusList)
+
+        correct = correctSafe + correctUnsafe
+        wrong = wrongSafe + wrongUnsafe
+        unknown = len(statusList) - correct - wrong
+
+        countsList.append((correct, wrong, unknown))
+
+    return countsList
+
+
+
+def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath):
     '''
-    parse inputfile(s), create html-code and write it to file
+    create tables and write them to files
     '''
 
-    print ('collecting files ...')
+    # get common folder of sourcefiles
+    commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
+    commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
 
-    if filesFromXML:
-        listOfTests = getListOfTests(file, True)
-        HTMLOutFileName = OUTPUT_PATH + os.path.basename(file)[:-3] + "table.html"
-        CSVOutFileName = OUTPUT_PATH + os.path.basename(file)[:-3] + "table.csv"
-    else:
-        listOfTests = getListOfTests(file)
-        timestamp = time.strftime("%y%m%d-%H%M", time.localtime())
-        HTMLOutFileName = OUTPUT_PATH + NAME_START + "." + timestamp + ".table.html"
-        CSVOutFileName = OUTPUT_PATH + NAME_START + "." + timestamp + ".table.csv"
+    HTMLhead, CSVhead = getTableHead(listOfTests, commonPrefix)
 
-    if len(listOfTests) == 0:
-        print ('\nError! No file with testresults found.\n' \
-            + 'Please check the filenames in your XML-file.')
-        exit()
+    def writeTable(outfile, name, rows):
+        outfile = os.path.join(outputPath, outfile)
+        print ('writing html into {0} ...'.format(outfile + ".html"))
 
-    print ('generating html into %s ...' % (HTMLOutFileName, ))
+        HTMLbody = '\n'.join([row.toHTML(commonPrefix, outputPath) for row in rows])
+        HTMLfoot = '\n'.join(getStatsHTML(rows))
+        CSVbody  = '\n'.join([row.toCSV(commonPrefix) for row in rows])
 
-    (tableHeadHTML, tableHeadCSV) = getTableHead(listOfTests)
-    (tableBodyHTML, tableFootHTML, tableBodyCSV) = getTableBody(listOfTests)
+        # write HTML to file
+        Template(TEMPLATE_FILE_NAME, outfile + ".html").render(
+                    title=name,
+                    head=HTMLhead,
+                    body=HTMLbody,
+                    foot=HTMLfoot
+                    )
 
-    tableCode = '<table id="dataTable">\n' \
-                + tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
-                + '\n' + HTML_SHIFT \
-                + tableFootHTML.replace('\n','\n' + HTML_SHIFT) \
-                + '\n' + HTML_SHIFT \
-                + tableBodyHTML.replace('\n','\n' + HTML_SHIFT) \
-                + '\n</table>\n\n'
+        # write CSV to file
+        CSVFile = open(outfile + ".csv", "w")
+        CSVFile.write(CSVhead)
+        CSVFile.write('\n')
+        CSVFile.write(CSVbody)
+        CSVFile.close()
 
-    htmlCode = DOCTYPE + '<html>\n\n<head>\n' + CSS + TITLE + '\n</head>\n\n<body>\n\n'
-    if options.enablePlotting: htmlCode += PLOTTING_SCRIPT + '\n'
-    htmlCode += tableCode + '</body>\n\n</html>'
 
-    if not os.path.isdir(OUTPUT_PATH): os.makedirs(OUTPUT_PATH)
-    HTMLFile = open(HTMLOutFileName, "w")
-    HTMLFile.write(htmlCode)
-    HTMLFile.close()
+    # write normal tables
+    writeTable(name + ".table", name, rows)
 
-    CSVCode = tableHeadCSV + tableBodyCSV
-
-    CSVFile = open(CSVOutFileName, "w")
-    CSVFile.write(CSVCode)
-    CSVFile.close()
-
-    print ('done')
+    # write difference tables
+    if len(rowsDiff) > 1:
+        writeTable(name + ".diff", name + " differences", rowsDiff)
 
 
 def main(args=None):
@@ -1127,41 +837,86 @@ def main(args=None):
     parser.add_option("-o", "--outputpath",
         action="store",
         type="string",
+        default="test/results",
         dest="outputPath",
         help="outputPath for table. if it does not exist, it is created."
     )
-    parser.add_option("-w", "--withoutlinks", 
-        action="store_false", dest="logfilesInHtml", default=True,
-        help="create table without links to logfiles."
+    parser.add_option("-d", "--dump",
+        action="store_true", dest="dumpCounts",
+        help="Should the good, bad, unknown counts be printed?"
     )
-    parser.add_option("-p", "--plot", 
-        action="store_true", dest="enablePlotting", default=False,
-        help="put JavaScript in html-code that enables plotting functionality in the resulting table."
+    parser.add_option("-m", "--merge",
+        action="store_true", dest="merge",
+        help="If resultfiles with distinct sourcefiles are found, " \
+            + "should the sourcefilenames be merged?"
+    )
+    parser.add_option("-c", "--common",
+        action="store_true", dest="common",
+        help="If resultfiles with distinct sourcefiles are found, " \
+            + "use only the sourcefiles common to all resultfiles."
     )
 
-    global options
     options, args = parser.parse_args(args)
+    args = args[1:] # skip args[0] which is the name of this script
 
-    if options.outputPath:
-        global OUTPUT_PATH
-        OUTPUT_PATH = options.outputPath if options.outputPath.endswith('/') \
-                 else options.outputPath + '/'
+    if options.merge and options.common:
+        print("Invalid combination of arguments (--merge and --common)")
+        exit()
+
+    if not os.path.isdir(options.outputPath): os.makedirs(options.outputPath)
 
     if options.xmltablefile:
-        print ("reading table definition from '" + options.xmltablefile + "'...")
-        if not os.path.exists(options.xmltablefile) \
-                or not os.path.isfile(options.xmltablefile):
-            print ('File {0} does not exist.'.format(repr(options.xmltablefile)))
+        if args:
+            print ("Invalid additional arguments '{}'".format(" ".join(args)))
             exit()
+        listOfTestFiles = parseTableDefinitionFile(options.xmltablefile)
+        name = os.path.basename(options.xmltablefile)[:-4] # remove ending '.xml'
+
+    else:
+        if args:
+            inputFiles = args
         else:
-            createTable(options.xmltablefile, True)
+            print ("searching resultfiles in '{}'...".format(options.outputPath))
+            inputFiles = [os.path.join(options.outputPath, '*.results*.xml')]
 
-    elif len(args) > 1:
-        createTable(args[1:])
+        inputFiles = Util.extendFileList(inputFiles) # expand wildcards
+        listOfTestFiles = [(file, None) for file in inputFiles]
 
-    else: # default case
-        print ("searching resultfiles in '" + OUTPUT_PATH + "' ...")
-        createTable([OUTPUT_PATH + '*.results*.xml'])
+        name = NAME_START + "." + time.strftime("%y%m%d-%H%M", time.localtime())
+
+
+    # parse test files
+    listOfTests = [parseTestFile(file, columnsToShow) for file, columnsToShow in listOfTestFiles]
+
+    if not listOfTests:
+        print ('\nError! No file with testresults found.')
+        if options.xmltablefile:
+            print ('Please check the filenames in your XML-file.')
+        exit()
+
+    print ('merging files ...')
+    if options.merge:
+        # merge list of tests, so that all tests contain the same filenames
+        fileNames = mergeSourceFiles(listOfTests)
+    elif options.common:
+        fileNames = findCommonSourceFiles(listOfTests)
+    else:
+        fileNames, listOfTests = ensureEqualSourceFiles(listOfTests)
+
+    # collect data and find out rows with differences
+    rows     = getRows(listOfTests, fileNames)
+    rowsDiff = filterRowsWithDifferences(rows)
+
+    print ('generating table ...')
+    createTables(name, listOfTests, fileNames, rows, rowsDiff, options.outputPath)
+
+    print ('done')
+
+    if options.dumpCounts: # print some stats for Buildbot
+        countsList = getCounts(rows)
+        print ("STATS")
+        for counts in countsList:
+            print (" ".join(str(e) for e in counts))
 
 
 if __name__ == '__main__':

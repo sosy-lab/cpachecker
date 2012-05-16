@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,12 +24,11 @@
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IType;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+
+import com.google.common.base.Optional;
 
 public class DeclarationEdge extends AbstractCFAEdge {
 
@@ -47,28 +46,17 @@ public class DeclarationEdge extends AbstractCFAEdge {
     return CFAEdgeType.DeclarationEdge;
   }
 
-  public StorageClass getStorageClass() {
-    return declaration.getStorageClass();
-  }
-
-  public IType getDeclSpecifier() {
-    return declaration.getDeclSpecifier();
-  }
-
-  public String getName() {
-    return declaration.getName();
-  }
-
-  public IASTInitializer getInitializer() {
-    return declaration.getInitializer();
-  }
-
-  @Override
-  public IASTDeclaration getRawAST() {
+  public IASTDeclaration getDeclaration() {
     return declaration;
   }
 
-  public boolean isGlobal() {
-    return false;
+  @Override
+  public Optional<IASTDeclaration> getRawAST() {
+    return Optional.of(declaration);
+  }
+
+  @Override
+  public String getCode() {
+    return declaration.toASTString();
   }
 }

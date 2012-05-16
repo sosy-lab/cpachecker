@@ -7,15 +7,7 @@ int lock() {
 	locked = 1;
 	return 0;
 }
-int lock(int byID) {
-	locked = 1;
-	return 0;
-}
 
-int unlock(int byID) {
-	locked = 0;
-	return 0;
-}
 int unlock() {
 	locked = 0;
 	return 0;
@@ -31,7 +23,7 @@ int main() {
 
 	init();
 
-	lock(myId);
+	lock();
 
 	x = 0;
 
@@ -40,13 +32,13 @@ int main() {
 		goto ERROR;
 	}
 
-	unlock(myId);
+	unlock();
 
 	if (y != 0) {
 		goto ERROR;
 	}
 
-	lock(myId); // remains locked. This should result in a Warning?
+	lock(); // remains locked. This should result in a Warning?
 
 	x  = /* comment */  x +   1 ;
 

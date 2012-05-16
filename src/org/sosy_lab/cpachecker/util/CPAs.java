@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 
 /**
  * Helper functions to work with CPAs.
@@ -44,7 +45,7 @@ public class CPAs {
    * @param cls The type to search for.
    * @return The found CPA, or null if none was found.
    */
-  public <T extends ConfigurableProgramAnalysis> T retrieveCPA(ConfigurableProgramAnalysis cpa, Class<T> cls) {
+  public static <T extends ConfigurableProgramAnalysis> T retrieveCPA(ConfigurableProgramAnalysis cpa, Class<T> cls) {
     if (cls.isInstance(cpa)) {
       return cls.cast(cpa);
     } else if (cpa instanceof WrapperCPA) {
@@ -70,7 +71,7 @@ public class CPAs {
       public Iterator<? extends ConfigurableProgramAnalysis> apply(ConfigurableProgramAnalysis cpa) {
         return (cpa instanceof WrapperCPA)
              ? ((WrapperCPA)cpa).getWrappedCPAs().iterator()
-             : null;
+             : Iterators.<ConfigurableProgramAnalysis>emptyIterator();
       }
     };
 }

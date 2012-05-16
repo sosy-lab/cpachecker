@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.util.invariants;
+
+import org.sosy_lab.cpachecker.util.invariants.balancer.Polynomial;
 
 
 public class Rational {
@@ -108,6 +110,24 @@ public class Rational {
   }
 
   /*
+   * Return the "height" of the quotient, namely the maximum of the absolute values
+   * of its numerator and denominator.
+   */
+  public int getHeight() {
+    int a = Math.abs(num);
+    int b = Math.abs(denom);
+    return Math.max(a,b);
+  }
+
+  public int getNumerator() {
+    return num;
+  }
+
+  public int getDenominator() {
+    return denom;
+  }
+
+  /*
    * Create an Integer with the same value as this Rational, in the case that
    * this Rational is integral. Otherwise, return null.
    */
@@ -150,18 +170,32 @@ public class Rational {
     return r;
   }
 
-  public Rational times(Rational other) {
-    int n = this.num * other.num;
-    int d = this.denom * other.denom;
+  /*
+   * Return a new Rational, equal to the result of cancelling
+   * the gcd of num and denom.
+   */
+  public Rational leastTerms() {
+    int g = Polynomial.gcd(num, denom);
+    int n = num/g;
+    int d = denom/g;
     return new Rational(n,d);
   }
 
+  public Rational times(Rational other) {
+    int n = this.num * other.num;
+    int d = this.denom * other.denom;
+    return new Rational(n,d).leastTerms();
+  }
+
+  /*
+   * Create and return a new Rational, equal to this divided by other.
+   */
   public Rational div(Rational other) {
     int a = other.num;
     int b = other.denom;
     int n = this.num * b;
     int d = this.denom * a;
-    return new Rational(n,d);
+    return new Rational(n,d).leastTerms();
   }
 
   public Rational plus(Rational other) {
@@ -171,7 +205,7 @@ public class Rational {
     int d = other.denom;
     int p = a*d + b*c;
     int q = b*d;
-    return new Rational(p,q);
+    return new Rational(p,q).leastTerms();
   }
 
   public Rational minus(Rational other) {
@@ -181,7 +215,7 @@ public class Rational {
     int d = other.denom;
     int p = a*d - b*c;
     int q = b*d;
-    return new Rational(p,q);
+    return new Rational(p,q).leastTerms();
   }
 
 }

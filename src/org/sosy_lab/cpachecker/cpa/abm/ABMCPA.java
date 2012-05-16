@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -98,8 +97,8 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM");
     }
     reducer = new TimedReducer(wrappedReducer);
-    transfer = new ABMTransferRelation(config, logger, this, pReachedSetFactory);
     prec = new ABMPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
+    transfer = new ABMTransferRelation(config, logger, this, pReachedSetFactory);
 
     stats = new ABMCPAStatistics(this);
     heuristic = getPartitioningHeuristic();
@@ -148,7 +147,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
+  public ABMPrecisionAdjustment getPrecisionAdjustment() {
     return prec;
   }
 

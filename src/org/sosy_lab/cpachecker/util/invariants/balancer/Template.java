@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.invariants.Rational;
@@ -102,7 +102,7 @@ public class Template {
     return templateFormula.purify(pur);
   }
 
-  public boolean evaluate(HashMap<String,Rational> vals) {
+  public boolean evaluate(Map<String,Rational> vals) {
     return templateFormula.evaluate(vals);
   }
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -64,8 +64,8 @@ public class IASTBinaryExpression extends IASTExpression {
 
   @Override
   public String toASTString() {
-    return "(" + operand1.toASTString() + ") "
-        + operator.getOperator() + " (" + operand2.toASTString() + ")";
+    return operand1.toParenthesizedASTString() + " "
+        + operator.getOperator() + " " + operand2.toParenthesizedASTString();
   }
 
   public static enum BinaryOperator {

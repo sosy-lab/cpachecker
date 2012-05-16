@@ -24,12 +24,14 @@
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Vector;
 
+import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionRelation;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 
 
-public class AssumptionSet {
+public class AssumptionSet implements Iterable<Assumption> {
 
   private final Vector<Assumption> aset;;
 
@@ -44,9 +46,42 @@ public class AssumptionSet {
     }
   }
 
+  public AssumptionSet(AssumptionSet as) {
+    aset = new Vector<Assumption>();
+    for (Assumption a : as) {
+      // We can use the vector method, since 'as' should already contain no obvious logical redundancies.
+      aset.add(a);
+    }
+  }
+
+  @Override
+  public Iterator<Assumption> iterator() {
+    return aset.iterator();
+  }
+
+  public int size() {
+    return aset.size();
+  }
+
   @Override
   public String toString() {
     return aset.toString();
+  }
+
+  /*
+   * Write the conjunction of all the assumptions, and existentially quantify all the parameters,
+   * using Redlog syntax.
+   */
+  public String writeQEformula() {
+    String phi = "";
+    for (Assumption a : aset) {
+      phi += " and "+a.toString();
+    }
+    if (phi.length() > 0) {
+      phi = phi.substring(5);
+    }
+    phi = "rlex("+phi+")";
+    return phi;
   }
 
   /*
@@ -88,10 +123,125 @@ public class AssumptionSet {
     return a.getAssumptionType() != AssumptionType.FALSE;
   }
 
-  public void addAll(Collection<Assumption> ca) {
-    for (Assumption a : ca) {
-      add(a);
+  /*
+   * Diagnostic purposes.
+   */
+  public boolean add(Assumption a, boolean writeArgs) {
+    System.out.println("Set was:"+this.toString());
+    System.out.println("Adding:"+a.toString());
+    Assumption b,c;
+    for (int i = 0; i < aset.size(); i++) {
+      b = aset.get(i);
+      System.out.println("Strengthening"+b+"by"+a);
+      c = a.strengthen(b);
+      if (c != null) {
+        System.out.println("Got"+c);
+      } else {
+        System.out.println("Got null");
+      }
     }
+    boolean bl = add(a);
+    System.out.println("Set is now:"+this.toString());
+    return bl;
+  }
+
+  /*
+   * Return value is the conjunction of the return values of the individual add commands.
+   * Thus, if /any/ add resulted in 'false' (meaning the set became contradictory), then
+   * we will return false.
+   */
+  public boolean addAll(Collection<Assumption> ca) {
+    boolean result = true;
+    for (Assumption a : ca) {
+      result = result & add(a);
+    }
+    return result;
+  }
+
+  public boolean addAll(AssumptionSet a) {
+    return addAll(a.aset);
+  }
+
+  public boolean contains(Assumption a) {
+    return aset.contains(a);
+  }
+
+  public boolean isSubsetOf(AssumptionSet that) {
+    boolean subset = true;
+    for (Assumption a : aset) {
+      if (!that.contains(a)) {
+        subset = false;
+        break;
+      }
+    }
+    return subset;
+  }
+
+  public boolean equals(AssumptionSet that) {
+    return this.isSubsetOf(that) && that.isSubsetOf(this);
+  }
+
+  /*
+   * We match the passed assumption a against all those in the set,
+   * returning the /strongest/ relation we find.
+   *
+   * We can find: C, I, W, R, S, D.
+   *
+   * If there's a C, we return that.
+   * If there's no C, but there is an I, then we return that.
+   * If there's neither C nor I, but there is a W, R, or S, then we return that.
+   * Else, there were only D, and we return D.
+   *
+   * Note that if the current set is neither redundant (containing b and c such that
+   * b W c or b S c) nor immediately contradictory (containing b and c such that b C c),
+   * then we will never get more than one of W, R, and S.
+   *
+   * For if we get both a W b and a S c, then c W b, and the set is redundant.
+   * If we get both a R b and a W c, then either b W c or b C c.
+   * If we get both a R b and a S c, then c W b.
+   *
+   */
+  public AssumptionRelation matchAgainst(Assumption a) {
+    AssumptionRelation max = AssumptionRelation.DOESNOTCOMPARETO;
+    for (Assumption b : aset) {
+      AssumptionRelation rel = a.matchAgainst(b);
+      if (rel.getNum() > max.getNum()) {
+        max = rel;
+      }
+    }
+    return max;
+  }
+
+  /*
+   * Say the strongest assumption we have on f, if any.
+   * Returns 'true' if we have no assumptions about f.
+   */
+  public AssumptionType query(RationalFunction f) {
+    AssumptionType at = AssumptionType.TRUE;
+    Assumption a = new Assumption(f, at);
+    for (Assumption b : aset) {
+      Assumption c = b.strengthen(a);
+      if (c != null) {
+        RationalFunction g = b.getRationalFunction();
+        // Since b strengthens a, g must be a constant multiple of f.
+        // If that multiple is negative, then we must flip the assumption type.
+        if (g.isZero()) {
+          // This should happen only if f was zero.
+          return AssumptionType.ZERO;
+        }
+        RationalFunction q = RationalFunction.divide(f, g);
+        if (!q.isConstant()) {
+          // This should not happen. Just in case,
+          return AssumptionType.TRUE;
+        }
+        at = b.getAssumptionType();
+        if (!q.isPositive()) {
+          // If q is negative, then flip the assumption type.
+          at = at.flip();
+        }
+      }
+    }
+    return at;
   }
 
 }

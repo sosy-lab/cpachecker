@@ -45,6 +45,9 @@ For viewing detailed heap content after an OutOfMemoryError:
    as described above.
 2. Run CPAchecker and wait for OutOfMemoryError. A file "java_pid<PID>.hprof"
    is produced in the CPAchecker directory.
-3. Run "jhat java_pid<PID>.hprof".
-4. Open http://localhost:7000/ with your web browser.
-5. More information at http://java.sun.com/javase/6/docs/technotes/tools/share/jhat.html
+3. Analyze the heap dump with one of the following tools:
+   - JRat (http://java.sun.com/javase/6/docs/technotes/tools/share/jhat.html)
+     Run "jhat java_pid<PID>.hprof" and open http://localhost:7000/ with your web browser.
+   - Eclipse Memory Analyzer (http://eclipse.org/mat/)
+     This is an Eclipse plugin which provides nice graphical browsing through the heap dump
+     and has several useful reports like memory leaks, wasted memory etc.

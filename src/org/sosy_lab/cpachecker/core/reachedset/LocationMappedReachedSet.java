@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import java.util.Collection;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -42,7 +43,7 @@ public class LocationMappedReachedSet extends PartitionedReachedSet {
   }
 
   @Override
-  public Set<AbstractElement> getReached(CFANode location) {
+  public Collection<AbstractElement> getReached(CFANode location) {
     return getReachedForKey(location);
   }
 

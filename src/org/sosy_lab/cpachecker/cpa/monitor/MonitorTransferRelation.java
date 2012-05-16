@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorElement.TimeoutElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
+import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -112,7 +112,7 @@ public class MonitorTransferRelation implements TransferRelation {
       }
     };
 
-    Pair<PreventingHeuristicType, Long> preventingCondition = null;
+    Pair<PreventingHeuristic, Long> preventingCondition = null;
 
     Collection<? extends AbstractElement> successors;
     if (timeLimit == 0) {
@@ -125,7 +125,7 @@ public class MonitorTransferRelation implements TransferRelation {
         // given to complete the task specified by timeLimit
         successors = future.get(timeLimit, TimeUnit.MILLISECONDS);
       } catch (TimeoutException e) {
-        preventingCondition = Pair.of(PreventingHeuristicType.SUCCESSORCOMPTIME, timeLimit);
+        preventingCondition = Pair.of(PreventingHeuristic.SUCCESSORCOMPTIME, timeLimit);
 
         // add dummy successor
         successors = Collections.singleton(TimeoutElement.INSTANCE);
@@ -133,7 +133,7 @@ public class MonitorTransferRelation implements TransferRelation {
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         // TODO handle InterruptedException better
-        preventingCondition = Pair.of(PreventingHeuristicType.SUCCESSORCOMPTIME, timeLimit);
+        preventingCondition = Pair.of(PreventingHeuristic.SUCCESSORCOMPTIME, timeLimit);
 
         // add dummy successor
         successors = Collections.singleton(TimeoutElement.INSTANCE);
@@ -160,7 +160,7 @@ public class MonitorTransferRelation implements TransferRelation {
 
     // check for violation of limits
     if (preventingCondition == null && timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath) {
-        preventingCondition = Pair.of(PreventingHeuristicType.PATHCOMPTIME, timeLimitForPath);
+        preventingCondition = Pair.of(PreventingHeuristic.PATHCOMPTIME, timeLimitForPath);
     }
 
     // wrap elements
@@ -193,7 +193,7 @@ public class MonitorTransferRelation implements TransferRelation {
       }
     };
 
-    Pair<PreventingHeuristicType, Long> preventingCondition = null;
+    Pair<PreventingHeuristic, Long> preventingCondition = null;
 
     Collection<? extends AbstractElement> successors;
     if (timeLimit == 0) {
@@ -205,7 +205,7 @@ public class MonitorTransferRelation implements TransferRelation {
         // given to complete the task specified by timeLimit
         successors = future.get(timeLimit, TimeUnit.MILLISECONDS);
       } catch (TimeoutException e) {
-        preventingCondition = Pair.of(PreventingHeuristicType.SUCCESSORCOMPTIME, timeLimit);
+        preventingCondition = Pair.of(PreventingHeuristic.SUCCESSORCOMPTIME, timeLimit);
 
         // add dummy successor
         successors = Collections.singleton(TimeoutElement.INSTANCE);
@@ -213,7 +213,7 @@ public class MonitorTransferRelation implements TransferRelation {
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         // TODO handle InterruptedException better
-        preventingCondition = Pair.of(PreventingHeuristicType.SUCCESSORCOMPTIME, timeLimit);
+        preventingCondition = Pair.of(PreventingHeuristic.SUCCESSORCOMPTIME, timeLimit);
 
         // add dummy successor
         successors = Collections.singleton(TimeoutElement.INSTANCE);
@@ -249,7 +249,7 @@ public class MonitorTransferRelation implements TransferRelation {
     // check for violation of limits
     if (preventingCondition == null) {
       if (timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath) {
-        preventingCondition = Pair.of(PreventingHeuristicType.PATHCOMPTIME, timeLimitForPath);
+        preventingCondition = Pair.of(PreventingHeuristic.PATHCOMPTIME, timeLimitForPath);
       }
     }
 

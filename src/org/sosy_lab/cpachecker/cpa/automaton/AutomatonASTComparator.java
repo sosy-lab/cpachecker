@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,14 +56,16 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTTypeId;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StatementVisitor;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Provides methods for generating, comparing and printing the ASTs generated from String.
@@ -95,7 +97,8 @@ class AutomatonASTComparator {
     return parse(tmp);
   }
 
-  private static String replaceJokersInPattern(String pPattern) {
+  @VisibleForTesting
+  static String replaceJokersInPattern(String pPattern) {
     String tmp = pPattern.replaceAll("\\$\\?", " " + JOKER_EXPR + " ");
     Matcher matcher = NUMBERED_JOKER_PATTERN.matcher(tmp);
     StringBuffer result = new StringBuffer();
@@ -528,7 +531,7 @@ class AutomatonASTComparator {
     }
   }
 
-  private static class CastExpressionMatcher extends OneOperandExpressionMatcher<IASTCastExpression, IASTTypeId> {
+  private static class CastExpressionMatcher extends OneOperandExpressionMatcher<IASTCastExpression, IType> {
 
     public CastExpressionMatcher(IASTCastExpression pPattern, ASTMatcher pOperand) {
       super(IASTCastExpression.class, pPattern, pOperand);
@@ -540,8 +543,8 @@ class AutomatonASTComparator {
     }
 
     @Override
-    protected IASTTypeId getFieldValueFrom(IASTCastExpression pSource) {
-      return pSource.getTypeId();
+    protected IType getFieldValueFrom(IASTCastExpression pSource) {
+      return pSource.getType();
     }
   }
 
@@ -591,7 +594,7 @@ class AutomatonASTComparator {
     }
   }
 
-  private static class TypeIdExpressionMatcher extends ExpressionWithFieldMatcher<IASTTypeIdExpression, IASTTypeId> {
+  private static class TypeIdExpressionMatcher extends ExpressionWithFieldMatcher<IASTTypeIdExpression, IType> {
 
     private final TypeIdOperator operator;
 
@@ -607,8 +610,8 @@ class AutomatonASTComparator {
     }
 
     @Override
-    protected IASTTypeId getFieldValueFrom(IASTTypeIdExpression pSource) {
-      return pSource.getTypeId();
+    protected IType getFieldValueFrom(IASTTypeIdExpression pSource) {
+      return pSource.getType();
     }
   }
 

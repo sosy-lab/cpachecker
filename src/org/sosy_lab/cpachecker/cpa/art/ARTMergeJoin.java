@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,9 +43,7 @@ public class ARTMergeJoin implements MergeOperator {
     ARTElement artElement1 = (ARTElement)pElement1;
     ARTElement artElement2 = (ARTElement)pElement2;
 
-    // covered elements are not in the reached set
     assert !artElement1.isCovered();
-    assert !artElement2.isCovered();
 
     if (!artElement2.mayCover()) {
       // elements that may not cover should also not be used for merge

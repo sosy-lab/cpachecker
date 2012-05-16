@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,13 +49,15 @@ class AutomatonStatistics implements Statistics {
     AutomatonTransferRelation trans = mCpa.getTransferRelation();
     out.println("Number of states:                    " + mCpa.getAutomaton().getNumberOfStates());
     out.println("Total time for sucessor computation: " + trans.totalPostTime);
-    if (trans.totalPostTime.getSumTime() >= 10) {
+    if (trans.totalPostTime.getSumTime() >= 500) {
       // normally automaton is very fast, and time measurements are very imprecise
       // so don't care about very small times
       out.println("  Time for transition matches:       " + trans.matchTime);
       out.println("  Time for transition assertions:    " + trans.assertionsTime);
       out.println("  Time for transition actions:       " + trans.actionTime);
     }
-    out.println("Total time for strengthen operator:  " + trans.totalStrengthenTime);
+    if (trans.totalStrengthenTime.getNumberOfIntervals() > 0) {
+      out.println("Total time for strengthen operator:  " + trans.totalStrengthenTime);
+    }
   }
 }

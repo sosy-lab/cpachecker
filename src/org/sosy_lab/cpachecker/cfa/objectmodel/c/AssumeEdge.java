@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,6 +28,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
+import com.google.common.base.Optional;
+
 public class AssumeEdge extends AbstractCFAEdge {
 
   private final boolean truthAssumption;
@@ -36,7 +38,7 @@ public class AssumeEdge extends AbstractCFAEdge {
   public AssumeEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
       CFANode pSuccessor, IASTExpression pExpression, boolean pTruthAssumption) {
 
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+    super("[" + pRawStatement + "]", pLineNumber, pPredecessor, pSuccessor);
     truthAssumption = pTruthAssumption;
     expression = pExpression;
   }
@@ -55,8 +57,16 @@ public class AssumeEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public String getRawStatement() {
-    return "[" + super.getRawStatement() + "]";
+  public String getCode() {
+    if (truthAssumption) {
+      return expression.toASTString();
+    }
+    return "!(" + expression.toASTString() + ")";
+  }
+
+  @Override
+  public String getDescription() {
+    return "[" + getCode() + "]";
   }
 
   /**
@@ -66,7 +76,7 @@ public class AssumeEdge extends AbstractCFAEdge {
    * of {@link #getRawStatement()} (it misses the outer negation of the expression).
    */
   @Override
-  public IASTExpression getRawAST() {
-    return expression;
+  public Optional<IASTExpression> getRawAST() {
+    return Optional.of(expression);
   }
 }

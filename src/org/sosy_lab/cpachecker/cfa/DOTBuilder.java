@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,17 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
-
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -42,8 +34,12 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 
 /**
  * Class for generating a DOT file from a CFA.
@@ -56,21 +52,13 @@ public final class DOTBuilder {
   private static final Joiner JOINER_ON_NEWLINE = Joiner.on('\n');
 
   public static String generateDOT(Collection<CFAFunctionDefinitionNode> cfasMapList, CFAFunctionDefinitionNode cfa) {
-    Map<String, List<String>> subGraphs = new HashMap<String, List<String>>();
-    List<String> nodeWriter = new ArrayList<String>();
-
-    subGraphs.put(MAIN_GRAPH, new ArrayList<String>());
-
-    for(CFAFunctionDefinitionNode fnode:cfasMapList){
-      subGraphs.put(fnode.getFunctionName(), new ArrayList<String>());
-    }
-
-    generateDotHelper (subGraphs, nodeWriter, cfa);
+    DotGenerator dotGenerator = new DotGenerator();
+    CFATraversal.dfs().traverseOnce(cfa, dotGenerator);
 
     StringBuilder sb = new StringBuilder();
     sb.append("digraph " + "CFA" + " {\n");
 
-    JOINER_ON_NEWLINE.appendTo(sb, nodeWriter);
+    JOINER_ON_NEWLINE.appendTo(sb, dotGenerator.nodes);
     sb.append('\n');
 
     // define the graphic representation for all subsequent nodes
@@ -79,91 +67,74 @@ public final class DOTBuilder {
     for (CFAFunctionDefinitionNode fnode : cfasMapList) {
       sb.append("subgraph cluster_" + fnode.getFunctionName() + " {\n");
       sb.append("label=\"" + fnode.getFunctionName() + "()\"\n");
-      JOINER_ON_NEWLINE.appendTo(sb, subGraphs.get(fnode.getFunctionName()));
+      JOINER_ON_NEWLINE.appendTo(sb, dotGenerator.edges.get(fnode.getFunctionName()));
       sb.append("}\n");
     }
 
-    JOINER_ON_NEWLINE.appendTo(sb, subGraphs.get(MAIN_GRAPH));
+    JOINER_ON_NEWLINE.appendTo(sb, dotGenerator.edges.get(MAIN_GRAPH));
     sb.append("}");
     return sb.toString();
   }
 
-  private static void generateDotHelper(Map<String, List<String>> subGraphWriters, List<String> nodeWriter, CFAFunctionDefinitionNode cfa) {
-    Set<CFANode> visitedNodes = new HashSet<CFANode> ();
-    Deque<CFANode> waitingNodeList = new ArrayDeque<CFANode> ();
-    Set<CFANode> waitingNodeSet = new HashSet<CFANode> ();
+  private static class DotGenerator implements CFATraversal.CFAVisitor {
 
-    waitingNodeList.add (cfa);
-    waitingNodeSet.add (cfa);
-    while (!waitingNodeList.isEmpty ())
-    {
-      CFANode node = waitingNodeList.poll ();
-      waitingNodeSet.remove (node);
+    private final List<String> nodes = new ArrayList<String>();
 
-      visitedNodes.add (node);
+    // edges for each function
+    private final ListMultimap<String, String> edges = ArrayListMultimap.create();
 
-      boolean nodeWritten = false;
+    @Override
+    public TraversalProcess visitEdge(CFAEdge edge) {
+      CFANode predecessor = edge.getPredecessor();
+      if (!predecessor.isLoopStart() && edge instanceof AssumeEdge) {
+        nodes.add(formatNode(predecessor, "diamond"));
+      }
+
+      List<String> graph;
+      if ((edge instanceof FunctionCallEdge) || edge instanceof FunctionReturnEdge){
+        graph = edges.get(MAIN_GRAPH);
+      }
+      else{
+        graph = edges.get(predecessor.getFunctionName());
+      }
+      graph.add(formatEdge(edge));
+
+      return CFATraversal.TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    public TraversalProcess visitNode(CFANode node) {
 
       if(node.isLoopStart()){
-        nodeWriter.add(formatNode(node, "doublecircle"));
-        nodeWritten = true;
+        nodes.add(formatNode(node, "doublecircle"));
       }
 
-      for (CFAEdge edge : allLeavingEdges(node)) {
+      return CFATraversal.TraversalProcess.CONTINUE;
+    }
 
-        if (!nodeWritten && edge instanceof AssumeEdge) {
-          nodeWriter.add(formatNode(node, "diamond"));
-          nodeWritten = true;
-        }
+    private static String formatNode(CFANode node, String shape) {
+      return node.getNodeNumber() + " [shape=\"" + shape + "\"]";
+    }
 
-        CFANode successor = edge.getSuccessor ();
+    private static String formatEdge(CFAEdge edge) {
+      StringBuilder sb = new StringBuilder();
+      sb.append(edge.getPredecessor().getNodeNumber());
+      sb.append(" -> ");
+      sb.append(edge.getSuccessor().getNodeNumber());
+      sb.append(" [label=\"");
 
-        if ((!visitedNodes.contains (successor)) && (!waitingNodeSet.contains (successor)))
-        {
-          waitingNodeList.add (successor);
-          waitingNodeSet.add (successor);
-        }
+      //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
+      //future updates of dotty may make this obsolete.
+      sb.append(edge.getDescription().replaceAll("\\Q\\\"\\E", "\\ \"")
+                                     .replaceAll("\\\"", "\\\\\\\"")
+                                     .replaceAll("\n", " "));
 
-        List<String> graph;
-        if ((edge instanceof FunctionCallEdge) || edge instanceof FunctionReturnEdge){
-          graph = subGraphWriters.get(MAIN_GRAPH);
-        }
-        else{
-          graph = subGraphWriters.get(node.getFunctionName());
-        }
-        graph.add(formatEdge(edge));
+      sb.append("\"");
+      if (edge instanceof CallToReturnEdge) {
+        sb.append(" style=\"dotted\" arrowhead=\"empty\"");
       }
+      sb.append("]");
+      return sb.toString();
     }
-  }
-
-  private static String formatNode(CFANode node, String shape) {
-    return node.getNodeNumber() + " [shape=\"" + shape + "\"]";
-  }
-
-  private static String formatEdge(CFAEdge edge) {
-    StringBuilder sb = new StringBuilder();
-    sb.append(edge.getPredecessor().getNodeNumber());
-    sb.append(" -> ");
-    sb.append(edge.getSuccessor().getNodeNumber());
-    sb.append(" [label=\"");
-
-    //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
-    //future updates of dotty may make this obsolete.
-    if(edge.getRawAST() != null){
-      sb.append(edge.getRawAST().toASTString().replaceAll("\\Q\\\"\\E", "\\ \"")
-                                              .replaceAll("\\\"", "\\\\\\\"")
-                                              .replaceAll("\n", " "));
-    } else {
-      sb.append(edge.getRawStatement().replaceAll("\\Q\\\"\\E", "\\ \"")
-                                      .replaceAll("\\\"", "\\\\\\\"")
-                                      .replaceAll("\n", " "));
-    }
-
-    sb.append("\"");
-    if (edge instanceof CallToReturnEdge) {
-      sb.append(" style=\"dotted\" arrowhead=\"empty\"");
-    }
-    sb.append("]");
-    return sb.toString();
   }
 }

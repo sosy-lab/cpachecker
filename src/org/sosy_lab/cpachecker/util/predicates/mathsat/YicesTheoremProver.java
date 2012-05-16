@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,10 +42,9 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver.MathsatAllSatCallback;
 
@@ -59,7 +58,7 @@ public class YicesTheoremProver implements TheoremProver {
     private int curVarIndex;
     private final int yicesContext;
     private final yices.YicesLite yicesManager;
-    private final FormulaManager smgr;
+    private final MathsatFormulaManager smgr;
 
     private final Deque<Collection<String>> declStack;
     private final Set<String> globalDecls;
@@ -71,7 +70,7 @@ public class YicesTheoremProver implements TheoremProver {
     // much memory
     // private final int MAX_NUM_YICES_CALLS = 100;
 
-    public YicesTheoremProver(FormulaManager mgr, LogManager logger) {
+    public YicesTheoremProver(MathsatFormulaManager mgr, LogManager logger) {
         msatVarToYicesVar = new HashMap<Long, String>();
         msatToYicesCache = new HashMap<Long, String>();
         yicesPredToMsat = new HashMap<String, Long>();
@@ -283,8 +282,8 @@ public class YicesTheoremProver implements TheoremProver {
 
     @Override
     public AllSatResult allSat(Formula f, Collection<Formula> important,
-            AbstractionManager amgr, Timer timer) {
-        MathsatAllSatCallback callback = new MathsatAllSatCallback(amgr, timer);
+            RegionCreator rmgr, Timer timer) {
+        MathsatAllSatCallback callback = new MathsatAllSatCallback(rmgr, timer);
 
         // build the yices representation of the formula...
         Pair<Collection<String>, String> yicesFormula = toYices(f);
@@ -371,14 +370,6 @@ public class YicesTheoremProver implements TheoremProver {
     @Override
     public boolean isUnsat() {
         return yicesInconsistent();
-    }
-
-    @Override
-    public boolean isUnsat(Formula f) {
-        push(f);
-        boolean res = yicesInconsistent();
-        pop();
-        return res;
     }
 
     @Override

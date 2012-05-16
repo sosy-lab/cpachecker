@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingElement;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.base.Preconditions;
 
@@ -36,17 +36,17 @@ import com.google.common.base.Preconditions;
  */
 public class GenericAssumptionsElement implements AbstractElement, AssumptionReportingElement {
 
-  // The inner representation is a formula.
-  private final Formula assumption;
+  // The inner representation is an expression.
+  private final IASTExpression assumption;
 
-  public GenericAssumptionsElement(Formula anAssumption)
+  public GenericAssumptionsElement(IASTExpression anAssumption)
   {
     Preconditions.checkNotNull(anAssumption);
     assumption = anAssumption;
   }
 
   @Override
-  public Formula getAssumption()
+  public IASTExpression getAssumption()
   {
     return assumption;
   }
@@ -67,6 +67,6 @@ public class GenericAssumptionsElement implements AbstractElement, AssumptionRep
 
   @Override
   public String toString() {
-    return assumption.toString();
+    return assumption.toASTString();
   }
 }

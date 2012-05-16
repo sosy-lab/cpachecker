@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,10 +39,10 @@ import org.sosy_lab.cpachecker.cpa.predicate.BlockOperator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 class ImpactTransferRelation implements TransferRelation {
 
@@ -51,15 +51,15 @@ class ImpactTransferRelation implements TransferRelation {
   private final BlockOperator blk;
   private final FormulaManager fmgr;
   private final PathFormulaManager pfmgr;
-  private final TheoremProver prover;
+  private final Solver solver;
 
   public ImpactTransferRelation(LogManager pLogger, BlockOperator pBlk,
-      FormulaManager pFmgr, PathFormulaManager pPfmgr, TheoremProver pProver) {
+      FormulaManager pFmgr, PathFormulaManager pPfmgr, Solver pSolver) {
     logger = pLogger;
     blk = pBlk;
     fmgr = pFmgr;
     pfmgr = pPfmgr;
-    prover = pProver;
+    solver = pSolver;
   }
 
   @Override
@@ -73,7 +73,7 @@ class ImpactTransferRelation implements TransferRelation {
 
     ImpactAbstractElement newElement;
 
-    if (blk.isBlockEnd(pCfaEdge.getSuccessor(), newPathFormula)) {
+    if (blk.isBlockEnd(pCfaEdge, newPathFormula)) {
       PathFormula blockFormula = newPathFormula;
       newPathFormula = pfmgr.makeEmptyPathFormula(blockFormula);
 
@@ -112,15 +112,7 @@ class ImpactTransferRelation implements TransferRelation {
 
     Formula f = fmgr.makeAnd(pElement.getStateFormula(), pElement.getPathFormula().getFormula());
 
-    boolean unsat;
-    try {
-      prover.init();
-      unsat = prover.isUnsat(f);
-    } finally {
-      prover.reset();
-    }
-
-    if (unsat) {
+    if (solver.isUnsat(f)) {
       logger.log(Level.FINEST, "Path is infeasible.");
       return Collections.emptySet();
 

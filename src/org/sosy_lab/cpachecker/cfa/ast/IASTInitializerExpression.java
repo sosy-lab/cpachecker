@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,15 +25,15 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public final class IASTInitializerExpression extends IASTInitializer {
 
-  private final IASTRightHandSide expression;
+  private final IASTExpression expression;
 
   public IASTInitializerExpression(final IASTFileLocation pFileLocation,
-                                   final IASTRightHandSide pExpression) {
+                                   final IASTExpression pExpression) {
     super(pFileLocation);
     expression = pExpression;
   }
 
-  public IASTRightHandSide getExpression() {
+  public IASTExpression getExpression() {
     return expression;
   }
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -266,6 +266,7 @@ public class ABMTransferRelation implements TransferRelation {
   private final TransferRelation wrappedTransfer;
   private final ReachedSetFactory reachedSetFactory;
   private final Reducer wrappedReducer;
+  private final ABMPrecisionAdjustment prec;
 
   private Map<AbstractElement, Precision> forwardPrecisionToExpandedPrecision;
 
@@ -287,6 +288,8 @@ public class ABMTransferRelation implements TransferRelation {
   final Timer removeSubtreeTimer = new Timer();
   final Timer searchingTimer = new Timer();
 
+
+
   public ABMTransferRelation(Configuration pConfig, LogManager pLogger, ABMCPA abmCpa, ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
@@ -294,6 +297,7 @@ public class ABMTransferRelation implements TransferRelation {
     reachedSetFactory = pReachedSetFactory;
     wrappedTransfer = abmCpa.getWrappedCpa().getTransferRelation();
     wrappedReducer = abmCpa.getReducer();
+    prec = abmCpa.getPrecisionAdjustment();
     assert wrappedReducer != null;
   }
 
@@ -459,8 +463,14 @@ public class ABMTransferRelation implements TransferRelation {
         //this needs to be propagated to outer subgraph (till main is reached)
         returnElements = Collections.singletonList(lastElement);
 
-      } else {
-
+      }
+      else if(reached.hasWaitingElement()) {
+        //no target element, but waiting elements
+        //analysis failed -> also break this analysis
+        prec.breakAnalysis();
+        return Collections.singletonList(Pair.of(reducedInitialElement, reducedInitialPrecision)); //dummy element
+      }
+      else {
         returnElements = new ArrayList<AbstractElement>();
         for(CFANode returnNode : currentBlock.getReturnNodes()) {
           Iterables.addAll(returnElements, AbstractElements.filterLocation(reached, returnNode));

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,7 +38,7 @@ public final class IASTCompositeTypeSpecifier extends IType {
     super(pConst, pVolatile);
     key = pKey;
     members = ImmutableList.copyOf(pMembers);
-    name = pName;
+    name = pName.intern();
   }
 
   public int getKey() {
@@ -57,7 +57,7 @@ public final class IASTCompositeTypeSpecifier extends IType {
   public static final int k_union  = 2;
 
   @Override
-  public String toASTString() {
+  public String toASTString(String pDeclarator) {
     StringBuilder lASTString = new StringBuilder();
 
     if (isConst()) {
@@ -84,7 +84,22 @@ public final class IASTCompositeTypeSpecifier extends IType {
       lASTString.append("\n");
     }
     lASTString.append("} ");
+    lASTString.append(pDeclarator);
 
     return lASTString.toString();
+  }
+
+
+  /**
+   * This is the declaration of a member of a composite type.
+   * It contains a type and an optional name.
+   */
+  public static final class IASTCompositeTypeMemberDeclaration extends IASTSimpleDeclaration {
+
+    public IASTCompositeTypeMemberDeclaration(IASTFileLocation pFileLocation,
+                                              IType pSpecifier,
+                                              String pName) {
+      super(pFileLocation, pSpecifier, pName);
+    }
   }
 }

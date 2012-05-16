@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,6 +27,7 @@ import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -40,9 +41,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
@@ -51,6 +55,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -69,21 +74,31 @@ import com.google.common.collect.Multimap;
  * and removing the relevant parts of the ART).
  */
 @Options(prefix="cpa.predicate.refinement")
-public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARTElement, CFANode>> {
+public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARTElement, CFANode>> implements StatisticsProvider {
 
   @Option(description="refinement will add all discovered predicates "
           + "to all the locations in the abstract trace")
   private boolean addPredicatesGlobally = false;
 
-  final Timer precisionUpdate = new Timer();
-  final Timer artUpdate = new Timer();
-
-  public static PredicateRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
-    if (!(pCpa instanceof WrapperCPA)) {
-      throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
+  private class Stats implements Statistics {
+    @Override
+    public String getName() {
+      return "Predicate Abstraction Refiner";
     }
 
-    PredicateCPA predicateCpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(PredicateCPA.class);
+    @Override
+    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+      PredicateRefiner.this.printStatistics(out, pResult, pReached);
+      out.println("  Precision update:               " + precisionUpdate);
+      out.println("  ART update:                     " + artUpdate);
+    }
+  }
+
+  private final Timer precisionUpdate = new Timer();
+  private final Timer artUpdate = new Timer();
+
+  public static PredicateRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+    PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " needs a PredicateCPA");
     }
@@ -92,14 +107,13 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
 
     PredicateRefinementManager manager = new PredicateRefinementManager(predicateCpa.getFormulaManager(),
                                           predicateCpa.getPathFormulaManager(),
-                                          predicateCpa.getTheoremProver(),
-                                          predicateCpa.getPredicateManager(),
+                                          predicateCpa.getSolver(),
+                                          predicateCpa.getAbstractionManager(),
+                                          predicateCpa.getFormulaManagerFactory(),
                                           predicateCpa.getConfiguration(),
                                           logger);
 
-    PredicateRefiner refiner = new PredicateRefiner(predicateCpa.getConfiguration(), logger, pCpa, manager);
-    predicateCpa.getStats().addRefiner(refiner);
-    return refiner;
+    return new PredicateRefiner(predicateCpa.getConfiguration(), logger, pCpa, manager);
   }
 
   protected PredicateRefiner(final Configuration config, final LogManager logger,
@@ -190,6 +204,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPrecision.getPredicateMap();
     Set<AbstractionPredicate> globalPredicates = oldPrecision.getGlobalPredicates();
 
+    boolean predicatesFound = false;
     boolean newPredicatesFound = false;
     Pair<ARTElement, CFANode> firstInterpolationPoint = null;
     ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
@@ -204,6 +219,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
 
       if (localPreds.size() > 0) {
         // found predicates
+        predicatesFound = true;
         CFANode loc = interpolationPoint.getSecond();
 
         if (firstInterpolationPoint == null) {
@@ -219,6 +235,12 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
         }
 
       }
+    }
+    if (!predicatesFound) {
+      // The only reason why this might appear is that the very last block is
+      // infeasible in itself, however, we check for such cases during strengthen,
+      // so they shouldn't appear here.
+      throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
     }
     assert firstInterpolationPoint != null;
 
@@ -269,5 +291,10 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
       }
     }
     return Pair.of(root, newPrecision);
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(new Stats());
   }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -61,7 +61,9 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.NumericTypes;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -79,7 +81,6 @@ import org.sosy_lab.cpachecker.cpa.pointer.PointerElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
-import org.sosy_lab.cpachecker.util.assumptions.NumericTypes;
 
 @Options(prefix="cpa.interval")
 public class IntervalAnalysisTransferRelation implements TransferRelation
@@ -595,25 +596,26 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   throws UnrecognizedCCodeException
   {
     IntervalAnalysisElement newElement = element.clone();
-    if (declarationEdge.getName() != null) {
+    if (declarationEdge.getDeclaration() instanceof IASTVariableDeclaration) {
+        IASTVariableDeclaration decl = (IASTVariableDeclaration)declarationEdge.getDeclaration();
 
         // ignore pointer variables
-        if (declarationEdge.getDeclSpecifier() instanceof IASTPointerTypeSpecifier)
+        if (decl.getDeclSpecifier() instanceof IASTPointerTypeSpecifier)
           return newElement;
 
         // if this is a global variable, add it to the list of global variables
-        if(declarationEdge.isGlobal())
+        if(decl.isGlobal())
         {
-          globalVars.add(declarationEdge.getName().toString());
+          globalVars.add(decl.getName().toString());
 
           Interval interval;
 
-          IASTInitializer init = declarationEdge.getInitializer();
+          IASTInitializer init = decl.getInitializer();
 
           // global variables may be initialized explicitly on the spot ...
           if(init instanceof IASTInitializerExpression)
           {
-            IASTRightHandSide exp = ((IASTInitializerExpression)init).getExpression();
+            IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
 
             interval = evaluateInterval(element, exp, "", declarationEdge);
           }
@@ -622,7 +624,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
           else
             interval = new Interval(0L);
 
-          String varName = constructVariableName(declarationEdge.getName().toString(), "");
+          String varName = constructVariableName(decl.getName().toString(), "");
 
           newElement.addInterval(varName, interval, this.threshold);
         }
@@ -630,7 +632,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         // non-global variables are initialized with an unbound interval
         else
         {
-          String varName = constructVariableName(declarationEdge.getName(), declarationEdge.getPredecessor().getFunctionName());
+          String varName = constructVariableName(decl.getName(), declarationEdge.getPredecessor().getFunctionName());
 
           newElement.addInterval(varName, Interval.createUnboundInterval(), this.threshold);
           //newElement.addInterval(varName, new Interval(0L), this.threshold);

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.Set;
 
@@ -41,7 +42,9 @@ import com.google.common.collect.Multiset.Entry;
  * Maps a variable name to its latest "SSA index", that should be used when
  * referring to that variable
  */
-public class SSAMap {
+public class SSAMap implements Serializable {
+
+  private static final long serialVersionUID = 7618801653203679876L;
 
   /**
    * Builder for SSAMaps. Its state starts with an existing SSAMap, but may be
@@ -132,9 +135,10 @@ public class SSAMap {
     return EMPTY_SSA_MAP;
   }
 
-  public static SSAMap emptyWithDefault(final int defaultValue) {
-    return new SSAMap(ImmutableMultiset.<String>of(),
-                      ImmutableMultiset.<Pair<String, FormulaList>>of()) {
+  public SSAMap withDefault(final int defaultValue) {
+    return new SSAMap(this.vars, this.funcs) {
+
+      private static final long serialVersionUID = -5638018887478723717L;
 
       @Override
       public int getIndex(String pVariable) {
@@ -196,7 +200,7 @@ public class SSAMap {
   }
 
   private static <T> Multiset<T> merge(Multiset<T> s1, Multiset<T> s2) {
-    Multiset<T> result = LinkedHashMultiset.create(Math.max(s1.size(), s2.size()));
+    Multiset<T> result = LinkedHashMultiset.create(Math.max(s1.elementSet().size(), s2.elementSet().size()));
     for (Entry<T> entry : s1.entrySet()) {
       T key = entry.getElement();
       int i1 = entry.getCount();
@@ -209,6 +213,7 @@ public class SSAMap {
         result.setCount(key, entry.getCount());
       }
     }
+
     return result;
   }
 

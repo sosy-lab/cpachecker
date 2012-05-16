@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton;
 
+import java.io.IOException;
+import java.io.NotSerializableException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -34,6 +36,12 @@ import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.IGuardedEdgeAutomatonSta
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 
 public abstract class ProductAutomatonElement extends CompositeElement {
+
+  /* Boilerplate code to avoid serializing this class */
+  private static final long serialVersionUID = 0xDEADBEEF;
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    throw new NotSerializableException();
+  }
 
   public static ProductAutomatonElement createElement(List<AbstractElement> pElements) {
     List<ECPPredicate> lPredicates = new LinkedList<ECPPredicate>();
@@ -57,6 +65,11 @@ public abstract class ProductAutomatonElement extends CompositeElement {
   }
 
   public static class StateElement extends ProductAutomatonElement {
+    /* Boilerplate code to avoid serializing this class */
+    private static final long serialVersionUID = 0xDEADBEEF;
+    private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+      throw new NotSerializableException();
+    }
 
     public StateElement(List<AbstractElement> pElements) {
       super(pElements);
@@ -65,6 +78,11 @@ public abstract class ProductAutomatonElement extends CompositeElement {
   }
 
   public static class PredicateElement extends ProductAutomatonElement {
+    /* Boilerplate code to avoid serializing this class */
+    private static final long serialVersionUID = 0xDEADBEEF;
+    private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+      throw new NotSerializableException();
+    }
 
     private final List<ECPPredicate> mPredicates;
 
@@ -113,7 +131,7 @@ public abstract class ProductAutomatonElement extends CompositeElement {
       return false;
     }
 
-    for (AbstractElement lElement : getElements()) {
+    for (AbstractElement lElement : getWrappedElements()) {
       IGuardedEdgeAutomatonStateElement lStateElement = (IGuardedEdgeAutomatonStateElement)lElement;
 
       if (!lStateElement.isFinalState()) {
@@ -130,7 +148,7 @@ public abstract class ProductAutomatonElement extends CompositeElement {
       return true;
     }
 
-    for (AbstractElement lElement : getElements()) {
+    for (AbstractElement lElement : getWrappedElements()) {
       Targetable lSubelement = (Targetable)lElement;
 
       if (lSubelement.isTarget()) {

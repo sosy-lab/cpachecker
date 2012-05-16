@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
 public class IRFormulaMatriciser extends FormulaMatriciser {
 
   @Override
-  public IRMatrix buildMatrix(TemplateFormula t, VariableManager vmgr, Map<String, Variable> paramVars) {
+  public IRMatrix buildMatrix(TemplateFormula t, VariableManager vmgr, Map<String, Variable> paramVars, boolean prependTrue) {
     if (t.isTrue()) {
       return booleanIRMatrix(vmgr, true);
     }
@@ -62,6 +62,12 @@ public class IRFormulaMatriciser extends FormulaMatriciser {
     Coeff rhs;
     InfixReln reln;
     List<IRMatrix> cols = new Vector<IRMatrix>();
+
+    // Prepend a "true" column, if requested.
+    if (prependTrue) {
+      cols.add(booleanIRMatrix(vmgr, true));
+    }
+
     for (int i = 0; i < constraints.size(); i++) {
       cons = constraints.get(i);
       coeffs = cons.getNormalFormCoeffs(vmgr, VariableWriteMode.REDLOG);

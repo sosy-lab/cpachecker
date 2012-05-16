@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,17 +27,19 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 public class DefaultInterpolationManager extends InterpolationManager<Formula> {
 
   public DefaultInterpolationManager(ExtendedFormulaManager pFmgr,
-      PathFormulaManager pPmgr, TheoremProver pThmProver,
+      PathFormulaManager pPmgr, Solver pSolver,
+      FormulaManagerFactory pFmgrFactory,
       Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
-    super(pFmgr, pPmgr, pThmProver, pConfig, pLogger);
+    super(pFmgr, pPmgr, pSolver, pFmgrFactory, pConfig, pLogger);
   }
 
   @Override

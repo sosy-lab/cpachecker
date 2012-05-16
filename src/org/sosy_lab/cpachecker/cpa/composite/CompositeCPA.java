@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,9 +30,11 @@ import java.util.List;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -41,18 +43,21 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithAB
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.cpa.explicit.OmniscientCompositePrecisionAdjustment;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithABM
-{
+public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithABM, ProofChecker {
 
   @Options(prefix="cpa.composite")
   private static class CompositeOptions {
@@ -61,6 +66,13 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
           + "Both delegate to the component cpas, but agree only allows "
           + "merging if all cpas agree on this. This is probably what you want.")
     private String merge = "AGREE";
+
+    @Option(toUppercase=true, values={"IGNORANT", "OMNISCIENT"},
+    description="which precision adjustment strategy to use (ignorant or omniscient)\n"
+      + "While an ignorant strategy keeps the domain knowledge seperated, "
+      + "and delegates to the component precision adjustment operators, "
+      + "the omniscient strategy may operate on global knowledge.")
+    private String precAdjust = "IGNORANT";
   }
 
   private static class CompositeCPAFactory extends AbstractCPAFactory {
@@ -79,14 +91,23 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       ImmutableList.Builder<MergeOperator> mergeOperators = ImmutableList.builder();
       ImmutableList.Builder<StopOperator> stopOperators = ImmutableList.builder();
       ImmutableList.Builder<PrecisionAdjustment> precisionAdjustments = ImmutableList.builder();
+      ImmutableList.Builder<SimplePrecisionAdjustment> simplePrecisionAdjustments = ImmutableList.builder();
 
       boolean mergeSep = true;
+      boolean simplePrec = true;
 
       for (ConfigurableProgramAnalysis sp : cpas) {
         domains.add(sp.getAbstractDomain());
         transferRelations.add(sp.getTransferRelation());
         stopOperators.add(sp.getStopOperator());
-        precisionAdjustments.add(sp.getPrecisionAdjustment());
+
+        PrecisionAdjustment prec = sp.getPrecisionAdjustment();
+        if (prec instanceof SimplePrecisionAdjustment) {
+          simplePrecisionAdjustments.add((SimplePrecisionAdjustment) prec);
+        } else {
+          simplePrec = false;
+        }
+        precisionAdjustments.add(prec);
 
         MergeOperator merge = sp.getMergeOperator();
         if (merge != MergeSepOperator.getInstance()) {
@@ -114,7 +135,17 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       CompositeDomain compositeDomain = new CompositeDomain(domains.build());
       CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build());
       CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
-      CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build(), compositeStop);
+
+      PrecisionAdjustment compositePrecisionAdjustment;
+      if(options.precAdjust.equals("IGNORANT")) {
+        if (simplePrec) {
+          compositePrecisionAdjustment = new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
+        } else {
+          compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build());
+        }
+      } else {
+        compositePrecisionAdjustment = new OmniscientCompositePrecisionAdjustment(precisionAdjustments.build());
+      }
 
       return new CompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
           compositePrecisionAdjustment, cpas);
@@ -142,18 +173,18 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   private final AbstractDomain abstractDomain;
-  private final TransferRelation transferRelation;
+  private final CompositeTransferRelation transferRelation;
   private final MergeOperator mergeOperator;
-  private final StopOperator stopOperator;
+  private final CompositeStopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
   private final Reducer reducer;
 
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
 
   protected CompositeCPA (AbstractDomain abstractDomain,
-      TransferRelation transferRelation,
+      CompositeTransferRelation transferRelation,
       MergeOperator mergeOperator,
-      StopOperator stopOperator,
+      CompositeStopOperator stopOperator,
       PrecisionAdjustment precisionAdjustment,
       ImmutableList<ConfigurableProgramAnalysis> cpas)
   {
@@ -240,6 +271,9 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
         ((StatisticsProvider)cpa).collectStatistics(pStatsCollection);
       }
     }
+
+    if(precisionAdjustment instanceof StatisticsProvider)
+      ((StatisticsProvider)precisionAdjustment).collectStatistics(pStatsCollection);
   }
 
   @Override
@@ -263,5 +297,15 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Override
   public ImmutableList<? extends ConfigurableProgramAnalysis> getWrappedCPAs() {
     return cpas;
+  }
+
+  @Override
+  public boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge, Collection<? extends AbstractElement> pSuccessors) throws CPATransferException, InterruptedException {
+    return transferRelation.areAbstractSuccessors(pElement, pCfaEdge, pSuccessors, cpas);
+  }
+
+  @Override
+  public boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement) throws CPAException {
+    return stopOperator.isCoveredBy(pElement, pOtherElement, cpas);
   }
 }

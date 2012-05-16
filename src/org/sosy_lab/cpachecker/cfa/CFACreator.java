@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
@@ -74,9 +74,13 @@ public class CFACreator {
       description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
 
-  @Option(name="cfa.removeIrrelevantForErrorLocations",
-      description="remove paths from CFA that cannot lead to a error location")
-  private boolean removeIrrelevantForErrorLocations = false;
+  @Option(name="cfa.useMultiEdges",
+      description="combine sequences of simple edges into a single edge")
+  private boolean useMultiEdges = false;
+
+  @Option(name="cfa.removeIrrelevantForSpecification",
+      description="remove paths from CFA that cannot lead to a specification violation")
+  private boolean removeIrrelevantForSpecification = false;
 
   @Option(name="cfa.export",
       description="export CFA as .dot file")
@@ -115,7 +119,7 @@ public class CFACreator {
     parsingTime = parser.getParseTime();
     conversionTime = parser.getCFAConstructionTime();
 
-    if (removeIrrelevantForErrorLocations) {
+    if (removeIrrelevantForSpecification) {
       cfaReduction = new CFAReduction(config, logger);
     } else {
       cfaReduction = null;
@@ -162,10 +166,10 @@ public class CFACreator {
 
       processingTime.start();
 
-      // annotate CFA nodes with topological information for later use
+      // annotate CFA nodes with reverse postorder information for later use
       for(CFAFunctionDefinitionNode function : cfa.getAllFunctionHeads()){
-        CFATopologicalSort topSort = new CFATopologicalSort();
-        topSort.topologicalSort(function);
+        CFAReversePostorder sorter = new CFAReversePostorder();
+        sorter.assignSorting(function);
       }
 
       // get loop information
@@ -189,18 +193,21 @@ public class CFACreator {
       // remove irrelevant locations
       if (cfaReduction != null) {
         pruningTime.start();
-        cfaReduction.removeIrrelevantForErrorLocations(cfa);
+        cfaReduction.removeIrrelevantForSpecification(cfa);
         pruningTime.stop();
 
         if (cfa.isEmpty()) {
-          logger.log(Level.INFO, "No error locations reachable from " + mainFunction.getFunctionName()
+          logger.log(Level.INFO, "No states which violate the specification are syntactically reachable from the function " + mainFunction.getFunctionName()
                 + ", analysis not necessary. "
-                + "If the code contains no error location named ERROR, set the option cfa.removeIrrelevantForErrorLocations to false.");
+                + "If you want to run the analysis anyway, set the option cfa.removeIrrelevantForSpecification to false.");
 
           return ImmutableCFA.empty();
         }
       }
 
+      if (useMultiEdges) {
+        MultiEdgeCreator.createMultiEdges(cfa);
+      }
 
       final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure);
 
@@ -271,8 +278,12 @@ public class CFACreator {
     } catch (ParserException e) {
       // don't abort here, because if the analysis doesn't need the loop information, we can continue
       logger.logUserException(Level.WARNING, e, "Could not analyze loop structure of program.");
-      return Optional.absent();
+
+    } catch (OutOfMemoryError e) {
+      logger.logUserException(Level.WARNING, e,
+          "Could not analyze loop structure of program due to memory problems");
     }
+    return Optional.absent();
   }
 
   /**
@@ -287,7 +298,7 @@ public class CFACreator {
     CFAFunctionDefinitionNode firstNode = cfa.getMainFunction();
     assert firstNode.getNumLeavingEdges() == 1;
     CFAEdge firstEdge = firstNode.getLeavingEdge(0);
-    assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
+    assert firstEdge instanceof BlankEdge;
     CFANode secondNode = firstEdge.getSuccessor();
 
     CFACreationUtils.removeEdgeFromNodes(firstEdge);
@@ -295,7 +306,7 @@ public class CFACreator {
     // insert one node to start the series of declarations
     CFANode cur = new CFANode(0, firstNode.getFunctionName());
     cfa.addNode(cur);
-    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, firstNode, cur);
+    BlankEdge be = new BlankEdge("", 0, firstNode, cur, "INIT GLOBAL VARS");
     addToCFA(be);
 
     // create a series of GlobalDeclarationEdges, one for each declaration
@@ -306,14 +317,14 @@ public class CFACreator {
 
       CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
       cfa.addNode(n);
-      GlobalDeclarationEdge e = new GlobalDeclarationEdge(rawSignature,
+      DeclarationEdge e = new DeclarationEdge(rawSignature,
           d.getFileLocation().getStartingLineNumber(), cur, n, d);
       addToCFA(e);
       cur = n;
     }
 
     // and a blank edge connecting the declarations with the second node of CFA
-    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
+    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode, firstEdge.getDescription());
     addToCFA(be);
   }
 
@@ -340,7 +351,7 @@ public class CFACreator {
     if (exportCfaPerFunction) {
       try {
         File outdir = exportCfaFile.getParentFile();
-        DOTBuilder2.writeReport(cfa.getMainFunction(), outdir);
+        DOTBuilder2.writeReport(cfa, outdir);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
           "Could not write CFA to dot and json file.");

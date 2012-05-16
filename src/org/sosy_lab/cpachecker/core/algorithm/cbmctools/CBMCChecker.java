@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,7 +42,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -52,8 +51,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 
-import com.google.common.base.Optional;
-
 /**
  * Counterexample checker that creates a C program for the counterexample
  * and calls CBMC on it.
@@ -62,7 +59,6 @@ import com.google.common.base.Optional;
 public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   private final LogManager logger;
-  private final CFA cfa;
 
   private final Timer cbmcTime = new Timer();
 
@@ -79,9 +75,8 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
         min=0)
   private int timelimit = 0; // milliseconds
 
-  public CBMCChecker(Configuration config, LogManager logger, CFA pCfa) throws InvalidConfigurationException, CPAException {
+  public CBMCChecker(Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.logger = logger;
-    this.cfa = pCfa;
     config.inject(this);
   }
 
@@ -91,7 +86,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
     String mainFunctionName = extractLocation(pRootElement).getFunctionName();
 
-    String pathProgram = PathToCTranslator.translatePaths(Optional.of(cfa), pRootElement, pErrorPathElements);
+    String pathProgram = PathToCTranslator.translatePaths(pRootElement, pErrorPathElements);
 
     // write program to disk
     File cFile = cbmcFile;
@@ -123,6 +118,11 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       throw new CounterexampleAnalysisFailed("CBMC took too long to verify the counterexample.");
 
     } finally {
+      if (cbmcFile == null) {
+        // delete temp file so it is gone even if JVM is killed
+        cFile.delete();
+      }
+
       cbmcTime.stop();
       logger.log(Level.FINER, "CBMC finished.");
     }

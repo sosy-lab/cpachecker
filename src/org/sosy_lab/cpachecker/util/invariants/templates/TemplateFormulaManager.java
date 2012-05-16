@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -55,6 +55,11 @@ public class TemplateFormulaManager implements FormulaManager {
     // //TemplateConjunction.
     //return TemplateConjunction.isInstance(pF);
     return (pF instanceof TemplateBoolean);
+  }
+
+  @Override
+  public boolean isPurelyConjunctive(Formula pF) {
+    throw new UnsupportedOperationException();
   }
 
   /**
@@ -629,4 +634,28 @@ public class TemplateFormulaManager implements FormulaManager {
 	  return null;
   }
 
+  @Override
+  public boolean checkSyntacticEntails(Formula pLeftFormula, Formula pRightFormula) {
+    return false;
+  }
+
+  @Override
+  public Formula[] getArguments(Formula pF) {
+    return null;
+  }
+
+  @Override
+  public Formula makeUIP(String pName, FormulaList pArgs) {
+    return null;
+  }
+
+  @Override
+  public void declareUIP(String pName, int pArgCount) {
+
+  }
+
+  @Override
+  public String getVersion() {
+    throw new UnsupportedOperationException();
+  }
 }

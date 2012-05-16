@@ -136,12 +136,10 @@ class CmdLineArguments {
 
       } else if ("-printUsedOptions".equals(arg)) {
         putIfNotExistent(properties, "log.usedOptions.export", "true");
-        // interrupt thread before CPAchecker is run
-        // this will stop CPAchecker before the actual analysis (hack)
-        Thread.currentThread().interrupt();
+        putIfNotExistent(properties, "analysis.disable", "true");
 
         // this will disable all other output
-        properties.put("log.consoleLevel", "OFF");
+        properties.put("log.consoleLevel", "SEVERE");
 
       } else if (arg.equals("-help") || arg.equals("-h")) {
         printHelp();

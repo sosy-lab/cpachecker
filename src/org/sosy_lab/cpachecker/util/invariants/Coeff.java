@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -51,7 +51,9 @@ public class Coeff {
   public RationalFunction makeRationalFunction(Map<String,Variable> paramVars) {
     Polynomial num = value.makePolynomial(paramVars);
     Polynomial denom = new Polynomial(1);
-    return new RationalFunction(num,denom);
+    RationalFunction f = new RationalFunction(num,denom);
+    f.simplify();
+    return f;
   }
 
   /*

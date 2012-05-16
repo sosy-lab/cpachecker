@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.location.LocationElement.LocationElementFactory;
 
-public class InverseLocationCPA implements ConfigurableProgramAnalysis{
+public class InverseLocationCPA implements ConfigurableProgramAnalysis {
 
   private final LocationElementFactory elementFactory;
   private final AbstractDomain abstractDomain = new FlatLatticeDomain();
@@ -78,17 +78,17 @@ public class InverseLocationCPA implements ConfigurableProgramAnalysis{
   }
 
   @Override
-  public PrecisionAdjustment getPrecisionAdjustment () {
+  public PrecisionAdjustment getPrecisionAdjustment() {
     return StaticPrecisionAdjustment.getInstance();
   }
 
   @Override
-  public AbstractElement getInitialElement (CFANode node) {
+  public AbstractElement getInitialElement(CFANode node) {
     return elementFactory.getElement(node);
   }
 
   @Override
-  public Precision getInitialPrecision (CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return SingletonPrecision.getInstance();
   }
 }

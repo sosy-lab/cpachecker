@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -63,11 +63,11 @@ class FunctionPointerPrecisionAdjustment implements PrecisionAdjustment {
 
     if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
       // nothing has changed
-      return new Triple<AbstractElement, Precision, Action>(pElement, oldPrecision, action);
+      return Triple.of(pElement, oldPrecision, action);
     }
 
-    FunctionPointerElement resultElement = element.createDuplicateWithNewWrappedElement(newElement);
+    AbstractElement resultElement = element.createDuplicateWithNewWrappedElement(newElement);
 
-    return new Triple<AbstractElement, Precision, Action>(resultElement, newPrecision, action);
+    return Triple.of(resultElement, newPrecision, action);
   }
 }

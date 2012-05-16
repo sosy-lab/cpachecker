@@ -30,7 +30,7 @@ float local_buffer_out[4096]  __attribute__((__aligned__(128)))  ;
 #line 42 "dma_example_spu.c"
 control_block_t control_block  __attribute__((__aligned__(128)))  ;
 #line 103
-extern int ( /* missing proto */  __CPROVER_ndet_int)() ;
+extern int __VERIFIER_nondet_int() ;
 #line 121
 extern int ( /* missing proto */  assert)() ;
 #line 76 "dma_example_spu.c"
@@ -124,31 +124,31 @@ int spu_main(unsigned long long speid  __attribute__((__unused__)) , unsigned lo
 #line 102
   mfc_get(__cil_tmp16, __cil_tmp17, __cil_tmp18, tag, 0U, 0U);
 #line 103
-  tmp = __CPROVER_ndet_int();
+  tmp = __VERIFIER_nondet_int();
 #line 103
   __cil_tmp19 = & control_block;
 #line 103
   *((unsigned long long *)__cil_tmp19) = (unsigned long long )tmp;
 #line 103
-  tmp___0 = __CPROVER_ndet_int();
+  tmp___0 = __VERIFIER_nondet_int();
 #line 103
   __cil_tmp20 = (unsigned long )(& control_block) + 8;
 #line 103
   *((unsigned long long *)__cil_tmp20) = (unsigned long long )tmp___0;
 #line 103
-  tmp___1 = __CPROVER_ndet_int();
+  tmp___1 = __VERIFIER_nondet_int();
 #line 103
   __cil_tmp21 = (unsigned long )(& control_block) + 16;
 #line 103
   *((unsigned int *)__cil_tmp21) = (unsigned int )tmp___1;
 #line 103
-  tmp___2 = __CPROVER_ndet_int();
+  tmp___2 = __VERIFIER_nondet_int();
 #line 103
   __cil_tmp22 = (unsigned long )(& control_block) + 20;
 #line 103
   *((unsigned int *)__cil_tmp22) = (unsigned int )tmp___2;
 #line 103
-  tmp___3 = __CPROVER_ndet_int();
+  tmp___3 = __VERIFIER_nondet_int();
 #line 103
   __cil_tmp23 = 0 * 4UL;
 #line 103
@@ -158,7 +158,7 @@ int spu_main(unsigned long long speid  __attribute__((__unused__)) , unsigned lo
 #line 103
   *((unsigned int *)__cil_tmp25) = (unsigned int )tmp___3;
 #line 103
-  tmp___4 = __CPROVER_ndet_int();
+  tmp___4 = __VERIFIER_nondet_int();
 #line 103
   __cil_tmp26 = 1 * 4UL;
 #line 103

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,7 +60,7 @@ public class TemplateFormula implements Formula, Template {
    * @return: true if every parameter in this formula was assigned a
    * value by the passed map; false otherwise.
    */
-  public boolean evaluate(HashMap<String,Rational> map) { return true; }
+  public boolean evaluate(Map<String,Rational> map) { return true; }
 
   public void unevaluate() {}
 

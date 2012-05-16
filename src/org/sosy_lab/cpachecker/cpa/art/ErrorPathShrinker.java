@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,9 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
@@ -50,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
@@ -73,7 +74,10 @@ public final class ErrorPathShrinker {
    *
    * @param targetPath the "long" targetPath
    * @return errorPath the "short" errorPath */
-  public Path shrinkErrorPath(final Path targetPath) {
+  public Path shrinkErrorPath(Path targetPath) {
+
+    // first remove all elements after the target-element from path
+    targetPath = removeAllElemsAfterTarget(targetPath);
 
     // first collect all global variables
     findGlobalVarsInPath(targetPath);
@@ -95,8 +99,14 @@ public final class ErrorPathShrinker {
     // the short Path, the result
     final Path shortErrorPath = new Path();
 
-    // the errorNode is important
-    shortErrorPath.addFirst(revIterator.next());
+    // the errorNode is important, add both the edge before and after it
+    final Pair<ARTElement, CFAEdge> lastElem = revIterator.next();
+    assert lastElem.getFirst().isTarget()
+            : "Last Element of ErrorPath must be a targetElement.";
+    shortErrorPath.addFirst(lastElem);
+    if (revIterator.hasNext()) {
+      shortErrorPath.addFirst(revIterator.next());
+    }
 
     /* if the ErrorNode is inside of a function, the longPath is not handled
      * until the StartNode, but only until the functionCall.
@@ -137,6 +147,28 @@ public final class ErrorPathShrinker {
     return shortErrorPath;
   }
 
+  /** This method iterates a Path and removes all elements
+   * after the first target-element.
+   *
+   * example: [1, 2, 3, TARGET, 4, 5] --> [1, 2, 3, TARGET]
+   *
+   * @param path the Path to iterate */
+  private Path removeAllElemsAfterTarget(final Path path) {
+    final Path targetPath = new Path();
+    final Iterator<Pair<ARTElement, CFAEdge>> iterator = path.iterator();
+    Pair<ARTElement, CFAEdge> it;
+
+    // iterate through the Path and find the first target-element
+    while (iterator.hasNext()) {
+      it = iterator.next();
+      targetPath.add(it);
+      if (it.getFirst().isTarget()) {
+        break;
+      }
+    }
+    return targetPath;
+  }
+
   /** This method iterates a Path and adds all global Variables to the Set
    * of global variables.
    *
@@ -148,16 +180,18 @@ public final class ErrorPathShrinker {
     while (iterator.hasNext()) {
       CFAEdge cfaEdge = iterator.next().getSecond();
 
-      // only globalDeclarations (SubType of Declaration) are important
-      if (cfaEdge instanceof GlobalDeclarationEdge) {
-        DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
+      if (cfaEdge instanceof DeclarationEdge) {
+        IASTDeclaration declaration = ((DeclarationEdge) cfaEdge).getDeclaration();
 
-        IType specifier = declarationEdge.getDeclSpecifier();
-        if (declarationEdge.getName() != null) {
-          // if a variable (declarator) is no pointer variable,
-          // it is added to the list of global variables
-          if (!(specifier instanceof IASTPointerTypeSpecifier)) {
-            GLOBAL_VARS.add(declarationEdge.getName());
+        if (declaration.isGlobal()) {
+          // only global declarations are important
+          IType specifier = declaration.getDeclSpecifier();
+          if (declaration.getName() != null) {
+            // if a variable (declarator) is no pointer variable,
+            // it is added to the list of global variables
+            if (!(specifier instanceof IASTPointerTypeSpecifier)) {
+              GLOBAL_VARS.add(declaration.getName());
+            }
           }
         }
       }
@@ -336,13 +370,10 @@ public final class ErrorPathShrinker {
 
         /* There are several BlankEdgeTypes:
          * a loopstart ("while" or "goto loopstart") is important,
-         * a jumpEdge ("goto") is important, iff it contains the word "error",
          * a labelEdge and a really blank edge are not important.
          * TODO are there more types? */
         case BlankEdge:
-          if (cfaEdge.getSuccessor().isLoopStart()
-              || (cfaEdge.isJumpEdge() && cfaEdge.getRawStatement()
-                  .toLowerCase().contains("error"))) {
+          if (cfaEdge.getSuccessor().isLoopStart()) {
             addCurrentCFAEdgePairToShortPath();
           }
           break;
@@ -618,12 +649,12 @@ public final class ErrorPathShrinker {
      * handled as StatementEdge. Global declarations are not divided by CIL. */
     private void handleDeclaration() {
 
-      DeclarationEdge declarationEdge =
-          (DeclarationEdge) currentCFAEdgePair.getSecond();
+      IASTDeclaration declaration =
+          ((DeclarationEdge) currentCFAEdgePair.getSecond()).getDeclaration();
 
       /* If the declared variable is important, the edge is important. */
-      if (declarationEdge.getName() != null) {
-        final String varName = declarationEdge.getName();
+      if (declaration.getName() != null) {
+        final String varName = declaration.getName();
         if (importantVars.contains(varName)) {
           addCurrentCFAEdgePairToShortPath();
 
@@ -674,8 +705,8 @@ public final class ErrorPathShrinker {
         //check, if the last edge was an assumption
         if (assumeExp instanceof IASTBinaryExpression
             && lastEdge instanceof AssumeEdge) {
-          final IASTExpression lastExp =
-              ((AssumeEdge) lastEdge).getExpression();
+          final AssumeEdge lastAss = (AssumeEdge) lastEdge;
+          final IASTExpression lastExp = lastAss.getExpression();
 
           // check, if the last egde was like "a==b"
           if (lastExp instanceof IASTBinaryExpression) {
@@ -688,14 +719,12 @@ public final class ErrorPathShrinker {
             final boolean isEqualVarName = currentBinExpOp1.toASTString().
             equals(lastBinExpOp1.toASTString());
 
-            // switchStatement:     !(x==3);(x==4);   -> operator "=="
-            // similar assumption:  (x>3);(x>4);      -> operator ">"
-            // the operator is stored as 'int'
-            final boolean isEqualOperator =
-                ((IASTBinaryExpression) assumeExp).getOperator()
-                == ((IASTBinaryExpression) lastExp).getOperator();
+            // check, if lastEdge is the true-branch of "==" or the false-branch of "!="
+            final BinaryOperator op = ((IASTBinaryExpression) lastExp).getOperator();
+            final boolean isEqualOp = (op == BinaryOperator.EQUALS && lastAss.getTruthAssumption())
+                || (op == BinaryOperator.NOT_EQUALS && !lastAss.getTruthAssumption());
 
-            return (isEqualVarName && isEqualOperator);
+            return (isEqualVarName && isEqualOp);
           }
         }
       }

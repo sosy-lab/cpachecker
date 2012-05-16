@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -206,14 +206,14 @@ public abstract class MathsatFormulaManager implements FormulaManager {
 
   // ----------------- Uninterpreted functions -----------------
 
-  private long buildMsatUF(String name, long[] args) {
+  private long buildMsatUF(String name, long[] args, boolean predicate) {
     if (!useUIFs) {
       return buildMsatUfReplacement(); // shortcut
     }
 
     int[] tp = new int[args.length];
-    Arrays.fill(tp, msatVarType);
-    long decl = msat_declare_uif(msatEnv, name, msatVarType, tp);
+    Arrays.fill(tp, predicate?MSAT_BOOL:msatVarType);
+    long decl = msat_declare_uif(msatEnv, name, predicate?MSAT_BOOL:msatVarType, tp);
     if (MSAT_ERROR_DECL(decl)) {
       return MSAT_MAKE_ERROR_TERM();
     }
@@ -239,13 +239,18 @@ public abstract class MathsatFormulaManager implements FormulaManager {
   }
 
   @Override
+  public Formula makeUIP(String name, FormulaList args) {
+    return encapsulate(buildMsatUF(name, getTerm(args), true));
+  }
+
+  @Override
   public Formula makeUIF(String name, FormulaList args) {
-    return encapsulate(buildMsatUF(name, getTerm(args)));
+    return encapsulate(buildMsatUF(name, getTerm(args), false));
   }
 
   @Override
   public Formula makeUIF(String name, FormulaList args, int idx) {
-    return encapsulate(buildMsatUF(makeName(name, idx), getTerm(args)));
+    return encapsulate(buildMsatUF(makeName(name, idx), getTerm(args), false));
   }
 
   // ----------------- Other formulas -----------------
@@ -374,6 +379,34 @@ public abstract class MathsatFormulaManager implements FormulaManager {
   }
 
   @Override
+  public boolean isPurelyConjunctive(Formula f) {
+    long t = getTerm(f);
+
+    if ((msat_term_is_atom(t) != 0)
+        || (msat_term_is_uif(t) != 0)) {
+      // term is atom
+      return true;
+
+    } else if (msat_term_is_not(t) != 0) {
+      t = msat_term_get_arg(t, 0);
+      return ((msat_term_is_uif(t) != 0)
+          || (msat_term_is_atom(t) != 0));
+
+    } else if (msat_term_is_and(t) != 0) {
+      int arity = msat_term_arity(t);
+      for (int i = 0; i < arity; ++i) {
+        if (!isPurelyConjunctive(encapsulate(msat_term_get_arg(t, i)))) {
+          return false;
+        }
+      }
+      return true;
+
+    } else {
+      return false;
+    }
+  }
+
+  @Override
   public Formula instantiate(Formula f, SSAMap ssa) {
     Deque<Formula> toProcess = new ArrayDeque<Formula>();
     Map<Formula, Formula> cache = new HashMap<Formula, Formula>();
@@ -425,7 +458,7 @@ public abstract class MathsatFormulaManager implements FormulaManager {
               int idx = ssa.getIndex(name, encapsulate(newargs));
               if (idx > 0) {
                 // ok, the variable has an instance in the SSA, replace it
-                newt = buildMsatUF(makeName(name, idx), newargs);
+                newt = buildMsatUF(makeName(name, idx), newargs, false);
               } else {
                 newt = msat_replace_args(msatEnv, t, newargs);
               }
@@ -494,7 +527,7 @@ public abstract class MathsatFormulaManager implements FormulaManager {
             if (ufCanBeLvalue(name)) {
               name = parseName(name).getFirst();
 
-              newt = buildMsatUF(name, newargs);
+              newt = buildMsatUF(name, newargs, false);
             } else {
               newt = msat_replace_args(msatEnv, t, newargs);
             }
@@ -630,5 +663,58 @@ public abstract class MathsatFormulaManager implements FormulaManager {
     }
     arithCache.put(f, res);
     return res;
+  }
+
+  @Override
+  public boolean checkSyntacticEntails(Formula leftFormula, Formula rightFormula) {
+    final long leftTerm = getTerm(leftFormula);
+
+    Deque<Long> toProcess = new ArrayDeque<Long>();
+    Set<Long> seen = new HashSet<Long>();
+
+    toProcess.push(getTerm(rightFormula));
+    while (!toProcess.isEmpty()) {
+      final long rightSubTerm = toProcess.pop();
+
+      if(rightSubTerm == leftTerm) {
+        return true;
+      }
+
+      if (msat_term_is_variable(rightSubTerm) == 0) {
+        int args = msat_term_arity(rightSubTerm);
+        for (int i = 0; i < args; ++i) {
+          long arg = msat_term_get_arg(rightSubTerm, i);
+          if(!seen.contains(arg)) {
+            toProcess.add(arg);
+            seen.add(arg);
+          }
+        }
+      }
+    }
+
+    return false;
+  }
+
+  @Override
+  public Formula[] getArguments(Formula f) {
+    final long t = getTerm(f);
+    int arity = msat_term_arity(t);
+    Formula[] result = new Formula[arity];
+    for(int i = 0; i < arity; ++i) {
+      result[i] = encapsulate(msat_term_get_arg(t, i));
+    }
+    return result;
+  }
+
+  @Override
+  public void declareUIP(String name, int argCount) {
+    int[] tp = new int[argCount];
+    Arrays.fill(tp, MSAT_BOOL);
+    msat_declare_uif(msatEnv, name, MSAT_BOOL, tp);
+  }
+
+  @Override
+  public String getVersion() {
+    return "MathSAT 4";
   }
 }

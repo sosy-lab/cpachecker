@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
+
+import java.util.Collection;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -44,16 +46,15 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-import com.google.common.collect.HashMultimap;
-
 @Options(prefix="cpa.explicit")
-public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
+public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, StatisticsProvider {
 
-  public static CPAFactory factory()
-  {
+  public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ExplicitCPA.class);
   }
 
@@ -77,6 +78,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
   private final ExplicitReducer reducer;
+  private final ExplicitCPAStatistics statistics;
 
   private final Configuration config;
   private final LogManager logger;
@@ -89,11 +91,12 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
 
     abstractDomain      = new ExplicitDomain();
     transferRelation    = new ExplicitTransferRelation(config);
-    precision           = initializePrecision();
+    precision           = initializePrecision(config);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     reducer             = new ExplicitReducer();
+    statistics          = new ExplicitCPAStatistics();
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -124,14 +127,8 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
     return null;
   }
 
-  private ExplicitPrecision initializePrecision() {
-    HashMultimap<CFANode, String> whitelist = null;
-
-    if(this.useCegar()) {
-      whitelist = HashMultimap.create();
-    }
-
-    return new ExplicitPrecision(variableBlacklist, whitelist);
+  private ExplicitPrecision initializePrecision(Configuration config) throws InvalidConfigurationException {
+    return new ExplicitPrecision(variableBlacklist, config);
   }
 
   @Override
@@ -164,26 +161,34 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
     return precision;
   }
 
+  ExplicitPrecision getPrecision() {
+    return precision;
+  }
+
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
   }
 
-  protected Configuration getConfiguration() {
+  public Configuration getConfiguration() {
     return config;
   }
 
-  protected LogManager getLogger() {
+  public LogManager getLogger() {
     return logger;
-  }
-
-  private boolean useCegar() {
-    return this.config.getProperty("analysis.useRefinement") != null
-      && this.config.getProperty("cegar.refiner").equals("cpa.explicit.ExplicitRefiner");
   }
 
   @Override
   public Reducer getReducer() {
     return reducer;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(statistics);
+  }
+
+  public ExplicitCPAStatistics getStats() {
+    return statistics;
   }
 }

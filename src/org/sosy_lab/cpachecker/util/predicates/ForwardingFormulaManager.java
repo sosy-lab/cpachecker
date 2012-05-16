@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,6 +46,11 @@ public class ForwardingFormulaManager implements FormulaManager {
   @Override
   public boolean isBoolean(Formula pF) {
     return delegate.isBoolean(pF);
+  }
+
+  @Override
+  public boolean isPurelyConjunctive(Formula pF) {
+    return delegate.isPurelyConjunctive(pF);
   }
 
   @Override
@@ -244,7 +249,6 @@ public class ForwardingFormulaManager implements FormulaManager {
   }
 
   @Override
-  @Deprecated
   public Formula uninstantiate(Formula pF) {
     return delegate.uninstantiate(pF);
   }
@@ -275,4 +279,28 @@ public class ForwardingFormulaManager implements FormulaManager {
     return delegate.createPredicateVariable(pAtom);
   }
 
+  @Override
+  public boolean checkSyntacticEntails(Formula pLeftFormula, Formula pRightFormula) {
+    return delegate.checkSyntacticEntails(pLeftFormula, pRightFormula);
+  }
+
+  @Override
+  public Formula[] getArguments(Formula pF) {
+    return delegate.getArguments(pF);
+  }
+
+  @Override
+  public Formula makeUIP(String pName, FormulaList pArgs) {
+    return delegate.makeUIP(pName, pArgs);
+  }
+
+  @Override
+  public void declareUIP(String pName, int pArgCount) {
+    delegate.declareUIP(pName, pArgCount);
+  }
+
+  @Override
+  public String getVersion() {
+    return delegate.getVersion();
+  }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeDomain;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeStopOperator;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeTransferRelation;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.progress.product.ProgressProductAutomatonPrecisionAdjustment;
 
 import com.google.common.base.Preconditions;
@@ -62,14 +63,14 @@ public class ProductAutomatonCPA extends CompositeCPA {
 
     CompositeDomain compositeDomain = new CompositeDomain(domains.build());
     ProductAutomatonTransferRelation compositeTransfer = new ProductAutomatonTransferRelation(transferRelations.build());
-    StopOperator compositeStop = new CompositeStopOperator(stopOperators.build());
+    CompositeStopOperator compositeStop = new CompositeStopOperator(stopOperators.build());
 
     return new ProductAutomatonCPA(compositeDomain, compositeTransfer, compositeStop, lCPAs.build(), pUseProgressPrecisionAdjustment);
   }
 
   public ProductAutomatonCPA(AbstractDomain abstractDomain,
-      TransferRelation transferRelation,
-      StopOperator stopOperator,
+      CompositeTransferRelation transferRelation,
+      CompositeStopOperator stopOperator,
       ImmutableList<ConfigurableProgramAnalysis> cpas, boolean pUseProgressPrecisionAdjustment) {
     super(abstractDomain, transferRelation, new MergeSepOperator(), stopOperator,
         pUseProgressPrecisionAdjustment?ProgressProductAutomatonPrecisionAdjustment.INSTANCE:ProductAutomatonPrecisionAdjustment.getInstance(), cpas);
@@ -79,7 +80,7 @@ public class ProductAutomatonCPA extends CompositeCPA {
   public AbstractElement getInitialElement (CFANode node) {
     CompositeElement lInitialElement = (CompositeElement)super.getInitialElement(node);
 
-    return ProductAutomatonElement.createElement(lInitialElement.getElements());
+    return ProductAutomatonElement.createElement(lInitialElement.getWrappedElements());
   }
 
 }

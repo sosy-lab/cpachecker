@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -31,8 +33,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.SetMultimap;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 /**
  * Special implementation of the reached set that partitions the set by keys that
@@ -51,7 +53,7 @@ import com.google.common.collect.SetMultimap;
  */
 public class PartitionedReachedSet extends DefaultReachedSet {
 
-  private final SetMultimap<Object, AbstractElement> partitionedReached = LinkedHashMultimap.create();
+  private final Multimap<Object, AbstractElement> partitionedReached = HashMultimap.create(100, 1);
 
   public PartitionedReachedSet(WaitlistFactory waitlistFactory) {
     super(waitlistFactory);
@@ -79,7 +81,7 @@ public class PartitionedReachedSet extends DefaultReachedSet {
   }
 
   @Override
-  public Set<AbstractElement> getReached(AbstractElement pElement) {
+  public Collection<AbstractElement> getReached(AbstractElement pElement) {
     return getReachedForKey(getPartitionKey(pElement));
   }
 
@@ -87,13 +89,27 @@ public class PartitionedReachedSet extends DefaultReachedSet {
     return partitionedReached.keySet().size();
   }
 
+  public Map.Entry<Object, Collection<AbstractElement>> getMaxPartition() {
+    int max = 0;
+    Map.Entry<Object, Collection<AbstractElement>> maxPartition = null;
+
+    for (Map.Entry<Object, Collection<AbstractElement>> partition : partitionedReached.asMap().entrySet()) {
+      int size = partition.getValue().size();
+      if (size > max) {
+        max = partition.getValue().size();
+        maxPartition = partition;
+      }
+    }
+    return maxPartition;
+  }
+
   protected Object getPartitionKey(AbstractElement pElement) {
     assert pElement instanceof Partitionable : "Partitionable elements necessary for PartitionedReachedSet";
     return ((Partitionable)pElement).getPartitionKey();
   }
 
-  protected Set<AbstractElement> getReachedForKey(Object key) {
-    return Collections.unmodifiableSet(partitionedReached.get(key));
+  protected Collection<AbstractElement> getReachedForKey(Object key) {
+    return Collections.unmodifiableCollection(partitionedReached.get(key));
   }
 
   protected Set<?> getKeySet() {

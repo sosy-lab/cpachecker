@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,8 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
-import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula;
-import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
+import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -119,9 +118,7 @@ public class LoopstackElement implements AbstractElement, Partitionable, Avoidan
   @Override
   public Formula getReasonFormula(FormulaManager manager) {
     if (stop) {
-      String preventingHeuristicStringFormula = HeuristicToFormula.getFormulaStringForHeuristic(
-          PreventingHeuristicType.LOOPITERATIONS, iteration);
-      return manager.parse(preventingHeuristicStringFormula);
+      return PreventingHeuristic.LOOPITERATIONS.getFormula(manager, iteration);
     } else {
       return manager.makeTrue();
     }

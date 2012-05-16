@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,8 +40,8 @@ public class CacheTransferRelation implements TransferRelation {
   //private Map<CFAEdge, Map<AbstractElement, Map<Precision, Collection<? extends AbstractElement>>>> mSuccessorsCache;
   private Map<Precision, Map<CFAEdge, Map<AbstractElement, Collection<? extends AbstractElement>>>> mSuccessorsCache;
 
-  private int lCacheMisses = 0;
-  private int lCacheHits = 0;
+  //private int lCacheMisses = 0;
+  //private int lCacheHits = 0;
 
 
   //private Set<CFAEdge> mHitEdges;
@@ -118,14 +118,10 @@ public class CacheTransferRelation implements TransferRelation {
       lSuccessors = mCachedTransferRelation.getAbstractSuccessors(pElement, pPrecision, pCfaEdge);
       lLevel2Cache.put(pElement, lSuccessors);
 
-      lCacheMisses++;
+      //lCacheMisses++;
     }
     else {
-      lCacheHits++;
-    }
-
-    if ((lCacheMisses + lCacheHits) % 100 == 0 ) {
-      System.out.println("Misses: " + lCacheMisses + ", hits: " + lCacheHits + ", sum: " + (lCacheMisses + lCacheHits));
+      //lCacheHits++;
     }
 
     return lSuccessors;

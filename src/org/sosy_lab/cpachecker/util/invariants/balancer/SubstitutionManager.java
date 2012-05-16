@@ -31,6 +31,7 @@ import java.util.Vector;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 
 /*
  * Handles a series of substitutions, automatically applying them in order of lowest degree first,
@@ -56,6 +57,57 @@ public class SubstitutionManager {
     logger = lm;
   }
 
+  public SubstitutionManager(AssumptionSet aset, LogManager lm) {
+    logger = lm;
+    // Compute substitutions based on the assumptions.
+    subList = new Vector<Substitution>();
+    for (Assumption a : aset) {
+      // We can only use assumptions of type ZERO.
+      if (a.getAssumptionType() != AssumptionType.ZERO) {
+        continue;
+      }
+      Polynomial num = a.getNumerator();
+      Substitution s = num.linearIsolateFirst();
+      if (s != null) {
+        subList.add(s);
+      }
+    }
+  }
+
+  /*
+   * Apply all the substitutions to each of the rational functions in the passed array.
+   * Return a new array, containing the new rational functions created by the application
+   * of the substitutions.
+   * The passed rational functions, are NOT altered.
+   */
+  public RationalFunction[][] applyAll(RationalFunction[][] rfs) {
+    int m = rfs.length;
+    if (m == 0) {
+      return new RationalFunction[0][0];
+    }
+    int n = rfs[0].length;
+    if (n == 0) {
+      return new RationalFunction[0][0];
+    }
+    // Initialize the new array to point to the given functions.
+    RationalFunction[][] subbed = new RationalFunction[m][n];
+    for (int i = 0; i < m; i++) {
+      for (int j = 0; j < n; j++) {
+        subbed[i][j] = rfs[i][j];
+      }
+    }
+    // Now apply all the substitutions.
+    while (hasNext()) {
+      Substitution subs = next();
+      for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+          subbed[i][j] = RationalFunction.applySubstitution(subs, subbed[i][j]);
+        }
+      }
+    }
+    return subbed;
+  }
+
   /*
    * Apply all the substitutions to the matrix.
    */
@@ -74,7 +126,7 @@ public class SubstitutionManager {
     if (!hasNext()) {
       return null;
     }
-    logger.log(Level.ALL,"Substitutions before taking next:\n", subList);
+    logger.log(Level.ALL,"Substitutions:\n", subList);
     Substitution s = subList.get(0);
     // Now we apply s to the remaining substitutions.
     Set<Substitution> toRemove = new HashSet<Substitution>();
@@ -98,7 +150,7 @@ public class SubstitutionManager {
     subList.removeAll(toRemove);
     // Sort into ascending order according to degree of rhs.
     Collections.sort(subList);
-    logger.log(Level.ALL,"Substitutions after taking next:\n", subList);
+    //logger.log(Level.ALL,"Substitutions:\n", subList);
     // Finally, return s.
     return s;
   }

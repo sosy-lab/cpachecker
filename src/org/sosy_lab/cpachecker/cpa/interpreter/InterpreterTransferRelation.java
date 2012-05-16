@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -262,7 +263,6 @@ public class InterpreterTransferRelation implements TransferRelation {
                 newElement.assignConstant(varName, element.getValueFor(returnVarName));
               }
               else{
-                System.out.println("FORGETTING: " + exprOnSummary);
                 newElement.forget(varName);
               }
           }
@@ -271,7 +271,6 @@ public class InterpreterTransferRelation implements TransferRelation {
                 newElement.assignConstant(globalVar, element.getValueFor(globalVar));
               }
               else{
-                System.out.println("FORGETTING: " + exprOnSummary);
                 newElement.forget(varName);
               }
           }
@@ -283,7 +282,6 @@ public class InterpreterTransferRelation implements TransferRelation {
             newElement.assignConstant(assignedVarName, element.getValueFor(returnVarName));
           }
           else{
-            System.out.println("FORGETTING: " + exprOnSummary);
             newElement.forget(assignedVarName);
           }
         }
@@ -1116,19 +1114,20 @@ public class InterpreterTransferRelation implements TransferRelation {
       DeclarationEdge declarationEdge) {
 
     InterpreterElement newElement = element.clone();
-    if (declarationEdge.getName() != null) {
+    if (declarationEdge.getDeclaration() instanceof IASTVariableDeclaration) {
+        IASTVariableDeclaration decl = (IASTVariableDeclaration)declarationEdge.getDeclaration();
 
         // get the variable name in the declarator
-        String varName = declarationEdge.getName();
+        String varName = decl.getName();
 
         // TODO check other types of variables later - just handle primitive
         // types for the moment
         // don't add pointer variables to the list since we don't track them
-        if (declarationEdge.getDeclSpecifier() instanceof IASTPointerTypeSpecifier) {
+        if (decl.getDeclSpecifier() instanceof IASTPointerTypeSpecifier) {
           return newElement;
         }
         // if this is a global variable, add to the list of global variables
-        if(declarationEdge.isGlobal())
+        if(decl.isGlobal())
         {
           globalVars.add(varName);
           // global declarations are set to 0
@@ -1303,7 +1302,6 @@ public class InterpreterTransferRelation implements TransferRelation {
       if (value != null) {
         newElement.assignConstant(assignedVar, value);
       } else {
-        System.out.println("FORGETTING: " + unaryExp.toASTString());
         newElement.forget(assignedVar);
       }
     }

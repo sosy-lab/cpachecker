@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,15 +39,12 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
-
-import com.google.common.base.Optional;
 
 @Options(prefix="cpa.art")
 public class ARTStatistics implements Statistics {
@@ -89,6 +86,11 @@ public class ARTStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File errorPathAssignment = new File("ErrorPathAssignment.txt");
 
+  @Option(name="errorPath.graph",
+      description="export error path to file, if one is found")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private File errorPathGraphFile = new File("ErrorPath.dot");
+
   private final ARTCPA cpa;
 
   public ARTStatistics(Configuration config, ARTCPA cpa) throws InvalidConfigurationException {
@@ -105,9 +107,12 @@ public class ARTStatistics implements Statistics {
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
 
-    if (   !exportErrorPath
-        && (!exportART || (artFile == null))) {
 
+    if (!(   (exportErrorPath && (errorPathFile != null))
+          || (exportART       && (artFile != null      ))
+       )) {
+
+      // do nothing, if !(exportErrorPath || exportART)
       // shortcut, avoid unnecessary creation of path etc.
       return;
     }
@@ -136,7 +141,7 @@ public class ARTStatistics implements Statistics {
 
       if (targetPath != null) {
 
-        if (exportErrorPath) {
+        if (exportErrorPath && errorPathFile != null) {
           // the shrinked errorPath only includes the nodes,
           // that are important for the error, it is not a complete path,
           // only some nodes of the targetPath are part of it
@@ -144,24 +149,28 @@ public class ARTStatistics implements Statistics {
           Path shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
 
           ARTElement rootElement = targetPath.getFirst().getFirst();
+          Set<ARTElement> pathElements;
           String pathProgram;
           if (counterexample != null && counterexample.getTargetPath() != null) {
             // precise error path
-            pathProgram = PathToCTranslator.translateSinglePath(Optional.<CFA>absent(), targetPath);
+            pathElements = targetPath.getElementSet();
+            pathProgram = PathToCTranslator.translateSinglePath(targetPath);
 
           } else {
             // Imprecise error path.
-            // For the text export, we have no other change, but for the C code
-            // export we use all existing paths to avoid this problem.
+            // For the text export, we have no other chance,
+            // but for the C code and graph export we use all existing paths
+            // to avoid this problem.
             ARTElement lastElement = (ARTElement)pReached.getLastElement();
-            Set<ARTElement> pathElements = ARTUtils.getAllElementsOnPathsTo(lastElement);
-            pathProgram = PathToCTranslator.translatePaths(Optional.<CFA>absent(), rootElement, pathElements);
+            pathElements = ARTUtils.getAllElementsOnPathsTo(lastElement);
+            pathProgram = PathToCTranslator.translatePaths(rootElement, pathElements);
           }
 
           writeErrorPathFile(errorPathFile, targetPath);
           writeErrorPathFile(errorPathCoreFile, shrinkedErrorPath);
           writeErrorPathFile(errorPathSourceFile, pathProgram);
           writeErrorPathFile(errorPathJson, targetPath.toJSON());
+          writeErrorPathFile(errorPathGraphFile, ARTUtils.convertARTToDot(rootElement, pathElements, getEdgesOfPath(targetPath)));
 
           if (assignment != null) {
             writeErrorPathFile(errorPathAssignment, assignment);
@@ -178,7 +187,8 @@ public class ARTStatistics implements Statistics {
 
     if (exportART && artFile != null) {
       try {
-        Files.writeFile(artFile, ARTUtils.convertARTToDot(pReached, getEdgesOfPath(targetPath)));
+        ARTElement rootElement = (ARTElement)pReached.getFirstElement();
+        Files.writeFile(artFile, ARTUtils.convertARTToDot(rootElement, null, getEdgesOfPath(targetPath)));
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ART to file.");
       }

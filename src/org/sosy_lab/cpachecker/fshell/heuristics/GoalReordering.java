@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -76,14 +76,14 @@ public class GoalReordering {
           ECPEdgeSet lEdgeSet = lLabel.getEdgeSet();
 
           if (lEdgeSet.size() == 1) {
-            int lTopSortId = Integer.MAX_VALUE;
+            int lRpoId = Integer.MAX_VALUE;
 
             for (CFAEdge lTmpCFAEdge : lEdgeSet) {
-              lTopSortId = Math.min(lTmpCFAEdge.getPredecessor().getTopologicalSortId(), lTmpCFAEdge.getSuccessor().getTopologicalSortId());
+              lRpoId = Math.min(lTmpCFAEdge.getPredecessor().getReversePostorderId(), lTmpCFAEdge.getSuccessor().getReversePostorderId());
             }
 
-            //lGoalWeight = Math.min(lGoalWeight, lTopSortId);
-            lGoalWeight = lGoalWeight + lTopSortId;
+            //lGoalWeight = Math.min(lGoalWeight, lRpoId);
+            lGoalWeight = lGoalWeight + lRpoId;
           }
         }
       }

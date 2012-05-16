@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -85,9 +85,7 @@ public class ProgressProductAutomatonPrecisionAdjustment implements
     ProductAutomatonElement lAdjustedElement = ProductAutomatonElement.createElement(lAdjustedElements);
     CompositePrecision lAdjustedPrecision = new CompositePrecision(lAdjustedPrecisions);
 
-    Triple<AbstractElement, Precision, Action> lResult = new Triple<AbstractElement, Precision, Action>(lAdjustedElement, lAdjustedPrecision, lAction);
-
-    return lResult;
+    return Triple.<AbstractElement, Precision, Action>of(lAdjustedElement, lAdjustedPrecision, lAction);
   }
 
 }

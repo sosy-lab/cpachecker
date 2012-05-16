@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.invariants;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -32,8 +31,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -80,7 +79,7 @@ public class FMtester {
       System.err.println( e.getMessage() );
     }
 
-    Set<CFAEdge> edgeSet = getEdgeSet(root);
+    List<CFAEdge> edgeSet = getEdgeSet(root);
 
     for (CFAEdge e : edgeSet) {
       PathFormula pf = makepf(e);
@@ -89,19 +88,12 @@ public class FMtester {
 
   }
 
-  private static Set<CFAEdge> getEdgeSet(CFAFunctionDefinitionNode root) {
-    Set<CFANode> rs = CFAUtils.allNodes(root, true);
-    int e;
-    CFAEdge edge;
-    Set<CFAEdge> edgeSet = new HashSet<CFAEdge>();
-    for (CFANode n : rs) {
-      e = n.getNumLeavingEdges();
-      for (int i = 0; i < e; i++) {
-        edge = n.getLeavingEdge(i);
-        edgeSet.add(edge);
-      }
-    }
-    return edgeSet;
+  private static List<CFAEdge> getEdgeSet(CFAFunctionDefinitionNode root) {
+    CFATraversal.EdgeCollectingCFAVisitor visitor = new EdgeCollectingCFAVisitor();
+    CFATraversal.dfs()
+                .ignoreSummaryEdges()
+                .traverse(root, visitor);
+    return visitor.getVisitedEdges();
   }
 
   private static PathFormula makepf(CFAEdge edge) {

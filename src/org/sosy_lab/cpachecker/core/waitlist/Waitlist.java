@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -105,7 +105,7 @@ public interface Waitlist extends Iterable<AbstractElement> {
     DFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
     BFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
     @Deprecated
-    TOPSORT { @Override public Waitlist createWaitlistInstance() { return new TopsortWaitlist();    } },
+    RPO { @Override public Waitlist createWaitlistInstance() { return new ReversePostorderWaitlist();    } },
     RAND    { @Override public Waitlist createWaitlistInstance() { return new RandomWaitlist();     } },
     ;
   }

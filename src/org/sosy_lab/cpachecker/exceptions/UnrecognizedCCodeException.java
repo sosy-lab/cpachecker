@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,7 +48,7 @@ public class UnrecognizedCCodeException extends CPATransferException {
   }
 
   public UnrecognizedCCodeException(String msg2, CFAEdge edge) {
-    super(createMessage(MESSAGE, msg2, edge, edge.getRawAST()));
+    super(createMessage(MESSAGE, msg2, edge, null));
   }
 
   public UnrecognizedCCodeException(CFAEdge edge, IASTNode astNode) {
@@ -59,9 +59,8 @@ public class UnrecognizedCCodeException extends CPATransferException {
   protected static String createMessage(String msg1, String msg2, CFAEdge edge, IASTNode astNode) {
     checkNotNull(msg1);
     if (astNode == null) {
-      astNode = edge.getRawAST();
+      astNode = (IASTNode)edge.getRawAST().get();
     }
-    checkNotNull(astNode, "Either edge or astNode need to be given");
 
     String code = astNode.toASTString();
     String rawCode = edge.getRawStatement();

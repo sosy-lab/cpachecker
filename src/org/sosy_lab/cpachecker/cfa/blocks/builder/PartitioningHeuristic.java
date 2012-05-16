@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 
 
 /**
@@ -44,7 +44,7 @@ public abstract class PartitioningHeuristic {
    * @see org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning
    */
   public final BlockPartitioning buildPartitioning(CFANode mainFunction) {
-    Set<CFANode> mainFunctionBody = CFAUtils.exploreSubgraph(mainFunction, null);
+    Set<CFANode> mainFunctionBody = CFATraversal.dfs().ignoreFunctionCalls().collectNodesReachableFrom(mainFunction);
     BlockPartitioningBuilder builder = new BlockPartitioningBuilder(mainFunctionBody);
 
     //traverse CFG
@@ -60,7 +60,7 @@ public abstract class PartitioningHeuristic {
       if(shouldBeCached(node)) {
         Set<CFANode> subtree = getBlockForNode(node);
         if(subtree != null) {
-          builder.addBlock(subtree);
+          builder.addBlock(subtree, mainFunction);
         }
       }
 
@@ -73,7 +73,7 @@ public abstract class PartitioningHeuristic {
       }
     }
 
-    return builder.build();
+    return builder.build(mainFunction);
   }
 
   /**

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -351,7 +351,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     int lNumberOfCFAInfeasibleGoals = 0;
 
-    ReachedSet lPredicateReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    ReachedSet lPredicateReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.RPO);
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> lPreviousGoalAutomaton = null;
 
     ReachedSet lGraphReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.DFS);
@@ -795,7 +795,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
     }
     else {
-      pReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+      pReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.RPO);
 
       AbstractElement lInitialElement = lARTCPA.getInitialElement(pEntryNode);
       Precision lInitialPrecision = lARTCPA.getInitialPrecision(pEntryNode);
@@ -829,7 +829,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         throw new RuntimeException();
       }
 
-      modifyART(pReachedSet, pARTCPA, pProductAutomatonIndex, pPreviousAutomaton, pCurrentAutomaton);
+      modifyART(pReachedSet, pProductAutomatonIndex, pPreviousAutomaton, pCurrentAutomaton);
     }
   }
 
@@ -890,8 +890,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
   }
 
-  private void modifyART(ReachedSet pReachedSet, ARTCPA pARTCPA, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
-    ARTReachedSet lARTReachedSet = new ARTReachedSet(pReachedSet, pARTCPA);
+  private void modifyART(ReachedSet pReachedSet, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
+    ARTReachedSet lARTReachedSet = new ARTReachedSet(pReachedSet);
 
     Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> lFrontier = determineFrontier(pPreviousAutomaton, pCurrentAutomaton);
 
@@ -937,7 +937,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
 
-    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.RPO);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
@@ -1016,7 +1016,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
 
-    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.RPO);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {

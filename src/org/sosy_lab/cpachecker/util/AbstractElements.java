@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,8 +32,11 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingElement;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -79,6 +82,29 @@ public final class AbstractElements {
     }
 
     return null;
+  }
+
+  /**
+   * Apply {@link #extractElementByType(AbstractElement, Class)} to all elements
+   * of an Iterable.
+   * The returned Iterable does not contain nulls.
+   */
+  public static <T extends AbstractElement> Iterable<T> projectToType(Iterable<AbstractElement> elements, Class<T> pType) {
+    return Iterables.filter(
+              Iterables.transform(elements, extractElementByTypeFunction(pType)),
+              Predicates.notNull());
+  }
+
+  /**
+   * Retrieve all wrapped elements of a certain type, if there are any of them.
+   *
+   * The type does not need to match exactly, the returned elements have just to
+   * be of sub-types of the type passed as argument.
+   *
+   * The returned Iterable contains the elements in pre-order.
+   */
+  public static <T extends AbstractElement> Iterable<T> extractAllElementsOfType(AbstractElement pElement, Class<T> pType) {
+    return Iterables.filter(asIterable(pElement), pType);
   }
 
   public static CFANode extractLocation(AbstractElement pElement) {
@@ -164,7 +190,7 @@ public final class AbstractElements {
           return ((AbstractWrapperElement)element).getWrappedElements().iterator();
         }
 
-        return null;
+        return Iterators.emptyIterator();
       }
     };
 
@@ -178,5 +204,22 @@ public final class AbstractElements {
 
   public static Iterable<AbstractElement> asIterable(final Iterable<AbstractElement> pElements) {
     return Iterables.concat(transform(pElements, AS_ITERABLE));
+  }
+
+  /**
+   * Returns a predicate representing states represented by
+   * the given abstract element, according to reported
+   * formulas
+   */
+  public static Formula extractReportedFormulas(FormulaManager manager, AbstractElement element) {
+    Formula result = manager.makeTrue();
+
+    // traverse through all the sub-elements contained in this element
+    for (FormulaReportingElement e :  extractAllElementsOfType(element, FormulaReportingElement.class)) {
+
+      result = manager.makeAnd(result, e.getFormulaApproximation(manager));
+    }
+
+    return result;
   }
 }

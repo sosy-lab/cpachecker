@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,17 +28,22 @@ import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageTransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
@@ -74,6 +79,10 @@ public class CompositeTransferRelation implements TransferRelation{
 
     if (cfaEdge == null) {
       CFANode node = extractLocation(compositeElement);
+      if (node == null) {
+        throw new CPATransferException("Analysis without LocationCPA is not supported, please add one to the configuration");
+      }
+
       results = new ArrayList<CompositeElement>(node.getNumLeavingEdges());
 
       for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
@@ -97,7 +106,7 @@ public class CompositeTransferRelation implements TransferRelation{
 
     // first, call all the post operators
     int resultCount = 1;
-    List<AbstractElement> componentElements = compositeElement.getElements();
+    List<AbstractElement> componentElements = compositeElement.getWrappedElements();
     List<Collection<? extends AbstractElement>> allComponentsSuccessors = new ArrayList<Collection<? extends AbstractElement>>(size);
 
     for (int i = 0; i < size; i++) {
@@ -226,5 +235,40 @@ public class CompositeTransferRelation implements TransferRelation{
       Precision precision) {
     // strengthen is only called by the composite CPA on its component CPAs
     return null;
+  }
+
+  boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge, Collection<? extends AbstractElement> pSuccessors, List<ConfigurableProgramAnalysis> cpas) throws CPATransferException, InterruptedException {
+    Preconditions.checkNotNull(pCfaEdge);
+
+    CompositeElement compositeElement = (CompositeElement)pElement;
+
+    int resultCount = 1;
+    boolean result = true;
+    for(int i = 0; i < size; ++i) {
+      Set<AbstractElement> componentSuccessors = new HashSet<AbstractElement>();
+      for(AbstractElement successor : pSuccessors) {
+        CompositeElement compositeSuccessor = (CompositeElement)successor;
+        if(compositeSuccessor.getNumberofElements() != size) {
+          return false;
+        }
+        componentSuccessors.add(compositeSuccessor.get(i));
+      }
+      resultCount *= componentSuccessors.size();
+      ProofChecker componentProofChecker = (ProofChecker)cpas.get(i);
+      if(!componentProofChecker.areAbstractSuccessors(compositeElement.get(i), pCfaEdge, componentSuccessors)) {
+        result = false; //if there are no successors it might be still ok if one of the other components is fine with the empty set
+      } else {
+        if(componentSuccessors.isEmpty()) {
+          assert pSuccessors.isEmpty();
+          return true; //another component is indeed fine with the empty set as set of successors; transition is ok
+        }
+      }
+    }
+
+    if(resultCount != pSuccessors.size()) {
+      return false;
+    }
+
+    return result;
   }
 }

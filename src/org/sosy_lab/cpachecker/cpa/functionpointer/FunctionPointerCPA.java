@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -58,7 +59,14 @@ public class FunctionPointerCPA extends AbstractSingleWrapperCPA implements Conf
   private FunctionPointerCPA(ConfigurableProgramAnalysis pCpa, CFA pCfa, LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException {
     super(pCpa);
     this.abstractDomain = new FunctionPointerDomain(pCpa.getAbstractDomain());
-    this.mergeOperator = new FunctionPointerMergeOperator(pCpa.getMergeOperator());
+
+    MergeOperator wrappedMerge = getWrappedCpa().getMergeOperator();
+    if (wrappedMerge == MergeSepOperator.getInstance()) {
+      this.mergeOperator = MergeSepOperator.getInstance();
+    } else {
+      this.mergeOperator = new FunctionPointerMergeOperator(wrappedMerge);
+    }
+
     this.stopOperator = new FunctionPointerStopOperator(pCpa.getStopOperator());
     this.transferRelation = new FunctionPointerTransferRelation(pCpa.getTransferRelation(), pCfa, pLogger, pConfig);
     this.precisionAdjustment = new FunctionPointerPrecisionAdjustment(pCpa.getPrecisionAdjustment());

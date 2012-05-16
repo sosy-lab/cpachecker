@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,13 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.Arrays;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 
-public class MathsatFormulaList implements FormulaList {
+public class MathsatFormulaList implements FormulaList, Serializable {
 
-  private final long[] terms;
+  private static final long serialVersionUID = -6546625578464890862L;
+  private transient long[] terms;
 
   /**
    * Do not modify the terms array afterwards, for performance reasons it's not copied!
@@ -66,5 +69,23 @@ public class MathsatFormulaList implements FormulaList {
   @Override
   public int hashCode() {
     return Arrays.hashCode(terms);
+  }
+
+
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    out.defaultWriteObject();
+    out.writeInt(terms.length);
+    for(int i = 0; i < terms.length; ++i) {
+      out.writeObject(new MathsatFormula(terms[i]));
+    }
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+    int termCount = in.readInt();
+    terms = new long[termCount];
+    for(int i = 0; i < terms.length; ++i) {
+      terms[i] = ((MathsatFormula)in.readObject()).getTerm();
+    }
   }
 }

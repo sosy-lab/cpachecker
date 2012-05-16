@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -143,7 +143,7 @@ public final class AbstractionManager {
    * @param var A symbolic formula representing the variable. The same formula has to been passed to makePredicate earlier.
    * @return a Predicate
    */
-  public AbstractionPredicate getPredicate(Formula var) {
+  private AbstractionPredicate getPredicate(Formula var) {
     AbstractionPredicate result = symbVarToPredicate.get(var);
     if (result == null) {
       throw new IllegalArgumentException(var + " seems not to be a formula corresponding to a single predicate variable.");
@@ -217,6 +217,17 @@ public final class AbstractionManager {
     return result;
   }
 
+  /**
+   * checks whether the data region represented by f1
+   * is a subset of that represented by f2
+   * @param f1 an AbstractFormula
+   * @param f2 an AbstractFormula
+   * @return true if (f1 => f2), false otherwise
+   */
+  public boolean entails(Region f1, Region f2) {
+    return rmgr.entails(f1, f2);
+  }
+
   public Collection<AbstractionPredicate> extractPredicates(Region af) {
     Collection<AbstractionPredicate> vars = new HashSet<AbstractionPredicate>();
 
@@ -255,7 +266,67 @@ public final class AbstractionManager {
     return vars;
   }
 
-  public RegionManager getRegionManager() {
-    return rmgr;
+  public RegionCreator getRegionCreator() {
+    return new RegionCreator();
+  }
+
+  public class RegionCreator {
+
+    /**
+     * @return a representation of logical truth
+     */
+    public Region makeTrue() {
+      return rmgr.makeTrue();
+    }
+
+    /**
+     * @return a representation of logical falseness
+     */
+    public Region makeFalse() {
+      return rmgr.makeFalse();
+    }
+
+    /**
+     * Creates a region representing a negation of the argument
+     * @param f an AbstractFormula
+     * @return (!f1)
+     */
+    public Region makeNot(Region f) {
+      return rmgr.makeNot(f);
+    }
+
+    /**
+     * Creates a region representing an AND of the two argument
+     * @param f1 an AbstractFormula
+     * @param f2 an AbstractFormula
+     * @return (f1 & f2)
+     */
+    public Region makeAnd(Region f1, Region f2) {
+      return rmgr.makeAnd(f1, f2);
+    }
+
+    /**
+     * Creates a region representing an OR of the two argument
+     * @param f1 an AbstractFormula
+     * @param f2 an AbstractFormula
+     * @return (f1 | f2)
+     */
+    public Region makeOr(Region f1, Region f2) {
+      return rmgr.makeOr(f1, f2);
+    }
+
+    /**
+     * Creates a region representing an existential quantification of the two argument
+     * @param f1 an AbstractFormula
+     * @param f2 an AbstractFormula
+     * @return (\exists f2: f1)
+     */
+    public Region makeExists(Region f1, Region f2) {
+      return rmgr.makeExists(f1, f2);
+    }
+
+    public Region getPredicate(Formula var) {
+      return AbstractionManager.this.getPredicate(var).getAbstractVariable();
+    }
   }
 }

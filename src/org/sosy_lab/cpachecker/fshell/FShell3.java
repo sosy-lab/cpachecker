@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -357,13 +357,9 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
       lPropertiesFile.deleteOnExit();
 
       PrintWriter lWriter = new PrintWriter(new FileOutputStream(lPropertiesFile));
-      // we do not use a fixed error location (error label) therefore
-      // we do not want to remove parts of the CFA
-      lWriter.println("cfa.removeIrrelevantForErrorLocations = false");
-
       //lWriter.println("log.consoleLevel = ALL");
 
-      lWriter.println("analysis.traversal.order = topsort");
+      lWriter.println("analysis.traversal.order = RPO");
       lWriter.println("analysis.entryFunction = " + pEntryFunction);
 
       // we want to use CEGAR algorithm

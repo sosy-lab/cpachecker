@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import java.util.ArrayList;
+import java.io.Serializable;
+import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -31,20 +32,17 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public class CompositeElement implements AbstractWrapperElement, Targetable, Partitionable {
+public class CompositeElement implements AbstractWrapperElement, Targetable, Partitionable, Serializable {
+  private static final long serialVersionUID = -5143296331663510680L;
   private final ImmutableList<AbstractElement> elements;
-  private Object partitionKey; // lazily initialized
+  private transient Object partitionKey; // lazily initialized
 
   public CompositeElement(List<AbstractElement> elements)
   {
     this.elements = ImmutableList.copyOf(elements);
-  }
-
-  public List<AbstractElement> getElements()
-  {
-    return elements;
   }
 
   public int getNumberofElements(){
@@ -59,46 +57,6 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
       }
     }
     return false;
-  }
-
-  @Override
-  public Object getPartitionKey() {
-    if (partitionKey == null) {
-      List<Object> keys = new ArrayList<Object>(elements.size());
-
-      for (int i = 0; i < elements.size(); i++) {
-        AbstractElement element = elements.get(i);
-        if (element instanceof Partitionable) {
-          keys.add(((Partitionable)element).getPartitionKey());
-        } else {
-          keys.add(null);
-        }
-      }
-
-      partitionKey = keys;
-    }
-
-    return partitionKey;
-  }
-
-  @Override
-  public boolean equals(Object other) {
-    if (other == this) {
-      return true;
-    }
-
-    if (other == null || !(other instanceof CompositeElement)) {
-      return false;
-    }
-
-    CompositeElement otherComposite = (CompositeElement) other;
-
-    return otherComposite.elements.equals(this.elements);
-  }
-
-  @Override
-  public int hashCode() {
-    return elements.hashCode();
   }
 
   @Override
@@ -124,5 +82,58 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
   @Override
   public List<AbstractElement> getWrappedElements() {
     return elements;
+  }
+
+
+  @Override
+  public Object getPartitionKey() {
+    if (partitionKey == null) {
+      Object[] keys = new Object[elements.size()];
+
+      int i = 0;
+      for (AbstractElement element : elements) {
+        if (element instanceof Partitionable) {
+          keys[i] = ((Partitionable)element).getPartitionKey();
+        }
+        i++;
+      }
+
+      // wrap array of keys in object to enable overriding of equals and hashCode
+      partitionKey = new CompositePartitionKey(keys);
+    }
+
+    return partitionKey;
+  }
+
+  private static final class CompositePartitionKey {
+
+    private final Object[] keys;
+
+    private CompositePartitionKey(Object[] pElements) {
+      keys = pElements;
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (this == pObj) {
+        return true;
+      }
+
+      if (CompositePartitionKey.class != pObj.getClass()) {
+        return false;
+      }
+
+      return Arrays.equals(this.keys, ((CompositePartitionKey)pObj).keys);
+    }
+
+    @Override
+    public int hashCode() {
+      return Arrays.hashCode(keys);
+    }
+
+    @Override
+    public String toString() {
+      return "[" + Joiner.on(", ").skipNulls().join(keys) + "]";
+    }
   }
 }

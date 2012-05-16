@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,6 +30,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -61,8 +62,8 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   private boolean auxiliaryPredicateComputer = true;
 
 
-  private ABMPredicateCPA(Configuration config, LogManager logger, ABMBlockOperator pBlk) throws InvalidConfigurationException {
-    super(config, logger, pBlk);
+  private ABMPredicateCPA(Configuration config, LogManager logger, ABMBlockOperator pBlk, CFA pCfa) throws InvalidConfigurationException {
+    super(config, logger, pBlk, pCfa);
 
     config.inject(this, ABMPredicateCPA.class);
 

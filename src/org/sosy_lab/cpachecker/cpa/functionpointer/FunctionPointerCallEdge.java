@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import java.util.List;
-
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
@@ -37,10 +34,10 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
  */
 class FunctionPointerCallEdge extends FunctionCallEdge {
 
-  public FunctionPointerCallEdge(String pRawStatement, IASTStatement pRawAST,
+  public FunctionPointerCallEdge(String pRawStatement,
       int pLineNumber, CFANode pPredecessor, FunctionDefinitionNode pSuccessor,
-      List<IASTExpression> pArguments, CallToReturnEdge pSummaryEdge) {
-    super(pRawStatement, pRawAST, pLineNumber, pPredecessor, pSuccessor, pArguments, pSummaryEdge);
+      IASTFunctionCall pFunctionCall, CallToReturnEdge pSummaryEdge) {
+    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor, pFunctionCall, pSummaryEdge);
   }
 
 }

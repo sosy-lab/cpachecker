@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,8 +32,8 @@ import java.util.Map;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
 import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
-import org.sosy_lab.cpachecker.cfa.CFATopologicalSort;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
@@ -107,10 +107,10 @@ class TranslationUnit {
 
     Map<String, CFAFunctionDefinitionNode> cfas = c.getFunctions();
 
-    // annotate CFA nodes with topological information for later use
+    // annotate CFA nodes with reverse postorder information for later use
     for(CFAFunctionDefinitionNode cfa : cfas.values()){
-      CFATopologicalSort topSort = new CFATopologicalSort();
-      topSort.topologicalSort(cfa);
+      CFAReversePostorder sorter = new CFAReversePostorder();
+      sorter.assignSorting(cfa);
     }
 
     TranslationUnit lTranslationUnit = new TranslationUnit(cfas, c.getGlobalDeclarations());

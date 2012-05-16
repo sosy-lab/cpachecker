@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +33,7 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -46,8 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
@@ -66,16 +66,11 @@ class PredicateCPAStatistics implements Statistics {
 
     private final PredicateCPA cpa;
     private final BlockOperator blk;
-    private AbstractInterpolationBasedRefiner<?, ?> refiner = null;
 
     public PredicateCPAStatistics(PredicateCPA cpa, BlockOperator blk) throws InvalidConfigurationException {
       this.cpa = cpa;
       this.blk = blk;
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
-    }
-
-    void addRefiner(AbstractInterpolationBasedRefiner<?, ?> ref) {
-      refiner = ref;
     }
 
     @Override
@@ -131,6 +126,7 @@ class PredicateCPAStatistics implements Statistics {
       PredicateAbstractDomain domain = cpa.getAbstractDomain();
       PredicateTransferRelation trans = cpa.getTransferRelation();
       PredicatePrecisionAdjustment prec = cpa.getPrecisionAdjustment();
+      Solver solver = cpa.getSolver();
 
       CachingPathFormulaManager pfMgr = null;
       if (cpa.getPathFormulaManager() instanceof CachingPathFormulaManager) {
@@ -159,13 +155,19 @@ class PredicateCPAStatistics implements Statistics {
       if (domain.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
         out.println("  Symbolic coverage check:         " + domain.symbolicCoverageCheckTimer.getNumberOfIntervals());
       }
+      out.println("Number of implication checks:      " + solver.implicationChecks);
+      out.println("  trivial:                         " + solver.trivialImplicationChecks);
+      out.println("  cached:                          " + solver.cachedImplicationChecks);
       out.println();
       out.println("Max ABE block size:                       " + prec.maxBlockSize);
       out.println("Number of predicates discovered:          " + allDistinctPreds);
-      out.println("Number of abstraction locations:          " + allLocs);
-      out.println("Max number of predicates per location:    " + maxPredsPerLocation);
-      out.println("Avg number of predicates per location:    " + avgPredsPerLocation);
-      if (as.numCallsAbstraction > 0) {
+      if (allDistinctPreds > 0) {
+        out.println("Number of abstraction locations:          " + allLocs);
+        out.println("Max number of predicates per location:    " + maxPredsPerLocation);
+        out.println("Avg number of predicates per location:    " + avgPredsPerLocation);
+      }
+      int numAbstractions = as.numCallsAbstraction-as.numSymbolicAbstractions;
+      if (numAbstractions > 0) {
         out.println("Max number of predicates per abstraction: " + prec.maxPredsPerAbstraction);
         out.println("Total number of models for allsat:        " + as.allSatCount);
         out.println("Max number of models for allsat:          " + as.maxAllSatCount);
@@ -177,10 +179,12 @@ class PredicateCPAStatistics implements Statistics {
         int totalPathFormulaComputations = pfMgr.pathFormulaComputationTimer.getNumberOfIntervals() + pathFormulaCacheHits;
         out.println("Number of path formula cache hits:   " + pathFormulaCacheHits + " (" + toPercent(pathFormulaCacheHits, totalPathFormulaComputations) + ")");
       }
-      if (as.numCallsAbstraction > 0) {
-        out.println("Number of abstraction cache hits:    " + as.numCallsAbstractionCached + " (" + toPercent(as.numCallsAbstractionCached, as.numCallsAbstraction) + ")");
+      if (numAbstractions > 0) {
+        out.println("Number of abstraction cache hits:    " + as.numCallsAbstractionCached + " (" + toPercent(as.numCallsAbstractionCached, numAbstractions) + ")");
       }
+
       out.println();
+
       out.println("Time for post operator:              " + trans.postTimer);
       out.println("  Time for path formula creation:    " + trans.pathFormulaTimer);
       if (pfMgr != null) {
@@ -210,25 +214,14 @@ class PredicateCPAStatistics implements Statistics {
         out.println("  Time for BDD entailment checks:    " + domain.bddCoverageCheckTimer);
       }
       if (domain.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
-        out.println("  Time for symbolic coverage checks: " + domain.bddCoverageCheckTimer);
+        out.println("  Time for symbolic coverage checks: " + domain.symbolicCoverageCheckTimer);
       }
-      if (refiner != null && refiner.totalRefinement.getSumTime() > 0) {
-        InterpolationManager.Stats bs = refiner.getStats2();
+      out.println("Total time for SMT solver (w/o itp): " + Timer.formatTime(solver.solverTime.getSumTime() + as.abstractionTime.getOuterSumTime()));
 
-        out.println("Time for refinement:                 " + refiner.totalRefinement);
-        out.println("  Counterexample analysis:           " + bs.cexAnalysisTimer + " (Max: " + bs.cexAnalysisTimer.printMaxTime() + ", Calls: " + bs.cexAnalysisTimer.getNumberOfIntervals() + ")");
-        if (bs.cexAnalysisGetUsefulBlocksTimer.getMaxTime() != 0) {
-          out.println("    Cex.focusing:                    " + bs.cexAnalysisGetUsefulBlocksTimer + " (Max: " + bs.cexAnalysisGetUsefulBlocksTimer.printMaxTime() + ")");
-        }
-        out.println("    Solving time only:               " + bs.cexAnalysisSolverTimer + " (Max: " + bs.cexAnalysisSolverTimer.printMaxTime() + ", Calls: " + bs.cexAnalysisSolverTimer.getNumberOfIntervals() + ")");
-        if (bs.interpolantVerificationTimer.getNumberOfIntervals() > 0) {
-          out.println("    Interpolant verification:        " + bs.interpolantVerificationTimer);
-        }
-        if (refiner instanceof PredicateRefiner) {
-          out.println("  Precision update:                  " + ((PredicateRefiner)refiner).precisionUpdate);
-          out.println("  ART update:                        " + ((PredicateRefiner)refiner).artUpdate);
-        }
-        out.println("  Error path post-processing:        " + refiner.errorPathProcessing);
+      if(trans.pathFormulaCheckTimer.getNumberOfIntervals() > 0 || trans.abstractionCheckTimer.getNumberOfIntervals() > 0) {
+        out.println("Time for abstraction checks:       " + trans.abstractionCheckTimer);
+        out.println("Time for path formulae checks:     " + trans.pathFormulaCheckTimer + " (Num: " + as.numPathFormulaCoverageChecks + ", Equal: " + as.numEqualPathFormulae + ", Syn. entailed: " + as.numSyntacticEntailedPathFormulae + ", Sem. entailed: " + as.numSemanticEntailedPathFormulae + ")");
+        out.println("Time for unsat checks:             " + trans.satCheckTimer + " (Calls: " + trans.satCheckTimer.getNumberOfIntervals() + ")");
       }
     }
 

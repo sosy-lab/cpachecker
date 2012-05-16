@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -195,12 +195,12 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
-  public Set<AbstractElement> getReached(AbstractElement element) {
+  public Collection<AbstractElement> getReached(AbstractElement element) {
     return getReached();
   }
 
   @Override
-  public Set<AbstractElement> getReached(CFANode location) {
+  public Collection<AbstractElement> getReached(CFANode location) {
     return getReached();
   }
 

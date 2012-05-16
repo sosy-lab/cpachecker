@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.location;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.ObjectStreamException;
+import java.io.Serializable;
 import java.util.SortedSet;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -33,14 +35,17 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 
-public class LocationElement implements AbstractElementWithLocation, AbstractQueryableElement, Partitionable
-{
+public class LocationElement implements AbstractElementWithLocation, AbstractQueryableElement, Partitionable, Serializable {
 
-  static class LocationElementFactory {
+  private static final long serialVersionUID = -801176497691618779L;
+
+  public static class LocationElementFactory {
     private final LocationElement[] elements;
 
     public LocationElementFactory(CFA pCfa) {
@@ -52,8 +57,8 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
       SortedSet<CFANode> allNodes = ImmutableSortedSet.copyOf(pCfa.getAllNodes());
       int maxNodeNumber = allNodes.last().getNodeNumber();
       LocationElement[] elements = new LocationElement[maxNodeNumber+1];
-      for (CFANode n : allNodes) {
-        elements[n.getNodeNumber()] = new LocationElement(n);
+      for (CFANode node : allNodes) {
+        elements[node.getNodeNumber()] = new LocationElement(node);
       }
 
       return elements;
@@ -64,16 +69,14 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     }
   }
 
-    private final CFANode locationNode;
+    private transient CFANode locationNode;
 
-    private LocationElement (CFANode locationNode)
-    {
+    private LocationElement(CFANode locationNode) {
         this.locationNode = locationNode;
     }
 
     @Override
-    public CFANode getLocationNode ()
-    {
+    public CFANode getLocationNode() {
         return locationNode;
     }
 
@@ -86,19 +89,22 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
       String[] parts = pProperty.split("==");
       if (parts.length != 2) {
-        throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
+        throw new InvalidQueryException("The Query \"" + pProperty
+            + "\" is invalid. Could not split the property string correctly.");
       } else {
         if (parts[0].toLowerCase().equals("line")) {
           try {
             int queryLine = Integer.parseInt(parts[1]);
             return this.locationNode.getLineNumber() == queryLine;
           } catch (NumberFormatException nfe) {
-            throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not parse the integer \"" + parts[1] + "\"");
+            throw new InvalidQueryException("The Query \"" + pProperty
+                + "\" is invalid. Could not parse the integer \"" + parts[1] + "\"");
           }
         } else if (parts[0].toLowerCase().equals("functionname")) {
           return this.locationNode.getFunctionName().equals(parts[1]);
         } else {
-          throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. \"" + parts[0] + "\" is no valid keyword");
+          throw new InvalidQueryException("The Query \"" + pProperty
+              + "\" is invalid. \"" + parts[0] + "\" is no valid keyword");
         }
       }
     }
@@ -115,8 +121,8 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     }
 
     @Override
-    public Boolean evaluateProperty(
-        String pProperty) throws InvalidQueryException {
+    public Boolean evaluateProperty(String pProperty)
+        throws InvalidQueryException {
       return Boolean.valueOf(checkProperty(pProperty));
     }
 
@@ -126,4 +132,23 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     }
 
     // no equals and hashCode because there is always only one element per CFANode
+
+    private Object writeReplace() throws ObjectStreamException {
+      return new SerialProxy(locationNode.getNodeNumber());
+    }
+
+    private static class SerialProxy implements Serializable {
+      private static final long serialVersionUID = 6889568471468710163L;
+      private final int nodeNumber;
+
+      public SerialProxy(int nodeNumber) {
+        this.nodeNumber = nodeNumber;
+      }
+
+      private Object readResolve() throws ObjectStreamException {
+        CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo();
+        return cfaInfo.getLocationElementFactory().getElement(cfaInfo.getNodeByNodeNumber(nodeNumber));
+      }
+    }
+
 }

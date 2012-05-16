@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,6 +48,8 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.abm.AbstractABMBasedRefiner;
@@ -95,7 +97,7 @@ import com.google.common.collect.Lists;
  *
  * Here ^ means inheritance and -> means reference.
  */
-public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
+public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implements StatisticsProvider {
 
   private final ExtendedPredicateRefiner refiner;
 
@@ -121,8 +123,9 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
 
     PredicateRefinementManager manager = new PredicateRefinementManager(predicateCpa.getFormulaManager(),
                                           predicateCpa.getPathFormulaManager(),
-                                          predicateCpa.getTheoremProver(),
-                                          predicateCpa.getPredicateManager(),
+                                          predicateCpa.getSolver(),
+                                          predicateCpa.getAbstractionManager(),
+                                          predicateCpa.getFormulaManagerFactory(),
                                           predicateCpa.getConfiguration(),
                                           logger);
 
@@ -334,5 +337,10 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
       }
       return abstractionFormulas;
     }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    refiner.collectStatistics(pStatsCollection);
   }
 }

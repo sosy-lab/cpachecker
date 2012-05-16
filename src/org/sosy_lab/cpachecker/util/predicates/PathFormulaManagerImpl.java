@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.impact.ImpactAbstractElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -291,12 +292,19 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
         // create formula by edge, be sure to use the correct SSA indices!
         // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractElement,
         // it is used without PredicateCPA as well.
+        PathFormula pf;
         PredicateAbstractElement pe = AbstractElements.extractElementByType(pathElement, PredicateAbstractElement.class);
         if (pe == null) {
-          logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA");
-          return fmgr.makeTrue();
+          ImpactAbstractElement ie =  AbstractElements.extractElementByType(pathElement, ImpactAbstractElement.class);
+          if (ie == null) {
+            logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA or ImpactCPA");
+            return fmgr.makeTrue();
+          } else {
+            pf = ie.getPathFormula();
+          }
+        } else {
+          pf = pe.getPathFormula();
         }
-        PathFormula pf = pe.getPathFormula();
         pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
         pf = this.makeAnd(pf, edge);        // conjunct with edge
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,14 +40,15 @@ public class BlockPartitioning {
   private final Map<CFANode, Block> callNodeToBlock;
   private final Map<CFANode, Block> returnNodeToBlock;
 
-  public BlockPartitioning(Collection<Block> subtrees) {
+  public BlockPartitioning(Collection<Block> subtrees, CFANode mainFunction) {
     Block mainBlock = null;
     Map<CFANode, Block> callNodeToSubtree = new HashMap<CFANode, Block>();
     Map<CFANode, Block> returnNodeToBlock = new HashMap<CFANode, Block>();
 
     for(Block subtree : subtrees) {
       for(CFANode callNode : subtree.getCallNodes()) {
-        if(callNode instanceof CFAFunctionDefinitionNode && callNode.getFunctionName().equalsIgnoreCase("main")) {
+        if(callNode instanceof CFAFunctionDefinitionNode &&
+           callNode.getFunctionName().equalsIgnoreCase(mainFunction.getFunctionName())) {
           assert mainBlock == null;
           mainBlock = subtree;
         }

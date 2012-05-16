@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -111,7 +111,7 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
   }
 
   public void addWarning(Integer lineNumber, String variable, String message) {
-    Triple<Integer, String, String> warning = new Triple<Integer, String, String>(lineNumber, variable, message);
+    Triple<Integer, String, String> warning = Triple.of(lineNumber, variable, message);
     if (!warnings.contains(warning)) {
       warnings.add(warning);
     }

@@ -9,7 +9,7 @@ The CPAchecker Project uses the following mailing lists:
 
 - CPAchecker-Users@sosy-lab.org
   User discussion, questions, solutions to common problems.
-  Anyone can post, anyone can join.
+  Members can post, anyone can join.
   https://groups.google.com/a/sosy-lab.org/group/cpachecker-users
 
 - CPAchecker-Commits@sosy-lab.org

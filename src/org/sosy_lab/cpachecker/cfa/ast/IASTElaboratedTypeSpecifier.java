@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +32,7 @@ public final class IASTElaboratedTypeSpecifier extends IType {
       final ElaboratedType pKind, final String pName) {
     super(pConst, pVolatile);
     kind = pKind;
-    name = pName;
+    name = pName.intern();
   }
 
   public String getName() {
@@ -44,7 +44,7 @@ public final class IASTElaboratedTypeSpecifier extends IType {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(String pDeclarator) {
     StringBuilder lASTString = new StringBuilder();
 
     if (isConst()) {
@@ -57,6 +57,7 @@ public final class IASTElaboratedTypeSpecifier extends IType {
     lASTString.append(kind.toASTString());
     lASTString.append(name);
     lASTString.append(" ");
+    lASTString.append(pDeclarator);
 
     return lASTString.toString();
   }

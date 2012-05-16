@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,7 +54,6 @@ import com.google.common.collect.Iterables;
 public class RestartWithConditionsAlgorithm implements Algorithm {
 
   private final Algorithm innerAlgorithm;
-  private final ARTCPA cpa;
   private final LogManager logger;
 
   private final List<? extends AdjustableConditionCPA> conditionCPAs;
@@ -66,14 +65,14 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
   public RestartWithConditionsAlgorithm(Algorithm pAlgorithm,
         ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger)
         throws InvalidConfigurationException {
-
+    config.inject(this);
     logger = pLogger;
     innerAlgorithm = pAlgorithm;
 
     if (!(pCpa instanceof ARTCPA)) {
       throw new InvalidConfigurationException("ARTCPA needed for RestartWithConditionsAlgorithm");
     }
-    cpa = (ARTCPA)pCpa;
+    ARTCPA cpa = (ARTCPA)pCpa;
     if (cpa.retrieveWrappedCpa(AssumptionStorageCPA.class) == null) {
       throw new InvalidConfigurationException("AssumptionStorageCPA needed for RestartWithConditionsAlgorithm");
     }
@@ -152,7 +151,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 
   private void adjustThresholds(List<AbstractElement> pElementsWithAssumptions, ReachedSet pReached) {
 
-    ARTReachedSet reached = new ARTReachedSet(pReached, cpa);
+    ARTReachedSet reached = new ARTReachedSet(pReached);
     for (AbstractElement e: pElementsWithAssumptions) {
       ARTElement artElement = (ARTElement)e;
 

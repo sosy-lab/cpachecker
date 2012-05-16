@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,32 +26,19 @@ package org.sosy_lab.cpachecker.cpa.impact;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.impact.ImpactAbstractElement.NonAbstractionElement;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 
 class ImpactAbstractDomain implements AbstractDomain {
 
-  private final FormulaManager fmgr;
-  private final TheoremProver prover;
+  private final Solver solver;
 
-  public ImpactAbstractDomain(FormulaManager pFmgr, TheoremProver pProver) {
-    fmgr = pFmgr;
-    prover = pProver;
+  public ImpactAbstractDomain(Solver pSolver) {
+    solver = pSolver;
   }
 
   @Override
   public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) {
     throw new UnsupportedOperationException();
-/*
-    LazyAbstractionElement element1 = (LazyAbstractionElement)pElement1;
-    LazyAbstractionElement element2 = (LazyAbstractionElement)pElement2;
-
-    if (element1.getStateFormula().equals(element2.getStateFormula())) {
-      PathFormula mergedFormula = pfmgr.makeOr(element1.getPathFormula(), element2.getPathFormula());
-      return new LazyAbstractionElement(mergedFormula, element1.getStateFormula());
-    }
-*/
   }
 
   @Override
@@ -68,17 +55,7 @@ class ImpactAbstractDomain implements AbstractDomain {
 
     if (element1.isAbstractionElement() && element2.isAbstractionElement()) {
 
-      Formula f1 = element1.getStateFormula();
-      Formula f2 = element2.getStateFormula();
-
-      Formula implication = fmgr.makeAnd(f1, fmgr.makeNot(f2));
-
-      prover.init();
-      try {
-        return prover.isUnsat(implication);
-      } finally {
-        prover.reset();
-      }
+      return solver.implies(element1.getStateFormula(), element2.getStateFormula());
     }
 
     return false;

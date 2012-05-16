@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 import java.util.Collection;
 
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 
 public interface TheoremProver {
@@ -35,12 +35,11 @@ public interface TheoremProver {
   void push(Formula f);
   void pop();
   boolean isUnsat();
-  boolean isUnsat(Formula f);
   Model getModel();
   void reset();
 
   AllSatResult allSat(Formula f, Collection<Formula> important,
-                      AbstractionManager mgr, Timer timer);
+                      RegionCreator mgr, Timer timer);
 
   interface AllSatResult {
 

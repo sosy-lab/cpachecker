@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,10 +35,10 @@ class FunctionPointerReturnEdge extends FunctionReturnEdge {
 
   private final FunctionPointerCallEdge callEdge;
 
-  public FunctionPointerReturnEdge(String pRawStatement, int pLineNumber,
+  public FunctionPointerReturnEdge(int pLineNumber,
       CFAFunctionExitNode pPredecessor, CFANode pSuccessor,
       FunctionPointerCallEdge pCallEdge, CallToReturnEdge pSummaryEdge) {
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor, pSummaryEdge);
+    super(pLineNumber, pPredecessor, pSuccessor, pSummaryEdge);
 
     callEdge = pCallEdge;
   }

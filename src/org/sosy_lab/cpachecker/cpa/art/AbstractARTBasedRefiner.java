@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -75,7 +75,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
 
       if (arg.getSecond() instanceof FunctionCallEdge) {
         FunctionCallEdge funcEdge = (FunctionCallEdge)arg.getSecond();
-        return "line " + funcEdge.getLineNumber() + ":\t" + funcEdge.getRawStatement();
+        return funcEdge.toString();
       } else {
         return null;
       }
@@ -100,7 +100,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     AbstractElement lastElement = pReached.getLastElement();
     assert lastElement instanceof ARTElement : "Element in reached set which is not an ARTElement";
     assert ((ARTElement)lastElement).isTarget() : "Last element in reached is not a target element before refinement";
-    ARTReachedSet reached = new ARTReachedSet(pReached, mArtCpa);
+    ARTReachedSet reached = new ARTReachedSet(pReached);
 
     Path path = computePath((ARTElement)lastElement, reached);
 
@@ -185,9 +185,11 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
         assert child.getParents().contains(currentElement) : "Reference from child to parent is missing in ART";
       }
 
-      // check if (e \in ART) => (e \in Reached ^ e.isCovered())
+      // check if (e \in ART) => (e \in Reached || e.isCovered())
       if (currentElement.isCovered()) {
-        assert !pReached.contains(currentElement) : "Reached set contains covered element";
+        // Assertion removed because now covered states are allowed to be in the reached set.
+        // But they don't need to be!
+//        assert !pReached.contains(currentElement) : "Reached set contains covered element";
 
       } else {
         // There is a special case here:

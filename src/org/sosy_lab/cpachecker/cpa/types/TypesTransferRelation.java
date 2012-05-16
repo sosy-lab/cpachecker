@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,11 +30,13 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
@@ -43,11 +45,13 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTTypeDefDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
@@ -95,9 +99,8 @@ public class TypesTransferRelation implements TransferRelation {
         // this is not bad, but we don't get type information for external
         // function
 
-        IASTFunctionDefinition funcDef = funcDefNode.getFunctionDefinition();
+        IASTFunctionDeclaration funcDef = funcDefNode.getFunctionDefinition();
         handleFunctionDeclaration(successor, funcCallEdge,
-            StorageClass.EXTERN,
             funcDef.getDeclSpecifier());
       }
       break;
@@ -110,10 +113,10 @@ public class TypesTransferRelation implements TransferRelation {
     case BlankEdge:
       //the first function start dummy edge is the actual start of the entry function
       if (!entryFunctionProcessed
-          && cfaEdge.getRawStatement().equals("Function start dummy edge")) {
+          && (cfaEdge.getPredecessor() instanceof CFAFunctionDefinitionNode)) {
         //since by this point all global variables have been processed, we can now process the entry function
-        IASTFunctionDefinition funcDef = entryFunctionDefinitionNode.getFunctionDefinition();
-        handleFunctionDeclaration(successor, null, StorageClass.AUTO, funcDef.getDeclSpecifier());
+        IASTFunctionDeclaration funcDef = entryFunctionDefinitionNode.getFunctionDefinition();
+        handleFunctionDeclaration(successor, null, funcDef.getDeclSpecifier());
 
         entryFunctionProcessed = true;
       }
@@ -129,35 +132,32 @@ public class TypesTransferRelation implements TransferRelation {
   private void handleDeclaration(TypesElement element,
                                  DeclarationEdge declarationEdge)
                                  throws UnrecognizedCCodeException {
-    IType specifier = declarationEdge.getDeclSpecifier();
+    IASTDeclaration decl = declarationEdge.getDeclaration();
+    IType specifier = declarationEdge.getDeclaration().getDeclSpecifier();
 
-    if (specifier instanceof IASTFunctionTypeSpecifier) {
-      handleFunctionDeclaration(element, declarationEdge, declarationEdge.getStorageClass(), (IASTFunctionTypeSpecifier)specifier);
+    if (decl instanceof IASTFunctionDeclaration) {
+      handleFunctionDeclaration(element, declarationEdge, (IASTFunctionTypeSpecifier)specifier);
 
     } else {
-
       Type type = getType(element, declarationEdge, specifier);
 
-      if (declarationEdge.getName() != null) {
-        String thisName = declarationEdge.getName();
+      if (decl instanceof IASTTypeDefDeclaration) {
+        element.addTypedef(decl.getName(), type);
 
-        if (declarationEdge.getStorageClass() == StorageClass.TYPEDEF) {
-          element.addTypedef(thisName, type);
-        } else {
-          String functionName = null;
-          if (!(declarationEdge.isGlobal())) {
-            functionName = declarationEdge.getSuccessor().getFunctionName();
-          }
+      } else if (decl instanceof IASTVariableDeclaration) {
 
-          element.addVariable(functionName, thisName, type);
+        String functionName = null;
+        if (!(decl.isGlobal())) {
+          functionName = declarationEdge.getSuccessor().getFunctionName();
         }
+
+        element.addVariable(functionName, decl.getName(), type);
       }
     }
   }
 
   private void handleFunctionDeclaration(TypesElement element,
                                         CFAEdge cfaEdge,
-                                        StorageClass storageClass,
                                         IASTFunctionTypeSpecifier funcDeclSpecifier)
                                         throws UnrecognizedCCodeException {
 
@@ -374,6 +374,10 @@ public class TypesTransferRelation implements TransferRelation {
 
       type = getType(element, cfaEdge, pointerSpecifier.getType());
       type = new PointerType(type, pointerSpecifier.isConst());
+
+    } else if (declSpecifier instanceof ITypedef) {
+      ITypedef typedef = (ITypedef)declSpecifier;
+      return getType(element, cfaEdge, typedef.getType());
 
     } else {
       throw new UnrecognizedCCodeException("Unknown type class " + declSpecifier.getClass().getSimpleName(), cfaEdge);

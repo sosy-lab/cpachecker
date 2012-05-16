@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,6 +37,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -57,19 +59,21 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 
 @Options(prefix="restartAlgorithm")
 public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
-  private class RestartAlgorithmStatistics implements Statistics {
+  private static class RestartAlgorithmStatistics implements Statistics {
 
+    private final int noOfAlgorithms;
     private final Collection<Statistics> subStats;
     private int noOfAlgorithmsUsed = 0;
+    private Timer totalTime = new Timer();
 
-    public RestartAlgorithmStatistics() {
+    public RestartAlgorithmStatistics(int pNoOfAlgorithms) {
+      noOfAlgorithms = pNoOfAlgorithms;
       subStats = new ArrayList<Statistics>();
     }
 
@@ -79,6 +83,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     public void resetSubStatistics(){
       subStats.clear();
+      totalTime = new Timer();
     }
 
     @Override
@@ -86,16 +91,33 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       return "Restart Algorithm";
     }
 
+    private void printIntermediateStatistics(PrintStream out, Result result,
+        ReachedSet reached) {
+
+      String text = "Statistics for algorithm " + noOfAlgorithmsUsed + " of " + noOfAlgorithms;
+      out.println(text);
+      out.println(Strings.repeat("=", text.length()));
+
+      printSubStatistics(out, result, reached);
+      out.println();
+    }
+
     @Override
     public void printStatistics(PrintStream out, Result result,
         ReachedSet reached) {
 
-      out.println("Number of algorithms provided:    " + configFiles.size());
+      out.println("Number of algorithms provided:    " + noOfAlgorithms);
       out.println("Number of algorithms used:        " + noOfAlgorithmsUsed);
+
+      printSubStatistics(out, result, reached);
+    }
+
+    private void printSubStatistics(PrintStream out, Result result, ReachedSet reached) {
+      out.println("Total time for algorithm " + noOfAlgorithmsUsed + ": " + totalTime);
 
       for (Statistics s : subStats) {
         String name = s.getName();
-        if (name != null && !name.isEmpty()) {
+        if (!isNullOrEmpty(name)) {
           name = name + " statistics";
           out.println("");
           out.println(name);
@@ -115,6 +137,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private final RestartAlgorithmStatistics stats;
   private final String filename;
   private final CFA cfa;
+  private final Configuration globalConfig;
 
   private Algorithm currentAlgorithm;
 
@@ -125,10 +148,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       throw new InvalidConfigurationException("Need at least one configuration for restart algorithm!");
     }
 
-    this.stats = new RestartAlgorithmStatistics();
+    this.stats = new RestartAlgorithmStatistics(configFiles.size());
     this.logger = pLogger;
     this.filename = pFilename;
     this.cfa = pCfa;
+    this.globalConfig = config;
   }
 
   @Override
@@ -145,52 +169,66 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     Iterator<File> configFilesIterator = configFiles.iterator();
 
     while (configFilesIterator.hasNext()) {
-      File singleConfigFileName = configFilesIterator.next();
-      Pair<Algorithm, ReachedSet> currentPair = createNextAlgorithm(singleConfigFileName, mainFunction);
-
-      currentAlgorithm = currentPair.getFirst();
-      ReachedSet currentReached = currentPair.getSecond();
-      reached.setDelegate(currentReached);
-
-
-      if (currentAlgorithm instanceof StatisticsProvider) {
-        ((StatisticsProvider)currentAlgorithm).collectStatistics(stats.getSubStatistics());
-      }
-
-      stats.noOfAlgorithmsUsed++;
-
-      // run algorithm
+      stats.totalTime.start();
+      ReachedSet currentReached;
       try {
-        boolean sound = currentAlgorithm.run(currentReached);
+        File singleConfigFileName = configFilesIterator.next();
 
-        if (Iterables.any(currentReached, AbstractElements.IS_TARGET_ELEMENT)) {
-          return sound;
+        try {
+          Pair<Algorithm, ReachedSet> currentPair = createNextAlgorithm(singleConfigFileName, mainFunction);
+          currentAlgorithm = currentPair.getFirst();
+          currentReached = currentPair.getSecond();
+        } catch (InvalidConfigurationException e) {
+          logger.logUserException(Level.WARNING, e, "Skipping one analysis because its configuration is invalid");
+          continue;
+        } catch (IOException e) {
+          logger.logUserException(Level.WARNING, e, "Skipping one analysis due to unreadable configuration file");
+          continue;
         }
 
-        if (!sound) {
-          // if the analysis is not sound and we can proceed with
-          // another algorithm, continue with the next algorithm
-          logger.log(Level.INFO, "Analysis result was unsound.");
+        reached.setDelegate(currentReached);
 
-        } else if (currentReached.hasWaitingElement()) {
-          // if there are still elements in the waitlist, the result is unknown
-          // continue with the next algorithm
-          logger.log(Level.INFO, "Analysis not completed: There are still elements to be processed.");
+        if (currentAlgorithm instanceof StatisticsProvider) {
+          ((StatisticsProvider)currentAlgorithm).collectStatistics(stats.getSubStatistics());
+        }
 
-        } else {
-          // sound analysis and completely finished, terminate
-          return true;
+        stats.noOfAlgorithmsUsed++;
+
+        // run algorithm
+        try {
+          boolean sound = currentAlgorithm.run(currentReached);
+
+          if (Iterables.any(currentReached, AbstractElements.IS_TARGET_ELEMENT)) {
+            return sound;
+          }
+
+          if (!sound) {
+            // if the analysis is not sound and we can proceed with
+            // another algorithm, continue with the next algorithm
+            logger.log(Level.INFO, "Analysis result was unsound.");
+
+          } else if (currentReached.hasWaitingElement()) {
+            // if there are still elements in the waitlist, the result is unknown
+            // continue with the next algorithm
+            logger.log(Level.INFO, "Analysis not completed: There are still elements to be processed.");
+
+          } else {
+            // sound analysis and completely finished, terminate
+            return true;
+          }
+        } catch (CPAException e) {
+          if (configFilesIterator.hasNext()) {
+            logger.logUserException(Level.WARNING, e, "Analysis not completed");
+          } else {
+            throw e;
+          }
         }
-      } catch (CPAException e) {
-        if (configFilesIterator.hasNext()) {
-          logger.logUserException(Level.WARNING, e, "Analysis not completed");
-        } else {
-          throw e;
-        }
+      } finally {
+        stats.totalTime.stop();
       }
 
       if (configFilesIterator.hasNext()) {
-        stats.printStatistics(System.out, Result.UNKNOWN, currentReached);
+        stats.printIntermediateStatistics(System.out, Result.UNKNOWN, currentReached);
         stats.resetSubStatistics();
         logger.log(Level.INFO, "RestartAlgorithm switches to the next configuration...");
       }
@@ -229,43 +267,34 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  private Pair<Algorithm, ReachedSet> createNextAlgorithm(File singleConfigFileName, CFANode mainFunction) {
+  private Pair<Algorithm, ReachedSet> createNextAlgorithm(File singleConfigFileName, CFANode mainFunction) throws InvalidConfigurationException, CPAException, InterruptedException, IOException {
 
-    ReachedSet reached = null;
-    Algorithm algorithm = null;
+    ReachedSet reached;
+    Algorithm algorithm;
 
     Configuration.Builder singleConfigBuilder = Configuration.builder();
-    try {
-      RestartAlgorithmOptions singleOptions = new RestartAlgorithmOptions();
-      singleConfigBuilder.loadFromFile(singleConfigFileName);
-      Configuration singleConfig = singleConfigBuilder.build();
-      singleConfig.inject(singleOptions);
+    singleConfigBuilder.copyFrom(globalConfig);
+    singleConfigBuilder.clearOption("restartAlgorithm.configFiles");
+    singleConfigBuilder.clearOption("analysis.restartAfterUnknown");
 
-      if(singleOptions.runCBMCasExternalTool){
-        algorithm = new ExternalCBMCAlgorithm(filename, singleConfig, logger);
-        reached = new ReachedSetFactory(singleConfig, logger).create();
-      }
-      else{
-        ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig, logger);
-        ConfigurableProgramAnalysis cpa = createCPA(singleReachedSetFactory, singleConfig, stats);
-        algorithm = createAlgorithm(cpa, singleConfig, stats, singleReachedSetFactory, singleOptions);
-        reached = createInitialReachedSetForRestart(cpa, mainFunction, singleReachedSetFactory);
-      }
+    RestartAlgorithmOptions singleOptions = new RestartAlgorithmOptions();
+    singleConfigBuilder.loadFromFile(singleConfigFileName);
+    Configuration singleConfig = singleConfigBuilder.build();
+    singleConfig.inject(singleOptions);
 
-      CPAchecker.stopIfNecessary();
-
-    } catch (IOException e) {
-      e.printStackTrace();
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-    } catch (CPAException e) {
-      e.printStackTrace();
-    } catch (InterruptedException e) {
-      e.printStackTrace();
+    if(singleOptions.runCBMCasExternalTool){
+      algorithm = new ExternalCBMCAlgorithm(filename, singleConfig, logger);
+      reached = new ReachedSetFactory(singleConfig, logger).create();
+    }
+    else{
+      ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig, logger);
+      ConfigurableProgramAnalysis cpa = createCPA(singleReachedSetFactory, singleConfig, stats);
+      algorithm = createAlgorithm(cpa, singleConfig, stats, singleReachedSetFactory, singleOptions);
+      reached = createInitialReachedSetForRestart(cpa, mainFunction, singleReachedSetFactory);
     }
 
-    Preconditions.checkNotNull(algorithm);
-    Preconditions.checkNotNull(reached);
+    CPAchecker.stopIfNecessary();
+
     return Pair.of(algorithm, reached);
   }
 
@@ -286,8 +315,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private ConfigurableProgramAnalysis createCPA(ReachedSetFactory pReachedSetFactory, Configuration pConfig, RestartAlgorithmStatistics stats) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    CPABuilder builder = new CPABuilder(pConfig, logger, pReachedSetFactory, cfa);
-    ConfigurableProgramAnalysis cpa = builder.buildCPAs();
+    CPABuilder builder = new CPABuilder(pConfig, logger, pReachedSetFactory);
+    ConfigurableProgramAnalysis cpa = builder.buildCPAs(cfa);
 
     if (cpa instanceof StatisticsProvider) {
       ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());

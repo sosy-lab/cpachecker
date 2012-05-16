@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,13 +41,13 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockOperator;
+import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 public class ImpactCPA implements ConfigurableProgramAnalysis {
 
@@ -60,7 +60,8 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
 
   private final ExtendedFormulaManager fmgr;
   private final PathFormulaManager pfmgr;
-  private final TheoremProver prover;
+  private final Solver solver;
+  private final FormulaManagerFactory factory;
 
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
@@ -71,36 +72,41 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
     config = pConfig;
     logger = pLogger;
 
-    MathsatFormulaManager msatFmgr = MathsatFactory.createFormulaManager(config, logger);
-    fmgr = new ExtendedFormulaManager(msatFmgr, pConfig, pLogger);
+    factory = new FormulaManagerFactory(pConfig, pLogger);
+    fmgr = new ExtendedFormulaManager(factory.getFormulaManager(), pConfig, pLogger);
 
-    pfmgr = new PathFormulaManagerImpl(fmgr, config, logger);
-    prover = new MathsatTheoremProver(msatFmgr);
+    pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger));
+    TheoremProver prover = factory.createTheoremProver();
+    solver = new Solver(fmgr, prover);
 
-    abstractDomain = new ImpactAbstractDomain(fmgr, prover);
+    abstractDomain = new ImpactAbstractDomain(solver);
     mergeOperator = new ImpactMergeOperator(logger, pfmgr);
     stopOperator = new StopSepOperator(abstractDomain);
-    transferRelation = new ImpactTransferRelation(logger, blk, fmgr, pfmgr, prover);
+    transferRelation = new ImpactTransferRelation(logger, blk, fmgr, pfmgr, solver);
   }
 
-  LogManager getLogManager() {
+  public LogManager getLogManager() {
     return logger;
   }
 
-  Configuration getConfiguration() {
+  public Configuration getConfiguration() {
     return config;
   }
 
-  ExtendedFormulaManager getFormulaManager() {
+  public ExtendedFormulaManager getFormulaManager() {
     return fmgr;
   }
 
-  PathFormulaManager getPathFormulaManager() {
+  public PathFormulaManager getPathFormulaManager() {
     return pfmgr;
   }
 
-  TheoremProver getTheoremProver() {
-    return prover;
+  public Solver getSolver() {
+    return solver;
+  }
+
+  FormulaManagerFactory getFormulaManagerFactory() {
+    return factory;
   }
 
   @Override

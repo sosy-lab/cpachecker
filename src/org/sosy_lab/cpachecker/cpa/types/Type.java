@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,6 +27,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import com.google.common.base.Joiner;
 
 public interface Type {
 
@@ -550,7 +553,7 @@ public static final class ArrayType extends AbstractType {
 
   public final static class FunctionType extends AbstractType {
 
-    private static int uniqueNameId = 0;
+    private static final AtomicInteger uniqueNameId = new AtomicInteger();
 
     private final String name;
     private final Type returnType;
@@ -574,9 +577,7 @@ public static final class ArrayType extends AbstractType {
         throw new IllegalArgumentException();
       }
       if (name ==  null || name.equals("")) {
-        synchronized (this.getClass()) {
-          name = "__cpa_anon_param_" + uniqueNameId++;
-        }
+        name = "__cpa_anon_param_" + uniqueNameId.incrementAndGet();
       }
       if (parameters.containsKey(name)) {
         throw new IllegalArgumentException("Parameter " + name + " already exists");
@@ -634,7 +635,8 @@ public static final class ArrayType extends AbstractType {
 
     @Override
     public String toString() {
-      return name + "()";
+      return returnType + " " + name + "(" + Joiner.on(", ").join(parameters.values())
+          + (hasVarArgs ? ", ..." : "") + ")";
     }
 
     @Override

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+
 public final class IASTPointerTypeSpecifier extends IType {
 
   private final IType type;
@@ -38,12 +39,19 @@ public final class IASTPointerTypeSpecifier extends IType {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(String pDeclarator) {
+    // ugly hack but it works:
+    // We need to insert the "*" between the type and the name (e.g. "int *var").
+    String decl;
+
+    if (type instanceof IASTArrayTypeSpecifier) {
+      decl = type.toASTString("(*" + pDeclarator + ")");
+    } else {
+      decl = type.toASTString("*" + pDeclarator);
+    }
+
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
-        + (type instanceof IASTFunctionTypeSpecifier
-            ? ((IASTFunctionTypeSpecifier)type).toASTStringFunctionPointer()
-            : type.toASTString() + "*");
-
+        + decl;
   }
 }

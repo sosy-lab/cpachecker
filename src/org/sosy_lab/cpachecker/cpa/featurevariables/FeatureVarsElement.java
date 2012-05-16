@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 public class FeatureVarsElement implements AbstractQueryableElement {
 
-  private final Region currentState;
+  private Region currentState;
   private final NamedRegionManager manager;
 
   public FeatureVarsElement(Region currentState, NamedRegionManager manager) {
@@ -40,6 +40,9 @@ public class FeatureVarsElement implements AbstractQueryableElement {
 
   public Region getRegion() {
     return currentState;
+  }
+  public NamedRegionManager getManager() {
+    return manager;
   }
 
   @Override
@@ -69,6 +72,10 @@ public class FeatureVarsElement implements AbstractQueryableElement {
   @Override
   public void modifyProperty(String pModification) throws InvalidQueryException {
     throw new InvalidQueryException("Feature Vars Element cannot be modified");
+  }
+
+  public void restrictWith(Region pErrorBDD) {
+    currentState = manager.makeAnd(currentState, pErrorBDD);
   }
 
 }

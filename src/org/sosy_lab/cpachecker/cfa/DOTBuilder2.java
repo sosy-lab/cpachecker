@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,8 +28,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.List;
 import java.util.Set;
 
@@ -40,11 +38,13 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -73,30 +73,22 @@ public final class DOTBuilder2 {
    * @param outdir
    * @throws IOException
    */
-  public static void writeReport(CFAFunctionDefinitionNode cfa, File outdir) throws IOException {
+  public static void writeReport(CFA cfa, File outdir) throws IOException {
     CFAJSONBuilder jsoner = new CFAJSONBuilder();
     DOTViewBuilder dotter = new DOTViewBuilder();
-    CFAVisitor vis = new CompositeCFAVisitor(jsoner, dotter);
-    traverse(cfa, vis);
-    dotter.writeFiles(outdir);
+    CFAVisitor vis = new NodeCollectingCFAVisitor(new CompositeCFAVisitor(jsoner, dotter));
+    for (CFAFunctionDefinitionNode entryNode : cfa.getAllFunctionHeads()) {
+      CFATraversal.dfs().ignoreFunctionCalls().traverse(entryNode, vis);
+      dotter.writeFunctionFile(entryNode.getFunctionName(), outdir);
+    }
+    dotter.writeGlobalFiles(outdir);
     Files.writeFile(new File(outdir, "cfainfo.json"), jsoner.getJSON().toJSONString());
-  }
-
-  private static void addLeavingEdges(CFANode node, Deque<CFAEdge> waitingEdgeList) {
-
-    for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges (); edgeIdx++) {
-      CFAEdge edge = node.getLeavingEdge (edgeIdx);
-      waitingEdgeList.add(edge);
-    }
-    if (node.getLeavingSummaryEdge() != null) {
-      waitingEdgeList.add(node.getLeavingSummaryEdge());
-    }
   }
 
   private static String getEdgeText(CFAEdge edge) {
     //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
     //future updates of dotty may make this obsolete.
-    return edge.getRawStatement()
+    return edge.getDescription()
       .replaceAll("\\Q\\\"\\E", "\\ \"")
       .replaceAll ("\\\"", "\\\\\\\"")
       .replaceAll("\n", " ")
@@ -105,113 +97,66 @@ public final class DOTBuilder2 {
   }
 
   /**
-   * traverse the CFA depth first
-   *
-   * @param cfa
-   * @param visitor
-   */
-  private static void traverse(CFAFunctionDefinitionNode cfa, CFAVisitor visitor) {
-    Set<CFANode> visitedNodes = Sets.newHashSet();
-    Deque<CFAEdge> waitingEdgeList = new ArrayDeque<CFAEdge>();
-
-    visitedNodes.add(cfa);
-    addLeavingEdges(cfa, waitingEdgeList);
-
-    while (!waitingEdgeList.isEmpty ()) {
-
-      CFAEdge edge = waitingEdgeList.removeLast();
-      visitor.visitEdge(edge);
-      if (!visitedNodes.contains(edge.getSuccessor())) {
-        visitedNodes.add(edge.getSuccessor());
-        addLeavingEdges(edge.getSuccessor(), waitingEdgeList);
-      }
-    }
-  }
-
-  private static class CFAVisitor {
-    void visitEdge(CFAEdge edge) {}
-  }
-
-  private static class CompositeCFAVisitor extends CFAVisitor {
-
-    CFAVisitor[] visitors;
-
-    public CompositeCFAVisitor(CFAVisitor... visitors) {
-      this.visitors = visitors;
-    }
-
-    @Override
-    void visitEdge(CFAEdge edge) {
-      for (CFAVisitor visitor: visitors) {
-        visitor.visitEdge(edge);
-      }
-    }
-  }
-
-  /**
    * output DOT files and meta information about virtual and combined edges
    */
-  private static class DOTViewBuilder extends CFAVisitor {
-
-    private final ListMultimap<String, CFANode> func2nodes = ArrayListMultimap.create();
-    private final ListMultimap<String, CFAEdge> func2edges = ArrayListMultimap.create();
-    private final ListMultimap<String, List<CFAEdge>> func2comboedge = ArrayListMultimap.create();
+  private static class DOTViewBuilder extends DefaultCFAVisitor {
+    // global state for all functions
     private final JSONObject node2combo = new JSONObject();
     private final JSONObject virtFuncCallEdges = new JSONObject();
     private int virtFuncCallNodeIdCounter = 100000;
 
+    // local state per function
+    private final Set<CFANode> nodes = Sets.newLinkedHashSet();
+    private final List<CFAEdge> edges = Lists.newArrayList();
+    private final List<List<CFAEdge>> comboedges = Lists.newArrayList();
+
     private List<CFAEdge> currentComboEdge = null;
 
     @Override
-    void visitEdge(CFAEdge edge) {
+    public TraversalProcess visitEdge(CFAEdge edge) {
       CFANode predecessor = edge.getPredecessor();
 
       // check if it qualifies for a comboEdge
       if (    predecessor.isLoopStart()
           || (predecessor.getNumEnteringEdges() != 1)
           || (predecessor.getNumLeavingEdges() != 1)
-          || (predecessor.getLeavingSummaryEdge() != null)
-          || (edge instanceof FunctionReturnEdge)
-          || (edge instanceof AssumeEdge)
-          || (edge instanceof FunctionCallEdge)) {
+          || (currentComboEdge != null && !predecessor.equals(currentComboEdge.get(currentComboEdge.size()-1).getSuccessor()))
+          || (edge instanceof CallToReturnEdge)
+          || (edge instanceof AssumeEdge)) {
         // no, it does not
 
-        func2nodes.put(predecessor.getFunctionName(), predecessor);
-        func2edges.put(predecessor.getFunctionName(), edge);
+        edges.add(edge);
         currentComboEdge = null;
+
+        // nodes are only added if they are not hidden by a comboedge
+        nodes.add(predecessor);
+        nodes.add(edge.getSuccessor());
 
       } else {
         // add combo edge
         if (currentComboEdge == null) {
           currentComboEdge = Lists.newArrayList();
-          func2comboedge.put(predecessor.getFunctionName(), currentComboEdge);
+          comboedges.add(currentComboEdge);
         }
         currentComboEdge.add(edge);
       }
 
-      // last, handle successor if necessary
-      CFANode successor = edge.getSuccessor();
-      if (successor.getNumLeavingEdges() == 0 && successor.getLeavingSummaryEdge() == null) {
-        func2nodes.put(successor.getFunctionName(), successor);
-        currentComboEdge = null;
-      }
+      return TraversalProcess.CONTINUE;
     }
 
-    void writeFiles(File outdir) throws IOException {
-
-      for (String funcname: func2nodes.keySet()) {
-        List<CFANode> nodes = func2nodes.get(funcname);
-        List<CFAEdge> edges = func2edges.get(funcname);
+    void writeFunctionFile(String funcname, File outdir) throws IOException {
 
         Writer out = new OutputStreamWriter(new FileOutputStream(new File(outdir, "cfa__" + funcname + ".dot")), "UTF-8");
         try {
           out.write("digraph " + funcname + " {\n");
           StringBuilder outb = new StringBuilder();
           //write comboedges
-          for (List<CFAEdge> combo: func2comboedge.get(funcname)) {
+          for (List<CFAEdge> combo: comboedges) {
             if (combo.size() == 1) {
               edges.add(combo.get(0));
               nodes.add(combo.get(0).getPredecessor());
+              nodes.add(combo.get(0).getSuccessor());
+
             } else {
               outb.append(comboToDot(combo));
 
@@ -237,11 +182,17 @@ public final class DOTBuilder2 {
             out.write(edgeToDot(edge));
           }
           out.write("}");
+
+          nodes.clear();
+          edges.clear();
+          comboedges.clear();
+
         } finally {
           out.close();
         }
-      }
+    }
 
+    void writeGlobalFiles(File outdir) throws IOException {
       Files.writeFile(new File(outdir, "combinednodes.json"), node2combo.toJSONString());
       Files.writeFile(new File(outdir, "fcalledges.json"),    virtFuncCallEdges.toJSONString());
     }
@@ -261,40 +212,28 @@ public final class DOTBuilder2 {
 
     @SuppressWarnings("unchecked")
     private String edgeToDot(CFAEdge edge) {
-      if (edge instanceof FunctionReturnEdge) {
-        return "";
-      }
-      if (edge instanceof FunctionCallEdge) {
+      if (edge instanceof CallToReturnEdge) {
        //create the function node
-        String ret = (++virtFuncCallNodeIdCounter) + " [shape=\"component\" label=\"" + edge.getSuccessor().getFunctionName() + "\"]\n";
+        String calledFunction = edge.getPredecessor().getLeavingEdge(0).getSuccessor().getFunctionName();
+        String ret = (++virtFuncCallNodeIdCounter) + " [shape=\"component\" label=\"" + calledFunction + "\"]\n";
         int from = edge.getPredecessor().getNodeNumber();
         ret += String.format("%d -> %d [label=\"%s\" fontname=\"Courier New\"]%n",
             from,
             virtFuncCallNodeIdCounter,
             getEdgeText(edge));
 
-        CFAEdge summaryEdge = edge.getPredecessor().getLeavingSummaryEdge();
-
-        if (summaryEdge != null) {
-          int to = summaryEdge.getSuccessor().getNodeNumber();
-          ret += String.format("%d -> %d [label=\"\" fontname=\"Courier New\"]%n",
-              virtFuncCallNodeIdCounter,
-              to);
-          virtFuncCallEdges.put(from, Lists.newArrayList(virtFuncCallNodeIdCounter, to));
-        }
+        int to = edge.getSuccessor().getNodeNumber();
+        ret += String.format("%d -> %d [label=\"\" fontname=\"Courier New\"]%n",
+            virtFuncCallNodeIdCounter,
+            to);
+        virtFuncCallEdges.put(from, Lists.newArrayList(virtFuncCallNodeIdCounter, to));
         return ret;
       }
 
-      String extra = "";
-      if (edge instanceof CallToReturnEdge) {
-        extra = "style=\"dotted\" arrowhead=\"empty\"";
-      }
-
-      return String.format("%d -> %d [label=\"%s\" %s fontname=\"Courier New\"]%n",
+      return String.format("%d -> %d [label=\"%s\" fontname=\"Courier New\"]%n",
           edge.getPredecessor().getNodeNumber(),
           edge.getSuccessor().getNodeNumber(),
-          getEdgeText(edge),
-          extra);
+          getEdgeText(edge));
     }
 
     @SuppressWarnings("unchecked")
@@ -349,28 +288,25 @@ public final class DOTBuilder2 {
   /**
    * output information about CFA nodes and edges as JSON
    */
-  private static class CFAJSONBuilder extends CFAVisitor {
+  private static class CFAJSONBuilder extends DefaultCFAVisitor {
     private final JSONObject nodes = new JSONObject();
     private final JSONObject edges = new JSONObject();
-    private final Set<CFANode> visited = Sets.newHashSet();
 
+    @Override
     @SuppressWarnings("unchecked")
-    void visitNode(CFANode node) {
-      if (!visited.contains(node)) {
-        JSONObject jnode = new JSONObject();
-        jnode.put("no", node.getNodeNumber());
-        jnode.put("line", node.getLineNumber());
-        jnode.put("func", node.getFunctionName());
-        nodes.put(node.getNodeNumber(), jnode);
-        visited.add(node);
-      }
+    public TraversalProcess visitNode(CFANode node) {
+      JSONObject jnode = new JSONObject();
+      jnode.put("no", node.getNodeNumber());
+      jnode.put("line", node.getLineNumber());
+      jnode.put("func", node.getFunctionName());
+      nodes.put(node.getNodeNumber(), jnode);
+
+      return TraversalProcess.CONTINUE;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    void visitEdge(CFAEdge edge) {
-      visitNode(edge.getPredecessor());
-      visitNode(edge.getSuccessor());
+    public TraversalProcess visitEdge(CFAEdge edge) {
       JSONObject jedge = new JSONObject();
       int src = edge.getPredecessor().getNodeNumber();
       int target = edge.getSuccessor().getNodeNumber();
@@ -381,6 +317,8 @@ public final class DOTBuilder2 {
       jedge.put("type", edge.getEdgeType().toString());
 
       edges.put("" + src + "->" + target, jedge);
+
+      return TraversalProcess.CONTINUE;
     }
 
     @SuppressWarnings("unchecked")

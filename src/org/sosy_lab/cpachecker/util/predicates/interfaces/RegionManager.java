@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -72,6 +72,22 @@ public interface RegionManager {
    * @return (f1 | f2)
    */
   public Region makeOr(Region f1, Region f2);
+
+  /**
+   * Creates a region representing an equality (bi-implication) of the two argument
+   * @param f1 an AbstractFormula
+   * @param f2 an AbstractFormula
+   * @return (f1 <=> f2)
+   */
+  public Region makeEqual(Region f1, Region f2);
+
+  /**
+   * Creates a region representing an disequality (XOR) of the two argument
+   * @param f1 an AbstractFormula
+   * @param f2 an AbstractFormula
+   * @return (f1 ^ f2)
+   */
+  public Region makeUnequal(Region f1, Region f2);
 
   /**
    * Creates a region representing an existential quantification of the two argument

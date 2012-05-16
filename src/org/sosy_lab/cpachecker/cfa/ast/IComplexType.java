@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +32,7 @@ public class IComplexType extends IType {
 
   public IComplexType(final String pName) {
     super(false, false);
-    name = pName;
+    name = pName.intern();
   }
 
   public String getName() {
@@ -41,16 +41,18 @@ public class IComplexType extends IType {
 
   @Override
   public boolean isConst() {
-    throw new UnsupportedOperationException();
+    // TODO is this correct?
+    return false;
   }
 
   @Override
   public boolean isVolatile() {
-    throw new UnsupportedOperationException();
+    // TODO is this correct?
+    return false;
   }
 
   @Override
-  public String toASTString() {
-    return name + " ";
+  public String toASTString(String pDeclator) {
+    return name + " " + pDeclator;
   }
 }
