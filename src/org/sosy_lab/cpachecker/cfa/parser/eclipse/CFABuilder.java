@@ -40,7 +40,9 @@ import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.Defaults;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -59,7 +61,6 @@ class CFABuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
   private Queue<IASTFunctionDefinition> functionDeclarations = new LinkedList<IASTFunctionDefinition>();
-  private List<Pair<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration, String>> probablyDuplicateDeclarations = Lists.newArrayList();
   private final Map<String, CFAFunctionDefinitionNode> cfas = new HashMap<String, CFAFunctionDefinitionNode>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
@@ -113,18 +114,76 @@ class CFABuilder extends ASTVisitor {
   }
 
   private void organizeGlobalDeclarations() {
-    for(Pair<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration, String> decl : probablyDuplicateDeclarations) {
-      org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD = decl.getFirst();
-      String rawSignature = decl.getSecond();
-      if(newD instanceof IASTFunctionDeclaration) {
+    for (int i = 0; i < globalDeclarations.size(); i++) {
+      org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD = globalDeclarations.get(i).getFirst();
+      if (newD instanceof IASTVariableDeclaration) {
+        if (removeVariableDuplicates(i, newD)) {
+          i = -1;
+          continue;
+        }
+
+        if (((IASTVariableDeclaration) newD).getInitializer() != null) {
+          scope.registerDeclaration(newD);
+        } else {
+
+          String rawSignature = globalDeclarations.get(i).getSecond();
+          globalDeclarations.remove(i);
+          org.sosy_lab.cpachecker.cfa.ast.IASTExpression init = Defaults.forType(newD.getDeclSpecifier(), newD.getFileLocation());
+          org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration initDecl = new IASTVariableDeclaration(newD.getFileLocation(),
+                                                                                                 newD.isGlobal(),
+                                                                                                 ((IASTVariableDeclaration) newD).getStorageClass(),
+                                                                                                 newD.getDeclSpecifier(),
+                                                                                                 newD.getName(),
+                                                                                                 newD.getOrigName(),
+                                                                                                 new IASTInitializerExpression(newD.getFileLocation(), init));
+          globalDeclarations.add(i, Pair.of(initDecl, rawSignature));
+          scope.registerDeclaration(initDecl);
+          }
+
+      } else if (newD instanceof IASTFunctionDeclaration) {
+        for (int j = i+1; j < globalDeclarations.size(); j++) {
+          org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration check = globalDeclarations.get(j).getFirst();
+          if(check instanceof IASTFunctionDeclaration
+              && check.getName().equals(newD.getName())) {
+            globalDeclarations.remove(j);
+            j--;
+            i=-1;
+          }
+        }
         scope.registerFunctionDeclaration((IASTFunctionDeclaration) newD);
-      } else if (newD instanceof IASTVariableDeclaration) {
-        scope.registerDeclaration(newD);
+      }
+    }
+    processFunctions();
+  }
+
+  private boolean removeVariableDuplicates(int newDindex, org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD) {
+    boolean removed = false;
+    boolean selfRemoval = false;
+    for(int j = 0; j < globalDeclarations.size(); j++) {
+      org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration check = globalDeclarations.get(j).getFirst();
+      if(check == newD) {
+        continue;
       }
 
-      globalDeclarations.add(Pair.of(newD, rawSignature));
+      if(check instanceof IASTVariableDeclaration && check.getName().equals(newD.getName())) {
+        if (((IASTVariableDeclaration) check).getInitializer() == null) {
+          globalDeclarations.remove(j);
+          j--;
+          removed = true;
+        } else if (!selfRemoval){
+          globalDeclarations.remove(newDindex);
+          j = 0;
+          removed = true;
+          selfRemoval = true;
+        }
+
+      }
     }
 
+    return removed;
+  }
+
+  private void processFunctions() {
     for (IASTFunctionDefinition declaration : functionDeclarations) {
       CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, ignoreCasts,
           scope, astCreator);
@@ -201,16 +260,7 @@ class CFABuilder extends ASTVisitor {
     String rawSignature = sd.getRawSignature();
 
     for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
-      if (newD instanceof IASTVariableDeclaration) {
-        if(((IASTVariableDeclaration) newD).getInitializer() != null) {
-          scope.registerDeclaration(newD);
-          globalDeclarations.add(Pair.of(newD, rawSignature));
-        } else {
-          probablyDuplicateDeclarations.add(Pair.of(newD, rawSignature));
-        }
-      } else {
-        probablyDuplicateDeclarations.add(Pair.of(newD, rawSignature));
-      }
+      globalDeclarations.add(Pair.of(newD, rawSignature));
     }
 
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
@@ -224,5 +274,4 @@ class CFABuilder extends ASTVisitor {
   public int visit(IASTProblem problem) {
     throw new CFAGenerationRuntimeException(problem.getMessage(), problem);
   }
-
 }
