@@ -40,9 +40,7 @@ import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.Defaults;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -122,26 +120,7 @@ class CFABuilder extends ASTVisitor {
           continue;
         }
 
-        if (((IASTVariableDeclaration) newD).getInitializer() != null) {
           scope.registerDeclaration(newD);
-        } else {
-          String rawSignature = globalDeclarations.get(i).getSecond();
-          globalDeclarations.remove(i);
-          org.sosy_lab.cpachecker.cfa.ast.IASTExpression init = Defaults.forType(newD.getDeclSpecifier(), newD.getFileLocation());
-          IASTInitializerExpression initializer = null;
-          if(init != null) {
-            initializer = new IASTInitializerExpression(newD.getFileLocation(), init);
-          }
-          org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration initDecl = new IASTVariableDeclaration(newD.getFileLocation(),
-                                                                                                 newD.isGlobal(),
-                                                                                                 ((IASTVariableDeclaration) newD).getStorageClass(),
-                                                                                                 newD.getDeclSpecifier(),
-                                                                                                 newD.getName(),
-                                                                                                 newD.getOrigName(),
-                                                                                                 initializer);
-          globalDeclarations.add(i, Pair.of(initDecl, rawSignature));
-          scope.registerDeclaration(initDecl);
-          }
 
       } else if (newD instanceof IASTFunctionDeclaration) {
         for (int j = i+1; j < globalDeclarations.size(); j++) {
