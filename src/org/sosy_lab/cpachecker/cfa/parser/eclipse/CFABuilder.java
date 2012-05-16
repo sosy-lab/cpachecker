@@ -125,17 +125,20 @@ class CFABuilder extends ASTVisitor {
         if (((IASTVariableDeclaration) newD).getInitializer() != null) {
           scope.registerDeclaration(newD);
         } else {
-
           String rawSignature = globalDeclarations.get(i).getSecond();
           globalDeclarations.remove(i);
           org.sosy_lab.cpachecker.cfa.ast.IASTExpression init = Defaults.forType(newD.getDeclSpecifier(), newD.getFileLocation());
+          IASTInitializerExpression initializer = null;
+          if(init != null) {
+            initializer = new IASTInitializerExpression(newD.getFileLocation(), init);
+          }
           org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration initDecl = new IASTVariableDeclaration(newD.getFileLocation(),
                                                                                                  newD.isGlobal(),
                                                                                                  ((IASTVariableDeclaration) newD).getStorageClass(),
                                                                                                  newD.getDeclSpecifier(),
                                                                                                  newD.getName(),
                                                                                                  newD.getOrigName(),
-                                                                                                 new IASTInitializerExpression(newD.getFileLocation(), init));
+                                                                                                 initializer);
           globalDeclarations.add(i, Pair.of(initDecl, rawSignature));
           scope.registerDeclaration(initDecl);
           }
