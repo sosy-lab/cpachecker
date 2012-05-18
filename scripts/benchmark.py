@@ -66,6 +66,23 @@ COLOR_DIC = {"correctSafe": COLOR_GREEN,
              "wrongSafe": COLOR_RED}
 
 
+# dictionary for tools and their default and fallback executables
+TOOLS = {"cbmc"      : ["cbmc",
+                      "lib/native/x86_64-linux/cbmc" if platform.machine() == "x86_64" else \
+                      "lib/native/x86-linux/cbmc"    if platform.machine() == "i386" else None],
+         "satabs"    : ["satabs"],
+         "wolverine" : ["wolverine"],
+         "ufo"       : ["ufo.sh"],
+         "acsar"     : ["acsar"],
+         "feaver"    : ["feaver_cmd"],
+         "cpachecker": ["cpa.sh", "scripts/cpa.sh"],
+         "blast"     : ["pblast.opt"],
+         "safe"      : [],
+         "unsafe"    : [],
+         "random"    : [],
+        }
+
+
 # the number of digits after the decimal separator of the time column,
 # for the other columns it can be configured in the xml-file
 TIME_PRECISION = 2
@@ -107,6 +124,9 @@ class Benchmark:
 
         # get tool
         self.tool = root.get("tool")
+        if self.tool not in TOOLS.keys() :
+            sys.exit("tool '{0}' is not supported".format(self.tool))
+        self.exe = findExecutable(*TOOLS[self.tool])
         self.run_func = eval("run_" + self.tool)
 
         logging.debug("The tool to be benchmarked is {0}.".format(repr(self.tool)))
@@ -374,7 +394,8 @@ class Run():
         logfile = self.benchmark.outputHandler.outputBeforeRun(self)
 
         (self.status, self.cpuTime, self.wallTime, self.args) = \
-             self.benchmark.run_func(self.getMergedOptions(),
+             self.benchmark.run_func(self.benchmark.exe,
+                                     self.getMergedOptions(),
                                      self.sourcefile, 
                                      self.columns,
                                      self.benchmark.rlimits,
@@ -640,7 +661,7 @@ class OutputHandler:
         get info about CPAchecker from local svn- or git-svn-directory
         '''
         version = ''
-        exe = findExecutable("cpa.sh", "scripts/cpa.sh")
+        exe = findExecutable(*TOOLS["cpachecker"])
         try:
             cpaFolder = subprocess.Popen(['which', exe],
                               stdout=subprocess.PIPE).communicate()[0].strip('\n')
@@ -684,8 +705,8 @@ class OutputHandler:
         """
 
         version = ''
+        exe = findExecutable(*TOOLS[tool])
         if (tool == "cpachecker"):
-            exe = findExecutable("cpa.sh", "scripts/cpa.sh")
             try:
                 versionHelpStr = subprocess.Popen([exe, '-help'],
                     stdout=subprocess.PIPE).communicate()[0]
@@ -696,28 +717,18 @@ class OutputHandler:
                 sys.exit()
 
         elif (tool == "cbmc"):
-            defaultExe = None
-            if platform.machine() == "x86_64":
-                defaultExe = "lib/native/x86_64-linux/cbmc"
-            elif platform.machine() == "i386":
-                defaultExe = "lib/native/x86-linux/cbmc"
-
-            exe = findExecutable("cbmc", defaultExe)
             version = subprocess.Popen([exe, '--version'],
                               stdout=subprocess.PIPE).communicate()[0].strip()
 
         elif (tool == "satabs"):
-            exe = findExecutable("satabs", None)
             version = subprocess.Popen([exe, '--version'],
                               stdout=subprocess.PIPE).communicate()[0].strip()
 
         elif (tool == "wolverine"):
-            exe = findExecutable("wolverine", None)
             version = subprocess.Popen([exe, '--version'],
                               stdout=subprocess.PIPE).communicate()[0].split()[1].strip()
 
         elif (tool == "blast"):
-            exe = findExecutable("pblast.opt", None)
             version = subprocess.Popen([exe],
                               stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT).communicate()[0][6:9]
@@ -1261,22 +1272,26 @@ def substituteVars(oldList, test, sourcefile=None, logFolder=None):
     return newList
 
 
-def findExecutable(program, default):
+def findExecutable(program=None, fallback=None):
     def isExecutable(programPath):
         return os.path.isfile(programPath) and os.access(programPath, os.X_OK)
 
-    dirs = os.environ['PATH'].split(os.pathsep)
-    dirs.append(".")
+    if program is None:
+        return None
 
-    for dir in dirs:
-        name = os.path.join(dir, program)
-        if isExecutable(name):
-            return name
+    else:
+        dirs = os.environ['PATH'].split(os.pathsep)
+        dirs.append(".")
 
-    if default is not None and isExecutable(default):
-        return default
+        for dir in dirs:
+            name = os.path.join(dir, program)
+            if isExecutable(name):
+                return name
 
-    sys.exit("ERROR: Could not find %s executable" % program)
+        if fallback is not None and isExecutable(fallback):
+            return fallback
+
+        sys.exit("ERROR: Could not find '{0}' executable".format(program))
 
 
 def killSubprocess(process):
@@ -1372,17 +1387,10 @@ def isTimeout(cpuTimeDelta, rlimits):
     return cpuTimeDelta > limit*0.99
 
 
-def run_cbmc(options, sourcefile, columns, rlimits, file):
+def run_cbmc(exe, options, sourcefile, columns, rlimits, file):
     if ("--xml-ui" not in options):
         options = options + ["--xml-ui"]
 
-    defaultExe = None
-    if platform.machine() == "x86_64":
-        defaultExe = "lib/native/x86_64-linux/cbmc"
-    elif platform.machine() == "i386":
-        defaultExe = "lib/native/x86-linux/cbmc"
-
-    exe = findExecutable("cbmc", defaultExe)
     args = [exe] + options + [sourcefile]
     (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
@@ -1449,8 +1457,7 @@ def run_cbmc(options, sourcefile, columns, rlimits, file):
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
-def run_satabs(options, sourcefile, columns, rlimits, file):
-    exe = findExecutable("satabs", None)
+def run_satabs(exe, options, sourcefile, columns, rlimits, file):
     args = [exe] + options + [sourcefile]
 
     (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
@@ -1475,8 +1482,7 @@ def run_satabs(options, sourcefile, columns, rlimits, file):
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
-def run_wolverine(options, sourcefile, columns, rlimits, file):
-    exe = findExecutable("wolverine", None)
+def run_wolverine(exe, options, sourcefile, columns, rlimits, file):
     args = [exe] + options + [sourcefile]
     (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
     if "VERIFICATION SUCCESSFUL" in output:
@@ -1496,8 +1502,7 @@ def run_wolverine(options, sourcefile, columns, rlimits, file):
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
-def run_ufo(options, sourcefile, columns, rlimits, file):
-    exe = findExecutable("ufo.sh", None)
+def run_ufo(exe, options, sourcefile, columns, rlimits, file):
     args = [exe, sourcefile] + options
     (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
     if returnsignal == 9 or returnsignal == (128+9):
@@ -1518,8 +1523,7 @@ def run_ufo(options, sourcefile, columns, rlimits, file):
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
-def run_acsar(options, sourcefile, columns, rlimits, file):
-    exe = findExecutable("acsar", None)
+def run_acsar(exe, options, sourcefile, columns, rlimits, file):
 
     # create tmp-files for acsar, acsar needs special error-labels
     prepSourcefile = prepareSourceFileForAcsar(sourcefile)
@@ -1580,8 +1584,7 @@ def prepareSourceFileForAcsar(sourcefile):
     return newFilename
 
 
-def run_feaver(options, sourcefile, columns, rlimits, file):
-    exe = findExecutable("feaver_cmd", None)
+def run_feaver(exe, options, sourcefile, columns, rlimits, file):
 
     # create tmp-files for acsar, acsar needs special error-labels
     prepSourcefile = prepareSourceFileForFeaver(sourcefile)
@@ -1637,17 +1640,17 @@ def prepareSourceFileForFeaver(sourcefile):
 # perhaps someone can use these function again someday,
 # to use them you need a normal benchmark-xml-file 
 # with the tool and sourcefiles, however options are ignored
-def run_safe(options, sourcefile, columns, rlimits, file):
+def run_safe(exe, options, sourcefile, columns, rlimits, file):
     args = ['safe'] + options + [sourcefile]
     cpuTimeDelta = wallTimeDelta = 0
     return ('safe', cpuTimeDelta, wallTimeDelta, args)
 
-def run_unsafe(options, sourcefile, columns, rlimits, file):
+def run_unsafe(exe, options, sourcefile, columns, rlimits, file):
     args = ['unsafe'] + options + [sourcefile]
     cpuTimeDelta = wallTimeDelta = 0
     return ('unsafe', cpuTimeDelta, wallTimeDelta, args)
 
-def run_random(options, sourcefile, columns, rlimits, file):
+def run_random(exe, options, sourcefile, columns, rlimits, file):
     args = ['random'] + options + [sourcefile]
     cpuTimeDelta = wallTimeDelta = 0
     from random import random
@@ -1665,11 +1668,10 @@ def appendFileToFile(sourcename, targetname):
     finally:
         source.close()
 
-def run_cpachecker(options, sourcefile, columns, rlimits, file):
+def run_cpachecker(exe, options, sourcefile, columns, rlimits, file):
     if ("-stats" not in options):
         options = options + ["-stats"]
 
-    exe = findExecutable("cpa.sh", "scripts/cpa.sh")
     args = [exe] + options + [sourcefile]
     (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
@@ -1780,8 +1782,7 @@ def getCPAcheckerColumns(output, columns):
                 break
 
 
-def run_blast(options, sourcefile, columns, rlimits, file):
-    exe = findExecutable("pblast.opt", None)
+def run_blast(exe, options, sourcefile, columns, rlimits, file):
     args = [exe] + options + [sourcefile]
     (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
@@ -1821,9 +1822,6 @@ class Worker(threading.Thread):
 
 def runBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile)
-
-    assert benchmark.tool in ["cbmc", "satabs", "cpachecker", "blast", "acsar", "wolverine", "ufo",
-                              "safe", "unsafe", "random", "feaver"]
 
     if len(benchmark.tests) == 1:
         logging.debug("I'm benchmarking {0} consisting of 1 test.".format(repr(benchmarkFile)))
