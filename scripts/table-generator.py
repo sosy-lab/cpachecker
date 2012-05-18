@@ -410,7 +410,7 @@ class Test:
         self.category = category
 
     @staticmethod
-    def createTestFromXML(sourcefileTag, resultFilename, listOfColumns, fileIsUnsafe):
+    def createTestFromXML(sourcefileTag, resultFilename, listOfColumns, fileIsUnsafe, correctOnly):
         '''
         This function collects the values from one tests for one file.
         Only columns, that should be part of the table, are collected.
@@ -457,6 +457,7 @@ class Test:
 
         status = Util.getColumnValue(sourcefileTag, 'status', 'unknown')
         category = getResultCategory(status)
+        score = calculateScore(category)
         logfileContent = None
 
         values = []
@@ -464,22 +465,26 @@ class Test:
         for column in listOfColumns: # for all columns that should be shown
             value = "-" # default value
             if column.title.lower() == 'score':
-                value = str(calculateScore(category))
-            elif column.text == None: # collect values from XML
-                value = Util.getColumnValue(sourcefileTag, column.title, '-')
+                value = str(score)
+            elif column.title.lower() == 'status':
+                value = status
 
-            elif sourcefileTag.logfile != None: # collect values from logfile
-                if logfileContent == None: # cache content
-                    baseDir = os.path.dirname(resultFilename)
-                    logfileName = os.path.join(baseDir, sourcefileTag.logfile)
-                    try:
-                        logfile = open(logfileName)
-                        logfileContent = logfile.read()
-                        logfile.close
-                    except IOError as e:
-                        print('WARNING: Could not read value from logfile: {}'.format(e))
+            elif not correctOnly or score > 0:
+                if column.text == None: # collect values from XML
+                    value = Util.getColumnValue(sourcefileTag, column.title, '-')
 
-                value = getValueFromLogfile(logfileContent, column.text)
+                elif sourcefileTag.logfile != None: # collect values from logfile
+                    if logfileContent == None: # cache content
+                        baseDir = os.path.dirname(resultFilename)
+                        logfileName = os.path.join(baseDir, sourcefileTag.logfile)
+                        try:
+                            logfile = open(logfileName)
+                            logfileContent = logfile.read()
+                            logfile.close
+                        except IOError as e:
+                            print('WARNING: Could not read value from logfile: {}'.format(e))
+
+                    value = getValueFromLogfile(logfileContent, column.text)
 
             if column.numberOfDigits is not None:
                 value = Util.formatNumber(value, column.numberOfDigits)
@@ -549,7 +554,7 @@ def rowsToColumns(rows):
     return zip(*[row.results for row in rows])
 
 
-def getRows(listOfTests, fileNames):
+def getRows(listOfTests, fileNames, correctOnly):
     """
     Create list of rows with all data. Each row consists of several tests.
     """
@@ -559,7 +564,7 @@ def getRows(listOfTests, fileNames):
     for result in listOfTests:
         # get values for each file in a test
         for fileResult, row in zip(result.filelist, rows):
-            row.addTest(Test.createTestFromXML(fileResult, result.filename, result.columns, row.fileIsUnsafe()))
+            row.addTest(Test.createTestFromXML(fileResult, result.filename, result.columns, row.fileIsUnsafe(), correctOnly))
 
     return rows
 
@@ -855,6 +860,10 @@ def main(args=None):
         help="If resultfiles with distinct sourcefiles are found, " \
             + "use only the sourcefiles common to all resultfiles."
     )
+    parser.add_option("--correct-only",
+        action="store_true", dest="correctOnly",
+        help="Clear all results in cases where the result was not correct."
+    )
 
     options, args = parser.parse_args(args)
     args = args[1:] # skip args[0] which is the name of this script
@@ -904,7 +913,7 @@ def main(args=None):
         fileNames, listOfTests = ensureEqualSourceFiles(listOfTests)
 
     # collect data and find out rows with differences
-    rows     = getRows(listOfTests, fileNames)
+    rows     = getRows(listOfTests, fileNames, options.correctOnly)
     rowsDiff = filterRowsWithDifferences(rows)
 
     print ('generating table ...')
