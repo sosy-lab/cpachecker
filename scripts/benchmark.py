@@ -891,7 +891,7 @@ class OutputHandler:
                 sys.stdout.write(timeStr + self.formatSourceFileName(run.sourcefile))
                 sys.stdout.flush()
             else:
-                print(timeStr + "starting   " + run.sourcefile)
+                print(timeStr + "starting   " + self.formatSourceFileName(run.sourcefile))
         finally:
             OutputHandler.printLock.release()
 
