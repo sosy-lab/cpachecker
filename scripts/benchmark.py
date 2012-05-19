@@ -225,15 +225,17 @@ class Test:
         self.options = getOptions(testTag)
 
         # get all runs, a run contains one sourcefile with options
-        self.runs = self.getRuns(globalSourcefileTags + testTag.findall("sourcefiles"))
+        self.getRuns(globalSourcefileTags + testTag.findall("sourcefiles"))
 
 
     def getRuns(self, sourcefilesTagList):
         '''
-        This function returns a list of Runs (filename with options).
+        This function builds a list of Runs (filename with options).
         The files and their options are taken from the list of sourcefilesTags.
         '''
-        runs = []
+        # runs are structured as blocks, one block represents one soursefile-tag
+        self.blocks = []
+        self.runs = []
 
         for sourcefilesTag in sourcefilesTagList:
             # get list of filenames
@@ -242,10 +244,13 @@ class Test:
             # get file-specific options for filenames
             fileOptions = getOptions(sourcefilesTag)
 
+            runs = []
             for sourcefile in sourcefiles:
                 runs.append(Run(sourcefile, fileOptions, self))
+            self.runs.extend(runs)
 
-        return runs
+            blockName = sourcefilesTag.get("name", str(sourcefilesTagList.index(sourcefilesTag)))
+            self.blocks.append(Block(blockName,runs))
 
 
     def getSourcefiles(self, sourcefilesTag):
@@ -338,6 +343,15 @@ class Test:
                                 .format(repr(shortFileFallback)))
 
         return fileList
+
+
+class Block():
+    """
+    A Block contains a list of runs and a name.
+    """
+    def __init__(self, name, runs):
+        self.name = name
+        self.runs = runs
 
 
 class Run():
@@ -968,8 +982,15 @@ class OutputHandler:
         self.test.wallTimeStr = Util.formatNumber(wallTimeTest, TIME_PRECISION)
 
         # write testresults to files
-        FileWriter(self.getFileName(self.test.name, "xml"), Util.XMLtoString(self.testToXML(self.test)))
+        FileWriter(self.getFileName(self.test.name, "xml"),
+            Util.XMLtoString(self.runsToXML(self.test, self.test.runs, self.test.name)))
         FileWriter(self.getFileName(self.test.name, "csv"), self.testToCSV(self.test))
+
+        if len(self.test.blocks) > 1:
+            for block in self.test.blocks:
+                name = ((self.test.name + ".") if self.test.name else "") + block.name
+                FileWriter(self.getFileName(self.test.name, block.name + ".xml"),
+                    Util.XMLtoString(self.runsToXML(self.test, block.runs, name)))
 
         self.TXTContent += self.testToTXT(self.test, True)
         self.TXTFile.replace(self.TXTContent)
@@ -1000,39 +1021,39 @@ class OutputHandler:
         return "\n".join(lines) + "\n"
 
 
-    def testToXML(self, test):
+    def runsToXML(self, test, runs, name):
         """
-        This function dumps a test with results into a XML-file.
+        This function dumps a list of runs of a test and their results to XML.
         """
-
-        # store test with options and results in XML,
         # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
-        testElem = Util.getCopyOfXMLElem(self.XMLHeader)
+        runsElem = Util.getCopyOfXMLElem(self.XMLHeader)
         testOptions = mergeOptions(test.benchmark.options, test.options)
-        testElem.set("options", " ".join(testOptions))
-        if test.name is not None:
-            testElem.set("name", test.name)
+        runsElem.set("options", " ".join(testOptions))
+        if name is not None:
+            runsElem.set("name", name)
 
         # collect XMLelements from all runs
-        for run in test.runs:
-            runElem = ET.Element("sourcefile", {"name": run.sourcefile})
-            if len(run.options) != 0:
-                runElem.set("options", " ".join(mergeOptions(run.options)))
-            runElem.append(ET.Element("column", {"title": "status", "value": run.status}))
-            runElem.append(ET.Element("column", {"title": "cputime", "value": run.cpuTimeStr}))
-            runElem.append(ET.Element("column", {"title": "walltime", "value": run.wallTimeStr}))
+        for run in runs:
+            runsElem.append(self.runToXML(run))
 
-            for column in run.columns:
-                runElem.append(ET.Element("column",
+        return runsElem
+
+
+    def runToXML(self, run):
+        """
+        This function returns a xml-representation of a run.
+        """
+        runElem = ET.Element("sourcefile", {"name": run.sourcefile})
+        if len(run.options) != 0:
+            runElem.set("options", " ".join(mergeOptions(run.options)))
+        runElem.append(ET.Element("column", {"title": "status", "value": run.status}))
+        runElem.append(ET.Element("column", {"title": "cputime", "value": run.cpuTimeStr}))
+        runElem.append(ET.Element("column", {"title": "walltime", "value": run.wallTimeStr}))
+
+        for column in run.columns:
+            runElem.append(ET.Element("column",
                         {"title": column.title, "value": column.value}))
-    
-            testElem.append(runElem)
-
-        # store testtime in XML
-        timesElem = ET.Element("time", {"cputime": test.cpuTimeStr, "walltime": test.wallTimeStr})
-        testElem.append(timesElem)
-
-        return testElem
+        return runElem
 
 
     def testToCSV(self, test):
