@@ -705,7 +705,7 @@ class OutputHandler:
         """
 
         version = ''
-        exe = findExecutable(*TOOLS[tool])
+        exe = self.benchmark.exe
         if (tool == "cpachecker"):
             try:
                 versionHelpStr = subprocess.Popen([exe, '-help'],
@@ -742,7 +742,6 @@ class OutputHandler:
         """
 
         # get info about OS
-        import os
         (sysname, name, kernel, version, machine) = os.uname()
         opSystem = sysname + " " + kernel + " " + machine
 
@@ -1964,7 +1963,7 @@ from the output of this script.""")
 
     try:
         processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
-        if len(re.findall("python.*benchmark\.py", processes)) > 1:
+        if len(re.findall("python.*benchmark\.py", Util.decodeToString(processes))) > 1:
             logging.warn("Already running instance of this script detected. " + \
                          "Please make sure to not interfere with somebody else's benchmarks.")
     except OSError:
