@@ -53,6 +53,9 @@ rootDirectory = "."
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
 
+# enforce a soundness check after analysis
+analysis.checkSoundness = true
+
 # stop CPAchecker after startup (internal option, not intended for users)
 analysis.disable = false
 
@@ -295,6 +298,9 @@ cpa.automaton.dotExportFile = "%s.dot"
 # file with automaton specification for ObserverAutomatonCPA and
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
+
+# initialize all variables to 0 when they are declared
+cpa.bdd.initAllVars = false
 
 # which composite merge operator to use (plain or agree)
 # Both delegate to the component cpas, but agree only allows merging if all

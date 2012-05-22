@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -100,11 +101,13 @@ public class CPAchecker {
   private boolean runCBMCasExternalTool = false;
 
   @Option(description="enforce a soundness check after analysis")
-  private boolean checkSoundness = false;
+  private boolean checkSoundness = true;
 
   private final LogManager logger;
   private final Configuration config;
   private final CoreComponentsFactory factory;
+
+  private Algorithm algo = null;
 
   /**
    * This method will throw an exception if the user has requested CPAchecker to
@@ -184,6 +187,8 @@ public class CPAchecker {
           initializeReachedSet(reached, cpa, cfa.getMainFunction());
         }
       }
+
+      algo = algorithm;
 
       printConfigurationWarnings();
 
@@ -283,7 +288,7 @@ public class CPAchecker {
 
   private Result analyzeResult(final ReachedSet reached, boolean sound) {
     if (Iterables.any(reached, AbstractElements.IS_TARGET_ELEMENT)) {
-      if(checkSoundness && !sound) {
+      if(checkSoundness && algo instanceof CounterexampleCheckAlgorithm && CounterexampleCheckAlgorithm.processFailed) {
         return Result.UNKNOWN;
       } else {
         return Result.UNSAFE;

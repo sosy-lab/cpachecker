@@ -83,6 +83,8 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
               + "Setting this to false may prevent a lot of similar infeasible counterexamples to get discovered, but is unsound")
   private boolean removeInfeasibleErrors = false;
 
+  public static boolean processFailed = false;
+
   public CounterexampleCheckAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger, ReachedSetFactory reachedSetFactory, CFA cfa) throws InvalidConfigurationException, CPAException {
     this.algorithm = algorithm;
     this.logger = logger;
@@ -132,6 +134,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
           feasibility = checker.checkCounterexample(rootElement, errorElement, elementsOnErrorPath);
         } catch (CPAException e) {
           logger.logUserException(Level.WARNING, e, "Counterexample found, but feasibility could not be verified");
+          processFailed = true;
           return false;
         }
 
