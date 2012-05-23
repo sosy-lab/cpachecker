@@ -63,15 +63,16 @@ public class BDDElement implements AbstractElement {
   }
 
   public boolean isLessOrEqual(BDDElement other) {
-    assert this.functionCallElement == other.functionCallElement;
-    assert this.currentVars == other.currentVars;
+    assert this.functionName.equals(other.functionName) : "same function needed: "
+        + this.functionName + " vs " + other.functionName;
 
     return manager.entails(this.currentState, other.currentState);
   }
 
   public BDDElement join(BDDElement other) {
-    assert this.functionCallElement == other.functionCallElement : "can only join same function";
-    assert this.currentVars == other.currentVars : "can only join same vars";
+    assert this.functionName.equals(other.functionName) : "same function needed: "
+        + this.functionName + " vs " + other.functionName;
+    this.currentVars.addAll(other.currentVars); // some vars more make no difference
 
     Region result = manager.makeOr(this.currentState, other.currentState);
     if (result.equals(this.currentState)) {
@@ -87,5 +88,15 @@ public class BDDElement implements AbstractElement {
   @Override
   public String toString() {
     return manager.dumpRegion(currentState);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o instanceof BDDElement) {
+      BDDElement other = (BDDElement) o;
+      return this.functionName.equals(other.functionName) &&
+          this.currentState.equals(other.currentState);
+    }
+    return false;
   }
 }

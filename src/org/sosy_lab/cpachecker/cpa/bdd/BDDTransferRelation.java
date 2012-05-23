@@ -224,7 +224,6 @@ public class BDDTransferRelation implements TransferRelation {
       // track vars, so we can delete them after returning from a function,
       // see handleFunctionReturnEdge(...) for detail.
       if (!vdecl.isGlobal()) {
-        assert !element.getVars().contains(varName) : "variable declared twice: " + varName;
         element.getVars().add(varName);
       }
 
@@ -304,7 +303,7 @@ public class BDDTransferRelation implements TransferRelation {
       newRegion = rmgr.makeExists(newRegion, retVar);
     }
 
-    return new BDDElement(rmgr, element.getFunctionCallElement(), newRegion,
+    return new BDDElement(rmgr, element.getFunctionCallElement().getFunctionCallElement(), newRegion,
         element.getFunctionCallElement().getVars(),
         cfaEdge.getSuccessor().getFunctionName());
   }
