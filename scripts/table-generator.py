@@ -45,6 +45,9 @@ NAME_START = "results" # first part of filename of html-table
 
 CSV_SEPARATOR = '\t'
 
+LIB_URL = "http://www.sosy-lab.org/lib"
+LIB_URL_OFFLINE = "lib/javascript"
+
 TEMPLATE_FILE_NAME = os.path.join(os.path.dirname(__file__), 'table-generator-template.html')
 
 # string searched in filenames to determine correct or incorrect status.
@@ -74,16 +77,15 @@ class Template():
         through the value of the key.
         """
         infile = open(self.infileName, 'r')
+        template = infile.read();
+        infile.close();
+
+        for key in kws:
+             matcher = "{{{" + key + "}}}"
+             template = template.replace(matcher, kws[key])
+
         outfile = open(self.outfileName, 'w')
-
-        for line in infile:
-            for key in kws:
-                matcher = "{{{" + key + "}}}"
-                if matcher in line:
-                    line = line.replace(matcher, kws[key])
-            outfile.write(line)
-
-        infile.close()
+        outfile.write(template)
         outfile.close()
 
 
@@ -806,7 +808,8 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath):
                     title=name,
                     head=HTMLhead,
                     body=HTMLbody,
-                    foot=HTMLfoot
+                    foot=HTMLfoot,
+                    lib_url=LIB_URL
                     )
 
         # write CSV to file
@@ -864,6 +867,10 @@ def main(args=None):
         action="store_true", dest="correctOnly",
         help="Clear all results in cases where the result was not correct."
     )
+    parser.add_option("--offline",
+        action="store_true", dest="offline",
+        help="Don't insert links to http://www.sosy-lab.org, instead expect JS libs in libs/javascript."
+    )
 
     options, args = parser.parse_args(args)
     args = args[1:] # skip args[0] which is the name of this script
@@ -871,6 +878,10 @@ def main(args=None):
     if options.merge and options.common:
         print("Invalid combination of arguments (--merge and --common)")
         exit()
+
+    if options.offline:
+        global LIB_URL
+        LIB_URL = LIB_URL_OFFLINE
 
     if not os.path.isdir(options.outputPath): os.makedirs(options.outputPath)
 
