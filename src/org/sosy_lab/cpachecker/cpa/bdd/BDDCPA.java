@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import java.util.LinkedHashSet;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -50,7 +51,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(BDDCPA.class);
   }
 
-  private final BDDElement initialElement;
+  private final NamedRegionManager manager;
   private final BDDDomain abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
@@ -58,11 +59,10 @@ public class BDDCPA implements ConfigurableProgramAnalysis {
 
   private BDDCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
 
-    NamedRegionManager manager = new NamedRegionManager(BDDRegionManager.getInstance());
-    initialElement = new BDDElement(manager.makeTrue(), manager);
-    abstractDomain = new BDDDomain(manager);
+    manager = new NamedRegionManager(BDDRegionManager.getInstance());
+    abstractDomain = new BDDDomain();
     mergeOperator = new MergeJoinOperator(abstractDomain);
-    stopOperator =  new StopSepOperator(abstractDomain);
+    stopOperator = new StopSepOperator(abstractDomain);
     transferRelation = new BDDTransferRelation(manager, config);
   }
 
@@ -88,7 +88,8 @@ public class BDDCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractElement getInitialElement(CFANode node) {
-    return initialElement;
+    return new BDDElement(manager, null, manager.makeTrue(),
+        new LinkedHashSet<String>(), node.getFunctionName());
   }
 
   @Override

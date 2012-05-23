@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import java.util.Set;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -31,14 +33,55 @@ public class BDDElement implements AbstractElement {
 
   private Region currentState;
   private final NamedRegionManager manager;
+  private Set<String> currentVars;
+  private BDDElement functionCallElement;
+  private String functionName;
 
-  public BDDElement(Region currentState, NamedRegionManager manager) {
-    this.currentState = currentState;
-    this.manager = manager;
+  public BDDElement(NamedRegionManager mgr, BDDElement functionCallElement,
+      Region state, Set<String> vars, String functionName) {
+    this.currentState = state;
+    this.currentVars = vars;
+    this.functionCallElement = functionCallElement;
+    this.functionName = functionName;
+    this.manager = mgr;
   }
 
   public Region getRegion() {
     return currentState;
+  }
+
+  public Set<String> getVars() {
+    return currentVars;
+  }
+
+  public BDDElement getFunctionCallElement() {
+    return functionCallElement;
+  }
+
+  public String getFunctionName() {
+    return functionName;
+  }
+
+  public boolean isLessOrEqual(BDDElement other) {
+    assert this.functionCallElement == other.functionCallElement;
+    assert this.currentVars == other.currentVars;
+
+    return manager.entails(this.currentState, other.currentState);
+  }
+
+  public BDDElement join(BDDElement other) {
+    assert this.functionCallElement == other.functionCallElement : "can only join same function";
+    assert this.currentVars == other.currentVars : "can only join same vars";
+
+    Region result = manager.makeOr(this.currentState, other.currentState);
+    if (result.equals(this.currentState)) {
+      return this;
+    } else if (result.equals(other.currentState)) {
+      return other;
+    } else {
+      return new BDDElement(this.manager, this.functionCallElement, result,
+          this.currentVars, this.functionName);
+    }
   }
 
   @Override

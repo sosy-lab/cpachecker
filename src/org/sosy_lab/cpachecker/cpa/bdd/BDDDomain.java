@@ -25,41 +25,18 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 public class BDDDomain implements AbstractDomain {
 
-  private final NamedRegionManager rmgr;
-
-  public BDDDomain(NamedRegionManager manager) {
-    this.rmgr = manager;
-  }
+  public BDDDomain() {}
 
   @Override
   public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement) {
-      // returns true if element1 < element2 on lattice
-      // true if newElement represents less states (and a subset of the states of) reachedElement
-    if (newElement instanceof BDDElement && reachedElement instanceof BDDElement){
-      BDDElement newElem = (BDDElement)newElement;
-      BDDElement reachedElem = (BDDElement)reachedElement;
-      return rmgr.entails(newElem.getRegion(), reachedElem.getRegion());
-    } else {
-      throw new IllegalArgumentException("Called with non-BDD-Elements");
-    }
+    return ((BDDElement) newElement).isLessOrEqual((BDDElement) reachedElement);
   }
 
   @Override
-  public AbstractElement join(AbstractElement element1, AbstractElement element2) {
-    Region region1 = ((BDDElement)element1).getRegion();
-    Region region2 = ((BDDElement)element2).getRegion();
-    Region result = rmgr.makeOr(region1, region2);
-    if (result.equals(region1)) {
-      return element1;
-    } else if (result.equals(region2)) {
-      return element2;
-    } else {
-      return new BDDElement(result, rmgr);
-    }
+  public AbstractElement join(AbstractElement newElement, AbstractElement reachedElement) {
+    return ((BDDElement) newElement).join((BDDElement) reachedElement);
   }
 }

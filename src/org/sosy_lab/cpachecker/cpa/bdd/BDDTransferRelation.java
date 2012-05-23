@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.bdd;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -39,16 +38,19 @@ import org.sosy_lab.cpachecker.cfa.ast.Defaults;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
@@ -76,12 +78,6 @@ public class BDDTransferRelation implements TransferRelation {
 
   private final NamedRegionManager rmgr;
 
-  /** stack to track variables,
-   * so we can cleanup the BDD after returning from a function */
-  private List<Set<String>> stack;
-  private Set<String> globalVars;
-  private Set<String> topLevel;
-
   /** name for return-variables, it is used for function-returns. */
   private static final String FUNCTION_RETURN_VARIABLE = "__cpachecker_return_var";
 
@@ -92,12 +88,6 @@ public class BDDTransferRelation implements TransferRelation {
       throws InvalidConfigurationException {
     config.inject(this);
     this.rmgr = manager;
-
-    // initialize stack and globalVars to track variables
-    globalVars = new LinkedHashSet<String>();
-    topLevel = globalVars;
-    stack = new ArrayList<Set<String>>();
-    stack.add(globalVars); // floor of stack
   }
 
   @Override
@@ -113,9 +103,7 @@ public class BDDTransferRelation implements TransferRelation {
     switch (cfaEdge.getEdgeType()) {
 
     case AssumeEdge: {
-      AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
-      successor = handleAssumption(elem, assumeEdge.getExpression(), cfaEdge,
-          assumeEdge.getTruthAssumption());
+      successor = handleAssumption(elem, (AssumeEdge) cfaEdge);
       break;
     }
 
@@ -134,7 +122,7 @@ public class BDDTransferRelation implements TransferRelation {
       for (CFAEdge innerEdge : (MultiEdge) cfaEdge) {
         c = getAbstractSuccessors(successor, precision, innerEdge);
         if (c.isEmpty()) {
-          successor = elem;
+          successor = elem; //TODO really correct??
         } else if (c.size() == 1) {
           successor = c.toArray(new BDDElement[1])[0];
         } else {
@@ -184,8 +172,7 @@ public class BDDTransferRelation implements TransferRelation {
       // make variable (predicate) for LEFT SIDE of assignment,
       // delete variable, if it was used before, this is done with an existential operator
       String varName = lhs.toASTString();
-      String functionName = cfaEdge.getPredecessor().getFunctionName();
-      Region var = rmgr.createPredicate(buildVarName(varName, functionName));
+      Region var = makePredicate(varName, element.getFunctionName(), isGlobal(lhs));
       Region newRegion = rmgr.makeExists(element.getRegion(), var);
 
       IASTRightHandSide rhs = assignment.getRightHandSide();
@@ -193,14 +180,21 @@ public class BDDTransferRelation implements TransferRelation {
 
         // make region for RIGHT SIDE and build equality of var and region
         Region regRHS = propagateBooleanExpression(
-            (IASTExpression) rhs, functionName, cfaEdge, false);
+            (IASTExpression) rhs, element, cfaEdge, false);
         newRegion = addEquality(var, regRHS, newRegion);
+
+      } else if (rhs instanceof IASTFunctionCallExpression) {
+        // call of external function: we know nothing, so we do nothing
+
+        // TODO can we assume, that malloc returns something !=0?
+        // are there some "save functions"?
 
       } else {
         throw new UnrecognizedCCodeException(cfaEdge, rhs);
       }
 
-      result = new BDDElement(newRegion, rmgr);
+      result = new BDDElement(rmgr, element.getFunctionCallElement(), newRegion,
+          element.getVars(), cfaEdge.getPredecessor().getFunctionName());
     }
 
     assert !result.getRegion().isFalse();
@@ -226,16 +220,21 @@ public class BDDTransferRelation implements TransferRelation {
 
       // make variable (predicate) for LEFT SIDE of declaration,
       String varName = vdecl.getName();
-      assert !topLevel.contains(varName);
-      topLevel.add(varName);
-      String functionName = cfaEdge.getPredecessor().getFunctionName();
-      Region var = rmgr.createPredicate(buildVarName(varName, functionName));
+
+      // track vars, so we can delete them after returning from a function,
+      // see handleFunctionReturnEdge(...) for detail.
+      if (!vdecl.isGlobal()) {
+        assert !element.getVars().contains(varName) : "variable declared twice: " + varName;
+        element.getVars().add(varName);
+      }
 
       // initializer on RIGHT SIDE available, make region for it
       if (init != null) {
-        Region regRHS = propagateBooleanExpression(init, functionName, cfaEdge, false);
+        Region var = makePredicate(varName, element.getFunctionName(), vdecl.isGlobal());
+        Region regRHS = propagateBooleanExpression(init, element, cfaEdge, false);
         Region newRegion = addEquality(var, regRHS, element.getRegion());
-        return new BDDElement(newRegion, rmgr);
+        return new BDDElement(rmgr, element.getFunctionCallElement(), newRegion,
+            element.getVars(), cfaEdge.getPredecessor().getFunctionName());
       }
     }
 
@@ -245,50 +244,41 @@ public class BDDTransferRelation implements TransferRelation {
   private BDDElement handleFunctionCallEdge(BDDElement element, FunctionCallEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
-    // create Set for storing current variables, we have to delete them later
-    topLevel = new LinkedHashSet<String>();
-    stack.add(topLevel);
-
     Region newRegion = element.getRegion();
+    Set<String> newVars = new LinkedHashSet<String>();
 
-    // overtake arguments from last functioncall into function?
+    // overtake arguments from last functioncall into function,
+    // get args from functioncall and make them equal with params from functionstart
     List<IASTExpression> args = cfaEdge.getArguments();
     List<IASTParameterDeclaration> params = cfaEdge.getSuccessor().getFunctionParameters();
+    String innerFunctionName = cfaEdge.getSuccessor().getFunctionName();
     assert args.size() == params.size();
 
     for (int i = 0; i < args.size(); i++) {
 
       // make variable (predicate) for param
       String varName = params.get(i).getName();
-      assert !topLevel.contains(varName);
-      topLevel.add(varName);
-      String innerFunctionName = cfaEdge.getSuccessor().getFunctionName();
-      Region var = rmgr.createPredicate(buildVarName(varName, innerFunctionName));
+      assert !newVars.contains(varName) : "variable used twice as param";
+      newVars.add(varName);
+      Region var = makePredicate(varName, innerFunctionName, false);
 
       // make region for arg and build equality of var and arg
-      String outerFunctionName = cfaEdge.getPredecessor().getFunctionName();
-      Region arg = propagateBooleanExpression(args.get(i), outerFunctionName, cfaEdge, false);
+      Region arg = propagateBooleanExpression(args.get(i), element, cfaEdge, false);
       newRegion = addEquality(var, arg, newRegion);
     }
 
-    return new BDDElement(newRegion, rmgr);
+    return new BDDElement(rmgr, element, newRegion, newVars, innerFunctionName);
   }
 
   private BDDElement handleFunctionReturnEdge(BDDElement element, FunctionReturnEdge cfaEdge)
       throws UnrecognizedCCodeException {
     Region newRegion = element.getRegion();
 
-    // delete variables from returning function, this results in a smaller BDD
-    String innerFunctionName = cfaEdge.getPredecessor().getFunctionName();
-    for (String varName : topLevel) {
-      newRegion = rmgr.makeExists(newRegion,
-          rmgr.createPredicate(buildVarName(varName, innerFunctionName)));
+    // delete variables from returning function,
+    // this results in a smaller BDD and allows to call a function twice.
+    for (String varName : element.getVars()) {
+      newRegion = rmgr.makeExists(newRegion, makePredicate(varName, element.getFunctionName(), false));
     }
-
-    // cleanup the stack
-    Set<String> oldVars = stack.remove(stack.size() - 1);
-    assert oldVars == topLevel;
-    topLevel = stack.get(stack.size() - 1);
 
     // set result of function equal to variable on left side
     CallToReturnEdge fnkCall = cfaEdge.getSummaryEdge();
@@ -301,12 +291,12 @@ public class BDDTransferRelation implements TransferRelation {
       // make variable (predicate) for LEFT SIDE of assignment,
       // delete variable, if it was used before, this is done with an existential operator
       String varName = lhs.toASTString();
-      String outerFunctionName = cfaEdge.getSuccessor().getFunctionName();
-      Region var = rmgr.createPredicate(buildVarName(varName, outerFunctionName));
+      BDDElement functionCall = element.getFunctionCallElement();
+      Region var = makePredicate(varName, functionCall.getFunctionName(), isGlobal(lhs));
       newRegion = rmgr.makeExists(newRegion, var);
 
       // make region (predicate) for RIGHT SIDE
-      Region retVar = rmgr.createPredicate(buildVarName(FUNCTION_RETURN_VARIABLE, innerFunctionName));
+      Region retVar = makePredicate(FUNCTION_RETURN_VARIABLE, element.getFunctionName(), false);
 
       newRegion = addEquality(var, retVar, newRegion);
 
@@ -314,7 +304,9 @@ public class BDDTransferRelation implements TransferRelation {
       newRegion = rmgr.makeExists(newRegion, retVar);
     }
 
-    return new BDDElement(newRegion, rmgr);
+    return new BDDElement(rmgr, element.getFunctionCallElement(), newRegion,
+        element.getFunctionCallElement().getVars(),
+        cfaEdge.getSuccessor().getFunctionName());
   }
 
   private BDDElement handleReturnStatementEdge(BDDElement element, ReturnStatementEdge cfaEdge)
@@ -322,40 +314,42 @@ public class BDDTransferRelation implements TransferRelation {
 
     // make variable (predicate) for returnStatement,
     // delete variable, if it was used before, this is done with an existential operator
-    String innerFunctionName = cfaEdge.getPredecessor().getFunctionName();
-    Region retvar = rmgr.createPredicate(buildVarName(FUNCTION_RETURN_VARIABLE, innerFunctionName));
-    Region newRegion = rmgr.makeExists(element.getRegion(), retvar);
-    assert newRegion.equals(element.getRegion()) : FUNCTION_RETURN_VARIABLE + " was used twice in one trace??";
+    Region retvar = makePredicate(FUNCTION_RETURN_VARIABLE, element.getFunctionName(), false);
+
+    assert element.getRegion().equals(rmgr.makeExists(element.getRegion(), retvar)) : FUNCTION_RETURN_VARIABLE
+        + " was used twice in one trace??";
 
     // make region for RIGHT SIDE, this is the 'x' from 'return (x);
     IASTRightHandSide rhs = cfaEdge.getExpression();
     if (rhs instanceof IASTExpression) {
       Region regRHS = propagateBooleanExpression(
-          (IASTExpression) rhs, innerFunctionName, cfaEdge, false);
-      newRegion = addEquality(retvar, regRHS, newRegion);
+          (IASTExpression) rhs, element, cfaEdge, false);
+      Region newRegion = addEquality(retvar, regRHS, element.getRegion());
+      return new BDDElement(rmgr, element.getFunctionCallElement(), newRegion,
+          element.getVars(), cfaEdge.getPredecessor().getFunctionName());
     }
-    return new BDDElement(newRegion, rmgr);
+    return element;
   }
 
-  private BDDElement handleAssumption(BDDElement element,
-      IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
+  private BDDElement handleAssumption(BDDElement element, AssumeEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
-    String functionName = cfaEdge.getPredecessor().getFunctionName();
-    Region operand = propagateBooleanExpression(expression, functionName, cfaEdge, false);
+    IASTExpression expression = cfaEdge.getExpression();
+    Region operand = propagateBooleanExpression(expression, element, cfaEdge, false);
 
     if (operand == null) { // assumption cannot be evaluated
       return element;
 
     } else {
-      if (!truthValue) {
+      if (!cfaEdge.getTruthAssumption()) { // if false-branch
         operand = rmgr.makeNot(operand);
       }
       Region newRegion = rmgr.makeAnd(element.getRegion(), operand);
       if (newRegion.isFalse()) { // assumption is not fulfilled / not possible
         return null;
       } else {
-        return new BDDElement(newRegion, rmgr);
+        return new BDDElement(rmgr, element.getFunctionCallElement(), newRegion,
+            element.getVars(), cfaEdge.getPredecessor().getFunctionName());
       }
     }
   }
@@ -365,7 +359,7 @@ public class BDDTransferRelation implements TransferRelation {
    * @param ignoreLiterals ignore all numbers except Zero
    * @throws UnrecognizedCCodeException
    * @returns region containing all vars from the expression */
-  private Region propagateBooleanExpression(IASTExpression exp, String functionName,
+  private Region propagateBooleanExpression(IASTExpression exp, BDDElement element,
       CFAEdge edge, boolean ignoreLiterals)
       throws UnrecognizedCCodeException {
     Region region = null;
@@ -373,13 +367,13 @@ public class BDDTransferRelation implements TransferRelation {
     if (exp instanceof IASTIdExpression || exp instanceof IASTFieldReference
         || exp instanceof IASTArraySubscriptExpression) {
       String varName = exp.toASTString();
-      region = rmgr.createPredicate(buildVarName(varName, functionName));
+      region = makePredicate(varName, element.getFunctionName(), isGlobal(exp));
 
     } else if (exp instanceof IASTUnaryExpression) {
-      region = propagateUnaryBooleanExpression((IASTUnaryExpression) exp, functionName, edge);
+      region = propagateUnaryBooleanExpression((IASTUnaryExpression) exp, element, edge);
 
     } else if (exp instanceof IASTBinaryExpression) {
-      region = propagateBinaryBooleanExpression(((IASTBinaryExpression) exp), functionName, edge);
+      region = propagateBinaryBooleanExpression(((IASTBinaryExpression) exp), element, edge);
 
     } else if (exp instanceof IASTIntegerLiteralExpression) {
       IASTIntegerLiteralExpression number = (IASTIntegerLiteralExpression) exp;
@@ -388,6 +382,11 @@ public class BDDTransferRelation implements TransferRelation {
       } else if (!ignoreLiterals) {
         region = rmgr.makeTrue();
       }
+
+    } else if (exp instanceof IASTCastExpression) {
+      // we ignore casts, because Zero is Zero.
+      region = propagateBooleanExpression(((IASTCastExpression) exp).getOperand(), element, edge, true);
+
     } else {
       throw new UnrecognizedCCodeException(edge, exp);
     }
@@ -396,10 +395,10 @@ public class BDDTransferRelation implements TransferRelation {
   }
 
   private Region propagateUnaryBooleanExpression(IASTUnaryExpression unExp,
-      String functionName, CFAEdge edge)
+      BDDElement element, CFAEdge edge)
       throws UnrecognizedCCodeException {
 
-    Region operand = propagateBooleanExpression(unExp.getOperand(), functionName, edge, false);
+    Region operand = propagateBooleanExpression(unExp.getOperand(), element, edge, false);
 
     if (operand == null) { return null; }
 
@@ -417,11 +416,11 @@ public class BDDTransferRelation implements TransferRelation {
   }
 
   private Region propagateBinaryBooleanExpression(IASTBinaryExpression binExp,
-      String functionName, CFAEdge edge)
+      BDDElement element, CFAEdge edge)
       throws UnrecognizedCCodeException {
 
-    Region operand1 = propagateBooleanExpression(binExp.getOperand1(), functionName, edge, true);
-    Region operand2 = propagateBooleanExpression(binExp.getOperand2(), functionName, edge, true);
+    Region operand1 = propagateBooleanExpression(binExp.getOperand1(), element, edge, true);
+    Region operand2 = propagateBooleanExpression(binExp.getOperand2(), element, edge, true);
 
     if (operand1 == null || operand2 == null) { return null; }
 
@@ -448,12 +447,25 @@ public class BDDTransferRelation implements TransferRelation {
     return returnValue;
   }
 
-  public String buildVarName(String variableName, String functionName) {
-    if (topLevel.contains(variableName) || FUNCTION_RETURN_VARIABLE.equals(variableName)) {
-      return functionName + "::" + variableName;
-    } else {
-      assert globalVars.contains(variableName) : "variable not on stack and not global: " + variableName;
+  /** This function returns a region containing a variable.
+   * The name of the variable is build from functionName and varName. */
+  private Region makePredicate(String varName, String functionName, boolean isGlobal) {
+    return rmgr.createPredicate(buildVarName(varName, isGlobal, functionName));
+  }
+
+  private boolean isGlobal(IASTExpression exp) {
+    if (exp instanceof IASTIdExpression) {
+      IASTSimpleDeclaration decl = ((IASTIdExpression) exp).getDeclaration();
+      if (decl instanceof IASTDeclaration) { return ((IASTDeclaration) decl).isGlobal(); }
+    }
+    return false;
+  }
+
+  private String buildVarName(String variableName, boolean isGlobal, String function) {
+    if (isGlobal) {
       return variableName;
+    } else {
+      return function + "::" + variableName;
     }
   }
 
