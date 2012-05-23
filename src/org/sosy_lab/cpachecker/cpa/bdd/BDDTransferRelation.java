@@ -202,8 +202,7 @@ public class BDDTransferRelation implements TransferRelation {
   }
 
   /** handles declarations like "int a = 0;" and "int b = !a;" */
-  private BDDElement handleDeclarationEdge(BDDElement element, DeclarationEdge cfaEdge)
-      throws UnrecognizedCCodeException {
+  private BDDElement handleDeclarationEdge(BDDElement element, DeclarationEdge cfaEdge) {
 
     IASTDeclaration decl = cfaEdge.getDeclaration();
 
@@ -240,8 +239,7 @@ public class BDDTransferRelation implements TransferRelation {
     return element; // if we know nothing, we return the old element
   }
 
-  private BDDElement handleFunctionCallEdge(BDDElement element, FunctionCallEdge cfaEdge)
-      throws UnrecognizedCCodeException {
+  private BDDElement handleFunctionCallEdge(BDDElement element, FunctionCallEdge cfaEdge) {
 
     Region newRegion = element.getRegion();
     Set<String> newVars = new LinkedHashSet<String>();
@@ -269,8 +267,7 @@ public class BDDTransferRelation implements TransferRelation {
     return new BDDElement(rmgr, element, newRegion, newVars, innerFunctionName);
   }
 
-  private BDDElement handleFunctionReturnEdge(BDDElement element, FunctionReturnEdge cfaEdge)
-      throws UnrecognizedCCodeException {
+  private BDDElement handleFunctionReturnEdge(BDDElement element, FunctionReturnEdge cfaEdge) {
     Region newRegion = element.getRegion();
 
     // delete variables from returning function,
@@ -308,8 +305,7 @@ public class BDDTransferRelation implements TransferRelation {
         cfaEdge.getSuccessor().getFunctionName());
   }
 
-  private BDDElement handleReturnStatementEdge(BDDElement element, ReturnStatementEdge cfaEdge)
-      throws UnrecognizedCCodeException {
+  private BDDElement handleReturnStatementEdge(BDDElement element, ReturnStatementEdge cfaEdge) {
 
     // make variable (predicate) for returnStatement,
     // delete variable, if it was used before, this is done with an existential operator
@@ -330,8 +326,7 @@ public class BDDTransferRelation implements TransferRelation {
     return element;
   }
 
-  private BDDElement handleAssumption(BDDElement element, AssumeEdge cfaEdge)
-      throws UnrecognizedCCodeException {
+  private BDDElement handleAssumption(BDDElement element, AssumeEdge cfaEdge) {
 
     IASTExpression expression = cfaEdge.getExpression();
     Region operand = propagateBooleanExpression(expression, element, cfaEdge, false);
@@ -359,8 +354,7 @@ public class BDDTransferRelation implements TransferRelation {
    * @throws UnrecognizedCCodeException
    * @returns region containing all vars from the expression */
   private Region propagateBooleanExpression(IASTExpression exp, BDDElement element,
-      CFAEdge edge, boolean ignoreLiterals)
-      throws UnrecognizedCCodeException {
+      CFAEdge edge, boolean ignoreLiterals) {
     Region region = null;
 
     if (exp instanceof IASTIdExpression || exp instanceof IASTFieldReference
@@ -386,16 +380,14 @@ public class BDDTransferRelation implements TransferRelation {
       // we ignore casts, because Zero is Zero.
       region = propagateBooleanExpression(((IASTCastExpression) exp).getOperand(), element, edge, true);
 
-    } else {
-      throw new UnrecognizedCCodeException(edge, exp);
     }
+    // else: nothing to do, we cannot handle more expressions
 
     return region;
   }
 
   private Region propagateUnaryBooleanExpression(IASTUnaryExpression unExp,
-      BDDElement element, CFAEdge edge)
-      throws UnrecognizedCCodeException {
+      BDDElement element, CFAEdge edge) {
 
     Region operand = propagateBooleanExpression(unExp.getOperand(), element, edge, false);
 
@@ -415,8 +407,7 @@ public class BDDTransferRelation implements TransferRelation {
   }
 
   private Region propagateBinaryBooleanExpression(IASTBinaryExpression binExp,
-      BDDElement element, CFAEdge edge)
-      throws UnrecognizedCCodeException {
+      BDDElement element, CFAEdge edge) {
 
     Region operand1 = propagateBooleanExpression(binExp.getOperand1(), element, edge, true);
     Region operand2 = propagateBooleanExpression(binExp.getOperand2(), element, edge, true);
@@ -471,7 +462,7 @@ public class BDDTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> strengthen(
       AbstractElement element, List<AbstractElement> elements, CFAEdge cfaEdge,
-      Precision precision) throws UnrecognizedCCodeException {
+      Precision precision) {
     // do nothing
     return null;
   }
