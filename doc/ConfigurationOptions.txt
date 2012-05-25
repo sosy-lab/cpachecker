@@ -296,6 +296,9 @@ cpa.automaton.dotExportFile = "%s.dot"
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
 
+# initialize all variables to 0 when they are declared
+cpa.bdd.initAllVars = false
+
 # which composite merge operator to use (plain or agree)
 # Both delegate to the component cpas, but agree only allows merging if all
 # cpas agree on this. This is probably what you want.
@@ -382,13 +385,16 @@ cpa.explicit.variableBlacklist = ""
 
 # whether or not to use assumption-closure for explicit refinement
 cpa.explict.refiner.useAssumptionClosure = true
+cpa.explict.refiner.useAssumptionClosure = no default value
 
 # whether or not to use explicit interpolation
 cpa.explict.refiner.useExplicitInterpolation = false
+cpa.explict.refiner.useExplicitInterpolation = no default value
 
 # whether or not to always use the inital node as starting point for the next
 # iteration
 cpa.explict.refiner.useInitialNodeAsRestartingPoint = true
+cpa.explict.refiner.useInitialNodeAsRestartingPoint = no default value
 
 # whitelist regex for variables that will be tracked by FeatureVarsCPA
 cpa.featurevars.variableWhitelist = ""

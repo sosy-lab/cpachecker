@@ -132,7 +132,8 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
           feasibility = checker.checkCounterexample(rootElement, errorElement, elementsOnErrorPath);
         } catch (CPAException e) {
           logger.logUserException(Level.WARNING, e, "Counterexample found, but feasibility could not be verified");
-          return false;
+          //return false;
+          throw e;
         }
 
         if (feasibility) {
