@@ -99,9 +99,6 @@ public class CPAchecker {
       description="use CBMC as an external tool from CPAchecker")
   private boolean runCBMCasExternalTool = false;
 
-  @Option(description="enforce a soundness check after analysis")
-  private boolean checkSoundness = false;
-
   private final LogManager logger;
   private final Configuration config;
   private final CoreComponentsFactory factory;
@@ -283,11 +280,7 @@ public class CPAchecker {
 
   private Result analyzeResult(final ReachedSet reached, boolean sound) {
     if (Iterables.any(reached, AbstractElements.IS_TARGET_ELEMENT)) {
-      if(checkSoundness && !sound) {
-        return Result.UNKNOWN;
-      } else {
-        return Result.UNSAFE;
-      }
+      return Result.UNSAFE;
     }
 
     if (reached.hasWaitingElement()) {
