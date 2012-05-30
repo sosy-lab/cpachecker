@@ -280,6 +280,10 @@ public class BDDTransferRelation implements TransferRelation {
     CallToReturnEdge fnkCall = cfaEdge.getSummaryEdge();
     IASTStatement call = fnkCall.getExpression().asStatement();
 
+    // make region (predicate) for RIGHT SIDE
+    Region retVar = makePredicate(FUNCTION_RETURN_VARIABLE, element.getFunctionName(), false);
+
+    // handle assignments like "y = f(x);"
     if (call instanceof IASTFunctionCallAssignmentStatement) {
       IASTFunctionCallAssignmentStatement cAssignment = (IASTFunctionCallAssignmentStatement) call;
       IASTExpression lhs = cAssignment.getLeftHandSide();
@@ -290,15 +294,11 @@ public class BDDTransferRelation implements TransferRelation {
       BDDElement functionCall = element.getFunctionCallElement();
       Region var = makePredicate(varName, functionCall.getFunctionName(), isGlobal(lhs));
       newRegion = rmgr.makeExists(newRegion, var);
-
-      // make region (predicate) for RIGHT SIDE
-      Region retVar = makePredicate(FUNCTION_RETURN_VARIABLE, element.getFunctionName(), false);
-
       newRegion = addEquality(var, retVar, newRegion);
-
-      // LAST ACTION: delete varname of right side
-      newRegion = rmgr.makeExists(newRegion, retVar);
     }
+
+    // LAST ACTION: delete varname of right side
+    newRegion = rmgr.makeExists(newRegion, retVar);
 
     return new BDDElement(rmgr, element.getFunctionCallElement().getFunctionCallElement(), newRegion,
         element.getFunctionCallElement().getVars(),
