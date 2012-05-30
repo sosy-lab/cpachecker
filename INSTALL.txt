@@ -10,6 +10,7 @@ Install CPAchecker -- Binary
 1. Install a Java Runtime Environment which is at least Java 6 compatible
    (e.g., Sun/Oracle JRE, OpenJDK).
    Cf. http://java.oracle.com/ or install a package from your distribution.
+   (Ubuntu: sudo apt-get install openjdk-7-jdk)
 
 2. Extract the content of the CPAchecker zip or tar file into a directory of your choice.
 
