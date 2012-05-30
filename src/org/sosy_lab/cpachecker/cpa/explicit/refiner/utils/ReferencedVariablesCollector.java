@@ -48,9 +48,13 @@ import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 import com.google.common.collect.HashMultimap;
@@ -109,7 +113,8 @@ public class ReferencedVariablesCollector {
 
     Multimap<CFANode, String> collectedVariables = HashMultimap.create();
     for(int i = path.size() - 1; i >= 0; i--) {
-      collectVariables(path.get(i), collectedVariables);
+      CFAEdge succ = (i == path.size() - 1) ? null : path.get(i + 1);
+      collectVariables(path.get(i), collectedVariables, succ);
     }
 
     return collectedVariables;
@@ -147,7 +152,7 @@ public class ReferencedVariablesCollector {
    * @param edge the edge to analyze
    * @param collectedVariables the mapping of collected variables
    */
-  private void collectVariables(CFAEdge edge, Multimap<CFANode, String> collectedVariables) {
+  private void collectVariables(CFAEdge edge, Multimap<CFANode, String> collectedVariables, CFAEdge succ) {
     String currentFunction = edge.getPredecessor().getFunctionName();
 
     switch(edge.getEdgeType()) {
@@ -187,6 +192,78 @@ public class ReferencedVariablesCollector {
 
       // always inspect assume edges
       collectVariables(assumeEdge, assumeExpression, collectedVariables);
+      break;
+
+
+    case FunctionReturnEdge:
+      FunctionReturnEdge returnEdge = (FunctionReturnEdge)edge;
+
+      CallToReturnEdge callToReturnEdge = returnEdge.getSummaryEdge();
+
+      IASTFunctionCall functionCall2 = callToReturnEdge.getExpression();
+
+      if(functionCall2 instanceof IASTFunctionCallAssignmentStatement) {
+        IASTFunctionCallAssignmentStatement funcAssign = (IASTFunctionCallAssignmentStatement)functionCall2;
+        String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), returnEdge.getSuccessor().getFunctionName());
+
+        if(dependingVariables.contains(assignedVariable)) {
+          // is this needed here?
+          // for test/programs/benchmarks/ldv-regression/rule60_list2.c-unsafe_1.cil.c this is not needed
+          // for tracking my_malloc::tmp
+          //collectedVariables.put(callToReturnEdge.getSuccessor(), assignedVariable);
+
+
+          ReturnStatementEdge returnStatementEdge;
+          CFAEdge currentEdge = null;
+          CFAEdge enteringEdge = returnEdge.getPredecessor().getEnteringEdge(0);
+
+          if(enteringEdge instanceof MultiEdge) {
+            for(CFAEdge singleEdge : (MultiEdge)enteringEdge) {
+              currentEdge = singleEdge;
+            }
+
+            enteringEdge = currentEdge;
+          }
+
+          assert(enteringEdge instanceof ReturnStatementEdge);
+
+          returnStatementEdge = (ReturnStatementEdge)enteringEdge;
+
+          collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables);
+        }
+      }
+      break;
+
+    case DeclarationEdge:
+      //System.out.println("inspecting edge " + edge.getRawStatement());
+      IASTDeclaration declaration = ((DeclarationEdge)edge).getDeclaration();
+      if(declaration.getName() != null && declaration.isGlobal()) {
+        globalVariables.add(declaration.getName());
+
+        if(dependingVariables.contains(declaration.getName()))
+          collectedVariables.put(edge.getSuccessor(), declaration.getName());
+      }
+      break;
+    case ReturnStatementEdge:
+      if(succ == null)
+        break;
+      ReturnStatementEdge returnStatementEdge = (ReturnStatementEdge)edge;
+
+      FunctionReturnEdge returnEdge2 = (FunctionReturnEdge)succ;
+
+      CallToReturnEdge callToReturnEdge2 = returnEdge2.getSummaryEdge();
+
+      IASTFunctionCall functionCall3 = callToReturnEdge2.getExpression();
+
+      if(functionCall3 instanceof IASTFunctionCallAssignmentStatement) {
+        IASTFunctionCallAssignmentStatement funcAssign = (IASTFunctionCallAssignmentStatement)functionCall3;
+        String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), succ.getSuccessor().getFunctionName());
+
+        if(dependingVariables.contains(assignedVariable)) {
+          collectedVariables.put(callToReturnEdge2.getSuccessor(), assignedVariable);
+          collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables);
+        }
+      }
       break;
 
     default:
