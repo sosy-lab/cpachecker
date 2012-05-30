@@ -75,10 +75,15 @@ public class BDDElement implements AbstractElement {
     this.currentVars.addAll(other.currentVars); // some vars more make no difference
 
     Region result = manager.makeOr(this.currentState, other.currentState);
-    if (result.equals(this.currentState)) {
-      return this;
-    } else if (result.equals(other.currentState)) {
+
+    // FIRST check the other element
+    if (result.equals(other.currentState)) {
       return other;
+
+      // THEN check this element
+    } else if (result.equals(this.currentState)) {
+      return this;
+
     } else {
       return new BDDElement(this.manager, this.functionCallElement, result,
           this.currentVars, this.functionName);
