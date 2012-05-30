@@ -210,7 +210,7 @@ public class ReferencedVariablesCollector {
           // is this needed here?
           // for test/programs/benchmarks/ldv-regression/rule60_list2.c-unsafe_1.cil.c this is not needed
           // for tracking my_malloc::tmp
-          //collectedVariables.put(callToReturnEdge.getSuccessor(), assignedVariable);
+          collectedVariables.put(callToReturnEdge.getSuccessor(), assignedVariable);
 
 
           ReturnStatementEdge returnStatementEdge;
@@ -379,7 +379,6 @@ public class ReferencedVariablesCollector {
 
     @Override
     public Void visit(IASTFunctionCallExpression pE) {
-      pE.getFunctionNameExpression().accept(this);
       for (IASTExpression param : pE.getParameterExpressions()) {
         param.accept(this);
       }
@@ -393,7 +392,10 @@ public class ReferencedVariablesCollector {
       switch(op) {
       case AMPER:
       case STAR:
-        collectVariables(pE.toASTString());
+        // we want to know the name of the identifier, if any
+        // whether or not it is a pointer (dereference) is not important here
+        //collectVariables(pE.getOperand().toASTString());
+        pE.getOperand().accept(this);
       default:
         pE.getOperand().accept(this);
       }
