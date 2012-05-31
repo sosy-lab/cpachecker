@@ -218,7 +218,10 @@ public class BDDTransferRelation implements TransferRelation {
       }
 
       // make variable (predicate) for LEFT SIDE of declaration,
+      // delete variable, if it was initialized before i.e. in another block, with an existential operator
       String varName = vdecl.getName();
+      Region var = makePredicate(varName, element.getFunctionName(), vdecl.isGlobal());
+      Region newRegion = rmgr.makeExists(element.getRegion(), var);
 
       // track vars, so we can delete them after returning from a function,
       // see handleFunctionReturnEdge(...) for detail.
@@ -228,9 +231,8 @@ public class BDDTransferRelation implements TransferRelation {
 
       // initializer on RIGHT SIDE available, make region for it
       if (init != null) {
-        Region var = makePredicate(varName, element.getFunctionName(), vdecl.isGlobal());
         Region regRHS = propagateBooleanExpression(init, element, cfaEdge, false);
-        Region newRegion = addEquality(var, regRHS, element.getRegion());
+        newRegion = addEquality(var, regRHS, newRegion);
         return new BDDElement(rmgr, element.getFunctionCallElement(), newRegion,
             element.getVars(), cfaEdge.getPredecessor().getFunctionName());
       }
