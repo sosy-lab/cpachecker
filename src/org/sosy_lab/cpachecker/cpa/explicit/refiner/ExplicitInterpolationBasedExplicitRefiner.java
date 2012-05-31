@@ -152,7 +152,13 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
       List<Pair<ARTElement, CFANode>> errorPath,
       Multimap<CFANode, String> precisionIncrement) {
 
-    return firstInterpolationPoint;
+    // just use initial node of error path if the respective option is set
+    if(useInitialNodeAsRestartingPoint) {
+      return errorPath.get(1).getFirst();
+    }
+    else {
+      return firstInterpolationPoint;
+    }
   }
 
   /**

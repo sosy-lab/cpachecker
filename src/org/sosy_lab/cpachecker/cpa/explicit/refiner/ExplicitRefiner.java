@@ -145,11 +145,10 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
   protected ARTElement determineInterpolationPoint(
       List<Pair<ARTElement, CFANode>> errorPath,
       Multimap<CFANode, String> precisionIncrement) {
-    ARTElement initialNode = errorPath.get(1).getFirst();
 
     // just use initial node of error path if the respective option is set
     if(useInitialNodeAsRestartingPoint) {
-      return initialNode;
+      return errorPath.get(1).getFirst();
     }
 
     // otherwise, use the first node where new information is present
