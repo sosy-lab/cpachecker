@@ -296,6 +296,9 @@ cpa.automaton.dotExportFile = "%s.dot"
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
 
+# initialize all variables to 0 when they are declared
+cpa.bdd.initAllVars = false
+
 # which composite merge operator to use (plain or agree)
 # Both delegate to the component cpas, but agree only allows merging if all
 # cpas agree on this. This is probably what you want.

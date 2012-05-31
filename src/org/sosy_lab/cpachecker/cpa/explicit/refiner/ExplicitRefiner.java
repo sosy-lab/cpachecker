@@ -65,7 +65,7 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
 
   protected CounterexampleTraceInfo<Collection<AbstractionPredicate>> currentTraceInfo = null;
 
-  private Set<Integer> pathHashes = new HashSet<Integer>();
+  private Set<String> pathHashes = new HashSet<String>();
 
   // statistics
   protected int numberOfExplicitRefinements                   = 0;
@@ -197,8 +197,12 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
   }
 
   @Override
-  public boolean hasMadeProgress(List<Pair<ARTElement, CFAEdge>> newErrorPath) {
-    return pathHashes.add(newErrorPath.toString().hashCode());
+  public boolean hasMadeProgress(List<Pair<ARTElement, CFAEdge>> currentErrorPath, Precision currentPrecision) {
+    ExplicitPrecision currentExplicitPrecision = extractExplicitPrecision(currentPrecision);
+
+    return pathHashes.add(currentExplicitPrecision.getCegarPrecision().toString().hashCode() +
+        "_" +
+        currentEdgePath.toString().hashCode());
   }
 
   @Override

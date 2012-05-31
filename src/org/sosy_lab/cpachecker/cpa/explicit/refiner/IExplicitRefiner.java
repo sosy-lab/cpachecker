@@ -55,7 +55,7 @@ public interface IExplicitRefiner {
       List<Pair<ARTElement, CFANode>> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException;
 
-  boolean hasMadeProgress(List<Pair<ARTElement, CFAEdge>> currentErrorPath);
+  boolean hasMadeProgress(List<Pair<ARTElement, CFAEdge>> currentErrorPath, Precision currentPrecision);
 
   void setCurrentErrorPath(List<Pair<ARTElement, CFAEdge>> currentErrorPath);
 

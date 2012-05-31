@@ -159,12 +159,12 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
   }
 
   @Override
-  public boolean hasMadeProgress(List<Pair<ARTElement, CFAEdge>> newErrorPath) {
-    if(newErrorPath.hashCode() == previousPathHash) {
+  public boolean hasMadeProgress(List<Pair<ARTElement, CFAEdge>> currentErrorPath, Precision currentPrecision) {
+    if(currentErrorPath.toString().hashCode() == previousPathHash) {
       return false;
     }
 
-    previousPathHash = newErrorPath.hashCode();
+    previousPathHash = currentErrorPath.toString().hashCode();
 
     return true;
   }

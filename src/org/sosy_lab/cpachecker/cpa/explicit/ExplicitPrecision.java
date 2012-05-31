@@ -233,6 +233,23 @@ public class ExplicitPrecision implements Precision {
     public String toString() {
       return Joiner.on(",").join(mapping.entries());
     }
+
+    @Override
+    public boolean equals(Object other) {
+      if(this == other) {
+        return true;
+      }
+
+      else if(other == null) {
+        return false;
+      }
+
+      else if (!getClass().equals(other.getClass())) {
+        return false;
+      }
+
+      return ((CegarPrecision)other).mapping.equals(mapping);
+    }
   }
 
   abstract class Thresholds {

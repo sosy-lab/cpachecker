@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision.CegarPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssignedVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssumptionVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictPathChecker;
@@ -57,6 +56,11 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
 
   @Option(description="whether or not to use assumption-closure for explicit refinement")
   boolean useAssumptionClosure = true;
+
+  /**
+   * the ART element, from where to cut-off the subtree, and restart the analysis
+   */
+  private ARTElement firstInterpolationPoint = null;
 
   // statistics
   private int numberOfCounterExampleChecks                  = 0;
@@ -89,6 +93,8 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
       }
     }
 
+    firstInterpolationPoint = null;
+
     Multimap<CFANode, String> variablesToBeIgnored      = HashMultimap.create();
     Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(cfaTrace);
 
@@ -108,10 +114,15 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
         continue;
       }
 
+/*
+  Checking for redundancy works of course, but it might lead to an empty precision increment, because this variable
+  at the current location might have been added in a previous refinement of another path, and hence, then no
+  interpolation point is available
       // referenced variables are already known to be important - skip
       if(isRedundant(oldPrecision.getCegarPrecision(), currentEdge, referencedVariablesAtEdge)) {
         continue;
       }
+*/
 
       // check for each variable, if ignoring it makes the error path feasible
       // it might be more reasonable to do this once for all variables referenced in this edge (esp. for assumes)
@@ -126,6 +137,8 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
         if(isPathFeasable(cfaTrace, variablesToBeIgnored)) {
           variablesToBeIgnored.remove(currentEdge.getSuccessor(), importantVariable);
           increment.put(currentEdge.getSuccessor(), importantVariable);
+          if(firstInterpolationPoint == null)
+            firstInterpolationPoint = currentEdgePath.get(i + 1).getFirst();
         }
       }
     }
@@ -139,15 +152,7 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
       List<Pair<ARTElement, CFANode>> errorPath,
       Multimap<CFANode, String> precisionIncrement) {
 
-    ARTElement interpolationPoint = super.determineInterpolationPoint(errorPath, precisionIncrement);
-
-    // if the standard way to obtain an interpolation point failed,
-    // this might be due to redundancy of the increment - if so use the initial node of the error path
-    if(interpolationPoint == null && precisionIncrement.isEmpty()) {
-      interpolationPoint = errorPath.get(1).getFirst();
-    }
-
-    return interpolationPoint;
+    return firstInterpolationPoint;
   }
 
   /**
@@ -175,7 +180,7 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
    * @param currentEdge the current CFA edge
    * @param referencedVariablesAtEdge the variables referenced at the current edge
    * @return true, if adding the set of given variables would be redundant, else false
-   */
+
   private boolean isRedundant(CegarPrecision precision, CFAEdge currentEdge, Collection<String> referencedVariablesAtEdge) {
     boolean isRedundant = true;
 
@@ -185,6 +190,7 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
 
     return isRedundant;
   }
+  */
 
   /**
    * This method checks if the given path is feasible, when not tracking the given set of variables.

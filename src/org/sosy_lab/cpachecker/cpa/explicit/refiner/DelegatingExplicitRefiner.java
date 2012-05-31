@@ -188,18 +188,20 @@ public class DelegatingExplicitRefiner
    * @param errorPath the current error path
    * @return the refiner to be used in the current iteration
    */
-  private IExplicitRefiner chooseCurrentRefiner(final Path errorPath) {
-    // explicit refiner made progress, so continue with that
-    if(explicitRefiner.hasMadeProgress(errorPath)) {
+  private IExplicitRefiner chooseCurrentRefiner(final Path errorPath, Precision precision) {
+    // if explicit refiner made progress, continue with that
+    if(explicitRefiner.hasMadeProgress(errorPath, precision)) {
       return explicitRefiner;
     }
+
+    // ... otherwise, try to fall back to predicate refiner, if available
     else {
       if(predicateCpaAvailable) {
         if(predicateRefiner == null) {
           predicateRefiner = new PredicatingExplicitRefiner();
         }
 
-        if(predicateRefiner.hasMadeProgress(errorPath)) {
+        if(predicateRefiner.hasMadeProgress(errorPath, precision)) {
           return predicateRefiner;
         }
       }
@@ -211,9 +213,13 @@ public class DelegatingExplicitRefiner
   @Override
   protected CounterexampleInfo performRefinement(final ARTReachedSet reached, final Path errorPath)
       throws CPAException, InterruptedException {
+
+    UnmodifiableReachedSet reachedSet = reached.asReachedSet();
+    Precision precision = reachedSet.getPrecision(reachedSet.getLastElement());
+
     explicitRefiner.setCurrentErrorPath(errorPath);
 
-    currentRefiner = chooseCurrentRefiner(errorPath);
+    currentRefiner = chooseCurrentRefiner(errorPath, precision);
 
     // no refiner is able to to disprove the current path, so stop the analysis
     if(currentRefiner == null) {
