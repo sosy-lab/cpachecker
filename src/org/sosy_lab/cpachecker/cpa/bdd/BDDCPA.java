@@ -23,11 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import java.io.PrintStream;
+import java.util.Collection;
 import java.util.LinkedHashSet;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -40,12 +44,15 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 
-public class BDDCPA implements ConfigurableProgramAnalysis {
+public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(BDDCPA.class);
@@ -100,5 +107,22 @@ public class BDDCPA implements ConfigurableProgramAnalysis {
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     return StaticPrecisionAdjustment.getInstance();
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(new Statistics() {
+
+      @Override
+      public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+        out.append("Number of created predicates: " + transferRelation.createdPredicates + "\n");
+        out.append("Number of deleted predicates: " + transferRelation.deletedPredicates + "\n");
+      }
+
+      @Override
+      public String getName() {
+          return "BDDCPA";
+      }
+    });
   }
 }

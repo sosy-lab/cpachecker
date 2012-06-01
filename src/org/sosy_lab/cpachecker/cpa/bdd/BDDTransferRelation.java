@@ -84,6 +84,10 @@ public class BDDTransferRelation implements TransferRelation {
   @Option(description = "initialize all variables to 0 when they are declared")
   private boolean initAllVars = false;
 
+  /** for statistics */
+  protected int createdPredicates;
+  protected int deletedPredicates;
+
   public BDDTransferRelation(NamedRegionManager manager, Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);
@@ -173,14 +177,13 @@ public class BDDTransferRelation implements TransferRelation {
       // delete variable, if it was used before, this is done with an existential operator
       String varName = lhs.toASTString();
       Region var = makePredicate(varName, element.getFunctionName(), isGlobal(lhs));
-      Region newRegion = rmgr.makeExists(element.getRegion(), var);
+      Region newRegion = removePredicate(element.getRegion(), var);
 
       IASTRightHandSide rhs = assignment.getRightHandSide();
       if (rhs instanceof IASTExpression) {
 
         // make region for RIGHT SIDE and build equality of var and region
-        Region regRHS = propagateBooleanExpression(
-            (IASTExpression) rhs, element, cfaEdge, false);
+        Region regRHS = propagateBooleanExpression((IASTExpression) rhs, element, cfaEdge);
         newRegion = addEquality(var, regRHS, newRegion);
 
       } else if (rhs instanceof IASTFunctionCallExpression) {
@@ -221,7 +224,7 @@ public class BDDTransferRelation implements TransferRelation {
       // delete variable, if it was initialized before i.e. in another block, with an existential operator
       String varName = vdecl.getName();
       Region var = makePredicate(varName, element.getFunctionName(), vdecl.isGlobal());
-      Region newRegion = rmgr.makeExists(element.getRegion(), var);
+      Region newRegion = removePredicate(element.getRegion(), var);
 
       // track vars, so we can delete them after returning from a function,
       // see handleFunctionReturnEdge(...) for detail.
@@ -231,7 +234,7 @@ public class BDDTransferRelation implements TransferRelation {
 
       // initializer on RIGHT SIDE available, make region for it
       if (init != null) {
-        Region regRHS = propagateBooleanExpression(init, element, cfaEdge, false);
+        Region regRHS = propagateBooleanExpression(init, element, cfaEdge);
         newRegion = addEquality(var, regRHS, newRegion);
         return new BDDElement(rmgr, element.getFunctionCallElement(), newRegion,
             element.getVars(), cfaEdge.getPredecessor().getFunctionName());
@@ -262,7 +265,7 @@ public class BDDTransferRelation implements TransferRelation {
       Region var = makePredicate(varName, innerFunctionName, false);
 
       // make region for arg and build equality of var and arg
-      Region arg = propagateBooleanExpression(args.get(i), element, cfaEdge, false);
+      Region arg = propagateBooleanExpression(args.get(i), element, cfaEdge);
       newRegion = addEquality(var, arg, newRegion);
     }
 
@@ -275,7 +278,7 @@ public class BDDTransferRelation implements TransferRelation {
     // delete variables from returning function,
     // this results in a smaller BDD and allows to call a function twice.
     for (String varName : element.getVars()) {
-      newRegion = rmgr.makeExists(newRegion, makePredicate(varName, element.getFunctionName(), false));
+      newRegion = removePredicate(newRegion, makePredicate(varName, element.getFunctionName(), false));
     }
 
     // set result of function equal to variable on left side
@@ -295,12 +298,12 @@ public class BDDTransferRelation implements TransferRelation {
       String varName = lhs.toASTString();
       BDDElement functionCall = element.getFunctionCallElement();
       Region var = makePredicate(varName, functionCall.getFunctionName(), isGlobal(lhs));
-      newRegion = rmgr.makeExists(newRegion, var);
+      newRegion = removePredicate(newRegion, var);
       newRegion = addEquality(var, retVar, newRegion);
     }
 
     // LAST ACTION: delete varname of right side
-    newRegion = rmgr.makeExists(newRegion, retVar);
+    newRegion = removePredicate(newRegion, retVar);
 
     return new BDDElement(rmgr, element.getFunctionCallElement().getFunctionCallElement(), newRegion,
         element.getFunctionCallElement().getVars(),
@@ -313,14 +316,13 @@ public class BDDTransferRelation implements TransferRelation {
     // delete variable, if it was used before, this is done with an existential operator
     Region retvar = makePredicate(FUNCTION_RETURN_VARIABLE, element.getFunctionName(), false);
 
-    assert element.getRegion().equals(rmgr.makeExists(element.getRegion(), retvar)) : FUNCTION_RETURN_VARIABLE
+    assert element.getRegion().equals(removePredicate(element.getRegion(), retvar)) : FUNCTION_RETURN_VARIABLE
         + " was used twice in one trace??";
 
     // make region for RIGHT SIDE, this is the 'x' from 'return (x);
     IASTRightHandSide rhs = cfaEdge.getExpression();
     if (rhs instanceof IASTExpression) {
-      Region regRHS = propagateBooleanExpression(
-          (IASTExpression) rhs, element, cfaEdge, false);
+      Region regRHS = propagateBooleanExpression((IASTExpression) rhs, element, cfaEdge);
       Region newRegion = addEquality(retvar, regRHS, element.getRegion());
       return new BDDElement(rmgr, element.getFunctionCallElement(), newRegion,
           element.getVars(), cfaEdge.getPredecessor().getFunctionName());
@@ -331,7 +333,7 @@ public class BDDTransferRelation implements TransferRelation {
   private BDDElement handleAssumption(BDDElement element, AssumeEdge cfaEdge) {
 
     IASTExpression expression = cfaEdge.getExpression();
-    Region operand = propagateBooleanExpression(expression, element, cfaEdge, false);
+    Region operand = propagateBooleanExpression(expression, element, cfaEdge);
 
     if (operand == null) { // assumption cannot be evaluated
       return element;
@@ -352,11 +354,10 @@ public class BDDTransferRelation implements TransferRelation {
 
   /** Chooses function to propagate, depending on class of exp:
    * IASTIdExpression (&Co), IASTUnaryExpression, IASTBinaryExpression, IASTIntegerLiteralExpression.
-   * @param ignoreLiterals ignore all numbers except Zero
    * @throws UnrecognizedCCodeException
    * @returns region containing all vars from the expression */
   private Region propagateBooleanExpression(IASTExpression exp, BDDElement element,
-      CFAEdge edge, boolean ignoreLiterals) {
+      CFAEdge edge) {
     Region region = null;
 
     if (exp instanceof IASTIdExpression || exp instanceof IASTFieldReference
@@ -374,13 +375,13 @@ public class BDDTransferRelation implements TransferRelation {
       IASTIntegerLiteralExpression number = (IASTIntegerLiteralExpression) exp;
       if (number.getValue().equals(BigInteger.ZERO)) {
         region = rmgr.makeFalse();
-      } else if (!ignoreLiterals) {
+      } else {
         region = rmgr.makeTrue();
       }
 
     } else if (exp instanceof IASTCastExpression) {
       // we ignore casts, because Zero is Zero.
-      region = propagateBooleanExpression(((IASTCastExpression) exp).getOperand(), element, edge, true);
+      region = propagateBooleanExpression(((IASTCastExpression) exp).getOperand(), element, edge);
 
     }
     // else: nothing to do, we cannot handle more expressions
@@ -391,7 +392,7 @@ public class BDDTransferRelation implements TransferRelation {
   private Region propagateUnaryBooleanExpression(IASTUnaryExpression unExp,
       BDDElement element, CFAEdge edge) {
 
-    Region operand = propagateBooleanExpression(unExp.getOperand(), element, edge, false);
+    Region operand = propagateBooleanExpression(unExp.getOperand(), element, edge);
 
     if (operand == null) { return null; }
 
@@ -400,6 +401,7 @@ public class BDDTransferRelation implements TransferRelation {
     case NOT:
       returnValue = rmgr.makeNot(operand);
       break;
+    case PLUS: // (+X == 0) <==> (X == 0)
     case MINUS: // (-X == 0) <==> (X == 0)
       returnValue = operand;
     default:
@@ -411,8 +413,8 @@ public class BDDTransferRelation implements TransferRelation {
   private Region propagateBinaryBooleanExpression(IASTBinaryExpression binExp,
       BDDElement element, CFAEdge edge) {
 
-    Region operand1 = propagateBooleanExpression(binExp.getOperand1(), element, edge, true);
-    Region operand2 = propagateBooleanExpression(binExp.getOperand2(), element, edge, true);
+    Region operand1 = propagateBooleanExpression(binExp.getOperand1(), element, edge);
+    Region operand2 = propagateBooleanExpression(binExp.getOperand2(), element, edge);
 
     if (operand1 == null || operand2 == null) { return null; }
 
@@ -426,12 +428,18 @@ public class BDDTransferRelation implements TransferRelation {
       returnValue = rmgr.makeOr(operand1, operand2);
       break;
     case EQUALS:
-      returnValue = rmgr.makeEqual(operand1, operand2);
+      // bdds cannot handle "2==3"
+      if (!(operand1.isTrue() || operand2.isTrue())) {
+        returnValue = rmgr.makeEqual(operand1, operand2);
+      }
       break;
     case NOT_EQUALS:
     case LESS_THAN:
     case GREATER_THAN:
-      returnValue = rmgr.makeUnequal(operand1, operand2);
+      // bdds cannot handle "2!=3"
+      if (!(operand1.isTrue() || operand2.isTrue())) {
+        returnValue = rmgr.makeUnequal(operand1, operand2);
+      }
       break;
     default:
       // a+b, a-b, etc --> don't know anything
@@ -442,7 +450,14 @@ public class BDDTransferRelation implements TransferRelation {
   /** This function returns a region containing a variable.
    * The name of the variable is build from functionName and varName. */
   private Region makePredicate(String varName, String functionName, boolean isGlobal) {
+    createdPredicates++;
     return rmgr.createPredicate(buildVarName(varName, isGlobal, functionName));
+  }
+
+  /** This function returns a region without a variable. */
+  private Region removePredicate(Region region, Region existing) {
+    deletedPredicates++;
+    return rmgr.makeExists(region, existing);
   }
 
   private boolean isGlobal(IASTExpression exp) {
