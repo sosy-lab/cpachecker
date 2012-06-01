@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision.CegarPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssignedVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssumptionVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictPathChecker;
@@ -114,31 +115,40 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
         continue;
       }
 
-/*
-  Checking for redundancy works of course, but it might lead to an empty precision increment, because this variable
-  at the current location might have been added in a previous refinement of another path, and hence, then no
-  interpolation point is available
-      // referenced variables are already known to be important - skip
-      if(isRedundant(oldPrecision.getCegarPrecision(), currentEdge, referencedVariablesAtEdge)) {
-        continue;
-      }
-*/
-
       // check for each variable, if ignoring it makes the error path feasible
       // it might be more reasonable to do this once for all variables referenced in this edge (esp. for assumes)
       for(String importantVariable : referencedVariablesAtEdge) {
+        // referenced variable is already known to be important, so skip it, but set the location as interpolation point
+        if(isRedundant(oldPrecision.getCegarPrecision(), currentEdge, importantVariable)) {
+          if(firstInterpolationPoint == null) {
+            firstInterpolationPoint = currentEdgePath.get(i + 1).getFirst();
+          }
+
+          // either set interpolation point and continue with next referenced variable,
+          // or do not set interpolation point and proceed, but then, do not add current
+          // variable to set of variables to be ignored, as it is known to be important,
+          // hence, ignoring it would be wrong!
+          // the strategy of choice is, to continue here, as we can save a few counterexample
+          // checks - an evaluation will show if both strategies are equivalent (which I highly doubt),
+          // or at least lead to the same verification results (which might be the case)
+          // see commits 6143 to 6145
+          continue;
+        }
+
         numberOfCounterExampleChecks++;
 
         // variables to ignore in the current run
         variablesToBeIgnored.put(currentEdge.getSuccessor(), importantVariable);
 
         // if path becomes feasible, remove it from the set of variables to be ignored,
-        // and add the variable to the precision increment
+        // and add the variable to the precision increment, also setting the interpolation point
         if(isPathFeasable(cfaTrace, variablesToBeIgnored)) {
           variablesToBeIgnored.remove(currentEdge.getSuccessor(), importantVariable);
           increment.put(currentEdge.getSuccessor(), importantVariable);
-          if(firstInterpolationPoint == null)
+
+          if(firstInterpolationPoint == null) {
             firstInterpolationPoint = currentEdgePath.get(i + 1).getFirst();
+          }
         }
       }
     }
@@ -180,23 +190,16 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
   }
 
   /**
-   * This method checks whether or not all variables are already part of the precision.
+   * This method checks whether or not a variable is already in the precision for the given edge.
    *
    * @param precision the current precision
    * @param currentEdge the current CFA edge
-   * @param referencedVariablesAtEdge the variables referenced at the current edge
-   * @return true, if adding the set of given variables would be redundant, else false
-
-  private boolean isRedundant(CegarPrecision precision, CFAEdge currentEdge, Collection<String> referencedVariablesAtEdge) {
-    boolean isRedundant = true;
-
-    for(String variableName : referencedVariablesAtEdge) {
-      isRedundant = isRedundant && precision.allowsTrackingAt(currentEdge.getSuccessor(), variableName);
-    }
-
-    return isRedundant;
-  }
+   * @param referencedVariableAtEdge the variable referenced at the current edge
+   * @return true, if adding the given variable to the precision would be redundant, else false
   */
+  private boolean isRedundant(CegarPrecision precision, CFAEdge currentEdge, String referencedVariableAtEdge) {
+    return precision.allowsTrackingAt(currentEdge.getSuccessor(), referencedVariableAtEdge);
+  }
 
   /**
    * This method checks if the given path is feasible, when not tracking the given set of variables.
