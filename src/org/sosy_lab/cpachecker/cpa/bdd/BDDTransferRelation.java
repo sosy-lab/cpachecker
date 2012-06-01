@@ -35,13 +35,16 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.Defaults;
+import org.sosy_lab.cpachecker.cfa.ast.ExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
@@ -52,6 +55,8 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -183,7 +188,8 @@ public class BDDTransferRelation implements TransferRelation {
       if (rhs instanceof IASTExpression) {
 
         // make region for RIGHT SIDE and build equality of var and region
-        Region regRHS = propagateBooleanExpression((IASTExpression) rhs, element, cfaEdge);
+        BDDExpressionVisitor ev = new BDDExpressionVisitor(element.getFunctionName());
+        Region regRHS = ((IASTExpression) rhs).accept(ev);
         newRegion = addEquality(var, regRHS, newRegion);
 
       } else if (rhs instanceof IASTFunctionCallExpression) {
@@ -205,7 +211,8 @@ public class BDDTransferRelation implements TransferRelation {
   }
 
   /** handles declarations like "int a = 0;" and "int b = !a;" */
-  private BDDElement handleDeclarationEdge(BDDElement element, DeclarationEdge cfaEdge) {
+  private BDDElement handleDeclarationEdge(BDDElement element, DeclarationEdge cfaEdge)
+      throws UnrecognizedCCodeException {
 
     IASTDeclaration decl = cfaEdge.getDeclaration();
 
@@ -234,7 +241,8 @@ public class BDDTransferRelation implements TransferRelation {
 
       // initializer on RIGHT SIDE available, make region for it
       if (init != null) {
-        Region regRHS = propagateBooleanExpression(init, element, cfaEdge);
+        BDDExpressionVisitor ev = new BDDExpressionVisitor(element.getFunctionName());
+        Region regRHS = init.accept(ev);
         newRegion = addEquality(var, regRHS, newRegion);
         return new BDDElement(rmgr, element.getFunctionCallElement(), newRegion,
             element.getVars(), cfaEdge.getPredecessor().getFunctionName());
@@ -244,7 +252,8 @@ public class BDDTransferRelation implements TransferRelation {
     return element; // if we know nothing, we return the old element
   }
 
-  private BDDElement handleFunctionCallEdge(BDDElement element, FunctionCallEdge cfaEdge) {
+  private BDDElement handleFunctionCallEdge(BDDElement element, FunctionCallEdge cfaEdge)
+      throws UnrecognizedCCodeException {
 
     Region newRegion = element.getRegion();
     Set<String> newVars = new LinkedHashSet<String>();
@@ -265,7 +274,8 @@ public class BDDTransferRelation implements TransferRelation {
       Region var = makePredicate(varName, innerFunctionName, false);
 
       // make region for arg and build equality of var and arg
-      Region arg = propagateBooleanExpression(args.get(i), element, cfaEdge);
+      BDDExpressionVisitor ev = new BDDExpressionVisitor(element.getFunctionName());
+      Region arg = args.get(i).accept(ev);
       newRegion = addEquality(var, arg, newRegion);
     }
 
@@ -310,7 +320,8 @@ public class BDDTransferRelation implements TransferRelation {
         cfaEdge.getSuccessor().getFunctionName());
   }
 
-  private BDDElement handleReturnStatementEdge(BDDElement element, ReturnStatementEdge cfaEdge) {
+  private BDDElement handleReturnStatementEdge(BDDElement element, ReturnStatementEdge cfaEdge)
+      throws UnrecognizedCCodeException {
 
     // make variable (predicate) for returnStatement,
     // delete variable, if it was used before, this is done with an existential operator
@@ -322,7 +333,8 @@ public class BDDTransferRelation implements TransferRelation {
     // make region for RIGHT SIDE, this is the 'x' from 'return (x);
     IASTRightHandSide rhs = cfaEdge.getExpression();
     if (rhs instanceof IASTExpression) {
-      Region regRHS = propagateBooleanExpression((IASTExpression) rhs, element, cfaEdge);
+      BDDExpressionVisitor ev = new BDDExpressionVisitor(element.getFunctionName());
+      Region regRHS = ((IASTExpression) rhs).accept(ev);
       Region newRegion = addEquality(retvar, regRHS, element.getRegion());
       return new BDDElement(rmgr, element.getFunctionCallElement(), newRegion,
           element.getVars(), cfaEdge.getPredecessor().getFunctionName());
@@ -330,10 +342,12 @@ public class BDDTransferRelation implements TransferRelation {
     return element;
   }
 
-  private BDDElement handleAssumption(BDDElement element, AssumeEdge cfaEdge) {
+  private BDDElement handleAssumption(BDDElement element, AssumeEdge cfaEdge)
+      throws UnrecognizedCCodeException {
 
     IASTExpression expression = cfaEdge.getExpression();
-    Region operand = propagateBooleanExpression(expression, element, cfaEdge);
+    BDDExpressionVisitor ev = new BDDExpressionVisitor(element.getFunctionName());
+    Region operand = expression.accept(ev);
 
     if (operand == null) { // assumption cannot be evaluated
       return element;
@@ -350,101 +364,6 @@ public class BDDTransferRelation implements TransferRelation {
             element.getVars(), cfaEdge.getPredecessor().getFunctionName());
       }
     }
-  }
-
-  /** Chooses function to propagate, depending on class of exp:
-   * IASTIdExpression (&Co), IASTUnaryExpression, IASTBinaryExpression, IASTIntegerLiteralExpression.
-   * @throws UnrecognizedCCodeException
-   * @returns region containing all vars from the expression */
-  private Region propagateBooleanExpression(IASTExpression exp, BDDElement element,
-      CFAEdge edge) {
-    Region region = null;
-
-    if (exp instanceof IASTIdExpression || exp instanceof IASTFieldReference
-        || exp instanceof IASTArraySubscriptExpression) {
-      String varName = exp.toASTString();
-      region = makePredicate(varName, element.getFunctionName(), isGlobal(exp));
-
-    } else if (exp instanceof IASTUnaryExpression) {
-      region = propagateUnaryBooleanExpression((IASTUnaryExpression) exp, element, edge);
-
-    } else if (exp instanceof IASTBinaryExpression) {
-      region = propagateBinaryBooleanExpression(((IASTBinaryExpression) exp), element, edge);
-
-    } else if (exp instanceof IASTIntegerLiteralExpression) {
-      IASTIntegerLiteralExpression number = (IASTIntegerLiteralExpression) exp;
-      if (number.getValue().equals(BigInteger.ZERO)) {
-        region = rmgr.makeFalse();
-      } else {
-        region = rmgr.makeTrue();
-      }
-
-    } else if (exp instanceof IASTCastExpression) {
-      // we ignore casts, because Zero is Zero.
-      region = propagateBooleanExpression(((IASTCastExpression) exp).getOperand(), element, edge);
-
-    }
-    // else: nothing to do, we cannot handle more expressions
-
-    return region;
-  }
-
-  private Region propagateUnaryBooleanExpression(IASTUnaryExpression unExp,
-      BDDElement element, CFAEdge edge) {
-
-    Region operand = propagateBooleanExpression(unExp.getOperand(), element, edge);
-
-    if (operand == null) { return null; }
-
-    Region returnValue = null;
-    switch (unExp.getOperator()) {
-    case NOT:
-      returnValue = rmgr.makeNot(operand);
-      break;
-    case PLUS: // (+X == 0) <==> (X == 0)
-    case MINUS: // (-X == 0) <==> (X == 0)
-      returnValue = operand;
-    default:
-      // *exp --> don't know anything
-    }
-    return returnValue;
-  }
-
-  private Region propagateBinaryBooleanExpression(IASTBinaryExpression binExp,
-      BDDElement element, CFAEdge edge) {
-
-    Region operand1 = propagateBooleanExpression(binExp.getOperand1(), element, edge);
-    Region operand2 = propagateBooleanExpression(binExp.getOperand2(), element, edge);
-
-    if (operand1 == null || operand2 == null) { return null; }
-
-    Region returnValue = null;
-    // binary expression
-    switch (binExp.getOperator()) {
-    case LOGICAL_AND:
-      returnValue = rmgr.makeAnd(operand1, operand2);
-      break;
-    case LOGICAL_OR:
-      returnValue = rmgr.makeOr(operand1, operand2);
-      break;
-    case EQUALS:
-      // bdds cannot handle "2==3"
-      if (!(operand1.isTrue() || operand2.isTrue())) {
-        returnValue = rmgr.makeEqual(operand1, operand2);
-      }
-      break;
-    case NOT_EQUALS:
-    case LESS_THAN:
-    case GREATER_THAN:
-      // bdds cannot handle "2!=3"
-      if (!(operand1.isTrue() || operand2.isTrue())) {
-        returnValue = rmgr.makeUnequal(operand1, operand2);
-      }
-      break;
-    default:
-      // a+b, a-b, etc --> don't know anything
-    }
-    return returnValue;
   }
 
   /** This function returns a region containing a variable.
@@ -492,6 +411,125 @@ public class BDDTransferRelation implements TransferRelation {
     } else {
       final Region assignRegion = rmgr.makeEqual(leftSide, rightSide);
       return rmgr.makeAnd(environment, assignRegion);
+    }
+  }
+
+  /** This Visitor evaluates the visited expression and creates a region for it. */
+  private class BDDExpressionVisitor
+      implements ExpressionVisitor<Region, UnrecognizedCCodeException> {
+
+    private String functionName;
+
+    BDDExpressionVisitor(String functionName) {
+      this.functionName = functionName;
+    }
+
+    @Override
+    public Region visit(IASTArraySubscriptExpression exp) throws UnrecognizedCCodeException {
+      return makePredicate(exp.toASTString(), functionName, isGlobal(exp));
+    }
+
+    @Override
+    public Region visit(IASTBinaryExpression exp) throws UnrecognizedCCodeException {
+      Region operand1 = exp.getOperand1().accept(this);
+      Region operand2 = exp.getOperand2().accept(this);
+
+      if (operand1 == null || operand2 == null) { return null; }
+
+      Region returnValue = null;
+      // binary expression
+      switch (exp.getOperator()) {
+      case LOGICAL_AND:
+        returnValue = rmgr.makeAnd(operand1, operand2);
+        break;
+      case LOGICAL_OR:
+        returnValue = rmgr.makeOr(operand1, operand2);
+        break;
+      case EQUALS:
+        // bdds cannot handle "2==3"
+        if (!(operand1.isTrue() || operand2.isTrue())) {
+          returnValue = rmgr.makeEqual(operand1, operand2);
+        }
+        break;
+      case NOT_EQUALS:
+      case LESS_THAN:
+      case GREATER_THAN:
+        // bdds cannot handle "2!=3"
+        if (!(operand1.isTrue() || operand2.isTrue())) {
+          returnValue = rmgr.makeUnequal(operand1, operand2);
+        }
+        break;
+      default:
+        // a+b, a-b, etc --> don't know anything
+      }
+      return returnValue;
+    }
+
+    @Override
+    public Region visit(IASTCastExpression exp) throws UnrecognizedCCodeException {
+      // we ignore casts, because Zero is Zero.
+      return exp.getOperand().accept(this);
+    }
+
+    @Override
+    public Region visit(IASTFieldReference exp) throws UnrecognizedCCodeException {
+      return makePredicate(exp.toASTString(), functionName, isGlobal(exp));
+    }
+
+    @Override
+    public Region visit(IASTIdExpression exp) throws UnrecognizedCCodeException {
+      return makePredicate(exp.toASTString(), functionName, isGlobal(exp));
+    }
+
+    @Override
+    public Region visit(IASTCharLiteralExpression exp) throws UnrecognizedCCodeException {
+      return null;
+    }
+
+    @Override
+    public Region visit(IASTFloatLiteralExpression exp) throws UnrecognizedCCodeException {
+      return null;
+    }
+
+    @Override
+    public Region visit(IASTIntegerLiteralExpression exp) throws UnrecognizedCCodeException {
+      Region region;
+      if (exp.getValue().equals(BigInteger.ZERO)) {
+        region = rmgr.makeFalse();
+      } else {
+        region = rmgr.makeTrue();
+      }
+      return region;
+    }
+
+    @Override
+    public Region visit(IASTStringLiteralExpression exp) throws UnrecognizedCCodeException {
+      return null;
+    }
+
+    @Override
+    public Region visit(IASTTypeIdExpression exp) throws UnrecognizedCCodeException {
+      return null;
+    }
+
+    @Override
+    public Region visit(IASTUnaryExpression exp) throws UnrecognizedCCodeException {
+      Region operand = exp.getOperand().accept(this);
+
+      if (operand == null) { return null; }
+
+      Region returnValue = null;
+      switch (exp.getOperator()) {
+      case NOT:
+        returnValue = rmgr.makeNot(operand);
+        break;
+      case PLUS: // (+X == 0) <==> (X == 0)
+      case MINUS: // (-X == 0) <==> (X == 0)
+        returnValue = operand;
+      default:
+        // *exp --> don't know anything
+      }
+      return returnValue;
     }
   }
 }
