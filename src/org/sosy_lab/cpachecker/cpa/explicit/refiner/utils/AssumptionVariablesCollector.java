@@ -236,7 +236,7 @@ import com.google.common.collect.Multimap;
         // collect the formal parameter, and make the argument a depending variable
         if(dependingVariables.contains(parameterName)) {
           collectedVariables.put(functionCallEdge.getSuccessor(), parameterName);
-          dependingVariables.add(functionCallEdge.getPredecessor().getFunctionName() + "::" + functionCallEdge.getArguments().get(i).toASTString());
+          dependingVariables.add(scoped(functionCallEdge.getArguments().get(i).toASTString(), functionCallEdge.getPredecessor().getFunctionName()));
         }
         i++;
       }
