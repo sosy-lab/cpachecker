@@ -59,8 +59,6 @@ import com.google.common.collect.Multimap;
 
 public class PredicatingExplicitRefiner implements IExplicitRefiner {
 
-  private int previousPathHash                                = -1;
-
   protected List<Pair<ARTElement, CFAEdge>> currentErrorPath  = null;
 
   private int numberOfPredicateRefinements                    = 0;
@@ -160,12 +158,6 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
 
   @Override
   public boolean hasMadeProgress(List<Pair<ARTElement, CFAEdge>> currentErrorPath, Precision currentPrecision) {
-    if(currentErrorPath.toString().hashCode() == previousPathHash) {
-      return false;
-    }
-
-    previousPathHash = currentErrorPath.toString().hashCode();
-
     return true;
   }
 
