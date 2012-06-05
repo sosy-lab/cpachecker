@@ -344,6 +344,51 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     return pAutomaton;
   }
 
+  private boolean applyCoverageCheck(Goal pGoal, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pGoalAutomaton, GuardedEdgeAutomatonCPA pPassingCPA, FShell3Result.Factory pResultFactory) {
+    for (Map.Entry<TestCase, CFAEdge[]> lGeneratedTestCase : mGeneratedTestCases.entrySet()) {
+      TestCase lTestCase = lGeneratedTestCase.getKey();
+
+      if (!lTestCase.isPrecise()) {
+        //throw new RuntimeException();
+        continue; // don't use imprecise test cases for coverage
+      }
+
+      ThreeValuedAnswer lCoverageAnswer = FShell3.accepts(pGoalAutomaton, lGeneratedTestCase.getValue());
+
+      if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
+        pResultFactory.addFeasibleTestCase(pGoal.getPattern(), lTestCase);
+
+        return true;
+      }
+      else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
+        // TODO reuse this CPA in run method
+        GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(pGoalAutomaton);
+
+        try {
+          if (checkCoverage(lTestCase, mWrapper.getEntry(), lAutomatonCPA, pPassingCPA, mWrapper.getOmegaEdge().getSuccessor())) {
+            pResultFactory.addFeasibleTestCase(pGoal.getPattern(), lTestCase);
+
+            return true;
+          }
+        } catch (InvalidConfigurationException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+          throw new RuntimeException(e);
+        } catch (CPAException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+          throw new RuntimeException(e);
+        } catch (ImpreciseExecutionException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+          throw new RuntimeException(e);
+        }
+      }
+    }
+
+    return false;
+  }
+
   private FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
 
     int lNumberOfTestGoals;
@@ -528,49 +573,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       boolean lIsCovered = false;
 
       if (pApplySubsumptionCheck) {
-        for (Map.Entry<TestCase, CFAEdge[]> lGeneratedTestCase : mGeneratedTestCases.entrySet()) {
-          TestCase lTestCase = lGeneratedTestCase.getKey();
-
-          if (!lTestCase.isPrecise()) {
-            //throw new RuntimeException();
-            continue; // don't use imprecise test cases for coverage
-          }
-
-          ThreeValuedAnswer lCoverageAnswer = FShell3.accepts(lGoalAutomaton, lGeneratedTestCase.getValue());
-
-          if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
-            lIsCovered = true;
-
-            lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
-
-            break;
-          }
-          else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
-            GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoalAutomaton);
-
-            try {
-              if (checkCoverage(lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor())) {
-                lIsCovered = true;
-
-                lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
-
-                break;
-              }
-            } catch (InvalidConfigurationException e) {
-              // TODO Auto-generated catch block
-              e.printStackTrace();
-              throw new RuntimeException(e);
-            } catch (CPAException e) {
-              // TODO Auto-generated catch block
-              e.printStackTrace();
-              throw new RuntimeException(e);
-            } catch (ImpreciseExecutionException e) {
-              // TODO Auto-generated catch block
-              e.printStackTrace();
-              throw new RuntimeException(e);
-            }
-          }
-        }
+        lIsCovered = applyCoverageCheck(lGoal, lGoalAutomaton, lPassingCPA, lResultFactory);
       }
 
       if (lIsCovered) {
