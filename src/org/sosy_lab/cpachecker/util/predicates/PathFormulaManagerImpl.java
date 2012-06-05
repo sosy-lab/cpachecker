@@ -37,7 +37,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.impact.ImpactAbstractElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -295,13 +294,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
         PathFormula pf;
         PredicateAbstractElement pe = AbstractElements.extractElementByType(pathElement, PredicateAbstractElement.class);
         if (pe == null) {
-          ImpactAbstractElement ie =  AbstractElements.extractElementByType(pathElement, ImpactAbstractElement.class);
-          if (ie == null) {
-            logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA or ImpactCPA");
-            return fmgr.makeTrue();
-          } else {
-            pf = ie.getPathFormula();
-          }
+          logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA");
+          return fmgr.makeTrue();
         } else {
           pf = pe.getPathFormula();
         }
