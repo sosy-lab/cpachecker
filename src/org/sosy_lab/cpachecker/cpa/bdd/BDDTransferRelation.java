@@ -188,7 +188,7 @@ public class BDDTransferRelation implements TransferRelation {
       if (rhs instanceof IASTExpression) {
 
         // make region for RIGHT SIDE and build equality of var and region
-        BDDExpressionVisitor ev = new BDDExpressionVisitor(element.getFunctionName());
+        BDDExpressionVisitor ev = new BDDExpressionVisitor(element);
         Region regRHS = ((IASTExpression) rhs).accept(ev);
         newRegion = addEquality(var, regRHS, newRegion);
 
@@ -241,7 +241,7 @@ public class BDDTransferRelation implements TransferRelation {
 
       // initializer on RIGHT SIDE available, make region for it
       if (init != null) {
-        BDDExpressionVisitor ev = new BDDExpressionVisitor(element.getFunctionName());
+        BDDExpressionVisitor ev = new BDDExpressionVisitor(element);
         Region regRHS = init.accept(ev);
         newRegion = addEquality(var, regRHS, newRegion);
         return new BDDElement(rmgr, element.getFunctionCallElement(), newRegion,
@@ -274,7 +274,7 @@ public class BDDTransferRelation implements TransferRelation {
       Region var = makePredicate(varName, innerFunctionName, false);
 
       // make region for arg and build equality of var and arg
-      BDDExpressionVisitor ev = new BDDExpressionVisitor(element.getFunctionName());
+      BDDExpressionVisitor ev = new BDDExpressionVisitor(element);
       Region arg = args.get(i).accept(ev);
       newRegion = addEquality(var, arg, newRegion);
     }
@@ -333,7 +333,7 @@ public class BDDTransferRelation implements TransferRelation {
     // make region for RIGHT SIDE, this is the 'x' from 'return (x);
     IASTRightHandSide rhs = cfaEdge.getExpression();
     if (rhs instanceof IASTExpression) {
-      BDDExpressionVisitor ev = new BDDExpressionVisitor(element.getFunctionName());
+      BDDExpressionVisitor ev = new BDDExpressionVisitor(element);
       Region regRHS = ((IASTExpression) rhs).accept(ev);
       Region newRegion = addEquality(retvar, regRHS, element.getRegion());
       return new BDDElement(rmgr, element.getFunctionCallElement(), newRegion,
@@ -346,7 +346,7 @@ public class BDDTransferRelation implements TransferRelation {
       throws UnrecognizedCCodeException {
 
     IASTExpression expression = cfaEdge.getExpression();
-    BDDExpressionVisitor ev = new BDDExpressionVisitor(element.getFunctionName());
+    BDDExpressionVisitor ev = new BDDExpressionVisitor(element);
     Region operand = expression.accept(ev);
 
     if (operand == null) { // assumption cannot be evaluated
@@ -419,9 +419,11 @@ public class BDDTransferRelation implements TransferRelation {
       implements ExpressionVisitor<Region, UnrecognizedCCodeException> {
 
     private String functionName;
+    private BDDElement element;
 
-    BDDExpressionVisitor(String functionName) {
-      this.functionName = functionName;
+    BDDExpressionVisitor(BDDElement element) {
+      this.element = element;
+      this.functionName = element.getFunctionName();
     }
 
     @Override
@@ -436,6 +438,12 @@ public class BDDTransferRelation implements TransferRelation {
 
       if (operand1 == null || operand2 == null) { return null; }
 
+      // does the environment imply the left/right side of binaryExp?
+      Region leftSideSat = rmgr.makeAnd(element.getRegion(), operand1);
+      Region rightSideSat = rmgr.makeAnd(element.getRegion(), operand2);
+      boolean isLeftSideZero = leftSideSat.isFalse();
+      boolean isRightSideZero = rightSideSat.isFalse();
+
       Region returnValue = null;
       // binary expression
       switch (exp.getOperator()) {
@@ -446,16 +454,16 @@ public class BDDTransferRelation implements TransferRelation {
         returnValue = rmgr.makeOr(operand1, operand2);
         break;
       case EQUALS:
-        // bdds cannot handle "2==3"
-        if (!(operand1.isTrue() || operand2.isTrue())) {
+        // bdds cannot handle "2==3", only "==0" is possible
+        if (isLeftSideZero || isRightSideZero) {
           returnValue = rmgr.makeEqual(operand1, operand2);
         }
         break;
       case NOT_EQUALS:
       case LESS_THAN:
       case GREATER_THAN:
-        // bdds cannot handle "2!=3"
-        if (!(operand1.isTrue() || operand2.isTrue())) {
+        // bdds cannot handle "2!=3" or "a=2; b=3; a!=b"
+        if (isLeftSideZero || isRightSideZero) {
           returnValue = rmgr.makeUnequal(operand1, operand2);
         }
         break;
