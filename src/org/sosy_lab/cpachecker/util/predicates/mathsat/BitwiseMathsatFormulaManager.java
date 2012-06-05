@@ -31,7 +31,6 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
@@ -42,17 +41,16 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 public class BitwiseMathsatFormulaManager extends MathsatFormulaManager {
 
   private final int bitWidth;
-
-  @Option(description="Whether to use signed or unsigned variables if useBitwise is true.")
-  private boolean signed = true;
+  private final boolean signed;
 
   private static Pattern BITVECTOR_PATTERN = Pattern.compile("^0d\\d+_(\\d+)$");
 
-  public BitwiseMathsatFormulaManager(Configuration config, LogManager logger, int pBitWidth) throws InvalidConfigurationException {
+  public BitwiseMathsatFormulaManager(Configuration config, LogManager logger, int pBitWidth, boolean pSigned) throws InvalidConfigurationException {
     super(config, logger, MSAT_BV + pBitWidth);
     config.inject(this, BitwiseMathsatFormulaManager.class);
 
     bitWidth = pBitWidth;
+    signed = pSigned;
   }
 
   @Override

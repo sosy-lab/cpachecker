@@ -28,9 +28,10 @@ import java.io.PrintStream;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.explicit.refiner.DelegatingExplicitRefiner;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
 
-class ExplicitCPAStatistics implements Statistics {
+public class ExplicitCPAStatistics implements Statistics {
 
   private AbstractInterpolationBasedRefiner<?, ?> refiner = null;
 
@@ -41,15 +42,15 @@ class ExplicitCPAStatistics implements Statistics {
     return "ExplicitCPA";
   }
 
-  void addRefiner(AbstractInterpolationBasedRefiner<?, ?> refiner) {
+  public void addRefiner(AbstractInterpolationBasedRefiner<?, ?> refiner) {
     this.refiner = refiner;
   }
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     if(refiner != null) {
-      if(refiner instanceof ExplicitRefiner) {
-        ((ExplicitRefiner)refiner).printStatistics(out, result, reached);
+      if(refiner instanceof DelegatingExplicitRefiner) {
+        ((DelegatingExplicitRefiner)refiner).printStatistics(out, result, reached);
       }
     }
   }

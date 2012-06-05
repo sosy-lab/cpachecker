@@ -101,12 +101,11 @@ public class ExplicitTransferRelation implements TransferRelation
   public Collection<ExplicitElement> getAbstractSuccessors(AbstractElement element, Precision pPrecision, CFAEdge cfaEdge)
     throws CPATransferException {
 
-    ExplicitElement explicitElement = (ExplicitElement)element;
+    ExplicitElement explicitElement     = (ExplicitElement)element;
     ExplicitPrecision explicitPrecision = (ExplicitPrecision)pPrecision;
 
     currentPrecision = explicitPrecision;
-
-    explicitPrecision.setLocation(cfaEdge.getSuccessor());
+    currentPrecision.setLocation(cfaEdge.getSuccessor());
 
     ExplicitElement successor;
 
@@ -143,6 +142,9 @@ public class ExplicitTransferRelation implements TransferRelation
 
   private void handleSimpleEdge(ExplicitElement element, ExplicitPrecision precision, CFAEdge cfaEdge)
         throws CPATransferException {
+
+    // let the precision know the current location
+    currentPrecision.setLocation(cfaEdge.getSuccessor());
 
     // check the type of the edge
     switch(cfaEdge.getEdgeType()) {

@@ -41,11 +41,12 @@ except ImportError: # 'quote' was moved into 'parse' in Python 3
   from urllib.parse import quote
 
 
-OUTPUT_PATH = "test/results/"
-
 NAME_START = "results" # first part of filename of html-table
 
 CSV_SEPARATOR = '\t'
+
+LIB_URL = "http://www.sosy-lab.org/lib"
+LIB_URL_OFFLINE = "lib/javascript"
 
 TEMPLATE_FILE_NAME = os.path.join(os.path.dirname(__file__), 'table-generator-template.html')
 
@@ -76,16 +77,15 @@ class Template():
         through the value of the key.
         """
         infile = open(self.infileName, 'r')
+        template = infile.read();
+        infile.close();
+
+        for key in kws:
+             matcher = "{{{" + key + "}}}"
+             template = template.replace(matcher, kws[key])
+
         outfile = open(self.outfileName, 'w')
-
-        for line in infile:
-            for key in kws:
-                matcher = "{{{" + key + "}}}"
-                if matcher in line:
-                    line = line.replace(matcher, kws[key])
-            outfile.write(line)
-
-        infile.close()
+        outfile.write(template)
         outfile.close()
 
 
@@ -370,6 +370,22 @@ def mergeFilelists(listOfTests, filenames):
             result.filelist.append(fileResult)
 
 
+def findCommonSourceFiles(listOfTests):
+    filesInFirstTest = listOfTests[0].getSourceFileNames()
+
+    fileSet = set(filesInFirstTest)
+    for result in listOfTests:
+        fileSet = fileSet & set(result.getSourceFileNames())
+
+    fileList = []
+    if not fileSet:
+        print('No files are present in all benchmark results.')
+    else:
+        fileList = [file for file in filesInFirstTest if file in fileSet]
+        mergeFilelists(listOfTests, fileList)
+
+    return fileList
+
 def ensureEqualSourceFiles(listOfTests):
     # take the files of the first test
     fileNames = listOfTests[0].getSourceFileNames()
@@ -396,7 +412,7 @@ class Test:
         self.category = category
 
     @staticmethod
-    def createTestFromXML(sourcefileTag, listOfColumns, fileIsUnsafe):
+    def createTestFromXML(sourcefileTag, resultFilename, listOfColumns, fileIsUnsafe, correctOnly):
         '''
         This function collects the values from one tests for one file.
         Only columns, that should be part of the table, are collected.
@@ -429,6 +445,7 @@ class Test:
             """
             # stop after the first line, that contains the searched text
             value = "-" # default value
+            if not content: return value
             for line in content.splitlines():
                 if identifier in line:
                     startPosition = line.find(':') + 1
@@ -442,6 +459,7 @@ class Test:
 
         status = Util.getColumnValue(sourcefileTag, 'status', 'unknown')
         category = getResultCategory(status)
+        score = calculateScore(category)
         logfileContent = None
 
         values = []
@@ -449,15 +467,26 @@ class Test:
         for column in listOfColumns: # for all columns that should be shown
             value = "-" # default value
             if column.title.lower() == 'score':
-                value = str(calculateScore(category))
-            elif column.text == None: # collect values from XML
-                value = Util.getColumnValue(sourcefileTag, column.title, '-')
+                value = str(score)
+            elif column.title.lower() == 'status':
+                value = status
 
-            elif sourcefileTag.logfile != None: # collect values from logfile
-                if logfileContent == None: # cache content
-                    logfileContent = open(OUTPUT_PATH + sourcefileTag.logfile).read()
+            elif not correctOnly or score > 0:
+                if column.text == None: # collect values from XML
+                    value = Util.getColumnValue(sourcefileTag, column.title, '-')
 
-                value = getValueFromLogfile(logfileContent, column.text)
+                elif sourcefileTag.logfile != None: # collect values from logfile
+                    if logfileContent == None: # cache content
+                        baseDir = os.path.dirname(resultFilename)
+                        logfileName = os.path.join(baseDir, sourcefileTag.logfile)
+                        try:
+                            logfile = open(logfileName)
+                            logfileContent = logfile.read()
+                            logfile.close
+                        except IOError as e:
+                            print('WARNING: Could not read value from logfile: {}'.format(e))
+
+                    value = getValueFromLogfile(logfileContent, column.text)
 
             if column.numberOfDigits is not None:
                 value = Util.formatNumber(value, column.numberOfDigits)
@@ -481,7 +510,7 @@ class Test:
                             self.category, quote(self.logFile), value.lower()))
 
             else:
-                result.append('<td>{0}</td>'.format(value))
+                result.append('<td class="{0}Value">{1}</td>'.format(self.category, value))
         return "".join(result)
 
 
@@ -499,16 +528,6 @@ class Row:
     def fileIsUnsafe(self):
         return Util.containsAny(self.fileName.lower(), BUG_SUBSTRING_LIST)
 
-    def getPathToSourceFile(self):
-        '''
-        This method expand a filename of a sourcefile to a path to the sourcefile.
-        An absolute filename will not be changed,
-        a filename, that is relative to CPAcheckerDir, will get a prefix.
-        '''
-        if not os.path.isabs(self.fileName): # not absolute -> relative
-            return os.path.relpath(self.fileName, OUTPUT_PATH)
-        return self.fileName
-
     def toCSV(self, commonPrefix):
         """
         generate CSV representation of rows with filename as first column
@@ -517,15 +536,18 @@ class Row:
         allValues = [value for test in self.results for value in test.values]
         return CSV_SEPARATOR.join([fileName] + allValues)
 
-    def toHTML(self, commonPrefix):
+    def toHTML(self, commonPrefix, outputPath):
         """
         generate HTML representation of rows with filename as first column
         """
-        filePath = quote(self.getPathToSourceFile())
+        # make path relative to directory of output file if necessary
+        filePath = self.fileName if os.path.isabs(self.fileName) \
+                                 else os.path.relpath(self.fileName, outputPath)
+
         fileName = self.fileName.replace(commonPrefix, '', 1)
 
         HTMLrow = [test.toHTML() for test in self.results]
-        return '<tr><td><a href="{0}">{1}</a></td>{2}</tr>'.format(filePath, fileName, "".join(HTMLrow))
+        return '<tr><td><a href="{0}">{1}</a></td>{2}</tr>'.format(quote(filePath), fileName, "".join(HTMLrow))
 
 def rowsToColumns(rows):
     """
@@ -534,7 +556,7 @@ def rowsToColumns(rows):
     return zip(*[row.results for row in rows])
 
 
-def getRows(listOfTests, fileNames):
+def getRows(listOfTests, fileNames, correctOnly):
     """
     Create list of rows with all data. Each row consists of several tests.
     """
@@ -544,7 +566,7 @@ def getRows(listOfTests, fileNames):
     for result in listOfTests:
         # get values for each file in a test
         for fileResult, row in zip(result.filelist, rows):
-            row.addTest(Test.createTestFromXML(fileResult, result.columns, row.fileIsUnsafe()))
+            row.addTest(Test.createTestFromXML(fileResult, result.filename, result.columns, row.fileIsUnsafe(), correctOnly))
 
     return rows
 
@@ -565,8 +587,9 @@ def filterRowsWithDifferences(rows):
         (allEqual, oldStatus, newStatus) = allEqualResult(row.results)
         if not allEqual:
             rowsDiff.append(row)
-            print ('    difference found:  {0} : {1} --> {2}'.format(
-                        row.fileName.ljust(maxLen), oldStatus, newStatus))
+# TODO replace with call to log.debug when this script has logging
+#            print ('    difference found:  {0} : {1} --> {2}'.format(
+#                        row.fileName.ljust(maxLen), oldStatus, newStatus))
 
 
     if len(rowsDiff) == 0:
@@ -613,7 +636,13 @@ def getTableHead(listOfTests, commonFileNamePrefix):
     limits      = formatLine('timelimit: {timelimit}, memlimit: {memlimit}')
     limitRow    = getHtmlRow('Limits', limits, testWidths, collapse=True)
 
-    systems     = formatLine('host: {host}<br>os: {os}<br>cpu: {cpu}<br>cores: {cores}, frequency: {freq}, ram: {ram}')
+    hosts       = formatLine('{host}')
+    hostRow     = getHtmlRow('Host', hosts, testWidths, collapse=True)
+
+    os          = formatLine('{os}')
+    osRow       = getHtmlRow('OS', os, testWidths, collapse=True)
+
+    systems     = formatLine('CPU: {cpu} with {cores} cores, frequency: {freq}; RAM: {ram}')
     systemRow   = getHtmlRow('System', systems, testWidths, collapse=True)
 
     dates       = formatLine('{date}')
@@ -626,15 +655,17 @@ def getTableHead(listOfTests, commonFileNamePrefix):
     branches    = formatLine('{branch}')
     branchesRow = getHtmlRow('Branch', branches, testWidths)
 
-    options     = formatLine('{options}')
-    optionsRow  = getHtmlRow('Options', options, testWidths).replace(' -', '<br>-')
+    options     = [str.replace(' -', '<br/>-')
+                      .replace('=', '=<wbr/>')
+                      for str in formatLine('{options}')] 
+    optionsRow  = getHtmlRow('Options', options, testWidths)
 
     titles      = [column.title for test in listOfTests for column in test.columns]
     testWidths1 = [1]*sum(testWidths)
     titleRow    = getHtmlRow(commonFileNamePrefix, titles, testWidths1, id='columnTitles')
     titleLine   = getCsvRow(commonFileNamePrefix, titles, testWidths1)
 
-    return ('\n'.join([toolRow, limitRow, systemRow, dateRow, testRow, branchesRow, optionsRow, titleRow]),
+    return ('\n'.join([toolRow, limitRow, hostRow, osRow, systemRow, dateRow, testRow, branchesRow, optionsRow, titleRow]),
             '\n'.join([toolLine, testLine, titleLine]))
 
 
@@ -753,7 +784,7 @@ def getCounts(rows): # for options.dumpCounts
 
 
 
-def createTables(name, listOfTests, fileNames, rows, rowsDiff):
+def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath):
     '''
     create tables and write them to files
     '''
@@ -765,9 +796,10 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff):
     HTMLhead, CSVhead = getTableHead(listOfTests, commonPrefix)
 
     def writeTable(outfile, name, rows):
+        outfile = os.path.join(outputPath, outfile)
         print ('writing html into {0} ...'.format(outfile + ".html"))
 
-        HTMLbody = '\n'.join([row.toHTML(commonPrefix) for row in rows])
+        HTMLbody = '\n'.join([row.toHTML(commonPrefix, outputPath) for row in rows])
         HTMLfoot = '\n'.join(getStatsHTML(rows))
         CSVbody  = '\n'.join([row.toCSV(commonPrefix) for row in rows])
 
@@ -776,7 +808,8 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff):
                     title=name,
                     head=HTMLhead,
                     body=HTMLbody,
-                    foot=HTMLfoot
+                    foot=HTMLfoot,
+                    lib_url=LIB_URL
                     )
 
         # write CSV to file
@@ -788,11 +821,11 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff):
 
 
     # write normal tables
-    writeTable(OUTPUT_PATH + name + ".table", name, rows)
+    writeTable(name + ".table", name, rows)
 
     # write difference tables
     if len(rowsDiff) > 1:
-        writeTable(OUTPUT_PATH + name + ".diff", name + " differences", rowsDiff)
+        writeTable(name + ".diff", name + " differences", rowsDiff)
 
 
 def main(args=None):
@@ -812,6 +845,7 @@ def main(args=None):
     parser.add_option("-o", "--outputpath",
         action="store",
         type="string",
+        default="test/results",
         dest="outputPath",
         help="outputPath for table. if it does not exist, it is created."
     )
@@ -824,15 +858,32 @@ def main(args=None):
         help="If resultfiles with distinct sourcefiles are found, " \
             + "should the sourcefilenames be merged?"
     )
+    parser.add_option("-c", "--common",
+        action="store_true", dest="common",
+        help="If resultfiles with distinct sourcefiles are found, " \
+            + "use only the sourcefiles common to all resultfiles."
+    )
+    parser.add_option("--correct-only",
+        action="store_true", dest="correctOnly",
+        help="Clear all results in cases where the result was not correct."
+    )
+    parser.add_option("--offline",
+        action="store_true", dest="offline",
+        help="Don't insert links to http://www.sosy-lab.org, instead expect JS libs in libs/javascript."
+    )
 
     options, args = parser.parse_args(args)
     args = args[1:] # skip args[0] which is the name of this script
 
-    if options.outputPath:
-        global OUTPUT_PATH
-        OUTPUT_PATH = options.outputPath if options.outputPath.endswith('/') \
-                 else options.outputPath + '/'
-    if not os.path.isdir(OUTPUT_PATH): os.makedirs(OUTPUT_PATH)
+    if options.merge and options.common:
+        print("Invalid combination of arguments (--merge and --common)")
+        exit()
+
+    if options.offline:
+        global LIB_URL
+        LIB_URL = LIB_URL_OFFLINE
+
+    if not os.path.isdir(options.outputPath): os.makedirs(options.outputPath)
 
     if options.xmltablefile:
         if args:
@@ -845,8 +896,8 @@ def main(args=None):
         if args:
             inputFiles = args
         else:
-            print ("searching resultfiles in '{}'...".format(OUTPUT_PATH))
-            inputFiles = [os.path.join(OUTPUT_PATH, '*.results*.xml')]
+            print ("searching resultfiles in '{}'...".format(options.outputPath))
+            inputFiles = [os.path.join(options.outputPath, '*.results*.xml')]
 
         inputFiles = Util.extendFileList(inputFiles) # expand wildcards
         listOfTestFiles = [(file, None) for file in inputFiles]
@@ -867,15 +918,17 @@ def main(args=None):
     if options.merge:
         # merge list of tests, so that all tests contain the same filenames
         fileNames = mergeSourceFiles(listOfTests)
+    elif options.common:
+        fileNames = findCommonSourceFiles(listOfTests)
     else:
         fileNames, listOfTests = ensureEqualSourceFiles(listOfTests)
 
     # collect data and find out rows with differences
-    rows     = getRows(listOfTests, fileNames)
+    rows     = getRows(listOfTests, fileNames, options.correctOnly)
     rowsDiff = filterRowsWithDifferences(rows)
 
     print ('generating table ...')
-    createTables(name, listOfTests, fileNames, rows, rowsDiff)
+    createTables(name, listOfTests, fileNames, rows, rowsDiff, options.outputPath)
 
     print ('done')
 

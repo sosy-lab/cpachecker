@@ -74,6 +74,22 @@ public interface RegionManager {
   public Region makeOr(Region f1, Region f2);
 
   /**
+   * Creates a region representing an equality (bi-implication) of the two argument
+   * @param f1 an AbstractFormula
+   * @param f2 an AbstractFormula
+   * @return (f1 <=> f2)
+   */
+  public Region makeEqual(Region f1, Region f2);
+
+  /**
+   * Creates a region representing an disequality (XOR) of the two argument
+   * @param f1 an AbstractFormula
+   * @param f2 an AbstractFormula
+   * @return (f1 ^ f2)
+   */
+  public Region makeUnequal(Region f1, Region f2);
+
+  /**
    * Creates a region representing an existential quantification of the two argument
    * @param f1 an AbstractFormula
    * @param f2 an AbstractFormula

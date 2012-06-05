@@ -274,9 +274,8 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     }
 
     @Override
-    public Formula getReasonFormula(FormulaManager formuaManager) {
-      String formula = PreventingHeuristic.ASSIGNMENTSINPATH.getFormulaString(maximum);
-      return formuaManager.parse(formula);
+    public Formula getReasonFormula(FormulaManager formulaManager) {
+      return PreventingHeuristic.ASSIGNMENTSINPATH.getFormula(formulaManager, maximum);
     }
 
     @Override

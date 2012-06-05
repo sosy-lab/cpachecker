@@ -24,9 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.ldd;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -77,11 +75,9 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
 
   private final LDDAbstractElement initialElement;
 
-  private final Map<String, Integer> variables = new HashMap<String, Integer>();
-
-  private final Set<String> constants = new HashSet<String>();
-
   public LDDAbstractionCPA(CFA cfa, Configuration config, LogManager logger) throws InvalidConfigurationException {
+    Map<String, Integer> variables = new HashMap<String, Integer>();
+
     for (CFANode node : cfa.getAllNodes()) {
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
         if (edge instanceof DeclarationEdge) {
@@ -90,13 +86,13 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
           if (declaration instanceof IASTVariableDeclaration) {
             String name = declaration.getName();
             IType type = declaration.getDeclSpecifier();
-            registerVariable(name, type);
+            registerVariable(name, type, variables);
           } else if (declaration instanceof IASTFunctionDeclaration) {
             IASTFunctionDeclaration funDecl = (IASTFunctionDeclaration) declaration;
             for (IASTParameterDeclaration paramDecl : funDecl.getDeclSpecifier().getParameters()) {
               String name = paramDecl.getName();
               IType type = paramDecl.getDeclSpecifier();
-              registerVariable(name, type);
+              registerVariable(name, type, variables);
             }
           }
         }
@@ -108,25 +104,22 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
         for (IASTParameterDeclaration paramDecl : fDefNode.getFunctionDefinition().getDeclSpecifier().getParameters()) {
           String name = paramDecl.getName();
           IType type = paramDecl.getDeclSpecifier();
-          registerVariable(name, type);
+          registerVariable(name, type, variables);
         }
       }
     }
-    this.regionManager = new LDDRegionManager(this.variables.size());
+    this.regionManager = new LDDRegionManager(variables.size());
     this.domain = new LDDAbstractDomain(this.regionManager);
     this.stopOperator = new StopSepOperator(this.domain);
     this.initialElement = new LDDAbstractElement(this.regionManager.makeTrue());
-    this.transferRelation = new LDDAbstractionTransferRelation(this.regionManager, this.variables, this.constants);
+    this.transferRelation = new LDDAbstractionTransferRelation(this.regionManager, variables);
   }
 
-  private void registerVariable(String name, IType type) {
+  private void registerVariable(String name, IType type, Map<String, Integer> variables) {
     if (name != null && !name.isEmpty() && type != null && type instanceof IASTSimpleDeclSpecifier) {
       BasicType basicType = ((IASTSimpleDeclSpecifier) type).getType();
       if (basicType == BasicType.INT) {
-        this.variables.put(name, this.variables.size());
-        if (type.isConst()) {
-          this.constants.add(name);
-        }
+        variables.put(name, variables.size());
       }
     }
   }

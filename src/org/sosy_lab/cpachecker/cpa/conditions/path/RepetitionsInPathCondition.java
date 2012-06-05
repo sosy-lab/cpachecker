@@ -154,9 +154,7 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
 
     @Override
     public Formula getReasonFormula(FormulaManager pMgr) {
-      String formula = PreventingHeuristic.REPETITIONSINPATH.getFormulaString(threshold);
-
-      return pMgr.parse(formula);
+      return PreventingHeuristic.REPETITIONSINPATH.getFormula(pMgr, threshold);
     }
 
     @Override

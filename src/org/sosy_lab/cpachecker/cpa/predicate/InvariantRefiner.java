@@ -223,11 +223,21 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
       CFANode loc = pair.getSecond();
       phi = tnet.getTemplate(loc).getTemplateFormula();
       if (phi != null) {
-        Collection<AbstractionPredicate> phiPreds = makeAbstractionPredicates(phi);
+        boolean atomic = true;
+        //Collection<AbstractionPredicate> phiPreds = makeAbstractionPredicates(phi);
+        Collection<AbstractionPredicate> phiPreds = makeAbstrPreds(phi, atomic);
         ceti.addPredicatesForRefinement(phiPreds);
       } else {
         ceti.addPredicatesForRefinement(trueFormula);
       }
+    }
+  }
+
+  private Collection<AbstractionPredicate> makeAbstrPreds(TemplateFormula invariant, boolean atomic) {
+    if (atomic) {
+      return makeAbstractionPredicates(invariant);
+    } else {
+      return makeAbstractionPredicatesNonatomic(invariant);
     }
   }
 
@@ -255,6 +265,15 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
       }
     }
 
+    return preds;
+  }
+
+  private Collection<AbstractionPredicate> makeAbstractionPredicatesNonatomic(TemplateFormula invariant) {
+    // Like makeAbstractionPredicates, only does /not/ split the passed
+    // invariant into atoms, but keeps it whole.
+    Collection<AbstractionPredicate> preds = new Vector<AbstractionPredicate>();
+    Formula formula = invariant.translate(emgr.getDelegate());
+    preds.add( amgr.makePredicate(formula) );
     return preds;
   }
 

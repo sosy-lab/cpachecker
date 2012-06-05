@@ -63,11 +63,11 @@ class FunctionPointerPrecisionAdjustment implements PrecisionAdjustment {
 
     if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
       // nothing has changed
-      return new Triple<AbstractElement, Precision, Action>(pElement, oldPrecision, action);
+      return Triple.of(pElement, oldPrecision, action);
     }
 
-    FunctionPointerElement resultElement = element.createDuplicateWithNewWrappedElement(newElement);
+    AbstractElement resultElement = element.createDuplicateWithNewWrappedElement(newElement);
 
-    return new Triple<AbstractElement, Precision, Action>(resultElement, newPrecision, action);
+    return Triple.of(resultElement, newPrecision, action);
   }
 }

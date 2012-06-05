@@ -31,21 +31,21 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
-public class CFATopologicalSort {
+public class CFAReversePostorder {
 
   private final Set<CFANode> visited   = new HashSet<CFANode>();
-  private int                topSortId = 0;
+  private int                reversePostorderId = 0;
 
-  public void topologicalSort(CFANode node) {
+  public void assignSorting(CFANode node) {
     if (!visited.add(node)) {
       // already handled, do nothing
       return;
     }
 
     for (CFAEdge edge : leavingEdges(node)) {
-      topologicalSort(edge.getSuccessor());
+      assignSorting(edge.getSuccessor());
     }
 
-    node.setTopologicalSortId(topSortId++);
+    node.setReversePostorderId(reversePostorderId++);
   }
 }

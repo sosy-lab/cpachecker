@@ -127,9 +127,7 @@ public class PathLengthCondition implements PathCondition, Statistics {
 
     @Override
     public Formula getReasonFormula(FormulaManager pMgr) {
-      String formula = PreventingHeuristic.PATHLENGTH.getFormulaString(pathLength);
-
-      return pMgr.parse(formula);
+      return PreventingHeuristic.PATHLENGTH.getFormula(pMgr, pathLength);
     }
 
     @Override

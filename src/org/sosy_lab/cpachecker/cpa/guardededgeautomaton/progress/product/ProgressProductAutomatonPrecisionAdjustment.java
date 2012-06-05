@@ -85,9 +85,7 @@ public class ProgressProductAutomatonPrecisionAdjustment implements
     ProductAutomatonElement lAdjustedElement = ProductAutomatonElement.createElement(lAdjustedElements);
     CompositePrecision lAdjustedPrecision = new CompositePrecision(lAdjustedPrecisions);
 
-    Triple<AbstractElement, Precision, Action> lResult = new Triple<AbstractElement, Precision, Action>(lAdjustedElement, lAdjustedPrecision, lAction);
-
-    return lResult;
+    return Triple.<AbstractElement, Precision, Action>of(lAdjustedElement, lAdjustedPrecision, lAction);
   }
 
 }

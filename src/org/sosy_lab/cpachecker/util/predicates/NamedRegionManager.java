@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
@@ -44,6 +47,9 @@ public class NamedRegionManager implements RegionManager {
 
   private static final String ANONYMOUS_PREDICATE = "__anon_pred";
   private int anonymousPredicateCounter = 0;
+
+  /** counter needed for nodes in dot-output */
+  int nodeCounter;
 
   public NamedRegionManager(RegionManager pDelegate) {
     delegate = checkNotNull(pDelegate);
@@ -120,6 +126,56 @@ public class NamedRegionManager implements RegionManager {
     }
   }
 
+  /** Returns a representation of a region in dot-format (graphviz). */
+  public String regionToDot(Region r) {
+    nodeCounter = 2; // counter for nodes, values 0 and 1 are used for nodes FALSE and TRUE
+    Map<Region, Integer> cache = new HashMap<Region, Integer>(); // map for same regions
+    StringBuilder str = new StringBuilder("digraph G {\n");
+
+    // make nodes for FALSE and TRUE
+    if (!r.isTrue()) {
+      str.append("0 [shape=box, label=\"0\", style=filled, shape=box, height=0.3, width=0.3];\n");
+      cache.put(makeFalse(), 0);
+    }
+    if (!r.isFalse()) {
+      str.append("1 [shape=box, label=\"1\", style=filled, shape=box, height=0.3, width=0.3];\n");
+      cache.put(makeTrue(), 1);
+    }
+
+    regionToDot(r, str, cache);
+
+    str.append("}\n");
+    return str.toString();
+  }
+
+  private int regionToDot(Region r, StringBuilder str, Map<Region, Integer> cache) {
+    if (cache.containsKey(r)) { // use same region again
+      return cache.get(r);
+
+    } else {
+      Triple<Region, Region, Region> triple = delegate.getIfThenElse(r);
+
+      // create node with label
+      String predName = regionMap.inverse().get(triple.getFirst());
+      nodeCounter += 1; // one more node is created
+      int predNum = nodeCounter;
+      str.append(predNum).append(" [label=\"").append(predName).append("\"];\n");
+
+      // create arrow for true branch
+      Region trueBranch = triple.getSecond();
+      int trueTarget = regionToDot(trueBranch, str, cache);
+      str.append(predNum).append(" -> ").append(trueTarget).append(" [style=filled];\n");
+
+      // create arrow for false branch
+      Region falseBranch = triple.getThird();
+      int falseTarget = regionToDot(falseBranch, str, cache);
+      str.append(predNum).append(" -> ").append(falseTarget).append(" [style=dotted];\n");
+
+      cache.put(r, predNum);
+      return predNum;
+    }
+  }
+
   @Override
   public boolean entails(Region pF1, Region pF2) {
     return delegate.entails(pF1, pF2);
@@ -148,6 +204,16 @@ public class NamedRegionManager implements RegionManager {
   @Override
   public Region makeOr(Region pF1, Region pF2) {
     return delegate.makeOr(pF1, pF2);
+  }
+
+  @Override
+  public Region makeEqual(Region pF1, Region pF2) {
+    return delegate.makeEqual(pF1, pF2);
+  }
+
+  @Override
+  public Region makeUnequal(Region pF1, Region pF2) {
+    return delegate.makeUnequal(pF1, pF2);
   }
 
   @Override

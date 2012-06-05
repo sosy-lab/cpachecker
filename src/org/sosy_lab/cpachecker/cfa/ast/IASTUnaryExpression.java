@@ -80,6 +80,10 @@ public class IASTUnaryExpression extends IASTExpression {
 
   @Override
   public String toASTString() {
-    return operator.getOperator() + operand.toParenthesizedASTString();
+    if (operator == UnaryOperator.SIZEOF) {
+      return operator.getOperator() + "(" + operand.toASTString() + ")";
+    } else {
+      return operator.getOperator() + operand.toParenthesizedASTString();
+    }
   }
 }

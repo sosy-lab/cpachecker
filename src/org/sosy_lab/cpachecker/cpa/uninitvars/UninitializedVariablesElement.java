@@ -111,7 +111,7 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
   }
 
   public void addWarning(Integer lineNumber, String variable, String message) {
-    Triple<Integer, String, String> warning = new Triple<Integer, String, String>(lineNumber, variable, message);
+    Triple<Integer, String, String> warning = Triple.of(lineNumber, variable, message);
     if (!warnings.contains(warning)) {
       warnings.add(warning);
     }

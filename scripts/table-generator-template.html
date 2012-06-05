@@ -30,9 +30,8 @@
 
     #contentPaneBackground { height:5000px; width:5000px;
              position:fixed; top:0px; left:0px;
-             background-image: url(http://www.house-events.de/schnee.gif);
-             background-color:grey; 
-             opacity:0.5; display:none }
+             background-color:green; 
+             opacity:0.2; display:none }
     #contentPane { height:90%; width:90%; position:fixed; top:5%; left:5%;
              border:solid 10px black; border-radius:15px;
              background-color:white; opacity:1; display:none }
@@ -46,10 +45,30 @@
 </style>
 
 
-<script type="text/javascript" src="http://www.sosy-lab.org/lib/jquery-1.7.1.min.js"></script>
+<script type="text/javascript" src="{{{lib_url}}}/jquery-1.7.1.min.js"></script>
 
 
 <script type="text/javascript">
+
+var currentlySelectedCell = null;
+
+// callback that is fired when user clicks on cellsWithUrls (see down below)
+function highlightCell(event) {
+    var target = event.target;
+    if(target.nodeName === 'A') {
+      target = target.parentNode;
+
+      // unhighlight currentlySelectedCell
+      if(currentlySelectedCell != null) {
+	  	currentlySelectedCell.style.borderColor = 'black';
+      }
+
+      // highlight cell that has been just clicked on
+      target.style.borderColor = 'red';
+      currentlySelectedCell = target;
+    }
+}
+
 function debug(logInfo) {
   if(!true) {
     console.log(logInfo);
@@ -87,6 +106,9 @@ function fKeyPressed(event) {
 }
 
 var headerArray = [];
+var TOOL_ROW = 0; // row-indices for some rows
+var DATE_ROW = 5;
+var TEST_ROW = 6;
 
 function createHeaderArray() {
     if (headerArray.length != 0) { return; } // headerArray already filled
@@ -161,7 +183,7 @@ $(document).ready(function(){
     //console.log(cellsWithUrls);
     cellsWithUrls.each(
         function(index, elem){
-            $(elem).click(loadContentWrapper);
+            $(elem).click(highlightCell).click(loadContentWrapper);
         });
 });
 </script>
@@ -214,18 +236,18 @@ function createColumnToggleButtons() {
 
         var tableHead = $("#dataTable > thead")[0];
         var columnTitles = $("#columnTitles > td");
-        var testNums = headerArray[4];
+        var testNums = headerArray[TEST_ROW];
         var testNum = testNums[1];
-        var testName = tableHead.children[3].cells[headerArray[3][1]].textContent + " " + 
-                       tableHead.children[4].cells[testNum].textContent;
+        var testName = tableHead.children[DATE_ROW].cells[headerArray[DATE_ROW][1]].textContent + " " + 
+                       tableHead.children[TEST_ROW].cells[testNum].textContent;
     
         // TODO can we make next block more OO-like?
         buttonList = '<ul onclick="toggleCompleteColumn(event, this)">' + testName;
         for (var i=1; i<columnTitles.length; i++) { // do not use first column (i!=0)
             if (testNum != testNums[i]) {
                 testNum = testNums[i];
-                testName = tableHead.children[3].cells[headerArray[3][i]].textContent + " " + 
-                           tableHead.children[4].cells[testNum].textContent;
+                testName = tableHead.children[DATE_ROW].cells[headerArray[DATE_ROW][i]].textContent + " " + 
+                           tableHead.children[TEST_ROW].cells[testNum].textContent;
                 buttonList += '</ul><ul onclick="toggleCompleteColumn(event, this)">' + testName;
             }
     
@@ -268,18 +290,18 @@ function toggleCompleteColumn(event, listOfCheckboxes) {
 function createRowFilterButtons() {
     var tableHead = $("#dataTable > thead")[0];
     var columnTitles = $("#columnTitles > td");
-    var testNums = headerArray[4];
+    var testNums = headerArray[TEST_ROW];
     var testNum = testNums[1];
-    var testName = tableHead.children[3].cells[headerArray[3][1]].textContent + " " + 
-		    tableHead.children[4].cells[testNum].textContent;
+    var testName = tableHead.children[DATE_ROW].cells[headerArray[DATE_ROW][1]].textContent + " " + 
+		    tableHead.children[TEST_ROW].cells[testNum].textContent;
 
     // TODO can we make next block more OO-like?
     buttonList = '<ul>' + testName;
     for (var i=1; i<columnTitles.length; i++) { // do not use first column (i!=0)
 	if (testNum != testNums[i]) {
 	    testNum = testNums[i];
-	    testName = tableHead.children[3].cells[headerArray[3][i]].textContent + " " + 
-			tableHead.children[4].cells[testNum].textContent;
+	    testName = tableHead.children[DATE_ROW].cells[headerArray[DATE_ROW][i]].textContent + " " + 
+			tableHead.children[TEST_ROW].cells[testNum].textContent;
 	    buttonList += '</ul><ul>' + testName;
 	}
 
@@ -368,13 +390,14 @@ $(document).ready(function(){
 </script>
 
 
-<script type="text/javascript" src="http://www.sosy-lab.org/lib/jquery.jqplot-1.0.0b2_r1012/jquery.jqplot.min.js"></script>
-<script type="text/javascript" src="http://www.sosy-lab.org/lib/jquery.jqplot-1.0.0b2_r1012/jqplot.highlighter.min.js"></script>
-<script type="text/javascript" src="http://www.sosy-lab.org/lib/jquery.jqplot-1.0.0b2_r1012/jqplot.cursor.min.js"></script>
-<script type="text/javascript" src="http://www.sosy-lab.org/lib/jquery.jqplot-1.0.0b2_r1012/jqplot.canvasTextRenderer.min.js"></script>
-<script type="text/javascript" src="http://www.sosy-lab.org/lib/jquery.jqplot-1.0.0b2_r1012/jqplot.canvasAxisTickRenderer.min.js"></script>
-<script type="text/javascript" src="http://www.sosy-lab.org/lib/jquery.jqplot-1.0.0b2_r1012/jqplot.enhancedLegendRenderer.min.js"></script>
-<link rel="stylesheet" type="text/css" href="http://www.sosy-lab.org/lib/jquery.jqplot-1.0.0b2_r1012/jquery.jqplot.min.css"/>
+<script type="text/javascript" src="{{{lib_url}}}/jquery.jqplot-1.0.0b2_r1012/jquery.jqplot.min.js"></script>
+<script type="text/javascript" src="{{{lib_url}}}/jquery.jqplot-1.0.0b2_r1012/jqplot.highlighter.min.js"></script>
+<script type="text/javascript" src="{{{lib_url}}}/jquery.jqplot-1.0.0b2_r1012/jqplot.cursor.min.js"></script>
+<script type="text/javascript" src="{{{lib_url}}}/jquery.jqplot-1.0.0b2_r1012/jqplot.canvasTextRenderer.min.js"></script>
+<script type="text/javascript" src="{{{lib_url}}}/jquery.jqplot-1.0.0b2_r1012/jqplot.canvasAxisTickRenderer.min.js"></script>
+<script type="text/javascript" src="{{{lib_url}}}/jquery.jqplot-1.0.0b2_r1012/jqplot.enhancedLegendRenderer.min.js"></script>
+<script type="text/javascript" src="{{{lib_url}}}/jquery.jqplot-1.0.0b2_r1012/jqplot.logAxisRenderer.min.js"></script>
+<link rel="stylesheet" type="text/css" href="{{{lib_url}}}/jquery.jqplot-1.0.0b2_r1012/jquery.jqplot.min.css"/>
 
 <style type="text/css">
     .jqplot-title {font-family:arial, sans serif; font-size:large }
@@ -387,7 +410,9 @@ $(document).ready(function(){
              border-radius:8px; border-bottom-left-radius:0px;
              background-color:white; opacity:0.8; }
     #chart { height:100%; width:100% }
-    #button-trend { position:absolute; bottom:0px; }
+    #button-trend { position:absolute; bottom:30px; }
+    #button-logScale { position:absolute; bottom:0px; }
+    #button-showCorrectOnly { position:absolute; bottom:0px; right:0px; }
 </style>
 
 <script type="text/javascript">
@@ -409,7 +434,7 @@ function getColumnIndicesForHeader(header) {
 
 // getTableData returns a list of arrays, 
 // each array is of the form: [[file1, value1], [file2, value1], ...]
-function getTableData(header) {
+function getTableData(header, sort) {
     debug("data for: " + header);
     var data = [];
 
@@ -424,7 +449,7 @@ function getTableData(header) {
       var currentRow = tableBody.rows[i];
 
       if(!$(currentRow).is(":visible")) {
-	continue;
+          continue;
       }
 
       for (j = 0; j < indices.length; j++) {
@@ -432,18 +457,23 @@ function getTableData(header) {
         var currentCell = currentRow.cells[index];
 
         var value;
-        if (header === 'status') {
+        if (graphData.showCorrectOnly && currentCell.className.indexOf('correct') != 0) {
+            value = null;
+        } else if (header === 'status') {
             if (currentCell.className.indexOf('correct') == 0)     value = 1;
-            else if (currentCell.className.indexOf('wrong') == 0)  value = 0;
-            else                                                  value = -1;
+            else if (currentCell.className.indexOf('wrong') == 0)  value = -1;
+            else                                                   value = 0;
         } else {
-          value = parseFloat(currentCell.textContent)
+          value = parseFloat(currentCell.textContent);
+          if (value == 0 && graphData.isLogScale) {
+              value = 0.00001; // zero is not part of log-scale
+          }
         }
         data[j].push([i, value]);
       }
     }
 
-    debug(data);
+    data = sort ? sortData(data) : data;    
     return function inner(){ return data;};
 };
 
@@ -460,7 +490,12 @@ function sortData(data) {
             array.push(line[j][1]);
         }
 
-        array.sort( function(a, b) { return a - b;} ); // compare numbers!
+        // compare numbers, NaN and Null are handled as positive infinity
+        array.sort( function(a, b) {
+            if (a == null || isNaN(a)) return 1;
+            if (b == null || isNaN(b)) return -1;
+            return a - b;
+            } );
 
         var newLine = [];
         for (j = 0; j < line.length; j++) {
@@ -469,32 +504,38 @@ function sortData(data) {
 
         newData.push(newLine);
     }
-    return function inner(){ return newData;};
+    return newData;
 }
 
-// get labels for x-direction
-function getXTicks(){
+// if useNums: get numbers for x-direction as [[0," 0"],[1," "],...] with a number in each 5th element
+// else:       get filenames as labels for x-direction
+function getXTicks(useNums){
     var xTicks = [];
     var maxLength = 40;
     var tableBody = $('#dataTable > tbody')[0];
-    for(i = 0; i < tableBody.rows.length; i++) {
-      var name = tableBody.rows[i].cells[0].textContent;
-      if (name.length > maxLength) { name = name.substring(0, maxLength) + "..."; }
-      xTicks.push([i, name]);
+
+    if (useNums) { // collect some numbers
+      var step = (tableBody.rows.length > 10) ? 5 : 1;
+      var counter = 0;
+      for(i = 0; i < tableBody.rows.length; i++) {
+        if($(tableBody.rows[i]).is(":visible")) {
+          xTicks.push([counter, ((counter%step)?" ":" " + counter)]);
+          counter++;
+        }
+      }
+    } else { // collect names of the files
+        for(i = 0; i < tableBody.rows.length; i++) {
+        var currentRow = tableBody.rows[i];
+        if($(currentRow).is(":visible")) {
+          var name = currentRow.cells[0].textContent;
+          if (name.length > maxLength) { name = name.substring(0, maxLength) + "..."; }
+          xTicks.push([i, name]);
+        }
+      }
     }
     return xTicks;
 }
 
-// get labels for x-direction as [[0," 0"],[1," "],...] with a number in each 5th element
-function getXTicksWithNumbers(){
-    var xTicks = [];
-    var maxLength = 40;
-    var tableBody = $('#dataTable > tbody')[0];
-    for(i = 0; i < tableBody.rows.length; i++) {
-      xTicks.push([i, ((i%5)?" ":" " + i)]);
-    }
-    return xTicks;
-}
 
 // get labels for y-direction
 function getYTicks(header) {
@@ -512,14 +553,11 @@ function getLabels(header) {
 
     var indices = getColumnIndicesForHeader(header);
     var tableHead = $('#dataTable > thead')[0];
-    var tool = 0;  // rowindex for tool, date, test
-    var date = 3;
-    var test = 4;
     for (i = 0; i < indices.length; i++) {
         var index = indices[i];
-        labels.push(tableHead.rows[tool].cells[headerArray[tool][index]].textContent + " " +
-                    tableHead.rows[date].cells[headerArray[date][index]].textContent + " " +
-                    tableHead.rows[test].cells[headerArray[test][index]].textContent);
+        labels.push(tableHead.rows[TOOL_ROW].cells[headerArray[TOOL_ROW][index]].textContent + " " +
+                    tableHead.rows[DATE_ROW].cells[headerArray[DATE_ROW][index]].textContent + " " +
+                    tableHead.rows[TEST_ROW].cells[headerArray[TEST_ROW][index]].textContent);
     }
     return labels;
 };
@@ -558,38 +596,6 @@ function addLegendActions() {
 }
 
 
-function showPlot(header) {
-    debug("show plot of: " + header);
-    $('#contentPaneBackground').trigger('click');
-
-    var yTicks = getYTicks(header);
-    var xTicks = getXTicks(); // filenames for labels
-    var data = getTableData(header);
-
-    drawPlot(header, data, xTicks, yTicks, "plot");
-
-    var button = $('#button-trend')[0];
-    button.onclick = function() { showTrend(header); };
-    button.textContent = 'Show Trend';
-};
-
-
-function showTrend(header) {
-    debug("show trend of: " + header);
-    $('#contentPaneBackground').trigger('click');
-
-    var yTicks = getYTicks(header);
-    var xTicks = getXTicksWithNumbers();
-    var data = sortData(getTableData(header)());
-
-    drawPlot(header, data, xTicks, yTicks, "trend");
-
-    var button = $('#button-trend')[0];
-    button.onclick = function() { showPlot(header); };
-    button.textContent = 'Show Plot';
-};
-
-
 function getFormatter(labels, header) {
     return function(str, seriesIndex, pointIndex){
         debug(str, seriesIndex, pointIndex);
@@ -608,9 +614,52 @@ function getFormatter(labels, header) {
     };
 }
 
-function drawPlot(header, data, xTicks, yTicks, type) {
+
+var graphData = {
+    header : null,
+    isTrend : false,
+    isLogScale : false,
+    showCorrectOnly : false,
+};
+
+function toggleTrend() {
+    graphData.isTrend = !graphData.isTrend;
+    showPlot();
+}
+
+function toggleLogScale() {
+    graphData.isLogScale = !graphData.isLogScale;
+    showPlot();
+}
+
+function toggleShowCorrectOnly() {
+    graphData.showCorrectOnly = !graphData.showCorrectOnly;
+    showPlot();
+}
+
+function showPlot() {
+    $('#contentPaneBackground').trigger('click'); // cleanup
+
+    debug("show plot of: " + graphData.header);
+    var yTicks = getYTicks(graphData.header);
+    var xTicks = getXTicks(graphData.isTrend);
+
     $('#contentPane').append('<div id="chart"></div>',
-                   '<button id="button-trend"></button>');
+                   '<button id="button-trend"></button>',
+                   '<button id="button-logScale"></button>',
+                   '<button id="button-showCorrectOnly"></button>');
+
+    var button = $('#button-trend')[0];
+    button.onclick = function() { toggleTrend(); };
+    button.textContent = graphData.isTrend ? 'Show Plot' : 'Show Trend';
+
+    var button = $('#button-logScale')[0];
+    button.onclick = function() { toggleLogScale(); };
+    button.textContent = graphData.isLogScale ?  'Use linear scale' : 'Use log scale';
+
+    var button = $('#button-showCorrectOnly')[0];
+    button.onclick = function() { toggleShowCorrectOnly(); };
+    button.textContent = graphData.showCorrectOnly ?  'Show all files' : 'Show correct only';
 
     showContentPane();
     $('#contentPaneBackground').click(function(event){
@@ -619,24 +668,24 @@ function drawPlot(header, data, xTicks, yTicks, type) {
 
         // data array is empty, we use "columnRenderer" option to get data.
         var plot = $.jqplot('chart',[],{
-          title: header,
+          title: graphData.header,
           legend: {
             show:true,
             placement: 'outsideGrid',
             renderer: $.jqplot.EnhancedLegendRenderer,
-            labels: getLabels(header),
+            labels: getLabels(graphData.header),
             location: 's',
             rowSpacing: "0px",
             showSwatches: true,
           },
-          dataRenderer: data,
+          dataRenderer: getTableData(graphData.header, graphData.isTrend),
           highlighter:{
             show: true,
             sizeAdjust: 10,
             showMarker: true,
             tooltipAxes: 'y',
             tooltipLocation: 'ne',
-            tooltipContentEditor: getFormatter(xTicks, header),
+            tooltipContentEditor: getFormatter(xTicks, graphData.header),
           },
           seriesDefaults:{
             shadow: false,
@@ -657,9 +706,10 @@ function drawPlot(header, data, xTicks, yTicks, type) {
             },
             yaxis:{
               ticks: yTicks,
+              renderer: (graphData.isLogScale && graphData.header !== 'status') ? $.jqplot.LogAxisRenderer : $.jqplot.LinearAxisRenderer,
               pad: 1.2,
               tickOptions:{
-                formatString:'%.2f'
+                formatString: (graphData.isLogScale ? '%.3f' : '%.2f')
               }
             }
           },
@@ -677,8 +727,8 @@ $(document).ready(function(){
       debug(column);
       column.style.cursor = "pointer";
       column.onclick = function (event) {
-          var header = event.target.textContent;
-          return showPlot(header);
+          graphData.header = event.target.textContent;
+          return showPlot();
       }
     }
 });

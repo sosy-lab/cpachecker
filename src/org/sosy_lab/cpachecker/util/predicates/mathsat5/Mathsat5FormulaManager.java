@@ -423,6 +423,34 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
   }
 
   @Override
+  public boolean isPurelyConjunctive(Formula f) {
+    long t = getTerm(f);
+
+    if (msat_term_is_atom(msatEnv, t)
+        || msat_term_is_uf(msatEnv, t)) {
+      // term is atom
+      return true;
+
+    } else if (msat_term_is_not(msatEnv, t)) {
+      t = msat_term_get_arg(t, 0);
+      return (msat_term_is_uf(msatEnv, t)
+          || msat_term_is_atom(msatEnv, t));
+
+    } else if (msat_term_is_and(msatEnv, t)) {
+      int arity = msat_term_arity(t);
+      for (int i = 0; i < arity; ++i) {
+        if (!isPurelyConjunctive(encapsulate(msat_term_get_arg(t, i)))) {
+          return false;
+        }
+      }
+      return true;
+
+    } else {
+      return false;
+    }
+  }
+
+  @Override
   public Formula instantiate(Formula f, SSAMap ssa) {
     Deque<Formula> toProcess = new ArrayDeque<Formula>();
     Map<Formula, Formula> cache = new HashMap<Formula, Formula>();

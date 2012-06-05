@@ -133,9 +133,7 @@ public class AssumeEdgesInPathCondition implements PathCondition, Statistics {
 
     @Override
     public Formula getReasonFormula(FormulaManager pMgr) {
-      String formula = PreventingHeuristic.ASSUMEEDGESINPATH.getFormulaString(assumeEdgesInPath);
-
-      return pMgr.parse(formula);
+      return PreventingHeuristic.ASSUMEEDGESINPATH.getFormula(pMgr, assumeEdgesInPath);
     }
 
     @Override

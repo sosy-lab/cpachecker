@@ -1,4 +1,4 @@
-<!ELEMENT test (systeminfo, columns, sourcefile+, time)>
+<!ELEMENT test (systeminfo, columns, sourcefile+, time?)>
 <!ATTLIST test name CDATA #IMPLIED
                benchmarkname CDATA #REQUIRED
                date CDATA #REQUIRED
@@ -24,6 +24,7 @@
 <!ATTLIST sourcefile name CDATA #REQUIRED
                      options CDATA #IMPLIED>
 
+<!-- element time is deprecated -->
 <!ATTLIST time cputime CDATA #REQUIRED
                walltime CDATA #REQUIRED>
 

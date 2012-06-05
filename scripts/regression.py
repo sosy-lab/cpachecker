@@ -188,9 +188,10 @@ def compareResults(xmlFiles, options):
         (allEqual, oldStatus, newStatus) = allEqualResult(sourcefileTags)
         if not allEqual:
             isDifferent = True
-            print ('    difference found:  ' + \
-                    sourcefileTags[0].get('name').ljust(maxLen+2) + \
-                    oldStatus + ' --> ' + newStatus)
+# TODO replace with call to log.debug() when this script has logging
+#            print ('    difference found:  ' + \
+#                    sourcefileTags[0].get('name').ljust(maxLen+2) + \
+#                    oldStatus + ' --> ' + newStatus)
             for elem, tag in zip(diffXMLList, sourcefileTags):
                 elem.append(tag)
 

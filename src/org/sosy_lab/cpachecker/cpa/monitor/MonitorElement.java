@@ -112,9 +112,7 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
   public Formula getReasonFormula(FormulaManager manager) {
 
     if (mustDumpAssumptionForAvoidance()) {
-      String preventingHeuristicStringFormula = preventingCondition.getFirst().getFormulaString(preventingCondition.getSecond());
-      return manager.parse(preventingHeuristicStringFormula);
-
+      return preventingCondition.getFirst().getFormula(manager, preventingCondition.getSecond());
     } else {
       return manager.makeTrue();
     }

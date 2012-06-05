@@ -66,6 +66,23 @@ COLOR_DIC = {"correctSafe": COLOR_GREEN,
              "wrongSafe": COLOR_RED}
 
 
+# dictionary for tools and their default and fallback executables
+TOOLS = {"cbmc"      : ["cbmc",
+                      "lib/native/x86_64-linux/cbmc" if platform.machine() == "x86_64" else \
+                      "lib/native/x86-linux/cbmc"    if platform.machine() == "i386" else None],
+         "satabs"    : ["satabs"],
+         "wolverine" : ["wolverine"],
+         "ufo"       : ["ufo.sh"],
+         "acsar"     : ["acsar"],
+         "feaver"    : ["feaver_cmd"],
+         "cpachecker": ["cpa.sh", "scripts/cpa.sh"],
+         "blast"     : ["pblast.opt"],
+         "safe"      : [],
+         "unsafe"    : [],
+         "random"    : [],
+        }
+
+
 # the number of digits after the decimal separator of the time column,
 # for the other columns it can be configured in the xml-file
 TIME_PRECISION = 2
@@ -107,6 +124,9 @@ class Benchmark:
 
         # get tool
         self.tool = root.get("tool")
+        if self.tool not in TOOLS.keys() :
+            sys.exit("tool '{0}' is not supported".format(self.tool))
+        self.exe = findExecutable(*TOOLS[self.tool])
         self.run_func = eval("run_" + self.tool)
 
         logging.debug("The tool to be benchmarked is {0}.".format(repr(self.tool)))
@@ -115,7 +135,7 @@ class Benchmark:
         keys = list(root.keys())
         if ("memlimit" in keys):
             limit = int(root.get("memlimit")) * BYTE_FACTOR * BYTE_FACTOR
-            self.rlimits[resource.RLIMIT_AS] = (limit, limit)
+            self.rlimits[options.memresource] = (limit, limit)
         if ("timelimit" in keys):
             limit = int(root.get("timelimit"))
             self.rlimits[resource.RLIMIT_CPU] = (limit, limit)
@@ -124,11 +144,11 @@ class Benchmark:
         if options.memorylimit != None:
             memorylimit = int(options.memorylimit)
             if memorylimit == -1: # infinity
-                if resource.RLIMIT_AS in self.rlimits:
-                    self.rlimits.pop(resource.RLIMIT_AS)                
+                if options.memresource in self.rlimits:
+                    self.rlimits.pop(options.memresource)                
             else:
                 memorylimit = memorylimit * BYTE_FACTOR * BYTE_FACTOR
-                self.rlimits[resource.RLIMIT_AS] = (memorylimit, memorylimit)
+                self.rlimits[options.memresource] = (memorylimit, memorylimit)
 
         if options.timelimit != None:
             timelimit = int(options.timelimit)
@@ -205,15 +225,17 @@ class Test:
         self.options = getOptions(testTag)
 
         # get all runs, a run contains one sourcefile with options
-        self.runs = self.getRuns(globalSourcefileTags + testTag.findall("sourcefiles"))
+        self.getRuns(globalSourcefileTags + testTag.findall("sourcefiles"))
 
 
     def getRuns(self, sourcefilesTagList):
         '''
-        This function returns a list of Runs (filename with options).
+        This function builds a list of Runs (filename with options).
         The files and their options are taken from the list of sourcefilesTags.
         '''
-        runs = []
+        # runs are structured as blocks, one block represents one soursefile-tag
+        self.blocks = []
+        self.runs = []
 
         for sourcefilesTag in sourcefilesTagList:
             # get list of filenames
@@ -222,10 +244,13 @@ class Test:
             # get file-specific options for filenames
             fileOptions = getOptions(sourcefilesTag)
 
+            runs = []
             for sourcefile in sourcefiles:
                 runs.append(Run(sourcefile, fileOptions, self))
+            self.runs.extend(runs)
 
-        return runs
+            blockName = sourcefilesTag.get("name", str(sourcefilesTagList.index(sourcefilesTag)))
+            self.blocks.append(Block(blockName,runs))
 
 
     def getSourcefiles(self, sourcefilesTag):
@@ -320,6 +345,15 @@ class Test:
         return fileList
 
 
+class Block():
+    """
+    A Block contains a list of runs and a name.
+    """
+    def __init__(self, name, runs):
+        self.name = name
+        self.runs = runs
+
+
 class Run():
     """
     A Run contains one sourcefile and options.
@@ -374,7 +408,8 @@ class Run():
         logfile = self.benchmark.outputHandler.outputBeforeRun(self)
 
         (self.status, self.cpuTime, self.wallTime, self.args) = \
-             self.benchmark.run_func(self.getMergedOptions(),
+             self.benchmark.run_func(self.benchmark.exe,
+                                     self.getMergedOptions(),
                                      self.sourcefile, 
                                      self.columns,
                                      self.benchmark.rlimits,
@@ -538,8 +573,8 @@ class OutputHandler:
 
         memlimit = None
         timelimit = None
-        if (resource.RLIMIT_AS in self.benchmark.rlimits):
-            memlimit = str(self.benchmark.rlimits[resource.RLIMIT_AS][0] // BYTE_FACTOR // BYTE_FACTOR) + " MB"
+        if (options.memresource in self.benchmark.rlimits):
+            memlimit = str(self.benchmark.rlimits[options.memresource][0] // BYTE_FACTOR // BYTE_FACTOR) + " MB"
         if (resource.RLIMIT_CPU in self.benchmark.rlimits):
             timelimit = str(self.benchmark.rlimits[resource.RLIMIT_CPU][0]) + " s"
 
@@ -627,7 +662,8 @@ class OutputHandler:
                  'blast'     : 'BLAST',
                  'wolverine' : 'WOLVERINE',
                  'ufo'       : 'UFO',
-                 'acsar'     : 'Acsar'}
+                 'acsar'     : 'Acsar',
+                 'feaver'    : 'Feaver'}
         if tool in names:
             return names[tool]
         else:
@@ -639,7 +675,7 @@ class OutputHandler:
         get info about CPAchecker from local svn- or git-svn-directory
         '''
         version = ''
-        exe = findExecutable("cpa.sh", "scripts/cpa.sh")
+        exe = findExecutable(*TOOLS["cpachecker"])
         try:
             cpaFolder = subprocess.Popen(['which', exe],
                               stdout=subprocess.PIPE).communicate()[0].strip('\n')
@@ -683,8 +719,8 @@ class OutputHandler:
         """
 
         version = ''
+        exe = self.benchmark.exe
         if (tool == "cpachecker"):
-            exe = findExecutable("cpa.sh", "scripts/cpa.sh")
             try:
                 versionHelpStr = subprocess.Popen([exe, '-help'],
                     stdout=subprocess.PIPE).communicate()[0]
@@ -695,28 +731,18 @@ class OutputHandler:
                 sys.exit()
 
         elif (tool == "cbmc"):
-            defaultExe = None
-            if platform.machine() == "x86_64":
-                defaultExe = "lib/native/x86_64-linux/cbmc"
-            elif platform.machine() == "i386":
-                defaultExe = "lib/native/x86-linux/cbmc"
-
-            exe = findExecutable("cbmc", defaultExe)
             version = subprocess.Popen([exe, '--version'],
                               stdout=subprocess.PIPE).communicate()[0].strip()
 
         elif (tool == "satabs"):
-            exe = findExecutable("satabs", None)
             version = subprocess.Popen([exe, '--version'],
                               stdout=subprocess.PIPE).communicate()[0].strip()
 
         elif (tool == "wolverine"):
-            exe = findExecutable("wolverine", None)
             version = subprocess.Popen([exe, '--version'],
                               stdout=subprocess.PIPE).communicate()[0].split()[1].strip()
 
         elif (tool == "blast"):
-            exe = findExecutable("pblast.opt", None)
             version = subprocess.Popen([exe],
                               stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT).communicate()[0][6:9]
@@ -730,7 +756,6 @@ class OutputHandler:
         """
 
         # get info about OS
-        import os
         (sysname, name, kernel, version, machine) = os.uname()
         opSystem = sysname + " " + kernel + " " + machine
 
@@ -880,7 +905,7 @@ class OutputHandler:
                 sys.stdout.write(timeStr + self.formatSourceFileName(run.sourcefile))
                 sys.stdout.flush()
             else:
-                print(timeStr + "starting   " + run.sourcefile)
+                print(timeStr + "starting   " + self.formatSourceFileName(run.sourcefile))
         finally:
             OutputHandler.printLock.release()
 
@@ -957,8 +982,15 @@ class OutputHandler:
         self.test.wallTimeStr = Util.formatNumber(wallTimeTest, TIME_PRECISION)
 
         # write testresults to files
-        FileWriter(self.getFileName(self.test.name, "xml"), Util.XMLtoString(self.testToXML(self.test)))
+        FileWriter(self.getFileName(self.test.name, "xml"),
+            Util.XMLtoString(self.runsToXML(self.test, self.test.runs, self.test.name)))
         FileWriter(self.getFileName(self.test.name, "csv"), self.testToCSV(self.test))
+
+        if len(self.test.blocks) > 1:
+            for block in self.test.blocks:
+                name = ((self.test.name + ".") if self.test.name else "") + block.name
+                FileWriter(self.getFileName(self.test.name, block.name + ".xml"),
+                    Util.XMLtoString(self.runsToXML(self.test, block.runs, name)))
 
         self.TXTContent += self.testToTXT(self.test, True)
         self.TXTFile.replace(self.TXTContent)
@@ -989,39 +1021,39 @@ class OutputHandler:
         return "\n".join(lines) + "\n"
 
 
-    def testToXML(self, test):
+    def runsToXML(self, test, runs, name):
         """
-        This function dumps a test with results into a XML-file.
+        This function dumps a list of runs of a test and their results to XML.
         """
-
-        # store test with options and results in XML,
         # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
-        testElem = Util.getCopyOfXMLElem(self.XMLHeader)
+        runsElem = Util.getCopyOfXMLElem(self.XMLHeader)
         testOptions = mergeOptions(test.benchmark.options, test.options)
-        testElem.set("options", " ".join(testOptions))
-        if test.name is not None:
-            testElem.set("name", test.name)
+        runsElem.set("options", " ".join(testOptions))
+        if name is not None:
+            runsElem.set("name", name)
 
         # collect XMLelements from all runs
-        for run in test.runs:
-            runElem = ET.Element("sourcefile", {"name": run.sourcefile})
-            if len(run.options) != 0:
-                runElem.set("options", " ".join(mergeOptions(run.options)))
-            runElem.append(ET.Element("column", {"title": "status", "value": run.status}))
-            runElem.append(ET.Element("column", {"title": "cputime", "value": run.cpuTimeStr}))
-            runElem.append(ET.Element("column", {"title": "walltime", "value": run.wallTimeStr}))
+        for run in runs:
+            runsElem.append(self.runToXML(run))
 
-            for column in run.columns:
-                runElem.append(ET.Element("column",
+        return runsElem
+
+
+    def runToXML(self, run):
+        """
+        This function returns a xml-representation of a run.
+        """
+        runElem = ET.Element("sourcefile", {"name": run.sourcefile})
+        if len(run.options) != 0:
+            runElem.set("options", " ".join(mergeOptions(run.options)))
+        runElem.append(ET.Element("column", {"title": "status", "value": run.status}))
+        runElem.append(ET.Element("column", {"title": "cputime", "value": run.cpuTimeStr}))
+        runElem.append(ET.Element("column", {"title": "walltime", "value": run.wallTimeStr}))
+
+        for column in run.columns:
+            runElem.append(ET.Element("column",
                         {"title": column.title, "value": column.value}))
-    
-            testElem.append(runElem)
-
-        # store testtime in XML
-        timesElem = ET.Element("time", {"cputime": test.cpuTimeStr, "walltime": test.wallTimeStr})
-        testElem.append(timesElem)
-
-        return testElem
+        return runElem
 
 
     def testToCSV(self, test):
@@ -1260,22 +1292,26 @@ def substituteVars(oldList, test, sourcefile=None, logFolder=None):
     return newList
 
 
-def findExecutable(program, default):
+def findExecutable(program=None, fallback=None):
     def isExecutable(programPath):
         return os.path.isfile(programPath) and os.access(programPath, os.X_OK)
 
-    dirs = os.environ['PATH'].split(os.pathsep)
-    dirs.append(".")
+    if program is None:
+        return None
 
-    for dir in dirs:
-        name = os.path.join(dir, program)
-        if isExecutable(name):
-            return name
+    else:
+        dirs = os.environ['PATH'].split(os.pathsep)
+        dirs.append(".")
 
-    if default is not None and isExecutable(default):
-        return default
+        for dir in dirs:
+            name = os.path.join(dir, program)
+            if isExecutable(name):
+                return name
 
-    sys.exit("ERROR: Could not find %s executable" % program)
+        if fallback is not None and isExecutable(fallback):
+            return fallback
+
+        sys.exit("ERROR: Could not find '{0}' executable".format(program))
 
 
 def killSubprocess(process):
@@ -1371,17 +1407,10 @@ def isTimeout(cpuTimeDelta, rlimits):
     return cpuTimeDelta > limit*0.99
 
 
-def run_cbmc(options, sourcefile, columns, rlimits, file):
+def run_cbmc(exe, options, sourcefile, columns, rlimits, file):
     if ("--xml-ui" not in options):
         options = options + ["--xml-ui"]
 
-    defaultExe = None
-    if platform.machine() == "x86_64":
-        defaultExe = "lib/native/x86_64-linux/cbmc"
-    elif platform.machine() == "i386":
-        defaultExe = "lib/native/x86-linux/cbmc"
-
-    exe = findExecutable("cbmc", defaultExe)
     args = [exe] + options + [sourcefile]
     (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
@@ -1448,8 +1477,7 @@ def run_cbmc(options, sourcefile, columns, rlimits, file):
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
-def run_satabs(options, sourcefile, columns, rlimits, file):
-    exe = findExecutable("satabs", None)
+def run_satabs(exe, options, sourcefile, columns, rlimits, file):
     args = [exe] + options + [sourcefile]
 
     (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
@@ -1474,8 +1502,7 @@ def run_satabs(options, sourcefile, columns, rlimits, file):
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
-def run_wolverine(options, sourcefile, columns, rlimits, file):
-    exe = findExecutable("wolverine", None)
+def run_wolverine(exe, options, sourcefile, columns, rlimits, file):
     args = [exe] + options + [sourcefile]
     (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
     if "VERIFICATION SUCCESSFUL" in output:
@@ -1495,8 +1522,7 @@ def run_wolverine(options, sourcefile, columns, rlimits, file):
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
-def run_ufo(options, sourcefile, columns, rlimits, file):
-    exe = findExecutable("ufo.sh", None)
+def run_ufo(exe, options, sourcefile, columns, rlimits, file):
     args = [exe, sourcefile] + options
     (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
     if returnsignal == 9 or returnsignal == (128+9):
@@ -1517,8 +1543,7 @@ def run_ufo(options, sourcefile, columns, rlimits, file):
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
-def run_acsar(options, sourcefile, columns, rlimits, file):
-    exe = findExecutable("acsar", None)
+def run_acsar(exe, options, sourcefile, columns, rlimits, file):
 
     # create tmp-files for acsar, acsar needs special error-labels
     prepSourcefile = prepareSourceFileForAcsar(sourcefile)
@@ -1579,21 +1604,73 @@ def prepareSourceFileForAcsar(sourcefile):
     return newFilename
 
 
+def run_feaver(exe, options, sourcefile, columns, rlimits, file):
+
+    # create tmp-files for acsar, acsar needs special error-labels
+    prepSourcefile = prepareSourceFileForFeaver(sourcefile)
+
+    args = [exe] + options + [prepSourcefile]
+
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    if "collect2: ld returned 1 exit status" in output:
+        status = "COMPILE ERROR"
+
+    elif "Error (parse error" in output:
+        status = "PARSE ERROR"
+
+    elif "error: (\"model\":" in output:
+        status = "MODEL ERROR"
+
+    elif "Error: syntax error" in output:
+        status = "SYNTAX ERROR"
+
+    elif "error: " in output or "Error: " in output:
+        status = "ERROR"
+
+    elif "Error Found:" in output:
+        status = "UNSAFE"
+
+    elif "No Errors Found" in output:
+        status = "SAFE"
+
+    else:
+        status = "UNKNOWN"
+
+    # delete tmp-files
+    for file in [prepSourcefile, prepSourcefile[0:-1] + "M",
+                 "_modex_main.spn", "_modex_.h", "_modex_.cln", "_modex_.drv",
+                 "model", "pan.b", "pan.c", "pan.h", "pan.m", "pan.t"]:
+        try:
+            os.remove(file)
+        except OSError:
+            pass
+
+    return (status, cpuTimeDelta, wallTimeDelta, args)
+
+
+def prepareSourceFileForFeaver(sourcefile):
+    content = open(sourcefile, "r").read()
+    content = content.replace("goto ERROR;", "assert(0);")
+    newFilename = "tmp_benchmark_feaver.c"
+    preparedFile = FileWriter(newFilename, content)
+    return newFilename
+
+
 # the next 3 functions are for imaginary tools, that return special results,
 # perhaps someone can use these function again someday,
 # to use them you need a normal benchmark-xml-file 
 # with the tool and sourcefiles, however options are ignored
-def run_safe(options, sourcefile, columns, rlimits, file):
+def run_safe(exe, options, sourcefile, columns, rlimits, file):
     args = ['safe'] + options + [sourcefile]
     cpuTimeDelta = wallTimeDelta = 0
     return ('safe', cpuTimeDelta, wallTimeDelta, args)
 
-def run_unsafe(options, sourcefile, columns, rlimits, file):
+def run_unsafe(exe, options, sourcefile, columns, rlimits, file):
     args = ['unsafe'] + options + [sourcefile]
     cpuTimeDelta = wallTimeDelta = 0
     return ('unsafe', cpuTimeDelta, wallTimeDelta, args)
 
-def run_random(options, sourcefile, columns, rlimits, file):
+def run_random(exe, options, sourcefile, columns, rlimits, file):
     args = ['random'] + options + [sourcefile]
     cpuTimeDelta = wallTimeDelta = 0
     from random import random
@@ -1611,11 +1688,10 @@ def appendFileToFile(sourcename, targetname):
     finally:
         source.close()
 
-def run_cpachecker(options, sourcefile, columns, rlimits, file):
+def run_cpachecker(exe, options, sourcefile, columns, rlimits, file):
     if ("-stats" not in options):
         options = options + ["-stats"]
 
-    exe = findExecutable("cpa.sh", "scripts/cpa.sh")
     args = [exe] + options + [sourcefile]
     (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
@@ -1624,7 +1700,7 @@ def run_cpachecker(options, sourcefile, columns, rlimits, file):
 
     # Segmentation faults reference a file with more information.
     # We append this file to the log.
-    if status == 'SEGMENTATION FAULT':
+    if status == 'SEGMENTATION FAULT' or status.startswith('ERROR'):
         next = False
         for line in output.splitlines():
             if next:
@@ -1681,9 +1757,9 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
         elif 'SIGSEGV' in line:
             status = 'SEGMENTATION FAULT'
         elif ((returncode == 0 or returncode == 1)
-                and ('Exception' in line)
+                and ('Exception' in line or 'java.lang.AssertionError' in line)
                 and not line.startswith('cbmc')): # ignore "cbmc error output: ... Minisat::OutOfMemoryException"
-            status = 'EXCEPTION'
+            status = 'ASSERTION' if 'java.lang.AssertionError' in line else 'EXCEPTION'
         elif 'Could not reserve enough space for object heap' in line:
             status = 'JAVA HEAP ERROR'
         elif (status is None) and line.startswith('Verification result: '):
@@ -1726,8 +1802,7 @@ def getCPAcheckerColumns(output, columns):
                 break
 
 
-def run_blast(options, sourcefile, columns, rlimits, file):
-    exe = findExecutable("pblast.opt", None)
+def run_blast(exe, options, sourcefile, columns, rlimits, file):
     args = [exe] + options + [sourcefile]
     (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
@@ -1767,9 +1842,6 @@ class Worker(threading.Thread):
 
 def runBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile)
-
-    assert benchmark.tool in ["cbmc", "satabs", "cpachecker", "blast", "acsar", "wolverine", "ufo",
-                              "safe", "unsafe", "random"]
 
     if len(benchmark.tests) == 1:
         logging.debug("I'm benchmarking {0} consisting of 1 test.".format(repr(benchmarkFile)))
@@ -1889,9 +1961,14 @@ from the output of this script.""")
                             "(starting with 1).",
                       metavar="a b")
 
+    parser.add_option("-D", "--memdata", dest="memdata",
+                      action="store_true",
+                      help="When limiting memory usage, restrict only the data segments instead of the virtual address space.")
+
     global options, OUTPUT_PATH
     (options, args) = parser.parse_args(argv)
     OUTPUT_PATH = options.output_path
+    options.memresource = resource.RLIMIT_DATA if getattr(options, "memdata", False) else resource.RLIMIT_AS
 
     if len(args) < 2:
         parser.error("invalid number of arguments")
@@ -1907,7 +1984,7 @@ from the output of this script.""")
 
     try:
         processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
-        if len(re.findall("python.*benchmark\.py", processes)) > 1:
+        if len(re.findall("python.*benchmark\.py", Util.decodeToString(processes))) > 1:
             logging.warn("Already running instance of this script detected. " + \
                          "Please make sure to not interfere with somebody else's benchmarks.")
     except OSError:

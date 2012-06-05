@@ -45,16 +45,18 @@ public class CBMCExecutor extends ProcessExecutor<RuntimeException> {
   protected void handleExitCode(int pCode) {
     switch (pCode) {
     case 0: // Verification successful (Path is infeasible)
-      result = false;
       if (gaveErrorOutput) {
         logger.log(Level.WARNING, "CBMC returned successfully, but printed warnings. Please check the log above!");
+      } else {
+        result = false;
       }
       break;
 
     case 10: // Verification failed (Path is feasible)
-      result = true;
       if (gaveErrorOutput) {
         logger.log(Level.WARNING, "CBMC returned successfully, but printed warnings. Please check the log above!");
+      } else {
+        result = true;
       }
       break;
 

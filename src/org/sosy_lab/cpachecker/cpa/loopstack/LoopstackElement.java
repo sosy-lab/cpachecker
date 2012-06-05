@@ -118,7 +118,7 @@ public class LoopstackElement implements AbstractElement, Partitionable, Avoidan
   @Override
   public Formula getReasonFormula(FormulaManager manager) {
     if (stop) {
-      return manager.parse(PreventingHeuristic.LOOPITERATIONS.getFormulaString(iteration));
+      return PreventingHeuristic.LOOPITERATIONS.getFormula(manager, iteration);
     } else {
       return manager.makeTrue();
     }

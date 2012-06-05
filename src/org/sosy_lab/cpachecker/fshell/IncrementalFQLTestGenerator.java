@@ -539,7 +539,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     AbstractElement lInitialElement = lARTCPA.getInitialElement(pEntryNode);
     Precision lInitialPrecision = lARTCPA.getInitialPrecision(pEntryNode);
 
-    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.RPO);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
@@ -599,7 +599,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
 
-    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.RPO);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
@@ -683,7 +683,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
 
-    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.RPO);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
@@ -787,7 +787,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntryNode);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntryNode);
 
-    //ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    //ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.RPO);
     ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.DFS);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 

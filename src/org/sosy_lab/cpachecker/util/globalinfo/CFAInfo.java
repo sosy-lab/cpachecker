@@ -32,13 +32,10 @@ import org.sosy_lab.cpachecker.cpa.location.LocationElement.LocationElementFacto
 
 
 public class CFAInfo {
-  private final CFA cfa;
   private final Map<Integer, CFANode> nodeNumberToNode;
   private LocationElementFactory locationElementFactory;
 
   CFAInfo(CFA cfa) {
-    this.cfa = cfa;
-
     HashMap<Integer, CFANode> nodeNumberToNode = new HashMap<Integer, CFANode>();
     for(CFANode node : cfa.getAllNodes()) {
       nodeNumberToNode.put(node.getNodeNumber(), node);

@@ -1,5 +1,10 @@
 Changes since CPAchecker 1.1
 ----------------------------
+* r6066: The option analysis.traversal.useTopsort (used in most configuration files)
+  was renamed to analysis.traversal.useReversePostorder as this name is more precise.
+* r6060: SMTInterpol, an SMT solver written in Java, is now integrated into CPAchecker.
+  With this solver, predicate analysis works on all platforms.
+  Some configuration options were renamed in order to not be MathSAT-specific.
 * r5958: The log level for the console can now be adjusted during runtime.
   You need a JMX client to do that, e.g., jconsole or VisualVM.
   Connect to the CPAchecker process,

@@ -79,8 +79,10 @@ import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StatementVisitor;
+import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
@@ -115,7 +117,7 @@ public class CtoFormulaConverter {
 
   // if true, handle lvalues as *x, &x, s.x, etc. using UIFs. If false, just
   // use variables
-  @Option(name="mathsat.lvalsAsUIFs",
+  @Option(name="lvalsAsUIFs",
       description="use uninterpreted functions for *, & and array access")
   private boolean lvalsAsUif = false;
 
@@ -135,7 +137,8 @@ public class CtoFormulaConverter {
   @Option(description = "the machine model used for functions sizeof and alignof")
   private MachineModel machineModel = MachineModel.LINUX32;
 
-  @Option(description = "handle Pointers")
+  @Option(description = "Handle aliasing of pointers. "
+        + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
   private boolean handlePointerAliasing = true;
 
   @Option(description = "list of functions that provide new memory on the heap."
@@ -419,58 +422,7 @@ public class CtoFormulaConverter {
     SSAMapBuilder ssa = oldFormula.getSsa().builder();
     Constraints constraints = new Constraints();
 
-    Formula edgeFormula;
-    switch (edge.getEdgeType()) {
-    case StatementEdge: {
-      StatementEdge statementEdge = (StatementEdge) edge;
-      StatementToFormulaVisitor v;
-      if (handlePointerAliasing) {
-        v = new StatementToFormulaVisitorPointers(function, ssa, constraints, edge);
-      } else {
-        v = new StatementToFormulaVisitor(function, ssa, constraints, edge);
-      }
-      edgeFormula = statementEdge.getStatement().accept(v);
-      break;
-    }
-
-    case ReturnStatementEdge: {
-      ReturnStatementEdge returnEdge = (ReturnStatementEdge)edge;
-      edgeFormula = makeReturn(returnEdge.getExpression(), returnEdge, function, ssa, constraints);
-      break;
-    }
-
-    case DeclarationEdge: {
-      DeclarationEdge d = (DeclarationEdge)edge;
-      edgeFormula = makeDeclaration(d, function, ssa, constraints);
-      break;
-    }
-
-    case AssumeEdge: {
-      edgeFormula = makeAssume((AssumeEdge)edge, function, ssa, constraints);
-      break;
-    }
-
-    case BlankEdge: {
-      assert false : "Handled above";
-      edgeFormula = fmgr.makeTrue();
-      break;
-    }
-
-    case FunctionCallEdge: {
-      edgeFormula = makeFunctionCall((FunctionCallEdge)edge, function, ssa, constraints);
-      break;
-    }
-
-    case FunctionReturnEdge: {
-      // get the expression from the summary edge
-      CallToReturnEdge ce = ((FunctionReturnEdge)edge).getSummaryEdge();
-      edgeFormula = makeExitFunction(ce, function, ssa, constraints);
-      break;
-    }
-
-    default:
-      throw new UnrecognizedCFAEdgeException(edge);
-    }
+    Formula edgeFormula = createForumlaForEdge(edge, function, ssa, constraints);
 
     if (useNondetFlags) {
       int lNondetIndex = ssa.getIndex(NONDET_VARIABLE);
@@ -503,6 +455,77 @@ public class CtoFormulaConverter {
     Formula newFormula = fmgr.makeAnd(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
     return new PathFormula(newFormula, newSsa, newLength);
+  }
+
+  /**
+   * This helper method creates a formula for an CFA edge, given the current function, SSA map and constraints.
+   *
+   * @param edge the edge for which to create the formula
+   * @param function the current scope
+   * @param ssa the current SSA map
+   * @param constraints the current constraints
+   * @return the formula for the edge
+   * @throws CPATransferException
+   */
+  private Formula createForumlaForEdge(CFAEdge edge, String function, SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
+    switch (edge.getEdgeType()) {
+    case StatementEdge: {
+      StatementEdge statementEdge = (StatementEdge) edge;
+      StatementToFormulaVisitor v;
+      if (handlePointerAliasing) {
+        v = new StatementToFormulaVisitorPointers(function, ssa, constraints, edge);
+      } else {
+        v = new StatementToFormulaVisitor(function, ssa, constraints, edge);
+      }
+      return statementEdge.getStatement().accept(v);
+    }
+
+    case ReturnStatementEdge: {
+      ReturnStatementEdge returnEdge = (ReturnStatementEdge)edge;
+      return makeReturn(returnEdge.getExpression(), returnEdge, function, ssa, constraints);
+    }
+
+    case DeclarationEdge: {
+      DeclarationEdge d = (DeclarationEdge)edge;
+      return makeDeclaration(d, function, ssa, constraints);
+    }
+
+    case AssumeEdge: {
+      return makeAssume((AssumeEdge)edge, function, ssa, constraints);
+    }
+
+    case BlankEdge: {
+      assert false : "Handled above";
+      return fmgr.makeTrue();
+    }
+
+    case FunctionCallEdge: {
+      return makeFunctionCall((FunctionCallEdge)edge, function, ssa, constraints);
+    }
+
+    case FunctionReturnEdge: {
+      // get the expression from the summary edge
+      CallToReturnEdge ce = ((FunctionReturnEdge)edge).getSummaryEdge();
+      return makeExitFunction(ce, function, ssa, constraints);
+    }
+
+    case MultiEdge: {
+      Formula multiEdgeFormula = fmgr.makeTrue();
+
+      // unroll the MultiEdge
+      for(CFAEdge singleEdge : (MultiEdge)edge) {
+        if(singleEdge instanceof BlankEdge) {
+          continue;
+        }
+        multiEdgeFormula = fmgr.makeAnd(multiEdgeFormula, createForumlaForEdge(singleEdge, function, ssa, constraints));
+      }
+
+      return multiEdgeFormula;
+    }
+
+    default:
+      throw new UnrecognizedCFAEdgeException(edge);
+    }
   }
 
   private Formula makeDeclaration(

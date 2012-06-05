@@ -30,30 +30,30 @@ import java.util.LinkedList;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 /**
- * Waitlist implementation that sorts the abstract elements topologically
+ * Waitlist implementation that sorts the abstract elements in reverse postorder
  * considering the location they belong to.
  * This implementation does not allow to choose a secondary strategy for elements
- * with the same topsort id. Also, the method pop() has a complexity of O(n).
+ * with the same reverse postorder id. Also, the method pop() has a complexity of O(n).
  * Therefore, this implementation should be considered as deprecated and
- * replaced by TopologiallySortedWaitlist.
+ * replaced by RevsersePostorderSortedWaitlist.
  */
 @Deprecated
-public class TopsortWaitlist extends AbstractWaitlist<LinkedList<AbstractElement>> {
+public class ReversePostorderWaitlist extends AbstractWaitlist<LinkedList<AbstractElement>> {
 
-  protected TopsortWaitlist() {
+  protected ReversePostorderWaitlist() {
     super(new LinkedList<AbstractElement>());
   }
 
   @Override
   public AbstractElement pop() {
     AbstractElement result = null;
-    int resultTopSortId = Integer.MIN_VALUE;
+    int resultRpoId = Integer.MIN_VALUE;
     for (AbstractElement currentElement : waitlist) {
       if ((result == null)
-          || (extractLocation(currentElement).getTopologicalSortId() >
-              resultTopSortId)) {
+          || (extractLocation(currentElement).getReversePostorderId() >
+          resultRpoId)) {
         result = currentElement;
-        resultTopSortId = extractLocation(result).getTopologicalSortId();
+        resultRpoId = extractLocation(result).getReversePostorderId();
       }
     }
     waitlist.remove(result);

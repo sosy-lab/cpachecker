@@ -178,6 +178,26 @@ public class BDDRegionManager implements RegionManager {
   }
 
   @Override
+  public Region makeEqual(Region pF1, Region pF2) {
+    cleanupReferences();
+
+    BDDRegion f1 = (BDDRegion)pF1;
+    BDDRegion f2 = (BDDRegion)pF2;
+
+    return wrap(f1.getBDD().biimp(f2.getBDD()));
+  }
+
+  @Override
+  public Region makeUnequal(Region pF1, Region pF2) {
+    cleanupReferences();
+
+    BDDRegion f1 = (BDDRegion)pF1;
+    BDDRegion f2 = (BDDRegion)pF2;
+
+    return wrap(f1.getBDD().xor(f2.getBDD()));
+  }
+
+  @Override
   public Region createPredicate() {
     cleanupReferences();
 
@@ -192,11 +212,11 @@ public class BDDRegionManager implements RegionManager {
 
     BDD f = ((BDDRegion)pF).getBDD();
 
-    BDDRegion predicate = wrap(factory.ithVar(f.var()));
-    BDDRegion fThen = wrap(f.high());
-    BDDRegion fElse = wrap(f.low());
+    Region predicate = wrap(factory.ithVar(f.var()));
+    Region fThen = wrap(f.high());
+    Region fElse = wrap(f.low());
 
-    return new Triple<Region, Region, Region>(predicate, fThen, fElse);
+    return Triple.of(predicate, fThen, fElse);
   }
 
   @Override

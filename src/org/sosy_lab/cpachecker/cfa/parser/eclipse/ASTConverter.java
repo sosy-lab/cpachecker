@@ -46,13 +46,17 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier.IASTCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier.ElaboratedType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
@@ -81,18 +85,14 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IComplexType;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier.IASTCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier.ElaboratedType;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression.TypeIdOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
@@ -930,7 +930,7 @@ class ASTConverter {
         storageClass = StorageClass.AUTO;
       }
 
-      if (scope.variableNameInUse(name, name)) {
+      if (!isGlobal && scope.variableNameInUse(name, name)) {
         String sep = "__";
         int index = 1;
         while (scope.variableNameInUse(name + sep + index, origName)) {

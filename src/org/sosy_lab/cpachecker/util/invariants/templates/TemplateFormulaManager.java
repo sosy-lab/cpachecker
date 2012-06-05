@@ -57,6 +57,11 @@ public class TemplateFormulaManager implements FormulaManager {
     return (pF instanceof TemplateBoolean);
   }
 
+  @Override
+  public boolean isPurelyConjunctive(Formula pF) {
+    throw new UnsupportedOperationException();
+  }
+
   /**
    * @return a Formula representing logical truth
    */

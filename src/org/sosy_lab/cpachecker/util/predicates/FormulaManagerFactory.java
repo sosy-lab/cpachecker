@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.util.logging.Level;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -43,33 +45,41 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat5.BitwiseMathsat5FormulaMa
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5InterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.ArithmeticSmtInterpolFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolInterpolatingProver;
+import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolTheoremProver;
 
 @Options(prefix="cpa.predicate")
 public class FormulaManagerFactory {
 
-  @Options(prefix="cpa.predicate.mathsat")
-  private static class MathsatOptions {
+  private static final String MATHSAT4 = "MATHSAT4";
+  private static final String MATHSAT5 = "MATHSAT5";
+  private static final String SMTINTERPOL = "SMTINTERPOL";
+  private static final String YICES = "YICES";
 
-    @Option(description="encode program variables as INTEGERs in MathSAT, instead of "
-        + "using REALs. Since interpolation is not really supported by the laz solver, "
-        + "when computing interpolants we still use the LA solver, "
-        + "but encoding variables as ints might still be a good idea: "
-        + "we can tighten strict inequalities, and split negated equalities")
-    private boolean useIntegers = false;
+  @Option(name="solver.useIntegers",
+      description="Encode program variables as INTEGER variables, instead of "
+      + "using REALs. Not all solvers might support this.")
+  private boolean useIntegers = false;
 
-    @Option(description="Encode program variables of bitvectors of a fixed size,"
-        + "instead of using REALS. No interpolation and thus no refinement is"
-        + "supported in this case.")
-    private boolean useBitwise = false;
+  @Option(name="solver.useBitvectors",
+      description="Encode program variables as bitvectors of a fixed size,"
+      + "instead of using REALS. Not all solvers might support this.")
+  private boolean useBitvectors = false;
 
-    @Option(description="With of the bitvectors if useBitwise is true.")
-    @IntegerOption(min=1, max=128)
-    private int bitWidth = 32;
-  }
+  @Option(name="solver.bitWidth",
+      description="With of the bitvectors if useBitvectors is true.")
+  @IntegerOption(min=1, max=128)
+  private int bitWidth = 32;
 
-  @Option(values={"MATHSAT4", "MATHSAT5", "YICES"}, toUppercase=true,
+  @Option(name="solver.signed",
+      description="Whether to use signed or unsigned variables if useBitvectors is true.")
+  private boolean signed = true;
+
+  @Option(values={MATHSAT4, MATHSAT5, YICES, SMTINTERPOL}, toUppercase=true,
       description="Whether to use MathSAT 4, MathSAT 5 or YICES (in combination with Mathsat 4) as SMT solver")
-  private String solver = "MATHSAT4";
+  private String solver = MATHSAT4;
 
   private final FormulaManager fmgr;
   private final TheoremProver prover;
@@ -77,68 +87,64 @@ public class FormulaManagerFactory {
   public FormulaManagerFactory(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
 
-    MathsatOptions options = new MathsatOptions();
-    config.inject(options);
-
-    if (options.useBitwise && options.useIntegers) {
+    if (useBitvectors && useIntegers) {
       throw new InvalidConfigurationException("Can use either integers or bitvecors, not both!");
     }
 
-    if (solver.equals("MATHSAT5")) {
+    FormulaManager lFmgr = null;
+    TheoremProver lProver = null;
+
+    if (!solver.equals(SMTINTERPOL)) {
       try {
-        if (options.useBitwise) {
-          fmgr = new BitwiseMathsat5FormulaManager(config, logger, options.bitWidth);
 
-        } else {
-          fmgr = new ArithmeticMathsat5FormulaManager(config, logger, options.useIntegers);
-        }
+        if (solver.equals(MATHSAT5)) {
+          if (useBitvectors) {
+            lFmgr = new BitwiseMathsat5FormulaManager(config, logger, bitWidth, signed);
 
-      } catch (UnsatisfiedLinkError e) {
-        if (e.getMessage() != null && e.getMessage().contains("mathsat5j")) {
-          throw new InvalidConfigurationException("MathSAT 5 is not supported on your platform, please use another SMT solver.", e);
-        } else {
-          throw e;
-        }
-      }
-
-      prover = new Mathsat5TheoremProver((Mathsat5FormulaManager) fmgr);
-
-    } else {
-      assert solver.equals("MATHSAT4") || solver.equals("YICES");
-
-      try {
-        if (options.useBitwise) {
-          fmgr = new BitwiseMathsatFormulaManager(config, logger, options.bitWidth);
-
-        } else {
-          fmgr = new ArithmeticMathsatFormulaManager(config, logger, options.useIntegers);
-        }
-
-      } catch (UnsatisfiedLinkError e) {
-        if (e.getMessage() != null && e.getMessage().contains("mathsatj")) {
-          throw new InvalidConfigurationException("MathSAT 4 is not supported on your platform, please use another SMT solver.", e);
-        } else {
-          throw e;
-        }
-      }
-
-      if (solver.equals("YICES")) {
-        try {
-          prover = new YicesTheoremProver((MathsatFormulaManager) fmgr, logger);
-
-        } catch (UnsatisfiedLinkError e) {
-          if (e.getMessage() != null && e.getMessage().contains("YicesLite")) {
-            throw new InvalidConfigurationException("In order to use the Yices SMT solver, you need to install the library YicesLite.", e);
           } else {
-            throw e;
+            lFmgr = new ArithmeticMathsat5FormulaManager(config, logger, useIntegers);
+          }
+
+          lProver = new Mathsat5TheoremProver((Mathsat5FormulaManager) lFmgr);
+
+        } else {
+          assert solver.equals(MATHSAT4) || solver.equals(YICES);
+
+          if (useBitvectors) {
+            lFmgr = new BitwiseMathsatFormulaManager(config, logger, bitWidth, signed);
+
+          } else {
+            lFmgr = new ArithmeticMathsatFormulaManager(config, logger, useIntegers);
+          }
+
+          if (solver.equals(YICES)) {
+            lProver = new YicesTheoremProver((MathsatFormulaManager) lFmgr, logger);
+
+          } else {
+            assert solver.equals(MATHSAT4);
+            lProver = new MathsatTheoremProver((MathsatFormulaManager) lFmgr);
           }
         }
-
-      } else {
-        assert solver.equals("MATHSAT4");
-        prover = new MathsatTheoremProver((MathsatFormulaManager) fmgr);
+      } catch (UnsatisfiedLinkError e) {
+        logger.logUserException(Level.WARNING, e, "The SMT solver " + solver + " is not available on this machine, using SMTInterpol as a fallback");
+        solver = SMTINTERPOL;
       }
     }
+
+    if (solver.equals(SMTINTERPOL)) {
+      if (useBitvectors) {
+        throw new InvalidConfigurationException("Using bitvectors for program variables is not supported when SMTInterpol is used.");
+      }
+
+      lFmgr = new ArithmeticSmtInterpolFormulaManager(config, logger, useIntegers);
+      lProver = new SmtInterpolTheoremProver((SmtInterpolFormulaManager) lFmgr);
+    }
+
+    assert lFmgr != null;
+    assert lProver != null;
+
+    fmgr = lFmgr;
+    prover = lProver;
   }
 
   public FormulaManager getFormulaManager() {
@@ -150,11 +156,13 @@ public class FormulaManagerFactory {
   }
 
   public InterpolatingTheoremProver<?> createInterpolatingTheoremProver(boolean shared) {
-    if (solver.equals("MATHSAT5")) {
+    if (solver.equals(MATHSAT5)) {
       return new Mathsat5InterpolatingProver((Mathsat5FormulaManager) fmgr, shared);
 
+    } else if (solver.equals(SMTINTERPOL)) {
+      return new SmtInterpolInterpolatingProver((SmtInterpolFormulaManager) fmgr);
     } else {
-      assert solver.equals("MATHSAT4") || solver.equals("YICES");
+      assert solver.equals(MATHSAT4) || solver.equals(YICES);
       return new MathsatInterpolatingProver((MathsatFormulaManager) fmgr, shared);
     }
   }

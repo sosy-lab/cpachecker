@@ -210,7 +210,7 @@ public class AlternatingRefiner implements Refiner {
     AbstractElement lInitialElement = lCPA.getInitialElement(mEntryNode);
     Precision lInitialPrecision = lCPA.getInitialPrecision(mEntryNode);
 
-    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+    ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.RPO);
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     boolean lMissesInput = false;
@@ -293,7 +293,7 @@ public class AlternatingRefiner implements Refiner {
         AbstractElement lInitialElement = lCPA.getInitialElement(mEntryNode);
         Precision lInitialPrecision = lCPA.getInitialPrecision(mEntryNode);
 
-        ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.TOPSORT);
+        ReachedSet lReachedSet = new PartitionedReachedSet(Waitlist.TraversalMethod.RPO);
         lReachedSet.add(lInitialElement, lInitialPrecision);
 
         try {

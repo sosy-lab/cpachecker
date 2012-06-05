@@ -62,13 +62,13 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
 
     if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
       // nothing has changed
-      return new Triple<AbstractElement, Precision, Action>(pElement, oldPrecision, action);
+      return Triple.of(pElement, oldPrecision, action);
     }
 
     ARTElement resultElement = new ARTElement(newElement, null);
 
     element.replaceInARTWith(resultElement); // this completely eliminates element
 
-    return new Triple<AbstractElement, Precision, Action>(resultElement, newPrecision, action);
+    return Triple.<AbstractElement, Precision, Action>of(resultElement, newPrecision, action);
   }
 }

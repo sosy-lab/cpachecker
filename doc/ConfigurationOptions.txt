@@ -82,10 +82,10 @@ analysis.restartAfterUnknown = false
 # stop after the first error has been found
 analysis.stopAfterError = true
 
-# which strategy to adopt for visiting states? TOPSORT is deprecated, use the
-# option analysis.traversal.useTopsort instead
+# which strategy to adopt for visiting states? RPO is deprecated, use the
+# option analysis.traversal.useReversePostorder instead
 analysis.traversal.order = DFS
-  enum:     [DFS, BFS, TOPSORT, RAND]
+  enum:     [DFS, BFS, RPO, RAND]
 
 # handle states with a deeper callstack first?
 # This needs the CallstackCPA to have any effect.
@@ -95,10 +95,14 @@ analysis.traversal.useCallstack = false
 # ExplicitCPA)
 analysis.traversal.useExplicitInformation = false
 
-# Use an implementation of topsort strategy that allows to select a secondary
-# strategy that is used if there are two elements with the same topsort id.
-# The secondary strategy is selected with 'analysis.traversal.order'. The
-# secondary strategy may not be TOPSORT.
+# Use an implementation of reverse postorder strategy that allows to select a
+# secondary strategy that is used if there are two elements with the same
+# reverse postorder id. The secondary strategy is selected with
+# 'analysis.traversal.order'. The secondary strategy may not be RPO.
+analysis.traversal.useReversePostorder = false
+
+# DEPRECATED: This option was renamed to analysis.traversal.useTopsort and
+# will soon get removed.
 analysis.traversal.useTopsort = false
 
 # use adjustable conditions algorithm
@@ -234,9 +238,6 @@ counterexample.checker = "CBMC"
 # configuration file for counterexample checks with CPAchecker
 counterexample.checker.config = "config/explicitAnalysis-no-cbmc.properties"
 
-# comma sperated list of variables that are never tracked by the analysis
-counterexample.checker.ignoreGlobally = ""
-
 # continue analysis after an counterexample was found that was denied by the
 # second check
 counterexample.continueAfterInfeasibleError = true
@@ -294,6 +295,9 @@ cpa.automaton.dotExportFile = "%s.dot"
 # file with automaton specification for ObserverAutomatonCPA and
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
+
+# initialize all variables to 0 when they are declared
+cpa.bdd.initAllVars = false
 
 # which composite merge operator to use (plain or agree)
 # Both delegate to the component cpas, but agree only allows merging if all
@@ -364,9 +368,6 @@ cpa.defuse.merge = "sep"
 cpa.explicit.merge = "SEP"
   allowed values: [SEP, JOIN]
 
-# csv list of variables never to track
-cpa.explicit.precision.ignore.asString = ""
-
 # threshold for amount of different values that are tracked for one variable
 # per path (-1 means infinitely)
 cpa.explicit.precision.path.defaultThreshold = -1
@@ -383,7 +384,7 @@ cpa.explicit.stop = "SEP"
 cpa.explicit.variableBlacklist = ""
 
 # whether or not to use assumption-closure for explicit refinement
-cpa.explict.refiner.useAssumptionClosure = false
+cpa.explict.refiner.useAssumptionClosure = true
 
 # whether or not to use explicit interpolation
 cpa.explict.refiner.useExplicitInterpolation = false
@@ -506,38 +507,22 @@ cpa.predicate.enableBlockreducer = false
 # where to dump interpolation and abstraction problems (format string)
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.msat"
 
-# handle Pointers
+# Handle aliasing of pointers. This adds disjunctions to the formulas, so be
+# careful when using cartesian abstraction.
 cpa.predicate.handlePointerAliasing = true
 
 # initialize all variables to 0 when they are declared
 cpa.predicate.initAllVars = false
 
+# use uninterpreted functions for *, & and array access
+cpa.predicate.lvalsAsUIFs = false
+
 # the machine model used for functions sizeof and alignof
 cpa.predicate.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
 
-# With of the bitvectors if useBitwise is true.
-cpa.predicate.mathsat.bitWidth = 32
-
-# use uninterpreted functions for *, & and array access
-cpa.predicate.mathsat.lvalsAsUIFs = false
-
-# Whether to use signed or unsigned variables if useBitwise is true.
-cpa.predicate.mathsat.signed = true
-
-# Encode program variables of bitvectors of a fixed size,instead of using
-# REALS. No interpolation and thus no refinement issupported in this case.
-cpa.predicate.mathsat.useBitwise = false
-
 # use a combination of theories (this is incomplete)
 cpa.predicate.mathsat.useDtc = false
-
-# encode program variables as INTEGERs in MathSAT, instead of using REALs.
-# Since interpolation is not really supported by the laz solver, when
-# computing interpolants we still use the LA solver, but encoding variables
-# as ints might still be a good idea: we can tighten strict inequalities, and
-# split negated equalities
-cpa.predicate.mathsat.useIntegers = false
 
 # Use UIFs (recommended because its more precise)
 cpa.predicate.mathsat.useUIFs = true
@@ -633,10 +618,27 @@ cpa.predicate.refinement.verifyInterpolants = false
 # blocksize)
 cpa.predicate.satCheck = 0
 
+# export solverqueries in smtlib-format
+cpa.predicate.smtinterpol.logfile = "smtinterpol.smt2"
+
 # Whether to use MathSAT 4, MathSAT 5 or YICES (in combination with Mathsat
 # 4) as SMT solver
-cpa.predicate.solver = "MATHSAT4"
-  allowed values: [MATHSAT4, MATHSAT5, YICES]
+cpa.predicate.solver = MATHSAT4
+  allowed values: [MATHSAT4, MATHSAT5, YICES, SMTINTERPOL]
+
+# With of the bitvectors if useBitvectors is true.
+cpa.predicate.solver.bitWidth = 32
+
+# Whether to use signed or unsigned variables if useBitvectors is true.
+cpa.predicate.solver.signed = true
+
+# Encode program variables as bitvectors of a fixed size,instead of using
+# REALS. Not all solvers might support this.
+cpa.predicate.solver.useBitvectors = false
+
+# Encode program variables as INTEGER variables, instead of using REALs. Not
+# all solvers might support this.
+cpa.predicate.solver.useIntegers = false
 
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks

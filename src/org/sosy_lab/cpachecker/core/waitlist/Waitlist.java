@@ -105,7 +105,7 @@ public interface Waitlist extends Iterable<AbstractElement> {
     DFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
     BFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
     @Deprecated
-    TOPSORT { @Override public Waitlist createWaitlistInstance() { return new TopsortWaitlist();    } },
+    RPO { @Override public Waitlist createWaitlistInstance() { return new ReversePostorderWaitlist();    } },
     RAND    { @Override public Waitlist createWaitlistInstance() { return new RandomWaitlist();     } },
     ;
   }
