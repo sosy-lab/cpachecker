@@ -200,7 +200,12 @@ public class AlternatingRefiner implements Refiner {
       throw new RuntimeException(e1);
     }
 
-    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager);
+    CPAAlgorithm lAlgorithm;
+    try {
+      lAlgorithm = new CPAAlgorithm(lCPA, mLogManager, mConfiguration);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
 
     AbstractElement lInitialElement = lCPA.getInitialElement(mEntryNode);
     Precision lInitialPrecision = lCPA.getInitialPrecision(mEntryNode);

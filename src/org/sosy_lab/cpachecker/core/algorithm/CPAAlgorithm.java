@@ -29,15 +29,22 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.configuration.ClassOption;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ForcedCovering;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -51,6 +58,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.collect.Iterables;
 
+@Options(prefix="cpa")
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CPAStatistics implements Statistics {
@@ -62,6 +70,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private Timer mergeTimer         = new Timer();
     private Timer stopTimer          = new Timer();
     private Timer addTimer           = new Timer();
+    private Timer forcedCoveringTimer = new Timer();
 
     private int   countIterations   = 0;
     private int   maxWaitlistSize   = 0;
@@ -92,6 +101,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       out.println();
       out.println("Total time for CPA algorithm:     " + totalTimer + " (Max: " + totalTimer.printMaxTime() + ")");
       out.println("  Time for choose from waitlist:  " + chooseTimer);
+      if (forcedCoveringTimer.getNumberOfIntervals() > 0) {
+        out.println("  Time for forced covering:       " + forcedCoveringTimer);
+      }
       out.println("  Time for precision adjustment:  " + precisionTimer);
       out.println("  Time for transfer relation:     " + transferTimer);
       if (mergeTimer.getNumberOfIntervals() > 0) {
@@ -102,20 +114,50 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  @Option(description="Which strategy to use for forced coverings (empty for none)",
+          name="forcedCovering")
+  @ClassOption(packagePrefix="org.sosy_lab.cpachecker")
+  private Class<? extends ForcedCovering> forcedCoveringClass = null;
+  private final ForcedCovering forcedCovering;
+
   private final CPAStatistics               stats = new CPAStatistics();
 
   private final ConfigurableProgramAnalysis cpa;
 
   private final LogManager                  logger;
 
-  public CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger) {
+  public CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger, Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
     this.cpa = cpa;
     this.logger = logger;
+
+    if (forcedCoveringClass != null) {
+      forcedCovering = Classes.createInstance(ForcedCovering.class, forcedCoveringClass,
+          new Class<?>[] {Configuration.class, LogManager.class, ConfigurableProgramAnalysis.class},
+          new Object[]   {config,              logger,           cpa});
+    } else {
+      forcedCovering = null;
+    }
   }
 
   @Override
   public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     stats.totalTimer.start();
+    try {
+      return run0(reachedSet);
+    } finally {
+      stats.totalTimer.stop();
+      stats.chooseTimer.stop();
+      stats.precisionTimer.stop();
+      stats.transferTimer.stop();
+      stats.mergeTimer.stop();
+      stats.stopTimer.stop();
+      stats.addTimer.stop();
+      stats.forcedCoveringTimer.stop();
+    }
+  }
+
+  private boolean run0(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
     final StopOperator stopOperator = cpa.getStopOperator();
@@ -143,6 +185,17 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.FINER, "Retrieved element from waitlist");
       logger.log(Level.ALL, "Current element is", element, "with precision",
           precision);
+
+      if (forcedCovering != null) {
+        stats.forcedCoveringTimer.start();
+        boolean stop = forcedCovering.tryForcedCovering(element, precision, reachedSet);
+        stats.forcedCoveringTimer.stop();
+
+        if (stop) {
+          // TODO: remove element from reached set?
+          continue;
+        }
+      }
 
       stats.transferTimer.start();
       Collection<? extends AbstractElement> successors =
@@ -197,7 +250,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
               reachedSet.reAddToWaitlist(element);
             }
 
-            stats.totalTimer.stop();
             return true;
           }
         }
@@ -258,12 +310,14 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         }
       }
     }
-    stats.totalTimer.stop();
     return true;
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (forcedCovering instanceof StatisticsProvider) {
+      ((StatisticsProvider)forcedCovering).collectStatistics(pStatsCollection);
+    }
     pStatsCollection.add(stats);
   }
 }

@@ -266,7 +266,12 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
       throw new RuntimeException(e);
     }
 
-    CPAAlgorithm lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager);
+    CPAAlgorithm lBasicAlgorithm;
+    try {
+      lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager, mConfiguration);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
 
     PredicateRefiner lRefiner;
     try {
@@ -352,7 +357,12 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
     lCPAFactory.setLogger(mLogManager);
     ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
 
-    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager);
+    CPAAlgorithm lAlgorithm;
+    try {
+      lAlgorithm = new CPAAlgorithm(lCPA, mLogManager, mConfiguration);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
 
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);

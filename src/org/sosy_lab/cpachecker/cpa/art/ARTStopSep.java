@@ -33,13 +33,14 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix="cpa.art")
-public class ARTStopSep implements StopOperator {
+public class ARTStopSep implements StopOperator, ForcedCoveringStopOperator {
 
   @Option(description="whether to keep covered states in the reached set as addition to keeping them in the ART")
   private boolean keepCoveredStatesInReached = false;
@@ -58,7 +59,7 @@ public class ARTStopSep implements StopOperator {
       Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
 
     ARTElement artElement = (ARTElement)pElement;
-    assert !artElement.isCovered();
+    assert !artElement.isCovered() : "Passing element to stop which is already covered: " + artElement;
 
     // First check if we can take a shortcut:
     // If the new element was merged into an existing element,
@@ -141,5 +142,26 @@ public class ARTStopSep implements StopOperator {
     AbstractElement wrappedOtherElement = otherArtElement.getWrappedElement();
 
     return wrappedProofChecker.isCoveredBy(wrappedElement, wrappedOtherElement);
+  }
+
+  @Override
+  public boolean isForcedCoveringPossible(AbstractElement pElement, AbstractElement pReachedElement, Precision pPrecision) throws CPAException {
+    if (!(wrappedStop instanceof ForcedCoveringStopOperator)) {
+      return false;
+    }
+
+    ARTElement element = (ARTElement)pElement;
+    ARTElement reachedElement = (ARTElement)pReachedElement;
+
+    if (reachedElement.isCovered() || !reachedElement.mayCover()) {
+      return false;
+    }
+
+    if (element.isOlderThan(reachedElement)) {
+      return false;
+    }
+
+    return ((ForcedCoveringStopOperator)wrappedStop).isForcedCoveringPossible(
+        element.getWrappedElement(), reachedElement.getWrappedElement(), pPrecision);
   }
 }

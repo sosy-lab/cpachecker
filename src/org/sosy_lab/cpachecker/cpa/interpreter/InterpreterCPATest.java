@@ -126,7 +126,12 @@ public class InterpreterCPATest {
     lCPAFactory.setLogger(lLogManager);
     ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
 
-    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, lLogManager);
+    CPAAlgorithm lAlgorithm;
+    try {
+      lAlgorithm = new CPAAlgorithm(lCPA, lLogManager, lConfiguration);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
 
     AbstractElement lInitialElement = lCPA.getInitialElement(lWrapper.getEntry());
     Precision lInitialPrecision = lCPA.getInitialPrecision(lWrapper.getEntry());
@@ -217,7 +222,12 @@ public class InterpreterCPATest {
     lCPAFactory.setLogger(lLogManager);
     ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
 
-    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, lLogManager);
+    CPAAlgorithm lAlgorithm;
+    try {
+      lAlgorithm = new CPAAlgorithm(lCPA, lLogManager, lConfiguration);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
 
     AbstractElement lInitialElement = lCPA.getInitialElement(lWrapper.getEntry());
     Precision lInitialPrecision = lCPA.getInitialPrecision(lWrapper.getEntry());
@@ -308,7 +318,12 @@ public class InterpreterCPATest {
     lCPAFactory.setLogger(lLogManager);
     ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
 
-    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, lLogManager);
+    CPAAlgorithm lAlgorithm;
+    try {
+      lAlgorithm = new CPAAlgorithm(lCPA, lLogManager, lConfiguration);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
 
     AbstractElement lInitialElement = lCPA.getInitialElement(lWrapper.getEntry());
     Precision lInitialPrecision = lCPA.getInitialPrecision(lWrapper.getEntry());
@@ -399,7 +414,12 @@ public class InterpreterCPATest {
     lCPAFactory.setLogger(lLogManager);
     ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
 
-    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, lLogManager);
+    CPAAlgorithm lAlgorithm;
+    try {
+      lAlgorithm = new CPAAlgorithm(lCPA, lLogManager, lConfiguration);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
 
     AbstractElement lInitialElement = lCPA.getInitialElement(lWrapper.getEntry());
     Precision lInitialPrecision = lCPA.getInitialPrecision(lWrapper.getEntry());

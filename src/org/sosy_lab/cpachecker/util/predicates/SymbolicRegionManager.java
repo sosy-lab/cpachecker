@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -41,7 +43,7 @@ public class SymbolicRegionManager implements RegionManager {
     private final Formula f;
 
     public SymbolicRegion(Formula pF) {
-      f = pF;
+      f = checkNotNull(pF);
     }
 
     @Override
@@ -52,6 +54,22 @@ public class SymbolicRegionManager implements RegionManager {
     @Override
     public boolean isFalse() {
       return f.isFalse();
+    }
+
+    @Override
+    public String toString() {
+      return f.toString();
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      return pObj instanceof SymbolicRegion
+          && f.equals(((SymbolicRegion)pObj).f);
+    }
+
+    @Override
+    public int hashCode() {
+      return f.hashCode();
     }
   }
 

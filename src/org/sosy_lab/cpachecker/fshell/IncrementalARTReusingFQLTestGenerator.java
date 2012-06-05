@@ -761,7 +761,12 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       throw new RuntimeException(e);
     }
 
-    CPAAlgorithm lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager);
+    CPAAlgorithm lBasicAlgorithm;
+    try {
+      lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager, mConfiguration);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
 
     Refiner lRefiner;
     try {
@@ -932,7 +937,12 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     lCPAFactory.setLogger(mLogManager);
     ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
 
-    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager);
+    CPAAlgorithm lAlgorithm;
+    try {
+      lAlgorithm = new CPAAlgorithm(lCPA, mLogManager, mConfiguration);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
 
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
@@ -1011,7 +1021,12 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     lCPAFactory.setLogger(mLogManager);
     ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
 
-    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager);
+    CPAAlgorithm lAlgorithm;
+    try {
+      lAlgorithm = new CPAAlgorithm(lCPA, mLogManager, mConfiguration);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
 
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
@@ -1121,8 +1136,12 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       pReachedSet.add(lInitialElement, lInitialPrecision);
     }
 
-    CPAAlgorithm lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager);
-
+    CPAAlgorithm lBasicAlgorithm;
+    try {
+      lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager, mConfiguration);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
 
     ARTStatistics lARTStatistics;
     try {

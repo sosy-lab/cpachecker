@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -36,7 +37,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.collect.ImmutableList;
 
-public class CompositeStopOperator implements StopOperator{
+public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator {
 
   protected final ImmutableList<StopOperator> stopOperators;
 
@@ -96,6 +97,41 @@ public class CompositeStopOperator implements StopOperator{
       AbstractElement absElem2 = componentOtherElements.get(idx);
 
       if (!componentProofChecker.isCoveredBy(absElem1, absElem2)){
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  @Override
+  public boolean isForcedCoveringPossible(AbstractElement pElement, AbstractElement pReachedElement, Precision pPrecision) throws CPAException {
+
+    CompositeElement compositeElement = (CompositeElement)pElement;
+    CompositeElement compositeReachedElement = (CompositeElement)pReachedElement;
+    CompositePrecision compositePrecision = (CompositePrecision)pPrecision;
+
+    List<AbstractElement> compositeElements = compositeElement.getWrappedElements();
+    List<AbstractElement> compositeReachedElements = compositeReachedElement.getWrappedElements();
+    List<Precision> compositePrecisions = compositePrecision.getPrecisions();
+
+    for (int idx = 0; idx < compositeElements.size(); idx++) {
+      StopOperator stopOp = stopOperators.get(idx);
+
+      AbstractElement wrappedElement = compositeElements.get(idx);
+      AbstractElement wrappedReachedElement = compositeReachedElements.get(idx);
+      Precision prec = compositePrecisions.get(idx);
+
+      boolean possible;
+      if (stopOp instanceof ForcedCoveringStopOperator) {
+
+        possible = ((ForcedCoveringStopOperator)stopOp).isForcedCoveringPossible(wrappedElement, wrappedReachedElement, prec);
+
+      } else {
+        possible = stopOp.stop(wrappedElement, Collections.singleton(wrappedReachedElement), prec);
+      }
+
+      if (!possible) {
         return false;
       }
     }

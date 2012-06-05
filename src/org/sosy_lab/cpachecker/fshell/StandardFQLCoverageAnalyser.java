@@ -325,7 +325,12 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
     lCPAFactory.setLogger(mLogManager);
     ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
 
-    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager);
+    CPAAlgorithm lAlgorithm;
+    try {
+      lAlgorithm = new CPAAlgorithm(lCPA, mLogManager, mConfiguration);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
 
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
@@ -404,7 +409,12 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
     lCPAFactory.setLogger(mLogManager);
     ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
 
-    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager);
+    CPAAlgorithm lAlgorithm;
+    try {
+      lAlgorithm = new CPAAlgorithm(lCPA, mLogManager, mConfiguration);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
 
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);

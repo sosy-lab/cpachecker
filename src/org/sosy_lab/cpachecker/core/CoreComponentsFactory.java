@@ -122,7 +122,7 @@ class CoreComponentsFactory {
       algorithm = new ImpactAlgorithm(config, logger, cpa);
 
     } else {
-      algorithm = new CPAAlgorithm(cpa, logger);
+      algorithm = new CPAAlgorithm(cpa, logger, config);
 
       if (useRefinement) {
         algorithm = new CEGARAlgorithm(algorithm, cpa, config, logger);
