@@ -48,14 +48,14 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import com.google.common.collect.Iterables;
 
 /**
- * Helper class with collection of ART related utility methods.
+ * Helper class with collection of ARG related utility methods.
  */
 public class ARGUtils {
 
   private ARGUtils() { }
 
   /**
-   * Get all elements on all paths from the ART root to a given element.
+   * Get all elements on all paths from the ARG root to a given element.
    *
    * @param pLastElement The last element in the paths.
    * @return A set of elements, all of which have pLastElement as their (transitive) child.
@@ -81,7 +81,7 @@ public class ARGUtils {
   }
 
   /**
-   * Create a path in the ART from root to the given element.
+   * Create a path in the ARG from root to the given element.
    * If there are several such paths, one is chosen randomly.
    *
    * @param pLastElement The last element in the path.
@@ -165,11 +165,11 @@ public class ARGUtils {
   }
 
   /**
-   * Create String with ART in the DOT format of Graphviz.
-   * @param rootElement the root element of the ART
+   * Create String with ARG in the DOT format of Graphviz.
+   * @param rootElement the root element of the ARG
    * @param displayedElements An optional set of elements. If given, all other elements are ignored. If null, all elements are dumped.
    * @param highlightedEdges Set of edges to highlight in the graph.
-   * @return the ART as DOT graph
+   * @return the ARG as DOT graph
    */
   public static String convertARTToDot(final ARGElement rootElement,
       final Set<ARGElement> displayedElements,
@@ -180,7 +180,7 @@ public class ARGUtils {
     StringBuilder sb = new StringBuilder();
     StringBuilder edges = new StringBuilder();
 
-    sb.append("digraph ART {\n");
+    sb.append("digraph ARG {\n");
     // default style for nodes
     sb.append("node [style=\"filled\" shape=\"box\" color=\"white\"]\n");
 
@@ -299,21 +299,21 @@ public class ARGUtils {
   }
 
   /**
-   * Find a path in the ART. The necessary information to find the path is a
+   * Find a path in the ARG. The necessary information to find the path is a
    * boolean value for each branching situation that indicates which of the two
    * AssumeEdges should be taken.
    *
-   * @param root The root element of the ART (where to start the path)
-   * @param art All elements in the ART or a subset thereof (elements outside this set will be ignored).
-   * @param branchingInformation A map from ART element ids to boolean values indicating the outgoing direction.
-   * @return A path through the ART from root to target.
-   * @throws IllegalArgumentException If the direction information doesn't match the ART or the ART is inconsistent.
+   * @param root The root element of the ARG (where to start the path)
+   * @param arg All elements in the ARG or a subset thereof (elements outside this set will be ignored).
+   * @param branchingInformation A map from ARG element ids to boolean values indicating the outgoing direction.
+   * @return A path through the ARG from root to target.
+   * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG is inconsistent.
    */
   public static Path getPathFromBranchingInformation(
-      ARGElement root, Collection<? extends AbstractElement> art,
+      ARGElement root, Collection<? extends AbstractElement> arg,
       Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
 
-    checkArgument(art.contains(root));
+    checkArgument(arg.contains(root));
 
     Path result = new Path();
     ARGElement currentElement = root;
@@ -325,7 +325,7 @@ public class ARGUtils {
       switch (children.size()) {
 
       case 0:
-        throw new IllegalArgumentException("ART target path terminates without reaching target element!");
+        throw new IllegalArgumentException("ARG target path terminates without reaching target element!");
 
       case 1: // only one successor, easy
         child = Iterables.getOnlyElement(children);
@@ -342,7 +342,7 @@ public class ARGUtils {
         for (ARGElement currentChild : children) {
           CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
           if (!(currentEdge instanceof AssumeEdge)) {
-            throw new IllegalArgumentException("ART branches where there is no AssumeEdge!");
+            throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
           }
 
           if (((AssumeEdge)currentEdge).getTruthAssumption()) {
@@ -354,7 +354,7 @@ public class ARGUtils {
           }
         }
         if (trueEdge == null || falseEdge == null) {
-          throw new IllegalArgumentException("ART branches with non-complementary AssumeEdges!");
+          throw new IllegalArgumentException("ARG branches with non-complementary AssumeEdges!");
         }
         assert trueChild != null;
         assert falseChild != null;
@@ -362,7 +362,7 @@ public class ARGUtils {
         // search first idx where we have a predicate for the current branching
         Boolean predValue = branchingInformation.get(currentElement.getElementId());
         if (predValue == null) {
-          throw new IllegalArgumentException("ART branches without direction information!");
+          throw new IllegalArgumentException("ARG branches without direction information!");
         }
 
         // now select the right edge
@@ -376,11 +376,11 @@ public class ARGUtils {
         break;
 
       default:
-        throw new IllegalArgumentException("ART splits with more than two branches!");
+        throw new IllegalArgumentException("ARG splits with more than two branches!");
       }
 
-      if (!art.contains(child)) {
-        throw new IllegalArgumentException("ART and direction information from solver disagree!");
+      if (!arg.contains(child)) {
+        throw new IllegalArgumentException("ARG and direction information from solver disagree!");
       }
 
       result.add(Pair.of(currentElement, edge));
@@ -400,29 +400,29 @@ public class ARGUtils {
   }
 
   /**
-   * Find a path in the ART. The necessary information to find the path is a
+   * Find a path in the ARG. The necessary information to find the path is a
    * boolean value for each branching situation that indicates which of the two
    * AssumeEdges should be taken.
    * This method checks that the path ends in a certain element.
    *
-   * @param root The root element of the ART (where to start the path)
+   * @param root The root element of the ARG (where to start the path)
    * @param target The target element (where to end the path, needs to be a target element)
-   * @param art All elements in the ART or a subset thereof (elements outside this set will be ignored).
-   * @param branchingInformation A map from ART element ids to boolean values indicating the outgoing direction.
-   * @return A path through the ART from root to target.
-   * @throws IllegalArgumentException If the direction information doesn't match the ART or the ART is inconsistent.
+   * @param arg All elements in the ARG or a subset thereof (elements outside this set will be ignored).
+   * @param branchingInformation A map from ARG element ids to boolean values indicating the outgoing direction.
+   * @return A path through the ARG from root to target.
+   * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG is inconsistent.
    */
   public static Path getPathFromBranchingInformation(
-      ARGElement root, ARGElement target, Collection<? extends AbstractElement> art,
+      ARGElement root, ARGElement target, Collection<? extends AbstractElement> arg,
       Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
 
-    checkArgument(art.contains(target));
+    checkArgument(arg.contains(target));
     checkArgument(target.isTarget());
 
-    Path result = getPathFromBranchingInformation(root, art, branchingInformation);
+    Path result = getPathFromBranchingInformation(root, arg, branchingInformation);
 
     if (result.getLast().getFirst() != target) {
-      throw new IllegalArgumentException("ART target path reached the wrong target element!");
+      throw new IllegalArgumentException("ARG target path reached the wrong target element!");
     }
 
     return result;

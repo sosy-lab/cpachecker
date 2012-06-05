@@ -62,13 +62,13 @@ public interface PathFormulaManager {
 
   /**
    * Build a formula containing a predicate for all branching situations in the
-   * ART. If a satisfying assignment is created for this formula, it can be used
-   * to find out which paths in the ART are feasible.
+   * ARG. If a satisfying assignment is created for this formula, it can be used
+   * to find out which paths in the ARG are feasible.
    *
    * This method may be called with an empty set, in which case it does nothing
    * and returns the formula "true".
    *
-   * @param elementsOnPath The ART elements that should be considered.
+   * @param elementsOnPath The ARG elements that should be considered.
    * @return A formula containing a predicate for each branching.
    * @throws CPATransferException
    */
@@ -83,7 +83,7 @@ public interface PathFormulaManager {
    * the map key) which edge was taken (the positive or the negated one).
    *
    * @param model A satisfying assignment that should contain values for branching predicates.
-   * @return A map from ART element id to a boolean value indicating direction.
+   * @return A map from ARG element id to a boolean value indicating direction.
    */
   Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model pModel);
 }

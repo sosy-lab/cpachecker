@@ -45,9 +45,9 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
  * This is an extension of {@link AbstractARGBasedRefiner} that takes care of
- * flattening the ART before calling {@link #performRefinement0(ReachedSet)}.
+ * flattening the ARG before calling {@link #performRefinement0(ReachedSet)}.
  *
- * Warning: Although the ART is flattened at this point, the elements in it have
+ * Warning: Although the ARG is flattened at this point, the elements in it have
  * not been expanded due to performance reasons.
  */
 public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {

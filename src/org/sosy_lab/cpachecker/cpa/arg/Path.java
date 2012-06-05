@@ -36,10 +36,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 /**
- * Path contains a path through the ART that starts at the root node.
+ * Path contains a path through the ARG that starts at the root node.
  * It is implemented as a list of pairs of an ARGElement and a CFAEdge,
  * where the edge of a pair is the outgoing edge of the element.
- * The first pair contains the root node of the ART.
+ * The first pair contains the root node of the ARG.
  */
 public class Path extends LinkedList<Pair<ARGElement, CFAEdge>> {
 
@@ -55,10 +55,10 @@ public class Path extends LinkedList<Pair<ARGElement, CFAEdge>> {
     JSONArray path = new JSONArray();
     for (Pair<ARGElement, CFAEdge> pair : this) {
       JSONObject elem = new JSONObject();
-      ARGElement artelem = pair.getFirst();
+      ARGElement argelem = pair.getFirst();
       CFAEdge edge = pair.getSecond();
       if (edge == null) continue; // in this case we do not need the edge
-      elem.put("artelem", artelem.getElementId());
+      elem.put("argelem", argelem.getElementId());
       elem.put("source", edge.getPredecessor().getNodeNumber());
       elem.put("target", edge.getSuccessor().getNodeNumber());
       elem.put("desc", edge.getDescription().replaceAll("\n", " "));

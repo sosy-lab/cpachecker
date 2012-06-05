@@ -221,7 +221,7 @@ public abstract class InterpolationManager<I> {
    * This is used to detect timeouts for interpolation
    *
    * @param pFormulas the formulas for the path
-   * @param elementsOnPath the ARTElements on the path (may be empty if no branching information is required)
+   * @param elementsOnPath the ARGElements on the path (may be empty if no branching information is required)
    * @throws CPAException
    * @throws InterruptedException
    */
@@ -280,7 +280,7 @@ public abstract class InterpolationManager<I> {
   /**
    * Counterexample analysis and predicate discovery.
    * @param pFormulas the formulas for the path
-   * @param elementsOnPath the ARTElements on the path (may be empty if no branching information is required)
+   * @param elementsOnPath the ARGElements on the path (may be empty if no branching information is required)
    * @param pItpProver interpolation solver used
    * @return counterexample info with predicated information
    * @throws CPAException
@@ -810,7 +810,7 @@ public abstract class InterpolationManager<I> {
    *
    * @param f The list of formulas on the path.
    * @param pItpProver The solver.
-   * @param elementsOnPath The ARTElements of the paths represented by f.
+   * @param elementsOnPath The ARGElements of the paths represented by f.
    * @return Information about the error path, including a satisfying assignment.
    * @throws CPATransferException
    * @throws InterruptedException

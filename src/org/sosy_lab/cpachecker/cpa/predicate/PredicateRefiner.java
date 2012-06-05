@@ -71,7 +71,7 @@ import com.google.common.collect.Multimap;
 /**
  * This class provides the refinement strategy for the classical predicate
  * abstraction (adding the predicates from the interpolant to the precision
- * and removing the relevant parts of the ART).
+ * and removing the relevant parts of the ARG).
  */
 @Options(prefix="cpa.predicate.refinement")
 public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARGElement, CFANode>> implements StatisticsProvider {
@@ -90,12 +90,12 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
       PredicateRefiner.this.printStatistics(out, pResult, pReached);
       out.println("  Precision update:               " + precisionUpdate);
-      out.println("  ART update:                     " + artUpdate);
+      out.println("  ARG update:                     " + argUpdate);
     }
   }
 
   private final Timer precisionUpdate = new Timer();
-  private final Timer artUpdate = new Timer();
+  private final Timer argUpdate = new Timer();
 
   public static PredicateRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
@@ -183,11 +183,11 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
             performRefinement(oldPredicatePrecision, pPath, pCounterexample, pRepeatedCounterexample);
     precisionUpdate.stop();
 
-    artUpdate.start();
+    argUpdate.start();
 
     pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
 
-    artUpdate.stop();
+    argUpdate.stop();
   }
 
   private Pair<ARGElement, PredicatePrecision> performRefinement(PredicatePrecision oldPrecision,
@@ -211,7 +211,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
 
     pmapBuilder.putAll(oldPredicateMap);
 
-    // iterate through interpolationPoints and find first point with new predicates, from there we have to cut the ART
+    // iterate through interpolationPoints and find first point with new predicates, from there we have to cut the ARG
     // also build new precision
     int i = 0;
     for (Pair<ARGElement, CFANode> interpolationPoint : interpolationPoints) {
@@ -255,7 +255,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     logger.log(Level.ALL, "Predicate map now is", newPredicateMap);
 
     // We have two different strategies for the refinement root: set it to
-    // the firstInterpolationPoint or set it to highest location in the ART
+    // the firstInterpolationPoint or set it to highest location in the ARG
     // where the same CFANode appears.
     // Both work, so this is a heuristics question to get the best performance.
     // My benchmark showed, that at least for the benchmarks-lbe examples it is
@@ -266,7 +266,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
       root = firstInterpolationPoint.getFirst();
 
       logger.log(Level.FINEST, "Found spurious counterexample,",
-          "trying strategy 1: remove everything below", root, "from ART.");
+          "trying strategy 1: remove everything below", root, "from ARG.");
 
     } else {
       if (pRepeatedCounterexample) {
@@ -276,7 +276,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
       CFANode loc = firstInterpolationPoint.getSecond();
 
       logger.log(Level.FINEST, "Found spurious counterexample,",
-          "trying strategy 2: remove everything below node", loc, "from ART.");
+          "trying strategy 2: remove everything below node", loc, "from ARG.");
 
       // find first element in path with location == loc,
       // this is not necessary equal to firstInterpolationPoint.getFirst()
@@ -287,7 +287,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
         }
       }
       if (root == null) {
-        throw new CPAException("Inconsistent ART, did not find element for " + loc);
+        throw new CPAException("Inconsistent ARG, did not find element for " + loc);
       }
     }
     return Pair.of(root, newPrecision);

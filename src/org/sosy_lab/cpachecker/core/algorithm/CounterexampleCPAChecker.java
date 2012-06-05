@@ -122,12 +122,12 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       Set<ARGElement> pPathElements) {
     StringBuilder sb = new StringBuilder();
     sb.append("CONTROL AUTOMATON AssumptionAutomaton\n\n");
-    sb.append("INITIAL STATE ART" + pRootElement.getElementId() + ";\n\n");
+    sb.append("INITIAL STATE ARG" + pRootElement.getElementId() + ";\n\n");
 
     for (ARGElement e : pPathElements) {
 
       CFANode loc = AbstractElements.extractLocation(e);
-      sb.append("STATE USEFIRST ART" + e.getElementId() + " :\n");
+      sb.append("STATE USEFIRST ARG" + e.getElementId() + " :\n");
 
       for (ARGElement child : e.getChildren()) {
         if (child.isCovered()) {
@@ -145,7 +145,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
           if (child.isTarget()) {
             sb.append("ERROR");
           } else {
-            sb.append("GOTO ART" + child.getElementId());
+            sb.append("GOTO ARG" + child.getElementId());
           }
           sb.append(";\n");
         }

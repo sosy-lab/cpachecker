@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 @Options(prefix="cpa.arg")
 public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
-  @Option(description="whether to keep covered states in the reached set as addition to keeping them in the ART")
+  @Option(description="whether to keep covered states in the reached set as addition to keeping them in the ARG")
   private boolean keepCoveredStatesInReached = false;
 
   private final StopOperator wrappedStop;
@@ -58,24 +58,24 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   public boolean stop(AbstractElement pElement,
       Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
 
-    ARGElement artElement = (ARGElement)pElement;
-    assert !artElement.isCovered() : "Passing element to stop which is already covered: " + artElement;
+    ARGElement argElement = (ARGElement)pElement;
+    assert !argElement.isCovered() : "Passing element to stop which is already covered: " + argElement;
 
     // First check if we can take a shortcut:
     // If the new element was merged into an existing element,
     // it is usually also covered by this existing element, so check this explicitly upfront.
-    // We do this because we want to remove the new element from the ART completely
+    // We do this because we want to remove the new element from the ARG completely
     // in this case and not mark it as covered.
 
-    if (artElement.getMergedWith() != null) {
-      ARGElement mergedWith = artElement.getMergedWith();
+    if (argElement.getMergedWith() != null) {
+      ARGElement mergedWith = argElement.getMergedWith();
 
       if (pReached.contains(mergedWith)) {
         // we do this single check first as it should return true in most of the cases
 
-        if (wrappedStop.stop(artElement.getWrappedElement(), Collections.singleton(mergedWith.getWrappedElement()), pPrecision)) {
+        if (wrappedStop.stop(argElement.getWrappedElement(), Collections.singleton(mergedWith.getWrappedElement()), pPrecision)) {
           // merged and covered
-          artElement.removeFromART();
+          argElement.removeFromART();
           logger.log(Level.FINEST, "Element is covered by the element it was merged into");
 
           // in this case, return true even if we should keep covered states
@@ -96,8 +96,8 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
     // Now do the usual coverage checks
 
     for (AbstractElement reachedElement : pReached) {
-      ARGElement artReachedElement = (ARGElement)reachedElement;
-      if (stop(artElement, artReachedElement, pPrecision)) {
+      ARGElement argReachedElement = (ARGElement)reachedElement;
+      if (stop(argElement, argReachedElement, pPrecision)) {
         // if this option is true, we always return false here on purpose
         return !keepCoveredStatesInReached;
       }
@@ -135,10 +135,10 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   }
 
   boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement, ProofChecker wrappedProofChecker) throws CPAException {
-    ARGElement artElement = (ARGElement)pElement;
+    ARGElement argElement = (ARGElement)pElement;
     ARGElement otherArtElement = (ARGElement)pOtherElement;
 
-    AbstractElement wrappedElement = artElement.getWrappedElement();
+    AbstractElement wrappedElement = argElement.getWrappedElement();
     AbstractElement wrappedOtherElement = otherArtElement.getWrappedElement();
 
     return wrappedProofChecker.isCoveredBy(wrappedElement, wrappedOtherElement);

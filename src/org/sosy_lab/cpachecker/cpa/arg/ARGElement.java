@@ -171,7 +171,7 @@ public class ARGElement extends AbstractSingleWrapperElement implements Comparab
     if (mCoveredBy != null) {
       sb.append("Covered ");
     }
-    sb.append("ART Element (Id: ");
+    sb.append("ARG Element (Id: ");
     sb.append(elementId);
     if (!destroyed) {
       sb.append(", Parents: ");
@@ -220,14 +220,14 @@ public class ARGElement extends AbstractSingleWrapperElement implements Comparab
   }
 
   /**
-   * This method removes this element from the ART by removing it from its
+   * This method removes this element from the ARG by removing it from its
    * parents' children list and from its children's parents list.
    *
    * This method also removes the element from the covered set of the other
    * element covering this element, if it is covered.
    *
    * This means, if its children do not have any other parents, they will be not
-   * reachable any more, i.e. they do not belong to the ART any more. But those
+   * reachable any more, i.e. they do not belong to the ARG any more. But those
    * elements will not be removed from the covered set.
    */
   public void removeFromART() {
@@ -283,14 +283,14 @@ public class ARGElement extends AbstractSingleWrapperElement implements Comparab
 
     // copy children
     for (ARGElement child : children) {
-      assert (child.parents.contains(this)) : "Inconsistent ART at " + this;
+      assert (child.parents.contains(this)) : "Inconsistent ARG at " + this;
       child.parents.remove(this);
       child.addParent(replacement);
     }
     children.clear();
 
     for (ARGElement parent : parents) {
-      assert (parent.children.contains(this)) : "Inconsistent ART at " + this;
+      assert (parent.children.contains(this)) : "Inconsistent ARG at " + this;
       parent.children.remove(this);
       replacement.addParent(parent);
     }

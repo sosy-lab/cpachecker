@@ -77,10 +77,10 @@ public class PathToCTranslator {
 
   private PathToCTranslator() { }
 
-  public static String translatePaths(ARGElement artRoot, Set<ARGElement> elementsOnErrorPath) {
+  public static String translatePaths(ARGElement argRoot, Set<ARGElement> elementsOnErrorPath) {
     PathToCTranslator translator = new PathToCTranslator();
 
-    translator.translatePaths0(artRoot, elementsOnErrorPath);
+    translator.translatePaths0(argRoot, elementsOnErrorPath);
 
     return translator.generateCCode();
   }
@@ -127,7 +127,7 @@ public class PathToCTranslator {
     }
 
     while (!waitlist.isEmpty()) {
-      // we need to sort the list based on art element id because we have to process
+      // we need to sort the list based on arg element id because we have to process
       // the edges in topological sort
       Collections.sort(waitlist);
 
@@ -248,7 +248,7 @@ public class PathToCTranslator {
 
     // if there is only one child on the path
     if (relevantChildrenOfElement.size() == 1) {
-      // get the next ART element, create a new edge using the same stack and add it to the waitlist
+      // get the next ARG element, create a new edge using the same stack and add it to the waitlist
       ARGElement elem = Iterables.getOnlyElement(relevantChildrenOfElement);
       CFAEdge e = currentElement.getEdgeToChild(elem);
       Edge newEdge = new Edge(elem, e, functionStack);

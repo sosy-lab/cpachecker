@@ -38,8 +38,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 /**
- * This class is a modifiable live view of a reached set, which shows the ART
- * relations between the elements, and enforces a correct ART when the set is
+ * This class is a modifiable live view of a reached set, which shows the ARG
+ * relations between the elements, and enforces a correct ARG when the set is
  * modified through this wrapper.
  */
 public class ARGReachedSet {
@@ -104,7 +104,7 @@ public class ARGReachedSet {
 
   private Set<ARGElement> removeSubtree0(ARGElement e) {
     Preconditions.checkNotNull(e);
-    Preconditions.checkArgument(!e.getParents().isEmpty(), "May not remove the initial element from the ART/reached set");
+    Preconditions.checkArgument(!e.getParents().isEmpty(), "May not remove the initial element from the ARG/reached set");
 
     Set<ARGElement> toUnreach = e.getSubtree();
 
@@ -124,7 +124,7 @@ public class ARGReachedSet {
   }
 
   /**
-   * Remove a set of elements from the ART. There are no sanity checks.
+   * Remove a set of elements from the ARG. There are no sanity checks.
    *
    * The result will be a set of elements that need to be added to the waitlist
    * to re-discover the removed elements. These are the parents of the removed
@@ -164,7 +164,7 @@ public class ARGReachedSet {
 
   /**
    * Mark a covered element as non-covered.
-   * This method also re-adds all leaves in that part of the ART to the waitlist.
+   * This method also re-adds all leaves in that part of the ARG to the waitlist.
    *
    * @param element The covered ARGElement to uncover.
    */

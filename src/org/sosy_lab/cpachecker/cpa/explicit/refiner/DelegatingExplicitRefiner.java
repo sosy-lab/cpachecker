@@ -91,7 +91,7 @@ public class DelegatingExplicitRefiner
 
   // statistics
   final Timer precisionUpdate                               = new Timer();
-  final Timer artUpdate                                     = new Timer();
+  final Timer argUpdate                                     = new Timer();
 
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -255,12 +255,12 @@ public class DelegatingExplicitRefiner
     Pair<ARGElement, Precision> result = currentRefiner.performRefinement(oldPrecision, errorPath, counterexampleTraceInfo);
     precisionUpdate.stop();
 
-    artUpdate.start();
+    argUpdate.start();
     ARGElement root = result.getFirst();
     logger.log(Level.FINEST, "Found spurious counterexample,",
-        "trying strategy 1: remove everything below", root, "from ART.");
+        "trying strategy 1: remove everything below", root, "from ARG.");
     pReached.removeSubtree(root, result.getSecond());
-    artUpdate.stop();
+    argUpdate.stop();
   }
 
   /**
@@ -303,7 +303,7 @@ public class DelegatingExplicitRefiner
 
     out.println("Explicit Refinement:");
     out.println("total time for refining precision:       " + precisionUpdate);
-    out.println("total time used for updating ART:        " + artUpdate);
+    out.println("total time used for updating ARG:        " + argUpdate);
 
     if(fullPrecisionCheckIsFeasable != null) {
       out.println("full-precision-check is feasable:        " + (fullPrecisionCheckIsFeasable ? "yes" : "no"));

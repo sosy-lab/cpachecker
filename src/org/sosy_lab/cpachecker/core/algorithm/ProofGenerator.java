@@ -52,9 +52,9 @@ public class ProofGenerator {
 
   @Option(name = "pcc.proofgen.doPCC", description = "")
   private boolean doPCC = false;
-  @Option(name = "pcc.proofFile", description = "file in which ART representation needed for proof checking is stored")
+  @Option(name = "pcc.proofFile", description = "file in which ARG representation needed for proof checking is stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File file = new File("art.obj");
+  private File file = new File("arg.obj");
 
   private final LogManager logger;
 
@@ -90,7 +90,7 @@ public class ProofGenerator {
       zos.putNextEntry(ze);
       ObjectOutputStream o = new ObjectOutputStream(zos);
       //TODO might also want to write used configuration to the file so that proof checker does not need to get it as an argument
-      //write ART
+      //write ARG
       o.writeObject(reached.getFirstElement());
       zos.closeEntry();
 

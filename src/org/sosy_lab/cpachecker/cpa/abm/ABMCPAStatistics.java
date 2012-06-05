@@ -66,7 +66,7 @@ class ABMCPAStatistics implements Statistics {
         sumARTElemets += subreached.size();
       }
 
-      out.println("Total size of all ARTs:                                         " + sumARTElemets);
+      out.println("Total size of all ARGs:                                         " + sumARTElemets);
       out.println("Maximum block depth:                                            " + transferRelation.maxRecursiveDepth);
       out.println("Total number of recursive CPA calls:                            " + sumCalls);
       out.println("  Number of cache misses:                                       " + transferRelation.cacheMisses + " (" + toPercent(transferRelation.cacheMisses, sumCalls) + " of all calls)");
@@ -87,10 +87,10 @@ class ABMCPAStatistics implements Statistics {
       out.println("Time for expanding precisions:                                  " + reducer.expandPrecisionTime + " (Calls: " + reducer.expandPrecisionTime.getNumberOfIntervals() + ")");
 
       out.println("Time for removing cached subtrees for refinement:               " + transferRelation.removeCachedSubtreeTimer);
-      out.println("Time for recomputing ARTs during counterexample analysis:       " + transferRelation.recomputeARTTimer);
+      out.println("Time for recomputing ARGs during counterexample analysis:       " + transferRelation.recomputeARTTimer);
       if (refiner != null) {
         out.println("Compute path for refinement:                                    " + refiner.computePathTimer);
-        out.println("  Constructing flat ART:                                        " + refiner.computeSubtreeTimer);
+        out.println("  Constructing flat ARG:                                        " + refiner.computeSubtreeTimer);
         out.println("  Searching path to error location:                             " + refiner.computeCounterexampleTimer);
       }
     }

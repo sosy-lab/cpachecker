@@ -274,12 +274,12 @@ cpa.arg.errorPath.graph = "ErrorPath.dot"
 cpa.arg.errorPath.json = "ErrorPath.json"
 cpa.arg.errorPath.source = "ErrorPath.c"
 
-# export final ART as .dot file
+# export final ARG as .dot file
 cpa.arg.export = true
-cpa.arg.file = "ART.dot"
+cpa.arg.file = "ARG.dot"
 
 # whether to keep covered states in the reached set as addition to keeping
-# them in the ART
+# them in the ARG
 cpa.arg.keepCoveredStatesInReached = false
 
 # signal the analysis to break in case of reached error state
@@ -676,8 +676,8 @@ parser.dialect = GNUC
 # Ignore all casts that appear in the source code.
 parser.ignoreCasts = false
 
-# file in which ART representation needed for proof checking is stored
-pcc.proofFile = "art.obj"
+# file in which ARG representation needed for proof checking is stored
+pcc.proofFile = "arg.obj"
 
 pcc.proofgen.doPCC = false
 

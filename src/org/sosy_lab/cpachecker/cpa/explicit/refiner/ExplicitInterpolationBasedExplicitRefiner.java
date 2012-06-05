@@ -59,7 +59,7 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
   boolean useAssumptionClosure = true;
 
   /**
-   * the ART element, from where to cut-off the subtree, and restart the analysis
+   * the ARG element, from where to cut-off the subtree, and restart the analysis
    */
   private ARGElement firstInterpolationPoint = null;
 

@@ -331,7 +331,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       actionOnFinalEdges = "DO branchingCount = 0 ";
     }
 
-    sb.append("INITIAL STATE ART" + initialElement.getElementId() + ";\n\n");
+    sb.append("INITIAL STATE ARG" + initialElement.getElementId() + ";\n\n");
     sb.append("STATE __TRUE :\n");
     sb.append("    TRUE -> ASSUME \"true\" GOTO __TRUE;\n\n");
 
@@ -345,7 +345,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         continue;
       }
 
-      sb.append("STATE USEFIRST ART" + e.getElementId() + " :\n");
+      sb.append("STATE USEFIRST ARG" + e.getElementId() + " :\n");
       automatonStates++;
 
       if (!relevantElements.contains(e)) {
@@ -384,7 +384,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           if (falseAssumptionElements.contains(child)) {
             sb.append(actionOnFinalEdges + "GOTO __FALSE");
           } else {
-            sb.append("GOTO ART" + child.getElementId());
+            sb.append("GOTO ARG" + child.getElementId());
           }
           sb.append(";\n");
         }

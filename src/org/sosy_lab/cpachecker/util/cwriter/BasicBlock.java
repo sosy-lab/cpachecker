@@ -32,7 +32,7 @@ class BasicBlock {
 
   private static final String SINGLE_INDENT = "  ";
 
-  // element id of the art element that has the conditional statement
+  // element id of the arg element that has the conditional statement
   private final int elementId;
   // true for if, false for else
   private boolean condition;

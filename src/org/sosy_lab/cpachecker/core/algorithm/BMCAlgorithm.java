@@ -281,12 +281,12 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     try {
       logger.log(Level.INFO, "Error found, creating error path");
 
-      Iterable<ARGElement> art = Iterables.filter(pReachedSet.getReached(), ARGElement.class);
+      Iterable<ARGElement> arg = Iterables.filter(pReachedSet.getReached(), ARGElement.class);
 
       // get the branchingFormula
       // this formula contains predicates for all branches we took
       // this way we can figure out which branches make a feasible path
-      Formula branchingFormula = pmgr.buildBranchingFormula(art);
+      Formula branchingFormula = pmgr.buildBranchingFormula(arg);
 
       if (branchingFormula.isTrue()) {
         logger.log(Level.WARNING, "Could not create error path because of missing branching informating");

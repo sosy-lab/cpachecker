@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 /**
  * Interface for components that can verify the feasibility of a counterexample.
  *
- * A counterexample is a finite set of loop-free paths in the ART that form a
- * DAG with a single source (the root element of the ART) and a single sink
+ * A counterexample is a finite set of loop-free paths in the ARG that form a
+ * DAG with a single source (the root element of the ARG) and a single sink
  * (the target element).
  */
 public interface CounterexampleChecker {

@@ -137,8 +137,8 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
   @Override
   public boolean tryForcedCovering(AbstractElement pElement, Precision pPrecision, ReachedSet pReached)
       throws CPAException, InterruptedException {
-    ARGElement artElement = (ARGElement)pElement;
-    if (artElement.isCovered()) {
+    ARGElement argElement = (ARGElement)pElement;
+    if (argElement.isCovered()) {
       return false;
     }
 
@@ -155,11 +155,11 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
     }
 
     logger.log(Level.FINER, "Starting interpolation-based forced covering.");
-    logger.log(Level.ALL, "Attempting to force-cover", artElement);
+    logger.log(Level.ALL, "Attempting to force-cover", argElement);
 
-    ARGReachedSet art = new ARGReachedSet(pReached);
+    ARGReachedSet arg = new ARGReachedSet(pReached);
 
-    List<ARGElement> parentList = ImmutableList.copyOf(getParentAbstractionElements(artElement)).reverse();
+    List<ARGElement> parentList = ImmutableList.copyOf(getParentAbstractionElements(argElement)).reverse();
     Set<ARGElement> parentSet = ImmutableSet.copyOf(parentList);
 
     for (AbstractElement reachedElement : pReached.getReached(pElement)) {
@@ -167,8 +167,8 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         continue;
       }
 
-      if (stop.stop(artElement, Collections.singleton(reachedElement), pPrecision)
-          || artElement.isCovered()) {
+      if (stop.stop(argElement, Collections.singleton(reachedElement), pPrecision)
+          || argElement.isCovered()) {
         stats.wasAlreadyCovered++;
         logger.log(Level.FINER, "Element was covered by another element without strengthening");
         return true;
@@ -194,16 +194,16 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         }
         path = Lists.reverse(path);
 
-        assert path.get(path.size()-1) == artElement : "Path does not end in the current element";
+        assert path.get(path.size()-1) == argElement : "Path does not end in the current element";
 
         // path is now the list of abstraction elements from the common ancestor
-        // of reachedElement and artElement (excluding) to artElement (including):
-        // path = ]commonParent; artElement]
+        // of reachedElement and argElement (excluding) to argElement (including):
+        // path = ]commonParent; argElement]
 
         // create list of formulas:
         // 1) state formula of commonParent instantiated with indices of commonParent
-        // 2) block formulas from commonParent to artElement
-        // 3) negated state formula of reachedElement instantiated with indices of artElement
+        // 2) block formulas from commonParent to argElement
+        // 3) negated state formula of reachedElement instantiated with indices of argElement
         List<Formula> formulas = new ArrayList<Formula>(path.size()+2);
         {
           formulas.add(getPredicateElement(commonParent).getAbstractionFormula().asInstantiatedFormula());
@@ -212,13 +212,13 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
             formulas.add(getPredicateElement(pathElement).getAbstractionFormula().getBlockFormula());
           }
 
-          SSAMap ssaMap = getPredicateElement(artElement).getPathFormula().getSsa().withDefault(1);
+          SSAMap ssaMap = getPredicateElement(argElement).getPathFormula().getSsa().withDefault(1);
           Formula stateFormula = getPredicateElement(reachedElement).getAbstractionFormula().asFormula();
           assert !stateFormula.isTrue() : "Existing element with state true would cover anyway, no forced covering needed";
           formulas.add(fmgr.makeNot(fmgr.instantiate(stateFormula, ssaMap)));
         }
 
-        path.add(0, commonParent); // now path is [commonParent; artElement] (including x and v)
+        path.add(0, commonParent); // now path is [commonParent; argElement] (including x and v)
         assert formulas.size() == path.size() + 1;
 
         CounterexampleTraceInfo<Formula> interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGElement>emptySet());
@@ -253,21 +253,21 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
             AbstractionFormula newAF = new AbstractionFormula(new SymbolicRegion(newFormula), newFormula, instantiatedNewFormula, af.getBlockFormula());
             predElement.setAbstraction(newAF);
 
-            art.removeCoverageOf(element);
+            arg.removeCoverageOf(element);
           }
         }
 
         // For debugging, run stop operator on this element.
         // However, ARGStopSep may return false although it is covered,
         // thus the second check.
-        assert stop.stop(artElement, Collections.singleton(reachedElement), pPrecision)
-            || artElement.isCovered()
-            : "Forced covering did not cover element\n" + artElement + "\nwith\n" + reachedElement;
+        assert stop.stop(argElement, Collections.singleton(reachedElement), pPrecision)
+            || argElement.isCovered()
+            : "Forced covering did not cover element\n" + argElement + "\nwith\n" + reachedElement;
 
-        if (!artElement.isCovered()) {
-          artElement.setCovered((ARGElement)reachedElement);
+        if (!argElement.isCovered()) {
+          argElement.setCovered((ARGElement)reachedElement);
         } else {
-          assert artElement.getCoveringElement() == reachedElement;
+          assert argElement.getCoveringElement() == reachedElement;
         }
 
         return true;
@@ -277,8 +277,8 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
     return false;
   }
 
-  private Iterable<ARGElement> getParentAbstractionElements(ARGElement artElement) {
-    Path pathToRoot = ARGUtils.getOnePathTo(artElement);
+  private Iterable<ARGElement> getParentAbstractionElements(ARGElement argElement) {
+    Path pathToRoot = ARGUtils.getOnePathTo(argElement);
 
     return Iterables.filter(
             Iterables.transform(pathToRoot, Pair.<ARGElement>getProjectionToFirst()),

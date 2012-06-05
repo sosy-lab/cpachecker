@@ -153,9 +153,9 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
     for (AbstractElement e: pElementsWithAssumptions) {
-      ARGElement artElement = (ARGElement)e;
+      ARGElement argElement = (ARGElement)e;
 
-      for (ARGElement parent : ImmutableSet.copyOf(artElement.getParents())){
+      for (ARGElement parent : ImmutableSet.copyOf(argElement.getParents())){
         reached.removeSubtree(parent);
       }
     }

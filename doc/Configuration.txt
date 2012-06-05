@@ -64,16 +64,16 @@ CompositeCPA.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.ex
 explicitCPA.cpa.explicit.threshold = 10
 
 A more complex example:
-cpa = cpa.arg.ARGCPA art
-art.cpa = cpa.composite.CompositeCPA composite
+cpa = cpa.arg.ARGCPA arg
+arg.cpa = cpa.composite.CompositeCPA composite
 composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.automaton.ObserverAutomatonCPA ErrorLocationAutomaton, cpa.predicate.PredicateCPA
 ErrorLocationAutomaton.cpa.automaton.inputFile = config/specification/ErrorLocation.spc
 
 Note that instead of manually specifying an ObserverAutomatonCPA, you can
 use the option "specification". The following example is identical to the last one:
 
-cpa = cpa.arg.ARGCPA art
-art.cpa = cpa.composite.CompositeCPA composite
+cpa = cpa.arg.ARGCPA arg
+arg.cpa = cpa.composite.CompositeCPA composite
 composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.predicate.PredicateCPA
 specification = config/specification/ErrorLocation.spc
 

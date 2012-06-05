@@ -75,7 +75,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
 
     private final Timer itpCheck  = new Timer();
     private final Timer coverTime = new Timer();
-    private final Timer artUpdate = new Timer();
+    private final Timer argUpdate = new Timer();
 
     @Override
     public String getName() {
@@ -87,7 +87,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
       ImpactRefiner.this.printStatistics(out, pResult, pReached);
       out.println("  Checking whether itp is new:    " + itpCheck);
       out.println("  Coverage checks:                " + coverTime);
-      out.println("  ART update:                     " + artUpdate);
+      out.println("  ARG update:                     " + argUpdate);
       out.println();
       out.println("Number of interpolants added:     " + newItpWasAdded);
       out.println("Number of non-new interpolants:   " + (itpCheck.getNumberOfIntervals() - newItpWasAdded));
@@ -223,7 +223,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
       throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
     }
 
-    stats.artUpdate.start();
+    stats.argUpdate.start();
     for (ARGElement w : changedElements) {
       pReached.removeCoverageOf(w);
     }
@@ -237,7 +237,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
       removedNode.removeFromART();
     }
     reached.removeAll(infeasibleSubtree);
-    stats.artUpdate.stop();
+    stats.argUpdate.stop();
 
     // optimization: instead of closing all ancestors of v,
     // close only those that were strengthened during refine

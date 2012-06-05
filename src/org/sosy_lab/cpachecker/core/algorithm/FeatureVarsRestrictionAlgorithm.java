@@ -93,7 +93,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
     config.inject(this);
 
     if (!(pCpa instanceof ARGCPA)) {
-      throw new InvalidConfigurationException("ART CPA needed for counterexample check");
+      throw new InvalidConfigurationException("ARG CPA needed for counterexample check");
     }
     logger.log(Level.INFO, "using the FeatureVars Restriction Algorithm");
 
@@ -198,7 +198,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
               sound &= handleInfeasibleCounterexample(reached, elementsOnErrorPath);
 
             } else if (sound) {
-              logger.log(Level.WARNING, "Infeasible counterexample found, but could not remove it from the ART. Therefore, we cannot prove safety.");
+              logger.log(Level.WARNING, "Infeasible counterexample found, but could not remove it from the ARG. Therefore, we cannot prove safety.");
               sound = false;
             }
 
@@ -245,7 +245,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
         // so this is a loop.
         // Don't add the element, because otherwise the loop would
         // get unrolled endlessly.
-        logger.log(Level.WARNING, "Infeasible counterexample found, but could not remove it from the ART due to loops in the counterexample path. Therefore, we cannot prove safety.");
+        logger.log(Level.WARNING, "Infeasible counterexample found, but could not remove it from the ARG due to loops in the counterexample path. Therefore, we cannot prove safety.");
         sound = false;
         continue;
       }
@@ -256,7 +256,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
           // we may not re-add this parent, because otherwise
           // the error-path will be re-discovered again
           // but not adding the parent is unsound
-          logger.log(Level.WARNING, "Infeasible counterexample found, but could not remove it from the ART. Therefore, we cannot prove safety.");
+          logger.log(Level.WARNING, "Infeasible counterexample found, but could not remove it from the ARG. Therefore, we cannot prove safety.");
           sound = false;
 
         } else {

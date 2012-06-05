@@ -56,7 +56,7 @@ Verifying a Program with CPAchecker
    so you need to use other analyses like explicitAnalysis.
 
 5. Additionally to the console output, there will be several files in the directory output/:
-     ART.dot: Visualization of abstract reachability tree (Graphviz format)
+     ARG.dot: Visualization of abstract reachability tree (Graphviz format)
      cfa*.dot: Visualization of control flow automaton (Graphviz format)
      counterexample.msat: Formula representation of the error path
      ErrorPath.txt: A path through the program that leads to an error

@@ -56,10 +56,10 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     if (pCpa instanceof WrapperCPA) {
       mArtCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(ARGCPA.class);
     } else {
-      throw new InvalidConfigurationException("ART CPA needed for refinement");
+      throw new InvalidConfigurationException("ARG CPA needed for refinement");
     }
     if (mArtCpa == null) {
-      throw new InvalidConfigurationException("ART CPA needed for refinement");
+      throw new InvalidConfigurationException("ARG CPA needed for refinement");
     }
     this.logger = mArtCpa.getLogger();
   }
@@ -92,10 +92,10 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
    * but it returns some more information about the refinement.
    */
   public final CounterexampleInfo performRefinementWithInfo(ReachedSet pReached) throws CPAException, InterruptedException {
-    logger.log(Level.FINEST, "Starting ART based refinement");
+    logger.log(Level.FINEST, "Starting ARG based refinement");
     mArtCpa.clearCounterexample();
 
-    assert checkART(pReached) : "ART and reached set do not match before refinement";
+    assert checkART(pReached) : "ARG and reached set do not match before refinement";
 
     AbstractElement lastElement = pReached.getLastElement();
     assert lastElement instanceof ARGElement : "Element in reached set which is not an ARGElement";
@@ -124,7 +124,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
       throw e;
     }
 
-    assert checkART(pReached) : "ART and reached set do not match after refinement";
+    assert checkART(pReached) : "ARG and reached set do not match after refinement";
 
     if (!counterexample.isSpurious()) {
       Path targetPath = counterexample.getTargetPath();
@@ -136,7 +136,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
       mArtCpa.setCounterexample(counterexample);
     }
 
-    logger.log(Level.FINEST, "ART based refinement finished, result is", counterexample.isSpurious());
+    logger.log(Level.FINEST, "ARG based refinement finished, result is", counterexample.isSpurious());
 
     return counterexample;
   }
@@ -171,7 +171,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
   private static boolean checkART(ReachedSet pReached) {
 
     Deque<AbstractElement> workList = new ArrayDeque<AbstractElement>();
-    Set<ARGElement> art = new HashSet<ARGElement>();
+    Set<ARGElement> arg = new HashSet<ARGElement>();
 
     workList.add(pReached.getFirstElement());
     while (!workList.isEmpty()) {
@@ -179,13 +179,13 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
       assert !currentElement.isDestroyed();
 
       for (ARGElement parent : currentElement.getParents()) {
-        assert parent.getChildren().contains(currentElement) : "Reference from parent to child is missing in ART";
+        assert parent.getChildren().contains(currentElement) : "Reference from parent to child is missing in ARG";
       }
       for (ARGElement child : currentElement.getChildren()) {
-        assert child.getParents().contains(currentElement) : "Reference from child to parent is missing in ART";
+        assert child.getParents().contains(currentElement) : "Reference from child to parent is missing in ARG";
       }
 
-      // check if (e \in ART) => (e \in Reached || e.isCovered())
+      // check if (e \in ARG) => (e \in Reached || e.isCovered())
       if (currentElement.isCovered()) {
         // Assertion removed because now covered states are allowed to be in the reached set.
         // But they don't need to be!
@@ -199,16 +199,16 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
         assert pReached.contains(currentElement)
             || pReached.getWaitlist().containsAll(currentElement.getParents())
-            : "Element in ART but not in reached set";
+            : "Element in ARG but not in reached set";
       }
 
-      if (art.add(currentElement)) {
+      if (arg.add(currentElement)) {
         workList.addAll(currentElement.getChildren());
       }
     }
 
-    // check if (e \in Reached) => (e \in ART)
-    assert art.containsAll(pReached.getReached()) : "Element in reached set but not in ART";
+    // check if (e \in Reached) => (e \in ARG)
+    assert arg.containsAll(pReached.getReached()) : "Element in reached set but not in ARG";
 
     return true;
   }

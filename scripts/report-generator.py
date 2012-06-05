@@ -110,11 +110,11 @@ def main():
         dest="outdir",
         help="CPAChecker output.path"
     )
-    parser.add_option("-a", "--art",
+    parser.add_option("-a", "--arg",
         action="store",
         type="string",
-        dest="art",
-        help="CPAChecker ART.file"
+        dest="arg",
+        help="CPAChecker ARG.file"
     )
     parser.add_option("-l", "--logfile",
         action="store",
@@ -158,7 +158,7 @@ def main():
     reportdir = options.reportdir or cpaoutdir
     tplfilepath = os.path.join(scriptdir, 'report-template.html')
     outfilepath = os.path.join(reportdir, 'index.html')
-    artfilepath = options.art or os.path.join(cpaoutdir, 'ART.dot')
+    argfilepath = options.arg or os.path.join(cpaoutdir, 'ARG.dot')
     errorpathgraph = options.errorpathgraph or os.path.join(cpaoutdir, 'ErrorPath.dot')
     errorpath = options.errorpath or os.path.join(cpaoutdir, 'ErrorPath.json')
     combinednodes = os.path.join(reportdir, 'combinednodes.json')
@@ -210,13 +210,13 @@ def main():
                 buff.append('</table>')
                 return ''.join(buff)
 
-    #if there is an ART.dot create an SVG in the report dir
-    if os.path.isfile(artfilepath):
-        print ('Generating SVG for ART')
-        if not call_dot(artfilepath, reportdir) and os.path.isfile(errorpathgraph):
+    #if there is an ARG.dot create an SVG in the report dir
+    if os.path.isfile(argfilepath):
+        print ('Generating SVG for ARG')
+        if not call_dot(argfilepath, reportdir) and os.path.isfile(errorpathgraph):
             if call_dot(errorpathgraph, reportdir):
                 os.rename(os.path.join(reportdir, 'ErrorPath.svg'),
-                          os.path.join(reportdir, 'ART.svg'))
+                          os.path.join(reportdir, 'ARG.svg'))
 
     inf = open(tplfilepath, 'r')
     outf = open(outfilepath, 'w')

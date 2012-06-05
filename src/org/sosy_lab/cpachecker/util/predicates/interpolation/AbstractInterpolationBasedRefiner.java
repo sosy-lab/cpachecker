@@ -174,7 +174,7 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
   /**
    * Get the block formulas from a path.
    * @param path A list of all abstraction elements
-   * @param initialElement The initial element of the analysis (= the root element of the ART)
+   * @param initialElement The initial element of the analysis (= the root element of the ARG)
    * @return A list of block formulas for this path.
    * @throws CPATransferException
    */
@@ -189,7 +189,7 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
 
       Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
       if (preds.isEmpty()) {
-        logger.log(Level.WARNING, "No information about ART branches available!");
+        logger.log(Level.WARNING, "No information about ARG branches available!");
         return null;
       }
 

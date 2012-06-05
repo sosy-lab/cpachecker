@@ -40,25 +40,25 @@ public class ARGMergeJoin implements MergeOperator {
   public AbstractElement merge(AbstractElement pElement1,
       AbstractElement pElement2, Precision pPrecision) throws CPAException {
 
-    ARGElement artElement1 = (ARGElement)pElement1;
-    ARGElement artElement2 = (ARGElement)pElement2;
+    ARGElement argElement1 = (ARGElement)pElement1;
+    ARGElement argElement2 = (ARGElement)pElement2;
 
-    assert !artElement1.isCovered() : "Trying to merge covered element " + artElement1;
+    assert !argElement1.isCovered() : "Trying to merge covered element " + argElement1;
 
-    if (!artElement2.mayCover()) {
+    if (!argElement2.mayCover()) {
       // elements that may not cover should also not be used for merge
       return pElement2;
     }
 
-    if (artElement1.getMergedWith() != null) {
-      // element was already merged into another element, don't try to widen artElement2
+    if (argElement1.getMergedWith() != null) {
+      // element was already merged into another element, don't try to widen argElement2
       // TODO In the optimal case (if all merge & stop operators as well as the reached set partitioning fit well together)
       // this case shouldn't happen, but it does sometimes (at least with ExplicitCPA+FeatureVarsCPA).
       return pElement2;
     }
 
-    AbstractElement wrappedElement1 = artElement1.getWrappedElement();
-    AbstractElement wrappedElement2 = artElement2.getWrappedElement();
+    AbstractElement wrappedElement1 = argElement1.getWrappedElement();
+    AbstractElement wrappedElement2 = argElement2.getWrappedElement();
     AbstractElement retElement = wrappedMerge.merge(wrappedElement1, wrappedElement2, pPrecision);
     if(retElement.equals(wrappedElement2)){
       return pElement2;
@@ -66,21 +66,21 @@ public class ARGMergeJoin implements MergeOperator {
 
     ARGElement mergedElement = new ARGElement(retElement, null);
 
-    // now replace artElement2 by mergedElement in ART
-    artElement2.replaceInARTWith(mergedElement);
+    // now replace argElement2 by mergedElement in ARG
+    argElement2.replaceInARTWith(mergedElement);
 
-    // and also replace artElement1 with it
-    for (ARGElement parentOfElement1 : artElement1.getParents()) {
+    // and also replace argElement1 with it
+    for (ARGElement parentOfElement1 : argElement1.getParents()) {
       mergedElement.addParent(parentOfElement1);
     }
 
-    // artElement1 is the current successor, it does not have any children yet and covered nodes yet
-    assert artElement1.getChildren().isEmpty();
-    assert artElement1.getCoveredByThis().isEmpty();
+    // argElement1 is the current successor, it does not have any children yet and covered nodes yet
+    assert argElement1.getChildren().isEmpty();
+    assert argElement1.getCoveredByThis().isEmpty();
 
-    // ArtElement1 will only be removed from ART if stop(e1, reached) returns true.
+    // ARGElement1 will only be removed from ARG if stop(e1, reached) returns true.
     // So we can't actually remove it now, but we need to remember this later.
-    artElement1.setMergedWith(mergedElement);
+    argElement1.setMergedWith(mergedElement);
     return mergedElement;
   }
 }

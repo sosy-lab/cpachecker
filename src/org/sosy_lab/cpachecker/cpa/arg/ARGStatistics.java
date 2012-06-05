@@ -49,13 +49,13 @@ import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 @Options(prefix="cpa.arg")
 public class ARGStatistics implements Statistics {
 
-  @Option(name="export", description="export final ART as .dot file")
+  @Option(name="export", description="export final ARG as .dot file")
   private boolean exportART = true;
 
   @Option(name="file",
-      description="export final ART as .dot file")
+      description="export final ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File artFile = new File("ART.dot");
+  private File argFile = new File("ARG.dot");
 
   @Option(name="errorPath.export",
       description="export error path to file, if one is found")
@@ -109,7 +109,7 @@ public class ARGStatistics implements Statistics {
 
 
     if (!(   (exportErrorPath && (errorPathFile != null))
-          || (exportART       && (artFile != null      ))
+          || (exportART       && (argFile != null      ))
        )) {
 
       // do nothing, if !(exportErrorPath || exportART)
@@ -185,12 +185,12 @@ public class ARGStatistics implements Statistics {
       }
     }
 
-    if (exportART && artFile != null) {
+    if (exportART && argFile != null) {
       try {
         ARGElement rootElement = (ARGElement)pReached.getFirstElement();
-        Files.writeFile(artFile, ARGUtils.convertARTToDot(rootElement, null, getEdgesOfPath(targetPath)));
+        Files.writeFile(argFile, ARGUtils.convertARTToDot(rootElement, null, getEdgesOfPath(targetPath)));
       } catch (IOException e) {
-        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ART to file.");
+        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file.");
       }
     }
   }

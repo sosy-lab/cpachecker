@@ -274,7 +274,7 @@ a.action:hover {
         <div id="rightContent">
             <div class="toolbar">
                 <a class="action" id="show_cfa">CFA</a>
-                <a class="action" id="show_art">ART</a>
+                <a class="action" id="show_art">ARG</a>
                 <a class="action" id="show_cil">CIL</a>
                 <a class="action" id="show_log">Log</a>
                 <a class="action" id="show_stats">Statistics</a>
@@ -310,7 +310,7 @@ a.action:hover {
                         <div id="zoomLabel_tab_art">100 %</div>
                     </div>
                     <div class="iframeWrapper">
-						<iframe name="tab_art" src="ART.svg"></iframe>
+						<iframe name="tab_art" src="ARG.svg"></iframe>
 					</div>
                 </div>
                 <div id="tab_cil">
@@ -780,7 +780,7 @@ a.action:hover {
                         if ('' + elem.source in viewer.data.fcalledges) {
                             var fcalledge = viewer.data.fcalledges['' + elem.source];
                             var substitute = {
-                                'artelem' : elem.artelem,
+                                'argelem' : elem.argelem,
                                 'source' : elem.source,
                                 'target' : parseInt(fcalledge[0], 10),
                                 'desc' : elem.desc,
@@ -789,7 +789,7 @@ a.action:hover {
                             };
                             extended.push(substitute);
                             var jumpToFunc = {
-                                'artelem' : elem.artelem,
+                                'argelem' : elem.argelem,
                                 'source' : parseInt(fcalledge[0], 10),
                                 'target' : elem.target,
                                 'desc' : '',
@@ -878,8 +878,8 @@ a.action:hover {
                 };
             })();
 
-            //the ART window
-            viewer.windows.artwin = new (function() {
+            //the ARG window
+            viewer.windows.argwin = new (function() {
                 var self = this;
 
                 //focus a cfa node - scrolls node into view and places an arrow next to the node
@@ -927,7 +927,7 @@ a.action:hover {
 
                 };
 
-                //initialize ART window - DOM must be ready
+                //initialize ARG window - DOM must be ready
                 self.init = function() {
                     console.log('tab_art -- init');
                     self.frame = window.frames['tab_art'];
@@ -1062,8 +1062,8 @@ a.action:hover {
                 if (viewer.windows.rightpane.selection == 'tab_cfa') {
                     viewer.windows.cfawin.focus_node(nodeid);
                 } else if (viewer.windows.rightpane.selection == 'tab_art') {
-                    viewer.windows.artwin.focus_node(
-                        '' + viewer.data.errorpath[errpathindex].artelem
+                    viewer.windows.argwin.focus_node(
+                        '' + viewer.data.errorpath[errpathindex].argelem
                     );
                 } else if (viewer.windows.rightpane.selection == 'tab_cil') {
                     scroll_cil(viewer.data.cfainfo.nodes[nodeid].line);
@@ -1075,8 +1075,8 @@ a.action:hover {
                     viewer.windows.cfawin.focus_node(edgeid[1]);
                     //viewer.windows.cfawin.set_edge_color(edgeid, 'red');
                 } else if (viewer.windows.rightpane.selection == 'tab_art') {
-                    viewer.windows.artwin.focus_node(
-                        '' + viewer.data.errorpath[errpathindex].artelem
+                    viewer.windows.argwin.focus_node(
+                        '' + viewer.data.errorpath[errpathindex].argelem
                     );
                 } else if (viewer.windows.rightpane.selection == 'tab_cil') {
                     scroll_cil(viewer.data.cfainfo.edges[edgeid[0] + '->' + edgeid[1]].line);
@@ -1095,11 +1095,11 @@ a.action:hover {
 
             var task = setInterval(function() {
                 //console.log('check DOMready');
-                viewer.windows.artwin.init();
-                if (viewer.windows.artwin.svgdoc && viewer.windows.artwin.svgdoc.getElementById) {
-                    console.log('ART DOM seems to be ready.');
+                viewer.windows.argwin.init();
+                if (viewer.windows.argwin.svgdoc && viewer.windows.argwin.svgdoc.getElementById) {
+                    console.log('ARG DOM seems to be ready.');
                     clearInterval(task);
-                    viewer.windows.artwin.onready();
+                    viewer.windows.argwin.onready();
                 }
             }, 1000);
 

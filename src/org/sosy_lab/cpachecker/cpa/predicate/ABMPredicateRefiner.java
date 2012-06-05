@@ -264,7 +264,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
     protected final List<Formula> getFormulasForPath(List<Pair<ARGElement, CFANode>> pPath, ARGElement initialElement) throws CPATransferException {
       // the elements in the path are not expanded, so they contain the path formulas
       // with the wrong indices
-      // we need to re-create all path formulas in the flattened ART
+      // we need to re-create all path formulas in the flattened ARG
 
       ssaRenamingTimer.start();
       try {
@@ -286,7 +286,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
       formulas.put(pRoot, pfmgr.makeEmptyPathFormula());
       todo.addAll(pRoot.getChildren());
 
-      // iterate over all elements in the ART with BFS
+      // iterate over all elements in the ARG with BFS
       outer: while (!todo.isEmpty()) {
         ARGElement currentElement = todo.pollFirst();
         if (formulas.containsKey(currentElement)) {
@@ -317,7 +317,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
           abstractionFormulas.add(currentFormula.getFormula());
 
           // start new block with empty formula
-          assert todo.isEmpty() : "todo should be empty because of the special ART structure";
+          assert todo.isEmpty() : "todo should be empty because of the special ARG structure";
           formulas.clear(); // free some memory
 
           formulas.put(currentElement, pfmgr.makeEmptyPathFormula(currentFormula));

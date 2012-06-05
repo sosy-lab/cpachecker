@@ -242,13 +242,13 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
   /**
    * Build a formula containing a predicate for all branching situations in the
-   * ART. If a satisfying assignment is created for this formula, it can be used
-   * to find out which paths in the ART are feasible.
+   * ARG. If a satisfying assignment is created for this formula, it can be used
+   * to find out which paths in the ARG are feasible.
    *
    * This method may be called with an empty set, in which case it does nothing
    * and returns the formula "true".
    *
-   * @param elementsOnPath The ART elements that should be considered.
+   * @param elementsOnPath The ARG elements that should be considered.
    * @return A formula containing a predicate for each branching.
    * @throws CPATransferException
    */
@@ -261,7 +261,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       if (pathElement.getChildren().size() > 1) {
         if (pathElement.getChildren().size() > 2) {
           // can't create branching formula
-          logger.log(Level.WARNING, "ART branching with more than two outgoing edges");
+          logger.log(Level.WARNING, "ARG branching with more than two outgoing edges");
           return fmgr.makeTrue();
         }
 
@@ -273,7 +273,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
               }
         });
         if (!Iterables.all(outgoingEdges, Predicates.instanceOf(AssumeEdge.class))) {
-          logger.log(Level.WARNING, "ART branching without AssumeEdge");
+          logger.log(Level.WARNING, "ARG branching without AssumeEdge");
           return fmgr.makeTrue();
         }
 
@@ -317,7 +317,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
    * the map key) which edge was taken (the positive or the negated one).
    *
    * @param model A satisfying assignment that should contain values for branching predicates.
-   * @return A map from ART element id to a boolean value indicating direction.
+   * @return A map from ARG element id to a boolean value indicating direction.
    */
   @Override
   public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model model) {

@@ -90,9 +90,9 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   private final ProofChecker cpa;
   private final LogManager logger;
 
-  @Option(name = "pcc.proofFile", description = "file in which ART representation needed for proof checking is stored")
+  @Option(name = "pcc.proofFile", description = "file in which ARG representation needed for proof checking is stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File file = new File("art.obj");
+  private File file = new File("arg.obj");
   private final ARGElement rootElement;
 
 
@@ -110,7 +110,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       rootElement = readART();
     } catch(Throwable e) {
       e.printStackTrace();
-      throw new RuntimeException("Failed reading ART.", e);
+      throw new RuntimeException("Failed reading ARG.", e);
     }
     this.rootElement = rootElement;
     System.gc();
@@ -148,7 +148,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       entry = zis.getNextEntry();
       assert entry.getName().equals("Proof");
       o = new ObjectInputStream(zis);
-      //read ART
+      //read ARG
       return (ARGElement)o.readObject();
     }
     finally {
