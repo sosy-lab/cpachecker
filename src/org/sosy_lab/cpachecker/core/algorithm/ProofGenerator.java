@@ -44,7 +44,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 @Options
@@ -70,7 +70,7 @@ public class ProofGenerator {
     // check result
     if (pResult.getResult() != Result.SAFE
         || reached.getFirstElement() == null
-        || !(reached.getFirstElement() instanceof ARTElement)
+        || !(reached.getFirstElement() instanceof ARGElement)
         || (extractLocation(reached.getFirstElement()) == null)) {
       logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
       return;

@@ -50,8 +50,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -77,7 +77,7 @@ public class PathToCTranslator {
 
   private PathToCTranslator() { }
 
-  public static String translatePaths(ARTElement artRoot, Set<ARTElement> elementsOnErrorPath) {
+  public static String translatePaths(ARGElement artRoot, Set<ARGElement> elementsOnErrorPath) {
     PathToCTranslator translator = new PathToCTranslator();
 
     translator.translatePaths0(artRoot, elementsOnErrorPath);
@@ -109,7 +109,7 @@ public class PathToCTranslator {
   }
 
 
-  private void translatePaths0(final ARTElement firstElement, Set<ARTElement> elementsOnPath) {
+  private void translatePaths0(final ARGElement firstElement, Set<ARGElement> elementsOnPath) {
     // waitlist for the edges to be processed
     List<Edge> waitlist = new ArrayList<Edge>();
 
@@ -138,7 +138,7 @@ public class PathToCTranslator {
     }
   }
 
-  private String startFunction(ARTElement firstFunctionElement, Stack<FunctionBody> functionStack) {
+  private String startFunction(ARGElement firstFunctionElement, Stack<FunctionBody> functionStack) {
     // create the first stack element using the first element of the function
     FunctionDefinitionNode functionStartNode = (FunctionDefinitionNode)extractLocation(firstFunctionElement);
     String freshFunctionName = getFreshFunctionName(functionStartNode);
@@ -159,9 +159,9 @@ public class PathToCTranslator {
 
   private void translateSinglePath0(Path pPath) {
     assert pPath.size() >= 1;
-    Iterator<Pair<ARTElement, CFAEdge>> pathIt = pPath.iterator();
-    Pair<ARTElement, CFAEdge> parentPair = pathIt.next();
-    ARTElement firstElement = parentPair.getFirst();
+    Iterator<Pair<ARGElement, CFAEdge>> pathIt = pPath.iterator();
+    Pair<ARGElement, CFAEdge> parentPair = pathIt.next();
+    ARGElement firstElement = parentPair.getFirst();
 
     Stack<FunctionBody> functionStack = new Stack<FunctionBody>();
 
@@ -169,10 +169,10 @@ public class PathToCTranslator {
     startFunction(firstElement, functionStack);
 
     while (pathIt.hasNext()) {
-      Pair<ARTElement, CFAEdge> nextPair = pathIt.next();
+      Pair<ARGElement, CFAEdge> nextPair = pathIt.next();
 
       CFAEdge currentCFAEdge = parentPair.getSecond();
-      ARTElement childElement = nextPair.getFirst();
+      ARGElement childElement = nextPair.getFirst();
 
       processEdge(childElement, currentCFAEdge, functionStack);
 
@@ -180,8 +180,8 @@ public class PathToCTranslator {
     }
   }
 
-  private Collection<Edge> handleEdge(Edge nextEdge, Map<Integer, MergeNode> mergeNodes, Set<ARTElement> elementsOnPath) {
-    ARTElement childElement = nextEdge.getChildElement();
+  private Collection<Edge> handleEdge(Edge nextEdge, Map<Integer, MergeNode> mergeNodes, Set<ARGElement> elementsOnPath) {
+    ARGElement childElement = nextEdge.getChildElement();
     CFAEdge edge = nextEdge.getEdge();
     Stack<FunctionBody> functionStack = nextEdge.getStack();
 
@@ -240,16 +240,16 @@ public class PathToCTranslator {
   }
 
   private Collection<Edge> getRelevantChildrenOfElement(
-      ARTElement currentElement, Stack<FunctionBody> functionStack,
-      Set<ARTElement> elementsOnPath) {
+      ARGElement currentElement, Stack<FunctionBody> functionStack,
+      Set<ARGElement> elementsOnPath) {
     // find the next elements to add to the waitlist
 
-    Set<ARTElement> relevantChildrenOfElement = Sets.intersection(currentElement.getChildren(), elementsOnPath).immutableCopy();
+    Set<ARGElement> relevantChildrenOfElement = Sets.intersection(currentElement.getChildren(), elementsOnPath).immutableCopy();
 
     // if there is only one child on the path
     if (relevantChildrenOfElement.size() == 1) {
       // get the next ART element, create a new edge using the same stack and add it to the waitlist
-      ARTElement elem = Iterables.getOnlyElement(relevantChildrenOfElement);
+      ARGElement elem = Iterables.getOnlyElement(relevantChildrenOfElement);
       CFAEdge e = currentElement.getEdgeToChild(elem);
       Edge newEdge = new Edge(elem, e, functionStack);
       return Collections.singleton(newEdge);
@@ -260,7 +260,7 @@ public class PathToCTranslator {
       assert relevantChildrenOfElement.size() == 2;
       Collection<Edge> result = new ArrayList<Edge>(2);
       int ind = 0;
-      for (ARTElement elem: relevantChildrenOfElement) {
+      for (ARGElement elem: relevantChildrenOfElement) {
         Stack<FunctionBody> newStack = cloneStack(functionStack);
         CFAEdge e = currentElement.getEdgeToChild(elem);
         FunctionBody currentFunction = newStack.peek();
@@ -321,7 +321,7 @@ public class PathToCTranslator {
   }
 
 
-  private void processEdge(ARTElement childElement, CFAEdge edge, Stack<FunctionBody> functionStack) {
+  private void processEdge(ARGElement childElement, CFAEdge edge, Stack<FunctionBody> functionStack) {
     FunctionBody currentFunction = functionStack.peek();
 
     if (childElement.isTarget()) {

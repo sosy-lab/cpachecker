@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.art;
+package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,8 +46,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 
-@Options(prefix="cpa.art")
-public class ARTStatistics implements Statistics {
+@Options(prefix="cpa.arg")
+public class ARGStatistics implements Statistics {
 
   @Option(name="export", description="export final ART as .dot file")
   private boolean exportART = true;
@@ -91,9 +91,9 @@ public class ARTStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File errorPathGraphFile = new File("ErrorPath.dot");
 
-  private final ARTCPA cpa;
+  private final ARGCPA cpa;
 
-  public ARTStatistics(Configuration config, ARTCPA cpa) throws InvalidConfigurationException {
+  public ARGStatistics(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
     config.inject(this);
     this.cpa = cpa;
   }
@@ -133,9 +133,9 @@ public class ARTStatistics implements Statistics {
         // This is imprecise if there are several paths in the ARG,
         // because we randomly select one existing path,
         // but this path may actually be infeasible.
-        ARTElement lastElement = (ARTElement)pReached.getLastElement();
+        ARGElement lastElement = (ARGElement)pReached.getLastElement();
         if (lastElement != null && lastElement.isTarget()) {
-          targetPath = ARTUtils.getOnePathTo(lastElement);
+          targetPath = ARGUtils.getOnePathTo(lastElement);
         }
       }
 
@@ -148,8 +148,8 @@ public class ARTStatistics implements Statistics {
           ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
           Path shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
 
-          ARTElement rootElement = targetPath.getFirst().getFirst();
-          Set<ARTElement> pathElements;
+          ARGElement rootElement = targetPath.getFirst().getFirst();
+          Set<ARGElement> pathElements;
           String pathProgram;
           if (counterexample != null && counterexample.getTargetPath() != null) {
             // precise error path
@@ -161,8 +161,8 @@ public class ARTStatistics implements Statistics {
             // For the text export, we have no other chance,
             // but for the C code and graph export we use all existing paths
             // to avoid this problem.
-            ARTElement lastElement = (ARTElement)pReached.getLastElement();
-            pathElements = ARTUtils.getAllElementsOnPathsTo(lastElement);
+            ARGElement lastElement = (ARGElement)pReached.getLastElement();
+            pathElements = ARGUtils.getAllElementsOnPathsTo(lastElement);
             pathProgram = PathToCTranslator.translatePaths(rootElement, pathElements);
           }
 
@@ -170,7 +170,7 @@ public class ARTStatistics implements Statistics {
           writeErrorPathFile(errorPathCoreFile, shrinkedErrorPath);
           writeErrorPathFile(errorPathSourceFile, pathProgram);
           writeErrorPathFile(errorPathJson, targetPath.toJSON());
-          writeErrorPathFile(errorPathGraphFile, ARTUtils.convertARTToDot(rootElement, pathElements, getEdgesOfPath(targetPath)));
+          writeErrorPathFile(errorPathGraphFile, ARGUtils.convertARTToDot(rootElement, pathElements, getEdgesOfPath(targetPath)));
 
           if (assignment != null) {
             writeErrorPathFile(errorPathAssignment, assignment);
@@ -187,8 +187,8 @@ public class ARTStatistics implements Statistics {
 
     if (exportART && artFile != null) {
       try {
-        ARTElement rootElement = (ARTElement)pReached.getFirstElement();
-        Files.writeFile(artFile, ARTUtils.convertARTToDot(rootElement, null, getEdgesOfPath(targetPath)));
+        ARGElement rootElement = (ARGElement)pReached.getFirstElement();
+        Files.writeFile(artFile, ARGUtils.convertARTToDot(rootElement, null, getEdgesOfPath(targetPath)));
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ART to file.");
       }
@@ -206,17 +206,17 @@ public class ARTStatistics implements Statistics {
     }
   }
 
-  private static Set<Pair<ARTElement, ARTElement>> getEdgesOfPath(Path pPath) {
+  private static Set<Pair<ARGElement, ARGElement>> getEdgesOfPath(Path pPath) {
     if (pPath == null) {
       return Collections.emptySet();
     }
 
-    Set<Pair<ARTElement, ARTElement>> result = new HashSet<Pair<ARTElement, ARTElement>>(pPath.size());
-    Iterator<Pair<ARTElement, CFAEdge>> it = pPath.iterator();
+    Set<Pair<ARGElement, ARGElement>> result = new HashSet<Pair<ARGElement, ARGElement>>(pPath.size());
+    Iterator<Pair<ARGElement, CFAEdge>> it = pPath.iterator();
     assert it.hasNext();
-    ARTElement lastElement = it.next().getFirst();
+    ARGElement lastElement = it.next().getFirst();
     while (it.hasNext()) {
-      ARTElement currentElement = it.next().getFirst();
+      ARGElement currentElement = it.next().getFirst();
       result.add(Pair.of(lastElement, currentElement));
       lastElement = currentElement;
     }

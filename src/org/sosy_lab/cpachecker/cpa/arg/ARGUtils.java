@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
 */
-package org.sosy_lab.cpachecker.cpa.art;
+package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
@@ -50,9 +50,9 @@ import com.google.common.collect.Iterables;
 /**
  * Helper class with collection of ART related utility methods.
  */
-public class ARTUtils {
+public class ARGUtils {
 
-  private ARTUtils() { }
+  private ARGUtils() { }
 
   /**
    * Get all elements on all paths from the ART root to a given element.
@@ -60,17 +60,17 @@ public class ARTUtils {
    * @param pLastElement The last element in the paths.
    * @return A set of elements, all of which have pLastElement as their (transitive) child.
    */
-  public static Set<ARTElement> getAllElementsOnPathsTo(ARTElement pLastElement) {
+  public static Set<ARGElement> getAllElementsOnPathsTo(ARGElement pLastElement) {
 
-    Set<ARTElement> result = new HashSet<ARTElement>();
-    Deque<ARTElement> waitList = new ArrayDeque<ARTElement>();
+    Set<ARGElement> result = new HashSet<ARGElement>();
+    Deque<ARGElement> waitList = new ArrayDeque<ARGElement>();
 
     result.add(pLastElement);
     waitList.add(pLastElement);
 
     while (!waitList.isEmpty()) {
-      ARTElement currentElement = waitList.poll();
-      for (ARTElement parent : currentElement.getParents()) {
+      ARGElement currentElement = waitList.poll();
+      for (ARGElement parent : currentElement.getParents()) {
         if (result.add(parent)) {
           waitList.push(parent);
         }
@@ -87,54 +87,54 @@ public class ARTUtils {
    * @param pLastElement The last element in the path.
    * @return A path from root to lastElement.
    */
-  public static Path getOnePathTo(ARTElement pLastElement) {
+  public static Path getOnePathTo(ARGElement pLastElement) {
     Path path = new Path();
-    Set<ARTElement> seenElements = new HashSet<ARTElement>();
+    Set<ARGElement> seenElements = new HashSet<ARGElement>();
 
     // each element of the path consists of the abstract element and the outgoing
     // edge to its successor
 
-    ARTElement currentARTElement = pLastElement;
+    ARGElement currentARGElement = pLastElement;
     // add the error node and its -first- outgoing edge
     // that edge is not important so we pick the first even
     // if there are more outgoing edges
-    CFANode loc = extractLocation(currentARTElement);
+    CFANode loc = extractLocation(currentARGElement);
     CFAEdge lastEdge = null;
     if (loc.getNumLeavingEdges() > 0) {
       lastEdge = loc.getLeavingEdge(0);
     }
-    path.addFirst(Pair.of(currentARTElement, lastEdge));
-    seenElements.add(currentARTElement);
+    path.addFirst(Pair.of(currentARGElement, lastEdge));
+    seenElements.add(currentARGElement);
 
-    while (!currentARTElement.getParents().isEmpty()) {
-      Iterator<ARTElement> parents = currentARTElement.getParents().iterator();
+    while (!currentARGElement.getParents().isEmpty()) {
+      Iterator<ARGElement> parents = currentARGElement.getParents().iterator();
 
-      ARTElement parentElement = parents.next();
+      ARGElement parentElement = parents.next();
       while (!seenElements.add(parentElement) && parents.hasNext()) {
         // while seenElements already contained parentElement, try next parent
         parentElement = parents.next();
       }
 
-      CFAEdge edge = parentElement.getEdgeToChild(currentARTElement);
+      CFAEdge edge = parentElement.getEdgeToChild(currentARGElement);
       path.addFirst(Pair.of(parentElement, edge));
 
-      currentARTElement = parentElement;
+      currentARGElement = parentElement;
     }
     return path;
   }
 
   /**
    * Get the set of all elements covered by any of the given elements,
-   * i.e., the union of calling {@link ARTElement#getCoveredByThis()} on all
+   * i.e., the union of calling {@link ARGElement#getCoveredByThis()} on all
    * elements.
    *
    * However, elements in the given set are never in the returned set.
    * If you pass in a subtree, this will return exactly the set of covering
    * edges which enter the subtree.
    */
-  public static Set<ARTElement> getCoveredBy(Set<ARTElement> elements) {
-    Set<ARTElement> result = new HashSet<ARTElement>();
-    for (ARTElement element : elements) {
+  public static Set<ARGElement> getCoveredBy(Set<ARGElement> elements) {
+    Set<ARGElement> result = new HashSet<ARGElement>();
+    for (ARGElement element : elements) {
       result.addAll(element.getCoveredByThis());
     }
 
@@ -142,7 +142,7 @@ public class ARTUtils {
     return result;
   }
 
-  private static String determineColor(ARTElement currentElement)
+  private static String determineColor(ARGElement currentElement)
   {
     String color;
 
@@ -171,12 +171,12 @@ public class ARTUtils {
    * @param highlightedEdges Set of edges to highlight in the graph.
    * @return the ART as DOT graph
    */
-  public static String convertARTToDot(final ARTElement rootElement,
-      final Set<ARTElement> displayedElements,
-      final Set<Pair<ARTElement, ARTElement>> highlightedEdges) {
-    Deque<ARTElement> worklist = new LinkedList<ARTElement>();
+  public static String convertARTToDot(final ARGElement rootElement,
+      final Set<ARGElement> displayedElements,
+      final Set<Pair<ARGElement, ARGElement>> highlightedEdges) {
+    Deque<ARGElement> worklist = new LinkedList<ARGElement>();
     Set<Integer> nodesList = new HashSet<Integer>();
-    Set<ARTElement> processed = new HashSet<ARTElement>();
+    Set<ARGElement> processed = new HashSet<ARGElement>();
     StringBuilder sb = new StringBuilder();
     StringBuilder edges = new StringBuilder();
 
@@ -187,7 +187,7 @@ public class ARTUtils {
     worklist.add(rootElement);
 
     while(worklist.size() != 0){
-      ARTElement currentElement = worklist.removeLast();
+      ARGElement currentElement = worklist.removeLast();
       if(processed.contains(currentElement)){
         continue;
       }
@@ -215,14 +215,14 @@ public class ARTUtils {
         nodesList.add(currentElement.getElementId());
       }
 
-      for (ARTElement covered : currentElement.getCoveredByThis()) {
+      for (ARGElement covered : currentElement.getCoveredByThis()) {
         edges.append(covered.getElementId());
         edges.append(" -> ");
         edges.append(currentElement.getElementId());
         edges.append(" [style=\"dashed\" label=\"covered by\"]\n");
       }
 
-      for (ARTElement child : currentElement.getChildren()) {
+      for (ARGElement child : currentElement.getChildren()) {
         edges.append(currentElement.getElementId());
         edges.append(" -> ");
         edges.append(child.getElementId());
@@ -262,7 +262,7 @@ public class ARTUtils {
     return sb.toString();
   }
 
-  private static String determineLabel(ARTElement currentElement) {
+  private static String determineLabel(ARGElement currentElement) {
     StringBuilder builder = new StringBuilder();
 
     builder.append(currentElement.getElementId());
@@ -310,17 +310,17 @@ public class ARTUtils {
    * @throws IllegalArgumentException If the direction information doesn't match the ART or the ART is inconsistent.
    */
   public static Path getPathFromBranchingInformation(
-      ARTElement root, Collection<? extends AbstractElement> art,
+      ARGElement root, Collection<? extends AbstractElement> art,
       Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
 
     checkArgument(art.contains(root));
 
     Path result = new Path();
-    ARTElement currentElement = root;
+    ARGElement currentElement = root;
     while (!currentElement.isTarget()) {
-      Set<ARTElement> children = currentElement.getChildren();
+      Set<ARGElement> children = currentElement.getChildren();
 
-      ARTElement child;
+      ARGElement child;
       CFAEdge edge;
       switch (children.size()) {
 
@@ -336,10 +336,10 @@ public class ARTUtils {
         // first, find out the edges and the children
         CFAEdge trueEdge = null;
         CFAEdge falseEdge = null;
-        ARTElement trueChild = null;
-        ARTElement falseChild = null;
+        ARGElement trueChild = null;
+        ARGElement falseChild = null;
 
-        for (ARTElement currentChild : children) {
+        for (ARGElement currentChild : children) {
           CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
           if (!(currentEdge instanceof AssumeEdge)) {
             throw new IllegalArgumentException("ART branches where there is no AssumeEdge!");
@@ -413,7 +413,7 @@ public class ARTUtils {
    * @throws IllegalArgumentException If the direction information doesn't match the ART or the ART is inconsistent.
    */
   public static Path getPathFromBranchingInformation(
-      ARTElement root, ARTElement target, Collection<? extends AbstractElement> art,
+      ARGElement root, ARGElement target, Collection<? extends AbstractElement> art,
       Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
 
     checkArgument(art.contains(target));

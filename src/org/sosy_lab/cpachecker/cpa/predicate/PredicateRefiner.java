@@ -48,9 +48,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -74,7 +74,7 @@ import com.google.common.collect.Multimap;
  * and removing the relevant parts of the ART).
  */
 @Options(prefix="cpa.predicate.refinement")
-public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARTElement, CFANode>> implements StatisticsProvider {
+public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARGElement, CFANode>> implements StatisticsProvider {
 
   @Option(description="refinement will add all discovered predicates "
           + "to all the locations in the abstract trace")
@@ -126,10 +126,10 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
   }
 
   @Override
-  protected final List<Pair<ARTElement, CFANode>> transformPath(Path pPath) {
-    List<Pair<ARTElement, CFANode>> result = Lists.newArrayList();
+  protected final List<Pair<ARGElement, CFANode>> transformPath(Path pPath) {
+    List<Pair<ARGElement, CFANode>> result = Lists.newArrayList();
 
-    for (ARTElement ae : skip(transform(pPath, Pair.<ARTElement>getProjectionToFirst()), 1)) {
+    for (ARGElement ae : skip(transform(pPath, Pair.<ARGElement>getProjectionToFirst()), 1)) {
       PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
       if (pe.isAbstractionElement()) {
         CFANode loc = AbstractElements.extractLocation(ae);
@@ -151,21 +151,21 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
                   };
 
   @Override
-  protected List<Formula> getFormulasForPath(List<Pair<ARTElement, CFANode>> path, ARTElement initialElement) throws CPATransferException {
+  protected List<Formula> getFormulasForPath(List<Pair<ARGElement, CFANode>> path, ARGElement initialElement) throws CPATransferException {
 
     List<Formula> formulas = transform(path,
         Functions.compose(
             GET_BLOCK_FORMULA,
         Functions.compose(
             AbstractElements.extractElementByTypeFunction(PredicateAbstractElement.class),
-            Pair.<ARTElement>getProjectionToFirst())));
+            Pair.<ARGElement>getProjectionToFirst())));
 
     return formulas;
   }
 
   @Override
-  protected void performRefinement(ARTReachedSet pReached,
-      List<Pair<ARTElement, CFANode>> pPath,
+  protected void performRefinement(ARGReachedSet pReached,
+      List<Pair<ARGElement, CFANode>> pPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pCounterexample,
       boolean pRepeatedCounterexample) throws CPAException {
 
@@ -179,7 +179,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
       throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
     }
 
-    Pair<ARTElement, PredicatePrecision> refinementResult =
+    Pair<ARGElement, PredicatePrecision> refinementResult =
             performRefinement(oldPredicatePrecision, pPath, pCounterexample, pRepeatedCounterexample);
     precisionUpdate.stop();
 
@@ -190,15 +190,15 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     artUpdate.stop();
   }
 
-  private Pair<ARTElement, PredicatePrecision> performRefinement(PredicatePrecision oldPrecision,
-      List<Pair<ARTElement, CFANode>> pPath,
+  private Pair<ARGElement, PredicatePrecision> performRefinement(PredicatePrecision oldPrecision,
+      List<Pair<ARGElement, CFANode>> pPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo,
       boolean pRepeatedCounterexample) throws CPAException {
 
     List<Collection<AbstractionPredicate>> newPreds = pInfo.getPredicatesForRefinement();
 
     // target element is not really an interpolation point, exclude it
-    List<Pair<ARTElement, CFANode>> interpolationPoints = pPath.subList(0, pPath.size()-1);
+    List<Pair<ARGElement, CFANode>> interpolationPoints = pPath.subList(0, pPath.size()-1);
     assert interpolationPoints.size() == newPreds.size();
 
     Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPrecision.getPredicateMap();
@@ -206,7 +206,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
 
     boolean predicatesFound = false;
     boolean newPredicatesFound = false;
-    Pair<ARTElement, CFANode> firstInterpolationPoint = null;
+    Pair<ARGElement, CFANode> firstInterpolationPoint = null;
     ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
 
     pmapBuilder.putAll(oldPredicateMap);
@@ -214,7 +214,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     // iterate through interpolationPoints and find first point with new predicates, from there we have to cut the ART
     // also build new precision
     int i = 0;
-    for (Pair<ARTElement, CFANode> interpolationPoint : interpolationPoints) {
+    for (Pair<ARGElement, CFANode> interpolationPoint : interpolationPoints) {
       Collection<AbstractionPredicate> localPreds = newPreds.get(i++);
 
       if (localPreds.size() > 0) {
@@ -261,7 +261,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     // My benchmark showed, that at least for the benchmarks-lbe examples it is
     // best to use strategy one iff newPredicatesFound.
 
-    ARTElement root = null;
+    ARGElement root = null;
     if (newPredicatesFound) {
       root = firstInterpolationPoint.getFirst();
 
@@ -280,7 +280,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
 
       // find first element in path with location == loc,
       // this is not necessary equal to firstInterpolationPoint.getFirst()
-      for (Pair<ARTElement, CFANode> abstractionPoint : pPath) {
+      for (Pair<ARGElement, CFANode> abstractionPoint : pPath) {
         if (abstractionPoint.getSecond().equals(loc)) {
           root = abstractionPoint.getFirst();
           break;

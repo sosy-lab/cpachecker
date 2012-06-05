@@ -21,24 +21,24 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.art;
+package org.sosy_lab.cpachecker.cpa.arg;
 
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class ARTSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
+public class ARGSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
 
   private final SimplePrecisionAdjustment wrappedPrecAdjustment;
 
-  public ARTSimplePrecisionAdjustment(SimplePrecisionAdjustment pWrappedPrecAdjustment) {
+  public ARGSimplePrecisionAdjustment(SimplePrecisionAdjustment pWrappedPrecAdjustment) {
     wrappedPrecAdjustment = pWrappedPrecAdjustment;
   }
 
   @Override
   public Action prec(AbstractElement pElement, Precision pPrecision) throws CPAException {
-    ARTElement element = (ARTElement)pElement;
+    ARGElement element = (ARGElement)pElement;
 
     return wrappedPrecAdjustment.prec(element.getWrappedElement(), pPrecision);
   }

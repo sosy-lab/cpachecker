@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.art;
+package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -42,12 +42,12 @@ import com.google.common.collect.ImmutableList;
  * relations between the elements, and enforces a correct ART when the set is
  * modified through this wrapper.
  */
-public class ARTReachedSet {
+public class ARGReachedSet {
 
   private final ReachedSet mReached;
 //  private final UnmodifiableReachedSet mUnmodifiableReached;
 
-  public ARTReachedSet(ReachedSet pReached) {
+  public ARGReachedSet(ReachedSet pReached) {
     mReached = checkNotNull(pReached);
 //    mUnmodifiableReached = new UnmodifiableReachedSetWrapper(mReached);
   }
@@ -63,25 +63,25 @@ public class ARTReachedSet {
    *
    * @param e The root of the removed subtree, may not be the initial element.
    */
-  public void removeSubtree(ARTElement e) {
-    Set<ARTElement> toWaitlist = removeSubtree0(e);
+  public void removeSubtree(ARGElement e) {
+    Set<ARGElement> toWaitlist = removeSubtree0(e);
 
-    for (ARTElement ae : toWaitlist) {
+    for (ARGElement ae : toWaitlist) {
       mReached.reAddToWaitlist(ae);
     }
   }
 
   /**
-   * Like {@link #removeSubtree(ARTElement)}, but when re-adding elements to the
+   * Like {@link #removeSubtree(ARGElement)}, but when re-adding elements to the
    * waitlist adapts precisions with respect to the supplied precision p (see
-   * {@link #adaptPrecision(ARTElement, Precision)}).
+   * {@link #adaptPrecision(ARGElement, Precision)}).
    * @param e The root of the removed subtree, may not be the initial element.
    * @param p The new precision.
    */
-  public void removeSubtree(ARTElement e, Precision p) {
-    Set<ARTElement> toWaitlist = removeSubtree0(e);
+  public void removeSubtree(ARGElement e, Precision p) {
+    Set<ARGElement> toWaitlist = removeSubtree0(e);
 
-    for (ARTElement ae : toWaitlist) {
+    for (ARGElement ae : toWaitlist) {
       mReached.updatePrecision(ae, adaptPrecision(ae, p));
       mReached.reAddToWaitlist(ae);
     }
@@ -92,33 +92,33 @@ public class ARTReachedSet {
    * If the stored precision is a wrapper precision, pNewPrecision replaces the
    * component of the wrapper precision that corresponds to pNewPrecision.
    * Otherwise, pNewPrecision replaces the stored precision.
-   * @param pARTElement Reached element for which the precision has to be adapted.
+   * @param pARGElement Reached element for which the precision has to be adapted.
    * @param pNewPrecision New precision.
    * @return The adapted precision.
    */
-  private Precision adaptPrecision(ARTElement pARTElement, Precision pNewPrecision) {
-    Precision lOldPrecision = mReached.getPrecision(pARTElement);
+  private Precision adaptPrecision(ARGElement pARGElement, Precision pNewPrecision) {
+    Precision lOldPrecision = mReached.getPrecision(pARGElement);
 
     return Precisions.replaceByType(lOldPrecision, pNewPrecision, pNewPrecision.getClass());
   }
 
-  private Set<ARTElement> removeSubtree0(ARTElement e) {
+  private Set<ARGElement> removeSubtree0(ARGElement e) {
     Preconditions.checkNotNull(e);
     Preconditions.checkArgument(!e.getParents().isEmpty(), "May not remove the initial element from the ART/reached set");
 
-    Set<ARTElement> toUnreach = e.getSubtree();
+    Set<ARGElement> toUnreach = e.getSubtree();
 
     // collect all elements covered by the subtree
-    List<ARTElement> newToUnreach = new ArrayList<ARTElement>();
+    List<ARGElement> newToUnreach = new ArrayList<ARGElement>();
 
-    for (ARTElement ae : toUnreach) {
+    for (ARGElement ae : toUnreach) {
       newToUnreach.addAll(ae.getCoveredByThis());
     }
     toUnreach.addAll(newToUnreach);
 
     mReached.removeAll(toUnreach);
 
-    Set<ARTElement> toWaitlist = removeSet(toUnreach);
+    Set<ARGElement> toWaitlist = removeSet(toUnreach);
 
     return toWaitlist;
   }
@@ -133,11 +133,11 @@ public class ARTReachedSet {
    * @param elements the elements to remove
    * @return the elements to re-add to the waitlist
    */
-  private static Set<ARTElement> removeSet(Set<ARTElement> elements) {
-    Set<ARTElement> toWaitlist = new LinkedHashSet<ARTElement>();
-    for (ARTElement ae : elements) {
+  private static Set<ARGElement> removeSet(Set<ARGElement> elements) {
+    Set<ARGElement> toWaitlist = new LinkedHashSet<ARGElement>();
+    for (ARGElement ae : elements) {
 
-      for (ARTElement parent : ae.getParents()) {
+      for (ARGElement parent : ae.getParents()) {
         if (!elements.contains(parent)) {
           toWaitlist.add(parent);
         }
@@ -155,8 +155,8 @@ public class ARTReachedSet {
    *
    * Call this method when you have changed (strengthened) an abstract element.
    */
-  public void removeCoverageOf(ARTElement v) {
-    for (ARTElement coveredByChildOfV : ImmutableList.copyOf(v.getCoveredByThis())) {
+  public void removeCoverageOf(ARGElement v) {
+    for (ARGElement coveredByChildOfV : ImmutableList.copyOf(v.getCoveredByThis())) {
       uncover(coveredByChildOfV);
     }
     assert v.getCoveredByThis().isEmpty();
@@ -166,15 +166,15 @@ public class ARTReachedSet {
    * Mark a covered element as non-covered.
    * This method also re-adds all leaves in that part of the ART to the waitlist.
    *
-   * @param element The covered ARTElement to uncover.
+   * @param element The covered ARGElement to uncover.
    */
-  public void uncover(ARTElement element) {
+  public void uncover(ARGElement element) {
     element.uncover();
 
     // this is the subtree of elements which now become uncovered
-    Set<ARTElement> uncoveredSubTree = element.getSubtree();
+    Set<ARGElement> uncoveredSubTree = element.getSubtree();
 
-    for (ARTElement e : uncoveredSubTree) {
+    for (ARGElement e : uncoveredSubTree) {
       assert !e.isCovered();
 
       e.setCovering();
@@ -186,11 +186,11 @@ public class ARTReachedSet {
     }
   }
 
-  public static class ForwardingARTReachedSet extends ARTReachedSet {
+  public static class ForwardingARTReachedSet extends ARGReachedSet {
 
-    protected final ARTReachedSet delegate;
+    protected final ARGReachedSet delegate;
 
-    public ForwardingARTReachedSet(ARTReachedSet pReached) {
+    public ForwardingARTReachedSet(ARGReachedSet pReached) {
       super(pReached.mReached);
       delegate = pReached;
     }
@@ -201,12 +201,12 @@ public class ARTReachedSet {
     }
 
     @Override
-    public void removeSubtree(ARTElement pE) {
+    public void removeSubtree(ARGElement pE) {
       delegate.removeSubtree(pE);
     }
 
     @Override
-    public void removeSubtree(ARTElement pE, Precision pP) {
+    public void removeSubtree(ARGElement pE, Precision pP) {
       delegate.removeSubtree(pE, pP);
     }
   }

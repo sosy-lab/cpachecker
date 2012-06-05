@@ -30,7 +30,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 
 import com.google.common.collect.Lists;
 

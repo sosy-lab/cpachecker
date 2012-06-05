@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Functions;
@@ -51,7 +51,7 @@ class FunctionPointerPrecisionAdjustment implements PrecisionAdjustment {
     FunctionPointerElement element = (FunctionPointerElement)pElement;
 
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
-        pElements,  ARTElement.getUnwrapFunction(), Functions.<Precision>identity());
+        pElements,  ARGElement.getUnwrapFunction(), Functions.<Precision>identity());
 
     AbstractElement oldElement = element.getWrappedElement();
 

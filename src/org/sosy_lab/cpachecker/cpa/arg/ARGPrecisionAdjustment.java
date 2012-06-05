@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.art;
+package org.sosy_lab.cpachecker.cpa.arg;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -34,11 +34,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 
-public class ARTPrecisionAdjustment implements PrecisionAdjustment {
+public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
   private final PrecisionAdjustment wrappedPrecAdjustment;
 
-  public ARTPrecisionAdjustment(PrecisionAdjustment pWrappedPrecAdjustment) {
+  public ARGPrecisionAdjustment(PrecisionAdjustment pWrappedPrecAdjustment) {
     wrappedPrecAdjustment = pWrappedPrecAdjustment;
   }
 
@@ -46,11 +46,11 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
   public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement,
       Precision oldPrecision, UnmodifiableReachedSet pElements) throws CPAException {
 
-    Preconditions.checkArgument(pElement instanceof ARTElement);
-    ARTElement element = (ARTElement)pElement;
+    Preconditions.checkArgument(pElement instanceof ARGElement);
+    ARGElement element = (ARGElement)pElement;
 
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
-        pElements,  ARTElement.getUnwrapFunction(), Functions.<Precision>identity());
+        pElements,  ARGElement.getUnwrapFunction(), Functions.<Precision>identity());
 
     AbstractElement oldElement = element.getWrappedElement();
 
@@ -65,7 +65,7 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
       return Triple.of(pElement, oldPrecision, action);
     }
 
-    ARTElement resultElement = new ARTElement(newElement, null);
+    ARGElement resultElement = new ARGElement(newElement, null);
 
     element.replaceInARTWith(resultElement); // this completely eliminates element
 

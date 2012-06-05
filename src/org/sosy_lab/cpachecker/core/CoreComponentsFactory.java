@@ -65,7 +65,7 @@ class CoreComponentsFactory {
 
   @Option(description = "use CEGAR algorithm for lazy counter-example guided analysis"
         + "\nYou need to specify a refiner with the cegar.refiner option."
-        + "\nCurrently all refiner require the use of the ARTCPA.")
+        + "\nCurrently all refiner require the use of the ARGCPA.")
   private boolean useRefinement = false;
 
   @Option(description="use CBMC to double-check counter-examples")

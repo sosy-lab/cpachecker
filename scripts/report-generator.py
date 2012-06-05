@@ -132,13 +132,13 @@ def main():
         action="store",
         type="string",
         dest="errorpath",
-        help="CPAChecker cpa.art.errorPath.json"
+        help="CPAChecker cpa.arg.errorPath.json"
     )
     parser.add_option("-g", "--errorpathgraph",
         action="store",
         type="string",
         dest="errorpathgraph",
-        help="CPAChecker cpa.art.errorPath.graph"
+        help="CPAChecker cpa.arg.errorPath.graph"
     )
     parser.add_option("-c", "--config",
         action="store",

@@ -45,9 +45,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictPathChecker;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -74,7 +74,7 @@ import com.google.common.collect.HashMultimap;
 
 @Options(prefix="cpa.explict.refiner")
 public class DelegatingExplicitRefiner
-  extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARTElement, CFANode>> {
+  extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARGElement, CFANode>> {
 
   private final boolean predicateCpaAvailable;
 
@@ -211,7 +211,7 @@ public class DelegatingExplicitRefiner
   }
 
   @Override
-  protected CounterexampleInfo performRefinement(final ARTReachedSet reached, final Path errorPath)
+  protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final Path errorPath)
       throws CPAException, InterruptedException {
 
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
@@ -230,20 +230,20 @@ public class DelegatingExplicitRefiner
   }
 
   @Override
-  protected final List<Pair<ARTElement, CFANode>> transformPath(Path errorPath) {
+  protected final List<Pair<ARGElement, CFANode>> transformPath(Path errorPath) {
     return currentRefiner.transformPath(errorPath);
   }
 
   @Override
-  protected List<Formula> getFormulasForPath(List<Pair<ARTElement, CFANode>> errorPath, ARTElement initialElement)
+  protected List<Formula> getFormulasForPath(List<Pair<ARGElement, CFANode>> errorPath, ARGElement initialElement)
       throws CPATransferException {
     return currentRefiner.getFormulasForPath(errorPath, initialElement);
   }
 
   @Override
   protected void performRefinement(
-      ARTReachedSet pReached,
-      List<Pair<ARTElement, CFANode>> errorPath,
+      ARGReachedSet pReached,
+      List<Pair<ARGElement, CFANode>> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> counterexampleTraceInfo,
       boolean pRepeatedCounterexample)
       throws CPAException {
@@ -252,11 +252,11 @@ public class DelegatingExplicitRefiner
     Precision oldPrecision = reached.getPrecision(reached.getLastElement());
 
     precisionUpdate.start();
-    Pair<ARTElement, Precision> result = currentRefiner.performRefinement(oldPrecision, errorPath, counterexampleTraceInfo);
+    Pair<ARGElement, Precision> result = currentRefiner.performRefinement(oldPrecision, errorPath, counterexampleTraceInfo);
     precisionUpdate.stop();
 
     artUpdate.start();
-    ARTElement root = result.getFirst();
+    ARGElement root = result.getFirst();
     logger.log(Level.FINEST, "Found spurious counterexample,",
         "trying strategy 1: remove everything below", root, "from ART.");
     pReached.removeSubtree(root, result.getSecond());
@@ -288,7 +288,7 @@ public class DelegatingExplicitRefiner
    */
   private void stopRefinement(Path errorPath) throws CPAException {
     List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
-    for(Pair<ARTElement, CFAEdge> pathElement : errorPath){
+    for(Pair<ARGElement, CFAEdge> pathElement : errorPath){
       cfaTrace.add(pathElement.getSecond());
     }
 

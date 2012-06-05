@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
@@ -81,8 +81,8 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
   }
 
   @Override
-  public boolean checkCounterexample(ARTElement pRootElement, ARTElement pErrorElement,
-      Set<ARTElement> pErrorPathElements) throws CPAException, InterruptedException {
+  public boolean checkCounterexample(ARGElement pRootElement, ARGElement pErrorElement,
+      Set<ARGElement> pErrorPathElements) throws CPAException, InterruptedException {
 
     String mainFunctionName = extractLocation(pRootElement).getFunctionName();
 

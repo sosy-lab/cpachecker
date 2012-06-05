@@ -36,7 +36,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -253,10 +253,10 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
    * @throws CPATransferException
    */
   @Override
-  public Formula buildBranchingFormula(Iterable<ARTElement> elementsOnPath) throws CPATransferException {
+  public Formula buildBranchingFormula(Iterable<ARGElement> elementsOnPath) throws CPATransferException {
     // build the branching formula that will help us find the real error path
     Formula branchingFormula = fmgr.makeTrue();
-    for (final ARTElement pathElement : elementsOnPath) {
+    for (final ARGElement pathElement : elementsOnPath) {
 
       if (pathElement.getChildren().size() > 1) {
         if (pathElement.getChildren().size() > 2) {
@@ -266,9 +266,9 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
         }
 
         Iterable<CFAEdge> outgoingEdges = Iterables.transform(pathElement.getChildren(),
-            new Function<ARTElement, CFAEdge>() {
+            new Function<ARGElement, CFAEdge>() {
               @Override
-              public CFAEdge apply(ARTElement child) {
+              public CFAEdge apply(ARGElement child) {
                 return pathElement.getEdgeToChild(child);
               }
         });
@@ -313,7 +313,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
    * Extract the information about the branching predicates created by
    * {@link #buildBranchingFormula(Set)} from a satisfying assignment.
    *
-   * A map is created that stores for each ARTElement (using its element id as
+   * A map is created that stores for each ARGElement (using its element id as
    * the map key) which edge was taken (the positive or the negated one).
    *
    * @param model A satisfying assignment that should contain values for branching predicates.

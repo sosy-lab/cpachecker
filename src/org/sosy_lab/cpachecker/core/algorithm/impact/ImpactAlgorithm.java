@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
@@ -201,7 +201,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       List<Formula> pathFormulas = new ArrayList<Formula>(path.size());
       addPathFormulasToList(path, pathFormulas);
 
-      CounterexampleTraceInfo<Formula> cex = imgr.buildCounterexampleTrace(pathFormulas, Collections.<ARTElement>emptySet());
+      CounterexampleTraceInfo<Formula> cex = imgr.buildCounterexampleTrace(pathFormulas, Collections.<ARGElement>emptySet());
 
       if (!cex.isSpurious()) {
         return Collections.emptyList(); // real counterexample
@@ -323,7 +323,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     path.add(0, x); // now path is [x; v] (including x and v)
     assert formulas.size() == path.size() + 1;
 
-    CounterexampleTraceInfo<Formula> interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARTElement>emptySet());
+    CounterexampleTraceInfo<Formula> interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGElement>emptySet());
 
     if (!interpolantInfo.isSpurious()) {
       logger.log(Level.FINER, "Forced covering unsuccessful.");

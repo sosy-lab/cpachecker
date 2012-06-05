@@ -36,28 +36,28 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
- * This is an extension of {@link AbstractARTBasedRefiner} that takes care of
+ * This is an extension of {@link AbstractARGBasedRefiner} that takes care of
  * flattening the ART before calling {@link #performRefinement0(ReachedSet)}.
  *
  * Warning: Although the ART is flattened at this point, the elements in it have
  * not been expanded due to performance reasons.
  */
-public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
+public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
 
   final Timer computePathTimer = new Timer();
   final Timer computeSubtreeTimer = new Timer();
   final Timer computeCounterexampleTimer = new Timer();
 
   private final ABMTransferRelation transfer;
-  private final Map<ARTElement, ARTElement> pathElementToReachedElement = new HashMap<ARTElement, ARTElement>();
+  private final Map<ARGElement, ARGElement> pathElementToReachedElement = new HashMap<ARGElement, ARGElement>();
 
   protected AbstractABMBasedRefiner(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -72,10 +72,10 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
    * When inheriting from this class, implement this method instead of
    * {@link #performRefinement(ReachedSet)}.
    */
-  protected abstract CounterexampleInfo performRefinement0(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException;
+  protected abstract CounterexampleInfo performRefinement0(ARGReachedSet pReached, Path pPath) throws CPAException, InterruptedException;
 
   @Override
-  protected final CounterexampleInfo performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
+  protected final CounterexampleInfo performRefinement(ARGReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
     if (pPath == null) {
       return CounterexampleInfo.spurious();
     } else {
@@ -84,17 +84,17 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
   }
 
   @Override
-  protected final Path computePath(ARTElement pLastElement, ARTReachedSet pReachedSet) throws InterruptedException, CPATransferException {
+  protected final Path computePath(ARGElement pLastElement, ARGReachedSet pReachedSet) throws InterruptedException, CPATransferException {
     assert pLastElement.isTarget();
 
     pathElementToReachedElement.clear();
 
     computePathTimer.start();
     try {
-      ARTElement subgraph;
+      ARGElement subgraph;
       computeSubtreeTimer.start();
       try {
-        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, new ARTElement(pLastElement.getWrappedElement(), null), pathElementToReachedElement);
+        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, new ARGElement(pLastElement.getWrappedElement(), null), pathElementToReachedElement);
         if (subgraph == null) {
           return null;
         }
@@ -113,11 +113,11 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
     }
   }
 
-  private Path computeCounterexample(ARTElement root) {
+  private Path computeCounterexample(ARGElement root) {
     Path path = new Path();
-    ARTElement currentElement = root;
+    ARGElement currentElement = root;
     while(currentElement.getChildren().size() > 0) {
-      ARTElement child = currentElement.getChildren().iterator().next();
+      ARGElement child = currentElement.getChildren().iterator().next();
 
       CFAEdge edge = currentElement.getEdgeToChild(child);
       path.add(Pair.of(currentElement, edge));
@@ -128,13 +128,13 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
     return path;
   }
 
-  private static class ABMReachedSet extends ARTReachedSet.ForwardingARTReachedSet {
+  private static class ABMReachedSet extends ARGReachedSet.ForwardingARTReachedSet {
 
     private final ABMTransferRelation transfer;
     private final Path path;
-    private final Map<ARTElement, ARTElement> pathElementToReachedElement;
+    private final Map<ARGElement, ARGElement> pathElementToReachedElement;
 
-    private ABMReachedSet(ABMTransferRelation pTransfer, ARTReachedSet pReached, Path pPath, Map<ARTElement, ARTElement> pPathElementToReachedElement) {
+    private ABMReachedSet(ABMTransferRelation pTransfer, ARGReachedSet pReached, Path pPath, Map<ARGElement, ARGElement> pPathElementToReachedElement) {
       super(pReached);
       this.transfer = pTransfer;
       this.path = pPath;
@@ -142,12 +142,12 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
     }
 
     @Override
-    public void removeSubtree(ARTElement element, Precision newPrecision) {
+    public void removeSubtree(ARGElement element, Precision newPrecision) {
       transfer.removeSubtree(delegate, path, element, newPrecision, pathElementToReachedElement);
     }
 
     @Override
-    public void removeSubtree(ARTElement pE) {
+    public void removeSubtree(ARGElement pE) {
       throw new UnsupportedOperationException();
     }
   }

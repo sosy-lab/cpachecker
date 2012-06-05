@@ -42,10 +42,10 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -69,7 +69,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import com.google.common.collect.Lists;
 
 @Options(prefix="cpa.predicate.refinement")
-public class InvariantRefiner extends AbstractARTBasedRefiner {
+public class InvariantRefiner extends AbstractARGBasedRefiner {
 
   @Option(description="split arithmetic equalities when extracting predicates from interpolants")
   private boolean splitItpAtoms = false;
@@ -116,7 +116,7 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
   }
 
   @Override
-  protected CounterexampleInfo performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
+  protected CounterexampleInfo performRefinement(ARGReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
 
     totalRefinement.start();
 
@@ -127,7 +127,7 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
       // the counterexample path was spurious, and we refine
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
-      List<Pair<ARTElement, CFANode>> path = transformPath(pPath);
+      List<Pair<ARGElement, CFANode>> path = transformPath(pPath);
       predicateRefiner.performRefinement(pReached, path, counterexample, false);
 
       totalRefinement.stop();
@@ -212,14 +212,14 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
     falseFormula.add(amgr.makePredicate(emgr.makeFalse()));
 
     // Get the list of abstraction elements.
-    List<Pair<ARTElement, CFANode>> path = transformPath(pPath);
+    List<Pair<ARGElement, CFANode>> path = transformPath(pPath);
 
     // We ignore the error location, so the iteration is over i < N,
     // where N is /one less than/ the length of the path.
     int N = path.size() - 1;
     TemplateFormula phi;
     for (int i = 0; i < N; i++) {
-      Pair<ARTElement, CFANode> pair = path.get(i);
+      Pair<ARGElement, CFANode> pair = path.get(i);
       CFANode loc = pair.getSecond();
       phi = tnet.getTemplate(loc).getTemplateFormula();
       if (phi != null) {
@@ -277,12 +277,12 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
     return preds;
   }
 
-  private List<Pair<ARTElement, CFANode>> transformPath(Path pPath) {
+  private List<Pair<ARGElement, CFANode>> transformPath(Path pPath) {
     // Just extracts information from pPath, putting it into
     // convenient form.
-    List<Pair<ARTElement, CFANode>> result = Lists.newArrayList();
+    List<Pair<ARGElement, CFANode>> result = Lists.newArrayList();
 
-    for (ARTElement ae : skip(transform(pPath, Pair.<ARTElement>getProjectionToFirst()), 1)) {
+    for (ARGElement ae : skip(transform(pPath, Pair.<ARGElement>getProjectionToFirst()), 1)) {
       PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
       if (pe.isAbstractionElement()) {
         CFANode loc = AbstractElements.extractLocation(ae);

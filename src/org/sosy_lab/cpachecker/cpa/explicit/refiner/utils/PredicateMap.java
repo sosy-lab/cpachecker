@@ -29,7 +29,7 @@ import java.util.Map;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -45,7 +45,7 @@ public class PredicateMap {
    */
   private ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap;
 
-  public Pair<ARTElement, CFANode> firstInterpolationPoint = null;
+  public Pair<ARGElement, CFANode> firstInterpolationPoint = null;
 
   /**
    * This method acts as the constructor of the class.
@@ -55,7 +55,7 @@ public class PredicateMap {
    * @param pathPredicates the predicates as returned from the refinement
    * @param pPath the path to the error location
    */
-  public PredicateMap(List<Collection<AbstractionPredicate>> pathPredicates, List<Pair<ARTElement, CFANode>> pPath) {
+  public PredicateMap(List<Collection<AbstractionPredicate>> pathPredicates, List<Pair<ARGElement, CFANode>> pPath) {
     ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> builder = ImmutableSetMultimap.builder();
 
     int i = 0;

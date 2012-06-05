@@ -67,10 +67,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
-import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
@@ -272,8 +272,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
    * It does so by asking the solver for a satisfying assignment.
    */
   private void createErrorPath(final ReachedSet pReachedSet) throws CPATransferException {
-    if (!(cpa instanceof ARTCPA)) {
-      logger.log(Level.INFO, "Error found, but error path cannot be created without ARTCPA");
+    if (!(cpa instanceof ARGCPA)) {
+      logger.log(Level.INFO, "Error found, but error path cannot be created without ARGCPA");
       return;
     }
 
@@ -281,7 +281,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     try {
       logger.log(Level.INFO, "Error found, creating error path");
 
-      Iterable<ARTElement> art = Iterables.filter(pReachedSet.getReached(), ARTElement.class);
+      Iterable<ARGElement> art = Iterables.filter(pReachedSet.getReached(), ARGElement.class);
 
       // get the branchingFormula
       // this formula contains predicates for all branches we took
@@ -312,11 +312,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       // get precise error path
       Map<Integer, Boolean> branchingInformation = pmgr.getBranchingPredicateValuesFromModel(model);
-      ARTElement root = (ARTElement)pReachedSet.getFirstElement();
+      ARGElement root = (ARGElement)pReachedSet.getFirstElement();
 
       Path targetPath;
       try {
-        targetPath = ARTUtils.getPathFromBranchingInformation(root, pReachedSet.getReached(), branchingInformation);
+        targetPath = ARGUtils.getPathFromBranchingInformation(root, pReachedSet.getReached(), branchingInformation);
       } catch (IllegalArgumentException e) {
         logger.logUserException(Level.WARNING, e, "Could not create error path");
         return;
@@ -341,7 +341,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         counterexample.addFurtherInformation(pathFormula, dumpCounterexampleFormula);
       }
 
-      ((ARTCPA)cpa).setCounterexample(counterexample);
+      ((ARGCPA)cpa).setCounterexample(counterexample);
 
     } finally {
       stats.errorPathCreation.stop();
@@ -530,10 +530,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       {
         CFANode exitLocation = outgoingEdge.getSuccessor();
         Iterable<AbstractElement> exitStates = reachedPerLocation.get(exitLocation);
-        ARTElement lastExitState = (ARTElement)Iterables.getLast(exitStates);
+        ARGElement lastExitState = (ARGElement)Iterables.getLast(exitStates);
 
         // the states reachable from the exit edge
-        Set<ARTElement> outOfLoopStates = lastExitState.getSubtree();
+        Set<ARGElement> outOfLoopStates = lastExitState.getSubtree();
         if (Iterables.isEmpty(filterTargetElements(outOfLoopStates))) {
           // no target state reachable
           continue;

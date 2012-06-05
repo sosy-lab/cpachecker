@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
 */
 
-package org.sosy_lab.cpachecker.cpa.art;
+package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -83,7 +83,7 @@ public final class ErrorPathShrinker {
     findGlobalVarsInPath(targetPath);
 
     // create reverse iterator, from lastNode to firstNode
-    final Iterator<Pair<ARTElement, CFAEdge>> revIterator =
+    final Iterator<Pair<ARGElement, CFAEdge>> revIterator =
         targetPath.descendingIterator();
 
     // Set for storing the important variables
@@ -100,7 +100,7 @@ public final class ErrorPathShrinker {
     final Path shortErrorPath = new Path();
 
     // the errorNode is important, add both the edge before and after it
-    final Pair<ARTElement, CFAEdge> lastElem = revIterator.next();
+    final Pair<ARGElement, CFAEdge> lastElem = revIterator.next();
     assert lastElem.getFirst().isTarget()
             : "Last Element of ErrorPath must be a targetElement.";
     shortErrorPath.addFirst(lastElem);
@@ -155,8 +155,8 @@ public final class ErrorPathShrinker {
    * @param path the Path to iterate */
   private Path removeAllElemsAfterTarget(final Path path) {
     final Path targetPath = new Path();
-    final Iterator<Pair<ARTElement, CFAEdge>> iterator = path.iterator();
-    Pair<ARTElement, CFAEdge> it;
+    final Iterator<Pair<ARGElement, CFAEdge>> iterator = path.iterator();
+    Pair<ARGElement, CFAEdge> it;
 
     // iterate through the Path and find the first target-element
     while (iterator.hasNext()) {
@@ -176,7 +176,7 @@ public final class ErrorPathShrinker {
   private void findGlobalVarsInPath(final Path path) {
 
     // iterate through the Path and collect all important variables
-    final Iterator<Pair<ARTElement, CFAEdge>> iterator = path.iterator();
+    final Iterator<Pair<ARGElement, CFAEdge>> iterator = path.iterator();
     while (iterator.hasNext()) {
       CFAEdge cfaEdge = iterator.next().getSecond();
 
@@ -294,7 +294,7 @@ public final class ErrorPathShrinker {
     private final Path                                shortPath;
 
     /** The reverse iterator runs from lastNode to firstNode. */
-    private final Iterator<Pair<ARTElement, CFAEdge>> reverseIterator;
+    private final Iterator<Pair<ARGElement, CFAEdge>> reverseIterator;
 
     /** This Set stores the important variables of the Path. */
     private final Set<String>                         importantVars;
@@ -308,7 +308,7 @@ public final class ErrorPathShrinker {
     private final Path                                globalVarsPath;
 
     /** This is the currently handled CFAEdgePair. */
-    private Pair<ARTElement, CFAEdge>                 currentCFAEdgePair;
+    private Pair<ARGElement, CFAEdge>                 currentCFAEdgePair;
 
     /** The Constructor of this Class gets some references (pointers) from the
      * callerFunction, all of them may be changed during 'handlePath()'.
@@ -323,7 +323,7 @@ public final class ErrorPathShrinker {
      *         CFAEdgePairs, where globalVars or importantVarsForGlobalVars
      *         are assigned */
     private PathHandler(final Path shortPathOut,
-        final Iterator<Pair<ARTElement, CFAEdge>> revIteratorOut,
+        final Iterator<Pair<ARGElement, CFAEdge>> revIteratorOut,
         final Set<String> importantVarsOut,
         final Set<String> importantVarsForGlobalVarsOut,
         final Path globalVarsPathOut) {
@@ -414,7 +414,7 @@ public final class ErrorPathShrinker {
       addAllVarsInExpToSet(returnExp, possibleVars,
           importantVarsForGlobalVars);
 
-      final Pair<ARTElement, CFAEdge> returnEdgePair = currentCFAEdgePair;
+      final Pair<ARGElement, CFAEdge> returnEdgePair = currentCFAEdgePair;
 
       // Path for storing changings of variables of importantVarsForGlobalVars
       final Path functionGlobalVarsPath = new Path();
@@ -460,7 +460,7 @@ public final class ErrorPathShrinker {
      * @param functionGlobalVarsPath
      *          Path with Edges that influence global vars */
     private void mergeResultsOfFunctionCall(final Path shortFunctionPath,
-        final Pair<ARTElement, CFAEdge> returnEdgePair,
+        final Pair<ARGElement, CFAEdge> returnEdgePair,
         final Set<String> possibleVars,
         final Set<String> possibleImportantVarsForGlobalVars,
         final Path functionGlobalVarsPath) {

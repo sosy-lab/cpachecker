@@ -111,8 +111,8 @@ public class FeatureVarsTest {
       prop.put("analysis.traversal.order", "bfs");
       prop.put("analysis.traversal.useTopsort", "true");
       prop.put("analysis.traversal.useCallstack", "true");
-      prop.put("cpa","cpa.art.ARTCPA");
-      prop.put("ARTCPA.cpa","cpa.composite.CompositeCPA");
+      prop.put("cpa","cpa.arg.ARGCPA");
+      prop.put("ARGCPA.cpa","cpa.composite.CompositeCPA");
       prop.put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA");
 
       TestResults results = run(prop, "test/programs/simple/featureVarsTest.c");
@@ -136,11 +136,11 @@ public class FeatureVarsTest {
       );
 
       prop = new HashMap<String, String>(prop);
-      prop.put("cpa","cpa.art.ARTCPA");
+      prop.put("cpa","cpa.arg.ARGCPA");
       prop.put("analysis.traversal.order", "bfs");
       prop.put("analysis.traversal.useTopsort", "true");
       prop.put("analysis.traversal.useCallstack", "true");
-      prop.put("ARTCPA.cpa","cpa.composite.CompositeCPA");
+      prop.put("ARGCPA.cpa","cpa.composite.CompositeCPA");
       prop.put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA");
 
       File sourceFile = new File("test/programs/simple/tmpProgram.c");
@@ -174,8 +174,8 @@ public class FeatureVarsTest {
       );
 
       prop = new HashMap<String, String>(prop);
-      prop.put("cpa","cpa.art.ARTCPA");
-      prop.put("ARTCPA.cpa","cpa.composite.CompositeCPA");
+      prop.put("cpa","cpa.arg.ARGCPA");
+      prop.put("ARGCPA.cpa","cpa.composite.CompositeCPA");
       prop.put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA");
 
       File sourceFile = new File("test/programs/simple/tmpProgram.c");

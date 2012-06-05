@@ -53,8 +53,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -170,7 +170,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         logger.log(Level.FINER, "Dumping assumptions due to:", failedRefinement);
 
         Path path = failedRefinement.getErrorPath();
-        ARTElement errorElement = path.getLast().getFirst();
+        ARGElement errorElement = path.getLast().getFirst();
         assert errorElement == reached.getLastElement();
 
         // old code, perhaps we can use the information from getFailurePoint()
@@ -179,7 +179,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         //        if (pos == -1)
         //          pos = path.size() - 2; // the node before the error node
         //
-        //        ARTElement element = path.get(pos).getFirst();
+        //        ARGElement element = path.get(pos).getFirst();
         //        addAvoidingAssumptions(exceptionAssumptions, element);
         //        exceptionElements.add(element.getElementId());
 
@@ -191,7 +191,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         // because the parents might have other potential successors that were
         // ignored by CPAAlgorithm due to the signaled break
 
-        ARTElement parent = Iterables.getOnlyElement(errorElement.getParents());
+        ARGElement parent = Iterables.getOnlyElement(errorElement.getParents());
         reached.removeOnlyFromWaitlist(parent);
         exceptionElements.add(parent.getElementId());
         addAvoidingAssumptions(exceptionAssumptions, parent);
@@ -265,16 +265,16 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   private String produceAssumptionAutomaton(ReachedSet reached) {
     AbstractElement firstElement = reached.getFirstElement();
-    if (!(firstElement instanceof ARTElement)) {
-      return "Cannot dump assumption as automaton if ARTCPA is not used.";
+    if (!(firstElement instanceof ARGElement)) {
+      return "Cannot dump assumption as automaton if ARGCPA is not used.";
     }
 
     Set<AbstractElement> falseAssumptionElements = Sets.newHashSet(reached.getWaitlist());
 
     // scan reached set for all relevant elements with an assumption
-    Set<ARTElement> relevantElements = new HashSet<ARTElement>();
+    Set<ARGElement> relevantElements = new HashSet<ARGElement>();
     for (AbstractElement element : reached) {
-      ARTElement e = (ARTElement)element;
+      ARGElement e = (ARGElement)element;
       AssumptionStorageElement asmptElement = AbstractElements.extractElementByType(e, AssumptionStorageElement.class);
 
       if (e.isTarget()
@@ -295,11 +295,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
     }
 
-    ARTElement rootElement = (ARTElement)reached.getFirstElement();
+    ARGElement rootElement = (ARGElement)reached.getFirstElement();
 
-    Set<ARTElement> childrenOfRelevantElements = new TreeSet<ARTElement>(relevantElements);
+    Set<ARGElement> childrenOfRelevantElements = new TreeSet<ARGElement>(relevantElements);
     childrenOfRelevantElements.add(rootElement);
-    for (ARTElement e : relevantElements) {
+    for (ARGElement e : relevantElements) {
       childrenOfRelevantElements.addAll(e.getChildren());
       if (e.isCovered()) {
         childrenOfRelevantElements.add(e.getCoveringElement());
@@ -316,8 +316,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    * @param relevantElements A set with all elements with non-trivial assumptions (all others and their children will have assumption TRUE).
    * @param falseAssumptionElements A set with all elements with the assumption FALSE
    */
-  private String writeAutomaton(ARTElement initialElement, Set<ARTElement> allElements,
-      Set<ARTElement> relevantElements, Set<AbstractElement> falseAssumptionElements) {
+  private String writeAutomaton(ARGElement initialElement, Set<ARGElement> allElements,
+      Set<ARGElement> relevantElements, Set<AbstractElement> falseAssumptionElements) {
     StringBuilder sb = new StringBuilder();
     sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
 
@@ -340,7 +340,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       sb.append("    TRUE -> ASSUME \"false\" GOTO __FALSE;\n\n");
     }
 
-    for (ARTElement e : allElements) {
+    for (ARGElement e : allElements) {
       if (e.isCovered() || falseAssumptionElements.contains(e)) {
         continue;
       }
@@ -359,7 +359,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         }
 
         CFANode loc = AbstractElements.extractLocation(e);
-        for (ARTElement child : e.getChildren()) {
+        for (ARGElement child : e.getChildren()) {
           if (child.isCovered()) {
             child = child.getCoveringElement();
             assert !child.isCovered();
@@ -402,11 +402,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    * @param e
    * @param parentSet
    */
-  private void findAllParents(ARTElement e, Set<ARTElement> parentSet) {
-    Deque<ARTElement> toAdd = new ArrayDeque<ARTElement>();
+  private void findAllParents(ARGElement e, Set<ARGElement> parentSet) {
+    Deque<ARGElement> toAdd = new ArrayDeque<ARGElement>();
     toAdd.add(e);
     while (!toAdd.isEmpty()) {
-      ARTElement current = toAdd.pop();
+      ARGElement current = toAdd.pop();
 
       if (parentSet.add(current)) {
         // current was not yet contained in parentSet,

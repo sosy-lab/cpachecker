@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.art;
+package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -39,8 +39,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-@Options(prefix="cpa.art")
-public class ARTStopSep implements StopOperator, ForcedCoveringStopOperator {
+@Options(prefix="cpa.arg")
+public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
   @Option(description="whether to keep covered states in the reached set as addition to keeping them in the ART")
   private boolean keepCoveredStatesInReached = false;
@@ -48,7 +48,7 @@ public class ARTStopSep implements StopOperator, ForcedCoveringStopOperator {
   private final StopOperator wrappedStop;
   private final LogManager logger;
 
-  public ARTStopSep(StopOperator pWrappedStop, LogManager pLogger, Configuration config) throws InvalidConfigurationException {
+  public ARGStopSep(StopOperator pWrappedStop, LogManager pLogger, Configuration config) throws InvalidConfigurationException {
     config.inject(this);
     wrappedStop = pWrappedStop;
     logger = pLogger;
@@ -58,7 +58,7 @@ public class ARTStopSep implements StopOperator, ForcedCoveringStopOperator {
   public boolean stop(AbstractElement pElement,
       Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
 
-    ARTElement artElement = (ARTElement)pElement;
+    ARGElement artElement = (ARGElement)pElement;
     assert !artElement.isCovered() : "Passing element to stop which is already covered: " + artElement;
 
     // First check if we can take a shortcut:
@@ -68,7 +68,7 @@ public class ARTStopSep implements StopOperator, ForcedCoveringStopOperator {
     // in this case and not mark it as covered.
 
     if (artElement.getMergedWith() != null) {
-      ARTElement mergedWith = artElement.getMergedWith();
+      ARGElement mergedWith = artElement.getMergedWith();
 
       if (pReached.contains(mergedWith)) {
         // we do this single check first as it should return true in most of the cases
@@ -96,7 +96,7 @@ public class ARTStopSep implements StopOperator, ForcedCoveringStopOperator {
     // Now do the usual coverage checks
 
     for (AbstractElement reachedElement : pReached) {
-      ARTElement artReachedElement = (ARTElement)reachedElement;
+      ARGElement artReachedElement = (ARGElement)reachedElement;
       if (stop(artElement, artReachedElement, pPrecision)) {
         // if this option is true, we always return false here on purpose
         return !keepCoveredStatesInReached;
@@ -106,7 +106,7 @@ public class ARTStopSep implements StopOperator, ForcedCoveringStopOperator {
 
   }
 
-  private boolean stop(ARTElement pElement, ARTElement pReachedElement, Precision pPrecision)
+  private boolean stop(ARGElement pElement, ARGElement pReachedElement, Precision pPrecision)
                                                       throws CPAException {
 
     if (!pReachedElement.mayCover()) {
@@ -135,8 +135,8 @@ public class ARTStopSep implements StopOperator, ForcedCoveringStopOperator {
   }
 
   boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement, ProofChecker wrappedProofChecker) throws CPAException {
-    ARTElement artElement = (ARTElement)pElement;
-    ARTElement otherArtElement = (ARTElement)pOtherElement;
+    ARGElement artElement = (ARGElement)pElement;
+    ARGElement otherArtElement = (ARGElement)pOtherElement;
 
     AbstractElement wrappedElement = artElement.getWrappedElement();
     AbstractElement wrappedOtherElement = otherArtElement.getWrappedElement();
@@ -150,8 +150,8 @@ public class ARTStopSep implements StopOperator, ForcedCoveringStopOperator {
       return false;
     }
 
-    ARTElement element = (ARTElement)pElement;
-    ARTElement reachedElement = (ARTElement)pReachedElement;
+    ARGElement element = (ARGElement)pElement;
+    ARGElement reachedElement = (ARGElement)pReachedElement;
 
     if (reachedElement.isCovered() || !reachedElement.mayCover()) {
       return false;

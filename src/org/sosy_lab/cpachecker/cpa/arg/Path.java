@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.art;
+package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -37,11 +37,11 @@ import com.google.common.collect.Lists;
 
 /**
  * Path contains a path through the ART that starts at the root node.
- * It is implemented as a list of pairs of an ARTElement and a CFAEdge,
+ * It is implemented as a list of pairs of an ARGElement and a CFAEdge,
  * where the edge of a pair is the outgoing edge of the element.
  * The first pair contains the root node of the ART.
  */
-public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
+public class Path extends LinkedList<Pair<ARGElement, CFAEdge>> {
 
   private static final long serialVersionUID = -3223480082103314555L;
 
@@ -53,9 +53,9 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
   @SuppressWarnings("unchecked")
   public JSONArray toJSON() {
     JSONArray path = new JSONArray();
-    for (Pair<ARTElement, CFAEdge> pair : this) {
+    for (Pair<ARGElement, CFAEdge> pair : this) {
       JSONObject elem = new JSONObject();
-      ARTElement artelem = pair.getFirst();
+      ARGElement artelem = pair.getFirst();
       CFAEdge edge = pair.getSecond();
       if (edge == null) continue; // in this case we do not need the edge
       elem.put("artelem", artelem.getElementId());
@@ -72,8 +72,8 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
     return Lists.transform(this, Pair.<CFAEdge>getProjectionToSecond());
   }
 
-  public ImmutableSet<ARTElement> getElementSet() {
-    List<ARTElement> elementList = Lists.transform(this, Pair.<ARTElement>getProjectionToFirst());
+  public ImmutableSet<ARGElement> getElementSet() {
+    List<ARGElement> elementList = Lists.transform(this, Pair.<ARGElement>getProjectionToFirst());
     return ImmutableSet.copyOf(elementList);
   }
 }

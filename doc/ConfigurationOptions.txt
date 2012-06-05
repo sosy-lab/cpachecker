@@ -133,7 +133,7 @@ analysis.useProofCheckAlgorithm = false
 # whether or not to use refinement or not
 # use CEGAR algorithm for lazy counter-example guided analysis
 # You need to specify a refiner with the cegar.refiner option.
-# Currently all refiner require the use of the ARTCPA.
+# Currently all refiner require the use of the ARGCPA.
 analysis.useRefinement = false
 
 # Add a threshold to the automaton, after so many branches on a path the
@@ -264,23 +264,23 @@ cpa.abm.blockHeuristic = FunctionAndLoopPartitioning.class
 cpa.abm.gatherCacheMissStatistics = false
 
 # export one variable assignment for error path to file, if one is found
-cpa.art.errorPath.assignment = "ErrorPathAssignment.txt"
+cpa.arg.errorPath.assignment = "ErrorPathAssignment.txt"
 
 # export error path to file, if one is found
-cpa.art.errorPath.core = "ErrorPathCore.txt"
-cpa.art.errorPath.export = true
-cpa.art.errorPath.file = "ErrorPath.txt"
-cpa.art.errorPath.graph = "ErrorPath.dot"
-cpa.art.errorPath.json = "ErrorPath.json"
-cpa.art.errorPath.source = "ErrorPath.c"
+cpa.arg.errorPath.core = "ErrorPathCore.txt"
+cpa.arg.errorPath.export = true
+cpa.arg.errorPath.file = "ErrorPath.txt"
+cpa.arg.errorPath.graph = "ErrorPath.dot"
+cpa.arg.errorPath.json = "ErrorPath.json"
+cpa.arg.errorPath.source = "ErrorPath.c"
 
 # export final ART as .dot file
-cpa.art.export = true
-cpa.art.file = "ART.dot"
+cpa.arg.export = true
+cpa.arg.file = "ART.dot"
 
 # whether to keep covered states in the reached set as addition to keeping
 # them in the ART
-cpa.art.keepCoveredStatesInReached = false
+cpa.arg.keepCoveredStatesInReached = false
 
 # signal the analysis to break in case of reached error state
 cpa.automaton.breakOnTargetState = true

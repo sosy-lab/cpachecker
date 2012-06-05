@@ -37,9 +37,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -69,10 +69,10 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
     logger = pLogger;
     innerAlgorithm = pAlgorithm;
 
-    if (!(pCpa instanceof ARTCPA)) {
-      throw new InvalidConfigurationException("ARTCPA needed for RestartWithConditionsAlgorithm");
+    if (!(pCpa instanceof ARGCPA)) {
+      throw new InvalidConfigurationException("ARGCPA needed for RestartWithConditionsAlgorithm");
     }
-    ARTCPA cpa = (ARTCPA)pCpa;
+    ARGCPA cpa = (ARGCPA)pCpa;
     if (cpa.retrieveWrappedCpa(AssumptionStorageCPA.class) == null) {
       throw new InvalidConfigurationException("AssumptionStorageCPA needed for RestartWithConditionsAlgorithm");
     }
@@ -151,11 +151,11 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 
   private void adjustThresholds(List<AbstractElement> pElementsWithAssumptions, ReachedSet pReached) {
 
-    ARTReachedSet reached = new ARTReachedSet(pReached);
+    ARGReachedSet reached = new ARGReachedSet(pReached);
     for (AbstractElement e: pElementsWithAssumptions) {
-      ARTElement artElement = (ARTElement)e;
+      ARGElement artElement = (ARGElement)e;
 
-      for (ARTElement parent : ImmutableSet.copyOf(artElement.getParents())){
+      for (ARGElement parent : ImmutableSet.copyOf(artElement.getParents())){
         reached.removeSubtree(parent);
       }
     }

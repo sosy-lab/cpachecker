@@ -249,7 +249,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     @Option(name = "analysis.useRefinement",
         description = "use CEGAR algorithm for lazy counter-example guided analysis"
           + "\nYou need to specify a refiner with the cegar.refiner option."
-          + "\nCurrently all refiner require the use of the ARTCPA.")
+          + "\nCurrently all refiner require the use of the ARGCPA.")
           boolean useRefinement = false;
 
     @Option(name="analysis.useCBMC",

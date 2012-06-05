@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.art;
+package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -47,14 +47,14 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 
-public abstract class AbstractARTBasedRefiner implements Refiner {
+public abstract class AbstractARGBasedRefiner implements Refiner {
 
-  private final ARTCPA mArtCpa;
+  private final ARGCPA mArtCpa;
   private final LogManager logger;
 
-  protected AbstractARTBasedRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+  protected AbstractARGBasedRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     if (pCpa instanceof WrapperCPA) {
-      mArtCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(ARTCPA.class);
+      mArtCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(ARGCPA.class);
     } else {
       throw new InvalidConfigurationException("ART CPA needed for refinement");
     }
@@ -64,14 +64,14 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     this.logger = mArtCpa.getLogger();
   }
 
-  protected final ARTCPA getArtCpa() {
+  protected final ARGCPA getArtCpa() {
     return mArtCpa;
   }
 
-  private static final Function<Pair<ARTElement, CFAEdge>, String> pathToFunctionCalls
-        = new Function<Pair<ARTElement, CFAEdge>, String>() {
+  private static final Function<Pair<ARGElement, CFAEdge>, String> pathToFunctionCalls
+        = new Function<Pair<ARGElement, CFAEdge>, String>() {
     @Override
-    public String apply(Pair<ARTElement,CFAEdge> arg) {
+    public String apply(Pair<ARGElement,CFAEdge> arg) {
 
       if (arg.getSecond() instanceof FunctionCallEdge) {
         FunctionCallEdge funcEdge = (FunctionCallEdge)arg.getSecond();
@@ -98,11 +98,11 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     assert checkART(pReached) : "ART and reached set do not match before refinement";
 
     AbstractElement lastElement = pReached.getLastElement();
-    assert lastElement instanceof ARTElement : "Element in reached set which is not an ARTElement";
-    assert ((ARTElement)lastElement).isTarget() : "Last element in reached is not a target element before refinement";
-    ARTReachedSet reached = new ARTReachedSet(pReached);
+    assert lastElement instanceof ARGElement : "Element in reached set which is not an ARGElement";
+    assert ((ARGElement)lastElement).isTarget() : "Last element in reached is not a target element before refinement";
+    ARGReachedSet reached = new ARGReachedSet(pReached);
 
-    Path path = computePath((ARTElement)lastElement, reached);
+    Path path = computePath((ARGElement)lastElement, reached);
 
     if (logger.wouldBeLogged(Level.ALL) && path != null) {
       logger.log(Level.ALL, "Error path:\n", path);
@@ -149,39 +149,39 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    * @return Information about the counterexample.
    * @throws InterruptedException
    */
-  protected abstract CounterexampleInfo performRefinement(ARTReachedSet pReached, Path pPath)
+  protected abstract CounterexampleInfo performRefinement(ARGReachedSet pReached, Path pPath)
             throws CPAException, InterruptedException;
 
   /**
-   * This method may be overwritten if the standard behavior of <code>ARTUtils.getOnePathTo()</code> is not
+   * This method may be overwritten if the standard behavior of <code>ARGUtils.getOnePathTo()</code> is not
    * appropriate in the implementations context.
    *
    * TODO: Currently this function may return null.
    *
-   * @param pLastElement Last ARTElement of the given reached set
+   * @param pLastElement Last ARGElement of the given reached set
    * @param pReached ReachedSet
-   * @see org.sosy_lab.cpachecker.cpa.art.ARTUtils
+   * @see org.sosy_lab.cpachecker.cpa.arg.ARGUtils
    * @return
    * @throws InterruptedException
    */
-  protected Path computePath(ARTElement pLastElement, ARTReachedSet pReached) throws InterruptedException, CPAException {
-    return ARTUtils.getOnePathTo(pLastElement);
+  protected Path computePath(ARGElement pLastElement, ARGReachedSet pReached) throws InterruptedException, CPAException {
+    return ARGUtils.getOnePathTo(pLastElement);
   }
 
   private static boolean checkART(ReachedSet pReached) {
 
     Deque<AbstractElement> workList = new ArrayDeque<AbstractElement>();
-    Set<ARTElement> art = new HashSet<ARTElement>();
+    Set<ARGElement> art = new HashSet<ARGElement>();
 
     workList.add(pReached.getFirstElement());
     while (!workList.isEmpty()) {
-      ARTElement currentElement = (ARTElement)workList.removeFirst();
+      ARGElement currentElement = (ARGElement)workList.removeFirst();
       assert !currentElement.isDestroyed();
 
-      for (ARTElement parent : currentElement.getParents()) {
+      for (ARGElement parent : currentElement.getParents()) {
         assert parent.getChildren().contains(currentElement) : "Reference from parent to child is missing in ART";
       }
-      for (ARTElement child : currentElement.getChildren()) {
+      for (ARGElement child : currentElement.getChildren()) {
         assert child.getParents().contains(currentElement) : "Reference from child to parent is missing in ART";
       }
 

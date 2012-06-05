@@ -51,10 +51,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
-import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -88,7 +88,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     this.logger = logger;
     config.inject(this);
 
-    if (!(pCpa instanceof ARTCPA)) {
+    if (!(pCpa instanceof ARGCPA)) {
       throw new InvalidConfigurationException("ART CPA needed for counterexample check");
     }
 
@@ -109,12 +109,12 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       sound &= algorithm.run(reached);
 
       AbstractElement lastElement = reached.getLastElement();
-      if (!(lastElement instanceof ARTElement)) {
+      if (!(lastElement instanceof ARGElement)) {
         // no analysis possible
         break;
       }
 
-      ARTElement errorElement = (ARTElement)lastElement;
+      ARGElement errorElement = (ARGElement)lastElement;
       if (!errorElement.isTarget()) {
         // no analysis necessary
         break;
@@ -123,9 +123,9 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       // check counterexample
       checkTime.start();
       try {
-        ARTElement rootElement = (ARTElement)reached.getFirstElement();
+        ARGElement rootElement = (ARGElement)reached.getFirstElement();
 
-        Set<ARTElement> elementsOnErrorPath = ARTUtils.getAllElementsOnPathsTo(errorElement);
+        Set<ARGElement> elementsOnErrorPath = ARGUtils.getAllElementsOnPathsTo(errorElement);
 
         boolean feasibility;
         try {
@@ -168,7 +168,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
             sound &= removeErrorElement(reached, errorElement);
 
           } else {
-            Path path = ARTUtils.getOnePathTo(errorElement);
+            Path path = ARGUtils.getOnePathTo(errorElement);
             throw new RefinementFailedException(Reason.InfeasibleCounterexample, path);
           }
         }
@@ -179,17 +179,17 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     return sound;
   }
 
-  private boolean handleInfeasibleCounterexample(ReachedSet reached, Set<ARTElement> elementsOnErrorPath) {
+  private boolean handleInfeasibleCounterexample(ReachedSet reached, Set<ARGElement> elementsOnErrorPath) {
     boolean sound = true;
 
     // So we let the states stay in the reached set, and just prevent
     // them from covering other elements by removing all existing
     // coverage relations (and re-adding the covered elements)
-    // and preventing new ones via ARTElement#setNotCovering().
+    // and preventing new ones via ARGElement#setNotCovering().
 
-    Collection<ARTElement> coveredByErrorPath = new ArrayList<ARTElement>();
+    Collection<ARGElement> coveredByErrorPath = new ArrayList<ARGElement>();
 
-    for (ARTElement errorPathElement : elementsOnErrorPath) {
+    for (ARGElement errorPathElement : elementsOnErrorPath) {
       // schedule for coverage removal
       coveredByErrorPath.addAll(errorPathElement.getCoveredByThis());
 
@@ -197,7 +197,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       errorPathElement.setNotCovering();
     }
 
-    for (ARTElement coveredElement : coveredByErrorPath) {
+    for (ARGElement coveredElement : coveredByErrorPath) {
       if (isTransitiveChildOf(coveredElement, coveredElement.getCoveringElement())) {
         // This element is covered by one of it's (transitive) parents
         // so this is a loop.
@@ -208,7 +208,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
         continue;
       }
 
-      for (ARTElement parentOfCovered : coveredElement.getParents()) {
+      for (ARGElement parentOfCovered : coveredElement.getParents()) {
         if (elementsOnErrorPath.contains(parentOfCovered)) {
           // this should never happen, but handle anyway
           // we may not re-add this parent, because otherwise
@@ -228,16 +228,16 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     return sound;
   }
 
-  private boolean isTransitiveChildOf(ARTElement potentialChild, ARTElement potentialParent) {
+  private boolean isTransitiveChildOf(ARGElement potentialChild, ARGElement potentialParent) {
 
-    Set<ARTElement> seen = new HashSet<ARTElement>();
-    Deque<ARTElement> waitlist = new ArrayDeque<ARTElement>(); // use BFS
+    Set<ARGElement> seen = new HashSet<ARGElement>();
+    Deque<ARGElement> waitlist = new ArrayDeque<ARGElement>(); // use BFS
 
     waitlist.addAll(potentialChild.getParents());
     while (!waitlist.isEmpty()) {
-      ARTElement current = waitlist.pollFirst();
+      ARGElement current = waitlist.pollFirst();
 
-      for (ARTElement currentParent : current.getParents()) {
+      for (ARGElement currentParent : current.getParents()) {
         if (currentParent.equals(potentialParent)) {
           return true;
         }
@@ -251,15 +251,15 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     return false;
   }
 
-  private boolean removeErrorElement(ReachedSet reached, ARTElement errorElement) {
+  private boolean removeErrorElement(ReachedSet reached, ARGElement errorElement) {
     boolean sound = true;
 
     // remove re-added parent of errorElement to prevent computing
     // the same error element over and over
-    Set<ARTElement> parents = errorElement.getParents();
+    Set<ARGElement> parents = errorElement.getParents();
     assert parents.size() == 1 : "error element that was merged";
 
-    ARTElement parent = Iterables.getOnlyElement(parents);
+    ARGElement parent = Iterables.getOnlyElement(parents);
 
     if (parent.getChildren().size() > 1) {
       // The error element has a sibling, so the parent and the sibling
@@ -271,8 +271,8 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     }
 
     // this includes the errorElement and its siblings
-    List<ARTElement> siblings = copyOf(parent.getChildren());
-    for (ARTElement toRemove : siblings) {
+    List<ARGElement> siblings = copyOf(parent.getChildren());
+    for (ARGElement toRemove : siblings) {
 
       assert toRemove.getChildren().isEmpty();
 

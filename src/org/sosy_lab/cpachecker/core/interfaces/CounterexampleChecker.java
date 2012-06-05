@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -46,8 +46,8 @@ public interface CounterexampleChecker {
    * @throws CPAException If something goes wrong.
    * @throws InterruptedException If the thread was interrupted.
    */
-  boolean checkCounterexample(ARTElement rootElement, ARTElement errorElement,
-            Set<ARTElement> errorPathElements)
+  boolean checkCounterexample(ARGElement rootElement, ARGElement errorElement,
+            Set<ARGElement> errorPathElements)
             throws CPAException, InterruptedException;
 
 }

@@ -38,8 +38,8 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -171,18 +171,18 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
   }
 
   private Set<CFANode> getAllNodes() {
-    Pair<ARTElement, CFAEdge> rootPair = cePath.getFirst();
-    ARTElement ae = rootPair.getFirst();
+    Pair<ARGElement, CFAEdge> rootPair = cePath.getFirst();
+    ARGElement ae = rootPair.getFirst();
     CFANode root = AbstractElements.extractLocation(ae);
     return CFATraversal.dfs().collectNodesReachableFrom(root);
   }
 
   private PathFormula buildEntryFormula(Path pPath, CFANode loopHead) {
-    // gather CFAEdges until hit ARTElement whose location is loopHead
+    // gather CFAEdges until hit ARGElement whose location is loopHead
     Vector<CFAEdge> edges = new Vector<CFAEdge>();
 
-    for (Pair<ARTElement, CFAEdge> pair : pPath) {
-      ARTElement ae = pair.getFirst();
+    for (Pair<ARGElement, CFAEdge> pair : pPath) {
+      ARGElement ae = pair.getFirst();
       CFAEdge edge = pair.getSecond();
       CFANode loc = AbstractElements.extractLocation(ae);
       if (loc == loopHead) {
@@ -220,18 +220,18 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
   }
 
   private PathFormula buildExitFormula(Path pPath, CFANode loopHead) {
-    // gather CFAEdges from ARTElement whose location is loopHead to end of path
+    // gather CFAEdges from ARGElement whose location is loopHead to end of path
     Vector<CFAEdge> edges = new Vector<CFAEdge>();
 
     boolean begun = false;
     int N = pPath.size() - 1; // we ignore last pair, since last edge is useless, hence " - 1"
     for (int i = 0; i < N; i++) {
-      Pair<ARTElement, CFAEdge> pair = pPath.get(i);
+      Pair<ARGElement, CFAEdge> pair = pPath.get(i);
       if (begun) {
         CFAEdge edge = pair.getSecond();
         edges.add(edge);
       } else {
-        ARTElement ae = pair.getFirst();
+        ARGElement ae = pair.getFirst();
         CFANode loc = AbstractElements.extractLocation(ae);
         if (loc == loopHead) {
           begun = true;
@@ -254,12 +254,12 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     boolean begun = false;
     int N = pPath.size() - 1; // we ignore last pair, since last edge is useless, hence " - 1"
     for (int i = 0; i < N; i++) {
-      Pair<ARTElement, CFAEdge> pair = pPath.get(i);
+      Pair<ARGElement, CFAEdge> pair = pPath.get(i);
       if (begun) {
         CFAEdge edge = pair.getSecond();
         tailEdges.add(edge);
       } else {
-        ARTElement ae = pair.getFirst();
+        ARGElement ae = pair.getFirst();
         CFANode loc = AbstractElements.extractLocation(ae);
         if (loc == loopHead) {
           begun = true;

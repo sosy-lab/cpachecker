@@ -38,8 +38,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.PredicateMap;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -59,18 +59,18 @@ import com.google.common.collect.Multimap;
 
 public class PredicatingExplicitRefiner implements IExplicitRefiner {
 
-  protected List<Pair<ARTElement, CFAEdge>> currentErrorPath  = null;
+  protected List<Pair<ARGElement, CFAEdge>> currentErrorPath  = null;
 
   private int numberOfPredicateRefinements                    = 0;
   private int numberOfPredicateRefinementsDone                = 0;
 
   @Override
-  public final List<Pair<ARTElement, CFANode>> transformPath(Path errorPath) {
+  public final List<Pair<ARGElement, CFANode>> transformPath(Path errorPath) {
     numberOfPredicateRefinements++;
 
-    List<Pair<ARTElement, CFANode>> result = Lists.newArrayList();
+    List<Pair<ARGElement, CFANode>> result = Lists.newArrayList();
 
-    for (ARTElement ae : transform(errorPath, Pair.<ARTElement>getProjectionToFirst())) {
+    for (ARGElement ae : transform(errorPath, Pair.<ARGElement>getProjectionToFirst())) {
       PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
       if (pe.isAbstractionElement()) {
         CFANode location = AbstractElements.extractLocation(ae);
@@ -83,27 +83,27 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
   }
 
   @Override
-  public List<Formula> getFormulasForPath(List<Pair<ARTElement, CFANode>> errorPath, ARTElement initialElement) throws CPATransferException {
+  public List<Formula> getFormulasForPath(List<Pair<ARGElement, CFANode>> errorPath, ARGElement initialElement) throws CPATransferException {
     List<Formula> formulas = transform(errorPath,
         Functions.compose(
             GET_BLOCK_FORMULA,
         Functions.compose(
             AbstractElements.extractElementByTypeFunction(PredicateAbstractElement.class),
-            Pair.<ARTElement>getProjectionToFirst())));
+            Pair.<ARGElement>getProjectionToFirst())));
 
     return formulas;
   }
 
   @Override
-  public Pair<ARTElement, Precision> performRefinement(Precision oldPrecision,
-      List<Pair<ARTElement, CFANode>> errorPath,
+  public Pair<ARGElement, Precision> performRefinement(Precision oldPrecision,
+      List<Pair<ARGElement, CFANode>> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException {
     numberOfPredicateRefinementsDone++;
     // create the mapping of CFA nodes to predicates, based on the counter example trace info
     PredicateMap predicateMap = new PredicateMap(pInfo.getPredicatesForRefinement(), errorPath);
 
     Precision precision = createPredicatePrecision(extractPredicatePrecision(oldPrecision), predicateMap);
-    ARTElement interpolationPoint = predicateMap.firstInterpolationPoint.getFirst();
+    ARGElement interpolationPoint = predicateMap.firstInterpolationPoint.getFirst();
 
     return Pair.of(interpolationPoint, precision);
   }
@@ -157,12 +157,12 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
   }
 
   @Override
-  public boolean hasMadeProgress(List<Pair<ARTElement, CFAEdge>> currentErrorPath, Precision currentPrecision) {
+  public boolean hasMadeProgress(List<Pair<ARGElement, CFAEdge>> currentErrorPath, Precision currentPrecision) {
     return true;
   }
 
   @Override
-  public void setCurrentErrorPath(List<Pair<ARTElement, CFAEdge>> currentErrorPath) {
+  public void setCurrentErrorPath(List<Pair<ARGElement, CFAEdge>> currentErrorPath) {
     this.currentErrorPath = currentErrorPath;
   }
 

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.art;
+package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,19 +40,19 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-public class ARTTransferRelation implements TransferRelation {
+public class ARGTransferRelation implements TransferRelation {
 
   private final TransferRelation transferRelation;
 
-  public ARTTransferRelation(TransferRelation tr) {
+  public ARGTransferRelation(TransferRelation tr) {
     transferRelation = tr;
   }
 
   @Override
-  public Collection<ARTElement> getAbstractSuccessors(
+  public Collection<ARGElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
-    ARTElement element = (ARTElement)pElement;
+    ARGElement element = (ARGElement)pElement;
 
     // covered elements may be in the reached set, but should always be ignored
     if (element.isCovered()) {
@@ -67,9 +67,9 @@ public class ARTTransferRelation implements TransferRelation {
       return Collections.emptySet();
     }
 
-    Collection<ARTElement> wrappedSuccessors = new ArrayList<ARTElement>();
+    Collection<ARGElement> wrappedSuccessors = new ArrayList<ARGElement>();
     for (AbstractElement absElement : successors) {
-      ARTElement successorElem = new ARTElement(absElement, element);
+      ARGElement successorElem = new ARGElement(absElement, element);
       wrappedSuccessors.add(successorElem);
     }
 
@@ -84,14 +84,14 @@ public class ARTTransferRelation implements TransferRelation {
   }
 
   boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge, Collection<? extends AbstractElement> pSuccessors, ProofChecker wrappedProofChecker) throws CPATransferException, InterruptedException {
-    ARTElement element = (ARTElement)pElement;
+    ARGElement element = (ARGElement)pElement;
 
     assert element.getChildren().equals(pSuccessors);
 
     AbstractElement wrappedElement = element.getWrappedElement();
     Multimap<CFAEdge, AbstractElement> wrappedSuccessors = HashMultimap.create();
     for (AbstractElement absElement : pSuccessors) {
-      ARTElement successorElem = (ARTElement)absElement;
+      ARGElement successorElem = (ARGElement)absElement;
       wrappedSuccessors.put(element.getEdgeToChild(successorElem), successorElem.getWrappedElement());
     }
 

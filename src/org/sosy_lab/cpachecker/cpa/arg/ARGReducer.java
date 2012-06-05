@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.art;
+package org.sosy_lab.cpachecker.cpa.arg;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -30,11 +30,11 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
 
-public class ARTReducer implements Reducer {
+public class ARGReducer implements Reducer {
 
   private final Reducer wrappedReducer;
 
-  public ARTReducer(Reducer pWrappedReducer) {
+  public ARGReducer(Reducer pWrappedReducer) {
     wrappedReducer = pWrappedReducer;
   }
 
@@ -43,7 +43,7 @@ public class ARTReducer implements Reducer {
       AbstractElement pExpandedElement, Block pContext,
       CFANode pLocation) {
 
-    return new ARTElement(wrappedReducer.getVariableReducedElement(((ARTElement)pExpandedElement).getWrappedElement(), pContext, pLocation), null);
+    return new ARGElement(wrappedReducer.getVariableReducedElement(((ARGElement)pExpandedElement).getWrappedElement(), pContext, pLocation), null);
   }
 
   @Override
@@ -51,13 +51,13 @@ public class ARTReducer implements Reducer {
       AbstractElement pRootElement, Block pReducedContext,
       AbstractElement pReducedElement) {
 
-    return new ARTElement(wrappedReducer.getVariableExpandedElement(((ARTElement)pRootElement).getWrappedElement(), pReducedContext, ((ARTElement)pReducedElement).getWrappedElement()), null);
+    return new ARGElement(wrappedReducer.getVariableExpandedElement(((ARGElement)pRootElement).getWrappedElement(), pReducedContext, ((ARGElement)pReducedElement).getWrappedElement()), null);
   }
 
   @Override
   public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
 
-    return wrappedReducer.getHashCodeForElement(((ARTElement)pElementKey).getWrappedElement(), pPrecisionKey);
+    return wrappedReducer.getHashCodeForElement(((ARGElement)pElementKey).getWrappedElement(), pPrecisionKey);
   }
 
   @Override

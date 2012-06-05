@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.art;
+package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -55,18 +55,18 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Preconditions;
 
-public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM, ProofChecker {
+public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM, ProofChecker {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(ARTCPA.class);
+    return AutomaticCPAFactory.forType(ARGCPA.class);
   }
 
   private final LogManager logger;
 
   private final AbstractDomain abstractDomain;
-  private final ARTTransferRelation transferRelation;
+  private final ARGTransferRelation transferRelation;
   private final MergeOperator mergeOperator;
-  private final ARTStopSep stopOperator;
+  private final ARGStopSep stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
   private final Reducer reducer;
   private final Statistics stats;
@@ -74,24 +74,24 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
   private CounterexampleInfo lastCounterexample = null;
 
-  private ARTCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(cpa);
 
     this.logger = logger;
     abstractDomain = new FlatLatticeDomain();
-    transferRelation = new ARTTransferRelation(cpa.getTransferRelation());
+    transferRelation = new ARGTransferRelation(cpa.getTransferRelation());
 
     PrecisionAdjustment wrappedPrec = cpa.getPrecisionAdjustment();
     if (wrappedPrec instanceof SimplePrecisionAdjustment) {
-      precisionAdjustment = new ARTSimplePrecisionAdjustment((SimplePrecisionAdjustment) wrappedPrec);
+      precisionAdjustment = new ARGSimplePrecisionAdjustment((SimplePrecisionAdjustment) wrappedPrec);
     } else {
-      precisionAdjustment = new ARTPrecisionAdjustment(cpa.getPrecisionAdjustment());
+      precisionAdjustment = new ARGPrecisionAdjustment(cpa.getPrecisionAdjustment());
     }
 
     if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
       Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM)cpa).getReducer();
       if (wrappedReducer != null) {
-        reducer = new ARTReducer(wrappedReducer);
+        reducer = new ARGReducer(wrappedReducer);
       } else {
         reducer = null;
       }
@@ -109,10 +109,10 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     if (wrappedMerge == MergeSepOperator.getInstance()) {
       mergeOperator = MergeSepOperator.getInstance();
     } else {
-      mergeOperator = new ARTMergeJoin(wrappedMerge);
+      mergeOperator = new ARGMergeJoin(wrappedMerge);
     }
-    stopOperator = new ARTStopSep(getWrappedCpa().getStopOperator(), logger, config);
-    stats = new ARTStatistics(config, this);
+    stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
+    stats = new ARGStatistics(config, this);
   }
 
   @Override
@@ -152,7 +152,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   @Override
   public AbstractElement getInitialElement (CFANode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ART
-    return new ARTElement(getWrappedCpa().getInitialElement(pNode), null);
+    return new ARGElement(getWrappedCpa().getInitialElement(pNode), null);
   }
 
   protected LogManager getLogger() {

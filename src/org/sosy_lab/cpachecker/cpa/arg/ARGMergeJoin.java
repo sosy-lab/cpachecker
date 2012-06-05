@@ -21,18 +21,18 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.art;
+package org.sosy_lab.cpachecker.cpa.arg;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class ARTMergeJoin implements MergeOperator {
+public class ARGMergeJoin implements MergeOperator {
 
   private final MergeOperator wrappedMerge;
 
-  public ARTMergeJoin(MergeOperator pWrappedMerge) {
+  public ARGMergeJoin(MergeOperator pWrappedMerge) {
     wrappedMerge = pWrappedMerge;
   }
 
@@ -40,8 +40,8 @@ public class ARTMergeJoin implements MergeOperator {
   public AbstractElement merge(AbstractElement pElement1,
       AbstractElement pElement2, Precision pPrecision) throws CPAException {
 
-    ARTElement artElement1 = (ARTElement)pElement1;
-    ARTElement artElement2 = (ARTElement)pElement2;
+    ARGElement artElement1 = (ARGElement)pElement1;
+    ARGElement artElement2 = (ARGElement)pElement2;
 
     assert !artElement1.isCovered() : "Trying to merge covered element " + artElement1;
 
@@ -64,13 +64,13 @@ public class ARTMergeJoin implements MergeOperator {
       return pElement2;
     }
 
-    ARTElement mergedElement = new ARTElement(retElement, null);
+    ARGElement mergedElement = new ARGElement(retElement, null);
 
     // now replace artElement2 by mergedElement in ART
     artElement2.replaceInARTWith(mergedElement);
 
     // and also replace artElement1 with it
-    for (ARTElement parentOfElement1 : artElement1.getParents()) {
+    for (ARGElement parentOfElement1 : artElement1.getParents()) {
       mergedElement.addParent(parentOfElement1);
     }
 

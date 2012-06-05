@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.art;
+package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
@@ -42,54 +42,54 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
 
-public class ARTElement extends AbstractSingleWrapperElement implements Comparable<ARTElement> {
+public class ARGElement extends AbstractSingleWrapperElement implements Comparable<ARGElement> {
 
   private static final long serialVersionUID = 2608287648397165040L;
-  private final Set<ARTElement> children;
-  private final Set<ARTElement> parents; // more than one parent if joining elements
+  private final Set<ARGElement> children;
+  private final Set<ARGElement> parents; // more than one parent if joining elements
 
-  private ARTElement mCoveredBy = null;
-  private Set<ARTElement> mCoveredByThis = null; // lazy initialization because rarely needed
+  private ARGElement mCoveredBy = null;
+  private Set<ARGElement> mCoveredByThis = null; // lazy initialization because rarely needed
 
   // boolean which keeps track of which elements have already had their successors computed
   private boolean wasExpanded = false;
   private boolean mayCover = true;
   private boolean destroyed = false;
 
-  private ARTElement mergedWith = null;
+  private ARGElement mergedWith = null;
 
   private final int elementId;
 
   private static int nextArtElementId = 0;
 
-  public ARTElement(AbstractElement pWrappedElement, ARTElement pParentElement) {
+  public ARGElement(AbstractElement pWrappedElement, ARGElement pParentElement) {
     super(pWrappedElement);
     elementId = ++nextArtElementId;
-    parents = new LinkedHashSet<ARTElement>(1); // TODO Is HashSet enough? It would be more memory-efficient.
+    parents = new LinkedHashSet<ARGElement>(1); // TODO Is HashSet enough? It would be more memory-efficient.
     if(pParentElement != null){
       addParent(pParentElement);
     }
-    children = new LinkedHashSet<ARTElement>(1);
+    children = new LinkedHashSet<ARGElement>(1);
   }
 
-  public Set<ARTElement> getParents(){
+  public Set<ARGElement> getParents(){
     // TODO return unmodifiable view?
     return parents;
   }
 
-  public void addParent(ARTElement pOtherParent){
-    assert !destroyed : "Don't use destroyed ARTElement " + this;
+  public void addParent(ARGElement pOtherParent){
+    assert !destroyed : "Don't use destroyed ARGElement " + this;
     if(parents.add(pOtherParent)){
       pOtherParent.children.add(this);
     }
   }
 
-  public Set<ARTElement> getChildren() {
-    assert !destroyed : "Don't use destroyed ARTElement " + this;
+  public Set<ARGElement> getChildren() {
+    assert !destroyed : "Don't use destroyed ARGElement " + this;
     return children;
   }
 
-  public void setCovered(ARTElement pCoveredBy) {
+  public void setCovered(ARGElement pCoveredBy) {
     checkState(!isCovered(), "Cannot cover already covered element %s", this);
     checkNotNull(pCoveredBy);
     checkArgument(pCoveredBy.mayCover, "Trying to cover with non-covering element %s", pCoveredBy);
@@ -97,7 +97,7 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     mCoveredBy = pCoveredBy;
     if (pCoveredBy.mCoveredByThis == null) {
       // lazy initialization because rarely needed
-      pCoveredBy.mCoveredByThis = new HashSet<ARTElement>(2);
+      pCoveredBy.mCoveredByThis = new HashSet<ARGElement>(2);
     }
     pCoveredBy.mCoveredByThis.add(this);
   }
@@ -111,17 +111,17 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
   }
 
   public boolean isCovered() {
-    assert !destroyed : "Don't use destroyed ARTElement " + this;
+    assert !destroyed : "Don't use destroyed ARGElement " + this;
     return mCoveredBy != null;
   }
 
-  public ARTElement getCoveringElement() {
+  public ARGElement getCoveringElement() {
     checkState(isCovered());
     return mCoveredBy;
   }
 
-  public Set<ARTElement> getCoveredByThis() {
-    assert !destroyed : "Don't use destroyed ARTElement " + this;
+  public Set<ARGElement> getCoveredByThis() {
+    assert !destroyed : "Don't use destroyed ARGElement " + this;
     if (mCoveredByThis == null) {
       return Collections.emptySet();
     } else {
@@ -129,14 +129,14 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     }
   }
 
-  protected void setMergedWith(ARTElement pMergedWith) {
-    assert !destroyed : "Don't use destroyed ARTElement " + this;
+  protected void setMergedWith(ARGElement pMergedWith) {
+    assert !destroyed : "Don't use destroyed ARGElement " + this;
     assert mergedWith == null : "Second merging of element " + this;
 
     mergedWith = pMergedWith;
   }
 
-  protected ARTElement getMergedWith() {
+  protected ARGElement getMergedWith() {
     return mergedWith;
   }
 
@@ -145,12 +145,12 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
   }
 
   public void setNotCovering() {
-    assert !destroyed : "Don't use destroyed ARTElement " + this;
+    assert !destroyed : "Don't use destroyed ARGElement " + this;
     mayCover = false;
   }
 
   public void setCovering() {
-    assert !destroyed : "Don't use destroyed ARTElement " + this;
+    assert !destroyed : "Don't use destroyed ARGElement " + this;
     mayCover = true;
   }
 
@@ -192,25 +192,25 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     return sb.toString();
   }
 
-  private final Iterable<Integer> elementIdsOf(Iterable<ARTElement> elements) {
-    return Iterables.transform(elements, new Function<ARTElement, Integer>() {
+  private final Iterable<Integer> elementIdsOf(Iterable<ARGElement> elements) {
+    return Iterables.transform(elements, new Function<ARGElement, Integer>() {
       @Override
-      public Integer apply(ARTElement pInput) {
+      public Integer apply(ARGElement pInput) {
         return pInput.elementId;
       }
     });
   }
 
   // TODO check
-  public Set<ARTElement> getSubtree() {
-    assert !destroyed : "Don't use destroyed ARTElement " + this;
-    Set<ARTElement> result = new HashSet<ARTElement>();
-    Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
+  public Set<ARGElement> getSubtree() {
+    assert !destroyed : "Don't use destroyed ARGElement " + this;
+    Set<ARGElement> result = new HashSet<ARGElement>();
+    Deque<ARGElement> workList = new ArrayDeque<ARGElement>();
 
     workList.add(this);
 
     while (!workList.isEmpty()) {
-      ARTElement currentElement = workList.removeFirst();
+      ARGElement currentElement = workList.removeFirst();
       if (result.add(currentElement)) {
         // currentElement was not in result
         workList.addAll(currentElement.children);
@@ -231,17 +231,17 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
    * elements will not be removed from the covered set.
    */
   public void removeFromART() {
-    assert !destroyed : "Don't use destroyed ARTElement " + this;
+    assert !destroyed : "Don't use destroyed ARGElement " + this;
 
     // clear children
-    for (ARTElement child : children) {
+    for (ARGElement child : children) {
       assert (child.parents.contains(this));
       child.parents.remove(this);
     }
     children.clear();
 
     // clear parents
-    for (ARTElement parent : parents) {
+    for (ARGElement parent : parents) {
       assert (parent.children.contains(this));
       parent.children.remove(this);
     }
@@ -256,7 +256,7 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     }
 
     if (mCoveredByThis != null) {
-      for (ARTElement covered : mCoveredByThis) {
+      for (ARGElement covered : mCoveredByThis) {
         covered.mCoveredBy = null;
       }
       mCoveredByThis.clear();
@@ -275,21 +275,21 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
    *
    * @param replacement
    */
-  protected void replaceInARTWith(ARTElement replacement) {
-    assert !destroyed : "Don't use destroyed ARTElement " + this;
-    assert !replacement.destroyed : "Don't use destroyed ARTElement " + replacement;
+  protected void replaceInARTWith(ARGElement replacement) {
+    assert !destroyed : "Don't use destroyed ARGElement " + this;
+    assert !replacement.destroyed : "Don't use destroyed ARGElement " + replacement;
     assert !isCovered() : "Not implemented: Replacement of covered element " + this;
     assert !replacement.isCovered() : "Cannot replace with covered element " + replacement;
 
     // copy children
-    for (ARTElement child : children) {
+    for (ARGElement child : children) {
       assert (child.parents.contains(this)) : "Inconsistent ART at " + this;
       child.parents.remove(this);
       child.addParent(replacement);
     }
     children.clear();
 
-    for (ARTElement parent : parents) {
+    for (ARGElement parent : parents) {
       assert (parent.children.contains(this)) : "Inconsistent ART at " + this;
       parent.children.remove(this);
       replacement.addParent(parent);
@@ -299,10 +299,10 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     if (mCoveredByThis != null) {
       if (replacement.mCoveredByThis == null) {
         // lazy initialization because rarely needed
-        replacement.mCoveredByThis = new HashSet<ARTElement>(mCoveredByThis.size());
+        replacement.mCoveredByThis = new HashSet<ARGElement>(mCoveredByThis.size());
       }
 
-      for (ARTElement covered : mCoveredByThis) {
+      for (ARGElement covered : mCoveredByThis) {
         assert covered.mCoveredBy == this : "Inconsistent coverage relation at " + this;
         covered.mCoveredBy = replacement;
         replacement.mCoveredByThis.add(covered);
@@ -319,7 +319,7 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
     return elementId;
   }
 
-  public CFAEdge getEdgeToChild(ARTElement pChild) {
+  public CFAEdge getEdgeToChild(ARGElement pChild) {
     checkArgument(children.contains(pChild));
 
     CFANode currentLoc = extractLocation(this);
@@ -339,11 +339,11 @@ public class ARTElement extends AbstractSingleWrapperElement implements Comparab
    * with equals() as the elementId field is unique.
    */
   @Override
-  public int compareTo(ARTElement pO) {
+  public int compareTo(ARGElement pO) {
     return Ints.compare(this.elementId, pO.elementId);
   }
 
-  public boolean isOlderThan(ARTElement other) {
+  public boolean isOlderThan(ARGElement other) {
     return (elementId < other.elementId);
   }
 }

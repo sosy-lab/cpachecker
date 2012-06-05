@@ -33,8 +33,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -43,21 +43,21 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 
 
 public interface IExplicitRefiner {
-  List<Pair<ARTElement, CFANode>> transformPath(Path errorPath);
+  List<Pair<ARGElement, CFANode>> transformPath(Path errorPath);
 
   List<Formula> getFormulasForPath(
-      List<Pair<ARTElement,
+      List<Pair<ARGElement,
       CFANode>> errorPath,
-      ARTElement initialElement) throws CPATransferException;
+      ARGElement initialElement) throws CPATransferException;
 
-  Pair<ARTElement, Precision> performRefinement(
+  Pair<ARGElement, Precision> performRefinement(
       Precision oldPrecision,
-      List<Pair<ARTElement, CFANode>> errorPath,
+      List<Pair<ARGElement, CFANode>> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException;
 
-  boolean hasMadeProgress(List<Pair<ARTElement, CFAEdge>> currentErrorPath, Precision currentPrecision);
+  boolean hasMadeProgress(List<Pair<ARGElement, CFAEdge>> currentErrorPath, Precision currentPrecision);
 
-  void setCurrentErrorPath(List<Pair<ARTElement, CFAEdge>> currentErrorPath);
+  void setCurrentErrorPath(List<Pair<ARGElement, CFAEdge>> currentErrorPath);
 
   void printStatistics(PrintStream out, Result result, ReachedSet reached);
 }

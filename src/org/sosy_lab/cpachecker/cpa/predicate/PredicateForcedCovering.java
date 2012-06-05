@@ -47,10 +47,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
-import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
@@ -137,7 +137,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
   @Override
   public boolean tryForcedCovering(AbstractElement pElement, Precision pPrecision, ReachedSet pReached)
       throws CPAException, InterruptedException {
-    ARTElement artElement = (ARTElement)pElement;
+    ARGElement artElement = (ARGElement)pElement;
     if (artElement.isCovered()) {
       return false;
     }
@@ -157,10 +157,10 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
     logger.log(Level.FINER, "Starting interpolation-based forced covering.");
     logger.log(Level.ALL, "Attempting to force-cover", artElement);
 
-    ARTReachedSet art = new ARTReachedSet(pReached);
+    ARGReachedSet art = new ARGReachedSet(pReached);
 
-    List<ARTElement> parentList = ImmutableList.copyOf(getParentAbstractionElements(artElement)).reverse();
-    Set<ARTElement> parentSet = ImmutableSet.copyOf(parentList);
+    List<ARGElement> parentList = ImmutableList.copyOf(getParentAbstractionElements(artElement)).reverse();
+    Set<ARGElement> parentSet = ImmutableSet.copyOf(parentList);
 
     for (AbstractElement reachedElement : pReached.getReached(pElement)) {
       if (pElement == reachedElement) {
@@ -178,15 +178,15 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         stats.attemptedForcedCoverings++;
         logger.log(Level.ALL, "Candidate for forced-covering is", reachedElement);
 
-        List<ARTElement> reachedParentList = ImmutableList.copyOf(getParentAbstractionElements((ARTElement)reachedElement)).reverse();
-        ARTElement commonParent = Iterables.find(
+        List<ARGElement> reachedParentList = ImmutableList.copyOf(getParentAbstractionElements((ARGElement)reachedElement)).reverse();
+        ARGElement commonParent = Iterables.find(
             reachedParentList,
             Predicates.in(parentSet));
         assert commonParent != null : "Elements do not have common parent, but are in the same reached set";
 
 
-        List<ARTElement> path = new ArrayList<ARTElement>();
-        for (ARTElement pathElement : parentList) {
+        List<ARGElement> path = new ArrayList<ARGElement>();
+        for (ARGElement pathElement : parentList) {
           if (pathElement == commonParent) {
             break;
           }
@@ -221,7 +221,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         path.add(0, commonParent); // now path is [commonParent; artElement] (including x and v)
         assert formulas.size() == path.size() + 1;
 
-        CounterexampleTraceInfo<Formula> interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARTElement>emptySet());
+        CounterexampleTraceInfo<Formula> interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGElement>emptySet());
 
         if (!interpolantInfo.isSpurious()) {
           logger.log(Level.FINER, "Forced covering unsuccessful.");
@@ -236,9 +236,9 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         assert interpolants.size() == formulas.size() - 1 : "Number of interpolants is wrong";
         assert interpolants.size() == path.size();
 
-        for (Pair<Formula, ARTElement> interpolationPoint : Pair.zipList(interpolants, path)) {
+        for (Pair<Formula, ARGElement> interpolationPoint : Pair.zipList(interpolants, path)) {
           Formula itp = interpolationPoint.getFirst();
-          ARTElement element = interpolationPoint.getSecond();
+          ARGElement element = interpolationPoint.getSecond();
 
           if (itp.isTrue()) {
             continue;
@@ -258,14 +258,14 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         }
 
         // For debugging, run stop operator on this element.
-        // However, ARTStopSep may return false although it is covered,
+        // However, ARGStopSep may return false although it is covered,
         // thus the second check.
         assert stop.stop(artElement, Collections.singleton(reachedElement), pPrecision)
             || artElement.isCovered()
             : "Forced covering did not cover element\n" + artElement + "\nwith\n" + reachedElement;
 
         if (!artElement.isCovered()) {
-          artElement.setCovered((ARTElement)reachedElement);
+          artElement.setCovered((ARGElement)reachedElement);
         } else {
           assert artElement.getCoveringElement() == reachedElement;
         }
@@ -277,11 +277,11 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
     return false;
   }
 
-  private Iterable<ARTElement> getParentAbstractionElements(ARTElement artElement) {
-    Path pathToRoot = ARTUtils.getOnePathTo(artElement);
+  private Iterable<ARGElement> getParentAbstractionElements(ARGElement artElement) {
+    Path pathToRoot = ARGUtils.getOnePathTo(artElement);
 
     return Iterables.filter(
-            Iterables.transform(pathToRoot, Pair.<ARTElement>getProjectionToFirst()),
+            Iterables.transform(pathToRoot, Pair.<ARGElement>getProjectionToFirst()),
         Predicates.compose(
             PredicateAbstractElement.FILTER_ABSTRACTION_ELEMENTS,
             AbstractElements.extractElementByTypeFunction(PredicateAbstractElement.class)));
