@@ -43,14 +43,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
-import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
-import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.ComputeAbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
-import org.sosy_lab.cpachecker.fshell.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
 import org.sosy_lab.cpachecker.util.AbstractElements;
-import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -207,14 +203,6 @@ public class PredicateTransferRelation implements TransferRelation {
           element = strengthen(element, (AssumptionStorageElement)lElement);
         }
 
-        if (lElement instanceof GuardedEdgeAutomatonPredicateElement) {
-          element = strengthen(edge.getSuccessor(), element, (GuardedEdgeAutomatonPredicateElement)lElement);
-        }
-
-        if (lElement instanceof ProductAutomatonElement.PredicateElement) {
-          element = strengthen(edge.getSuccessor(), element, (ProductAutomatonElement.PredicateElement)lElement);
-        }
-
         if (lElement instanceof ConstrainedAssumeElement) {
           element = strengthen(edge.getSuccessor(), element, (ConstrainedAssumeElement)lElement);
         }
@@ -239,30 +227,6 @@ public class PredicateTransferRelation implements TransferRelation {
     } finally {
       strengthenTimer.stop();
     }
-  }
-
-  private PredicateAbstractElement strengthen(CFANode pNode, PredicateAbstractElement pElement, GuardedEdgeAutomatonPredicateElement pAutomatonElement) throws CPATransferException {
-    PathFormula pf = pElement.getPathFormula();
-
-    for (ECPPredicate lPredicate : pAutomatonElement) {
-      AssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
-
-      pf = convertEdgeToPathFormula(pf, lEdge);
-    }
-
-    return replacePathFormula(pElement, pf);
-  }
-
-  private PredicateAbstractElement strengthen(CFANode pNode, PredicateAbstractElement pElement, ProductAutomatonElement.PredicateElement pAutomatonElement) throws CPATransferException {
-    PathFormula pf = pElement.getPathFormula();
-
-    for (ECPPredicate lPredicate : pAutomatonElement.getPredicates()) {
-      AssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
-
-      pf = convertEdgeToPathFormula(pf, lEdge);
-    }
-
-    return replacePathFormula(pElement, pf);
   }
 
   private PredicateAbstractElement strengthen(CFANode pNode, PredicateAbstractElement pElement, ConstrainedAssumeElement pAssumeElement) throws CPATransferException {
