@@ -31,15 +31,15 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Implementation of prec operator which does not change the precision or
- * the element, but checks for target states and signals a break in this case.
+ * the state, but checks for target states and signals a break in this case.
  */
 public class BreakOnTargetsPrecisionAdjustment extends SimplePrecisionAdjustment {
 
   private BreakOnTargetsPrecisionAdjustment() { }
 
   @Override
-  public Action prec(AbstractState pElement, Precision pPrecision) throws CPAException {
-    return ((Targetable)pElement).isTarget()
+  public Action prec(AbstractState pState, Precision pPrecision) throws CPAException {
+    return ((Targetable)pState).isTarget()
            ? Action.BREAK : Action.CONTINUE;
   }
 

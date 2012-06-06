@@ -43,7 +43,7 @@ public interface AvoidanceReportingState extends AbstractState {
   /**
    * If {@link #mustDumpAssumptionForAvoidance()} returned true, this method
    * returns a formula that provides an explanation. This formula may not be TRUE.
-   * If the element cannot provide such a formula, it SHOULD return FALSE.
+   * If the state cannot provide such a formula, it SHOULD return FALSE.
    * If {@link #mustDumpAssumptionForAvoidance()} returned false, this method
    * SHOULD return TRUE.
    */

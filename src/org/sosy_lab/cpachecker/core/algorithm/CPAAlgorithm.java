@@ -94,7 +94,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Average size of waitlist:        " + countWaitlistSize
           / countIterations);
       out.println("Number of computed successors:   " + countSuccessors);
-      out.println("Max successors for one element:  " + maxSuccessors);
+      out.println("Max successors for one state:    " + maxSuccessors);
       out.println("Number of times merged:          " + countMerge);
       out.println("Number of times stopped:         " + countStop);
       out.println("Number of times breaked:         " + countBreak);
@@ -169,7 +169,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
       stats.countIterations++;
 
-      // Pick next element using strategy
+      // Pick next state using strategy
       // BFS, DFS or top sort according to the configuration
       int size = reachedSet.getWaitlistSize();
       if (size >= stats.maxWaitlistSize) {
@@ -178,41 +178,41 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       stats.countWaitlistSize += size;
 
       stats.chooseTimer.start();
-      final AbstractState element = reachedSet.popFromWaitlist();
-      final Precision precision = reachedSet.getPrecision(element);
+      final AbstractState state = reachedSet.popFromWaitlist();
+      final Precision precision = reachedSet.getPrecision(state);
       stats.chooseTimer.stop();
 
-      logger.log(Level.FINER, "Retrieved element from waitlist");
-      logger.log(Level.ALL, "Current element is", element, "with precision",
+      logger.log(Level.FINER, "Retrieved state from waitlist");
+      logger.log(Level.ALL, "Current state is", state, "with precision",
           precision);
 
       if (forcedCovering != null) {
         stats.forcedCoveringTimer.start();
-        boolean stop = forcedCovering.tryForcedCovering(element, precision, reachedSet);
+        boolean stop = forcedCovering.tryForcedCovering(state, precision, reachedSet);
         stats.forcedCoveringTimer.stop();
 
         if (stop) {
-          // TODO: remove element from reached set?
+          // TODO: remove state from reached set?
           continue;
         }
       }
 
       stats.transferTimer.start();
       Collection<? extends AbstractState> successors =
-          transferRelation.getAbstractSuccessors(element, precision, null);
+          transferRelation.getAbstractSuccessors(state, precision, null);
       stats.transferTimer.stop();
       // TODO When we have a nice way to mark the analysis result as incomplete,
-      // we could continue analysis on a CPATransferException with the next element from waitlist.
+      // we could continue analysis on a CPATransferException with the next state from waitlist.
 
       int numSuccessors = successors.size();
-      logger.log(Level.FINER, "Current element has", numSuccessors,
+      logger.log(Level.FINER, "Current state has", numSuccessors,
           "successors");
       stats.countSuccessors += numSuccessors;
       stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
 
       for (AbstractState successor : Iterables.consumingIterable(successors)) {
-        logger.log(Level.FINER, "Considering successor of current element");
-        logger.log(Level.ALL, "Successor of", element, "\nis", successor);
+        logger.log(Level.FINER, "Considering successor of current state");
+        logger.log(Level.ALL, "Successor of", state, "\nis", successor);
 
         stats.precisionTimer.start();
         Triple<AbstractState, Precision, Action> precAdjustmentResult =
@@ -229,12 +229,12 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           stats.stopTimer.stop();
 
           if (stop) {
-            // don't signal BREAK for covered elements
-            // no need to call merge and stop either, so just ignore this element
+            // don't signal BREAK for covered states
+            // no need to call merge and stop either, so just ignore this state
             // and handle next successor
             stats.countStop++;
             logger.log(Level.FINER,
-                "Break was signalled but ignored because the element is covered.");
+                "Break was signalled but ignored because the state is covered.");
             continue;
 
           } else {
@@ -247,7 +247,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
             if (!successors.isEmpty()) {
               // re-add the old state to the waitlist, there are unhandled
               // successors left that otherwise would be forgotten
-              reachedSet.reAddToWaitlist(element);
+              reachedSet.reAddToWaitlist(state);
             }
 
             return true;
@@ -267,21 +267,21 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
               new ArrayList<Pair<AbstractState, Precision>>();
 
           logger.log(Level.FINER, "Considering", reached.size(),
-              "elements from reached set for merge");
+              "states from reached set for merge");
           for (AbstractState reachedState : reached) {
-            AbstractState mergedElement =
+            AbstractState mergedState =
                 mergeOperator.merge(successor, reachedState,
                     successorPrecision);
 
-            if (!mergedElement.equals(reachedState)) {
+            if (!mergedState.equals(reachedState)) {
               logger.log(Level.FINER,
-                  "Successor was merged with element from reached set");
+                  "Successor was merged with state from reached set");
               logger.log(Level.ALL, "Merged", successor, "\nand",
-                  reachedState, "\n-->", mergedElement);
+                  reachedState, "\n-->", mergedState);
               stats.countMerge++;
 
               toRemove.add(reachedState);
-              toAdd.add(Pair.of(mergedElement, successorPrecision));
+              toAdd.add(Pair.of(mergedState, successorPrecision));
             }
           }
           reachedSet.removeAll(toRemove);

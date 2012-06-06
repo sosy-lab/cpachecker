@@ -70,8 +70,8 @@ analysis.programNames = no default value
 
 # which reached set implementation to use?
 # NORMAL: just a simple set
-# LOCATIONMAPPED: a different set per location (faster, elements with
-# different locations cannot be merged)
+# LOCATIONMAPPED: a different set per location (faster, states with different
+# locations cannot be merged)
 # PARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)
 analysis.reachedSet = PARTITIONED
   enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED]
@@ -96,7 +96,7 @@ analysis.traversal.useCallstack = false
 analysis.traversal.useExplicitInformation = false
 
 # Use an implementation of reverse postorder strategy that allows to select a
-# secondary strategy that is used if there are two elements with the same
+# secondary strategy that is used if there are two states with the same
 # reverse postorder id. The secondary strategy is selected with
 # 'analysis.traversal.order'. The secondary strategy may not be RPO.
 analysis.traversal.useReversePostorder = false

@@ -39,7 +39,7 @@ public class StaticPrecisionAdjustment extends SimplePrecisionAdjustment {
   private StaticPrecisionAdjustment() { }
 
   @Override
-  public Action prec(AbstractState pElement, Precision pPrecision) throws CPAException {
+  public Action prec(AbstractState pState, Precision pPrecision) throws CPAException {
     return Action.CONTINUE;
   }
 

@@ -37,14 +37,14 @@ public class ReversePostorderSortedWaitlist extends AbstractSortedWaitlist<Integ
   }
 
   @Override
-  public void add(AbstractState pElement) {
-    assert AbstractStates.extractLocation(pElement) != null;
-    super.add(pElement);
+  public void add(AbstractState pState) {
+    assert AbstractStates.extractLocation(pState) != null;
+    super.add(pState);
   }
 
   @Override
-  protected Integer getSortKey(AbstractState pElement) {
-    return AbstractStates.extractLocation(pElement).getReversePostorderId();
+  protected Integer getSortKey(AbstractState pState) {
+    return AbstractStates.extractLocation(pState).getReversePostorderId();
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {

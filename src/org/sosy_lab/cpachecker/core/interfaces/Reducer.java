@@ -37,7 +37,7 @@ public interface Reducer {
 
   Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision);
 
-  Object getHashCodeForState(AbstractState elementKey, Precision precisionKey);
+  Object getHashCodeForState(AbstractState stateKey, Precision precisionKey);
 
   int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision);
 }

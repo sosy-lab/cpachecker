@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Interface for implementations of forced coverings
- * (strengthening a new abstract state such that it is covered by another element
+ * (strengthening a new abstract state such that it is covered by another state
  * from the reached set).
  *
  * Implementations need to have a public constructor which takes a
@@ -45,18 +45,18 @@ public interface ForcedCovering {
    * Try to cover the abstract state by strengthening it (and possibly its parents).
    *
    * This method should not change the reached set, except by re-adding some
-   * elements to the waitlist. It is necessary to re-add elements to the waitlist,
-   * which are covered by strenghtened elements, and this method is responsible
+   * state to the waitlist. It is necessary to re-add states to the waitlist,
+   * which are covered by strengthened state, and this method is responsible
    * for this!
    *
-   * The methods returns a boolean indicating success in covering the element
+   * The methods returns a boolean indicating success in covering the state
    * or not. This means, if this method returns true, the stop operator called
    * with the same arguments after this method returned also needs to return true.
    *
-   * @param element The element which hopefully is covered afterwards.
-   * @param precision The precision for the element.
+   * @param state The state which hopefully is covered afterwards.
+   * @param precision The precision for the state.
    * @param reached The current reached set.
    * @return Whether forced covering was successful.
    */
-  boolean tryForcedCovering(AbstractState element, Precision precision, ReachedSet reached) throws CPAException, InterruptedException;
+  boolean tryForcedCovering(AbstractState state, Precision precision, ReachedSet reached) throws CPAException, InterruptedException;
 }

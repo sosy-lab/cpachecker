@@ -127,7 +127,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
         pReachedSet.add(new DummyErrorState(), SingletonPrecision.getInstance());
         assert pReachedSet.size() == 1 && pReachedSet.hasWaitingState();
 
-        // remove dummy element from waitlist
+        // remove dummy state from waitlist
         pReachedSet.popFromWaitlist();
         assert !pReachedSet.hasWaitingState();
       }

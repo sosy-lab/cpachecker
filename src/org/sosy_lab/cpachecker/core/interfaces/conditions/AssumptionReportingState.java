@@ -38,7 +38,7 @@ public interface AssumptionReportingState {
    * wants to report for its containing node's location.
    *
    * @return an assumption representing the assumptions to generate
-   *         for the given element, or the value null representing
+   *         for the given state, or the value null representing
    *         the assumption true.
    */
   public IASTExpression getAssumption();

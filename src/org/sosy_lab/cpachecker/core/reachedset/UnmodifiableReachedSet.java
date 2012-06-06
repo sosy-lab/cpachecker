@@ -47,7 +47,7 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
 
   /**
    * Returns a subset of the reached set, which contains at least all abstract
-   * elements belonging to the same location as a given element. It may even
+   * states belonging to the same location as a given state. It may even
    * return an empty set if there are no such states. Note that it may return up to
    * all abstract states.
    *
@@ -57,15 +57,15 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    *
    * The returned set is unmodifiable.
    *
-   * @param element An abstract state for whose location the abstract states should be retrieved.
+   * @param state An abstract state for whose location the abstract states should be retrieved.
    * @return A subset of the reached set.
    */
-  public Collection<AbstractState> getReached(AbstractState element)
+  public Collection<AbstractState> getReached(AbstractState state)
     throws UnsupportedOperationException;
 
   /**
    * Returns a subset of the reached set, which contains at least all abstract
-   * elements belonging to given location. It may even
+   * states belonging to given location. It may even
    * return an empty set if there are no such states. Note that it may return up to
    * all abstract states.
    *
@@ -81,14 +81,14 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
   public Collection<AbstractState> getReached(CFANode location);
 
   /**
-   * Returns the first element that was added to the reached set.
+   * Returns the first state that was added to the reached set.
    * @throws IllegalStateException If the reached set is empty.
    */
   public AbstractState getFirstState();
 
   /**
-   * Returns the last element that was added to the reached set.
-   * May be null if it is unknown, which element was added last.
+   * Returns the last state that was added to the reached set.
+   * May be null if it is unknown, which state was added last.
    */
   public AbstractState getLastState();
 
@@ -102,16 +102,16 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
   public int getWaitlistSize();
 
   /**
-   * Returns the precision for an element.
-   * @param element The element to look for. Has to be in the reached set.
-   * @return The precision for the element.
-   * @throws IllegalArgumentException If the element is not in the reached set.
+   * Returns the precision for a state.
+   * @param state The state to look for. Has to be in the reached set.
+   * @return The precision for the state.
+   * @throws IllegalArgumentException If the state is not in the reached set.
    */
-  public Precision getPrecision(AbstractState element)
+  public Precision getPrecision(AbstractState state)
     throws UnsupportedOperationException;
 
 
-  public boolean contains(AbstractState element);
+  public boolean contains(AbstractState state);
 
   public boolean isEmpty();
 

@@ -48,8 +48,8 @@ import com.google.common.collect.Multimap;
  * Whenever the method {@link PartitionedReachedSet#getReached(AbstractState)}
  * is called (which is usually done by the CPAAlgorithm to get the candidates
  * for merging and coverage checks), it will return a subset of the set of all
- * reached states. This subset contains exactly those elements, whose partition
- * key is equal to the key of the element given as a parameter.
+ * reached states. This subset contains exactly those states, whose partition
+ * key is equal to the key of the state given as a parameter.
  */
 public class PartitionedReachedSet extends DefaultReachedSet {
 
@@ -60,17 +60,17 @@ public class PartitionedReachedSet extends DefaultReachedSet {
   }
 
   @Override
-  public void add(AbstractState pElement, Precision pPrecision) {
-    super.add(pElement, pPrecision);
+  public void add(AbstractState pState, Precision pPrecision) {
+    super.add(pState, pPrecision);
 
-    partitionedReached.put(getPartitionKey(pElement), pElement);
+    partitionedReached.put(getPartitionKey(pState), pState);
   }
 
   @Override
-  public void remove(AbstractState pElement) {
-    super.remove(pElement);
+  public void remove(AbstractState pState) {
+    super.remove(pState);
 
-    partitionedReached.remove(getPartitionKey(pElement), pElement);
+    partitionedReached.remove(getPartitionKey(pState), pState);
   }
 
   @Override
@@ -81,8 +81,8 @@ public class PartitionedReachedSet extends DefaultReachedSet {
   }
 
   @Override
-  public Collection<AbstractState> getReached(AbstractState pElement) {
-    return getReachedForKey(getPartitionKey(pElement));
+  public Collection<AbstractState> getReached(AbstractState pState) {
+    return getReachedForKey(getPartitionKey(pState));
   }
 
   public int getNumberOfPartitions() {
@@ -103,9 +103,9 @@ public class PartitionedReachedSet extends DefaultReachedSet {
     return maxPartition;
   }
 
-  protected Object getPartitionKey(AbstractState pElement) {
-    assert pElement instanceof Partitionable : "Partitionable elements necessary for PartitionedReachedSet";
-    return ((Partitionable)pElement).getPartitionKey();
+  protected Object getPartitionKey(AbstractState pState) {
+    assert pState instanceof Partitionable : "Partitionable states necessary for PartitionedReachedSet";
+    return ((Partitionable)pState).getPartitionKey();
   }
 
   protected Collection<AbstractState> getReachedForKey(Object key) {

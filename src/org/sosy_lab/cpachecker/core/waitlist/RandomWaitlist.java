@@ -29,7 +29,7 @@ import java.util.Random;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /**
- * Waitlist implementation that considers elements in a random order for pop().
+ * Waitlist implementation that considers states in a random order for pop().
  */
 public class RandomWaitlist extends AbstractWaitlist<LinkedList<AbstractState>> {
 

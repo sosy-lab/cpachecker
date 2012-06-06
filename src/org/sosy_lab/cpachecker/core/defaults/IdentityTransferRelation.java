@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 /**
- * This transfer relation always returns the element itself as its successor.
+ * This transfer relation always returns the state itself as its successor.
  * I.e, the relation contains for all abstract states x and edges e the tuples
  * (x,e,x).
  */
@@ -42,13 +42,13 @@ public enum IdentityTransferRelation implements TransferRelation {
   INSTANCE;
 
   @Override
-  public Collection<AbstractState> getAbstractSuccessors(AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) {
-    return Collections.singleton(pElement);
+  public Collection<AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
+    return Collections.singleton(pState);
   }
 
   @Override
-  public Collection<AbstractState> strengthen(AbstractState pElement,
-      List<AbstractState> pOtherElements, CFAEdge pCfaEdge, Precision pPrecision) {
+  public Collection<AbstractState> strengthen(AbstractState pState,
+      List<AbstractState> pOtherStates, CFAEdge pCfaEdge, Precision pPrecision) {
 
     return null;
   }

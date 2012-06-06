@@ -63,8 +63,8 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   }
 
   @Override
-  public Collection<AbstractState> getReached(AbstractState pElement) throws UnsupportedOperationException {
-    return Collections.unmodifiableCollection(delegate.getReached(pElement));
+  public Collection<AbstractState> getReached(AbstractState pState) throws UnsupportedOperationException {
+    return Collections.unmodifiableCollection(delegate.getReached(pState));
   }
 
   @Override
@@ -98,14 +98,14 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   }
 
   @Override
-  public Precision getPrecision(AbstractState pElement)
+  public Precision getPrecision(AbstractState pState)
       throws UnsupportedOperationException {
-    return delegate.getPrecision(pElement);
+    return delegate.getPrecision(pState);
   }
 
   @Override
-  public boolean contains(AbstractState pElement) {
-    return delegate.contains(pElement);
+  public boolean contains(AbstractState pState) {
+    return delegate.contains(pState);
   }
 
   @Override

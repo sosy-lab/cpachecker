@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 /**
  * Base implementation for precision adjustment implementations which fulfill
  * these three requirements:
- * - prec does not change the element
+ * - prec does not change the state
  * - prec does not change the precision
  * - prec does not need access to the reached set
  *
@@ -43,13 +43,13 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public abstract class SimplePrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements) throws CPAException {
+  public Triple<AbstractState, Precision, Action> prec(AbstractState pState, Precision pPrecision,
+      UnmodifiableReachedSet pStates) throws CPAException {
 
-    Action action = prec(pElement, pPrecision);
+    Action action = prec(pState, pPrecision);
 
-    return Triple.of(pElement, pPrecision, action);
+    return Triple.of(pState, pPrecision, action);
   }
 
-  public abstract Action prec(AbstractState pElement, Precision pPrecision) throws CPAException;
+  public abstract Action prec(AbstractState pState, Precision pPrecision) throws CPAException;
 }

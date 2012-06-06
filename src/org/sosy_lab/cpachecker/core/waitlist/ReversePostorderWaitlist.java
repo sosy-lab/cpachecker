@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 /**
  * Waitlist implementation that sorts the abstract states in reverse postorder
  * considering the location they belong to.
- * This implementation does not allow to choose a secondary strategy for elements
+ * This implementation does not allow to choose a secondary strategy for states
  * with the same reverse postorder id. Also, the method pop() has a complexity of O(n).
  * Therefore, this implementation should be considered as deprecated and
  * replaced by RevsersePostorderSortedWaitlist.
@@ -48,11 +48,11 @@ public class ReversePostorderWaitlist extends AbstractWaitlist<LinkedList<Abstra
   public AbstractState pop() {
     AbstractState result = null;
     int resultRpoId = Integer.MIN_VALUE;
-    for (AbstractState currentElement : waitlist) {
+    for (AbstractState currentState : waitlist) {
       if ((result == null)
-          || (extractLocation(currentElement).getReversePostorderId() >
+          || (extractLocation(currentState).getReversePostorderId() >
           resultRpoId)) {
-        result = currentElement;
+        result = currentState;
         resultRpoId = extractLocation(result).getReversePostorderId();
       }
     }

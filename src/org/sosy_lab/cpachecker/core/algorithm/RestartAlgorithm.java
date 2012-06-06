@@ -208,9 +208,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
             logger.log(Level.INFO, "Analysis result was unsound.");
 
           } else if (currentReached.hasWaitingState()) {
-            // if there are still elements in the waitlist, the result is unknown
+            // if there are still states in the waitlist, the result is unknown
             // continue with the next algorithm
-            logger.log(Level.INFO, "Analysis not completed: There are still elements to be processed.");
+            logger.log(Level.INFO, "Analysis not completed: There are still states to be processed.");
 
           } else {
             // sound analysis and completely finished, terminate

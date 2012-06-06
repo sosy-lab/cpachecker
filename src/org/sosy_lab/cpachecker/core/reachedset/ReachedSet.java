@@ -31,43 +31,43 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
  * Interface representing a set of reached states, including storing a
  * precision for each one.
  *
- * In all its operations it preserves the order in which the elements were added.
+ * In all its operations it preserves the order in which the state were added.
  * All the collections returned from methods of this class ensure this ordering, too.
  *
- * Classes implementing this interface may not allow null values for elements and precisions.
+ * Classes implementing this interface may not allow null values for states and precisions.
  * All methods do not return null except when stated explicitly.
  */
 public interface ReachedSet extends UnmodifiableReachedSet {
 
   /**
-   * Add an element with a precision to the reached set and to the waitlist.
-   * If the element is already in the reached set and the precisions are equal,
+   * Add a state with a precision to the reached set and to the waitlist.
+   * If the state is already in the reached set and the precisions are equal,
    * nothing is done.
    *
-   * @param element An AbstractState.
+   * @param state An AbstractState.
    * @param precision The Precision for the AbstractState
-   * @throws IllegalArgumentException If the element is already in the reached set, but with a different precision.
+   * @throws IllegalArgumentException If the state is already in the reached set, but with a different precision.
    */
-  public void add(AbstractState element, Precision precision) throws IllegalArgumentException;
+  public void add(AbstractState state, Precision precision) throws IllegalArgumentException;
 
 
   public void addAll(Iterable<Pair<AbstractState, Precision>> toAdd);
 
   /**
-   * Re-add an element to the waitlist which is already contained in the reached set.
+   * Re-add a state to the waitlist which is already contained in the reached set.
    */
-  public void reAddToWaitlist(AbstractState e);
+  public void reAddToWaitlist(AbstractState s);
 
   /**
-   * Change the precision of an element that is already in the reached set.
+   * Change the precision of a state that is already in the reached set.
    */
-  public void updatePrecision(AbstractState e, Precision newPrecision);
+  public void updatePrecision(AbstractState s, Precision newPrecision);
 
-  public void remove(AbstractState element);
+  public void remove(AbstractState state);
 
   public void removeAll(Iterable<? extends AbstractState> toRemove);
 
-  public void removeOnlyFromWaitlist(AbstractState element);
+  public void removeOnlyFromWaitlist(AbstractState state);
 
   public void clear();
 

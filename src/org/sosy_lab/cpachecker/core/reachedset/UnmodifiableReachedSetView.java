@@ -36,7 +36,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
 
 /**
- * Live view of an unmodifiable reached state set, where elements
+ * Live view of an unmodifiable reached state set, where states
  * and precision are transformed by mapping functions.
  */
 public class UnmodifiableReachedSetView
@@ -49,14 +49,14 @@ public class UnmodifiableReachedSetView
 
   public UnmodifiableReachedSetView(
       UnmodifiableReachedSet pUnderlyingSet,
-      Function<? super AbstractState, AbstractState> pMapElementFunction,
+      Function<? super AbstractState, AbstractState> pMapStateFunction,
       Function<? super Precision, Precision> pMapPrecisionFunction) {
     assert pUnderlyingSet != null;
-    assert pMapElementFunction != null;
+    assert pMapStateFunction != null;
     assert pMapPrecisionFunction != null;
 
     underlying = pUnderlyingSet;
-    mapStateFunction = pMapElementFunction;
+    mapStateFunction = pMapStateFunction;
     mapPrecisionFunction = pMapPrecisionFunction;
     mapStateAndPrecisionFunction =
       new Function<Pair<AbstractState,Precision>, Pair<AbstractState,Precision>>() {
@@ -80,7 +80,7 @@ public class UnmodifiableReachedSetView
   }
 
   @Override
-  public Precision getPrecision(AbstractState pElement) throws UnsupportedOperationException {
+  public Precision getPrecision(AbstractState pState) throws UnsupportedOperationException {
     throw new UnsupportedOperationException("Unwrapping prevents reverse mapping");
   }
 
@@ -90,7 +90,7 @@ public class UnmodifiableReachedSetView
   }
 
   @Override
-  public Collection<AbstractState> getReached(AbstractState pElement) throws UnsupportedOperationException {
+  public Collection<AbstractState> getReached(AbstractState pState) throws UnsupportedOperationException {
     throw new UnsupportedOperationException("Unwrapping may prevent to know the location");
   }
 
@@ -130,7 +130,7 @@ public class UnmodifiableReachedSetView
   }
 
   @Override
-  public boolean contains(AbstractState pElement) {
+  public boolean contains(AbstractState pState) {
     throw new UnsupportedOperationException("Unwrapping may prevent to check contains");
   }
 

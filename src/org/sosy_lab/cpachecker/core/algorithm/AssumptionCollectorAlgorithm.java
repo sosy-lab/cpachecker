@@ -137,7 +137,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private final AssumptionWithLocation exceptionAssumptions;
   private final AssumptionStorageCPA cpa;
 
-  // store only the ids, not the elements in order to prevent memory leaks
+  // store only the ids, not the states in order to prevent memory leaks
   private final Set<Integer> exceptionStates = new HashSet<Integer>();
 
   public AssumptionCollectorAlgorithm(Algorithm algo, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException
@@ -179,11 +179,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         //        if (pos == -1)
         //          pos = path.size() - 2; // the node before the error node
         //
-        //        ARGState element = path.get(pos).getFirst();
-        //        addAvoidingAssumptions(exceptionAssumptions, element);
-        //        exceptionStates.add(element.getElementId());
+        //        ARGState state = path.get(pos).getFirst();
+        //        addAvoidingAssumptions(exceptionAssumptions, state);
+        //        exceptionStates.add(state.getStatetId());
 
-        // remove element
+        // remove state
         // remove it's parents from waitlist (CPAAlgorithm re-added them)
         // and create assumptions for the parents
 
@@ -217,36 +217,36 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     // collect and dump all assumptions stored in abstract states
     logger.log(Level.FINER, "Dumping assumptions resulting from tool assumptions");
-    for (AbstractState element : reached) {
+    for (AbstractState state : reached) {
 
-      if (AbstractStates.isTargetState(element)) {
+      if (AbstractStates.isTargetState(state)) {
         // create assumptions for target state
-        addAvoidingAssumptions(result, element);
+        addAvoidingAssumptions(result, state);
 
       } else {
         // get stored assumption
 
-        AssumptionStorageState e = AbstractStates.extractStateByType(element, AssumptionStorageState.class);
+        AssumptionStorageState e = AbstractStates.extractStateByType(state, AssumptionStorageState.class);
 
         Formula assumption = formulaManager.makeAnd(e.getAssumption(), e.getStopFormula());
 
         if (!assumption.isTrue()) {
-          addAssumption(result, assumption, element);
+          addAssumption(result, assumption, state);
         }
       }
     }
 
     // dump invariants to prevent going further with nodes in the waitlist
-    logger.log(Level.FINER, "Dumping assumptions resulting from waitlist elements");
-    for (AbstractState element : reached.getWaitlist()) {
-      addAvoidingAssumptions(result, element);
+    logger.log(Level.FINER, "Dumping assumptions resulting from waitlist states");
+    for (AbstractState state : reached.getWaitlist()) {
+      addAvoidingAssumptions(result, state);
     }
 
     return result;
   }
 
   /**
-   * Add a given assumption for the location and state of an element.
+   * Add a given assumption for the location and state of a state.
    */
   private void addAssumption(AssumptionWithLocation invariant, Formula assumption, AbstractState state) {
     Formula dataRegion = AbstractStates.extractReportedFormulas(formulaManager, state);
@@ -259,65 +259,65 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   /**
    * Create an assumption that is sufficient to exclude an abstract state
    */
-  private void addAvoidingAssumptions(AssumptionWithLocation invariant, AbstractState element) {
-    addAssumption(invariant, formulaManager.makeFalse(), element);
+  private void addAvoidingAssumptions(AssumptionWithLocation invariant, AbstractState state) {
+    addAssumption(invariant, formulaManager.makeFalse(), state);
   }
 
   private String produceAssumptionAutomaton(ReachedSet reached) {
-    AbstractState firstElement = reached.getFirstState();
-    if (!(firstElement instanceof ARGState)) {
+    AbstractState firstState = reached.getFirstState();
+    if (!(firstState instanceof ARGState)) {
       return "Cannot dump assumption as automaton if ARGCPA is not used.";
     }
 
-    Set<AbstractState> falseAssumptionElements = Sets.newHashSet(reached.getWaitlist());
+    Set<AbstractState> falseAssumptionStates = Sets.newHashSet(reached.getWaitlist());
 
-    // scan reached set for all relevant elements with an assumption
-    Set<ARGState> relevantElements = new HashSet<ARGState>();
-    for (AbstractState element : reached) {
-      ARGState e = (ARGState)element;
-      AssumptionStorageState asmptElement = AbstractStates.extractStateByType(e, AssumptionStorageState.class);
+    // scan reached set for all relevant states with an assumption
+    Set<ARGState> relevantStates = new HashSet<ARGState>();
+    for (AbstractState state : reached) {
+      ARGState e = (ARGState)state;
+      AssumptionStorageState asmptState = AbstractStates.extractStateByType(e, AssumptionStorageState.class);
 
       if (e.isTarget()
-          || asmptElement.isStop()
+          || asmptState.isStop()
           || exceptionStates.contains(e.getStateId())) {
-        falseAssumptionElements.add(e);
+        falseAssumptionStates.add(e);
       }
 
-      if (relevantElements.contains(e)) {
+      if (relevantStates.contains(e)) {
         continue;
       }
 
-      if (!asmptElement.getAssumption().isTrue()
-          || falseAssumptionElements.contains(e)) {
+      if (!asmptState.getAssumption().isTrue()
+          || falseAssumptionStates.contains(e)) {
 
-        // now add e and all its transitive parents to the relevantElements set
-        findAllParents(e, relevantElements);
+        // now add e and all its transitive parents to the relevantStates set
+        findAllParents(e, relevantStates);
       }
     }
 
     ARGState rootState = (ARGState)reached.getFirstState();
 
-    Set<ARGState> childrenOfRelevantElements = new TreeSet<ARGState>(relevantElements);
-    childrenOfRelevantElements.add(rootState);
-    for (ARGState e : relevantElements) {
-      childrenOfRelevantElements.addAll(e.getChildren());
+    Set<ARGState> childrenOfRelevantStates = new TreeSet<ARGState>(relevantStates);
+    childrenOfRelevantStates.add(rootState);
+    for (ARGState e : relevantStates) {
+      childrenOfRelevantStates.addAll(e.getChildren());
       if (e.isCovered()) {
-        childrenOfRelevantElements.add(e.getCoveringState());
+        childrenOfRelevantStates.add(e.getCoveringState());
       }
     }
 
-    return writeAutomaton(rootState, childrenOfRelevantElements, relevantElements, falseAssumptionElements);
+    return writeAutomaton(rootState, childrenOfRelevantStates, relevantStates, falseAssumptionStates);
   }
 
   /**
    * Create a String containing the assumption automaton.
-   * @param initialState The initial element of the automaton.
-   * @param allElements A set with all elements which should appear as states in the automaton.
-   * @param relevantElements A set with all elements with non-trivial assumptions (all others and their children will have assumption TRUE).
-   * @param falseAssumptionElements A set with all elements with the assumption FALSE
+   * @param initialState The initial state of the automaton.
+   * @param allStates A set with all states which should appear as states in the automaton.
+   * @param relevantStates A set with all states with non-trivial assumptions (all others and their children will have assumption TRUE).
+   * @param falseAssumptionStates A set with all states with the assumption FALSE
    */
-  private String writeAutomaton(ARGState initialState, Set<ARGState> allElements,
-      Set<ARGState> relevantElements, Set<AbstractState> falseAssumptionElements) {
+  private String writeAutomaton(ARGState initialState, Set<ARGState> allStates,
+      Set<ARGState> relevantStates, Set<AbstractState> falseAssumptionStates) {
     StringBuilder sb = new StringBuilder();
     sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
 
@@ -335,31 +335,31 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     sb.append("STATE __TRUE :\n");
     sb.append("    TRUE -> ASSUME \"true\" GOTO __TRUE;\n\n");
 
-    if (!falseAssumptionElements.isEmpty()) {
+    if (!falseAssumptionStates.isEmpty()) {
       sb.append("STATE __FALSE :\n");
       sb.append("    TRUE -> ASSUME \"false\" GOTO __FALSE;\n\n");
     }
 
-    for (ARGState e : allElements) {
-      if (e.isCovered() || falseAssumptionElements.contains(e)) {
+    for (ARGState s : allStates) {
+      if (s.isCovered() || falseAssumptionStates.contains(s)) {
         continue;
       }
 
-      sb.append("STATE USEFIRST ARG" + e.getStateId() + " :\n");
+      sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
       automatonStates++;
 
-      if (!relevantElements.contains(e)) {
+      if (!relevantStates.contains(s)) {
         sb.append("   TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
 
       } else {
         boolean branching = false;
-        if ((automatonBranchingThreshold > 0) && (e.getChildren().size() > 1)) {
+        if ((automatonBranchingThreshold > 0) && (s.getChildren().size() > 1)) {
           branching = true;
           sb.append("    branchingCount == branchingThreshold -> " + actionOnFinalEdges + "GOTO __FALSE;\n");
         }
 
-        CFANode loc = AbstractStates.extractLocation(e);
-        for (ARGState child : e.getChildren()) {
+        CFANode loc = AbstractStates.extractLocation(s);
+        for (ARGState child : s.getChildren()) {
           if (child.isCovered()) {
             child = child.getCoveringState();
             assert !child.isCovered();
@@ -381,7 +381,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
             sb.append("DO branchingCount = branchingCount+1 ");
           }
 
-          if (falseAssumptionElements.contains(child)) {
+          if (falseAssumptionStates.contains(child)) {
             sb.append(actionOnFinalEdges + "GOTO __FALSE");
           } else {
             sb.append("GOTO ARG" + child.getStateId());
@@ -396,15 +396,15 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   /**
-   * This method transitively finds all parents of a given element and adds
+   * This method transitively finds all parents of a given state and adds
    * them to a given set.
    * Covering nodes are considered to be parents of the covered nodes.
-   * @param e
+   * @param s
    * @param parentSet
    */
-  private void findAllParents(ARGState e, Set<ARGState> parentSet) {
+  private void findAllParents(ARGState s, Set<ARGState> parentSet) {
     Deque<ARGState> toAdd = new ArrayDeque<ARGState>();
-    toAdd.add(e);
+    toAdd.add(s);
     while (!toAdd.isEmpty()) {
       ARGState current = toAdd.pop();
 

@@ -45,8 +45,8 @@ public abstract class AbstractWaitlist<T extends Collection<AbstractState>> impl
   }
 
   @Override
-  public void add(AbstractState pElement) {
-    waitlist.add(pElement);
+  public void add(AbstractState pStat) {
+    waitlist.add(pStat);
   }
 
   @Override
@@ -55,8 +55,8 @@ public abstract class AbstractWaitlist<T extends Collection<AbstractState>> impl
   }
 
   @Override
-  public boolean contains(AbstractState pElement) {
-    return waitlist.contains(pElement);
+  public boolean contains(AbstractState pState) {
+    return waitlist.contains(pState);
   }
 
   @Override
@@ -70,8 +70,8 @@ public abstract class AbstractWaitlist<T extends Collection<AbstractState>> impl
   }
 
   @Override
-  public boolean remove(AbstractState pElement) {
-    return waitlist.remove(pElement);
+  public boolean remove(AbstractState pState) {
+    return waitlist.remove(pState);
   }
 
   @Override

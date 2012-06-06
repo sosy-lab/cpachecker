@@ -36,28 +36,28 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public interface TransferRelation {
 
   /**
-   * Gets all successors of the current element. If cfaEdge is null, all edges
+   * Gets all successors of the current state. If cfaEdge is null, all edges
    * of the CFA may be checked if they lead to successors, otherwise only the
    * specified edge should be handled.
-   * @param element abstract state with current state
+   * @param state abstract state with current state
    * @param cfaEdge null or an edge of the CFA
    * @return list of all successors of the current state (may be empty)
    */
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState element, Precision precision, CFAEdge cfaEdge)
+  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState state, Precision precision, CFAEdge cfaEdge)
     throws CPATransferException, InterruptedException;
 
   /**
    * Updates an abstract state with information from the abstract states of
    * other CPAs. An implementation of this method should only modify the
    * abstract state of the domain it belongs to.
-   * @param element abstract state of the current domain
-   * @param otherElements list of abstract states of all domains
+   * @param state abstract state of the current domain
+   * @param otherStates list of abstract states of all domains
    * @param cfaEdge the current edge of the CFA
    * @param precision
    * @return list of all abstract states which should replace the old one, empty list for bottom or null for no change.
    */
-  public Collection<? extends AbstractState> strengthen (AbstractState element,
-                                     List<AbstractState> otherElements,
+  public Collection<? extends AbstractState> strengthen (AbstractState state,
+                                     List<AbstractState> otherStates,
                                      CFAEdge cfaEdge,
                                      Precision precision)
                                      throws CPATransferException,

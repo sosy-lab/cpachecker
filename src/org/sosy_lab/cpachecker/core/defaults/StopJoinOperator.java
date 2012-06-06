@@ -33,8 +33,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Standard stop-join operator that first joins all elements
- * of the reached set into a single element, and then checks the
+ * Standard stop-join operator that first joins all states
+ * of the reached set into a single state, and then checks the
  * partial order relation.
  */
 public class StopJoinOperator implements StopOperator {
@@ -46,14 +46,14 @@ public class StopJoinOperator implements StopOperator {
   }
 
   @Override
-  public boolean stop(AbstractState element, Collection<AbstractState> reached,
+  public boolean stop(AbstractState state, Collection<AbstractState> reached,
                       Precision precision) throws CPAException {
     Iterator<AbstractState> it = reached.iterator();
-    AbstractState joinedElement = it.next();
+    AbstractState joinedState = it.next();
     while (it.hasNext()) {
-      joinedElement = domain.join(it.next(), joinedElement);
+      joinedState = domain.join(it.next(), joinedState);
     }
 
-    return domain.isLessOrEqual(element, joinedElement);
+    return domain.isLessOrEqual(state, joinedState);
   }
 }

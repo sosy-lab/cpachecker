@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 /**
  * This interface is provided as a shortcut, so that other CPAs' strengthen
  * operator can check whether one abstract state represents some kind of
- * "target" or "error" abstract state without needing to know more about the element
+ * "target" or "error" abstract state without needing to know more about the state
  * (especially without knowing its actual type).
  */
 public interface Targetable {

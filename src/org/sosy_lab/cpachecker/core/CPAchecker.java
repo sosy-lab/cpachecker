@@ -284,7 +284,7 @@ public class CPAchecker {
     }
 
     if (reached.hasWaitingState()) {
-      logger.log(Level.WARNING, "Analysis not completed: there are still elements to be processed.");
+      logger.log(Level.WARNING, "Analysis not completed: there are still states to be processed.");
       return Result.UNKNOWN;
     }
 

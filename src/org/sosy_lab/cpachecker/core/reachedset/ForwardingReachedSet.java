@@ -74,9 +74,9 @@ public class ForwardingReachedSet implements ReachedSet {
   }
 
   @Override
-  public Collection<AbstractState> getReached(AbstractState pElement)
+  public Collection<AbstractState> getReached(AbstractState pState)
       throws UnsupportedOperationException {
-    return delegate.getReached(pElement);
+    return delegate.getReached(pState);
   }
 
   @Override
@@ -110,14 +110,14 @@ public class ForwardingReachedSet implements ReachedSet {
   }
 
   @Override
-  public Precision getPrecision(AbstractState pElement)
+  public Precision getPrecision(AbstractState pState)
       throws UnsupportedOperationException {
-    return delegate.getPrecision(pElement);
+    return delegate.getPrecision(pState);
   }
 
   @Override
-  public boolean contains(AbstractState pElement) {
-    return delegate.contains(pElement);
+  public boolean contains(AbstractState pState) {
+    return delegate.contains(pState);
   }
 
   @Override
@@ -131,9 +131,9 @@ public class ForwardingReachedSet implements ReachedSet {
   }
 
   @Override
-  public void add(AbstractState pElement, Precision pPrecision)
+  public void add(AbstractState pState, Precision pPrecision)
       throws IllegalArgumentException {
-    delegate.add(pElement, pPrecision);
+    delegate.add(pState, pPrecision);
   }
 
   @Override
@@ -152,8 +152,8 @@ public class ForwardingReachedSet implements ReachedSet {
   }
 
   @Override
-  public void remove(AbstractState pElement) {
-    delegate.remove(pElement);
+  public void remove(AbstractState pState) {
+    delegate.remove(pState);
   }
 
   @Override
@@ -162,8 +162,8 @@ public class ForwardingReachedSet implements ReachedSet {
   }
 
   @Override
-  public void removeOnlyFromWaitlist(AbstractState pElement) {
-    delegate.removeOnlyFromWaitlist(pElement);
+  public void removeOnlyFromWaitlist(AbstractState pState) {
+    delegate.removeOnlyFromWaitlist(pState);
   }
 
   @Override

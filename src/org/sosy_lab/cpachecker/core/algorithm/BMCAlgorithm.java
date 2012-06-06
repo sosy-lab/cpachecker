@@ -114,8 +114,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private static final Predicate<AbstractState> IS_IN_LOOP = new Predicate<AbstractState>() {
     @Override
     public boolean apply(AbstractState pArg0) {
-      LoopstackState loopElement = extractStateByType(pArg0, LoopstackState.class);
-      return loopElement.getLoop() != null;
+      LoopstackState loopState = extractStateByType(pArg0, LoopstackState.class);
+      return loopState.getLoop() != null;
     }
   };
 
@@ -223,7 +223,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       final boolean soundInner = algorithm.run(pReachedSet);
 
       if (any(transform(skip(pReachedSet, 1), EXTRACT_PREDICATE_STATE), FILTER_ABSTRACTION_STATES)) {
-        // first element of reached is always an abstraction element, so skip it
+        // first state of reached is always an abstraction state, so skip it
         logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
         return soundInner;
       }
@@ -351,11 +351,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private boolean checkTargetStates(final ReachedSet pReachedSet) {
     if (checkTargetStates) {
 
-      List<AbstractState> targetElements = Lists.newArrayList(AbstractStates.filterTargetStates(pReachedSet));
-      logger.log(Level.FINER, "Found", targetElements.size(), "potential target states");
+      List<AbstractState> targetStates = Lists.newArrayList(AbstractStates.filterTargetStates(pReachedSet));
+      logger.log(Level.FINER, "Found", targetStates.size(), "potential target states");
 
       // create formula
-      Formula program = createFormulaFor(targetElements);
+      Formula program = createFormulaFor(targetStates);
 
       logger.log(Level.INFO, "Starting satisfiability check...");
       stats.satCheck.start();
@@ -365,7 +365,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       stats.satCheck.stop();
 
       if (safe) {
-        pReachedSet.removeAll(targetElements);
+        pReachedSet.removeAll(targetStates);
       }
       return safe;
 
@@ -401,10 +401,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   /**
    * Create a disjunctive formula of all the path formulas in the supplied iterable.
    */
-  private Formula createFormulaFor(Iterable<AbstractState> elements) {
+  private Formula createFormulaFor(Iterable<AbstractState> states) {
     Formula f = fmgr.makeFalse();
 
-    for (PredicateAbstractState e : AbstractStates.projectToType(elements, PredicateAbstractState.class)) {
+    for (PredicateAbstractState e : AbstractStates.projectToType(states, PredicateAbstractState.class)) {
       f = fmgr.makeOr(f, e.getPathFormula().getFormula());
     }
 
@@ -509,7 +509,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     Multimap<CFANode, AbstractState> reachedPerLocation = Multimaps.index(reached, AbstractStates.EXTRACT_LOCATION);
 
-    // live view of reached set with only the elements in the loop
+    // live view of reached set with only the states in the loop
     Iterable<AbstractState> loopStates = Iterables.filter(reached, IS_IN_LOOP);
 
     assert !Iterables.isEmpty(loopStates);

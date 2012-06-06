@@ -56,7 +56,7 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
 
   /**
    * Constructor that needs a factory for the waitlist implementation that
-   * should be used to store elements with the same sorting key.
+   * should be used to store states with the same sorting key.
    */
   protected AbstractSortedWaitlist(WaitlistFactory pSecondaryStrategy) {
     wrappedWaitlist = Preconditions.checkNotNull(pSecondaryStrategy);
@@ -68,11 +68,11 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
    * If this method throws an exception, no guarantees about the state of the
    * current instance of this class are made.
    */
-  protected abstract K getSortKey(AbstractState pElement);
+  protected abstract K getSortKey(AbstractState pState);
 
   @Override
-  public void add(AbstractState pElement) {
-    K key = getSortKey(pElement);
+  public void add(AbstractState pState) {
+    K key = getSortKey(pState);
     Waitlist localWaitlist = waitlist.get(key);
     if (localWaitlist == null) {
       localWaitlist = wrappedWaitlist.createWaitlistInstance();
@@ -80,19 +80,19 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
     } else {
       assert !localWaitlist.isEmpty();
     }
-    localWaitlist.add(pElement);
+    localWaitlist.add(pState);
     size++;
   }
 
   @Override
-  public boolean contains(AbstractState pElement) {
-    K key = getSortKey(pElement);
+  public boolean contains(AbstractState pState) {
+    K key = getSortKey(pState);
     Waitlist localWaitlist = waitlist.get(key);
     if (localWaitlist == null) {
       return false;
     }
     assert !localWaitlist.isEmpty();
-    return localWaitlist.contains(pElement);
+    return localWaitlist.contains(pState);
   }
 
   @Override
@@ -126,14 +126,14 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   }
 
   @Override
-  public boolean remove(AbstractState pElement) {
-    K key = getSortKey(pElement);
+  public boolean remove(AbstractState pState) {
+    K key = getSortKey(pState);
     Waitlist localWaitlist = waitlist.get(key);
     if (localWaitlist == null) {
       return false;
     }
     assert !localWaitlist.isEmpty();
-    boolean result = localWaitlist.remove(pElement);
+    boolean result = localWaitlist.remove(pState);
     if (result) {
       if (localWaitlist.isEmpty()) {
         waitlist.remove(key);

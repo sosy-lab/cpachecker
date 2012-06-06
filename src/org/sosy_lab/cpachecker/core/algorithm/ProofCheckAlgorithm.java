@@ -169,70 +169,70 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     AbstractState initialState = reachedSet.popFromWaitlist();
     Precision initialPrecision = reachedSet.getPrecision(initialState);
 
-    logger.log(Level.FINE, "Checking root element");
+    logger.log(Level.FINE, "Checking root state");
 
     if(!(cpa.isCoveredBy(initialState, rootState) && cpa.isCoveredBy(rootState, initialState))) {
       stats.totalTimer.stop();
-      logger.log(Level.WARNING, "Root element of proof is invalid.");
+      logger.log(Level.WARNING, "Root state of proof is invalid.");
       return false;
     }
 
     reachedSet.add(rootState, initialPrecision);
 
-    Set<ARGState> postponedElements = new HashSet<ARGState>();
+    Set<ARGState> postponedStates = new HashSet<ARGState>();
 
     do {
-      for(ARGState e : postponedElements) {
+      for(ARGState e : postponedStates) {
         if(!reachedSet.contains(e.getCoveringState())) {
           stats.totalTimer.stop();
-          logger.log(Level.WARNING, "Covering element", e.getCoveringState(), "was not found in reached set");
+          logger.log(Level.WARNING, "Covering state", e.getCoveringState(), "was not found in reached set");
           return false;
         }
         reachedSet.reAddToWaitlist(e);
       }
-      postponedElements.clear();
+      postponedStates.clear();
 
       while (reachedSet.hasWaitingState()) {
         CPAchecker.stopIfNecessary();
 
         stats.countIterations++;
-        ARGState element = (ARGState)reachedSet.popFromWaitlist();
+        ARGState state = (ARGState)reachedSet.popFromWaitlist();
 
-        logger.log(Level.FINE, "Looking at element", element);
+        logger.log(Level.FINE, "Looking at state", state);
 
-        if(element.isCovered()) {
+        if(state.isCovered()) {
 
-          logger.log(Level.FINER, "Element is covered by another abstract state; checking coverage");
-          ARGState coveringElement = element.getCoveringState();
+          logger.log(Level.FINER, "State is covered by another abstract state; checking coverage");
+          ARGState coveringState = state.getCoveringState();
 
-          if(!reachedSet.contains(coveringElement)) {
-            postponedElements.add(element);
+          if(!reachedSet.contains(coveringState)) {
+            postponedStates.add(state);
             continue;
           }
 
           stats.stopTimer.start();
-          if(!isCoveringCycleFree(element)) {
+          if(!isCoveringCycleFree(state)) {
             stats.stopTimer.stop();
             stats.totalTimer.stop();
-            logger.log(Level.WARNING, "Found cycle in covering relation for element", element);
+            logger.log(Level.WARNING, "Found cycle in covering relation for state", state);
             return false;
           }
-          if(!cpa.isCoveredBy(element, coveringElement)) {
+          if(!cpa.isCoveredBy(state, coveringState)) {
             stats.stopTimer.stop();
             stats.totalTimer.stop();
-            logger.log(Level.WARNING, "Element", element, "is not covered by", coveringElement);
+            logger.log(Level.WARNING, "State", state, "is not covered by", coveringState);
             return false;
           }
           stats.stopTimer.stop();
         }
         else {
           stats.transferTimer.start();
-          Collection<ARGState> successors = element.getChildren();
+          Collection<ARGState> successors = state.getChildren();
           logger.log(Level.FINER, "Checking abstract successors", successors);
-          if(!cpa.areAbstractSuccessors(element, null, successors)) {
+          if(!cpa.areAbstractSuccessors(state, null, successors)) {
             stats.transferTimer.stop();
             stats.totalTimer.stop();
-            logger.log(Level.WARNING, "Element", element, "has other successors than", successors);
+            logger.log(Level.WARNING, "State", state, "has other successors than", successors);
             return false;
           }
           stats.transferTimer.stop();
@@ -241,17 +241,17 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
           }
         }
       }
-    } while(!postponedElements.isEmpty());
+    } while(!postponedStates.isEmpty());
     stats.totalTimer.stop();
     return true;
   }
 
-  private boolean isCoveringCycleFree(ARGState pElement) {
+  private boolean isCoveringCycleFree(ARGState pState) {
     HashSet<ARGState> seen = new HashSet<ARGState>();
-    seen.add(pElement);
-    while(pElement.isCovered()) {
-      pElement = pElement.getCoveringState();
-      boolean isNew = seen.add(pElement);
+    seen.add(pState);
+    while(pState.isCovered()) {
+      pState = pState.getCoveringState();
+      boolean isNew = seen.add(pState);
       if(!isNew) {
         return false;
       }

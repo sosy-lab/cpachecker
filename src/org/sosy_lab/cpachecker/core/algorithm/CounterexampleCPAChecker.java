@@ -73,11 +73,11 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
 
   @Override
   public boolean checkCounterexample(ARGState pRootState,
-      ARGState pErrorState, Set<ARGState> pErrorPathElements)
+      ARGState pErrorState, Set<ARGState> pErrorPathStates)
       throws CPAException, InterruptedException {
 
     String automaton =
-        produceGuidingAutomaton(pRootState, pErrorPathElements);
+        produceGuidingAutomaton(pRootState, pErrorPathStates);
 
     File automatonFile;
     try {
@@ -119,23 +119,23 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   }
 
   private String produceGuidingAutomaton(ARGState pRootState,
-      Set<ARGState> pPathElements) {
+      Set<ARGState> pPathStates) {
     StringBuilder sb = new StringBuilder();
     sb.append("CONTROL AUTOMATON AssumptionAutomaton\n\n");
     sb.append("INITIAL STATE ARG" + pRootState.getStateId() + ";\n\n");
 
-    for (ARGState e : pPathElements) {
+    for (ARGState s : pPathStates) {
 
-      CFANode loc = AbstractStates.extractLocation(e);
-      sb.append("STATE USEFIRST ARG" + e.getStateId() + " :\n");
+      CFANode loc = AbstractStates.extractLocation(s);
+      sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
 
-      for (ARGState child : e.getChildren()) {
+      for (ARGState child : s.getChildren()) {
         if (child.isCovered()) {
           child = child.getCoveringState();
           assert !child.isCovered();
         }
 
-        if (pPathElements.contains(child)) {
+        if (pPathStates.contains(child)) {
           CFANode childLoc = AbstractStates.extractLocation(child);
           CFAEdge edge = loc.getEdgeTo(childLoc);
           sb.append("    MATCH \"");

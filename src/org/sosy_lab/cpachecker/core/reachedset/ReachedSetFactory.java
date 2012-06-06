@@ -56,7 +56,7 @@ public class ReachedSetFactory {
 
   @Option(name = "traversal.useReversePostorder",
       description = "Use an implementation of reverse postorder strategy that allows to select "
-      + "a secondary strategy that is used if there are two elements with the same reverse postorder id. "
+      + "a secondary strategy that is used if there are two states with the same reverse postorder id. "
       + "The secondary strategy is selected with 'analysis.traversal.order'. "
       + "The secondary strategy may not be RPO.")
   boolean useReversePostorder = false;
@@ -74,7 +74,7 @@ public class ReachedSetFactory {
       description = "which reached set implementation to use?"
       + "\nNORMAL: just a simple set"
       + "\nLOCATIONMAPPED: a different set per location "
-      + "(faster, elements with different locations cannot be merged)"
+      + "(faster, states with different locations cannot be merged)"
       + "\nPARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)")
   ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 

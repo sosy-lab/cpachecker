@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * Advanced implementation of ReachedSet.
- * It groups elements by location and allows fast access to all elements with
+ * It groups states by location and allows fast access to all states with
  * the same location as a given one.
  */
 public class LocationMappedReachedSet extends PartitionedReachedSet {
@@ -48,8 +48,8 @@ public class LocationMappedReachedSet extends PartitionedReachedSet {
   }
 
   @Override
-  protected Object getPartitionKey(AbstractState pElement) {
-    CFANode location = AbstractStates.extractLocation(pElement);
+  protected Object getPartitionKey(AbstractState pState) {
+    CFANode location = AbstractStates.extractLocation(pState);
     assert location != null : "Location information necessary for LocationMappedReachedSet";
     return location;
   }

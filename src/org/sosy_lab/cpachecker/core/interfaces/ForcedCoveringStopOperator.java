@@ -29,9 +29,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public interface ForcedCoveringStopOperator extends StopOperator {
 
   /**
-   * Check whether one element may be strengthed such that it is then covered by
+   * Check whether one state may be strengthened such that it is then covered by
    * reachedState.
    */
-  boolean isForcedCoveringPossible(AbstractState element, AbstractState reachedState, Precision precision) throws CPAException;
+  boolean isForcedCoveringPossible(AbstractState state, AbstractState reachedState, Precision precision) throws CPAException;
 
 }

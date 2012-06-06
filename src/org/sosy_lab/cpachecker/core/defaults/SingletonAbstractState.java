@@ -32,6 +32,6 @@ public enum SingletonAbstractState implements AbstractState {
 
   @Override
   public String toString() {
-    return "empty element";
+    return "empty state";
   }
 }

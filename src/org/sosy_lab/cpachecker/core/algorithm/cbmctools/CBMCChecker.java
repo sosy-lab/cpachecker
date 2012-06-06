@@ -82,11 +82,11 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   @Override
   public boolean checkCounterexample(ARGState pRootState, ARGState pErrorState,
-      Set<ARGState> pErrorPathElements) throws CPAException, InterruptedException {
+      Set<ARGState> pErrorPathStates) throws CPAException, InterruptedException {
 
     String mainFunctionName = extractLocation(pRootState).getFunctionName();
 
-    String pathProgram = PathToCTranslator.translatePaths(pRootState, pErrorPathElements);
+    String pathProgram = PathToCTranslator.translatePaths(pRootState, pErrorPathStates);
 
     // write program to disk
     File cFile = cbmcFile;

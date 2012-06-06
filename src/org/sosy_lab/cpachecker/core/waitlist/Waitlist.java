@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
  * Implementations differ in the strategy they use for pop().
  *
  * Implementations do not need to guarantee the semantics of a set
- * (i.e., preventing duplicate elements).
+ * (i.e., preventing duplicate states).
  * This needs to be guaranteed by the caller (see
  * {@link org.sosy_lab.cpachecker.core.reachedset.ReachedSet#add(AbstractState, org.sosy_lab.cpachecker.core.interfaces.Precision))}).
  *
@@ -44,7 +44,7 @@ public interface Waitlist extends Iterable<AbstractState> {
   /**
    * Add an abstract state to the waitlist.
    */
-  void add(AbstractState element);
+  void add(AbstractState state);
 
   /**
    * Remove all abstract states from the waitlist.
@@ -55,10 +55,10 @@ public interface Waitlist extends Iterable<AbstractState> {
    * Checks whether an abstract state is contained in the waitlist.
    * This method uses equals().
    */
-  boolean contains(AbstractState element);
+  boolean contains(AbstractState state);
 
   /**
-   * Whether the waitlist contains no elements.
+   * Whether the waitlist contains no states.
    */
   boolean isEmpty();
 
@@ -75,10 +75,10 @@ public interface Waitlist extends Iterable<AbstractState> {
    * This method uses equals() for containment checks.
    * Implementations need not to optimize their data structure for this method.
    */
-  boolean remove(AbstractState element);
+  boolean remove(AbstractState state);
 
   /**
-   * Returns the number of elements in the waitlist.
+   * Returns the number of states in the waitlist.
    */
   int size();
 
