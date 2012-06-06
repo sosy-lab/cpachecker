@@ -43,44 +43,44 @@ public class CompositeReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableReducedElement(
+  public AbstractState getVariableReducedState(
       AbstractState pExpandedElement, Block pContext,
       CFANode pLocation) {
 
     List<AbstractState> result = new ArrayList<AbstractState>();
     int i = 0;
-    for (AbstractState expandedElement : ((CompositeState)pExpandedElement).getWrappedElements()) {
-      result.add(wrappedReducers.get(i++).getVariableReducedElement(expandedElement, pContext, pLocation));
+    for (AbstractState expandedElement : ((CompositeState)pExpandedElement).getWrappedStates()) {
+      result.add(wrappedReducers.get(i++).getVariableReducedState(expandedElement, pContext, pLocation));
     }
     return new CompositeState(result);
   }
 
   @Override
-  public AbstractState getVariableExpandedElement(
+  public AbstractState getVariableExpandedState(
       AbstractState pRootElement, Block pReducedContext,
       AbstractState pReducedElement) {
 
-    List<AbstractState> rootElements = ((CompositeState)pRootElement).getWrappedElements();
-    List<AbstractState> reducedElements = ((CompositeState)pReducedElement).getWrappedElements();
+    List<AbstractState> rootElements = ((CompositeState)pRootElement).getWrappedStates();
+    List<AbstractState> reducedElements = ((CompositeState)pReducedElement).getWrappedStates();
 
     List<AbstractState> result = new ArrayList<AbstractState>();
     int i = 0;
     for (Pair<AbstractState, AbstractState> p : Pair.zipList(rootElements, reducedElements)) {
-      result.add(wrappedReducers.get(i++).getVariableExpandedElement(p.getFirst(), pReducedContext, p.getSecond()));
+      result.add(wrappedReducers.get(i++).getVariableExpandedState(p.getFirst(), pReducedContext, p.getSecond()));
     }
     return new CompositeState(result);
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractState pElementKey, Precision pPrecisionKey) {
+  public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
 
-    List<AbstractState> elements = ((CompositeState)pElementKey).getWrappedElements();
+    List<AbstractState> elements = ((CompositeState)pElementKey).getWrappedStates();
     List<Precision> precisions = ((CompositePrecision)pPrecisionKey).getPrecisions();
 
     List<Object> result = new ArrayList<Object>(elements.size());
     int i = 0;
     for (Pair<AbstractState, Precision> p : Pair.zipList(elements, precisions)) {
-      result.add(wrappedReducers.get(i++).getHashCodeForElement(p.getFirst(), p.getSecond()));
+      result.add(wrappedReducers.get(i++).getHashCodeForState(p.getFirst(), p.getSecond()));
     }
     return result;
   }

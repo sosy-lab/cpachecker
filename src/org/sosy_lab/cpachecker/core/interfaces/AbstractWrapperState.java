@@ -29,6 +29,6 @@ public interface AbstractWrapperState extends AbstractState {
    * Retrieve all wrapped abstract elements contained directly in this object.
    * @return A non-empty list of abstract elements.
    */
-  public Iterable<? extends AbstractState> getWrappedElements();
+  public Iterable<? extends AbstractState> getWrappedStates();
 
 }

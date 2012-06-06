@@ -112,7 +112,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
 
 
   @Override
-  public AbstractState getInitialElement (CFANode node)
+  public AbstractState getInitialState (CFANode node)
   {
     Set<DefUseDefinition> defUseDefinitions = new HashSet<DefUseDefinition>();
     if (node instanceof FunctionDefinitionNode)

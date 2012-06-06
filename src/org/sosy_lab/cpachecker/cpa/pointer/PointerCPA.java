@@ -89,7 +89,7 @@ public class PointerCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialElement(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode) {
     if (pNode instanceof FunctionDefinitionNode) {
       ((PointerTransferRelation)getTransferRelation()).setEntryFunctionDefinitionNode((FunctionDefinitionNode)pNode);
     }

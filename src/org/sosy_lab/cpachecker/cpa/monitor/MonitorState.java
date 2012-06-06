@@ -104,7 +104,7 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
   @Override
   public String toString() {
     return "Total time: " + this.totalTimeOnPath
-    + " Wrapped elem: " + getWrappedElements();
+    + " Wrapped elem: " + getWrappedStates();
   }
 
 

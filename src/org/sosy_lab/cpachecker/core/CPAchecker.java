@@ -176,7 +176,7 @@ public class CPAchecker {
 
         if (algorithm instanceof ImpactAlgorithm) {
           ImpactAlgorithm mcmillan = (ImpactAlgorithm)algorithm;
-          reached.add(mcmillan.getInitialElement(cfa.getMainFunction()), mcmillan.getInitialPrecision(cfa.getMainFunction()));
+          reached.add(mcmillan.getInitialState(cfa.getMainFunction()), mcmillan.getInitialPrecision(cfa.getMainFunction()));
         } else {
           initializeReachedSet(reached, cpa, cfa.getMainFunction());
         }
@@ -302,9 +302,9 @@ public class CPAchecker {
       final CFAFunctionDefinitionNode mainFunction) {
     logger.log(Level.FINE, "Creating initial reached set");
 
-    AbstractState initialElement = cpa.getInitialElement(mainFunction);
+    AbstractState initialState = cpa.getInitialState(mainFunction);
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
 
-    reached.add(initialElement, initialPrecision);
+    reached.add(initialState, initialPrecision);
   }
 }

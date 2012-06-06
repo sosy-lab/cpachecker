@@ -42,7 +42,7 @@ public class CFAPathCPA implements ConfigurableProgramAnalysis {
   private final CFAPathTransferRelation mTransferRelation;
   private final PrecisionAdjustment mPrecisionAdjustment;
   private final Precision mPrecision;
-  private final CFAPathStandardState mInitialElement;
+  private final CFAPathStandardState mInitialState;
   private final StopOperator mStopOperator;
   private final MergeOperator mMergeOperator;
 
@@ -57,7 +57,7 @@ public class CFAPathCPA implements ConfigurableProgramAnalysis {
     mTransferRelation = new CFAPathTransferRelation();
     mPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
     mPrecision = SingletonPrecision.getInstance();
-    mInitialElement = CFAPathStandardState.getEmptyPath();
+    mInitialState = CFAPathStandardState.getEmptyPath();
     mStopOperator = StopNeverOperator.getInstance();
     mMergeOperator = MergeSepOperator.getInstance();
   }
@@ -88,8 +88,8 @@ public class CFAPathCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public CFAPathState getInitialElement(CFANode pNode) {
-    return mInitialElement;
+  public CFAPathState getInitialState(CFANode pNode) {
+    return mInitialState;
   }
 
   @Override

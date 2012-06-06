@@ -53,7 +53,7 @@ class CompositeSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
   public Action prec(AbstractState pElement, Precision pPrecision) throws CPAException {
     CompositeState comp = (CompositeState) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
-    assert (comp.getWrappedElements().size() == prec.getPrecisions().size());
+    assert (comp.getWrappedStates().size() == prec.getPrecisions().size());
     int dim = comp.getNumberofElements();
 
     for (int i = 0; i < dim; ++i) {

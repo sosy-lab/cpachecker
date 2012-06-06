@@ -142,8 +142,8 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     imgr = new UninstantiatingInterpolationManager(fmgr, pfmgr, solver, factory, config, logger);
   }
 
-  public AbstractState getInitialElement(CFANode location) {
-    return new Vertex(fmgr.makeTrue(), cpa.getInitialElement(location));
+  public AbstractState getInitialState(CFANode location) {
+    return new Vertex(fmgr.makeTrue(), cpa.getInitialState(location));
   }
 
   public Precision getInitialPrecision(CFANode location) {

@@ -83,7 +83,7 @@ public class InverseLocationCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialElement(CFANode node) {
+  public AbstractState getInitialState(CFANode node) {
     return elementFactory.getElement(node);
   }
 

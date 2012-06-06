@@ -109,7 +109,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
   }
 
   @Override
-  public AbstractState getInitialElement(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode) {
     return new UninitializedVariablesState(pNode.getFunctionName());
   }
 

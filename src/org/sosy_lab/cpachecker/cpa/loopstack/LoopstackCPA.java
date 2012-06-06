@@ -49,7 +49,7 @@ public class LoopstackCPA extends AbstractCPA {
   }
 
   @Override
-  public AbstractState getInitialElement(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode) {
     if (pNode instanceof CFAFunctionDefinitionNode) {
       // shortcut for the common case, a function start node can never be in a loop
       // (loops don't span across functions)

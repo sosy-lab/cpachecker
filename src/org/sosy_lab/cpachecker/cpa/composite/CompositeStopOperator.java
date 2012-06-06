@@ -60,8 +60,8 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
   }
 
   private boolean stop(CompositeState compositeState, CompositeState compositeReachedElement, CompositePrecision compositePrecision) throws CPAException {
-    List<AbstractState> compositeElements = compositeState.getWrappedElements();
-    List<AbstractState> compositeReachedElements = compositeReachedElement.getWrappedElements();
+    List<AbstractState> compositeElements = compositeState.getWrappedStates();
+    List<AbstractState> compositeReachedElements = compositeReachedElement.getWrappedStates();
 
     List<Precision> compositePrecisions = compositePrecision.getPrecisions();
 
@@ -83,8 +83,8 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
     CompositeState compositeState = (CompositeState)pElement;
     CompositeState compositeOtherElement = (CompositeState)pOtherElement;
 
-    List<AbstractState> componentElements = compositeState.getWrappedElements();
-    List<AbstractState> componentOtherElements = compositeOtherElement.getWrappedElements();
+    List<AbstractState> componentElements = compositeState.getWrappedStates();
+    List<AbstractState> componentOtherElements = compositeOtherElement.getWrappedStates();
 
     if(componentElements.size() != cpas.size()) {
       return false;
@@ -111,8 +111,8 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
     CompositeState compositeReachedElement = (CompositeState)pReachedElement;
     CompositePrecision compositePrecision = (CompositePrecision)pPrecision;
 
-    List<AbstractState> compositeElements = compositeState.getWrappedElements();
-    List<AbstractState> compositeReachedElements = compositeReachedElement.getWrappedElements();
+    List<AbstractState> compositeElements = compositeState.getWrappedStates();
+    List<AbstractState> compositeReachedElements = compositeReachedElement.getWrappedStates();
     List<Precision> compositePrecisions = compositePrecision.getPrecisions();
 
     for (int idx = 0; idx < compositeElements.size(); idx++) {

@@ -42,7 +42,7 @@ public class TypesCPA extends AbstractCPA {
   }
 
   @Override
-  public AbstractState getInitialElement(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode) {
     if (pNode instanceof FunctionDefinitionNode) {
       //remember the entry function definition node for later use
       ((TypesTransferRelation)getTransferRelation()).setEntryFunctionDefinitionNode((FunctionDefinitionNode)pNode);

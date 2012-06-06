@@ -109,7 +109,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   }
 
   @Override
-  public AvoidanceReportingState getInitialElement(CFANode node) {
+  public AvoidanceReportingState getInitialState(CFANode node) {
 
     AvoidanceReportingState element = demandUniqueness ? new UniqueAssignmentsInPathConditionState() : new AllAssignmentsInPathConditionState();
 

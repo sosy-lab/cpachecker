@@ -41,29 +41,29 @@ public class FunctionPointerReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableReducedElement(
+  public AbstractState getVariableReducedState(
       AbstractState pExpandedElement, Block pContext,
       CFANode pLocation) {
 
     FunctionPointerState funElement = (FunctionPointerState)pExpandedElement;
-    return funElement.createDuplicateWithNewWrappedElement(wrappedReducer.getVariableReducedElement(funElement.getWrappedElement(), pContext, pLocation));
+    return funElement.createDuplicateWithNewWrappedElement(wrappedReducer.getVariableReducedState(funElement.getWrappedElement(), pContext, pLocation));
   }
 
   @Override
-  public AbstractState getVariableExpandedElement(
+  public AbstractState getVariableExpandedState(
       AbstractState pRootElement, Block pReducedContext,
       AbstractState pReducedElement) {
 
     FunctionPointerState funRootElement = (FunctionPointerState)pRootElement;
     FunctionPointerState funReducedElement = (FunctionPointerState)pReducedElement;
 
-    return funReducedElement.createDuplicateWithNewWrappedElement(wrappedReducer.getVariableExpandedElement(funRootElement.getWrappedElement(), pReducedContext, funReducedElement.getWrappedElement()));
+    return funReducedElement.createDuplicateWithNewWrappedElement(wrappedReducer.getVariableExpandedState(funRootElement.getWrappedElement(), pReducedContext, funReducedElement.getWrappedElement()));
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractState pElementKey, Precision pPrecisionKey) {
+  public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
     FunctionPointerState funElement = (FunctionPointerState)pElementKey;
-    return Pair.of(funElement.getTargetMap(), wrappedReducer.getHashCodeForElement(funElement.getWrappedElement(), pPrecisionKey));
+    return Pair.of(funElement.getTargetMap(), wrappedReducer.getHashCodeForState(funElement.getWrappedElement(), pPrecisionKey));
   }
 
   @Override

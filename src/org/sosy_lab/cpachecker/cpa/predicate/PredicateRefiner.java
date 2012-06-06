@@ -151,7 +151,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
                   };
 
   @Override
-  protected List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> path, ARGState initialElement) throws CPATransferException {
+  protected List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> path, ARGState initialState) throws CPATransferException {
 
     List<Formula> formulas = transform(path,
         Functions.compose(

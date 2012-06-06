@@ -83,7 +83,7 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
   }
 
   @Override
-  public List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> errorPath, ARGState initialElement) throws CPATransferException {
+  public List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> errorPath, ARGState initialState) throws CPATransferException {
     List<Formula> formulas = transform(errorPath,
         Functions.compose(
             GET_BLOCK_FORMULA,

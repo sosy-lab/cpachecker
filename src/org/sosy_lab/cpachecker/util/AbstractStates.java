@@ -73,7 +73,7 @@ public final class AbstractStates {
       return extractElementByType(wrapped, pType);
 
     } else if (pElement instanceof AbstractWrapperState) {
-      for (AbstractState wrapped : ((AbstractWrapperState)pElement).getWrappedElements()) {
+      for (AbstractState wrapped : ((AbstractWrapperState)pElement).getWrappedStates()) {
         T result = extractElementByType(wrapped, pType);
         if (result != null) {
           return result;
@@ -187,7 +187,7 @@ public final class AbstractStates {
           return Iterators.singletonIterator(wrapped);
 
         } else if (element instanceof AbstractWrapperState) {
-          return ((AbstractWrapperState)element).getWrappedElements().iterator();
+          return ((AbstractWrapperState)element).getWrappedStates().iterator();
         }
 
         return Iterators.emptyIterator();

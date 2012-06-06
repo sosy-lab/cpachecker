@@ -29,15 +29,15 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public interface Reducer {
 
-  AbstractState getVariableReducedElement(AbstractState expandedElement, Block context, CFANode callNode);
+  AbstractState getVariableReducedState(AbstractState expandedElement, Block context, CFANode callNode);
 
-  AbstractState getVariableExpandedElement(AbstractState rootElement, Block reducedContext, AbstractState reducedElement);
+  AbstractState getVariableExpandedState(AbstractState rootElement, Block reducedContext, AbstractState reducedElement);
 
   Precision getVariableReducedPrecision(Precision precision, Block context);
 
   Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision);
 
-  Object getHashCodeForElement(AbstractState elementKey, Precision precisionKey);
+  Object getHashCodeForState(AbstractState elementKey, Precision precisionKey);
 
   int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision);
 }

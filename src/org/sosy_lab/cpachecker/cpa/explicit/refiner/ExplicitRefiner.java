@@ -93,7 +93,7 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
   @Override
   public List<Formula> getFormulasForPath(List<Pair<ARGState,
       CFANode>> errorPath,
-      ARGState initialElement) throws CPATransferException {
+      ARGState initialState) throws CPATransferException {
     PathFormula currentPathFormula = pathFormulaManager.makeEmptyPathFormula();
 
     List<Formula> formulas = new ArrayList<Formula>(errorPath.size());

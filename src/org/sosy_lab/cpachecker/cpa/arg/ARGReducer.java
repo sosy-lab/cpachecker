@@ -39,25 +39,25 @@ public class ARGReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableReducedElement(
+  public AbstractState getVariableReducedState(
       AbstractState pExpandedElement, Block pContext,
       CFANode pLocation) {
 
-    return new ARGState(wrappedReducer.getVariableReducedElement(((ARGState)pExpandedElement).getWrappedElement(), pContext, pLocation), null);
+    return new ARGState(wrappedReducer.getVariableReducedState(((ARGState)pExpandedElement).getWrappedElement(), pContext, pLocation), null);
   }
 
   @Override
-  public AbstractState getVariableExpandedElement(
+  public AbstractState getVariableExpandedState(
       AbstractState pRootElement, Block pReducedContext,
       AbstractState pReducedElement) {
 
-    return new ARGState(wrappedReducer.getVariableExpandedElement(((ARGState)pRootElement).getWrappedElement(), pReducedContext, ((ARGState)pReducedElement).getWrappedElement()), null);
+    return new ARGState(wrappedReducer.getVariableExpandedState(((ARGState)pRootElement).getWrappedElement(), pReducedContext, ((ARGState)pReducedElement).getWrappedElement()), null);
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractState pElementKey, Precision pPrecisionKey) {
+  public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
 
-    return wrappedReducer.getHashCodeForElement(((ARGState)pElementKey).getWrappedElement(), pPrecisionKey);
+    return wrappedReducer.getHashCodeForState(((ARGState)pElementKey).getWrappedElement(), pPrecisionKey);
   }
 
   @Override

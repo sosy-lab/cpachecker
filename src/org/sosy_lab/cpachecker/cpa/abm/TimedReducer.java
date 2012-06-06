@@ -45,34 +45,34 @@ class TimedReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableReducedElement(
+  public AbstractState getVariableReducedState(
       AbstractState pExpandedElement, Block pContext,
       CFANode pCallNode) {
 
     reduceTime.start();
     try {
-      return wrappedReducer.getVariableReducedElement(pExpandedElement, pContext, pCallNode);
+      return wrappedReducer.getVariableReducedState(pExpandedElement, pContext, pCallNode);
     } finally {
       reduceTime.stop();
     }
   }
 
   @Override
-  public AbstractState getVariableExpandedElement(
+  public AbstractState getVariableExpandedState(
       AbstractState pRootElement, Block pReducedContext,
       AbstractState pReducedElement) {
 
     expandTime.start();
     try {
-      return wrappedReducer.getVariableExpandedElement(pRootElement, pReducedContext, pReducedElement);
+      return wrappedReducer.getVariableExpandedState(pRootElement, pReducedContext, pReducedElement);
     } finally {
       expandTime.stop();
     }
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractState pElementKey, Precision pPrecisionKey) {
-    return wrappedReducer.getHashCodeForElement(pElementKey, pPrecisionKey);
+  public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
+    return wrappedReducer.getHashCodeForState(pElementKey, pPrecisionKey);
   }
 
   @Override

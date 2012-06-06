@@ -235,9 +235,9 @@ public class DelegatingExplicitRefiner
   }
 
   @Override
-  protected List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> errorPath, ARGState initialElement)
+  protected List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> errorPath, ARGState initialState)
       throws CPATransferException {
-    return currentRefiner.getFormulasForPath(errorPath, initialElement);
+    return currentRefiner.getFormulasForPath(errorPath, initialState);
   }
 
   @Override

@@ -105,7 +105,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   @Override
-  public AbstractState getInitialElement(CFANode node)  {
+  public AbstractState getInitialState(CFANode node)  {
     if (blockPartitioning == null) {
       blockPartitioning = heuristic.buildPartitioning(node);
       transfer.setBlockPartitioning(blockPartitioning);
@@ -119,7 +119,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       transfer.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
       prec.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
     }
-    return getWrappedCpa().getInitialElement(node);
+    return getWrappedCpa().getInitialState(node);
   }
 
   @Override

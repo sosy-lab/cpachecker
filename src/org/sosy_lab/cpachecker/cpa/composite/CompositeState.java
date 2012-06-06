@@ -80,7 +80,7 @@ public class CompositeState implements AbstractWrapperState, Targetable, Partiti
   }
 
   @Override
-  public List<AbstractState> getWrappedElements() {
+  public List<AbstractState> getWrappedStates() {
     return elements;
   }
 

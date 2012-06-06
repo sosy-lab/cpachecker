@@ -75,8 +75,8 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialElement(CFANode node) {
-    return this.parametricDominatorCPA.getInitialElement(node);
+  public AbstractState getInitialState(CFANode node) {
+    return this.parametricDominatorCPA.getInitialState(node);
   }
 
   @Override

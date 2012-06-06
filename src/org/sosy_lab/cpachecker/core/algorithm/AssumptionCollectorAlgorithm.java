@@ -311,12 +311,12 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   /**
    * Create a String containing the assumption automaton.
-   * @param initialElement The initial element of the automaton.
+   * @param initialState The initial element of the automaton.
    * @param allElements A set with all elements which should appear as states in the automaton.
    * @param relevantElements A set with all elements with non-trivial assumptions (all others and their children will have assumption TRUE).
    * @param falseAssumptionElements A set with all elements with the assumption FALSE
    */
-  private String writeAutomaton(ARGState initialElement, Set<ARGState> allElements,
+  private String writeAutomaton(ARGState initialState, Set<ARGState> allElements,
       Set<ARGState> relevantElements, Set<AbstractState> falseAssumptionElements) {
     StringBuilder sb = new StringBuilder();
     sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
@@ -331,7 +331,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       actionOnFinalEdges = "DO branchingCount = 0 ";
     }
 
-    sb.append("INITIAL STATE ARG" + initialElement.getElementId() + ";\n\n");
+    sb.append("INITIAL STATE ARG" + initialState.getElementId() + ";\n\n");
     sb.append("STATE __TRUE :\n");
     sb.append("    TRUE -> ASSUME \"true\" GOTO __TRUE;\n\n");
 

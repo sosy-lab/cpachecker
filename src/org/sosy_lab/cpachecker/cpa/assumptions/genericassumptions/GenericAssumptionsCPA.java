@@ -65,7 +65,7 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialElement(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode) {
     return topElement;
   }
 

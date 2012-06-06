@@ -261,14 +261,14 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
     }
 
     @Override
-    protected final List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> pPath, ARGState initialElement) throws CPATransferException {
+    protected final List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> pPath, ARGState initialState) throws CPATransferException {
       // the elements in the path are not expanded, so they contain the path formulas
       // with the wrong indices
       // we need to re-create all path formulas in the flattened ARG
 
       ssaRenamingTimer.start();
       try {
-        return computeBlockFormulas(initialElement);
+        return computeBlockFormulas(initialState);
 
       } finally {
         ssaRenamingTimer.stop();

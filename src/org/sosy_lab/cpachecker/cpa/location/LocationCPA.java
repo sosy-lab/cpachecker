@@ -100,7 +100,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
   }
 
   @Override
-	public AbstractState getInitialElement(CFANode node) {
+	public AbstractState getInitialState(CFANode node) {
 	  return elementFactory.getElement(node);
 	}
 

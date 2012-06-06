@@ -99,7 +99,7 @@ public class CPASelfCheck {
       assert cpaInst != null;
 
       try {
-        cpaInst.getInitialElement(main);
+        cpaInst.getInitialState(main);
 
         boolean ok = true;
         // check domain and lattice
@@ -153,7 +153,7 @@ public class CPASelfCheck {
   private static boolean checkJoin(Class<ConfigurableProgramAnalysis> pCpa,
                                 ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws CPAException {
     AbstractDomain d = pCpaInst.getAbstractDomain();
-    AbstractState initial = pCpaInst.getInitialElement(pMain);
+    AbstractState initial = pCpaInst.getInitialState(pMain);
 
     return ensure(d.isLessOrEqual(initial, d.join(initial,initial)),
         "Join of same elements is unsound!");
@@ -163,7 +163,7 @@ public class CPASelfCheck {
                                  ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws CPAException {
     AbstractDomain d = pCpaInst.getAbstractDomain();
     MergeOperator merge = pCpaInst.getMergeOperator();
-    AbstractState initial = pCpaInst.getInitialElement(pMain);
+    AbstractState initial = pCpaInst.getInitialState(pMain);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
 
     return ensure(d.isLessOrEqual(initial, merge.merge(initial,initial,initialPrec)),
@@ -176,7 +176,7 @@ public class CPASelfCheck {
                                             ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws CPAException {
     StopOperator stop = pCpaInst.getStopOperator();
     HashSet<AbstractState> reached = new HashSet<AbstractState>();
-    AbstractState initial = pCpaInst.getInitialElement(pMain);
+    AbstractState initial = pCpaInst.getInitialState(pMain);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
 
     return ensure(!stop.stop(initial, reached, initialPrec), "Stopped on empty set!");
@@ -186,7 +186,7 @@ public class CPASelfCheck {
                                        ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws CPAException {
     StopOperator stop = pCpaInst.getStopOperator();
     HashSet<AbstractState> reached = new HashSet<AbstractState>();
-    AbstractState initial = pCpaInst.getInitialElement(pMain);
+    AbstractState initial = pCpaInst.getInitialState(pMain);
     reached.add(initial);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
 

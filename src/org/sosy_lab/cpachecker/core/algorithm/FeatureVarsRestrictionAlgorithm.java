@@ -150,7 +150,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
 
           // BDD specials
           Region errorBDD = null;
-          for (AbstractState x : ((CompositeState)errorElement.getWrappedElement()).getWrappedElements()) {
+          for (AbstractState x : ((CompositeState)errorElement.getWrappedElement()).getWrappedStates()) {
             if (x instanceof FeatureVarsState) {
               errorBDD = ((FeatureVarsState) x).getRegion();
               //logger.log(Level.INFO,"BDD: " + ((FeatureVarsState) x).toString());
@@ -167,7 +167,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
           for (AbstractState x : reached.getWaitlist()) {
             ARGState xart = (ARGState)x;
             FeatureVarsState fvelem = null;
-            for (AbstractState y : ((CompositeState)xart.getWrappedElement()).getWrappedElements()) {
+            for (AbstractState y : ((CompositeState)xart.getWrappedElement()).getWrappedStates()) {
               if (y instanceof FeatureVarsState)
                 fvelem = (FeatureVarsState)y;
             }

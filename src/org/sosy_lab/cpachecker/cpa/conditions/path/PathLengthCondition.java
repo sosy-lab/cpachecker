@@ -64,7 +64,7 @@ public class PathLengthCondition implements PathCondition, Statistics {
   }
 
   @Override
-  public AvoidanceReportingState getInitialElement(CFANode pNode) {
+  public AvoidanceReportingState getInitialState(CFANode pNode) {
     return new PathLengthConditionState(0, false);
   }
 

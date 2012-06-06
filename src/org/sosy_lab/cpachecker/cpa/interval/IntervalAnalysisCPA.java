@@ -148,10 +148,10 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis
   }
 
   /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getInitialElement(org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode)
+   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getInitialState(org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode)
    */
   @Override
-  public AbstractState getInitialElement(CFANode node)
+  public AbstractState getInitialState(CFANode node)
   {
     return new IntervalAnalysisState();
   }

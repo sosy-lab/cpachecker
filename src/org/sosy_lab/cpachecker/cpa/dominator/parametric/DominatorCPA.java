@@ -76,16 +76,16 @@ public class DominatorCPA {
     return precisionAdjustment;
   }
 
-  public AbstractState getInitialElement(CFANode node) {
-    AbstractState dominatedInitialElement_tmp = this.cpa.getInitialElement(node);
+  public AbstractState getInitialState(CFANode node) {
+    AbstractState dominatedInitialState_tmp = this.cpa.getInitialState(node);
 
-    AbstractState dominatedInitialElement = dominatedInitialElement_tmp;
+    AbstractState dominatedInitialState = dominatedInitialState_tmp;
 
-    DominatorState initialElement = new DominatorState(dominatedInitialElement);
+    DominatorState initialState = new DominatorState(dominatedInitialState);
 
-    initialElement.update(dominatedInitialElement);
+    initialState.update(dominatedInitialState);
 
-    return initialElement;
+    return initialState;
   }
 
   public Precision getInitialPrecision(CFANode pNode) {

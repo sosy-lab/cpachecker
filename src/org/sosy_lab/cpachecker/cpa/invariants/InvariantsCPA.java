@@ -53,7 +53,7 @@ public class InvariantsCPA extends AbstractCPA {
   }
 
   @Override
-  public AbstractState getInitialElement(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode) {
     return new InvariantsState();
   }
 }

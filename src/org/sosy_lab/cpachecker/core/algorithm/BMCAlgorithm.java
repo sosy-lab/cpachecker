@@ -500,7 +500,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     // Create initial reached set
     ReachedSet reached = reachedSetFactory.create();
-    reached.add(cpa.getInitialElement(loopHead), cpa.getInitialPrecision(loopHead));
+    reached.add(cpa.getInitialState(loopHead), cpa.getInitialPrecision(loopHead));
 
     // Run algorithm in order to create formula (A & B)
 
@@ -645,7 +645,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger, invariantConfig);
 
         reached = new ReachedSetFactory(invariantConfig, logger).create();
-        reached.add(invariantCPAs.getInitialElement(initialLocation), invariantCPAs.getInitialPrecision(initialLocation));
+        reached.add(invariantCPAs.getInitialState(initialLocation), invariantCPAs.getInitialPrecision(initialLocation));
 
       } else {
         // invariant generation is disabled

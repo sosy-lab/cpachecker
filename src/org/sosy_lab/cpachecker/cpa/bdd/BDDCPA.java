@@ -94,7 +94,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   }
 
   @Override
-  public AbstractState getInitialElement(CFANode node) {
+  public AbstractState getInitialState(CFANode node) {
     return new BDDState(manager, null, manager.makeTrue(),
         new LinkedHashSet<String>(), node.getFunctionName());
   }

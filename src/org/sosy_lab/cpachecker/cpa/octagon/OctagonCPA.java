@@ -119,7 +119,7 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
   }
 
   @Override
-  public AbstractState getInitialElement(CFANode node) {
+  public AbstractState getInitialState(CFANode node) {
     return new OctState();
   }
 

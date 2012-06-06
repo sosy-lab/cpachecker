@@ -242,15 +242,15 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public AbstractState getInitialElement (CFANode node) {
+  public AbstractState getInitialState (CFANode node) {
     Preconditions.checkNotNull(node);
 
-    ImmutableList.Builder<AbstractState> initialElements = ImmutableList.builder();
+    ImmutableList.Builder<AbstractState> initialStates = ImmutableList.builder();
     for (ConfigurableProgramAnalysis sp : cpas) {
-      initialElements.add(sp.getInitialElement(node));
+      initialStates.add(sp.getInitialState(node));
     }
 
-    return new CompositeState(initialElements.build());
+    return new CompositeState(initialStates.build());
   }
 
   @Override

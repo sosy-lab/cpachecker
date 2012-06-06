@@ -271,7 +271,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public PredicateAbstractState getInitialElement(CFANode node) {
+  public PredicateAbstractState getInitialState(CFANode node) {
     return topElement;
   }
 

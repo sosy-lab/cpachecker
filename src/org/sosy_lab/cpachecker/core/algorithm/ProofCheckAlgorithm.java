@@ -166,12 +166,12 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     logger.log(Level.INFO, "Proof check algorithm started");
 
-    AbstractState initialElement = reachedSet.popFromWaitlist();
-    Precision initialPrecision = reachedSet.getPrecision(initialElement);
+    AbstractState initialState = reachedSet.popFromWaitlist();
+    Precision initialPrecision = reachedSet.getPrecision(initialState);
 
     logger.log(Level.FINE, "Checking root element");
 
-    if(!(cpa.isCoveredBy(initialElement, rootElement) && cpa.isCoveredBy(rootElement, initialElement))) {
+    if(!(cpa.isCoveredBy(initialState, rootElement) && cpa.isCoveredBy(rootElement, initialState))) {
       stats.totalTimer.stop();
       logger.log(Level.WARNING, "Root element of proof is invalid.");
       return false;

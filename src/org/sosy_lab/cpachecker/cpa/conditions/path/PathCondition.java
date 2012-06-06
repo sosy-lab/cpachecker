@@ -48,9 +48,9 @@ public interface PathCondition {
 
   /**
    * Get the initial element.
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getInitialElement(CFANode)
+   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getInitialState(CFANode)
    */
-  AvoidanceReportingState getInitialElement(CFANode pNode);
+  AvoidanceReportingState getInitialState(CFANode pNode);
 
   /**
    * Get the successor element for an edge.

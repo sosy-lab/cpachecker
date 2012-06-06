@@ -66,7 +66,7 @@ public class AssumeEdgesInPathCondition implements PathCondition, Statistics {
   }
 
   @Override
-  public AvoidanceReportingState getInitialElement(CFANode pNode) {
+  public AvoidanceReportingState getInitialState(CFANode pNode) {
     return new RepetitionsInPathConditionState(0, false);
   }
 

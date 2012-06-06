@@ -46,7 +46,7 @@ public abstract class AbstractWrappedStateVisitor {
 
     if (element instanceof AbstractWrapperState) {
       AbstractWrapperState wrapperElement = (AbstractWrapperState) element;
-      for (AbstractState wrappedElement : wrapperElement.getWrappedElements()) {
+      for (AbstractState wrappedElement : wrapperElement.getWrappedStates()) {
         visit(wrappedElement);
       }
     }

@@ -174,11 +174,11 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
   /**
    * Get the block formulas from a path.
    * @param path A list of all abstraction elements
-   * @param initialElement The initial element of the analysis (= the root element of the ARG)
+   * @param initialState The initial element of the analysis (= the root element of the ARG)
    * @return A list of block formulas for this path.
    * @throws CPATransferException
    */
-  protected abstract List<Formula> getFormulasForPath(List<P> path, ARGState initialElement) throws CPATransferException;
+  protected abstract List<Formula> getFormulasForPath(List<P> path, ARGState initialState) throws CPATransferException;
 
   protected abstract void performRefinement(ARGReachedSet pReached, List<P> path,
       CounterexampleTraceInfo<I> counterexample, boolean pRepeatedCounterexample) throws CPAException;

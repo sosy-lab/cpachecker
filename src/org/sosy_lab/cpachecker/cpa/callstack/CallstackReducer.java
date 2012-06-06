@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 public class CallstackReducer implements Reducer {
 
   @Override
-  public AbstractState getVariableReducedElement(
+  public AbstractState getVariableReducedState(
       AbstractState pExpandedElement, Block pContext, CFANode callNode) {
 
     CallstackState element = (CallstackState)pExpandedElement;
@@ -53,7 +53,7 @@ public class CallstackReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableExpandedElement(
+  public AbstractState getVariableExpandedState(
       AbstractState pRootElement, Block pReducedContext,
       AbstractState pReducedElement) {
 
@@ -96,7 +96,7 @@ public class CallstackReducer implements Reducer {
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractState pElementKey, Precision pPrecisionKey) {
+  public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
     return new CallstackStateWithEquals((CallstackState)pElementKey);
   }
 

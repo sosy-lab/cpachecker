@@ -48,7 +48,7 @@ public interface IExplicitRefiner {
   List<Formula> getFormulasForPath(
       List<Pair<ARGState,
       CFANode>> errorPath,
-      ARGState initialElement) throws CPATransferException;
+      ARGState initialState) throws CPATransferException;
 
   Pair<ARGState, Precision> performRefinement(
       Precision oldPrecision,

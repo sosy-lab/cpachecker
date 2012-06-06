@@ -92,7 +92,7 @@ public abstract class AbstractSingleWrapperState implements AbstractWrapperState
   }
 
   @Override
-  public Iterable<? extends AbstractState> getWrappedElements() {
+  public Iterable<? extends AbstractState> getWrappedStates() {
     return Collections.singleton(wrappedElement);
   }
 }

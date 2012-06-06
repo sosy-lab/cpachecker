@@ -150,9 +150,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   }
 
   @Override
-  public AbstractState getInitialElement (CFANode pNode) {
+  public AbstractState getInitialState (CFANode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ARG
-    return new ARGState(getWrappedCpa().getInitialElement(pNode), null);
+    return new ARGState(getWrappedCpa().getInitialState(pNode), null);
   }
 
   protected LogManager getLogger() {

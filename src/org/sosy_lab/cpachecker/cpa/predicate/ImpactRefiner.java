@@ -105,7 +105,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
       throw new InvalidConfigurationException(ImpactRefiner.class.getSimpleName() + " needs a PredicateCPA");
     }
 
-    Region initialRegion = predicateCpa.getInitialElement(null).getAbstractionFormula().asRegion();
+    Region initialRegion = predicateCpa.getInitialState(null).getAbstractionFormula().asRegion();
     if (!(initialRegion instanceof SymbolicRegionManager.SymbolicRegion)) {
       throw new InvalidConfigurationException(ImpactRefiner.class.getSimpleName() + " works only with a PredicateCPA configured to store abstractions as formulas (cpa.predicate.abstraction.type=FORMULA)");
     }
@@ -160,7 +160,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
   }
 
   @Override
-  protected List<Formula> getFormulasForPath(List<ARGState> pPath, ARGState pInitialElement) {
+  protected List<Formula> getFormulasForPath(List<ARGState> pPath, ARGState pInitialState) {
 
     return transform(pPath,
         new Function<ARGState, Formula>() {

@@ -73,7 +73,7 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
 
   private final LDDRegionManager regionManager;
 
-  private final LDDAbstractState initialElement;
+  private final LDDAbstractState initialState;
 
   public LDDAbstractionCPA(CFA cfa, Configuration config, LogManager logger) throws InvalidConfigurationException {
     Map<String, Integer> variables = new HashMap<String, Integer>();
@@ -111,7 +111,7 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
     this.regionManager = new LDDRegionManager(variables.size());
     this.domain = new LDDAbstractDomain(this.regionManager);
     this.stopOperator = new StopSepOperator(this.domain);
-    this.initialElement = new LDDAbstractState(this.regionManager.makeTrue());
+    this.initialState = new LDDAbstractState(this.regionManager.makeTrue());
     this.transferRelation = new LDDAbstractionTransferRelation(this.regionManager, variables);
   }
 
@@ -150,8 +150,8 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialElement(CFANode pNode) {
-    return this.initialElement;
+  public AbstractState getInitialState(CFANode pNode) {
+    return this.initialState;
   }
 
   @Override

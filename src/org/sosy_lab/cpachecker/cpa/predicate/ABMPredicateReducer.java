@@ -71,7 +71,7 @@ public class ABMPredicateReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableReducedElement(
+  public AbstractState getVariableReducedState(
       AbstractState pExpandedElement, Block pContext,
       CFANode pLocation) {
 
@@ -103,7 +103,7 @@ public class ABMPredicateReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableExpandedElement(
+  public AbstractState getVariableExpandedState(
       AbstractState pRootElement, Block pReducedContext,
       AbstractState pReducedElement) {
 
@@ -162,7 +162,7 @@ public class ABMPredicateReducer implements Reducer {
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractState pElementKey, Precision pPrecisionKey) {
+  public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
 
     PredicateAbstractState element = (PredicateAbstractState)pElementKey;
     PredicatePrecision precision = (PredicatePrecision)pPrecisionKey;

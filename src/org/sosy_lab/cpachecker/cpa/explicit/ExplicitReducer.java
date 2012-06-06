@@ -45,7 +45,7 @@ public class ExplicitReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableReducedElement(AbstractState pExpandedElement, Block pContext, CFANode pCallNode) {
+  public AbstractState getVariableReducedState(AbstractState pExpandedElement, Block pContext, CFANode pCallNode) {
     ExplicitState expandedElement = (ExplicitState)pExpandedElement;
 
     ExplicitState clonedElement = expandedElement.clone();
@@ -59,7 +59,7 @@ public class ExplicitReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableExpandedElement(AbstractState pRootElement, Block pReducedContext,
+  public AbstractState getVariableExpandedState(AbstractState pRootElement, Block pReducedContext,
       AbstractState pReducedElement) {
     ExplicitState rootElement = (ExplicitState)pRootElement;
     ExplicitState reducedElement = (ExplicitState)pReducedElement;
@@ -107,7 +107,7 @@ public class ExplicitReducer implements Reducer {
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractState pElementKey, Precision pPrecisionKey) {
+  public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
     ExplicitState elementKey = (ExplicitState)pElementKey;
     ExplicitPrecision precisionKey = (ExplicitPrecision)pPrecisionKey;
 

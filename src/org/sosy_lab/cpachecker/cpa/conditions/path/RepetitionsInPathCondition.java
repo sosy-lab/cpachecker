@@ -74,7 +74,7 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
   }
 
   @Override
-  public AvoidanceReportingState getInitialElement(CFANode pNode) {
+  public AvoidanceReportingState getInitialState(CFANode pNode) {
     return new RepetitionsInPathConditionState(ImmutableMap.<CFAEdge, Integer>of(), threshold, false);
   }
 

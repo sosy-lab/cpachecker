@@ -84,7 +84,7 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialElement(CFANode node) {
+  public AbstractState getInitialState(CFANode node) {
     return topElement;
   }
 

@@ -107,8 +107,8 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysis, Adjustabl
   }
 
   @Override
-  public AbstractState getInitialElement(CFANode pNode) {
-    return condition.getInitialElement(pNode);
+  public AbstractState getInitialState(CFANode pNode) {
+    return condition.getInitialState(pNode);
   }
 
   @Override

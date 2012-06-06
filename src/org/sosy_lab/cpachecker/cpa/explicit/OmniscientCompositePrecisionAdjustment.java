@@ -98,7 +98,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
 
     CompositeState composite    = (CompositeState)pElement;
     CompositePrecision precision  = (CompositePrecision)pPrecision;
-    assert (composite.getWrappedElements().size() == precision.getPrecisions().size());
+    assert (composite.getWrappedStates().size() == precision.getPrecisions().size());
 
     int indexOfExplicitState = getIndexOfExplicitState(composite);
     if(indexOfExplicitState == -1) {
@@ -110,7 +110,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
 
     Action action = Action.CONTINUE;
 
-    for (int i = 0, size = composite.getWrappedElements().size(); i < size; ++i) {
+    for (int i = 0, size = composite.getWrappedStates().size(); i < size; ++i) {
       UnmodifiableReachedSet slice = new UnmodifiableReachedSetView(pElements, stateProjectionFunctions.get(i), precisionProjectionFunctions.get(i));
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
       AbstractState oldElement = composite.get(i);
@@ -212,7 +212,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
   }
 
   private int getIndexOfExplicitState(CompositeState composite) {
-    for (int i = 0; i < composite.getWrappedElements().size(); ++i) {
+    for (int i = 0; i < composite.getWrappedStates().size(); ++i) {
       if(composite.get(i) instanceof ExplicitState) {
         return i;
       }

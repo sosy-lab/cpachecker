@@ -55,7 +55,7 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
   }
 
   @Override
-  public AbstractState getInitialElement(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode) {
     return new CallstackState(null, pNode.getFunctionName(), pNode);
   }
 

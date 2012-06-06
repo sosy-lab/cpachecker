@@ -304,11 +304,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       ReachedSetFactory pReachedSetFactory) {
     logger.log(Level.FINE, "Creating initial reached set");
 
-    AbstractState initialElement = cpa.getInitialElement(mainFunction);
+    AbstractState initialState = cpa.getInitialState(mainFunction);
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
 
     ReachedSet reached = pReachedSetFactory.create();
-    reached.add(initialElement, initialPrecision);
+    reached.add(initialState, initialPrecision);
     return reached;
   }
 
