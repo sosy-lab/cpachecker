@@ -45,9 +45,9 @@ class FunctionPointerStopOperator implements StopOperator {
 
     FunctionPointerState fpElement = (FunctionPointerState)pElement;
 
-    for (AbstractState reachedElement : pReached) {
-      FunctionPointerState fpReachedElement = (FunctionPointerState)reachedElement;
-      if (stop(fpElement, fpReachedElement, pPrecision)) {
+    for (AbstractState reachedState : pReached) {
+      FunctionPointerState fpReachedState = (FunctionPointerState)reachedState;
+      if (stop(fpElement, fpReachedState, pPrecision)) {
         return true;
       }
     }
@@ -55,16 +55,16 @@ class FunctionPointerStopOperator implements StopOperator {
 
   }
 
-  private boolean stop(FunctionPointerState pElement, FunctionPointerState pReachedElement, Precision pPrecision)
+  private boolean stop(FunctionPointerState pElement, FunctionPointerState pReachedState, Precision pPrecision)
                                                       throws CPAException {
 
-    if (!pElement.isLessOrEqualThan(pReachedElement)) {
+    if (!pElement.isLessOrEqualThan(pReachedState)) {
       return false;
     }
 
-    AbstractState wrappedElement = pElement.getWrappedState();
-    AbstractState wrappedReachedElement = pReachedElement.getWrappedState();
+    AbstractState wrappedState = pElement.getWrappedState();
+    AbstractState wrappedReachedState = pReachedState.getWrappedState();
 
-    return wrappedStop.stop(wrappedElement, Collections.singleton(wrappedReachedElement), pPrecision);
+    return wrappedStop.stop(wrappedState, Collections.singleton(wrappedReachedState), pPrecision);
   }
 }

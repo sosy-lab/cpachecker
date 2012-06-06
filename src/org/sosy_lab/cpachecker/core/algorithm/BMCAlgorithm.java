@@ -268,7 +268,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   /**
-   * This method tries to find a feasible path to (one of) the target element(s).
+   * This method tries to find a feasible path to (one of) the target state(s).
    * It does so by asking the solver for a satisfying assignment.
    */
   private void createErrorPath(final ReachedSet pReachedSet) throws CPATransferException {
@@ -352,7 +352,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     if (checkTargetStates) {
 
       List<AbstractState> targetElements = Lists.newArrayList(AbstractStates.filterTargetStates(pReachedSet));
-      logger.log(Level.FINER, "Found", targetElements.size(), "potential target elements");
+      logger.log(Level.FINER, "Found", targetElements.size(), "potential target states");
 
       // create formula
       Formula program = createFormulaFor(targetElements);
@@ -378,8 +378,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private boolean checkBoundingAssertions(final ReachedSet pReachedSet) {
     if (boundingAssertions) {
       // create formula for unwinding assertions
-      Iterable<AbstractState> stopElements = filter(pReachedSet, IS_STOP_STATE);
-      Formula assertions = createFormulaFor(stopElements);
+      Iterable<AbstractState> stopStates = filter(pReachedSet, IS_STOP_STATE);
+      Formula assertions = createFormulaFor(stopStates);
 
       logger.log(Level.INFO, "Starting assertions check...");
 

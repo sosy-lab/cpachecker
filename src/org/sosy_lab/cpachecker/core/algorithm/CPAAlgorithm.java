@@ -241,11 +241,11 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
             stats.countBreak++;
             logger.log(Level.FINER, "Break signalled, CPAAlgorithm will stop.");
 
-            // add the new element
+            // add the new state
             reachedSet.add(successor, successorPrecision);
 
             if (!successors.isEmpty()) {
-              // re-add the old element to the waitlist, there are unhandled
+              // re-add the old state to the waitlist, there are unhandled
               // successors left that otherwise would be forgotten
               reachedSet.reAddToWaitlist(element);
             }
@@ -268,19 +268,19 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
           logger.log(Level.FINER, "Considering", reached.size(),
               "elements from reached set for merge");
-          for (AbstractState reachedElement : reached) {
+          for (AbstractState reachedState : reached) {
             AbstractState mergedElement =
-                mergeOperator.merge(successor, reachedElement,
+                mergeOperator.merge(successor, reachedState,
                     successorPrecision);
 
-            if (!mergedElement.equals(reachedElement)) {
+            if (!mergedElement.equals(reachedState)) {
               logger.log(Level.FINER,
                   "Successor was merged with element from reached set");
               logger.log(Level.ALL, "Merged", successor, "\nand",
-                  reachedElement, "\n-->", mergedElement);
+                  reachedState, "\n-->", mergedElement);
               stats.countMerge++;
 
-              toRemove.add(reachedElement);
+              toRemove.add(reachedState);
               toAdd.add(Pair.of(mergedElement, successorPrecision));
             }
           }

@@ -38,7 +38,7 @@ import com.google.common.collect.Iterables;
  * The key that is used for sorting is defined by sub-classes (it's type is
  * the type parameter of this class).
  *
- * There may be several abstract elements with the same key, so this class
+ * There may be several abstract states with the same key, so this class
  * delegates the decision which of those should be chosen to a second waitlist
  * implementation. A factory for this implementation needs to be given to the
  * constructor.
@@ -63,7 +63,7 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   }
 
   /**
-   * Method that generates the sorting key for any abstract element.
+   * Method that generates the sorting key for any abstract state.
    * This method may not return null.
    * If this method throws an exception, no guarantees about the state of the
    * current instance of this class are made.

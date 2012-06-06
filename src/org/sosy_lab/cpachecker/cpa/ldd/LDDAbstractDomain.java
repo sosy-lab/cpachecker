@@ -41,11 +41,11 @@ public class LDDAbstractDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedElement) throws CPAException {
-    if (this.topState.equals(reachedElement) || newElement.equals(reachedElement)) { return true; }
-    if (newElement instanceof LDDAbstractState && reachedElement instanceof LDDAbstractState) {
+  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedState) throws CPAException {
+    if (this.topState.equals(reachedState) || newElement.equals(reachedState)) { return true; }
+    if (newElement instanceof LDDAbstractState && reachedState instanceof LDDAbstractState) {
       LDDAbstractState lddElement1 = (LDDAbstractState) newElement;
-      LDDAbstractState lddElement2 = (LDDAbstractState) reachedElement;
+      LDDAbstractState lddElement2 = (LDDAbstractState) reachedState;
       return this.regionManager.entails(lddElement1.getRegion(), lddElement2.getRegion());
     }
     return false;

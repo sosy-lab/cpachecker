@@ -91,7 +91,7 @@ public class ARGUtils {
     Path path = new Path();
     Set<ARGState> seenElements = new HashSet<ARGState>();
 
-    // each element of the path consists of the abstract element and the outgoing
+    // each element of the path consists of the abstract state and the outgoing
     // edge to its successor
 
     ARGState currentARGState = pLastElement;
@@ -166,12 +166,12 @@ public class ARGUtils {
 
   /**
    * Create String with ARG in the DOT format of Graphviz.
-   * @param rootElement the root element of the ARG
+   * @param rootState the root element of the ARG
    * @param displayedElements An optional set of elements. If given, all other elements are ignored. If null, all elements are dumped.
    * @param highlightedEdges Set of edges to highlight in the graph.
    * @return the ARG as DOT graph
    */
-  public static String convertARTToDot(final ARGState rootElement,
+  public static String convertARTToDot(final ARGState rootState,
       final Set<ARGState> displayedElements,
       final Set<Pair<ARGState, ARGState>> highlightedEdges) {
     Deque<ARGState> worklist = new LinkedList<ARGState>();
@@ -184,7 +184,7 @@ public class ARGUtils {
     // default style for nodes
     sb.append("node [style=\"filled\" shape=\"box\" color=\"white\"]\n");
 
-    worklist.add(rootElement);
+    worklist.add(rootState);
 
     while(worklist.size() != 0){
       ARGState currentElement = worklist.removeLast();
@@ -305,7 +305,7 @@ public class ARGUtils {
    *
    * @param root The root element of the ARG (where to start the path)
    * @param arg All elements in the ARG or a subset thereof (elements outside this set will be ignored).
-   * @param branchingInformation A map from ARG element ids to boolean values indicating the outgoing direction.
+   * @param branchingInformation A map from ARG state ids to boolean values indicating the outgoing direction.
    * @return A path through the ARG from root to target.
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG is inconsistent.
    */
@@ -325,7 +325,7 @@ public class ARGUtils {
       switch (children.size()) {
 
       case 0:
-        throw new IllegalArgumentException("ARG target path terminates without reaching target element!");
+        throw new IllegalArgumentException("ARG target path terminates without reaching target state!");
 
       case 1: // only one successor, easy
         child = Iterables.getOnlyElement(children);
@@ -388,7 +388,7 @@ public class ARGUtils {
     }
 
 
-    // need to add another pair with target element and one (arbitrary) outgoing edge
+    // need to add another pair with target state and one (arbitrary) outgoing edge
     CFANode loc = extractLocation(currentElement);
     CFAEdge lastEdge = null;
     if (loc.getNumLeavingEdges() > 0) {
@@ -406,9 +406,9 @@ public class ARGUtils {
    * This method checks that the path ends in a certain element.
    *
    * @param root The root element of the ARG (where to start the path)
-   * @param target The target element (where to end the path, needs to be a target element)
+   * @param target The target state (where to end the path, needs to be a target state)
    * @param arg All elements in the ARG or a subset thereof (elements outside this set will be ignored).
-   * @param branchingInformation A map from ARG element ids to boolean values indicating the outgoing direction.
+   * @param branchingInformation A map from ARG state ids to boolean values indicating the outgoing direction.
    * @return A path through the ARG from root to target.
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG is inconsistent.
    */
@@ -422,7 +422,7 @@ public class ARGUtils {
     Path result = getPathFromBranchingInformation(root, arg, branchingInformation);
 
     if (result.getLast().getFirst() != target) {
-      throw new IllegalArgumentException("ARG target path reached the wrong target element!");
+      throw new IllegalArgumentException("ARG target path reached the wrong target state!");
     }
 
     return result;

@@ -153,7 +153,7 @@ public class ARGReachedSet {
    * any other node anymore.
    * Also adds any now uncovered leaf nodes to the waitlist.
    *
-   * Call this method when you have changed (strengthened) an abstract element.
+   * Call this method when you have changed (strengthened) an abstract state.
    */
   public void removeCoverageOf(ARGState v) {
     for (ARGState coveredByChildOfV : ImmutableList.copyOf(v.getCoveredByThis())) {

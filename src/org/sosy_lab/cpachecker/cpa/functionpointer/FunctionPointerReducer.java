@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
-// TODO implements a no-op for the function pointer map and passes the wrapped abstract element to the wrappedReducer; could be improved
+// TODO implements a no-op for the function pointer map and passes the wrapped abstract state to the wrappedReducer; could be improved
 // TODO functions called through function pointers are yet not considered for the computation of relevant predicates of a block. Using ABM with FunctionPointerCPA might thus yield unsound verification results.
 public class FunctionPointerReducer implements Reducer {
 
@@ -42,22 +42,22 @@ public class FunctionPointerReducer implements Reducer {
 
   @Override
   public AbstractState getVariableReducedState(
-      AbstractState pExpandedElement, Block pContext,
+      AbstractState pExpandedState, Block pContext,
       CFANode pLocation) {
 
-    FunctionPointerState funElement = (FunctionPointerState)pExpandedElement;
+    FunctionPointerState funElement = (FunctionPointerState)pExpandedState;
     return funElement.createDuplicateWithNewWrappedState(wrappedReducer.getVariableReducedState(funElement.getWrappedState(), pContext, pLocation));
   }
 
   @Override
   public AbstractState getVariableExpandedState(
-      AbstractState pRootElement, Block pReducedContext,
-      AbstractState pReducedElement) {
+      AbstractState pRootState, Block pReducedContext,
+      AbstractState pReducedState) {
 
-    FunctionPointerState funRootElement = (FunctionPointerState)pRootElement;
-    FunctionPointerState funReducedElement = (FunctionPointerState)pReducedElement;
+    FunctionPointerState funRootState = (FunctionPointerState)pRootState;
+    FunctionPointerState funReducedState = (FunctionPointerState)pReducedState;
 
-    return funReducedElement.createDuplicateWithNewWrappedState(wrappedReducer.getVariableExpandedState(funRootElement.getWrappedState(), pReducedContext, funReducedElement.getWrappedState()));
+    return funReducedState.createDuplicateWithNewWrappedState(wrappedReducer.getVariableExpandedState(funRootState.getWrappedState(), pReducedContext, funReducedState.getWrappedState()));
   }
 
   @Override

@@ -148,7 +148,7 @@ public class ARGStatistics implements Statistics {
           ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
           Path shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
 
-          ARGState rootElement = targetPath.getFirst().getFirst();
+          ARGState rootState = targetPath.getFirst().getFirst();
           Set<ARGState> pathElements;
           String pathProgram;
           if (counterexample != null && counterexample.getTargetPath() != null) {
@@ -163,14 +163,14 @@ public class ARGStatistics implements Statistics {
             // to avoid this problem.
             ARGState lastElement = (ARGState)pReached.getLastState();
             pathElements = ARGUtils.getAllStatesOnPathsTo(lastElement);
-            pathProgram = PathToCTranslator.translatePaths(rootElement, pathElements);
+            pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
           }
 
           writeErrorPathFile(errorPathFile, targetPath);
           writeErrorPathFile(errorPathCoreFile, shrinkedErrorPath);
           writeErrorPathFile(errorPathSourceFile, pathProgram);
           writeErrorPathFile(errorPathJson, targetPath.toJSON());
-          writeErrorPathFile(errorPathGraphFile, ARGUtils.convertARTToDot(rootElement, pathElements, getEdgesOfPath(targetPath)));
+          writeErrorPathFile(errorPathGraphFile, ARGUtils.convertARTToDot(rootState, pathElements, getEdgesOfPath(targetPath)));
 
           if (assignment != null) {
             writeErrorPathFile(errorPathAssignment, assignment);
@@ -187,8 +187,8 @@ public class ARGStatistics implements Statistics {
 
     if (exportART && argFile != null) {
       try {
-        ARGState rootElement = (ARGState)pReached.getFirstState();
-        Files.writeFile(argFile, ARGUtils.convertARTToDot(rootElement, null, getEdgesOfPath(targetPath)));
+        ARGState rootState = (ARGState)pReached.getFirstState();
+        Files.writeFile(argFile, ARGUtils.convertARTToDot(rootState, null, getEdgesOfPath(targetPath)));
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file.");
       }

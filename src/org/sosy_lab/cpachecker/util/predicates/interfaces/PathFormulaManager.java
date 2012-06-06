@@ -68,7 +68,7 @@ public interface PathFormulaManager {
    * This method may be called with an empty set, in which case it does nothing
    * and returns the formula "true".
    *
-   * @param elementsOnPath The ARG elements that should be considered.
+   * @param elementsOnPath The ARG states that should be considered.
    * @return A formula containing a predicate for each branching.
    * @throws CPATransferException
    */
@@ -83,7 +83,7 @@ public interface PathFormulaManager {
    * the map key) which edge was taken (the positive or the negated one).
    *
    * @param model A satisfying assignment that should contain values for branching predicates.
-   * @return A map from ARG element id to a boolean value indicating direction.
+   * @return A map from ARG state id to a boolean value indicating direction.
    */
   Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model pModel);
 }

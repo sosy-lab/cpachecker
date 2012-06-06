@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 public interface AssumptionReportingState {
 
   /**
-   * Get the assumption that the given abstract element
+   * Get the assumption that the given abstract state
    * wants to report for its containing node's location.
    *
    * @return an assumption representing the assumptions to generate

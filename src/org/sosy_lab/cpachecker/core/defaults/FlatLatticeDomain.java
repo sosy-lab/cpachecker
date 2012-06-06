@@ -44,10 +44,10 @@ public class FlatLatticeDomain implements AbstractDomain {
     }
   }
 
-  public FlatLatticeDomain(AbstractState pTopElement) {
-    assert(pTopElement != null);
+  public FlatLatticeDomain(AbstractState pTopState) {
+    assert(pTopState != null);
 
-    this.mTopState = pTopElement;
+    this.mTopState = pTopState;
   }
 
   public FlatLatticeDomain() {
@@ -68,7 +68,7 @@ public class FlatLatticeDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedElement) throws CPAException {
-    return (mTopState.equals(reachedElement) || newElement.equals(reachedElement));
+  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedState) throws CPAException {
+    return (mTopState.equals(reachedState) || newElement.equals(reachedState));
   }
 }

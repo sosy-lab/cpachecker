@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
- * Waitlist implementation that sorts the abstract elements depending on the
+ * Waitlist implementation that sorts the abstract states depending on the
  * content of the ExplicitState (if there is any).
  * Elements where less variables have a value assigned are considered first.
  * This elements are expected to cover a bigger part of the state space,

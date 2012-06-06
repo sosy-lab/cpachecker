@@ -103,7 +103,7 @@ public class PointerTransferRelation implements TransferRelation {
    *
    * UnreachableStateException: Thrown when the analysis determines that the
    *      current edge represents an infeasible code path of the program. The
-   *      exception will be caught silently and the new abstract element will be
+   *      exception will be caught silently and the new abstract state will be
    *      the bottom element of the domain.
    *
    * InvalidPointerException: The program produces a pointer related error.
@@ -113,7 +113,7 @@ public class PointerTransferRelation implements TransferRelation {
    *      pointer set to INVALID.
    *      If it's a critical error like dereferencing the pointer from above,
    *      the exception is caught a the top-most level of the analysis, an
-   *      error is printed and the new abstract element will be the bottom
+   *      error is printed and the new abstract state will be the bottom
    *      element of the domain.
    *
    * UnrecognizedCCodeException: The program has invalid syntax, a type error or
@@ -1300,7 +1300,7 @@ public class PointerTransferRelation implements TransferRelation {
   /**
    * Does a malloc and allocates the result to the given pointer.
    *
-   * @param element the abstract element
+   * @param element the abstract state
    * @param pointer the pointer for the result (may be null)
    * @param expression the parameter to the malloc call in the AST
    * @throws InvalidPointerException if malloc fails

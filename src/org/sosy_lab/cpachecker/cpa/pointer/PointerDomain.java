@@ -64,9 +64,9 @@ public class PointerDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedElement) {
+  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedState) {
       PointerState newPointerState = (PointerState)newElement;
-      PointerState reachedPointerState = (PointerState)reachedElement;
+      PointerState reachedPointerState = (PointerState)reachedState;
 
       return reachedPointerState.isSubsetOf(newPointerState);
   }

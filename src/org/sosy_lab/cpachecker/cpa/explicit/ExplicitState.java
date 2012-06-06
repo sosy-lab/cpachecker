@@ -100,7 +100,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * This element joins this element with another element.
    *
    * @param other the other element to join with this element
-   * @return a new element representing the join of this element and the other element
+   * @return a new state representing the join of this element and the other element
    */
   ExplicitState join(ExplicitState other) {
     int size = Math.min(constantsMap.size(), other.constantsMap.size());

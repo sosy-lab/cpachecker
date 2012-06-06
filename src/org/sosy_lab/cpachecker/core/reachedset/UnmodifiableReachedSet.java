@@ -57,7 +57,7 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    *
    * The returned set is unmodifiable.
    *
-   * @param element An abstract element for whose location the abstract states should be retrieved.
+   * @param element An abstract state for whose location the abstract states should be retrieved.
    * @return A subset of the reached set.
    */
   public Collection<AbstractState> getReached(AbstractState element)

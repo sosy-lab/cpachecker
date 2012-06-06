@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 /**
- * Interface representing a set of reached elements, including storing a
+ * Interface representing a set of reached states, including storing a
  * precision for each one.
  *
  * In all its operations it preserves the order in which the elements were added.

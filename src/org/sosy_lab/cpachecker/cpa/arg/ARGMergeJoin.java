@@ -57,10 +57,10 @@ public class ARGMergeJoin implements MergeOperator {
       return pElement2;
     }
 
-    AbstractState wrappedElement1 = argElement1.getWrappedState();
-    AbstractState wrappedElement2 = argElement2.getWrappedState();
-    AbstractState retElement = wrappedMerge.merge(wrappedElement1, wrappedElement2, pPrecision);
-    if(retElement.equals(wrappedElement2)){
+    AbstractState wrappedState1 = argElement1.getWrappedState();
+    AbstractState wrappedState2 = argElement2.getWrappedState();
+    AbstractState retElement = wrappedMerge.merge(wrappedState1, wrappedState2, pPrecision);
+    if(retElement.equals(wrappedState2)){
       return pElement2;
     }
 

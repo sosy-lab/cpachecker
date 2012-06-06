@@ -51,10 +51,10 @@ public interface PrecisionAdjustment {
    * the identical objects for element and precision. This makes it easier for
    * wrapper CPAs.
    *
-   * @param element The current abstract element.
+   * @param element The current abstract state.
    * @param precision The current precision.
    * @param elements The current reached set.
-   * @return The new element, new precision and the action flag.
+   * @return The new state, new precision and the action flag.
    */
   public Triple<AbstractState,Precision, Action> prec(
       AbstractState element, Precision precision, UnmodifiableReachedSet elements)

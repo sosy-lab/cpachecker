@@ -40,18 +40,18 @@ public class ARGReducer implements Reducer {
 
   @Override
   public AbstractState getVariableReducedState(
-      AbstractState pExpandedElement, Block pContext,
+      AbstractState pExpandedState, Block pContext,
       CFANode pLocation) {
 
-    return new ARGState(wrappedReducer.getVariableReducedState(((ARGState)pExpandedElement).getWrappedState(), pContext, pLocation), null);
+    return new ARGState(wrappedReducer.getVariableReducedState(((ARGState)pExpandedState).getWrappedState(), pContext, pLocation), null);
   }
 
   @Override
   public AbstractState getVariableExpandedState(
-      AbstractState pRootElement, Block pReducedContext,
-      AbstractState pReducedElement) {
+      AbstractState pRootState, Block pReducedContext,
+      AbstractState pReducedState) {
 
-    return new ARGState(wrappedReducer.getVariableExpandedState(((ARGState)pRootElement).getWrappedState(), pReducedContext, ((ARGState)pReducedElement).getWrappedState()), null);
+    return new ARGState(wrappedReducer.getVariableExpandedState(((ARGState)pRootState).getWrappedState(), pReducedContext, ((ARGState)pReducedState).getWrappedState()), null);
   }
 
   @Override

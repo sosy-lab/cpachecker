@@ -38,17 +38,17 @@ import com.google.common.collect.Multimap;
 
 /**
  * Special implementation of the reached set that partitions the set by keys that
- * depend on the abstract element.
- * Which key is used for an abstract element can be changed by overriding
+ * depend on the abstract state.
+ * Which key is used for an abstract state can be changed by overriding
  * {@link #getPartitionKey(AbstractState)} in a sub-class.
- * By default, this implementation needs abstract elements which implement
+ * By default, this implementation needs abstract states which implement
  * {@link Partitionable} and uses the return value of {@link Partitionable#getPartitionKey()}
  * as the key.
  *
  * Whenever the method {@link PartitionedReachedSet#getReached(AbstractState)}
  * is called (which is usually done by the CPAAlgorithm to get the candidates
  * for merging and coverage checks), it will return a subset of the set of all
- * reached elements. This subset contains exactly those elements, whose partition
+ * reached states. This subset contains exactly those elements, whose partition
  * key is equal to the key of the element given as a parameter.
  */
 public class PartitionedReachedSet extends DefaultReachedSet {

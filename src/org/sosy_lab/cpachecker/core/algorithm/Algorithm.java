@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public interface Algorithm {
 
   /**
-   * Run the algorithm on the given set of abstract elements and the given waitlist.
+   * Run the algorithm on the given set of abstract states and the given waitlist.
    *
    * @param reachedSet Input.
    * @return False if the analysis was unsound (this is not the analysis result!).

@@ -157,7 +157,7 @@ public class PredicateTransferRelation implements TransferRelation {
       }
     }
 
-    // create the new abstract element for non-abstraction location
+    // create the new abstract state for non-abstraction location
     return Collections.singleton(
         PredicateAbstractState.nonAbstractionState(pathFormula, abstractionFormula));
   }
@@ -254,7 +254,7 @@ public class PredicateTransferRelation implements TransferRelation {
   }
 
   /**
-   * Returns a new element with a given pathFormula. All other fields stay equal.
+   * Returns a new state with a given pathFormula. All other fields stay equal.
    */
   private PredicateAbstractState replacePathFormula(PredicateAbstractState oldElement, PathFormula newPathFormula) {
     if (oldElement instanceof ComputeAbstractionState) {

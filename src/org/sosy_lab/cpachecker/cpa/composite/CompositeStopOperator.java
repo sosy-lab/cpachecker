@@ -59,9 +59,9 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
     return false;
   }
 
-  private boolean stop(CompositeState compositeState, CompositeState compositeReachedElement, CompositePrecision compositePrecision) throws CPAException {
+  private boolean stop(CompositeState compositeState, CompositeState compositeReachedState, CompositePrecision compositePrecision) throws CPAException {
     List<AbstractState> compositeElements = compositeState.getWrappedStates();
-    List<AbstractState> compositeReachedElements = compositeReachedElement.getWrappedStates();
+    List<AbstractState> compositeReachedStates = compositeReachedState.getWrappedStates();
 
     List<Precision> compositePrecisions = compositePrecision.getPrecisions();
 
@@ -69,7 +69,7 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
       StopOperator stopOp = stopOperators.get(idx);
 
       AbstractState absElem1 = compositeElements.get(idx);
-      AbstractState absElem2 = compositeReachedElements.get(idx);
+      AbstractState absElem2 = compositeReachedStates.get(idx);
       Precision prec = compositePrecisions.get(idx);
 
       if (!stopOp.stop(absElem1, Collections.singleton(absElem2), prec)){
@@ -105,30 +105,30 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
   }
 
   @Override
-  public boolean isForcedCoveringPossible(AbstractState pElement, AbstractState pReachedElement, Precision pPrecision) throws CPAException {
+  public boolean isForcedCoveringPossible(AbstractState pElement, AbstractState pReachedState, Precision pPrecision) throws CPAException {
 
     CompositeState compositeState = (CompositeState)pElement;
-    CompositeState compositeReachedElement = (CompositeState)pReachedElement;
+    CompositeState compositeReachedState = (CompositeState)pReachedState;
     CompositePrecision compositePrecision = (CompositePrecision)pPrecision;
 
     List<AbstractState> compositeElements = compositeState.getWrappedStates();
-    List<AbstractState> compositeReachedElements = compositeReachedElement.getWrappedStates();
+    List<AbstractState> compositeReachedStates = compositeReachedState.getWrappedStates();
     List<Precision> compositePrecisions = compositePrecision.getPrecisions();
 
     for (int idx = 0; idx < compositeElements.size(); idx++) {
       StopOperator stopOp = stopOperators.get(idx);
 
-      AbstractState wrappedElement = compositeElements.get(idx);
-      AbstractState wrappedReachedElement = compositeReachedElements.get(idx);
+      AbstractState wrappedState = compositeElements.get(idx);
+      AbstractState wrappedReachedState = compositeReachedStates.get(idx);
       Precision prec = compositePrecisions.get(idx);
 
       boolean possible;
       if (stopOp instanceof ForcedCoveringStopOperator) {
 
-        possible = ((ForcedCoveringStopOperator)stopOp).isForcedCoveringPossible(wrappedElement, wrappedReachedElement, prec);
+        possible = ((ForcedCoveringStopOperator)stopOp).isForcedCoveringPossible(wrappedState, wrappedReachedState, prec);
 
       } else {
-        possible = stopOp.stop(wrappedElement, Collections.singleton(wrappedReachedElement), prec);
+        possible = stopOp.stop(wrappedState, Collections.singleton(wrappedReachedState), prec);
       }
 
       if (!possible) {

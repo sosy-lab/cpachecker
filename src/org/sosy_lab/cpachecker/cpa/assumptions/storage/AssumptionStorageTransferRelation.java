@@ -54,10 +54,10 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
   private final Collection<AbstractState> topStateSet;
 
   public AssumptionStorageTransferRelation(CtoFormulaConverter pConverter,
-      FormulaManager pFormulaManager, AbstractState pTopElement) {
+      FormulaManager pFormulaManager, AbstractState pTopState) {
     converter = pConverter;
     formulaManager = pFormulaManager;
-    topStateSet = Collections.singleton(pTopElement);
+    topStateSet = Collections.singleton(pTopState);
   }
 
   @Override

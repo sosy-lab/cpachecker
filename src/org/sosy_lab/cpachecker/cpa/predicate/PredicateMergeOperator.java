@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 /**
  * Merge operator for symbolic predicate abstraction.
  * This is not a trivial merge operator in the sense that it implements
- * mergeSep and mergeJoin together. If the abstract element is on an
+ * mergeSep and mergeJoin together. If the abstract state is on an
  * abstraction location we don't merge, otherwise we merge two elements
  * and update the {@link PredicateAbstractState}'s pathFormula.
  */
@@ -73,7 +73,7 @@ public class PredicateMergeOperator implements MergeOperator {
 
       } else {
         totalMergeTime.start();
-        // create a new element
+        // create a new state
 
         logger.log(Level.FINEST, "Merging two non-abstraction nodes.");
 

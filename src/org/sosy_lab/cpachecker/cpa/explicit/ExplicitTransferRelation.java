@@ -188,7 +188,7 @@ public class ExplicitTransferRelation implements TransferRelation
     throws UnrecognizedCCodeException {
     ExplicitState newElement = new ExplicitState(element);
 
-    // copy global variables into the new element, to make them available in body of called function
+    // copy global variables into the new state, to make them available in body of called function
     for(String globalVar : globalVariables) {
       if (element.contains(globalVar)) {
         newElement.assignConstant(globalVar, element.getValueFor(globalVar));
@@ -238,9 +238,9 @@ public class ExplicitTransferRelation implements TransferRelation
 
   /**
    * Handles return from one function to another function.
-   * @param element previous abstract element
+   * @param element previous abstract state
    * @param functionReturnEdge return edge from a function to its call site
-   * @return new abstract element
+   * @return new abstract state
    */
   private ExplicitState handleFunctionReturn(ExplicitState element, FunctionReturnEdge functionReturnEdge)
     throws UnrecognizedCCodeException {
@@ -251,7 +251,7 @@ public class ExplicitTransferRelation implements TransferRelation
     String callerFunctionName       = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName       = functionReturnEdge.getPredecessor().getFunctionName();
 
-    // copy global variables back to the new element, to make them available in body of calling function
+    // copy global variables back to the new state, to make them available in body of calling function
     for(String variableName : globalVariables) {
       if(element.contains(variableName)) {
         newElement.assignConstant(variableName, element.getValueFor(variableName));

@@ -30,7 +30,7 @@ import java.util.LinkedList;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /**
- * Waitlist implementation that sorts the abstract elements in reverse postorder
+ * Waitlist implementation that sorts the abstract states in reverse postorder
  * considering the location they belong to.
  * This implementation does not allow to choose a secondary strategy for elements
  * with the same reverse postorder id. Also, the method pop() has a complexity of O(n).

@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.core.interfaces;
 public interface AbstractWrapperState extends AbstractState {
 
   /**
-   * Retrieve all wrapped abstract elements contained directly in this object.
-   * @return A non-empty list of abstract elements.
+   * Retrieve all wrapped abstract states contained directly in this object.
+   * @return A non-empty list of abstract states.
    */
   public Iterable<? extends AbstractState> getWrappedStates();
 

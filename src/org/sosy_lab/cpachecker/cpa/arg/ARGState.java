@@ -62,8 +62,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   private static int nextArgStateId = 0;
 
-  public ARGState(AbstractState pWrappedElement, ARGState pParentElement) {
-    super(pWrappedElement);
+  public ARGState(AbstractState pWrappedState, ARGState pParentElement) {
+    super(pWrappedState);
     stateId = ++nextArgStateId;
     parents = new LinkedHashSet<ARGState>(1); // TODO Is HashSet enough? It would be more memory-efficient.
     if(pParentElement != null){
@@ -171,7 +171,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     if (mCoveredBy != null) {
       sb.append("Covered ");
     }
-    sb.append("ARG Element (Id: ");
+    sb.append("ARG State (Id: ");
     sb.append(stateId);
     if (!destroyed) {
       sb.append(", Parents: ");
@@ -269,7 +269,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   /**
    * This method does basically the same as removeFromART for this element, but
    * before destroying it, it will copy all relationships to other elements to
-   * a new element. I.e., the replacement element will receive all parents and
+   * a new state. I.e., the replacement element will receive all parents and
    * children of this element, and it will also cover all elements which are
    * currently covered by this element.
    *

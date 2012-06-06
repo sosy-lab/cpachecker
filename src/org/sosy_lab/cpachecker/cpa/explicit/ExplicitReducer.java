@@ -45,11 +45,11 @@ public class ExplicitReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableReducedState(AbstractState pExpandedElement, Block pContext, CFANode pCallNode) {
-    ExplicitState expandedElement = (ExplicitState)pExpandedElement;
+  public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
+    ExplicitState expandedState = (ExplicitState)pExpandedState;
 
-    ExplicitState clonedElement = expandedElement.clone();
-    for(String trackedVar : expandedElement.getTrackedVariableNames()) {
+    ExplicitState clonedElement = expandedState.clone();
+    for(String trackedVar : expandedState.getTrackedVariableNames()) {
       if(!occursInBlock(pContext, trackedVar)) {
         clonedElement.deleteValue(trackedVar);
       }
@@ -59,13 +59,13 @@ public class ExplicitReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableExpandedState(AbstractState pRootElement, Block pReducedContext,
-      AbstractState pReducedElement) {
-    ExplicitState rootElement = (ExplicitState)pRootElement;
-    ExplicitState reducedElement = (ExplicitState)pReducedElement;
+  public AbstractState getVariableExpandedState(AbstractState pRootState, Block pReducedContext,
+      AbstractState pReducedState) {
+    ExplicitState rootState = (ExplicitState)pRootState;
+    ExplicitState reducedState = (ExplicitState)pReducedState;
 
-    ExplicitState diffElement = rootElement.clone();
-    for(String trackedVar : reducedElement.getTrackedVariableNames()) {
+    ExplicitState diffElement = rootState.clone();
+    for(String trackedVar : reducedState.getTrackedVariableNames()) {
       diffElement.deleteValue(trackedVar);
     }
     //TODO: following is needed with threshold != inf
@@ -74,10 +74,10 @@ public class ExplicitReducer implements Reducer {
         diffElement.deleteValue(trackedVar);
       }
     }*/
-    for(String trackedVar : reducedElement.getTrackedVariableNames()) {
-      Long value = reducedElement.getValueFor(trackedVar);
+    for(String trackedVar : reducedState.getTrackedVariableNames()) {
+      Long value = reducedState.getValueFor(trackedVar);
       if(value != null) {
-        diffElement.assignConstant(trackedVar, reducedElement.getValueFor(trackedVar));
+        diffElement.assignConstant(trackedVar, reducedState.getValueFor(trackedVar));
       } else {
         diffElement.forget(trackedVar);
       }

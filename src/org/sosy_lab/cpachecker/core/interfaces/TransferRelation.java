@@ -39,7 +39,7 @@ public interface TransferRelation {
    * Gets all successors of the current element. If cfaEdge is null, all edges
    * of the CFA may be checked if they lead to successors, otherwise only the
    * specified edge should be handled.
-   * @param element abstract element with current state
+   * @param element abstract state with current state
    * @param cfaEdge null or an edge of the CFA
    * @return list of all successors of the current state (may be empty)
    */
@@ -47,14 +47,14 @@ public interface TransferRelation {
     throws CPATransferException, InterruptedException;
 
   /**
-   * Updates an abstract element with information from the abstract elements of
+   * Updates an abstract state with information from the abstract states of
    * other CPAs. An implementation of this method should only modify the
-   * abstract element of the domain it belongs to.
-   * @param element abstract element of the current domain
-   * @param otherElements list of abstract elements of all domains
+   * abstract state of the domain it belongs to.
+   * @param element abstract state of the current domain
+   * @param otherElements list of abstract states of all domains
    * @param cfaEdge the current edge of the CFA
    * @param precision
-   * @return list of all abstract elements which should replace the old one, empty list for bottom or null for no change.
+   * @return list of all abstract states which should replace the old one, empty list for bottom or null for no change.
    */
   public Collection<? extends AbstractState> strengthen (AbstractState element,
                                      List<AbstractState> otherElements,

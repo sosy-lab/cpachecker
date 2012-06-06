@@ -186,9 +186,9 @@ class OctTransferRelation implements TransferRelation{
 
   /**
    * Handles return from one function to another function.
-   * @param element previous abstract element.
+   * @param element previous abstract state.
    * @param functionReturnEdge return edge from a function to its call site.
-   * @return new abstract element.
+   * @return new abstract state.
    */
   private OctState handleFunctionReturn(OctState element,
       FunctionReturnEdge functionReturnEdge)

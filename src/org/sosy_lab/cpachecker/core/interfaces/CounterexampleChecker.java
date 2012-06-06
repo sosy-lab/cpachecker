@@ -33,21 +33,21 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  *
  * A counterexample is a finite set of loop-free paths in the ARG that form a
  * DAG with a single source (the root element of the ARG) and a single sink
- * (the target element).
+ * (the target state).
  */
 public interface CounterexampleChecker {
 
   /**
    * Check feasibility of counterexample.
-   * @param rootElement The source of the counterexample paths.
-   * @param errorElement The sink of the counterexample paths.
-   * @param errorPathElements All elements that belong to the counterexample paths.
+   * @param rootState The source of the counterexample paths.
+   * @param errorState The sink of the counterexample paths.
+   * @param errorPathStates All elements that belong to the counterexample paths.
    * @return True if the counterexample is feasible.
    * @throws CPAException If something goes wrong.
    * @throws InterruptedException If the thread was interrupted.
    */
-  boolean checkCounterexample(ARGState rootElement, ARGState errorElement,
-            Set<ARGState> errorPathElements)
+  boolean checkCounterexample(ARGState rootState, ARGState errorState,
+            Set<ARGState> errorPathStates)
             throws CPAException, InterruptedException;
 
 }

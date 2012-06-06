@@ -38,7 +38,7 @@ class PredicateStopOperator extends StopSepOperator implements ForcedCoveringSto
   }
 
   @Override
-  public boolean isForcedCoveringPossible(AbstractState pElement, AbstractState pReachedElement,
+  public boolean isForcedCoveringPossible(AbstractState pElement, AbstractState pReachedState,
       Precision pPrecision) throws CPAException {
 
     // We support forced covering, so this is always possible,
@@ -46,6 +46,6 @@ class PredicateStopOperator extends StopSepOperator implements ForcedCoveringSto
     // Note that this does not say that the element will actually be covered,
     // it says only that we can try to cover it.
     return ((PredicateAbstractState)pElement).isAbstractionState()
-        && ((PredicateAbstractState)pReachedElement).isAbstractionState();
+        && ((PredicateAbstractState)pReachedState).isAbstractionState();
   }
 }

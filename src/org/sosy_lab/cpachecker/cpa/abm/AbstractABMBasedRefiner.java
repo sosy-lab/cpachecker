@@ -134,11 +134,11 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
     private final Path path;
     private final Map<ARGState, ARGState> pathStateToReachedState;
 
-    private ABMReachedSet(ABMTransferRelation pTransfer, ARGReachedSet pReached, Path pPath, Map<ARGState, ARGState> pPathElementToReachedElement) {
+    private ABMReachedSet(ABMTransferRelation pTransfer, ARGReachedSet pReached, Path pPath, Map<ARGState, ARGState> pPathElementToReachedState) {
       super(pReached);
       this.transfer = pTransfer;
       this.path = pPath;
-      this.pathStateToReachedState = pPathElementToReachedElement;
+      this.pathStateToReachedState = pPathElementToReachedState;
     }
 
     @Override

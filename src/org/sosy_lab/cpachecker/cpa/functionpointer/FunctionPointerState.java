@@ -141,9 +141,9 @@ class FunctionPointerState extends AbstractSingleWrapperState  {
     private Map<String,FunctionPointerTarget> values = null;
     private final ImmutableMap<String,FunctionPointerTarget> oldValues;
 
-    private Builder(ImmutableMap<String, FunctionPointerTarget> pOldValues, AbstractState pWrappedElement) {
+    private Builder(ImmutableMap<String, FunctionPointerTarget> pOldValues, AbstractState pWrappedState) {
       oldValues = pOldValues;
-      wrappedState = pWrappedElement;
+      wrappedState = pWrappedState;
     }
 
     private void setupMaps() {
@@ -189,18 +189,18 @@ class FunctionPointerState extends AbstractSingleWrapperState  {
   // This map should never contain UnknownTargets.
   private final ImmutableMap<String,FunctionPointerTarget> pointerVariableValues;
 
-  private FunctionPointerState(AbstractState pWrappedElement) {
-    super(pWrappedElement);
+  private FunctionPointerState(AbstractState pWrappedState) {
+    super(pWrappedState);
     pointerVariableValues = ImmutableMap.of();
   }
 
-  private FunctionPointerState(AbstractState pWrappedElement, Map<String, FunctionPointerTarget> pValues) {
-    super(pWrappedElement);
+  private FunctionPointerState(AbstractState pWrappedState, Map<String, FunctionPointerTarget> pValues) {
+    super(pWrappedState);
     pointerVariableValues = ImmutableMap.copyOf(pValues);
   }
 
-  public static FunctionPointerState createEmptyState(AbstractState pWrappedElement) {
-    return new FunctionPointerState(pWrappedElement);
+  public static FunctionPointerState createEmptyState(AbstractState pWrappedState) {
+    return new FunctionPointerState(pWrappedState);
   }
 
   public FunctionPointerState.Builder createBuilderWithNewWrappedState(AbstractState pElement) {

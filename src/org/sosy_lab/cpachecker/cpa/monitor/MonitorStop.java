@@ -49,19 +49,19 @@ public class MonitorStop implements StopOperator {
       return false;
     }
 
-    AbstractState wrappedElement = monitorState.getWrappedState();
+    AbstractState wrappedState = monitorState.getWrappedState();
     StopOperator stopOp = wrappedCpa.getStopOperator();
 
-    for (AbstractState reachedElement : pReached) {
+    for (AbstractState reachedState : pReached) {
 
-      MonitorState monitorReachedElement = (MonitorState)reachedElement;
-      if (monitorReachedElement.mustDumpAssumptionForAvoidance()) {
+      MonitorState monitorReachedState = (MonitorState)reachedState;
+      if (monitorReachedState.mustDumpAssumptionForAvoidance()) {
         return false;
       }
 
-      AbstractState wrappedReachedElement = monitorReachedElement.getWrappedState();
+      AbstractState wrappedReachedState = monitorReachedState.getWrappedState();
 
-      if (stopOp.stop(wrappedElement, Collections.singleton(wrappedReachedElement), pPrecision)) {
+      if (stopOp.stop(wrappedState, Collections.singleton(wrappedReachedState), pPrecision)) {
         return true;
       }
     }

@@ -52,15 +52,15 @@ public final class AbstractStates {
   private AbstractStates() { }
 
   /**
-   * Retrieve one of the wrapped abstract elements by type. If the hierarchy of
-   * (wrapped) abstract elements has several levels, this method searches through
+   * Retrieve one of the wrapped abstract states by type. If the hierarchy of
+   * (wrapped) abstract states has several levels, this method searches through
    * them recursively.
    *
    * The type does not need to match exactly, the returned element has just to
    * be a sub-type of the type passed as argument.
    *
    * @param <T> The type of the wrapped element.
-   * @param An abstract element
+   * @param An abstract state
    * @param pType The class object of the type of the wrapped element.
    * @return An instance of an element with type T or null if there is none.
    */
@@ -208,7 +208,7 @@ public final class AbstractStates {
 
   /**
    * Returns a predicate representing states represented by
-   * the given abstract element, according to reported
+   * the given abstract state, according to reported
    * formulas
    */
   public static Formula extractReportedFormulas(FormulaManager manager, AbstractState element) {

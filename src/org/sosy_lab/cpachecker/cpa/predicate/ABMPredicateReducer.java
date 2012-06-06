@@ -72,10 +72,10 @@ public class ABMPredicateReducer implements Reducer {
 
   @Override
   public AbstractState getVariableReducedState(
-      AbstractState pExpandedElement, Block pContext,
+      AbstractState pExpandedState, Block pContext,
       CFANode pLocation) {
 
-    PredicateAbstractState predicateElement = (PredicateAbstractState)pExpandedElement;
+    PredicateAbstractState predicateElement = (PredicateAbstractState)pExpandedState;
 
     if (!predicateElement.isAbstractionState()) {
       return predicateElement;
@@ -104,33 +104,33 @@ public class ABMPredicateReducer implements Reducer {
 
   @Override
   public AbstractState getVariableExpandedState(
-      AbstractState pRootElement, Block pReducedContext,
-      AbstractState pReducedElement) {
+      AbstractState pRootState, Block pReducedContext,
+      AbstractState pReducedState) {
 
-    PredicateAbstractState rootElement = (PredicateAbstractState)pRootElement;
-    PredicateAbstractState reducedElement = (PredicateAbstractState)pReducedElement;
+    PredicateAbstractState rootState = (PredicateAbstractState)pRootState;
+    PredicateAbstractState reducedState = (PredicateAbstractState)pReducedState;
 
-    if (!reducedElement.isAbstractionState()) { return reducedElement; }
+    if (!reducedState.isAbstractionState()) { return reducedState; }
     //Note: ABM might introduce some additional abstraction if root region is not a cube
     expandTimer.start();
     try {
 
-      AbstractionFormula rootAbstraction = rootElement.getAbstractionFormula();
-      AbstractionFormula reducedAbstraction = reducedElement.getAbstractionFormula();
+      AbstractionFormula rootAbstraction = rootState.getAbstractionFormula();
+      AbstractionFormula reducedAbstraction = reducedState.getAbstractionFormula();
 
       Collection<AbstractionPredicate> rootPredicates = extractPredicates(rootAbstraction.asRegion());
       Collection<AbstractionPredicate> relevantRootPredicates =
           relevantComputer.getRelevantPredicates(pReducedContext, rootPredicates);
-      //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedElements region
+      //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
 
-      PathFormula oldPathFormula = reducedElement.getPathFormula();
+      PathFormula oldPathFormula = reducedState.getPathFormula();
       assert oldPathFormula.getFormula().isTrue();
       SSAMap oldSSA = oldPathFormula.getSsa();
 
       //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
       //there still should be at least _some_ index for each variable of the abstraction formula.
       SSAMapBuilder builder = oldSSA.builder();
-      SSAMap rootSSA = rootElement.getPathFormula().getSsa();
+      SSAMap rootSSA = rootState.getPathFormula().getSsa();
       for (String var : rootSSA.allVariables()) {
         //if we do not have the index in the reduced map..
         if (oldSSA.getIndex(var) == -1) {

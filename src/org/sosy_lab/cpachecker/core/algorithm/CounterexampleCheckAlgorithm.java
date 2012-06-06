@@ -114,8 +114,8 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
         break;
       }
 
-      ARGState errorElement = (ARGState)lastElement;
-      if (!errorElement.isTarget()) {
+      ARGState errorState = (ARGState)lastElement;
+      if (!errorState.isTarget()) {
         // no analysis necessary
         break;
       }
@@ -123,13 +123,13 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       // check counterexample
       checkTime.start();
       try {
-        ARGState rootElement = (ARGState)reached.getFirstState();
+        ARGState rootState = (ARGState)reached.getFirstState();
 
-        Set<ARGState> elementsOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorElement);
+        Set<ARGState> elementsOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorState);
 
         boolean feasibility;
         try {
-          feasibility = checker.checkCounterexample(rootElement, errorElement, elementsOnErrorPath);
+          feasibility = checker.checkCounterexample(rootState, errorState, elementsOnErrorPath);
         } catch (CPAException e) {
           logger.logUserException(Level.WARNING, e, "Counterexample found, but feasibility could not be verified");
           //return false;
@@ -165,10 +165,10 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
               sound = false;
             }
 
-            sound &= removeErrorElement(reached, errorElement);
+            sound &= removeErrorState(reached, errorState);
 
           } else {
-            Path path = ARGUtils.getOnePathTo(errorElement);
+            Path path = ARGUtils.getOnePathTo(errorState);
             throw new RefinementFailedException(Reason.InfeasibleCounterexample, path);
           }
         }
@@ -189,12 +189,12 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
     Collection<ARGState> coveredByErrorPath = new ArrayList<ARGState>();
 
-    for (ARGState errorPathElement : elementsOnErrorPath) {
+    for (ARGState errorPathState : elementsOnErrorPath) {
       // schedule for coverage removal
-      coveredByErrorPath.addAll(errorPathElement.getCoveredByThis());
+      coveredByErrorPath.addAll(errorPathState.getCoveredByThis());
 
       // prevent future coverage
-      errorPathElement.setNotCovering();
+      errorPathState.setNotCovering();
     }
 
     for (ARGState coveredElement : coveredByErrorPath) {
@@ -251,12 +251,12 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     return false;
   }
 
-  private boolean removeErrorElement(ReachedSet reached, ARGState errorElement) {
+  private boolean removeErrorState(ReachedSet reached, ARGState errorState) {
     boolean sound = true;
 
-    // remove re-added parent of errorElement to prevent computing
+    // remove re-added parent of errorState to prevent computing
     // the same error element over and over
-    Set<ARGState> parents = errorElement.getParents();
+    Set<ARGState> parents = errorState.getParents();
     assert parents.size() == 1 : "error element that was merged";
 
     ARGState parent = Iterables.getOnlyElement(parents);
@@ -270,7 +270,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       sound = false;
     }
 
-    // this includes the errorElement and its siblings
+    // this includes the errorState and its siblings
     List<ARGState> siblings = copyOf(parent.getChildren());
     for (ARGState toRemove : siblings) {
 
@@ -286,8 +286,8 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     reached.remove(parent);
     parent.removeFromART();
 
-    assert errorElement.isDestroyed() : "errorElement is not the child of its parent";
-    assert !reached.contains(errorElement) : "reached.remove() didn't work";
+    assert errorState.isDestroyed() : "errorState is not the child of its parent";
+    assert !reached.contains(errorState) : "reached.remove() didn't work";
     return sound;
   }
 

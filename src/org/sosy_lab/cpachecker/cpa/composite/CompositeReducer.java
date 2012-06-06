@@ -44,28 +44,28 @@ public class CompositeReducer implements Reducer {
 
   @Override
   public AbstractState getVariableReducedState(
-      AbstractState pExpandedElement, Block pContext,
+      AbstractState pExpandedState, Block pContext,
       CFANode pLocation) {
 
     List<AbstractState> result = new ArrayList<AbstractState>();
     int i = 0;
-    for (AbstractState expandedElement : ((CompositeState)pExpandedElement).getWrappedStates()) {
-      result.add(wrappedReducers.get(i++).getVariableReducedState(expandedElement, pContext, pLocation));
+    for (AbstractState expandedState : ((CompositeState)pExpandedState).getWrappedStates()) {
+      result.add(wrappedReducers.get(i++).getVariableReducedState(expandedState, pContext, pLocation));
     }
     return new CompositeState(result);
   }
 
   @Override
   public AbstractState getVariableExpandedState(
-      AbstractState pRootElement, Block pReducedContext,
-      AbstractState pReducedElement) {
+      AbstractState pRootState, Block pReducedContext,
+      AbstractState pReducedState) {
 
-    List<AbstractState> rootElements = ((CompositeState)pRootElement).getWrappedStates();
-    List<AbstractState> reducedElements = ((CompositeState)pReducedElement).getWrappedStates();
+    List<AbstractState> rootStates = ((CompositeState)pRootState).getWrappedStates();
+    List<AbstractState> reducedStates = ((CompositeState)pReducedState).getWrappedStates();
 
     List<AbstractState> result = new ArrayList<AbstractState>();
     int i = 0;
-    for (Pair<AbstractState, AbstractState> p : Pair.zipList(rootElements, reducedElements)) {
+    for (Pair<AbstractState, AbstractState> p : Pair.zipList(rootStates, reducedStates)) {
       result.add(wrappedReducers.get(i++).getVariableExpandedState(p.getFirst(), pReducedContext, p.getSecond()));
     }
     return new CompositeState(result);

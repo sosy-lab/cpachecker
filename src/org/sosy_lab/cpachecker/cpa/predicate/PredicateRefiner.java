@@ -197,7 +197,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
 
     List<Collection<AbstractionPredicate>> newPreds = pInfo.getPredicatesForRefinement();
 
-    // target element is not really an interpolation point, exclude it
+    // target state is not really an interpolation point, exclude it
     List<Pair<ARGState, CFANode>> interpolationPoints = pPath.subList(0, pPath.size()-1);
     assert interpolationPoints.size() == newPreds.size();
 

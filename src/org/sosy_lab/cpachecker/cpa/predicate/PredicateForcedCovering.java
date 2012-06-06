@@ -162,23 +162,23 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
     List<ARGState> parentList = ImmutableList.copyOf(getParentAbstractionStates(argElement)).reverse();
     Set<ARGState> parentSet = ImmutableSet.copyOf(parentList);
 
-    for (AbstractState reachedElement : pReached.getReached(pElement)) {
-      if (pElement == reachedElement) {
+    for (AbstractState reachedState : pReached.getReached(pElement)) {
+      if (pElement == reachedState) {
         continue;
       }
 
-      if (stop.stop(argElement, Collections.singleton(reachedElement), pPrecision)
+      if (stop.stop(argElement, Collections.singleton(reachedState), pPrecision)
           || argElement.isCovered()) {
         stats.wasAlreadyCovered++;
         logger.log(Level.FINER, "Element was covered by another element without strengthening");
         return true;
       }
 
-      if (stop.isForcedCoveringPossible(pElement, reachedElement, pPrecision)) {
+      if (stop.isForcedCoveringPossible(pElement, reachedState, pPrecision)) {
         stats.attemptedForcedCoverings++;
-        logger.log(Level.ALL, "Candidate for forced-covering is", reachedElement);
+        logger.log(Level.ALL, "Candidate for forced-covering is", reachedState);
 
-        List<ARGState> reachedParentList = ImmutableList.copyOf(getParentAbstractionStates((ARGState)reachedElement)).reverse();
+        List<ARGState> reachedParentList = ImmutableList.copyOf(getParentAbstractionStates((ARGState)reachedState)).reverse();
         ARGState commonParent = Iterables.find(
             reachedParentList,
             Predicates.in(parentSet));
@@ -197,13 +197,13 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         assert path.get(path.size()-1) == argElement : "Path does not end in the current element";
 
         // path is now the list of abstraction elements from the common ancestor
-        // of reachedElement and argElement (excluding) to argElement (including):
+        // of reachedState and argElement (excluding) to argElement (including):
         // path = ]commonParent; argElement]
 
         // create list of formulas:
         // 1) state formula of commonParent instantiated with indices of commonParent
         // 2) block formulas from commonParent to argElement
-        // 3) negated state formula of reachedElement instantiated with indices of argElement
+        // 3) negated state formula of reachedState instantiated with indices of argElement
         List<Formula> formulas = new ArrayList<Formula>(path.size()+2);
         {
           formulas.add(getPredicateState(commonParent).getAbstractionFormula().asInstantiatedFormula());
@@ -213,7 +213,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
           }
 
           SSAMap ssaMap = getPredicateState(argElement).getPathFormula().getSsa().withDefault(1);
-          Formula stateFormula = getPredicateState(reachedElement).getAbstractionFormula().asFormula();
+          Formula stateFormula = getPredicateState(reachedState).getAbstractionFormula().asFormula();
           assert !stateFormula.isTrue() : "Existing element with state true would cover anyway, no forced covering needed";
           formulas.add(fmgr.makeNot(fmgr.instantiate(stateFormula, ssaMap)));
         }
@@ -260,14 +260,14 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         // For debugging, run stop operator on this element.
         // However, ARGStopSep may return false although it is covered,
         // thus the second check.
-        assert stop.stop(argElement, Collections.singleton(reachedElement), pPrecision)
+        assert stop.stop(argElement, Collections.singleton(reachedState), pPrecision)
             || argElement.isCovered()
-            : "Forced covering did not cover element\n" + argElement + "\nwith\n" + reachedElement;
+            : "Forced covering did not cover element\n" + argElement + "\nwith\n" + reachedState;
 
         if (!argElement.isCovered()) {
-          argElement.setCovered((ARGState)reachedElement);
+          argElement.setCovered((ARGState)reachedState);
         } else {
-          assert argElement.getCoveringState() == reachedElement;
+          assert argElement.getCoveringState() == reachedState;
         }
 
         return true;

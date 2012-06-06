@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Interface for implementations of forced coverings
- * (strengthening a new abstract element such that it is covered by another element
+ * (strengthening a new abstract state such that it is covered by another element
  * from the reached set).
  *
  * Implementations need to have a public constructor which takes a
@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public interface ForcedCovering {
 
   /**
-   * Try to cover the abstract element by strengthening it (and possibly its parents).
+   * Try to cover the abstract state by strengthening it (and possibly its parents).
    *
    * This method should not change the reached set, except by re-adding some
    * elements to the waitlist. It is necessary to re-add elements to the waitlist,

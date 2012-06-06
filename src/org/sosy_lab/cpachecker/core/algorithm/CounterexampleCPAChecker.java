@@ -72,12 +72,12 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   }
 
   @Override
-  public boolean checkCounterexample(ARGState pRootElement,
-      ARGState pErrorElement, Set<ARGState> pErrorPathElements)
+  public boolean checkCounterexample(ARGState pRootState,
+      ARGState pErrorState, Set<ARGState> pErrorPathElements)
       throws CPAException, InterruptedException {
 
     String automaton =
-        produceGuidingAutomaton(pRootElement, pErrorPathElements);
+        produceGuidingAutomaton(pRootState, pErrorPathElements);
 
     File automatonFile;
     try {
@@ -86,7 +86,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       throw new CounterexampleAnalysisFailed("Could not write path automaton to file " + e.getMessage(), e);
     }
 
-    CFAFunctionDefinitionNode entryNode = (CFAFunctionDefinitionNode)extractLocation(pRootElement);
+    CFAFunctionDefinitionNode entryNode = (CFAFunctionDefinitionNode)extractLocation(pRootState);
 
     try {
       Configuration lConfig = Configuration.builder()
@@ -118,11 +118,11 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     }
   }
 
-  private String produceGuidingAutomaton(ARGState pRootElement,
+  private String produceGuidingAutomaton(ARGState pRootState,
       Set<ARGState> pPathElements) {
     StringBuilder sb = new StringBuilder();
     sb.append("CONTROL AUTOMATON AssumptionAutomaton\n\n");
-    sb.append("INITIAL STATE ARG" + pRootElement.getStateId() + ";\n\n");
+    sb.append("INITIAL STATE ARG" + pRootState.getStateId() + ";\n\n");
 
     for (ARGState e : pPathElements) {
 

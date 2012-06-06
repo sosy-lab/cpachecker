@@ -44,11 +44,11 @@ public class AssumptionStorageStop implements StopOperator {
       // but we may return true if the new assumption is implied by the old ones
 
       for (AbstractState ae : reached) {
-        AssumptionStorageState reachedElement = (AssumptionStorageState)ae;
+        AssumptionStorageState reachedState = (AssumptionStorageState)ae;
 
         // implication check is costly, so we do a fast syntactical approximation
-        if (   reachedElement.getStopFormula().isFalse()
-            || reachedElement.getStopFormula().equals(element.getStopFormula())) {
+        if (   reachedState.getStopFormula().isFalse()
+            || reachedState.getStopFormula().equals(element.getStopFormula())) {
           return true;
         }
       }

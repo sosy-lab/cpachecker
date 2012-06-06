@@ -27,9 +27,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 /**
- * Interface to implement in order for an abstract element
+ * Interface to implement in order for an abstract state
  * to be able to be over-approximated by a formula representing
- * the abstract element.
+ * the abstract state.
  */
 public interface FormulaReportingState extends AbstractState {
 

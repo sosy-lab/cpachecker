@@ -50,10 +50,10 @@ public class MonitorMerge implements MergeOperator{
     }
 
     MergeOperator mergeOperator = wrappedCpa.getMergeOperator();
-    AbstractState wrappedElement1 = monitorState1.getWrappedState();
-    AbstractState wrappedElement2 = monitorState2.getWrappedState();
-    AbstractState retElement = mergeOperator.merge(wrappedElement1, wrappedElement2, pPrecision);
-    if(retElement.equals(wrappedElement2)){
+    AbstractState wrappedState1 = monitorState1.getWrappedState();
+    AbstractState wrappedState2 = monitorState2.getWrappedState();
+    AbstractState retElement = mergeOperator.merge(wrappedState1, wrappedState2, pPrecision);
+    if(retElement.equals(wrappedState2)){
       return pElement2;
     }
 

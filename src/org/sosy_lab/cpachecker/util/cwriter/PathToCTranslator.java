@@ -248,7 +248,7 @@ public class PathToCTranslator {
 
     // if there is only one child on the path
     if (relevantChildrenOfElement.size() == 1) {
-      // get the next ARG element, create a new edge using the same stack and add it to the waitlist
+      // get the next ARG state, create a new edge using the same stack and add it to the waitlist
       ARGState elem = Iterables.getOnlyElement(relevantChildrenOfElement);
       CFAEdge e = currentElement.getEdgeToChild(elem);
       Edge newEdge = new Edge(elem, e, functionStack);
@@ -331,7 +331,7 @@ public class PathToCTranslator {
     // handle the edge
 
     if (edge instanceof FunctionCallEdge) {
-      // if this is a function call edge we need to create a new element and push
+      // if this is a function call edge we need to create a new state and push
       // it to the topmost stack to represent the function
 
       // create function and put in onto stack

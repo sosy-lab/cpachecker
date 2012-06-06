@@ -30,8 +30,8 @@ public interface ForcedCoveringStopOperator extends StopOperator {
 
   /**
    * Check whether one element may be strengthed such that it is then covered by
-   * reachedElement.
+   * reachedState.
    */
-  boolean isForcedCoveringPossible(AbstractState element, AbstractState reachedElement, Precision precision) throws CPAException;
+  boolean isForcedCoveringPossible(AbstractState element, AbstractState reachedState, Precision precision) throws CPAException;
 
 }

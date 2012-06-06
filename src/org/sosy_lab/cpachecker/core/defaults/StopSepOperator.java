@@ -50,8 +50,8 @@ public class StopSepOperator implements StopOperator {
   public boolean stop(AbstractState el, Collection<AbstractState> reached, Precision precision)
     throws CPAException {
 
-    for (AbstractState reachedElement : reached) {
-      if (domain.isLessOrEqual(el, reachedElement)) {
+    for (AbstractState reachedState : reached) {
+      if (domain.isLessOrEqual(el, reachedState)) {
         return true;
       }
     }

@@ -29,14 +29,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 public class AndersenDomain implements AbstractDomain {
 
   @Override
-  public boolean isLessOrEqual(AbstractState currentElement, AbstractState reachedElement) {
+  public boolean isLessOrEqual(AbstractState currentElement, AbstractState reachedState) {
     return false;
-//    return ((PointerAElement)currentElement).isLessOrEqual((PointerAElement)reachedElement);
+//    return ((PointerAElement)currentElement).isLessOrEqual((PointerAElement)reachedState);
   }
 
   @Override
-  public AbstractState join(AbstractState currentElement, AbstractState reachedElement) {
+  public AbstractState join(AbstractState currentElement, AbstractState reachedState) {
     return null;
-//    return ((PointerAElement)currentElement).join((PointerAElement)reachedElement);
+//    return ((PointerAElement)currentElement).join((PointerAElement)reachedState);
   }
 }

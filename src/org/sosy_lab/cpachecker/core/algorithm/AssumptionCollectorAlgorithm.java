@@ -170,8 +170,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         logger.log(Level.FINER, "Dumping assumptions due to:", failedRefinement);
 
         Path path = failedRefinement.getErrorPath();
-        ARGState errorElement = path.getLast().getFirst();
-        assert errorElement == reached.getLastState();
+        ARGState errorState = path.getLast().getFirst();
+        assert errorState == reached.getLastState();
 
         // old code, perhaps we can use the information from getFailurePoint()
         //        int pos = failedRefinement.getFailurePoint();
@@ -187,17 +187,17 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         // remove it's parents from waitlist (CPAAlgorithm re-added them)
         // and create assumptions for the parents
 
-        // we have to do this for the parents and not for the errorElement itself,
+        // we have to do this for the parents and not for the errorState itself,
         // because the parents might have other potential successors that were
         // ignored by CPAAlgorithm due to the signaled break
 
-        ARGState parent = Iterables.getOnlyElement(errorElement.getParents());
+        ARGState parent = Iterables.getOnlyElement(errorState.getParents());
         reached.removeOnlyFromWaitlist(parent);
         exceptionStates.add(parent.getStateId());
         addAvoidingAssumptions(exceptionAssumptions, parent);
 
-        reached.remove(errorElement);
-        errorElement.removeFromART();
+        reached.remove(errorState);
+        errorState.removeFromART();
 
         restartCPA = true;
 
@@ -220,7 +220,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     for (AbstractState element : reached) {
 
       if (AbstractStates.isTargetState(element)) {
-        // create assumptions for target element
+        // create assumptions for target state
         addAvoidingAssumptions(result, element);
 
       } else {
@@ -295,10 +295,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
     }
 
-    ARGState rootElement = (ARGState)reached.getFirstState();
+    ARGState rootState = (ARGState)reached.getFirstState();
 
     Set<ARGState> childrenOfRelevantElements = new TreeSet<ARGState>(relevantElements);
-    childrenOfRelevantElements.add(rootElement);
+    childrenOfRelevantElements.add(rootState);
     for (ARGState e : relevantElements) {
       childrenOfRelevantElements.addAll(e.getChildren());
       if (e.isCovered()) {
@@ -306,7 +306,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
     }
 
-    return writeAutomaton(rootElement, childrenOfRelevantElements, relevantElements, falseAssumptionElements);
+    return writeAutomaton(rootState, childrenOfRelevantElements, relevantElements, falseAssumptionElements);
   }
 
   /**

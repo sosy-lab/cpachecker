@@ -36,7 +36,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
 
 /**
- * Live view of an unmodifiable reached element set, where elements
+ * Live view of an unmodifiable reached state set, where elements
  * and precision are transformed by mapping functions.
  */
 public class UnmodifiableReachedSetView

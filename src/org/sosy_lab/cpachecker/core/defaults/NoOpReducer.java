@@ -38,13 +38,13 @@ public class NoOpReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableReducedState(AbstractState pExpandedElement, Block pContext, CFANode pCallNode) {
-    return pExpandedElement;
+  public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
+    return pExpandedState;
   }
 
   @Override
-  public AbstractState getVariableExpandedState(AbstractState pRootElement, Block pReducedContext, AbstractState pReducedElement) {
-    return pReducedElement;
+  public AbstractState getVariableExpandedState(AbstractState pRootState, Block pReducedContext, AbstractState pReducedState) {
+    return pReducedState;
   }
 
   @Override

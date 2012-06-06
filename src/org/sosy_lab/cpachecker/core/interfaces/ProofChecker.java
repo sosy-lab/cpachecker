@@ -36,9 +36,9 @@ public interface ProofChecker
 {
   /**
    * Checks whether the given set of abstract successors correctly over-approximates the set of concrete successors the
-   * concretisations of the given abstract element has with respect to the given CFA edge. If the given edge is <code>null</code>
+   * concretisations of the given abstract state has with respect to the given CFA edge. If the given edge is <code>null</code>
    * all CFA edges have to be considered.
-   * @param element abstract element with current state
+   * @param element abstract state with current state
    * @param cfaEdge null or an edge of the CFA
    * @param successors list of all successors of the current state (may be empty)
    * @return <code>true</code> if successors are valid over-approximation; <code>false</code>, otherwise.

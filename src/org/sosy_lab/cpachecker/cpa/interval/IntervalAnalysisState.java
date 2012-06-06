@@ -184,58 +184,58 @@ public class IntervalAnalysisState implements AbstractState
   }
 
   /**
-   * This element joins this element with a reached element.
+   * This element joins this element with a reached state.
    *
-   * @param reachedElement the reached element to join this element with
-   * @return a new element representing the join of this element and the reached element
+   * @param reachedState the reached state to join this element with
+   * @return a new state representing the join of this element and the reached state
    */
-  public IntervalAnalysisState join(IntervalAnalysisState reachedElement)
+  public IntervalAnalysisState join(IntervalAnalysisState reachedState)
   {
     Map<String, Interval> newIntervals = new HashMap<String, Interval>();
     Map<String, Integer> newReferences = new HashMap<String, Integer>();
 
     newReferences.putAll(referenceCounts);
 
-    for(String variableName : reachedElement.intervals.keySet())
+    for(String variableName : reachedState.intervals.keySet())
     {
       if(intervals.containsKey(variableName))
       {
         // update the interval
-        newIntervals.put(variableName, getInterval(variableName).union(reachedElement.getInterval(variableName)));
+        newIntervals.put(variableName, getInterval(variableName).union(reachedState.getInterval(variableName)));
 
         // update the references
-        newReferences.put(variableName, Math.max(getReferenceCount(variableName), reachedElement.getReferenceCount(variableName)));
+        newReferences.put(variableName, Math.max(getReferenceCount(variableName), reachedState.getReferenceCount(variableName)));
       }
 
       // if the first map does not contain the variable, update the references
       else
-        newReferences.put(variableName, reachedElement.getReferenceCount(variableName));
+        newReferences.put(variableName, reachedState.getReferenceCount(variableName));
     }
 
     return new IntervalAnalysisState(newIntervals, newReferences, previousState);
   }
 
   /**
-   * This method decides if this element is less or equal than the reached element, based on the order imposed by the lattice.
+   * This method decides if this element is less or equal than the reached state, based on the order imposed by the lattice.
    *
-   * @param reachedElement the reached element
-   * @return true, if this element is less or equal than the reached element, based on the order imposed by the lattice
+   * @param reachedState the reached state
+   * @return true, if this element is less or equal than the reached state, based on the order imposed by the lattice
    */
-  public boolean isLessOrEqual(IntervalAnalysisState reachedElement)
+  public boolean isLessOrEqual(IntervalAnalysisState reachedState)
   {
-    // this element is not less or equal than the reached element, if it contains less intervals
-    if(intervals.size() < reachedElement.intervals.size())
+    // this element is not less or equal than the reached state, if it contains less intervals
+    if(intervals.size() < reachedState.intervals.size())
       return false;
 
-    // also, this element is not less or equal than the reached element, if any one interval of the reached element is not contained in this element,
-    // or if the interval of the reached element is not wider than the respective interval of this element
-    for(String variableName : reachedElement.intervals.keySet())
+    // also, this element is not less or equal than the reached state, if any one interval of the reached state is not contained in this element,
+    // or if the interval of the reached state is not wider than the respective interval of this element
+    for(String variableName : reachedState.intervals.keySet())
     {
-      if(!intervals.containsKey(variableName) || !reachedElement.getInterval(variableName).contains(getInterval(variableName)))
+      if(!intervals.containsKey(variableName) || !reachedState.getInterval(variableName).contains(getInterval(variableName)))
         return false;
     }
 
-    // else, this element < reached element on the lattice
+    // else, this element < reached state on the lattice
     return true;
   }
 

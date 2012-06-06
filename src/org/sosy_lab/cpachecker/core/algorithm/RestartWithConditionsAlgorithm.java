@@ -129,9 +129,9 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 
     for (AbstractState element : reached) {
 
-      // TODO do we need target elements?
+      // TODO do we need target states?
 //      if (AbstractStates.isTargetElement(element)) {
-//        // create assumptions for target element
+//        // create assumptions for target state
 //        retList.add(element);
 //
 //      } else {

@@ -218,7 +218,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
       // re-adds the parent of the error element to the waitlist, and thus the
       // error element would get re-discovered immediately again.
       // Currently the CPAAlgorithm does this only when there are siblings of
-      // the target element, which should rarely happen.
+      // the target state, which should rarely happen.
       // We still need a better handling for this situation.
       throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
     }

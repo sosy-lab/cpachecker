@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import com.google.common.base.Preconditions;
 
 /**
- * Abstract element for the Collector CPA. Encapsulate a
+ * Abstract state for the Collector CPA. Encapsulate a
  * symbolic formula
  */
 public class AssumptionStorageState implements AbstractState {

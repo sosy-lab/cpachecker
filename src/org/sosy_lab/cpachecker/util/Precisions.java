@@ -39,7 +39,7 @@ public class Precisions {
    * be a sub-type of the type passed as argument.
    *
    * @param <T> The type of the wrapped element.
-   * @param An abstract element
+   * @param An abstract state
    * @param pType The class object of the type of the wrapped element.
    * @return An instance of an element with type T or null if there is none.
    */

@@ -35,8 +35,8 @@ public interface AbstractDomain {
    * merge-sep, it does not have to provide an implementation of this method.
    * This method should then throw an {@link UnsupportedOperationException}.
    *
-   * @param element1 an abstract element
-   * @param element2 an abstract element
+   * @param element1 an abstract state
+   * @param element2 an abstract state
    * @return the join of element1 and element2
    * @throws CPAException If any error occurred.
    * @throws UnsupportedOperationException If this domain does not provide a join method.
@@ -47,8 +47,8 @@ public interface AbstractDomain {
    * Returns true if element1 is less or equal than element with respect to
    * the lattice.
    *
-   * @param element1 an abstract element
-   * @param element2 an abstract element
+   * @param element1 an abstract state
+   * @param element2 an abstract state
    * @return (element1 <= element2)
    * @throws CPAException If any error occurred.
    */

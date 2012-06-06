@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingSta
 import com.google.common.base.Preconditions;
 
 /**
- * Abstract element for the generic assumption generator CPA;
+ * Abstract state for the generic assumption generator CPA;
  * encapsulate a symbolic formula that represents the
  * assumption.
  */

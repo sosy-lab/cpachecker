@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 
 /**
- * Utility class to visit all wrapped abstract elements
+ * Utility class to visit all wrapped abstract states
  * (including the wrapper elements)
  */
 public abstract class AbstractWrappedStateVisitor {
@@ -39,15 +39,15 @@ public abstract class AbstractWrappedStateVisitor {
   protected abstract void process(AbstractState element);
 
   /**
-   * Visit a given abstract element and all its sub-elements
+   * Visit a given abstract state and all its sub-elements
    */
   public final void visit(AbstractState element) {
     process(element);
 
     if (element instanceof AbstractWrapperState) {
       AbstractWrapperState wrapperElement = (AbstractWrapperState) element;
-      for (AbstractState wrappedElement : wrapperElement.getWrappedStates()) {
-        visit(wrappedElement);
+      for (AbstractState wrappedState : wrapperElement.getWrappedStates()) {
+        visit(wrappedState);
       }
     }
   }

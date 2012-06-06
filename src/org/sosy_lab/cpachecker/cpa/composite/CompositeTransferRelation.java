@@ -130,7 +130,7 @@ public class CompositeTransferRelation implements TransferRelation{
         = createCartesianProduct(allComponentsSuccessors, resultCount);
 
     // second, call strengthen for each result of the cartesian product
-    for (List<AbstractState> lReachedElement : allResultingElements) {
+    for (List<AbstractState> lReachedState : allResultingElements) {
 
       List<Collection<? extends AbstractState>> lStrengthenResults = new ArrayList<Collection<? extends AbstractState>>(size);
 
@@ -139,10 +139,10 @@ public class CompositeTransferRelation implements TransferRelation{
       for (int i = 0; i < size; i++) {
 
         TransferRelation lCurrentTransfer = transferRelations.get(i);
-        AbstractState lCurrentElement = lReachedElement.get(i);
+        AbstractState lCurrentElement = lReachedState.get(i);
         Precision lCurrentPrecision = compositePrecision.get(i);
 
-        Collection<? extends AbstractState> lResultsList = lCurrentTransfer.strengthen(lCurrentElement, lReachedElement, cfaEdge, lCurrentPrecision);
+        Collection<? extends AbstractState> lResultsList = lCurrentTransfer.strengthen(lCurrentElement, lReachedState, cfaEdge, lCurrentPrecision);
 
         if (lResultsList == null) {
           lStrengthenResults.add(Collections.singleton(lCurrentElement));

@@ -35,7 +35,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 
 /**
- * Base class for AbstractStates which wrap the abstract element of exactly
+ * Base class for AbstractStates which wrap the abstract state of exactly
  * one CPA.
  */
 public abstract class AbstractSingleWrapperState implements AbstractWrapperState, Targetable, Partitionable, Serializable {
@@ -58,10 +58,10 @@ public abstract class AbstractSingleWrapperState implements AbstractWrapperState
 
   private final AbstractState wrappedState;
 
-  public AbstractSingleWrapperState(AbstractState pWrappedElement) {
+  public AbstractSingleWrapperState(AbstractState pWrappedState) {
     // TODO this collides with some CPAs' way of handling TOP and BOTTOM, but it should really be not null here
-    // Preconditions.checkNotNull(pWrappedElement);
-    wrappedState = pWrappedElement;
+    // Preconditions.checkNotNull(pWrappedState);
+    wrappedState = pWrappedState;
   }
 
   public AbstractState getWrappedState() {

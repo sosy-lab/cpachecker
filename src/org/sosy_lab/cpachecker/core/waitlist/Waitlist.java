@@ -42,17 +42,17 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 public interface Waitlist extends Iterable<AbstractState> {
 
   /**
-   * Add an abstract element to the waitlist.
+   * Add an abstract state to the waitlist.
    */
   void add(AbstractState element);
 
   /**
-   * Remove all abstract elements from the waitlist.
+   * Remove all abstract states from the waitlist.
    */
   void clear();
 
   /**
-   * Checks whether an abstract element is contained in the waitlist.
+   * Checks whether an abstract state is contained in the waitlist.
    * This method uses equals().
    */
   boolean contains(AbstractState element);
@@ -63,7 +63,7 @@ public interface Waitlist extends Iterable<AbstractState> {
   boolean isEmpty();
 
   /**
-   * Returns and removes the next abstract element that should be handled.
+   * Returns and removes the next abstract state that should be handled.
    * This decision is made by an implementation-specific strategy.
    * If the waitlist is empty, implementations may either trow an exception or
    * return null.
@@ -71,7 +71,7 @@ public interface Waitlist extends Iterable<AbstractState> {
   AbstractState pop();
 
   /**
-   * Removes an abstract element, if it is contained.
+   * Removes an abstract state, if it is contained.
    * This method uses equals() for containment checks.
    * Implementations need not to optimize their data structure for this method.
    */

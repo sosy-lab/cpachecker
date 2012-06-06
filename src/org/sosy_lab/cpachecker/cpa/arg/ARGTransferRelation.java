@@ -61,8 +61,8 @@ public class ARGTransferRelation implements TransferRelation {
 
     element.markExpanded();
 
-    AbstractState wrappedElement = element.getWrappedState();
-    Collection<? extends AbstractState> successors = transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, pCfaEdge);
+    AbstractState wrappedState = element.getWrappedState();
+    Collection<? extends AbstractState> successors = transferRelation.getAbstractSuccessors(wrappedState, pPrecision, pCfaEdge);
     if (successors.isEmpty()) {
       return Collections.emptySet();
     }
@@ -88,7 +88,7 @@ public class ARGTransferRelation implements TransferRelation {
 
     assert element.getChildren().equals(pSuccessors);
 
-    AbstractState wrappedElement = element.getWrappedState();
+    AbstractState wrappedState = element.getWrappedState();
     Multimap<CFAEdge, AbstractState> wrappedSuccessors = HashMultimap.create();
     for (AbstractState absElement : pSuccessors) {
       ARGState successorElem = (ARGState)absElement;
@@ -96,13 +96,13 @@ public class ARGTransferRelation implements TransferRelation {
     }
 
     if(pCfaEdge != null) {
-      return wrappedProofChecker.areAbstractSuccessors(wrappedElement, pCfaEdge, wrappedSuccessors.get(pCfaEdge));
+      return wrappedProofChecker.areAbstractSuccessors(wrappedState, pCfaEdge, wrappedSuccessors.get(pCfaEdge));
     }
 
     CFANode loc = AbstractStates.extractLocation(element);
     for(int i = 0; i < loc.getNumLeavingEdges(); ++i) {
       CFAEdge edge = loc.getLeavingEdge(i);
-      if(!wrappedProofChecker.areAbstractSuccessors(wrappedElement, edge, wrappedSuccessors.get(edge))) {
+      if(!wrappedProofChecker.areAbstractSuccessors(wrappedState, edge, wrappedSuccessors.get(edge))) {
         return false;
       }
     }

@@ -62,9 +62,9 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
     assert !argElement.isCovered() : "Passing element to stop which is already covered: " + argElement;
 
     // First check if we can take a shortcut:
-    // If the new element was merged into an existing element,
+    // If the new state was merged into an existing element,
     // it is usually also covered by this existing element, so check this explicitly upfront.
-    // We do this because we want to remove the new element from the ARG completely
+    // We do this because we want to remove the new state from the ARG completely
     // in this case and not mark it as covered.
 
     if (argElement.getMergedWith() != null) {
@@ -95,9 +95,9 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
     // Now do the usual coverage checks
 
-    for (AbstractState reachedElement : pReached) {
-      ARGState argReachedElement = (ARGState)reachedElement;
-      if (stop(argElement, argReachedElement, pPrecision)) {
+    for (AbstractState reachedState : pReached) {
+      ARGState argReachedState = (ARGState)reachedState;
+      if (stop(argElement, argReachedState, pPrecision)) {
         // if this option is true, we always return false here on purpose
         return !keepCoveredStatesInReached;
       }
@@ -106,16 +106,16 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
   }
 
-  private boolean stop(ARGState pElement, ARGState pReachedElement, Precision pPrecision)
+  private boolean stop(ARGState pElement, ARGState pReachedState, Precision pPrecision)
                                                       throws CPAException {
 
-    if (!pReachedElement.mayCover()) {
+    if (!pReachedState.mayCover()) {
       return false;
     }
-    if (pElement == pReachedElement) {
+    if (pElement == pReachedState) {
       return false;
     }
-    if (pElement.isOlderThan(pReachedElement)) {
+    if (pElement.isOlderThan(pReachedState)) {
       // This is never the case in usual predicate abstraction,
       // but possibly with other algorithms
       // Checking this also implies that pElement gets not covered by
@@ -123,13 +123,13 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       return false;
     }
 
-    AbstractState wrappedElement = pElement.getWrappedState();
-    AbstractState wrappedReachedElement = pReachedElement.getWrappedState();
+    AbstractState wrappedState = pElement.getWrappedState();
+    AbstractState wrappedReachedState = pReachedState.getWrappedState();
 
-    boolean stop = wrappedStop.stop(wrappedElement, Collections.singleton(wrappedReachedElement), pPrecision);
+    boolean stop = wrappedStop.stop(wrappedState, Collections.singleton(wrappedReachedState), pPrecision);
 
     if (stop) {
-      pElement.setCovered(pReachedElement);
+      pElement.setCovered(pReachedState);
     }
     return stop;
   }
@@ -138,30 +138,30 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
     ARGState argElement = (ARGState)pElement;
     ARGState otherArtElement = (ARGState)pOtherElement;
 
-    AbstractState wrappedElement = argElement.getWrappedState();
+    AbstractState wrappedState = argElement.getWrappedState();
     AbstractState wrappedOtherElement = otherArtElement.getWrappedState();
 
-    return wrappedProofChecker.isCoveredBy(wrappedElement, wrappedOtherElement);
+    return wrappedProofChecker.isCoveredBy(wrappedState, wrappedOtherElement);
   }
 
   @Override
-  public boolean isForcedCoveringPossible(AbstractState pElement, AbstractState pReachedElement, Precision pPrecision) throws CPAException {
+  public boolean isForcedCoveringPossible(AbstractState pElement, AbstractState pReachedState, Precision pPrecision) throws CPAException {
     if (!(wrappedStop instanceof ForcedCoveringStopOperator)) {
       return false;
     }
 
     ARGState element = (ARGState)pElement;
-    ARGState reachedElement = (ARGState)pReachedElement;
+    ARGState reachedState = (ARGState)pReachedState;
 
-    if (reachedElement.isCovered() || !reachedElement.mayCover()) {
+    if (reachedState.isCovered() || !reachedState.mayCover()) {
       return false;
     }
 
-    if (element.isOlderThan(reachedElement)) {
+    if (element.isOlderThan(reachedState)) {
       return false;
     }
 
     return ((ForcedCoveringStopOperator)wrappedStop).isForcedCoveringPossible(
-        element.getWrappedState(), reachedElement.getWrappedState(), pPrecision);
+        element.getWrappedState(), reachedState.getWrappedState(), pPrecision);
   }
 }

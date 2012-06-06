@@ -105,14 +105,14 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     this.cpa = (ProofChecker)cpa;
     this.logger = logger;
 
-    ARGState rootElement = null;
+    ARGState rootState = null;
     try {
-      rootElement = readART();
+      rootState = readART();
     } catch(Throwable e) {
       e.printStackTrace();
       throw new RuntimeException("Failed reading ARG.", e);
     }
-    this.rootState = rootElement;
+    this.rootState = rootState;
     System.gc();
   }
 
@@ -202,7 +202,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
         if(element.isCovered()) {
 
-          logger.log(Level.FINER, "Element is covered by another abstract element; checking coverage");
+          logger.log(Level.FINER, "Element is covered by another abstract state; checking coverage");
           ARGState coveringElement = element.getCoveringState();
 
           if(!reachedSet.contains(coveringElement)) {

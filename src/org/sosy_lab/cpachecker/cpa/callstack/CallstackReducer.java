@@ -34,9 +34,9 @@ public class CallstackReducer implements Reducer {
 
   @Override
   public AbstractState getVariableReducedState(
-      AbstractState pExpandedElement, Block pContext, CFANode callNode) {
+      AbstractState pExpandedState, Block pContext, CFANode callNode) {
 
-    CallstackState element = (CallstackState)pExpandedElement;
+    CallstackState element = (CallstackState)pExpandedState;
 
     return copyCallstackUpToCallNode(element, callNode);
 //    return new CallstackState(null, state.getCurrentFunction(), location);
@@ -54,16 +54,16 @@ public class CallstackReducer implements Reducer {
 
   @Override
   public AbstractState getVariableExpandedState(
-      AbstractState pRootElement, Block pReducedContext,
-      AbstractState pReducedElement) {
+      AbstractState pRootState, Block pReducedContext,
+      AbstractState pReducedState) {
 
-    CallstackState rootElement = (CallstackState)pRootElement;
-    CallstackState reducedElement = (CallstackState)pReducedElement;
+    CallstackState rootState = (CallstackState)pRootState;
+    CallstackState reducedState = (CallstackState)pReducedState;
 
-    // the stackframe on top of rootElement and the stackframe on bottom of reducedElement are the same function
+    // the stackframe on top of rootState and the stackframe on bottom of reducedState are the same function
     // now glue both stacks together at this state
 
-    return copyCallstackExceptLast(rootElement, reducedElement);
+    return copyCallstackExceptLast(rootState, reducedState);
   }
 
   private CallstackState copyCallstackExceptLast(CallstackState target, CallstackState source) {

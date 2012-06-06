@@ -357,7 +357,7 @@ class MainCPAStatistics implements Statistics {
             out.println();
           }
         }
-        out.println("  Number of target elements:  " + Iterables.size(filterTargetStates(reached)));
+        out.println("  Number of target states:    " + Iterables.size(filterTargetStates(reached)));
         out.println("Time for analysis setup:      " + creationTime);
         out.println("  Time for loading CPAs:      " + cpaCreationTime);
         if (cfaCreator != null) {

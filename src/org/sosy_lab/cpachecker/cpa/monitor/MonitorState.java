@@ -57,15 +57,15 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
   // stores what caused the element to go further (may be null)
   private final Pair<PreventingHeuristic, Long> preventingCondition;
 
-  protected MonitorState(AbstractState pWrappedElement, long totalTimeOnPath) {
-    this(pWrappedElement, totalTimeOnPath, null);
+  protected MonitorState(AbstractState pWrappedState, long totalTimeOnPath) {
+    this(pWrappedState, totalTimeOnPath, null);
   }
 
-  protected MonitorState(AbstractState pWrappedElement, long totalTimeOnPath,
+  protected MonitorState(AbstractState pWrappedState, long totalTimeOnPath,
       Pair<PreventingHeuristic, Long> preventingCondition) {
-    super(pWrappedElement);
-    Preconditions.checkArgument(!(pWrappedElement instanceof MonitorState), "Don't wrap a MonitorCPA in a MonitorCPA, this makes no sense!");
-    Preconditions.checkArgument(!(pWrappedElement == TimeoutState.INSTANCE && preventingCondition == null), "Need a preventingCondition in case of TimeoutState");
+    super(pWrappedState);
+    Preconditions.checkArgument(!(pWrappedState instanceof MonitorState), "Don't wrap a MonitorCPA in a MonitorCPA, this makes no sense!");
+    Preconditions.checkArgument(!(pWrappedState == TimeoutState.INSTANCE && preventingCondition == null), "Need a preventingCondition in case of TimeoutState");
     this.totalTimeOnPath = totalTimeOnPath;
     this.preventingCondition = preventingCondition; // may be null
   }

@@ -37,12 +37,12 @@ public class FeatureVarsDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedElement) {
+  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedState) {
       // returns true if element1 < element2 on lattice
-      // true if newElement represents less states (and a subset of the states of) reachedElement
-    if (newElement instanceof FeatureVarsState && reachedElement instanceof FeatureVarsState){
+      // true if newElement represents less states (and a subset of the states of) reachedState
+    if (newElement instanceof FeatureVarsState && reachedState instanceof FeatureVarsState){
       FeatureVarsState fvn = (FeatureVarsState)newElement;
-      FeatureVarsState fvr = (FeatureVarsState)reachedElement;
+      FeatureVarsState fvr = (FeatureVarsState)reachedState;
       return rmgr.entails(fvn.getRegion(), fvr.getRegion());
     } else {
       throw new IllegalArgumentException("Called with non-FeatureVars-Elements");

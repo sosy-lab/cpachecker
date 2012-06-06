@@ -99,7 +99,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
     AbstractState lastElement = pReached.getLastState();
     assert lastElement instanceof ARGState : "Element in reached set which is not an ARGState";
-    assert ((ARGState)lastElement).isTarget() : "Last element in reached is not a target element before refinement";
+    assert ((ARGState)lastElement).isTarget() : "Last element in reached is not a target state before refinement";
     ARGReachedSet reached = new ARGReachedSet(pReached);
 
     Path path = computePath((ARGState)lastElement, reached);
@@ -193,7 +193,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
       } else {
         // There is a special case here:
-        // If the element is the sibling of the target element, it might have not
+        // If the element is the sibling of the target state, it might have not
         // been added to the reached set if CPAAlgorithm stopped before.
         // But in this case its parent is in the waitlist.
 
