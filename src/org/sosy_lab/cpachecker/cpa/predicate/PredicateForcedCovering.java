@@ -283,7 +283,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
     return Iterables.filter(
             Iterables.transform(pathToRoot, Pair.<ARGState>getProjectionToFirst()),
         Predicates.compose(
-            PredicateAbstractState.FILTER_ABSTRACTION_ELEMENTS,
+            PredicateAbstractState.FILTER_ABSTRACTION_STATES,
             AbstractStates.extractStateByTypeFunction(PredicateAbstractState.class)));
   }
 

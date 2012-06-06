@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.Iterables.*;
-import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.FILTER_ABSTRACTION_ELEMENTS;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.FILTER_ABSTRACTION_STATES;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.File;
@@ -99,10 +99,10 @@ import com.google.common.collect.Multimaps;
 @Options(prefix="bmc")
 public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
-  private static final Function<AbstractState, PredicateAbstractState> EXTRACT_PREDICATE_ELEMENT
+  private static final Function<AbstractState, PredicateAbstractState> EXTRACT_PREDICATE_STATE
       = AbstractStates.extractStateByTypeFunction(PredicateAbstractState.class);
 
-  private static final Predicate<AbstractState> IS_STOP_ELEMENT =
+  private static final Predicate<AbstractState> IS_STOP_STATE =
     Predicates.compose(new Predicate<AssumptionStorageState>() {
                              @Override
                              public boolean apply(AssumptionStorageState pArg0) {
@@ -222,7 +222,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.INFO, "Creating formula for program");
       final boolean soundInner = algorithm.run(pReachedSet);
 
-      if (any(transform(skip(pReachedSet, 1), EXTRACT_PREDICATE_ELEMENT), FILTER_ABSTRACTION_ELEMENTS)) {
+      if (any(transform(skip(pReachedSet, 1), EXTRACT_PREDICATE_STATE), FILTER_ABSTRACTION_STATES)) {
         // first element of reached is always an abstraction element, so skip it
         logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
         return soundInner;
@@ -378,7 +378,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private boolean checkBoundingAssertions(final ReachedSet pReachedSet) {
     if (boundingAssertions) {
       // create formula for unwinding assertions
-      Iterable<AbstractState> stopElements = filter(pReachedSet, IS_STOP_ELEMENT);
+      Iterable<AbstractState> stopElements = filter(pReachedSet, IS_STOP_STATE);
       Formula assertions = createFormulaFor(stopElements);
 
       logger.log(Level.INFO, "Starting assertions check...");
@@ -394,7 +394,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     } else {
       // fast check for trivial cases
-      return none(pReachedSet, IS_STOP_ELEMENT);
+      return none(pReachedSet, IS_STOP_STATE);
     }
   }
 

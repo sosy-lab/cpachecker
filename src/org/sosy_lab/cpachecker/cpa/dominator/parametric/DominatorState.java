@@ -33,15 +33,15 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 
 public class DominatorState implements AbstractStateWithLocation, AbstractState {
 
-	private AbstractState dominatedElement;
+	private AbstractState dominatedState;
 	private Set<AbstractState> dominators = new HashSet<AbstractState>();
 
 	public DominatorState(AbstractState dominatedElement) {
 		if (dominatedElement == null) {
-			throw new IllegalArgumentException("dominatedElement is null!");
+			throw new IllegalArgumentException("dominatedState is null!");
 		}
 
-		this.dominatedElement = dominatedElement;
+		this.dominatedState = dominatedElement;
 	}
 
 	public DominatorState(AbstractState dominatedElement, Set<AbstractState> dominators) {
@@ -55,11 +55,11 @@ public class DominatorState implements AbstractStateWithLocation, AbstractState 
 	}
 
 	protected DominatorState() {
-	  dominatedElement = null;
+	  dominatedState = null;
 	}
 
 	public DominatorState(DominatorState other) {
-		this(other.dominatedElement, other.dominators);
+		this(other.dominatedState, other.dominators);
 	}
 
 	public DominatorState(AbstractState dominatedElement, DominatorState other) {
@@ -75,7 +75,7 @@ public class DominatorState implements AbstractStateWithLocation, AbstractState 
 	}
 
 	public AbstractState getDominatedState() {
-		return this.dominatedElement;
+		return this.dominatedState;
 	}
 
 	public Iterator<AbstractState> getIterator ()
@@ -95,7 +95,7 @@ public class DominatorState implements AbstractStateWithLocation, AbstractState 
 
 		DominatorState other_element = (DominatorState)other;
 
-		if (!(this.dominatedElement.equals(other_element.dominatedElement))) {
+		if (!(this.dominatedState.equals(other_element.dominatedState))) {
 			return false;
 		}
 
@@ -115,7 +115,7 @@ public class DominatorState implements AbstractStateWithLocation, AbstractState 
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder ();
-        builder.append ("( " + this.dominatedElement.toString() + ", {");
+        builder.append ("( " + this.dominatedState.toString() + ", {");
 
         boolean first = true;
         for (AbstractState dominator : this.dominators) {
@@ -136,12 +136,12 @@ public class DominatorState implements AbstractStateWithLocation, AbstractState 
 
 	@Override
   public CFANode getLocationNode() {
-		return ((AbstractStateWithLocation)dominatedElement).getLocationNode();
+		return ((AbstractStateWithLocation)dominatedState).getLocationNode();
 	}
 
 	@Override
 	public int hashCode() {
 		// TODO: create better hash code?
-		return this.dominatedElement.hashCode();
+		return this.dominatedState.hashCode();
 	}
 }

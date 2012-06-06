@@ -43,9 +43,9 @@ public class UnmodifiableReachedSetView
   implements UnmodifiableReachedSet
 {
   private final UnmodifiableReachedSet underlying;
-  private final Function<? super AbstractState, AbstractState> mapElementFunction;
+  private final Function<? super AbstractState, AbstractState> mapStateFunction;
   private final Function<? super Precision, Precision> mapPrecisionFunction;
-  private final Function<Pair<AbstractState, Precision>, Pair<AbstractState, Precision>> mapElementAndPrecisionFunction;
+  private final Function<Pair<AbstractState, Precision>, Pair<AbstractState, Precision>> mapStateAndPrecisionFunction;
 
   public UnmodifiableReachedSetView(
       UnmodifiableReachedSet pUnderlyingSet,
@@ -56,14 +56,14 @@ public class UnmodifiableReachedSetView
     assert pMapPrecisionFunction != null;
 
     underlying = pUnderlyingSet;
-    mapElementFunction = pMapElementFunction;
+    mapStateFunction = pMapElementFunction;
     mapPrecisionFunction = pMapPrecisionFunction;
-    mapElementAndPrecisionFunction =
+    mapStateAndPrecisionFunction =
       new Function<Pair<AbstractState,Precision>, Pair<AbstractState,Precision>>() {
         @Override
         public Pair<AbstractState, Precision> apply(Pair<AbstractState, Precision> from) {
           return Pair.of(
-              mapElementFunction.apply(from.getFirst()),
+              mapStateFunction.apply(from.getFirst()),
               mapPrecisionFunction.apply(from.getSecond()));
         }
       };
@@ -71,12 +71,12 @@ public class UnmodifiableReachedSetView
 
   @Override
   public AbstractState getFirstState() {
-    return mapElementFunction.apply(underlying.getFirstState());
+    return mapStateFunction.apply(underlying.getFirstState());
   }
 
   @Override
   public AbstractState getLastState() {
-    return mapElementFunction.apply(underlying.getLastState());
+    return mapStateFunction.apply(underlying.getLastState());
   }
 
   @Override
@@ -86,7 +86,7 @@ public class UnmodifiableReachedSetView
 
   @Override
   public Collection<AbstractState> getReached() {
-    return Collections2.transform(underlying.getReached(), mapElementFunction);
+    return Collections2.transform(underlying.getReached(), mapStateFunction);
   }
 
   @Override
@@ -96,12 +96,12 @@ public class UnmodifiableReachedSetView
 
   @Override
   public Collection<AbstractState> getReached(CFANode pLocation) {
-    return Collections2.transform(underlying.getReached(pLocation), mapElementFunction);
+    return Collections2.transform(underlying.getReached(pLocation), mapStateFunction);
   }
 
   @Override
   public Collection<Pair<AbstractState, Precision>> getReachedWithPrecision() {
-    return Collections2.transform(underlying.getReachedWithPrecision(), mapElementAndPrecisionFunction);
+    return Collections2.transform(underlying.getReachedWithPrecision(), mapStateAndPrecisionFunction);
   }
 
   @Override
@@ -111,7 +111,7 @@ public class UnmodifiableReachedSetView
 
   @Override
   public Collection<AbstractState> getWaitlist() {
-    return Collections2.transform(underlying.getWaitlist(), mapElementFunction);
+    return Collections2.transform(underlying.getWaitlist(), mapStateFunction);
   }
 
   @Override
@@ -126,7 +126,7 @@ public class UnmodifiableReachedSetView
 
   @Override
   public Iterator<AbstractState> iterator() {
-    return Iterators.transform(underlying.iterator(), mapElementFunction);
+    return Iterators.transform(underlying.iterator(), mapStateFunction);
   }
 
   @Override

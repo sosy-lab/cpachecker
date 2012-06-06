@@ -41,22 +41,22 @@ public class CFAPathStandardState implements CFAPathState, Iterable<CFAEdge> {
 
   private static class CFAEdgeIterator implements Iterator<CFAEdge> {
 
-    private CFAPathStandardState mCurrentElement;
+    private CFAPathStandardState crrentState;
 
     public CFAEdgeIterator(CFAPathStandardState pLastElement) {
-      mCurrentElement = pLastElement;
+      crrentState = pLastElement;
     }
 
     @Override
     public boolean hasNext() {
-      return (mCurrentElement != sEmptyPath);
+      return (crrentState != sEmptyPath);
     }
 
     @Override
     public CFAEdge next() {
-      CFAEdge lNextCFAEdge = mCurrentElement.mCFAEdge;
+      CFAEdge lNextCFAEdge = crrentState.mCFAEdge;
 
-      mCurrentElement = mCurrentElement.mPredecessor;
+      crrentState = crrentState.mPredecessor;
 
       return lNextCFAEdge;
     }

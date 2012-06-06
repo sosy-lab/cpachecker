@@ -61,9 +61,9 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.NumericTypes;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.NumericTypes;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -712,7 +712,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   /**
    * This method handles the assignment of a variable.
    *
-   * @param element the analysis element
    * @param lParam the local name of the variable to assign to
    * @param rightExp the assigning expression
    * @param cfaEdge the respective CFA edge
@@ -723,7 +722,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   {
     Interval value = expression.accept(v);
 
-    IntervalAnalysisState newElement = v.element.clone();
+    IntervalAnalysisState newElement = v.state.clone();
     String variableName = constructVariableName(lParam, v.functionName);
 
     newElement.addInterval(variableName, value, this.threshold);
@@ -897,14 +896,14 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   private class ExpressionValueVisitor extends DefaultExpressionVisitor<Interval, UnrecognizedCCodeException>
                                        implements RightHandSideVisitor<Interval, UnrecognizedCCodeException> {
 
-    protected final IntervalAnalysisState element;
+    protected final IntervalAnalysisState state;
 
     protected final String functionName;
 
     protected final CFAEdge cfaEdge;
 
     public ExpressionValueVisitor(IntervalAnalysisState pElement, String pFunctionName, CFAEdge edge) {
-      element = pElement;
+      state = pElement;
       functionName = pFunctionName;
       cfaEdge = edge;
     }
@@ -1013,8 +1012,8 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         return new Interval(((IASTEnumerator)identifier.getDeclaration()).getValue());
 
       String variableName = constructVariableName(identifier.getName(), functionName);
-      if (element.contains(variableName))
-        return element.getInterval(variableName);
+      if (state.contains(variableName))
+        return state.getInterval(variableName);
 
       else
         return Interval.createUnboundInterval();

@@ -50,21 +50,21 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   /**
    * the element from the previous context, needed for return edges
    */
-  private final ExplicitState previousElement;
+  private final ExplicitState previousState;
 
   public ExplicitState() {
     constantsMap    = new HashMap<String, Long>();
-    previousElement = null;
+    previousState = null;
   }
 
   ExplicitState(ExplicitState previousElement) {
     constantsMap          = new HashMap<String, Long>();
-    this.previousElement  = previousElement;
+    this.previousState  = previousElement;
   }
 
   private ExplicitState(Map<String, Long> constantsMap, ExplicitState previousElement) {
     this.constantsMap     = constantsMap;
-    this.previousElement  = previousElement;
+    this.previousState  = previousElement;
   }
 
   /**
@@ -89,7 +89,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   }
 
   ExplicitState getPreviousState() {
-    return previousElement;
+    return previousState;
   }
 
   public int getSize() {
@@ -115,7 +115,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
       }
     }
 
-    return new ExplicitState(newConstantsMap, previousElement);
+    return new ExplicitState(newConstantsMap, previousState);
   }
 
   /**
@@ -126,7 +126,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    */
   boolean isLessOrEqual(ExplicitState other) {
     // this element is not less or equal than the other element, if the previous elements differ
-    if (previousElement != other.previousElement) {
+    if (previousState != other.previousState) {
       return false;
     }
 
@@ -150,7 +150,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
 
   @Override
   public ExplicitState clone() {
-    return new ExplicitState(new HashMap<String, Long>(constantsMap), previousElement);
+    return new ExplicitState(new HashMap<String, Long>(constantsMap), previousState);
   }
 
   @Override
@@ -169,7 +169,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
 
     ExplicitState otherElement = (ExplicitState) other;
 
-    return (otherElement.previousElement == previousElement)
+    return (otherElement.previousState == previousState)
         && otherElement.constantsMap.equals(constantsMap);
   }
 

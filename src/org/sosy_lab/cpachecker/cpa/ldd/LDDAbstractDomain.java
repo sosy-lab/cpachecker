@@ -33,16 +33,16 @@ public class LDDAbstractDomain implements AbstractDomain {
 
   private final LDDRegionManager regionManager;
 
-  private final AbstractState topElement;
+  private final AbstractState topState;
 
   public LDDAbstractDomain(LDDRegionManager regionManager) {
     this.regionManager = regionManager;
-    this.topElement = new LDDAbstractState(regionManager.makeTrue());
+    this.topState = new LDDAbstractState(regionManager.makeTrue());
   }
 
   @Override
   public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedElement) throws CPAException {
-    if (this.topElement.equals(reachedElement) || newElement.equals(reachedElement)) { return true; }
+    if (this.topState.equals(reachedElement) || newElement.equals(reachedElement)) { return true; }
     if (newElement instanceof LDDAbstractState && reachedElement instanceof LDDAbstractState) {
       LDDAbstractState lddElement1 = (LDDAbstractState) newElement;
       LDDAbstractState lddElement2 = (LDDAbstractState) reachedElement;
@@ -60,7 +60,7 @@ public class LDDAbstractDomain implements AbstractDomain {
       LDDAbstractState lddElement2 = (LDDAbstractState) pElement2;
       return new LDDAbstractState(this.regionManager.makeOr(lddElement1.getRegion(), lddElement2.getRegion()));
     }
-    return this.topElement;
+    return this.topState;
   }
 
 }

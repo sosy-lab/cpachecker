@@ -57,7 +57,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
   final Timer computeCounterexampleTimer = new Timer();
 
   private final ABMTransferRelation transfer;
-  private final Map<ARGState, ARGState> pathElementToReachedElement = new HashMap<ARGState, ARGState>();
+  private final Map<ARGState, ARGState> pathStateToReachedState = new HashMap<ARGState, ARGState>();
 
   protected AbstractABMBasedRefiner(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -79,7 +79,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
     if (pPath == null) {
       return CounterexampleInfo.spurious();
     } else {
-      return performRefinement0(new ABMReachedSet(transfer, pReached, pPath, pathElementToReachedElement), pPath);
+      return performRefinement0(new ABMReachedSet(transfer, pReached, pPath, pathStateToReachedState), pPath);
     }
   }
 
@@ -87,14 +87,14 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
   protected final Path computePath(ARGState pLastElement, ARGReachedSet pReachedSet) throws InterruptedException, CPATransferException {
     assert pLastElement.isTarget();
 
-    pathElementToReachedElement.clear();
+    pathStateToReachedState.clear();
 
     computePathTimer.start();
     try {
       ARGState subgraph;
       computeSubtreeTimer.start();
       try {
-        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, new ARGState(pLastElement.getWrappedState(), null), pathElementToReachedElement);
+        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, new ARGState(pLastElement.getWrappedState(), null), pathStateToReachedState);
         if (subgraph == null) {
           return null;
         }
@@ -132,18 +132,18 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
 
     private final ABMTransferRelation transfer;
     private final Path path;
-    private final Map<ARGState, ARGState> pathElementToReachedElement;
+    private final Map<ARGState, ARGState> pathStateToReachedState;
 
     private ABMReachedSet(ABMTransferRelation pTransfer, ARGReachedSet pReached, Path pPath, Map<ARGState, ARGState> pPathElementToReachedElement) {
       super(pReached);
       this.transfer = pTransfer;
       this.path = pPath;
-      this.pathElementToReachedElement = pPathElementToReachedElement;
+      this.pathStateToReachedState = pPathElementToReachedElement;
     }
 
     @Override
     public void removeSubtree(ARGState element, Precision newPrecision) {
-      transfer.removeSubtree(delegate, path, element, newPrecision, pathElementToReachedElement);
+      transfer.removeSubtree(delegate, path, element, newPrecision, pathStateToReachedState);
     }
 
     @Override

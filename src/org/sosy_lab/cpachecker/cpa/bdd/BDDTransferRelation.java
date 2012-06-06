@@ -249,7 +249,7 @@ public class BDDTransferRelation implements TransferRelation {
       }
     }
 
-    return element; // if we know nothing, we return the old element
+    return element; // if we know nothing, we return the old state
   }
 
   private BDDState handleFunctionCallEdge(BDDState element, FunctionCallEdge cfaEdge)
@@ -419,10 +419,10 @@ public class BDDTransferRelation implements TransferRelation {
       implements ExpressionVisitor<Region, UnrecognizedCCodeException> {
 
     private String functionName;
-    private BDDState element;
+    private BDDState state;
 
     BDDExpressionVisitor(BDDState element) {
-      this.element = element;
+      this.state = element;
       this.functionName = element.getFunctionName();
     }
 
@@ -439,8 +439,8 @@ public class BDDTransferRelation implements TransferRelation {
       if (operand1 == null || operand2 == null) { return null; }
 
       // does the environment imply the left/right side of binaryExp?
-      Region leftSideSat = rmgr.makeAnd(element.getRegion(), operand1);
-      Region rightSideSat = rmgr.makeAnd(element.getRegion(), operand2);
+      Region leftSideSat = rmgr.makeAnd(state.getRegion(), operand1);
+      Region rightSideSat = rmgr.makeAnd(state.getRegion(), operand2);
       boolean isLeftSideZero = leftSideSat.isFalse();
       boolean isRightSideZero = rightSideSat.isFalse();
 

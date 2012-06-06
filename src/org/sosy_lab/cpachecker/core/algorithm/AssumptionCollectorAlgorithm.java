@@ -138,7 +138,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private final AssumptionStorageCPA cpa;
 
   // store only the ids, not the elements in order to prevent memory leaks
-  private final Set<Integer> exceptionElements = new HashSet<Integer>();
+  private final Set<Integer> exceptionStates = new HashSet<Integer>();
 
   public AssumptionCollectorAlgorithm(Algorithm algo, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException
   {
@@ -181,7 +181,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         //
         //        ARGState element = path.get(pos).getFirst();
         //        addAvoidingAssumptions(exceptionAssumptions, element);
-        //        exceptionElements.add(element.getElementId());
+        //        exceptionStates.add(element.getElementId());
 
         // remove element
         // remove it's parents from waitlist (CPAAlgorithm re-added them)
@@ -193,7 +193,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
         ARGState parent = Iterables.getOnlyElement(errorElement.getParents());
         reached.removeOnlyFromWaitlist(parent);
-        exceptionElements.add(parent.getStateId());
+        exceptionStates.add(parent.getStateId());
         addAvoidingAssumptions(exceptionAssumptions, parent);
 
         reached.remove(errorElement);
@@ -279,7 +279,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
       if (e.isTarget()
           || asmptElement.isStop()
-          || exceptionElements.contains(e.getStateId())) {
+          || exceptionStates.contains(e.getStateId())) {
         falseAssumptionElements.add(e);
       }
 

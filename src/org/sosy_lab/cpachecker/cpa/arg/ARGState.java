@@ -58,13 +58,13 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   private ARGState mergedWith = null;
 
-  private final int elementId;
+  private final int stateId;
 
-  private static int nextArtElementId = 0;
+  private static int nextArgStateId = 0;
 
   public ARGState(AbstractState pWrappedElement, ARGState pParentElement) {
     super(pWrappedElement);
-    elementId = ++nextArtElementId;
+    stateId = ++nextArgStateId;
     parents = new LinkedHashSet<ARGState>(1); // TODO Is HashSet enough? It would be more memory-efficient.
     if(pParentElement != null){
       addParent(pParentElement);
@@ -172,7 +172,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
       sb.append("Covered ");
     }
     sb.append("ARG Element (Id: ");
-    sb.append(elementId);
+    sb.append(stateId);
     if (!destroyed) {
       sb.append(", Parents: ");
       sb.append(stateIdsOf(parents));
@@ -181,7 +181,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
       if (mCoveredBy != null) {
         sb.append(", Covered by: ");
-        sb.append(mCoveredBy.elementId);
+        sb.append(mCoveredBy.stateId);
       } else {
         sb.append(", Covering: ");
         sb.append(stateIdsOf(getCoveredByThis()));
@@ -196,7 +196,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     return Iterables.transform(elements, new Function<ARGState, Integer>() {
       @Override
       public Integer apply(ARGState pInput) {
-        return pInput.elementId;
+        return pInput.stateId;
       }
     });
   }
@@ -316,7 +316,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   }
 
   public int getStateId() {
-    return elementId;
+    return stateId;
   }
 
   public CFAEdge getEdgeToChild(ARGState pChild) {
@@ -336,14 +336,14 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
    * The ordering of this class is the chronological creation order.
    *
    * Note: Although equals() is not overwritten, this ordering is consistent
-   * with equals() as the elementId field is unique.
+   * with equals() as the stateId field is unique.
    */
   @Override
   public int compareTo(ARGState pO) {
-    return Ints.compare(this.elementId, pO.elementId);
+    return Ints.compare(this.stateId, pO.stateId);
   }
 
   public boolean isOlderThan(ARGState other) {
-    return (elementId < other.elementId);
+    return (stateId < other.stateId);
   }
 }

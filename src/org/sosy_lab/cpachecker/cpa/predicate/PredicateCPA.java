@@ -120,7 +120,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final AbstractionManager abstractionManager;
   private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
-  private final PredicateAbstractState topElement;
+  private final PredicateAbstractState topState;
 
   protected PredicateCPA(Configuration config, LogManager logger, BlockOperator blk, CFA cfa) throws InvalidConfigurationException {
     config.inject(this, PredicateCPA.class);
@@ -162,7 +162,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     predicateManager = new PredicateAbstractionManager(abstractionManager, formulaManager, solver, config, logger);
     transfer = new PredicateTransferRelation(this, blk);
 
-    topElement = PredicateAbstractState.abstractionState(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
+    topState = PredicateAbstractState.abstractionState(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
     domain = new PredicateAbstractDomain(this);
 
     if (mergeType.equals("SEP")) {
@@ -272,7 +272,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Override
   public PredicateAbstractState getInitialState(CFANode node) {
-    return topElement;
+    return topState;
   }
 
   @Override

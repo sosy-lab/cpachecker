@@ -43,7 +43,7 @@ public class IntervalAnalysisState implements AbstractState
   /**
    * the element from the previous context, used solely for return edges
    */
-  private final IntervalAnalysisState previousElement;
+  private final IntervalAnalysisState previousState;
 
   /**
    *  This method acts as the default constructor, which initializes the intervals and reference counts to empty maps and the previous element to null.
@@ -56,7 +56,7 @@ public class IntervalAnalysisState implements AbstractState
   /**
    * This method acts as constructor, which initializes the intervals and reference counts to empty maps and the previous element to the respective object.
    *
-   * @param previousElement from the previous context
+   * @param previousState from the previous context
    */
   public IntervalAnalysisState(IntervalAnalysisState previousElement)
   {
@@ -68,7 +68,7 @@ public class IntervalAnalysisState implements AbstractState
    *
    * @param intervals the intervals
    * @param referencesMap the reference counts
-   * @param previousElement from the previous context
+   * @param previousState from the previous context
    */
   public IntervalAnalysisState(Map<String, Interval> intervals, Map<String, Integer> referencesMap, IntervalAnalysisState previousElement)
   {
@@ -76,7 +76,7 @@ public class IntervalAnalysisState implements AbstractState
 
     this.referenceCounts  = referencesMap;
 
-    this.previousElement  = previousElement;
+    this.previousState  = previousElement;
   }
 
   /**
@@ -124,7 +124,7 @@ public class IntervalAnalysisState implements AbstractState
    */
   public IntervalAnalysisState getPreviousState()
   {
-    return previousElement;
+    return previousState;
   }
 
   /**
@@ -212,7 +212,7 @@ public class IntervalAnalysisState implements AbstractState
         newReferences.put(variableName, reachedElement.getReferenceCount(variableName));
     }
 
-    return new IntervalAnalysisState(newIntervals, newReferences, previousElement);
+    return new IntervalAnalysisState(newIntervals, newReferences, previousState);
   }
 
   /**
@@ -245,7 +245,7 @@ public class IntervalAnalysisState implements AbstractState
   @Override
   public IntervalAnalysisState clone()
   {
-    IntervalAnalysisState newElement = new IntervalAnalysisState(previousElement);
+    IntervalAnalysisState newElement = new IntervalAnalysisState(previousState);
 
     // clone the intervals ...
     for(String variableName : intervals.keySet())
@@ -275,7 +275,7 @@ public class IntervalAnalysisState implements AbstractState
     if(intervals.size() != otherElement.intervals.size())
       return false;
 
-    if(previousElement != otherElement.previousElement)
+    if(previousState != otherElement.previousState)
       return false;
 
     for(String variableName : intervals.keySet())

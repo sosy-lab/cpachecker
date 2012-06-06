@@ -34,14 +34,14 @@ public class BDDState implements AbstractState {
   private Region currentState;
   private final NamedRegionManager manager;
   private Set<String> currentVars;
-  private BDDState functionCallElement;
+  private BDDState functionCallState;
   private String functionName;
 
   public BDDState(NamedRegionManager mgr, BDDState functionCallElement,
       Region state, Set<String> vars, String functionName) {
     this.currentState = state;
     this.currentVars = vars;
-    this.functionCallElement = functionCallElement;
+    this.functionCallState = functionCallElement;
     this.functionName = functionName;
     this.manager = mgr;
   }
@@ -55,7 +55,7 @@ public class BDDState implements AbstractState {
   }
 
   public BDDState getFunctionCallState() {
-    return functionCallElement;
+    return functionCallState;
   }
 
   public String getFunctionName() {
@@ -85,7 +85,7 @@ public class BDDState implements AbstractState {
       return this;
 
     } else {
-      return new BDDState(this.manager, this.functionCallElement, result,
+      return new BDDState(this.manager, this.functionCallState, result,
           this.currentVars, this.functionName);
     }
   }

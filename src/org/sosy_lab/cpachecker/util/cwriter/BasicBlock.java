@@ -33,7 +33,7 @@ class BasicBlock {
   private static final String SINGLE_INDENT = "  ";
 
   // element id of the arg element that has the conditional statement
-  private final int elementId;
+  private final int stateId;
   // true for if, false for else
   private boolean condition;
   // was this condition closed by another merge node before?
@@ -44,13 +44,13 @@ class BasicBlock {
   private final List<Object> codeList;
 
   public BasicBlock(int pElementId, String pFunctionName) {
-    elementId = pElementId;
+    stateId = pElementId;
     codeList = new ArrayList<Object>();
     firstCodeLine = pFunctionName;
   }
 
   public BasicBlock(int pElementId, AssumeEdge pEdge, String pConditionString) {
-    elementId = pElementId;
+    stateId = pElementId;
     codeList = new ArrayList<Object>();
     boolean truthAssumption = pEdge.getTruthAssumption();
     condition = truthAssumption;
@@ -58,7 +58,7 @@ class BasicBlock {
   }
 
   public int getStateId() {
-    return elementId;
+    return stateId;
   }
 
   public boolean isCondition() {
@@ -114,6 +114,6 @@ class BasicBlock {
 
   @Override
   public String toString() {
-    return "Element id: " + elementId + " Condition: " + condition + " .. is closed " + isClosedBefore;
+    return "Element id: " + stateId + " Condition: " + condition + " .. is closed " + isClosedBefore;
   }
 }

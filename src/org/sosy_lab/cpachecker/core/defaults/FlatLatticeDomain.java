@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * between different layers.
  */
 public class FlatLatticeDomain implements AbstractDomain {
-  private final AbstractState mTopElement;
+  private final AbstractState mTopState;
 
   private static class TopState implements AbstractState {
     @Override
@@ -47,7 +47,7 @@ public class FlatLatticeDomain implements AbstractDomain {
   public FlatLatticeDomain(AbstractState pTopElement) {
     assert(pTopElement != null);
 
-    this.mTopElement = pTopElement;
+    this.mTopState = pTopElement;
   }
 
   public FlatLatticeDomain() {
@@ -64,11 +64,11 @@ public class FlatLatticeDomain implements AbstractDomain {
       return pElement1;
     }
 
-    return mTopElement;
+    return mTopState;
   }
 
   @Override
   public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedElement) throws CPAException {
-    return (mTopElement.equals(reachedElement) || newElement.equals(reachedElement));
+    return (mTopState.equals(reachedElement) || newElement.equals(reachedElement));
   }
 }

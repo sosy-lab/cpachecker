@@ -43,14 +43,14 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
 
 public class InverseLocationCPA implements ConfigurableProgramAnalysis {
 
-  private final LocationStateFactory elementFactory;
+  private final LocationStateFactory stateFactory;
   private final AbstractDomain abstractDomain = new FlatLatticeDomain();
   private final TransferRelation transferRelation;
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
   public InverseLocationCPA(CFA pCfa) {
-    elementFactory = new LocationStateFactory(pCfa);
-    transferRelation = new InverseLocationTransferRelation(elementFactory);
+    stateFactory = new LocationStateFactory(pCfa);
+    transferRelation = new InverseLocationTransferRelation(stateFactory);
   }
 
   public static CPAFactory factory() {
@@ -84,7 +84,7 @@ public class InverseLocationCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    return elementFactory.getState(node);
+    return stateFactory.getState(node);
   }
 
   @Override

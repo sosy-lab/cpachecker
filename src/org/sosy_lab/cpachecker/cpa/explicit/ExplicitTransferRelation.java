@@ -443,7 +443,7 @@ public class ExplicitTransferRelation implements TransferRelation
       assert value == null;
     }
 
-    ExplicitState newElement = visitor.element;
+    ExplicitState newElement = visitor.state;
     String assignedVar = getScopedVariableName(lParam, visitor.functionName);
 
     if(value == null) {
@@ -466,14 +466,14 @@ public class ExplicitTransferRelation implements TransferRelation
   private class ExpressionValueVisitor extends DefaultExpressionVisitor<Long, UnrecognizedCCodeException>
                                        implements RightHandSideVisitor<Long, UnrecognizedCCodeException> {
     protected final CFAEdge edge;
-    protected final ExplicitState element;
+    protected final ExplicitState state;
     protected final String functionName;
 
     private boolean missingPointer = false;
 
     public ExpressionValueVisitor(CFAEdge pEdge, ExplicitState pElement, String pFunctionName) {
       edge = pEdge;
-      element = pElement;
+      state = pElement;
       functionName = pFunctionName;
     }
 
@@ -642,8 +642,8 @@ public class ExplicitTransferRelation implements TransferRelation
 
       String varName = getScopedVariableName(idExp.getName(), functionName);
 
-      if(element.contains(varName)) {
-        return element.getValueFor(varName);
+      if(state.contains(varName)) {
+        return state.getValueFor(varName);
       } else {
         return null;
       }
@@ -690,8 +690,8 @@ public class ExplicitTransferRelation implements TransferRelation
     public Long visit(IASTFieldReference fieldReferenceExpression) throws UnrecognizedCCodeException {
       String varName = getScopedVariableName(fieldReferenceExpression.toASTString(), functionName);
 
-      if(element.contains(varName)) {
-        return element.getValueFor(varName);
+      if(state.contains(varName)) {
+        return state.getValueFor(varName);
       } else {
         return null;
       }
@@ -750,14 +750,14 @@ public class ExplicitTransferRelation implements TransferRelation
         if(leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
           String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
           if(currentPrecision.isTracking(leftVariableName)) {
-            element.assignConstant(leftVariableName, rightValue);
+            state.assignConstant(leftVariableName, rightValue);
           }
         }
 
         else if(rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
           String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName);
           if(currentPrecision.isTracking(rightVariableName)) {
-            element.assignConstant(rightVariableName, leftValue);
+            state.assignConstant(rightVariableName, leftValue);
           }
         }
       }
@@ -797,8 +797,8 @@ public class ExplicitTransferRelation implements TransferRelation
         if(rightVar != null) {
           rightVar = getScopedVariableName(rightVar, functionName);
 
-          if(element.contains(rightVar)) {
-            return element.getValueFor(rightVar);
+          if(state.contains(rightVar)) {
+            return state.getValueFor(rightVar);
           }
         }
       } else {

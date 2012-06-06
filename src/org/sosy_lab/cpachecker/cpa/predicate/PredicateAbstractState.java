@@ -46,7 +46,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
   private static final long serialVersionUID = -265763837277453447L;
 
-  public final static Predicate<PredicateAbstractState> FILTER_ABSTRACTION_ELEMENTS = new Predicate<PredicateAbstractState>() {
+  public final static Predicate<PredicateAbstractState> FILTER_ABSTRACTION_STATES = new Predicate<PredicateAbstractState>() {
     @Override
     public boolean apply(PredicateAbstractState ae) {
       return ae.isAbstractionState();

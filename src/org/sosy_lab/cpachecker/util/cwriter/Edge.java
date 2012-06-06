@@ -30,19 +30,19 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 class Edge implements Comparable<Edge> {
 
-  private final ARGState childElement;
+  private final ARGState childState;
   private final CFAEdge edge;
   private final Stack<FunctionBody> stack;
 
   public Edge(ARGState pChildElement,
       CFAEdge pEdge, Stack<FunctionBody> pStack) {
-    childElement = pChildElement;
+    childState = pChildElement;
     edge = pEdge;
     stack = pStack;
   }
 
   public ARGState getChildState() {
-    return childElement;
+    return childState;
   }
 
   public CFAEdge getEdge() {

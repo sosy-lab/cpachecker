@@ -61,7 +61,7 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis {
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private final ExtendedFormulaManager formulaManager;
-  private final AssumptionStorageState topElement;
+  private final AssumptionStorageState topState;
 
   private AssumptionStorageCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
   {
@@ -69,8 +69,8 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis {
     CtoFormulaConverter converter = new CtoFormulaConverter(config, formulaManager, logger);
     abstractDomain = new AssumptionStorageDomain(formulaManager);
     stopOperator = new AssumptionStorageStop();
-    topElement = new AssumptionStorageState(formulaManager.makeTrue(), formulaManager.makeTrue());
-    transferRelation = new AssumptionStorageTransferRelation(converter, formulaManager, topElement);
+    topState = new AssumptionStorageState(formulaManager.makeTrue(), formulaManager.makeTrue());
+    transferRelation = new AssumptionStorageTransferRelation(converter, formulaManager, topState);
   }
 
   public ExtendedFormulaManager getFormulaManager()
@@ -85,7 +85,7 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    return topElement;
+    return topState;
   }
 
   @Override

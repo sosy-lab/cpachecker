@@ -38,13 +38,13 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 public final class CallstackState implements AbstractState, Partitionable, AbstractQueryableState, Serializable {
 
   private static final long serialVersionUID = 3629687385150064994L;
-  private final CallstackState previousElement;
+  private final CallstackState previousState;
   private final String currentFunction;
   private transient CFANode callerNode;
   private final int depth;
 
   CallstackState(CallstackState previousElement, String function, CFANode callerNode) {
-    this.previousElement = previousElement;
+    this.previousState = previousElement;
     this.currentFunction = checkNotNull(function);
     this.callerNode = checkNotNull(callerNode);
     if (previousElement == null) {
@@ -55,7 +55,7 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
   }
 
   public CallstackState getPreviousState() {
-    return previousElement;
+    return previousState;
   }
 
   public String getCurrentFunction() {
@@ -93,7 +93,7 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
     }
 
     CallstackState other = (CallstackState)obj;
-    return (this.previousElement == other.previousElement)
+    return (this.previousState == other.previousState)
         && (this.currentFunction.equals(other.currentFunction))
         && (this.callerNode.equals(other.callerNode));
   }
@@ -101,7 +101,7 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
   @Override
   public int hashCode() {
     return (((callerNode.hashCode() * 31)
-        + System.identityHashCode(previousElement)) * 17)
+        + System.identityHashCode(previousState)) * 17)
         + currentFunction.hashCode();
   }
 

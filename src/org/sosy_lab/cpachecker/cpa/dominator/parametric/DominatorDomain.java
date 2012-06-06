@@ -66,7 +66,7 @@ public class DominatorDomain implements AbstractDomain {
         }
     }
 
-    private final static DominatorTopState topElement = new DominatorTopState();
+    private final static DominatorTopState topState = new DominatorTopState();
 
     @Override
     public boolean isLessOrEqual(AbstractState element1, AbstractState element2) throws CPAException
@@ -75,7 +75,7 @@ public class DominatorDomain implements AbstractDomain {
           return true;
         }
 
-        if (element2.equals(topElement)) {
+        if (element2.equals(topState)) {
           return true;
         }
 
@@ -116,16 +116,16 @@ public class DominatorDomain implements AbstractDomain {
       DominatorState dominatorState1 = (DominatorState) element1;
       DominatorState dominatorState2 = (DominatorState) element2;
 
-		if (element1.equals(topElement)) {
+		if (element1.equals(topState)) {
 			return dominatorState1;
 		}
 
-		if (element2.equals(topElement)) {
+		if (element2.equals(topState)) {
 			return dominatorState2;
 		}
 
 		if (!dominatorState1.getDominatedState().equals(dominatorState2.getDominatedState())) {
-			return topElement;
+			return topState;
 		}
 
 		Set<AbstractState> intersectingDominators = new HashSet<AbstractState>();

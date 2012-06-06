@@ -498,13 +498,13 @@ class FunctionPointerTransferRelation implements TransferRelation {
   private static class ExpressionValueVisitor extends DefaultExpressionVisitor<FunctionPointerTarget, UnrecognizedCCodeException>
                                               implements RightHandSideVisitor<FunctionPointerTarget, UnrecognizedCCodeException> {
 
-    private final FunctionPointerState.Builder element;
+    private final FunctionPointerState.Builder state;
     private final String function;
     private final FunctionPointerTarget targetForInvalidPointers;
 
     private ExpressionValueVisitor(FunctionPointerState.Builder pElement, String pFunction,
                                    FunctionPointerTarget pTargetForInvalidPointers) {
-      element = pElement;
+      state = pElement;
       function = pFunction;
       targetForInvalidPointers = pTargetForInvalidPointers;
     }
@@ -522,7 +522,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
     @Override
     public FunctionPointerTarget visit(IASTIdExpression pE) {
-      return element.getTarget(scopedIfNecessary(pE, function));
+      return state.getTarget(scopedIfNecessary(pE, function));
     }
 
     @Override

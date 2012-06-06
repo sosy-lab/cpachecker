@@ -65,7 +65,7 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
 
   // statistics
   private int numberOfCounterExampleChecks                  = 0;
-  private int numberOfErrorPathElements                     = 0;
+  private int numberOfErrorPathStates                     = 0;
   private Timer timerCounterExampleChecks                   = new Timer();
 
   protected ExplicitInterpolationBasedExplicitRefiner(
@@ -102,7 +102,7 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
     for(int i = 0; i < cfaTrace.size(); i++){
       CFAEdge currentEdge = cfaTrace.get(i);
 
-      numberOfErrorPathElements++;
+      numberOfErrorPathStates++;
 
       if(currentEdge instanceof FunctionReturnEdge) {
         currentEdge = ((FunctionReturnEdge)currentEdge).getSummaryEdge();
@@ -226,8 +226,8 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
     out.println(this.getClass().getSimpleName() + ":");
     out.println("  number of explicit refinements:           " + numberOfExplicitRefinements);
     out.println("  number of counter-example checks:         " + numberOfCounterExampleChecks);
-    out.println("  total number of elements in error paths:  " + numberOfErrorPathElements);
-    out.println("  percentage of elements checked:           " + (Math.round(((double)numberOfCounterExampleChecks / (double)numberOfErrorPathElements) * 10000) / 100.00) + "%");
+    out.println("  total number of elements in error paths:  " + numberOfErrorPathStates);
+    out.println("  percentage of elements checked:           " + (Math.round(((double)numberOfCounterExampleChecks / (double)numberOfErrorPathStates) * 10000) / 100.00) + "%");
     out.println("  max. time for singe check:                " + timerCounterExampleChecks.printMaxTime());
     out.println("  total time for checks:                    " + timerCounterExampleChecks);
   }

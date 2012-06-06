@@ -93,7 +93,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   @Option(name = "pcc.proofFile", description = "file in which ARG representation needed for proof checking is stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File file = new File("arg.obj");
-  private final ARGState rootElement;
+  private final ARGState rootState;
 
 
   public ProofCheckAlgorithm(ConfigurableProgramAnalysis cpa, Configuration pConfig, LogManager logger) throws InvalidConfigurationException {
@@ -112,7 +112,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       e.printStackTrace();
       throw new RuntimeException("Failed reading ARG.", e);
     }
-    this.rootElement = rootElement;
+    this.rootState = rootElement;
     System.gc();
   }
 
@@ -171,13 +171,13 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     logger.log(Level.FINE, "Checking root element");
 
-    if(!(cpa.isCoveredBy(initialState, rootElement) && cpa.isCoveredBy(rootElement, initialState))) {
+    if(!(cpa.isCoveredBy(initialState, rootState) && cpa.isCoveredBy(rootState, initialState))) {
       stats.totalTimer.stop();
       logger.log(Level.WARNING, "Root element of proof is invalid.");
       return false;
     }
 
-    reachedSet.add(rootElement, initialPrecision);
+    reachedSet.add(rootState, initialPrecision);
 
     Set<ARGState> postponedElements = new HashSet<ARGState>();
 

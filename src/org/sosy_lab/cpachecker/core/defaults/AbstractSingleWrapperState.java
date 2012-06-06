@@ -56,22 +56,22 @@ public abstract class AbstractSingleWrapperState implements AbstractWrapperState
     return unwrapFunction;
   }
 
-  private final AbstractState wrappedElement;
+  private final AbstractState wrappedState;
 
   public AbstractSingleWrapperState(AbstractState pWrappedElement) {
     // TODO this collides with some CPAs' way of handling TOP and BOTTOM, but it should really be not null here
     // Preconditions.checkNotNull(pWrappedElement);
-    wrappedElement = pWrappedElement;
+    wrappedState = pWrappedElement;
   }
 
   public AbstractState getWrappedState() {
-    return wrappedElement;
+    return wrappedState;
   }
 
   @Override
   public boolean isTarget() {
-    if (wrappedElement instanceof Targetable) {
-      return ((Targetable)wrappedElement).isTarget();
+    if (wrappedState instanceof Targetable) {
+      return ((Targetable)wrappedState).isTarget();
     } else {
       return false;
     }
@@ -79,8 +79,8 @@ public abstract class AbstractSingleWrapperState implements AbstractWrapperState
 
   @Override
   public Object getPartitionKey() {
-    if (wrappedElement instanceof Partitionable) {
-      return ((Partitionable)wrappedElement).getPartitionKey();
+    if (wrappedState instanceof Partitionable) {
+      return ((Partitionable)wrappedState).getPartitionKey();
     } else {
       return null;
     }
@@ -88,11 +88,11 @@ public abstract class AbstractSingleWrapperState implements AbstractWrapperState
 
   @Override
   public String toString() {
-    return wrappedElement.toString();
+    return wrappedState.toString();
   }
 
   @Override
   public Iterable<? extends AbstractState> getWrappedStates() {
-    return Collections.singleton(wrappedElement);
+    return Collections.singleton(wrappedState);
   }
 }

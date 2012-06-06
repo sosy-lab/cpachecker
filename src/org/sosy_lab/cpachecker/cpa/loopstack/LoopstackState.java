@@ -35,14 +35,14 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 public class LoopstackState implements AbstractState, Partitionable, AvoidanceReportingState {
 
-  private final LoopstackState previousElement;
+  private final LoopstackState previousState;
   private final Loop loop;
   private final int depth;
   private final int iteration;
   private final boolean stop;
 
   public LoopstackState(LoopstackState previousElement, Loop loop, int iteration, boolean stop) {
-    this.previousElement = checkNotNull(previousElement);
+    this.previousState = checkNotNull(previousElement);
     this.loop = checkNotNull(loop);
     this.depth = previousElement.getDepth() + 1;
     checkArgument(iteration >= 0);
@@ -51,7 +51,7 @@ public class LoopstackState implements AbstractState, Partitionable, AvoidanceRe
   }
 
   public LoopstackState() {
-    previousElement = null;
+    previousState = null;
     loop = null;
     depth = 0;
     iteration = 0;
@@ -59,7 +59,7 @@ public class LoopstackState implements AbstractState, Partitionable, AvoidanceRe
   }
 
   public LoopstackState getPreviousState() {
-    return previousElement;
+    return previousState;
   }
 
   public Loop getLoop() {
@@ -105,7 +105,7 @@ public class LoopstackState implements AbstractState, Partitionable, AvoidanceRe
     }
 
     LoopstackState other = (LoopstackState)obj;
-    return (this.previousElement == other.previousElement)
+    return (this.previousState == other.previousState)
         && (this.iteration == other.iteration)
         && (this.loop == other.loop);
   }

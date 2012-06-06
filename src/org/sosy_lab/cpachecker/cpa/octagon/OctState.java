@@ -48,19 +48,19 @@ class OctState implements AbstractState{
   // mapping from variable name to its identifier
   private BiMap<String, Integer> variableToIndexMap;
 
-  private OctState previousElement;
+  private OctState previousState;
 
   // also top element
   public OctState() {
     octagon = OctagonManager.universe(0);
     variableToIndexMap = HashBiMap.create();
-    previousElement = null;
+    previousState = null;
   }
 
   public OctState(Octagon oct, BiMap<String, Integer> map, OctState previousElement){
     octagon = oct;
     variableToIndexMap = map;
-    this.previousElement = previousElement;
+    this.previousState = previousElement;
   }
 
   @Override
@@ -95,11 +95,11 @@ class OctState implements AbstractState{
   }
 
   public OctState getPreviousState() {
-    return previousElement;
+    return previousState;
   }
 
   public void setPreviousState(OctState pPreviousElement) {
-    this.previousElement = pPreviousElement;
+    this.previousState = pPreviousElement;
   }
 
   public BiMap<String, Integer> getVariableToIndexMap() {
@@ -123,7 +123,7 @@ class OctState implements AbstractState{
       newMap.put(e.getKey(), e.getValue());
     }
 
-    return new OctState(newOct, newMap, this.previousElement);
+    return new OctState(newOct, newMap, this.previousState);
   }
 
   public boolean addVar(String pVarName, String pFunctionName, boolean pIsGlobal) {

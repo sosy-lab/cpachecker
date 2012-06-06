@@ -51,8 +51,8 @@ class DefaultReachedSet implements ReachedSet {
 
   private final LinkedHashMap<AbstractState, Precision> reached;
   private final Set<AbstractState> unmodifiableReached;
-  private AbstractState lastElement = null;
-  private AbstractState firstElement = null;
+  private AbstractState lastState = null;
+  private AbstractState firstState = null;
   private final Waitlist waitlist;
 
   DefaultReachedSet(WaitlistFactory waitlistFactory) {
@@ -67,7 +67,7 @@ class DefaultReachedSet implements ReachedSet {
     Preconditions.checkNotNull(precision);
 
     if (reached.size() == 0) {
-      firstElement = element;
+      firstState = element;
     }
 
     Precision previousPrecision = reached.put(element, precision);
@@ -75,7 +75,7 @@ class DefaultReachedSet implements ReachedSet {
     if (previousPrecision == null) {
       // Element wasn't already in the reached set.
       waitlist.add(element);
-      lastElement = element;
+      lastState = element;
 
     } else {
       // Element was already in the reached set.
@@ -139,12 +139,12 @@ class DefaultReachedSet implements ReachedSet {
   public void remove(AbstractState element) {
     Preconditions.checkNotNull(element);
     int hc = element.hashCode();
-    if ((firstElement == null) || hc == firstElement.hashCode() && element.equals(firstElement)) {
-      firstElement = null;
+    if ((firstState == null) || hc == firstState.hashCode() && element.equals(firstState)) {
+      firstState = null;
     }
 
-    if ((lastElement == null) || (hc == lastElement.hashCode() && element.equals(lastElement))) {
-      lastElement = null;
+    if ((lastState == null) || (hc == lastState.hashCode() && element.equals(lastState))) {
+      lastState = null;
     }
     waitlist.remove(element);
     reached.remove(element);
@@ -155,7 +155,7 @@ class DefaultReachedSet implements ReachedSet {
     for (AbstractState element : toRemove) {
       remove(element);
     }
-    assert firstElement != null || reached.isEmpty() : "firstElement may only be removed if the whole reached set is cleared";
+    assert firstState != null || reached.isEmpty() : "firstState may only be removed if the whole reached set is cleared";
   }
 
   @Override
@@ -166,8 +166,8 @@ class DefaultReachedSet implements ReachedSet {
 
   @Override
   public void clear() {
-    firstElement = null;
-    lastElement = null;
+    firstState = null;
+    lastState = null;
     waitlist.clear();
     reached.clear();
   }
@@ -206,13 +206,13 @@ class DefaultReachedSet implements ReachedSet {
 
   @Override
   public AbstractState getFirstState() {
-    Preconditions.checkState(firstElement != null);
-    return firstElement;
+    Preconditions.checkState(firstState != null);
+    return firstState;
   }
 
   @Override
   public AbstractState getLastState() {
-    return lastElement;
+    return lastState;
   }
 
   @Override

@@ -46,10 +46,10 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
   private static final long serialVersionUID = -801176497691618779L;
 
   public static class LocationStateFactory {
-    private final LocationState[] elements;
+    private final LocationState[] states;
 
     public LocationStateFactory(CFA pCfa) {
-      elements = initialize(checkNotNull(pCfa));
+      states = initialize(checkNotNull(pCfa));
     }
 
     private static LocationState[] initialize(CFA pCfa) {
@@ -65,7 +65,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     }
 
     public LocationState getState(CFANode node) {
-      return Preconditions.checkNotNull(elements[node.getNodeNumber()]);
+      return Preconditions.checkNotNull(states[node.getNodeNumber()]);
     }
   }
 

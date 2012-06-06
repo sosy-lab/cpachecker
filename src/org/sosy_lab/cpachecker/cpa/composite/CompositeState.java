@@ -37,21 +37,21 @@ import com.google.common.collect.ImmutableList;
 
 public class CompositeState implements AbstractWrapperState, Targetable, Partitionable, Serializable {
   private static final long serialVersionUID = -5143296331663510680L;
-  private final ImmutableList<AbstractState> elements;
+  private final ImmutableList<AbstractState> states;
   private transient Object partitionKey; // lazily initialized
 
   public CompositeState(List<AbstractState> elements)
   {
-    this.elements = ImmutableList.copyOf(elements);
+    this.states = ImmutableList.copyOf(elements);
   }
 
   public int getNumberOfStates(){
-    return elements.size();
+    return states.size();
   }
 
   @Override
   public boolean isTarget() {
-    for (AbstractState element : elements) {
+    for (AbstractState element : states) {
       if ((element instanceof Targetable) && ((Targetable)element).isTarget()) {
         return true;
       }
@@ -64,7 +64,7 @@ public class CompositeState implements AbstractWrapperState, Targetable, Partiti
   {
     StringBuilder builder = new StringBuilder();
     builder.append('(');
-    for (AbstractState element : elements) {
+    for (AbstractState element : states) {
       builder.append(element.getClass().getSimpleName());
       builder.append(": ");
       builder.append(element.toString());
@@ -76,22 +76,22 @@ public class CompositeState implements AbstractWrapperState, Targetable, Partiti
   }
 
   public AbstractState get(int idx) {
-    return elements.get(idx);
+    return states.get(idx);
   }
 
   @Override
   public List<AbstractState> getWrappedStates() {
-    return elements;
+    return states;
   }
 
 
   @Override
   public Object getPartitionKey() {
     if (partitionKey == null) {
-      Object[] keys = new Object[elements.size()];
+      Object[] keys = new Object[states.size()];
 
       int i = 0;
-      for (AbstractState element : elements) {
+      for (AbstractState element : states) {
         if (element instanceof Partitionable) {
           keys[i] = ((Partitionable)element).getPartitionKey();
         }

@@ -39,7 +39,7 @@ public class CallstackReducer implements Reducer {
     CallstackState element = (CallstackState)pExpandedElement;
 
     return copyCallstackUpToCallNode(element, callNode);
-//    return new CallstackState(null, element.getCurrentFunction(), location);
+//    return new CallstackState(null, state.getCurrentFunction(), location);
   }
 
   private CallstackState copyCallstackUpToCallNode(CallstackState element, CFANode callNode) {
@@ -61,7 +61,7 @@ public class CallstackReducer implements Reducer {
     CallstackState reducedElement = (CallstackState)pReducedElement;
 
     // the stackframe on top of rootElement and the stackframe on bottom of reducedElement are the same function
-    // now glue both stacks together at this element
+    // now glue both stacks together at this state
 
     return copyCallstackExceptLast(rootElement, reducedElement);
   }
@@ -101,10 +101,10 @@ public class CallstackReducer implements Reducer {
   }
 
   private static class CallstackStateWithEquals {
-    private final CallstackState element;
+    private final CallstackState state;
 
     public CallstackStateWithEquals(CallstackState pElement) {
-      element = pElement;
+      state = pElement;
     }
 
     @Override
@@ -113,12 +113,12 @@ public class CallstackReducer implements Reducer {
         return false;
       }
 
-      return isEqual(element, ((CallstackStateWithEquals)other).element);
+      return isEqual(state, ((CallstackStateWithEquals)other).state);
     }
 
     @Override
     public int hashCode() {
-      return (element.getDepth() * 17 + element.getCurrentFunction().hashCode()) * 31 + element.getCallNode().hashCode();
+      return (state.getDepth() * 17 + state.getCurrentFunction().hashCode()) * 31 + state.getCallNode().hashCode();
     }
   }
 

@@ -137,13 +137,13 @@ class FunctionPointerState extends AbstractSingleWrapperState  {
 
   static class Builder {
 
-    private final AbstractState wrappedElement;
+    private final AbstractState wrappedState;
     private Map<String,FunctionPointerTarget> values = null;
     private final ImmutableMap<String,FunctionPointerTarget> oldValues;
 
     private Builder(ImmutableMap<String, FunctionPointerTarget> pOldValues, AbstractState pWrappedElement) {
       oldValues = pOldValues;
-      wrappedElement = pWrappedElement;
+      wrappedState = pWrappedElement;
     }
 
     private void setupMaps() {
@@ -182,7 +182,7 @@ class FunctionPointerState extends AbstractSingleWrapperState  {
 
     FunctionPointerState build() {
       Map<String, FunctionPointerTarget> map = Objects.firstNonNull(values, oldValues);
-      return new FunctionPointerState(wrappedElement, map);
+      return new FunctionPointerState(wrappedState, map);
     }
   }
 

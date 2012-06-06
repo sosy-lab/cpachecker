@@ -85,7 +85,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   /**
    * the reference to the current element
    */
-  private AssignmentsInPathConditionState currentElement = null;
+  private AssignmentsInPathConditionState currentState = null;
 
   /**
    * the maximal number of assignments over all variables for all elements seen to far
@@ -118,7 +118,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
   @Override
   public AvoidanceReportingState getAbstractSuccessor(AbstractState element, CFAEdge edge) {
-    currentElement = (AssignmentsInPathConditionState)element;
+    currentState = (AssignmentsInPathConditionState)element;
 
     if(edge.getEdgeType() == CFAEdgeType.StatementEdge) {
       StatementEdge statementEdge = (StatementEdge)edge;
@@ -129,14 +129,14 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
         String assignedVariable = getScopedVariableName(leftHandSide, edge);
         if(assignedVariable != null) {
-          currentElement = currentElement.getSuccessor(assignedVariable);
+          currentState = currentState.getSuccessor(assignedVariable);
         }
       }
     }
 
-    maxNumberOfAssignments = Math.max(maxNumberOfAssignments, currentElement.maximum);
+    maxNumberOfAssignments = Math.max(maxNumberOfAssignments, currentState.maximum);
 
-    for(Map.Entry<String, Integer> assignment : currentElement.getAssignmentCounts().entrySet()) {
+    for(Map.Entry<String, Integer> assignment : currentState.getAssignmentCounts().entrySet()) {
       String variableName     = assignment.getKey();
       Integer currentCounter  = maxNumberOfAssignmentsPerIdentifier.containsKey(variableName) ? maxNumberOfAssignmentsPerIdentifier.get(variableName) : 0;
 
@@ -145,7 +145,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
       maxNumberOfAssignmentsPerIdentifier.put(variableName, currentCounter);
     }
 
-    return currentElement;
+    return currentState;
   }
 
   /**
@@ -216,7 +216,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
       // log the last element found
       builder.append("total number of variable assignments of last element:");
       builder.append("\n");
-      builder.append(currentElement);
+      builder.append(currentState);
 
       // log the max-aggregation
       builder.append("\n");
