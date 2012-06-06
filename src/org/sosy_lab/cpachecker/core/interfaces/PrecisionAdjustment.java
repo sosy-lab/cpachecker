@@ -56,7 +56,7 @@ public interface PrecisionAdjustment {
    * @param elements The current reached set.
    * @return The new element, new precision and the action flag.
    */
-  public Triple<AbstractElement,Precision, Action> prec(
-      AbstractElement element, Precision precision, UnmodifiableReachedSet elements)
+  public Triple<AbstractState,Precision, Action> prec(
+      AbstractState element, Precision precision, UnmodifiableReachedSet elements)
       throws CPAException;
 }

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Preconditions;
@@ -41,20 +41,20 @@ public class CompositeDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractElement join(AbstractElement pElement1,
-      AbstractElement pElement2) throws CPAException {
+  public AbstractState join(AbstractState pElement1,
+      AbstractState pElement2) throws CPAException {
     // a simple join is here not possible, because it would over-approximate,
     // but join needs to return the least upper bound
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractElement pElement1, AbstractElement pElement2) throws CPAException {
+  public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) throws CPAException {
     CompositeElement comp1 = (CompositeElement)pElement1;
     CompositeElement comp2 = (CompositeElement)pElement2;
 
-    List<AbstractElement> comp1Elements = comp1.getWrappedElements();
-    List<AbstractElement> comp2Elements = comp2.getWrappedElements();
+    List<AbstractState> comp1Elements = comp1.getWrappedElements();
+    List<AbstractState> comp2Elements = comp2.getWrappedElements();
 
     Preconditions.checkState(comp1Elements.size() == comp2Elements.size());
     Preconditions.checkState(comp1Elements.size() == domains.size());

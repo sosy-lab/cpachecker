@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.defaults;
 
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -39,7 +39,7 @@ public class StaticPrecisionAdjustment extends SimplePrecisionAdjustment {
   private StaticPrecisionAdjustment() { }
 
   @Override
-  public Action prec(AbstractElement pElement, Precision pPrecision) throws CPAException {
+  public Action prec(AbstractState pElement, Precision pPrecision) throws CPAException {
     return Action.CONTINUE;
   }
 

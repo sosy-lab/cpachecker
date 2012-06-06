@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.collect.Lists.transform;
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractElementByType;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -60,7 +60,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableReleva
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -198,7 +198,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
           Functions.compose(
               GET_REGION,
           Functions.compose(
-              AbstractElements.extractElementByTypeFunction(PredicateAbstractElement.class),
+              AbstractStates.extractElementByTypeFunction(PredicateAbstractElement.class),
               Pair.<ARGElement>getProjectionToFirst())));
     }
 

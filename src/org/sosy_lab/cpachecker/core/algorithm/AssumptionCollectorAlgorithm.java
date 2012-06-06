@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.io.File;
 import java.io.IOException;
@@ -47,7 +47,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -217,16 +217,16 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     // collect and dump all assumptions stored in abstract states
     logger.log(Level.FINER, "Dumping assumptions resulting from tool assumptions");
-    for (AbstractElement element : reached) {
+    for (AbstractState element : reached) {
 
-      if (AbstractElements.isTargetElement(element)) {
+      if (AbstractStates.isTargetElement(element)) {
         // create assumptions for target element
         addAvoidingAssumptions(result, element);
 
       } else {
         // get stored assumption
 
-        AssumptionStorageElement e = AbstractElements.extractElementByType(element, AssumptionStorageElement.class);
+        AssumptionStorageElement e = AbstractStates.extractElementByType(element, AssumptionStorageElement.class);
 
         Formula assumption = formulaManager.makeAnd(e.getAssumption(), e.getStopFormula());
 
@@ -238,7 +238,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     // dump invariants to prevent going further with nodes in the waitlist
     logger.log(Level.FINER, "Dumping assumptions resulting from waitlist elements");
-    for (AbstractElement element : reached.getWaitlist()) {
+    for (AbstractState element : reached.getWaitlist()) {
       addAvoidingAssumptions(result, element);
     }
 
@@ -248,8 +248,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   /**
    * Add a given assumption for the location and state of an element.
    */
-  private void addAssumption(AssumptionWithLocation invariant, Formula assumption, AbstractElement state) {
-    Formula dataRegion = AbstractElements.extractReportedFormulas(formulaManager, state);
+  private void addAssumption(AssumptionWithLocation invariant, Formula assumption, AbstractState state) {
+    Formula dataRegion = AbstractStates.extractReportedFormulas(formulaManager, state);
 
     CFANode loc = extractLocation(state);
     assert loc != null;
@@ -259,23 +259,23 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   /**
    * Create an assumption that is sufficient to exclude an abstract state
    */
-  private void addAvoidingAssumptions(AssumptionWithLocation invariant, AbstractElement element) {
+  private void addAvoidingAssumptions(AssumptionWithLocation invariant, AbstractState element) {
     addAssumption(invariant, formulaManager.makeFalse(), element);
   }
 
   private String produceAssumptionAutomaton(ReachedSet reached) {
-    AbstractElement firstElement = reached.getFirstElement();
+    AbstractState firstElement = reached.getFirstElement();
     if (!(firstElement instanceof ARGElement)) {
       return "Cannot dump assumption as automaton if ARGCPA is not used.";
     }
 
-    Set<AbstractElement> falseAssumptionElements = Sets.newHashSet(reached.getWaitlist());
+    Set<AbstractState> falseAssumptionElements = Sets.newHashSet(reached.getWaitlist());
 
     // scan reached set for all relevant elements with an assumption
     Set<ARGElement> relevantElements = new HashSet<ARGElement>();
-    for (AbstractElement element : reached) {
+    for (AbstractState element : reached) {
       ARGElement e = (ARGElement)element;
-      AssumptionStorageElement asmptElement = AbstractElements.extractElementByType(e, AssumptionStorageElement.class);
+      AssumptionStorageElement asmptElement = AbstractStates.extractElementByType(e, AssumptionStorageElement.class);
 
       if (e.isTarget()
           || asmptElement.isStop()
@@ -317,7 +317,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    * @param falseAssumptionElements A set with all elements with the assumption FALSE
    */
   private String writeAutomaton(ARGElement initialElement, Set<ARGElement> allElements,
-      Set<ARGElement> relevantElements, Set<AbstractElement> falseAssumptionElements) {
+      Set<ARGElement> relevantElements, Set<AbstractState> falseAssumptionElements) {
     StringBuilder sb = new StringBuilder();
     sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
 
@@ -358,20 +358,20 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           sb.append("    branchingCount == branchingThreshold -> " + actionOnFinalEdges + "GOTO __FALSE;\n");
         }
 
-        CFANode loc = AbstractElements.extractLocation(e);
+        CFANode loc = AbstractStates.extractLocation(e);
         for (ARGElement child : e.getChildren()) {
           if (child.isCovered()) {
             child = child.getCoveringElement();
             assert !child.isCovered();
           }
 
-          CFANode childLoc = AbstractElements.extractLocation(child);
+          CFANode childLoc = AbstractStates.extractLocation(child);
           CFAEdge edge = loc.getEdgeTo(childLoc);
           sb.append("    MATCH \"");
           escape(edge.getRawStatement(), sb);
           sb.append("\" -> ");
 
-          AssumptionStorageElement assumptionChild = AbstractElements.extractElementByType(child, AssumptionStorageElement.class);
+          AssumptionStorageElement assumptionChild = AbstractStates.extractElementByType(child, AssumptionStorageElement.class);
           Formula assumption = formulaManager.makeAnd(assumptionChild.getAssumption(), assumptionChild.getStopFormula());
           sb.append("ASSUME \"");
           escape(assumption.toString(), sb);

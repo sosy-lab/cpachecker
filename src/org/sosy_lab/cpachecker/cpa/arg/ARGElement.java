@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.*;
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -35,14 +35,14 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
 
-public class ARGElement extends AbstractSingleWrapperElement implements Comparable<ARGElement> {
+public class ARGElement extends AbstractSingleWrapperState implements Comparable<ARGElement> {
 
   private static final long serialVersionUID = 2608287648397165040L;
   private final Set<ARGElement> children;
@@ -62,7 +62,7 @@ public class ARGElement extends AbstractSingleWrapperElement implements Comparab
 
   private static int nextArtElementId = 0;
 
-  public ARGElement(AbstractElement pWrappedElement, ARGElement pParentElement) {
+  public ARGElement(AbstractState pWrappedElement, ARGElement pParentElement) {
     super(pWrappedElement);
     elementId = ++nextArtElementId;
     parents = new LinkedHashSet<ARGElement>(1); // TODO Is HashSet enough? It would be more memory-efficient.

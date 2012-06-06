@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.monitor;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -38,9 +38,9 @@ public class MonitorMerge implements MergeOperator{
   }
 
   @Override
-  public AbstractElement merge(
-      AbstractElement pElement1,
-      AbstractElement pElement2, Precision pPrecision)
+  public AbstractState merge(
+      AbstractState pElement1,
+      AbstractState pElement2, Precision pPrecision)
   throws CPAException {
     MonitorElement monitorElement1= (MonitorElement)pElement1;
     MonitorElement monitorElement2 = (MonitorElement)pElement2;
@@ -50,9 +50,9 @@ public class MonitorMerge implements MergeOperator{
     }
 
     MergeOperator mergeOperator = wrappedCpa.getMergeOperator();
-    AbstractElement wrappedElement1 = monitorElement1.getWrappedElement();
-    AbstractElement wrappedElement2 = monitorElement2.getWrappedElement();
-    AbstractElement retElement = mergeOperator.merge(wrappedElement1, wrappedElement2, pPrecision);
+    AbstractState wrappedElement1 = monitorElement1.getWrappedElement();
+    AbstractState wrappedElement2 = monitorElement2.getWrappedElement();
+    AbstractState retElement = mergeOperator.merge(wrappedElement1, wrappedElement2, pPrecision);
     if(retElement.equals(wrappedElement2)){
       return pElement2;
     }

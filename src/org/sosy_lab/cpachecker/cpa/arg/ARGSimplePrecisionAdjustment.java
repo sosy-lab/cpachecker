@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -37,7 +37,7 @@ public class ARGSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
   }
 
   @Override
-  public Action prec(AbstractElement pElement, Precision pPrecision) throws CPAException {
+  public Action prec(AbstractState pElement, Precision pPrecision) throws CPAException {
     ARGElement element = (ARGElement)pElement;
 
     return wrappedPrecAdjustment.prec(element.getWrappedElement(), pPrecision);

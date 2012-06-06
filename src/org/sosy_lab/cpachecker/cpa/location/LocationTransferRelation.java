@@ -31,7 +31,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.location.LocationElement.LocationElementFactory;
@@ -45,7 +45,7 @@ public class LocationTransferRelation implements TransferRelation {
     factory = pFactory;
   }
 
-  private Collection<LocationElement> getAbstractSuccessor(AbstractElement element,
+  private Collection<LocationElement> getAbstractSuccessor(AbstractState element,
       CFAEdge cfaEdge, Precision prec) throws CPATransferException {
 
     LocationElement inputElement = (LocationElement) element;
@@ -68,7 +68,7 @@ public class LocationTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<LocationElement> getAbstractSuccessors(AbstractElement element,
+  public Collection<LocationElement> getAbstractSuccessors(AbstractState element,
       Precision prec, CFAEdge cfaEdge) throws CPATransferException {
 
     if (cfaEdge != null) {
@@ -89,8 +89,8 @@ public class LocationTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement element,
-      List<AbstractElement> otherElements, CFAEdge cfaEdge, Precision precision) {
+  public Collection<? extends AbstractState> strengthen(AbstractState element,
+      List<AbstractState> otherElements, CFAEdge cfaEdge, Precision precision) {
     return null;
   }
 }

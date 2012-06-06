@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingState;
 
 import com.google.common.base.Preconditions;
 
@@ -34,7 +34,7 @@ import com.google.common.base.Preconditions;
  * encapsulate a symbolic formula that represents the
  * assumption.
  */
-public class GenericAssumptionsElement implements AbstractElement, AssumptionReportingElement {
+public class GenericAssumptionsElement implements AbstractState, AssumptionReportingState {
 
   // The inner representation is an expression.
   private final IASTExpression assumption;

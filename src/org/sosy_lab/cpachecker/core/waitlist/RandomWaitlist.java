@@ -26,21 +26,21 @@ package org.sosy_lab.cpachecker.core.waitlist;
 import java.util.LinkedList;
 import java.util.Random;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /**
  * Waitlist implementation that considers elements in a random order for pop().
  */
-public class RandomWaitlist extends AbstractWaitlist<LinkedList<AbstractElement>> {
+public class RandomWaitlist extends AbstractWaitlist<LinkedList<AbstractState>> {
 
   private final Random rand = new Random();
 
   protected RandomWaitlist() {
-    super(new LinkedList<AbstractElement>());
+    super(new LinkedList<AbstractState>());
   }
 
   @Override
-  public AbstractElement pop() {
+  public AbstractState pop() {
     int r = rand.nextInt(waitlist.size());
     return waitlist.remove(r);
   }

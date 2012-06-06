@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.defuse;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
-public class DefUseDefinition implements AbstractElement
+public class DefUseDefinition implements AbstractState
 {
     private final String variableName;
     private final CFAEdge assigningEdge;

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.abm;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
@@ -45,8 +45,8 @@ class TimedReducer implements Reducer {
   }
 
   @Override
-  public AbstractElement getVariableReducedElement(
-      AbstractElement pExpandedElement, Block pContext,
+  public AbstractState getVariableReducedElement(
+      AbstractState pExpandedElement, Block pContext,
       CFANode pCallNode) {
 
     reduceTime.start();
@@ -58,9 +58,9 @@ class TimedReducer implements Reducer {
   }
 
   @Override
-  public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, Block pReducedContext,
-      AbstractElement pReducedElement) {
+  public AbstractState getVariableExpandedElement(
+      AbstractState pRootElement, Block pReducedContext,
+      AbstractState pReducedElement) {
 
     expandTime.start();
     try {
@@ -71,7 +71,7 @@ class TimedReducer implements Reducer {
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
+  public Object getHashCodeForElement(AbstractState pElementKey, Precision pPrecisionKey) {
     return wrappedReducer.getHashCodeForElement(pElementKey, pPrecisionKey);
   }
 

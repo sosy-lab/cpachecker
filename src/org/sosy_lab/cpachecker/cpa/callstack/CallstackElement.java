@@ -29,13 +29,13 @@ import java.io.IOException;
 import java.io.Serializable;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-public final class CallstackElement implements AbstractElement, Partitionable, AbstractQueryableElement, Serializable {
+public final class CallstackElement implements AbstractState, Partitionable, AbstractQueryableState, Serializable {
 
   private static final long serialVersionUID = 3629687385150064994L;
   private final CallstackElement previousElement;

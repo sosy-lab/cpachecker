@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
@@ -36,14 +36,14 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 public class AssumptionStorageStop implements StopOperator {
 
   @Override
-  public boolean stop(AbstractElement pElement, Collection<AbstractElement> reached, Precision precision) {
+  public boolean stop(AbstractState pElement, Collection<AbstractState> reached, Precision precision) {
     AssumptionStorageElement element = (AssumptionStorageElement) pElement;
 
     if (element.isStop()) {
       // normally we want to keep this element so that the assumption is not lost
       // but we may return true if the new assumption is implied by the old ones
 
-      for (AbstractElement ae : reached) {
+      for (AbstractState ae : reached) {
         AssumptionStorageElement reachedElement = (AssumptionStorageElement)ae;
 
         // implication check is costly, so we do a fast syntactical approximation

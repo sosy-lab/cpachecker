@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
@@ -40,7 +40,7 @@ class OctDomain implements AbstractDomain{
   static long totaltime = 0;
 
   @Override
-  public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) {
+  public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
 
     Map<OctElement, Set<OctElement>> covers = new HashMap<OctElement, Set<OctElement>>();
 
@@ -80,7 +80,7 @@ class OctDomain implements AbstractDomain{
   }
 
   @Override
-  public AbstractElement join(AbstractElement element1, AbstractElement element2) {
+  public AbstractState join(AbstractState element1, AbstractState element2) {
     OctElement octEl1 = (OctElement) element1;
     OctElement octEl2 = (OctElement) element2;
     Octagon newOctagon = OctagonManager.union(octEl1.getOctagon(), octEl2.getOctagon());

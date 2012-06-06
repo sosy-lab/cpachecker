@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
@@ -163,7 +163,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     ForwardingReachedSet reached = (ForwardingReachedSet)pReached;
 
-    CFANode mainFunction = AbstractElements.extractLocation(pReached.getFirstElement());
+    CFANode mainFunction = AbstractStates.extractLocation(pReached.getFirstElement());
     assert mainFunction != null : "Location information needed";
 
     Iterator<File> configFilesIterator = configFiles.iterator();
@@ -198,7 +198,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         try {
           boolean sound = currentAlgorithm.run(currentReached);
 
-          if (Iterables.any(currentReached, AbstractElements.IS_TARGET_ELEMENT)) {
+          if (Iterables.any(currentReached, AbstractStates.IS_TARGET_ELEMENT)) {
             return sound;
           }
 
@@ -304,7 +304,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       ReachedSetFactory pReachedSetFactory) {
     logger.log(Level.FINE, "Creating initial reached set");
 
-    AbstractElement initialElement = cpa.getInitialElement(mainFunction);
+    AbstractState initialElement = cpa.getInitialElement(mainFunction);
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
 
     ReachedSet reached = pReachedSetFactory.create();

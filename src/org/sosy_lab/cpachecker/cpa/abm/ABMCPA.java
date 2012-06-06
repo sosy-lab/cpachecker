@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
@@ -105,7 +105,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   @Override
-  public AbstractElement getInitialElement(CFANode node)  {
+  public AbstractState getInitialElement(CFANode node)  {
     if (blockPartitioning == null) {
       blockPartitioning = heuristic.buildPartitioning(node);
       transfer.setBlockPartitioning(blockPartitioning);
@@ -115,7 +115,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
         predicateCpa.setPartitioning(blockPartitioning);
       }
 
-      Map<AbstractElement, Precision> forwardPrecisionToExpandedPrecision = new HashMap<AbstractElement, Precision>();
+      Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision = new HashMap<AbstractState, Precision>();
       transfer.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
       prec.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
     }

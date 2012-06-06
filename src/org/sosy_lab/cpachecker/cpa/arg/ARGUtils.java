@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -39,11 +39,11 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.Iterables;
 
@@ -153,7 +153,7 @@ public class ARGUtils {
       color = "red";
 
     } else {
-      PredicateAbstractElement abselem = AbstractElements.extractElementByType(currentElement, PredicateAbstractElement.class);
+      PredicateAbstractElement abselem = AbstractStates.extractElementByType(currentElement, PredicateAbstractElement.class);
       if (abselem != null && abselem.isAbstractionElement()) {
         color = "cornflowerblue";
       } else {
@@ -267,13 +267,13 @@ public class ARGUtils {
 
     builder.append(currentElement.getElementId());
 
-    CFANode loc = AbstractElements.extractLocation(currentElement);
+    CFANode loc = AbstractStates.extractLocation(currentElement);
     if(loc != null) {
       builder.append(" @ ");
       builder.append(loc.toString());
     }
 
-    Iterable<AutomatonState> states = AbstractElements.extractAllElementsOfType(currentElement, AutomatonState.class);
+    Iterable<AutomatonState> states = AbstractStates.extractAllElementsOfType(currentElement, AutomatonState.class);
     for (AutomatonState state : states) {
       if (!state.getInternalStateName().equals("Init")) {
         builder.append("\\n");
@@ -283,13 +283,13 @@ public class ARGUtils {
       }
     }
 
-    PredicateAbstractElement abstraction = AbstractElements.extractElementByType(currentElement, PredicateAbstractElement.class);
+    PredicateAbstractElement abstraction = AbstractStates.extractElementByType(currentElement, PredicateAbstractElement.class);
     if(abstraction != null && abstraction.isAbstractionElement()) {
       builder.append("\\n");
       builder.append(abstraction.getAbstractionFormula());
     }
 
-    ExplicitElement explicit = AbstractElements.extractElementByType(currentElement, ExplicitElement.class);
+    ExplicitElement explicit = AbstractStates.extractElementByType(currentElement, ExplicitElement.class);
     if(explicit != null) {
       builder.append("\\n");
       builder.append(explicit.toCompactString());
@@ -310,7 +310,7 @@ public class ARGUtils {
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG is inconsistent.
    */
   public static Path getPathFromBranchingInformation(
-      ARGElement root, Collection<? extends AbstractElement> arg,
+      ARGElement root, Collection<? extends AbstractState> arg,
       Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
 
     checkArgument(arg.contains(root));
@@ -413,7 +413,7 @@ public class ARGUtils {
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG is inconsistent.
    */
   public static Path getPathFromBranchingInformation(
-      ARGElement root, ARGElement target, Collection<? extends AbstractElement> arg,
+      ARGElement root, ARGElement target, Collection<? extends AbstractState> arg,
       Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
 
     checkArgument(arg.contains(target));

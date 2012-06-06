@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Preconditions;
 
@@ -37,14 +37,14 @@ public class ReversePostorderSortedWaitlist extends AbstractSortedWaitlist<Integ
   }
 
   @Override
-  public void add(AbstractElement pElement) {
-    assert AbstractElements.extractLocation(pElement) != null;
+  public void add(AbstractState pElement) {
+    assert AbstractStates.extractLocation(pElement) != null;
     super.add(pElement);
   }
 
   @Override
-  protected Integer getSortKey(AbstractElement pElement) {
-    return AbstractElements.extractLocation(pElement).getReversePostorderId();
+  protected Integer getSortKey(AbstractState pElement) {
+    return AbstractStates.extractLocation(pElement).getReversePostorderId();
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {

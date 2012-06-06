@@ -33,7 +33,7 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 import com.google.common.collect.ImmutableList;
@@ -90,7 +90,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
       // run the inner algorithm to fill the reached set
       sound &= innerAlgorithm.run(pReached);
 
-      if (Iterables.any(pReached, AbstractElements.IS_TARGET_ELEMENT)) {
+      if (Iterables.any(pReached, AbstractStates.IS_TARGET_ELEMENT)) {
         return sound;
       }
 
@@ -100,7 +100,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
         return sound;
       }
 
-      List<AbstractElement> elementsWithAssumptions = getElementsWithAssumptions(pReached);
+      List<AbstractState> elementsWithAssumptions = getElementsWithAssumptions(pReached);
 
       // if there are elements that an assumption is generated for
       if (!elementsWithAssumptions.isEmpty()) {
@@ -123,21 +123,21 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
     return sound;
   }
 
-  private List<AbstractElement> getElementsWithAssumptions(ReachedSet reached) {
+  private List<AbstractState> getElementsWithAssumptions(ReachedSet reached) {
 
-    List<AbstractElement> retList = new ArrayList<AbstractElement>();
+    List<AbstractState> retList = new ArrayList<AbstractState>();
 
-    for (AbstractElement element : reached) {
+    for (AbstractState element : reached) {
 
       // TODO do we need target elements?
-//      if (AbstractElements.isTargetElement(element)) {
+//      if (AbstractStates.isTargetElement(element)) {
 //        // create assumptions for target element
 //        retList.add(element);
 //
 //      } else {
 
         // check if stored assumption is not "true"
-        AssumptionStorageElement e = AbstractElements.extractElementByType(element, AssumptionStorageElement.class);
+        AssumptionStorageElement e = AbstractStates.extractElementByType(element, AssumptionStorageElement.class);
 
         if (!e.getAssumption().isTrue()
             || !e.getStopFormula().isTrue()) {
@@ -149,10 +149,10 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
     return retList;
   }
 
-  private void adjustThresholds(List<AbstractElement> pElementsWithAssumptions, ReachedSet pReached) {
+  private void adjustThresholds(List<AbstractState> pElementsWithAssumptions, ReachedSet pReached) {
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
-    for (AbstractElement e: pElementsWithAssumptions) {
+    for (AbstractState e: pElementsWithAssumptions) {
       ARGElement argElement = (ARGElement)e;
 
       for (ARGElement parent : ImmutableSet.copyOf(argElement.getParents())){

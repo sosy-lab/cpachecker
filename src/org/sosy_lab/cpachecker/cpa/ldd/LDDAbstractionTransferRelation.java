@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -76,7 +76,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends LDDAbstractElement> getAbstractSuccessors(AbstractElement element, Precision precision,
+  public Collection<? extends LDDAbstractElement> getAbstractSuccessors(AbstractState element, Precision precision,
       CFAEdge edge) throws CPATransferException, InterruptedException {
     if (!(element instanceof LDDAbstractElement)) { return Collections.emptyList(); }
     LDDAbstractElement analysisElement = (LDDAbstractElement) element;
@@ -712,8 +712,8 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends LDDAbstractElement> strengthen(AbstractElement pElement,
-      List<AbstractElement> otherElements, CFAEdge edge, Precision pPrecision) throws CPATransferException,
+  public Collection<? extends LDDAbstractElement> strengthen(AbstractState pElement,
+      List<AbstractState> otherElements, CFAEdge edge, Precision pPrecision) throws CPATransferException,
       InterruptedException {
     return null;
   }

@@ -31,8 +31,8 @@ import java.util.SortedSet;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 
-public class LocationElement implements AbstractElementWithLocation, AbstractQueryableElement, Partitionable, Serializable {
+public class LocationElement implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
 
   private static final long serialVersionUID = -801176497691618779L;
 

@@ -27,9 +27,9 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * Advanced implementation of ReachedSet.
@@ -43,13 +43,13 @@ public class LocationMappedReachedSet extends PartitionedReachedSet {
   }
 
   @Override
-  public Collection<AbstractElement> getReached(CFANode location) {
+  public Collection<AbstractState> getReached(CFANode location) {
     return getReachedForKey(location);
   }
 
   @Override
-  protected Object getPartitionKey(AbstractElement pElement) {
-    CFANode location = AbstractElements.extractLocation(pElement);
+  protected Object getPartitionKey(AbstractState pElement) {
+    CFANode location = AbstractStates.extractLocation(pElement);
     assert location != null : "Location information necessary for LocationMappedReachedSet";
     return location;
   }

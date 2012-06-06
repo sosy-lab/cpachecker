@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -38,7 +38,7 @@ public class AssumptionStorageDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) {
+  public AbstractState join(AbstractState pElement1, AbstractState pElement2) {
 
     AssumptionStorageElement storageElement1= (AssumptionStorageElement)pElement1;
     AssumptionStorageElement storageElement2 = (AssumptionStorageElement)pElement2;
@@ -64,7 +64,7 @@ public class AssumptionStorageDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractElement pElement1, AbstractElement pElement2) {
+  public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) {
     throw new UnsupportedOperationException();
   }
 }

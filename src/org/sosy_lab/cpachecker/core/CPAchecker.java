@@ -41,13 +41,13 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Charsets;
@@ -279,7 +279,7 @@ public class CPAchecker {
   }
 
   private Result analyzeResult(final ReachedSet reached, boolean sound) {
-    if (Iterables.any(reached, AbstractElements.IS_TARGET_ELEMENT)) {
+    if (Iterables.any(reached, AbstractStates.IS_TARGET_ELEMENT)) {
       return Result.UNSAFE;
     }
 
@@ -302,7 +302,7 @@ public class CPAchecker {
       final CFAFunctionDefinitionNode mainFunction) {
     logger.log(Level.FINE, "Creating initial reached set");
 
-    AbstractElement initialElement = cpa.getInitialElement(mainFunction);
+    AbstractState initialElement = cpa.getInitialElement(mainFunction);
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
 
     reached.add(initialElement, initialPrecision);

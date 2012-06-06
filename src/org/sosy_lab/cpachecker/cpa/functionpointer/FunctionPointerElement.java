@@ -32,8 +32,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
@@ -43,7 +43,7 @@ import com.google.common.collect.Maps;
 /**
  * Represents one abstract state of the FunctionPointer CPA.
  */
-class FunctionPointerElement extends AbstractSingleWrapperElement  {
+class FunctionPointerElement extends AbstractSingleWrapperState  {
   /* Boilerplate code to avoid serializing this class */
   private static final long serialVersionUID = 0xDEADBEEF;
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
@@ -137,11 +137,11 @@ class FunctionPointerElement extends AbstractSingleWrapperElement  {
 
   static class Builder {
 
-    private final AbstractElement wrappedElement;
+    private final AbstractState wrappedElement;
     private Map<String,FunctionPointerTarget> values = null;
     private final ImmutableMap<String,FunctionPointerTarget> oldValues;
 
-    private Builder(ImmutableMap<String, FunctionPointerTarget> pOldValues, AbstractElement pWrappedElement) {
+    private Builder(ImmutableMap<String, FunctionPointerTarget> pOldValues, AbstractState pWrappedElement) {
       oldValues = pOldValues;
       wrappedElement = pWrappedElement;
     }
@@ -189,25 +189,25 @@ class FunctionPointerElement extends AbstractSingleWrapperElement  {
   // This map should never contain UnknownTargets.
   private final ImmutableMap<String,FunctionPointerTarget> pointerVariableValues;
 
-  private FunctionPointerElement(AbstractElement pWrappedElement) {
+  private FunctionPointerElement(AbstractState pWrappedElement) {
     super(pWrappedElement);
     pointerVariableValues = ImmutableMap.of();
   }
 
-  private FunctionPointerElement(AbstractElement pWrappedElement, Map<String, FunctionPointerTarget> pValues) {
+  private FunctionPointerElement(AbstractState pWrappedElement, Map<String, FunctionPointerTarget> pValues) {
     super(pWrappedElement);
     pointerVariableValues = ImmutableMap.copyOf(pValues);
   }
 
-  public static FunctionPointerElement createEmptyElement(AbstractElement pWrappedElement) {
+  public static FunctionPointerElement createEmptyElement(AbstractState pWrappedElement) {
     return new FunctionPointerElement(pWrappedElement);
   }
 
-  public FunctionPointerElement.Builder createBuilderWithNewWrappedElement(AbstractElement pElement) {
+  public FunctionPointerElement.Builder createBuilderWithNewWrappedElement(AbstractState pElement) {
     return new Builder(this.pointerVariableValues, pElement);
   }
 
-  public FunctionPointerElement createDuplicateWithNewWrappedElement(AbstractElement pElement) {
+  public FunctionPointerElement createDuplicateWithNewWrappedElement(AbstractState pElement) {
     return new FunctionPointerElement(pElement, this.pointerVariableValues);
   }
 

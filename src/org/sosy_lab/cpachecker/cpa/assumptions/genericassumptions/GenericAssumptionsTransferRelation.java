@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.NumericTypes;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -56,7 +56,7 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
         new ArithmeticOverflowAssumptionBuilder());
 
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement el, Precision p, CFAEdge edge)
+  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState el, Precision p, CFAEdge edge)
   throws CPATransferException
   {
 
@@ -80,8 +80,8 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(
-      AbstractElement el, List<AbstractElement> otherElements,
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState el, List<AbstractState> otherElements,
       CFAEdge edge, Precision p)
       throws CPATransferException {
     // TODO Improve strengthening for assumptions so that they

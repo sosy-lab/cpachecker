@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.defaults;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -35,16 +35,16 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * between different layers.
  */
 public class FlatLatticeDomain implements AbstractDomain {
-  private final AbstractElement mTopElement;
+  private final AbstractState mTopElement;
 
-  private static class TopElement implements AbstractElement {
+  private static class TopElement implements AbstractState {
     @Override
     public String toString() {
       return "<TOP>";
     }
   }
 
-  public FlatLatticeDomain(AbstractElement pTopElement) {
+  public FlatLatticeDomain(AbstractState pTopElement) {
     assert(pTopElement != null);
 
     this.mTopElement = pTopElement;
@@ -55,7 +55,7 @@ public class FlatLatticeDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) throws CPAException {
+  public AbstractState join(AbstractState pElement1, AbstractState pElement2) throws CPAException {
     if (isLessOrEqual(pElement1, pElement2)) {
       return pElement2;
     }
@@ -68,7 +68,7 @@ public class FlatLatticeDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement) throws CPAException {
+  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedElement) throws CPAException {
     return (mTopElement.equals(reachedElement) || newElement.equals(reachedElement));
   }
 }

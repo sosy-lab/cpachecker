@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.waitlist;
 import java.util.Collection;
 import java.util.Iterator;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /**
  * Default implementation for a waitlist that uses any collection as the backing
@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
  * Sub-classes may choose their own collection implementation (e.g. a LinkedList
  * or an ArrayDeque) depending on their needs for pop().
  */
-public abstract class AbstractWaitlist<T extends Collection<AbstractElement>> implements Waitlist {
+public abstract class AbstractWaitlist<T extends Collection<AbstractState>> implements Waitlist {
 
   protected final T waitlist;
 
@@ -45,7 +45,7 @@ public abstract class AbstractWaitlist<T extends Collection<AbstractElement>> im
   }
 
   @Override
-  public void add(AbstractElement pElement) {
+  public void add(AbstractState pElement) {
     waitlist.add(pElement);
   }
 
@@ -55,7 +55,7 @@ public abstract class AbstractWaitlist<T extends Collection<AbstractElement>> im
   }
 
   @Override
-  public boolean contains(AbstractElement pElement) {
+  public boolean contains(AbstractState pElement) {
     return waitlist.contains(pElement);
   }
 
@@ -65,12 +65,12 @@ public abstract class AbstractWaitlist<T extends Collection<AbstractElement>> im
   }
 
   @Override
-  public Iterator<AbstractElement> iterator() {
+  public Iterator<AbstractState> iterator() {
     return waitlist.iterator();
   }
 
   @Override
-  public boolean remove(AbstractElement pElement) {
+  public boolean remove(AbstractState pElement) {
     return waitlist.remove(pElement);
   }
 

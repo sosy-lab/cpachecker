@@ -30,12 +30,12 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -50,7 +50,7 @@ public class ARGTransferRelation implements TransferRelation {
 
   @Override
   public Collection<ARGElement> getAbstractSuccessors(
-      AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
+      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
     ARGElement element = (ARGElement)pElement;
 
@@ -61,14 +61,14 @@ public class ARGTransferRelation implements TransferRelation {
 
     element.markExpanded();
 
-    AbstractElement wrappedElement = element.getWrappedElement();
-    Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, pCfaEdge);
+    AbstractState wrappedElement = element.getWrappedElement();
+    Collection<? extends AbstractState> successors = transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, pCfaEdge);
     if (successors.isEmpty()) {
       return Collections.emptySet();
     }
 
     Collection<ARGElement> wrappedSuccessors = new ArrayList<ARGElement>();
-    for (AbstractElement absElement : successors) {
+    for (AbstractState absElement : successors) {
       ARGElement successorElem = new ARGElement(absElement, element);
       wrappedSuccessors.add(successorElem);
     }
@@ -77,20 +77,20 @@ public class ARGTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement element,
-                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
+  public Collection<? extends AbstractState> strengthen(AbstractState element,
+                         List<AbstractState> otherElements, CFAEdge cfaEdge,
                          Precision precision) {
     return null;
   }
 
-  boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge, Collection<? extends AbstractElement> pSuccessors, ProofChecker wrappedProofChecker) throws CPATransferException, InterruptedException {
+  boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors, ProofChecker wrappedProofChecker) throws CPATransferException, InterruptedException {
     ARGElement element = (ARGElement)pElement;
 
     assert element.getChildren().equals(pSuccessors);
 
-    AbstractElement wrappedElement = element.getWrappedElement();
-    Multimap<CFAEdge, AbstractElement> wrappedSuccessors = HashMultimap.create();
-    for (AbstractElement absElement : pSuccessors) {
+    AbstractState wrappedElement = element.getWrappedElement();
+    Multimap<CFAEdge, AbstractState> wrappedSuccessors = HashMultimap.create();
+    for (AbstractState absElement : pSuccessors) {
       ARGElement successorElem = (ARGElement)absElement;
       wrappedSuccessors.put(element.getEdgeToChild(successorElem), successorElem.getWrappedElement());
     }
@@ -99,7 +99,7 @@ public class ARGTransferRelation implements TransferRelation {
       return wrappedProofChecker.areAbstractSuccessors(wrappedElement, pCfaEdge, wrappedSuccessors.get(pCfaEdge));
     }
 
-    CFANode loc = AbstractElements.extractLocation(element);
+    CFANode loc = AbstractStates.extractLocation(element);
     for(int i = 0; i < loc.getNumLeavingEdges(); ++i) {
       CFAEdge edge = loc.getLeavingEdge(i);
       if(!wrappedProofChecker.areAbstractSuccessors(wrappedElement, edge, wrappedSuccessors.get(edge))) {

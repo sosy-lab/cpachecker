@@ -28,12 +28,12 @@ import java.util.Iterator;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public class UninitializedVariablesDomain implements AbstractDomain {
 
   @Override
-  public AbstractElement join(AbstractElement element1, AbstractElement element2) {
+  public AbstractState join(AbstractState element1, AbstractState element2) {
       UninitializedVariablesElement uninitVarsElement1 = (UninitializedVariablesElement)element1;
       UninitializedVariablesElement uninitVarsElement2 = (UninitializedVariablesElement)element2;
 
@@ -48,7 +48,7 @@ public class UninitializedVariablesDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) {
+  public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
       // returns true if element1 < element2 on lattice
       UninitializedVariablesElement uninitVarsElement1 = (UninitializedVariablesElement)element1;
       UninitializedVariablesElement uninitVarsElement2 = (UninitializedVariablesElement)element2;

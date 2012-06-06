@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -76,10 +76,10 @@ public class DominatorCPA {
     return precisionAdjustment;
   }
 
-  public AbstractElement getInitialElement(CFANode node) {
-    AbstractElement dominatedInitialElement_tmp = this.cpa.getInitialElement(node);
+  public AbstractState getInitialElement(CFANode node) {
+    AbstractState dominatedInitialElement_tmp = this.cpa.getInitialElement(node);
 
-    AbstractElement dominatedInitialElement = dominatedInitialElement_tmp;
+    AbstractState dominatedInitialElement = dominatedInitialElement_tmp;
 
     DominatorElement initialElement = new DominatorElement(dominatedInitialElement);
 

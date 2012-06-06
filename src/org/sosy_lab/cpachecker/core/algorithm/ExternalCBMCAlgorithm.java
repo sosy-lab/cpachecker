@@ -40,7 +40,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCExecutor;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
@@ -178,7 +178,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private static class DummyErrorElement implements AbstractElement, Targetable {
+  private static class DummyErrorElement implements AbstractState, Targetable {
 
     @Override
     public boolean isTarget() {

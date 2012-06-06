@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.invariants.choosers.TemplateChooser;
@@ -81,7 +81,7 @@ public class PathProgramNetworkBuilder implements NetworkBuilder {
     SortedSet<CFANode> nodes = new TreeSet<CFANode>();
     for (Pair<ARGElement, CFAEdge> pair : cePath) {
       ARGElement ae = pair.getFirst();
-      CFANode n = AbstractElements.extractLocation(ae);
+      CFANode n = AbstractStates.extractLocation(ae);
       nodes.add(n);
     }
     return nodes;
@@ -117,9 +117,9 @@ public class PathProgramNetworkBuilder implements NetworkBuilder {
 
       // Build locations and transition formula.
       transitionFormula = (TemplateFormula)tpfb.buildPathFormula(edge).getFormula();
-      node = AbstractElements.extractLocation(ae1);
+      node = AbstractStates.extractLocation(ae1);
       l1 = new Location(node);
-      node = AbstractElements.extractLocation(ae2);
+      node = AbstractStates.extractLocation(ae2);
       l2 = new Location(node);
 
       // Build transition.

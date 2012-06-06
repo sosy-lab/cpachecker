@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.reachedset;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 /**
@@ -44,32 +44,32 @@ public interface ReachedSet extends UnmodifiableReachedSet {
    * If the element is already in the reached set and the precisions are equal,
    * nothing is done.
    *
-   * @param element An AbstractElement.
-   * @param precision The Precision for the AbstractElement
+   * @param element An AbstractState.
+   * @param precision The Precision for the AbstractState
    * @throws IllegalArgumentException If the element is already in the reached set, but with a different precision.
    */
-  public void add(AbstractElement element, Precision precision) throws IllegalArgumentException;
+  public void add(AbstractState element, Precision precision) throws IllegalArgumentException;
 
 
-  public void addAll(Iterable<Pair<AbstractElement, Precision>> toAdd);
+  public void addAll(Iterable<Pair<AbstractState, Precision>> toAdd);
 
   /**
    * Re-add an element to the waitlist which is already contained in the reached set.
    */
-  public void reAddToWaitlist(AbstractElement e);
+  public void reAddToWaitlist(AbstractState e);
 
   /**
    * Change the precision of an element that is already in the reached set.
    */
-  public void updatePrecision(AbstractElement e, Precision newPrecision);
+  public void updatePrecision(AbstractState e, Precision newPrecision);
 
-  public void remove(AbstractElement element);
+  public void remove(AbstractState element);
 
-  public void removeAll(Iterable<? extends AbstractElement> toRemove);
+  public void removeAll(Iterable<? extends AbstractState> toRemove);
 
-  public void removeOnlyFromWaitlist(AbstractElement element);
+  public void removeOnlyFromWaitlist(AbstractState element);
 
   public void clear();
 
-  public AbstractElement popFromWaitlist();
+  public AbstractState popFromWaitlist();
 }

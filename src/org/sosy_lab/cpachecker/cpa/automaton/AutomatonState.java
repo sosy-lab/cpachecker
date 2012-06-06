@@ -30,7 +30,7 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -40,9 +40,9 @@ import com.google.common.base.Joiner;
 
 /**
  * This class combines a AutomatonInternal State with a variable Configuration.
- * Instaces of this class are passed to the CPAchecker as AbstractElement.
+ * Instaces of this class are passed to the CPAchecker as AbstractState.
  */
-public class AutomatonState implements AbstractQueryableElement, Targetable, Serializable, Partitionable {
+public class AutomatonState implements AbstractQueryableState, Targetable, Serializable, Partitionable {
   private static final long serialVersionUID = -4665039439114057346L;
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
 

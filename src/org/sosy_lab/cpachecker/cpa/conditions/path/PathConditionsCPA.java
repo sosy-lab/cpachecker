@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopAlwaysOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -71,14 +71,14 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysis, Adjustabl
   private final AbstractDomain domain = new FlatLatticeDomain();
   private final TransferRelation transfer = new TransferRelation() {
       @Override
-      public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement pElement, Precision pPrecision,
+      public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pElement, Precision pPrecision,
           CFAEdge pCfaEdge) {
         return Collections.singleton(condition.getAbstractSuccessor(pElement, pCfaEdge));
       }
 
       @Override
-      public Collection<? extends AbstractElement> strengthen(AbstractElement pElement,
-          List<AbstractElement> pOtherElements, CFAEdge pCfaEdge, Precision pPrecision) {
+      public Collection<? extends AbstractState> strengthen(AbstractState pElement,
+          List<AbstractState> pOtherElements, CFAEdge pCfaEdge, Precision pPrecision) {
         return null;
       }
     };
@@ -107,7 +107,7 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysis, Adjustabl
   }
 
   @Override
-  public AbstractElement getInitialElement(CFANode pNode) {
+  public AbstractState getInitialElement(CFANode pNode) {
     return condition.getInitialElement(pNode);
   }
 

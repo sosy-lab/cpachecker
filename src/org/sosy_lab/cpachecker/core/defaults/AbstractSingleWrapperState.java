@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.core.defaults;
 import java.io.Serializable;
 import java.util.Collections;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
@@ -35,36 +35,36 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 
 /**
- * Base class for AbstractElements which wrap the abstract element of exactly
+ * Base class for AbstractStates which wrap the abstract element of exactly
  * one CPA.
  */
-public abstract class AbstractSingleWrapperElement implements AbstractWrapperElement, Targetable, Partitionable, Serializable {
+public abstract class AbstractSingleWrapperState implements AbstractWrapperState, Targetable, Partitionable, Serializable {
 
   private static final long serialVersionUID = -332757795984736107L;
-  private static Function<AbstractElement, AbstractElement> unwrapFunction
-      = new Function<AbstractElement, AbstractElement>() {
+  private static Function<AbstractState, AbstractState> unwrapFunction
+      = new Function<AbstractState, AbstractState>() {
 
     @Override
-    public AbstractElement apply(AbstractElement pArg0) {
-      Preconditions.checkArgument(pArg0 instanceof AbstractSingleWrapperElement);
+    public AbstractState apply(AbstractState pArg0) {
+      Preconditions.checkArgument(pArg0 instanceof AbstractSingleWrapperState);
 
-      return ((AbstractSingleWrapperElement)pArg0).getWrappedElement();
+      return ((AbstractSingleWrapperState)pArg0).getWrappedElement();
     }
   };
 
-  public static Function<AbstractElement, AbstractElement> getUnwrapFunction() {
+  public static Function<AbstractState, AbstractState> getUnwrapFunction() {
     return unwrapFunction;
   }
 
-  private final AbstractElement wrappedElement;
+  private final AbstractState wrappedElement;
 
-  public AbstractSingleWrapperElement(AbstractElement pWrappedElement) {
+  public AbstractSingleWrapperState(AbstractState pWrappedElement) {
     // TODO this collides with some CPAs' way of handling TOP and BOTTOM, but it should really be not null here
     // Preconditions.checkNotNull(pWrappedElement);
     wrappedElement = pWrappedElement;
   }
 
-  public AbstractElement getWrappedElement() {
+  public AbstractState getWrappedElement() {
     return wrappedElement;
   }
 
@@ -92,7 +92,7 @@ public abstract class AbstractSingleWrapperElement implements AbstractWrapperEle
   }
 
   @Override
-  public Iterable<? extends AbstractElement> getWrappedElements() {
+  public Iterable<? extends AbstractState> getWrappedElements() {
     return Collections.singleton(wrappedElement);
   }
 }

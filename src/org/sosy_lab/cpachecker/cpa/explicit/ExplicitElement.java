@@ -31,15 +31,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
-import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Preconditions;
 
-public class ExplicitElement implements AbstractQueryableElement, FormulaReportingElement, Serializable {
+public class ExplicitElement implements AbstractQueryableState, FormulaReportingState, Serializable {
   private static final long serialVersionUID = -3152134511524554357L;
 
   /**

@@ -29,7 +29,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -69,7 +69,7 @@ public class DominatorDomain implements AbstractDomain {
     private final static DominatorTopElement topElement = new DominatorTopElement();
 
     @Override
-    public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) throws CPAException
+    public boolean isLessOrEqual(AbstractState element1, AbstractState element2) throws CPAException
     {
         if (element1.equals(element2)) {
           return true;
@@ -84,10 +84,10 @@ public class DominatorDomain implements AbstractDomain {
         	DominatorElement dominatorElement2 = (DominatorElement)element2;
 
         	if (this.cpa.getAbstractDomain().isLessOrEqual(dominatorElement1.getDominatedElement(), dominatorElement2.getDominatedElement())) {
-        		Iterator<AbstractElement> dominatorIterator = dominatorElement2.getIterator();
+        		Iterator<AbstractState> dominatorIterator = dominatorElement2.getIterator();
 
         		while (dominatorIterator.hasNext()) {
-        		  AbstractElement dominator = dominatorIterator.next();
+        		  AbstractState dominator = dominatorIterator.next();
 
         			if (!dominatorElement1.isDominatedBy(dominator)) {
         				return false;
@@ -102,7 +102,7 @@ public class DominatorDomain implements AbstractDomain {
     }
 
     @Override
-    public AbstractElement join(AbstractElement element1, AbstractElement element2) {
+    public AbstractState join(AbstractState element1, AbstractState element2) {
       if (!(element1 instanceof DominatorElement)) {
         throw new IllegalArgumentException(
             "element1 is not a DominatorElement!");
@@ -128,12 +128,12 @@ public class DominatorDomain implements AbstractDomain {
 			return topElement;
 		}
 
-		Set<AbstractElement> intersectingDominators = new HashSet<AbstractElement>();
+		Set<AbstractState> intersectingDominators = new HashSet<AbstractState>();
 
-		Iterator<AbstractElement> dominatorIterator = dominatorElement1.getIterator();
+		Iterator<AbstractState> dominatorIterator = dominatorElement1.getIterator();
 
 		while (dominatorIterator.hasNext()) {
-		  AbstractElement dominator = dominatorIterator.next();
+		  AbstractState dominator = dominatorIterator.next();
 
 			if (dominatorElement2.isDominatedBy(dominator)) {
 				intersectingDominators.add(dominator);

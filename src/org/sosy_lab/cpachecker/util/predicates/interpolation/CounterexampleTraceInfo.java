@@ -76,8 +76,8 @@ public class CounterexampleTraceInfo<I> {
 
     /**
      * returns the list of Predicates that were discovered during
-     * counterexample analysis for the given AbstractElement. The invariant is
-     * that the union of all the predicates for all the AbstractElements in
+     * counterexample analysis for the given AbstractState. The invariant is
+     * that the union of all the predicates for all the AbstractStates in
      * the spurious counterexample is sufficient for refining the abstract
      * model such that this trace is no longer feasible in it
      *
@@ -89,7 +89,7 @@ public class CounterexampleTraceInfo<I> {
 
     /**
      * Adds some predicates to the list of those corresponding to the given
-     * AbstractElement
+     * AbstractState
      */
     public void addPredicatesForRefinement(I preds) {
       pmap.add(preds);

@@ -43,12 +43,12 @@ public interface ProofChecker
    * @param successors list of all successors of the current state (may be empty)
    * @return <code>true</code> if successors are valid over-approximation; <code>false</code>, otherwise.
    */
-  public boolean areAbstractSuccessors(AbstractElement element, CFAEdge cfaEdge, Collection<? extends AbstractElement> successors)
+  public boolean areAbstractSuccessors(AbstractState element, CFAEdge cfaEdge, Collection<? extends AbstractState> successors)
     throws CPATransferException, InterruptedException;
 
   /**
    * Checks whether the given element is covered by an other element. That is, the set of concretisations of the element
    * has to be a subset of the set of concretisations of the other element.
    */
-  public boolean isCoveredBy(AbstractElement element, AbstractElement otherElement) throws CPAException;
+  public boolean isCoveredBy(AbstractState element, AbstractState otherElement) throws CPAException;
 }

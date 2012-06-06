@@ -45,7 +45,7 @@ import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -98,7 +98,7 @@ public class AutomatonInternalTest {
     // will always return MaybeBoolean.MAYBE
     AutomatonBoolExpr cannot = new AutomatonBoolExpr.CPAQuery("none", "none");
     Map<String, AutomatonVariable> vars = Collections.emptyMap();
-    List<AbstractElement> elements = Collections.emptyList();
+    List<AbstractState> elements = Collections.emptyList();
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(vars, elements, null, null);
     AutomatonBoolExpr ex;
     AutomatonBoolExpr myTrue= AutomatonBoolExpr.TRUE;

@@ -51,9 +51,9 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingElement;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitElement;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
@@ -109,15 +109,15 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   }
 
   @Override
-  public AvoidanceReportingElement getInitialElement(CFANode node) {
+  public AvoidanceReportingState getInitialElement(CFANode node) {
 
-    AvoidanceReportingElement element = demandUniqueness ? new UniqueAssignmentsInPathConditionElement() : new AllAssignmentsInPathConditionElement();
+    AvoidanceReportingState element = demandUniqueness ? new UniqueAssignmentsInPathConditionElement() : new AllAssignmentsInPathConditionElement();
 
     return element;
   }
 
   @Override
-  public AvoidanceReportingElement getAbstractSuccessor(AbstractElement element, CFAEdge edge) {
+  public AvoidanceReportingState getAbstractSuccessor(AbstractState element, CFAEdge edge) {
     currentElement = (AssignmentsInPathConditionElement)element;
 
     if(edge.getEdgeType() == CFAEdgeType.StatementEdge) {
@@ -250,7 +250,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     return builder.toString();
   }
 
-  abstract public class AssignmentsInPathConditionElement implements AbstractElement, AvoidanceReportingElement {
+  abstract public class AssignmentsInPathConditionElement implements AbstractState, AvoidanceReportingState {
     /**
      * the maximal number of assignments over all variables
      */

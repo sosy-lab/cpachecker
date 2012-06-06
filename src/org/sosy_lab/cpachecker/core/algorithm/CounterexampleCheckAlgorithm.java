@@ -44,7 +44,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCChecker;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -108,7 +108,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     while (reached.hasWaitingElement()) {
       sound &= algorithm.run(reached);
 
-      AbstractElement lastElement = reached.getLastElement();
+      AbstractState lastElement = reached.getLastElement();
       if (!(lastElement instanceof ARGElement)) {
         // no analysis possible
         break;

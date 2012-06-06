@@ -30,7 +30,7 @@ import java.util.Iterator;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 /**
@@ -54,17 +54,17 @@ public class ForwardingReachedSet implements ReachedSet {
   }
 
   @Override
-  public Collection<AbstractElement> getReached() {
+  public Collection<AbstractState> getReached() {
     return delegate.getReached();
   }
 
   @Override
-  public Iterator<AbstractElement> iterator() {
+  public Iterator<AbstractState> iterator() {
     return delegate.iterator();
   }
 
   @Override
-  public Collection<Pair<AbstractElement, Precision>> getReachedWithPrecision() {
+  public Collection<Pair<AbstractState, Precision>> getReachedWithPrecision() {
     return delegate.getReachedWithPrecision();
   }
 
@@ -74,23 +74,23 @@ public class ForwardingReachedSet implements ReachedSet {
   }
 
   @Override
-  public Collection<AbstractElement> getReached(AbstractElement pElement)
+  public Collection<AbstractState> getReached(AbstractState pElement)
       throws UnsupportedOperationException {
     return delegate.getReached(pElement);
   }
 
   @Override
-  public Collection<AbstractElement> getReached(CFANode pLocation) {
+  public Collection<AbstractState> getReached(CFANode pLocation) {
     return delegate.getReached(pLocation);
   }
 
   @Override
-  public AbstractElement getFirstElement() {
+  public AbstractState getFirstElement() {
     return delegate.getFirstElement();
   }
 
   @Override
-  public AbstractElement getLastElement() {
+  public AbstractState getLastElement() {
     return delegate.getLastElement();
   }
 
@@ -100,7 +100,7 @@ public class ForwardingReachedSet implements ReachedSet {
   }
 
   @Override
-  public Collection<AbstractElement> getWaitlist() {
+  public Collection<AbstractState> getWaitlist() {
     return delegate.getWaitlist();
   }
 
@@ -110,13 +110,13 @@ public class ForwardingReachedSet implements ReachedSet {
   }
 
   @Override
-  public Precision getPrecision(AbstractElement pElement)
+  public Precision getPrecision(AbstractState pElement)
       throws UnsupportedOperationException {
     return delegate.getPrecision(pElement);
   }
 
   @Override
-  public boolean contains(AbstractElement pElement) {
+  public boolean contains(AbstractState pElement) {
     return delegate.contains(pElement);
   }
 
@@ -131,38 +131,38 @@ public class ForwardingReachedSet implements ReachedSet {
   }
 
   @Override
-  public void add(AbstractElement pElement, Precision pPrecision)
+  public void add(AbstractState pElement, Precision pPrecision)
       throws IllegalArgumentException {
     delegate.add(pElement, pPrecision);
   }
 
   @Override
-  public void addAll(Iterable<Pair<AbstractElement, Precision>> pToAdd) {
+  public void addAll(Iterable<Pair<AbstractState, Precision>> pToAdd) {
     delegate.addAll(pToAdd);
   }
 
   @Override
-  public void reAddToWaitlist(AbstractElement pE) {
+  public void reAddToWaitlist(AbstractState pE) {
     delegate.reAddToWaitlist(pE);
   }
 
   @Override
-  public void updatePrecision(AbstractElement pE, Precision pNewPrecision) {
+  public void updatePrecision(AbstractState pE, Precision pNewPrecision) {
     delegate.updatePrecision(pE, pNewPrecision);
   }
 
   @Override
-  public void remove(AbstractElement pElement) {
+  public void remove(AbstractState pElement) {
     delegate.remove(pElement);
   }
 
   @Override
-  public void removeAll(Iterable<? extends AbstractElement> pToRemove) {
+  public void removeAll(Iterable<? extends AbstractState> pToRemove) {
     delegate.removeAll(pToRemove);
   }
 
   @Override
-  public void removeOnlyFromWaitlist(AbstractElement pElement) {
+  public void removeOnlyFromWaitlist(AbstractState pElement) {
     delegate.removeOnlyFromWaitlist(pElement);
   }
 
@@ -172,7 +172,7 @@ public class ForwardingReachedSet implements ReachedSet {
   }
 
   @Override
-  public AbstractElement popFromWaitlist() {
+  public AbstractState popFromWaitlist() {
     return delegate.popFromWaitlist();
   }
 

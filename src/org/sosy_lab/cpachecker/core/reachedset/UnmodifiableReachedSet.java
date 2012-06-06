@@ -28,20 +28,20 @@ import java.util.Iterator;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 /**
  * Interface representing an unmodifiable reached set
  */
-public interface UnmodifiableReachedSet extends Iterable<AbstractElement> {
+public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
 
-  public Collection<AbstractElement> getReached();
+  public Collection<AbstractState> getReached();
 
   @Override
-  public Iterator<AbstractElement> iterator();
+  public Iterator<AbstractState> iterator();
 
-  public Collection<Pair<AbstractElement, Precision>> getReachedWithPrecision();
+  public Collection<Pair<AbstractState, Precision>> getReachedWithPrecision();
 
   public Collection<Precision> getPrecisions();
 
@@ -60,7 +60,7 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractElement> {
    * @param element An abstract element for whose location the abstract states should be retrieved.
    * @return A subset of the reached set.
    */
-  public Collection<AbstractElement> getReached(AbstractElement element)
+  public Collection<AbstractState> getReached(AbstractState element)
     throws UnsupportedOperationException;
 
   /**
@@ -78,26 +78,26 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractElement> {
    * @param location A location
    * @return A subset of the reached set.
    */
-  public Collection<AbstractElement> getReached(CFANode location);
+  public Collection<AbstractState> getReached(CFANode location);
 
   /**
    * Returns the first element that was added to the reached set.
    * @throws IllegalStateException If the reached set is empty.
    */
-  public AbstractElement getFirstElement();
+  public AbstractState getFirstElement();
 
   /**
    * Returns the last element that was added to the reached set.
    * May be null if it is unknown, which element was added last.
    */
-  public AbstractElement getLastElement();
+  public AbstractState getLastElement();
 
   public boolean hasWaitingElement();
 
   /**
    * An unmodifiable view of the waitlist as an Collection.
    */
-  public Collection<AbstractElement> getWaitlist();
+  public Collection<AbstractState> getWaitlist();
 
   public int getWaitlistSize();
 
@@ -107,11 +107,11 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractElement> {
    * @return The precision for the element.
    * @throws IllegalArgumentException If the element is not in the reached set.
    */
-  public Precision getPrecision(AbstractElement element)
+  public Precision getPrecision(AbstractState element)
     throws UnsupportedOperationException;
 
 
-  public boolean contains(AbstractElement element);
+  public boolean contains(AbstractState element);
 
   public boolean isEmpty();
 

@@ -27,20 +27,20 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public class CompositeElement implements AbstractWrapperElement, Targetable, Partitionable, Serializable {
+public class CompositeElement implements AbstractWrapperState, Targetable, Partitionable, Serializable {
   private static final long serialVersionUID = -5143296331663510680L;
-  private final ImmutableList<AbstractElement> elements;
+  private final ImmutableList<AbstractState> elements;
   private transient Object partitionKey; // lazily initialized
 
-  public CompositeElement(List<AbstractElement> elements)
+  public CompositeElement(List<AbstractState> elements)
   {
     this.elements = ImmutableList.copyOf(elements);
   }
@@ -51,7 +51,7 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
 
   @Override
   public boolean isTarget() {
-    for (AbstractElement element : elements) {
+    for (AbstractState element : elements) {
       if ((element instanceof Targetable) && ((Targetable)element).isTarget()) {
         return true;
       }
@@ -64,7 +64,7 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
   {
     StringBuilder builder = new StringBuilder();
     builder.append('(');
-    for (AbstractElement element : elements) {
+    for (AbstractState element : elements) {
       builder.append(element.getClass().getSimpleName());
       builder.append(": ");
       builder.append(element.toString());
@@ -75,12 +75,12 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
     return builder.toString();
   }
 
-  public AbstractElement get(int idx) {
+  public AbstractState get(int idx) {
     return elements.get(idx);
   }
 
   @Override
-  public List<AbstractElement> getWrappedElements() {
+  public List<AbstractState> getWrappedElements() {
     return elements;
   }
 
@@ -91,7 +91,7 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
       Object[] keys = new Object[elements.size()];
 
       int i = 0;
-      for (AbstractElement element : elements) {
+      for (AbstractState element : elements) {
         if (element instanceof Partitionable) {
           keys[i] = ((Partitionable)element).getPartitionKey();
         }

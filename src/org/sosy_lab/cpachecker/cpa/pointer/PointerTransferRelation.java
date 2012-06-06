@@ -72,7 +72,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitElement;
@@ -226,7 +226,7 @@ public class PointerTransferRelation implements TransferRelation {
 
   @Override
   public Collection<PointerElement> getAbstractSuccessors(
-      AbstractElement element, Precision precision, CFAEdge cfaEdge)
+      AbstractState element, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException {
 
     PointerElement successor = ((PointerElement)element).clone();
@@ -1348,8 +1348,8 @@ public class PointerTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(
-      AbstractElement element, List<AbstractElement> elements, CFAEdge cfaEdge,
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState element, List<AbstractState> elements, CFAEdge cfaEdge,
       Precision precision) throws CPATransferException {
 
     if (missing == null) {
@@ -1362,7 +1362,7 @@ public class PointerTransferRelation implements TransferRelation {
 
     PointerElement pointerElement = (PointerElement)element;
 
-    for (AbstractElement ae : elements) {
+    for (AbstractState ae : elements) {
       try {
         if (ae instanceof ExplicitElement) {
           strengthen(pointerElement, (ExplicitElement)ae, cfaEdge,
@@ -1374,11 +1374,11 @@ public class PointerTransferRelation implements TransferRelation {
 
       } catch (UnrecognizedCCodeException e) {
         addError(e.getMessage(), cfaEdge);
-        return new ArrayList<AbstractElement>();
+        return new ArrayList<AbstractState>();
 
       } catch (InvalidPointerException e) {
         addError(e.getMessage(), cfaEdge);
-        return new ArrayList<AbstractElement>();
+        return new ArrayList<AbstractState>();
       }
     }
 

@@ -25,15 +25,15 @@ package org.sosy_lab.cpachecker.cpa.loopstack;
 
 import static com.google.common.base.Preconditions.*;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingElement;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
-public class LoopstackElement implements AbstractElement, Partitionable, AvoidanceReportingElement {
+public class LoopstackElement implements AbstractState, Partitionable, AvoidanceReportingState {
 
   private final LoopstackElement previousElement;
   private final Loop loop;

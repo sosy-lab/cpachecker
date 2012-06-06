@@ -24,14 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.alwaystop;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 enum AlwaysTopDomain implements AbstractDomain {
 
   INSTANCE;
 
   @Override
-  public boolean isLessOrEqual(AbstractElement pElement1, AbstractElement pElement2) {
+  public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) {
 
     assert pElement1 == AlwaysTopElement.INSTANCE;
     assert pElement2 == AlwaysTopElement.INSTANCE;
@@ -39,7 +39,7 @@ enum AlwaysTopDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) {
+  public AbstractState join(AbstractState pElement1, AbstractState pElement2) {
 
     assert pElement1 == AlwaysTopElement.INSTANCE;
     assert pElement2 == AlwaysTopElement.INSTANCE;

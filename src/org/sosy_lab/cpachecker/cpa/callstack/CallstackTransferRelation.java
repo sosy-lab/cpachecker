@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -40,8 +40,8 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 public class CallstackTransferRelation implements TransferRelation {
 
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors(
-      AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
 
     switch (pCfaEdge.getEdgeType()) {
@@ -93,8 +93,8 @@ public class CallstackTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(
-      AbstractElement pElement, List<AbstractElement> pOtherElements,
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pElement, List<AbstractState> pOtherElements,
       CFAEdge pCfaEdge, Precision pPrecision) {
 
     return null;

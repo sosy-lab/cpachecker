@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 public class StopAlwaysOperator implements StopOperator {
 
   @Override
-  public boolean stop(AbstractElement el, Collection<AbstractElement> reached, Precision precision) {
+  public boolean stop(AbstractState el, Collection<AbstractState> reached, Precision precision) {
     return true;
   }
 

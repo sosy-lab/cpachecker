@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.types.Type;
@@ -98,7 +98,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     this.logger = logger;
   }
 
-  private AbstractElement getAbstractSuccessor(AbstractElement element,
+  private AbstractState getAbstractSuccessor(AbstractState element,
                                               CFAEdge cfaEdge,
                                               Precision precision)
                                               throws CPATransferException {
@@ -454,8 +454,8 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   }
 
   @Override
-  public Collection<AbstractElement> getAbstractSuccessors(
-                                           AbstractElement element,
+  public Collection<AbstractState> getAbstractSuccessors(
+                                           AbstractState element,
                                            Precision precision, CFAEdge cfaEdge)
                        throws CPATransferException {
     return Collections.singleton(getAbstractSuccessor(element, cfaEdge, precision));
@@ -467,8 +467,8 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
    * is properly associated. This can only be done here because information about types is needed, which can
    * only be provided by typesCPA.
    */
-  public Collection<? extends AbstractElement> strengthen(AbstractElement element,
-                          List<AbstractElement> otherElements, CFAEdge cfaEdge,
+  public Collection<? extends AbstractState> strengthen(AbstractState element,
+                          List<AbstractState> otherElements, CFAEdge cfaEdge,
                           Precision precision) {
 
     //only call for declarations. check for lastAdded prevents unnecessary repeated executions for the same statement
@@ -477,7 +477,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge && lastAdded != null) {
       DeclarationEdge declEdge = (DeclarationEdge)cfaEdge;
 
-      for (AbstractElement other : otherElements) {
+      for (AbstractState other : otherElements) {
 
         //only interested in the types here
         if (other instanceof TypesElement) {
@@ -525,7 +525,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
           String leftName = op1.toASTString();
           String rightName = op2.toASTString();
 
-          for (AbstractElement other : otherElements) {
+          for (AbstractState other : otherElements) {
             //only interested in the types here
             if (other instanceof TypesElement) {
               typesCPAPresent = true;

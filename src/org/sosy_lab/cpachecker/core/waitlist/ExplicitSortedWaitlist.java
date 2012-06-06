@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitElement;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * Waitlist implementation that sorts the abstract elements depending on the
@@ -41,9 +41,9 @@ public class ExplicitSortedWaitlist extends AbstractSortedWaitlist<Integer> {
   }
 
   @Override
-  protected Integer getSortKey(AbstractElement pElement) {
+  protected Integer getSortKey(AbstractState pElement) {
     ExplicitElement explicitElement =
-      AbstractElements.extractElementByType(pElement, ExplicitElement.class);
+      AbstractStates.extractElementByType(pElement, ExplicitElement.class);
 
     // negate size so that the highest key corresponds to the smallest map
     return (explicitElement != null) ? -explicitElement.getSize() : 0;

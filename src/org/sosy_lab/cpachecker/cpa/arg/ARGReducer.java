@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
@@ -39,23 +39,23 @@ public class ARGReducer implements Reducer {
   }
 
   @Override
-  public AbstractElement getVariableReducedElement(
-      AbstractElement pExpandedElement, Block pContext,
+  public AbstractState getVariableReducedElement(
+      AbstractState pExpandedElement, Block pContext,
       CFANode pLocation) {
 
     return new ARGElement(wrappedReducer.getVariableReducedElement(((ARGElement)pExpandedElement).getWrappedElement(), pContext, pLocation), null);
   }
 
   @Override
-  public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, Block pReducedContext,
-      AbstractElement pReducedElement) {
+  public AbstractState getVariableExpandedElement(
+      AbstractState pRootElement, Block pReducedContext,
+      AbstractState pReducedElement) {
 
     return new ARGElement(wrappedReducer.getVariableExpandedElement(((ARGElement)pRootElement).getWrappedElement(), pReducedContext, ((ARGElement)pReducedElement).getWrappedElement()), null);
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
+  public Object getHashCodeForElement(AbstractState pElementKey, Precision pPrecisionKey) {
 
     return wrappedReducer.getHashCodeForElement(((ARGElement)pElementKey).getWrappedElement(), pPrecisionKey);
   }

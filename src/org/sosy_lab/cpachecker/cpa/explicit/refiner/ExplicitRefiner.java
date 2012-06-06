@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -83,7 +83,7 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
     List<Pair<ARGElement, CFANode>> result = Lists.newArrayList();
 
     for(ARGElement ae : transform(errorPath, Pair.<ARGElement>getProjectionToFirst())) {
-        result.add(Pair.of(ae, AbstractElements.extractLocation(ae)));
+        result.add(Pair.of(ae, AbstractStates.extractLocation(ae)));
     }
 
     assert errorPath.getLast().getFirst() == result.get(result.size()-1).getFirst();

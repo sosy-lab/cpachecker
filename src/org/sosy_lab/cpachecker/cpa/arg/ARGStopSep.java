@@ -32,7 +32,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
@@ -55,8 +55,8 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   }
 
   @Override
-  public boolean stop(AbstractElement pElement,
-      Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
+  public boolean stop(AbstractState pElement,
+      Collection<AbstractState> pReached, Precision pPrecision) throws CPAException {
 
     ARGElement argElement = (ARGElement)pElement;
     assert !argElement.isCovered() : "Passing element to stop which is already covered: " + argElement;
@@ -95,7 +95,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
     // Now do the usual coverage checks
 
-    for (AbstractElement reachedElement : pReached) {
+    for (AbstractState reachedElement : pReached) {
       ARGElement argReachedElement = (ARGElement)reachedElement;
       if (stop(argElement, argReachedElement, pPrecision)) {
         // if this option is true, we always return false here on purpose
@@ -123,8 +123,8 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       return false;
     }
 
-    AbstractElement wrappedElement = pElement.getWrappedElement();
-    AbstractElement wrappedReachedElement = pReachedElement.getWrappedElement();
+    AbstractState wrappedElement = pElement.getWrappedElement();
+    AbstractState wrappedReachedElement = pReachedElement.getWrappedElement();
 
     boolean stop = wrappedStop.stop(wrappedElement, Collections.singleton(wrappedReachedElement), pPrecision);
 
@@ -134,18 +134,18 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
     return stop;
   }
 
-  boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement, ProofChecker wrappedProofChecker) throws CPAException {
+  boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement, ProofChecker wrappedProofChecker) throws CPAException {
     ARGElement argElement = (ARGElement)pElement;
     ARGElement otherArtElement = (ARGElement)pOtherElement;
 
-    AbstractElement wrappedElement = argElement.getWrappedElement();
-    AbstractElement wrappedOtherElement = otherArtElement.getWrappedElement();
+    AbstractState wrappedElement = argElement.getWrappedElement();
+    AbstractState wrappedOtherElement = otherArtElement.getWrappedElement();
 
     return wrappedProofChecker.isCoveredBy(wrappedElement, wrappedOtherElement);
   }
 
   @Override
-  public boolean isForcedCoveringPossible(AbstractElement pElement, AbstractElement pReachedElement, Precision pPrecision) throws CPAException {
+  public boolean isForcedCoveringPossible(AbstractState pElement, AbstractState pReachedElement, Precision pPrecision) throws CPAException {
     if (!(wrappedStop instanceof ForcedCoveringStopOperator)) {
       return false;
     }

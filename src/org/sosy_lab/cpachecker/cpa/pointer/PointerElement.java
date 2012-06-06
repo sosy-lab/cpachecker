@@ -34,7 +34,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.pointer.Pointer.Assign;
 import org.sosy_lab.cpachecker.cpa.pointer.Pointer.AssumeInequality;
@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * This class is the abstraction of the memory of the program (global variables,
  * local variables, heap).
  */
-public class PointerElement implements AbstractQueryableElement, Memory,
+public class PointerElement implements AbstractQueryableState, Memory,
     Cloneable, Targetable {
 
   private static final char                                    FUNCTION_NAME_SEPARATOR =
@@ -54,7 +54,7 @@ public class PointerElement implements AbstractQueryableElement, Memory,
   private CFAEdge                                              currentEdge             =
                                                                                            null;
   /**
-   * true if this AbstractElement represents an error state
+   * true if this AbstractState represents an error state
    */
   private boolean error = false;
 

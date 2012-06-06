@@ -74,7 +74,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerElement;
@@ -104,11 +104,11 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   }
 
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors (AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException
+  public Collection<? extends AbstractState> getAbstractSuccessors (AbstractState element, Precision precision, CFAEdge cfaEdge) throws CPATransferException
   {
-    Collection<? extends AbstractElement> successors  = null;
+    Collection<? extends AbstractState> successors  = null;
 
-    AbstractElement successor                         = null;
+    AbstractState successor                         = null;
 
     IntervalAnalysisElement intervalElement           = (IntervalAnalysisElement)element;
 
@@ -329,7 +329,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param truthValue flag to determine whether this is the then- or the else-branch of the assumption
    * @return the successor elements
    */
-  private Collection<? extends AbstractElement> handleAssumption(IntervalAnalysisElement element, IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
+  private Collection<? extends AbstractState> handleAssumption(IntervalAnalysisElement element, IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
     throws UnrecognizedCCodeException
   {
     // first, unpack the expression to deal with a raw assumption
@@ -410,7 +410,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     return noSuccessors();
   }
 
-  private Collection<? extends AbstractElement> processAssumption(IntervalAnalysisElement element, BinaryOperator operator, IASTExpression operand1, IASTExpression operand2, boolean truthValue, CFAEdge cfaEdge) throws UnrecognizedCCodeException
+  private Collection<? extends AbstractState> processAssumption(IntervalAnalysisElement element, BinaryOperator operator, IASTExpression operand1, IASTExpression operand2, boolean truthValue, CFAEdge cfaEdge) throws UnrecognizedCCodeException
   {
     if(!truthValue)
       return processAssumption(element, negateOperator(operator), operand1, operand2, !truthValue, cfaEdge);
@@ -846,13 +846,13 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement element, List<AbstractElement> elements,
+  public Collection<? extends AbstractState> strengthen(AbstractState element, List<AbstractState> elements,
       CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException
   {
     assert element instanceof IntervalAnalysisElement;
     IntervalAnalysisElement intervalElement = (IntervalAnalysisElement)element;
 
-    for(AbstractElement elem : elements)
+    for(AbstractState elem : elements)
     {
       if(elem instanceof PointerElement)
         return strengthen(intervalElement, (PointerElement)elem, cfaEdge, precision);
@@ -861,18 +861,18 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     return null;
   }
 
-  private Collection<? extends AbstractElement> strengthen(IntervalAnalysisElement intervalElement,
+  private Collection<? extends AbstractState> strengthen(IntervalAnalysisElement intervalElement,
       PointerElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException
   {
     return null;
   }
 
-  private Collection<? extends AbstractElement> soleSuccessor(AbstractElement successor)
+  private Collection<? extends AbstractState> soleSuccessor(AbstractState successor)
   {
     return Collections.singleton(successor);
   }
 
-  private Collection<? extends AbstractElement> noSuccessors()
+  private Collection<? extends AbstractState> noSuccessors()
   {
     return Collections.emptySet();
   }

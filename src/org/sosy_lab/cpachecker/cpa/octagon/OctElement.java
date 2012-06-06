@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.octagon;
 
 import java.util.Map.Entry;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
@@ -40,7 +40,7 @@ import com.google.common.collect.HashBiMap;
  * see {@link Variable}.
  *
  */
-class OctElement implements AbstractElement{
+class OctElement implements AbstractState{
 
   // the octagon representation
   private Octagon octagon;

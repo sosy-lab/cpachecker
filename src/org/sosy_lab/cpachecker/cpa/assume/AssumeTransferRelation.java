@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 public class AssumeTransferRelation implements TransferRelation {
 
-  private static Collection<? extends AbstractElement> sUnconstrainedSingleton = Collections.singleton(UnconstrainedAssumeElement.getInstance());
+  private static Collection<? extends AbstractState> sUnconstrainedSingleton = Collections.singleton(UnconstrainedAssumeElement.getInstance());
 
   private String mFunctionName;
 
@@ -51,8 +51,8 @@ public class AssumeTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors(
-      AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
     if (pCfaEdge.getEdgeType().equals(CFAEdgeType.StatementEdge)) {
       StatementEdge lEdge = (StatementEdge)pCfaEdge;
@@ -79,8 +79,8 @@ public class AssumeTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(
-      AbstractElement pElement, List<AbstractElement> pOtherElements,
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pElement, List<AbstractState> pOtherElements,
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
     return null;
   }

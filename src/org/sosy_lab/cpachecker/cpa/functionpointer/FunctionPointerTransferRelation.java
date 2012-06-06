@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -75,7 +75,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerElement.FunctionPointerTarget;
@@ -111,8 +111,8 @@ class FunctionPointerTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors(
-      AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
 
     final FunctionPointerElement oldState = (FunctionPointerElement)pElement;
@@ -211,9 +211,9 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
 
     // now handle the edge, whether it is real or not
-    Collection<? extends AbstractElement> newWrappedStates = wrappedTransfer.getAbstractSuccessors(oldState.getWrappedElement(), pPrecision, cfaEdge);
+    Collection<? extends AbstractState> newWrappedStates = wrappedTransfer.getAbstractSuccessors(oldState.getWrappedElement(), pPrecision, cfaEdge);
 
-    for (AbstractElement newWrappedState : newWrappedStates) {
+    for (AbstractState newWrappedState : newWrappedStates) {
       FunctionPointerElement.Builder newState = oldState.createBuilderWithNewWrappedElement(newWrappedState);
 
       newState = handleEdge(newState, cfaEdge);
@@ -583,8 +583,8 @@ class FunctionPointerTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(
-      AbstractElement pElement, List<AbstractElement> pOtherElements,
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pElement, List<AbstractState> pOtherElements,
       CFAEdge pCfaEdge, Precision pPrecision) {
     // in this method we could access the abstract domains of other CPAs
     // if required.

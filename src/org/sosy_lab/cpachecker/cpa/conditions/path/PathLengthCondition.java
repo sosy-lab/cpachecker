@@ -34,9 +34,9 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingElement;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -64,12 +64,12 @@ public class PathLengthCondition implements PathCondition, Statistics {
   }
 
   @Override
-  public AvoidanceReportingElement getInitialElement(CFANode pNode) {
+  public AvoidanceReportingState getInitialElement(CFANode pNode) {
     return new PathLengthConditionElement(0, false);
   }
 
   @Override
-  public AvoidanceReportingElement getAbstractSuccessor(AbstractElement pElement, CFAEdge pEdge) {
+  public AvoidanceReportingState getAbstractSuccessor(AbstractState pElement, CFAEdge pEdge) {
 
     PathLengthConditionElement element = (PathLengthConditionElement)pElement;
     if (element.thresholdReached) {
@@ -110,7 +110,7 @@ public class PathLengthCondition implements PathCondition, Statistics {
   }
 
 
-  private static class PathLengthConditionElement implements AbstractElement, AvoidanceReportingElement {
+  private static class PathLengthConditionElement implements AbstractState, AvoidanceReportingState {
 
     private final int pathLength;
     private final boolean thresholdReached;

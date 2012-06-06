@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -74,7 +74,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
    */
   @Override
   public Collection<FeatureVarsElement> getAbstractSuccessors(
-      AbstractElement element, Precision pPrecision, CFAEdge cfaEdge)
+      AbstractState element, Precision pPrecision, CFAEdge cfaEdge)
       throws CPATransferException {
     Preconditions.checkArgument(pPrecision instanceof FeatureVarsPrecision, "precision is no FeatureVarsPrecision");
     FeatureVarsPrecision precision = (FeatureVarsPrecision) pPrecision;
@@ -392,8 +392,8 @@ public class FeatureVarsTransferRelation implements TransferRelation {
   }*/
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(
-      AbstractElement element, List<AbstractElement> elements, CFAEdge cfaEdge,
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState element, List<AbstractState> elements, CFAEdge cfaEdge,
       Precision precision) throws UnrecognizedCCodeException {
     // do nothing
     return null;

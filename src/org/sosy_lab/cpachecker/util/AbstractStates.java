@@ -28,11 +28,11 @@ import static com.google.common.collect.Iterables.*;
 import java.util.Iterator;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
-import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingElement;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -45,11 +45,11 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 /**
- * Helper class that provides several useful methods for handling AbstractElements.
+ * Helper class that provides several useful methods for handling AbstractStates.
  */
-public final class AbstractElements {
+public final class AbstractStates {
 
-  private AbstractElements() { }
+  private AbstractStates() { }
 
   /**
    * Retrieve one of the wrapped abstract elements by type. If the hierarchy of
@@ -64,16 +64,16 @@ public final class AbstractElements {
    * @param pType The class object of the type of the wrapped element.
    * @return An instance of an element with type T or null if there is none.
    */
-  public static <T extends AbstractElement> T extractElementByType(AbstractElement pElement, Class<T> pType) {
+  public static <T extends AbstractState> T extractElementByType(AbstractState pElement, Class<T> pType) {
     if (pType.isInstance(pElement)) {
       return pType.cast(pElement);
 
-    } else if (pElement instanceof AbstractSingleWrapperElement) {
-      AbstractElement wrapped = ((AbstractSingleWrapperElement)pElement).getWrappedElement();
+    } else if (pElement instanceof AbstractSingleWrapperState) {
+      AbstractState wrapped = ((AbstractSingleWrapperState)pElement).getWrappedElement();
       return extractElementByType(wrapped, pType);
 
-    } else if (pElement instanceof AbstractWrapperElement) {
-      for (AbstractElement wrapped : ((AbstractWrapperElement)pElement).getWrappedElements()) {
+    } else if (pElement instanceof AbstractWrapperState) {
+      for (AbstractState wrapped : ((AbstractWrapperState)pElement).getWrappedElements()) {
         T result = extractElementByType(wrapped, pType);
         if (result != null) {
           return result;
@@ -85,11 +85,11 @@ public final class AbstractElements {
   }
 
   /**
-   * Apply {@link #extractElementByType(AbstractElement, Class)} to all elements
+   * Apply {@link #extractElementByType(AbstractState, Class)} to all elements
    * of an Iterable.
    * The returned Iterable does not contain nulls.
    */
-  public static <T extends AbstractElement> Iterable<T> projectToType(Iterable<AbstractElement> elements, Class<T> pType) {
+  public static <T extends AbstractState> Iterable<T> projectToType(Iterable<AbstractState> elements, Class<T> pType) {
     return Iterables.filter(
               Iterables.transform(elements, extractElementByTypeFunction(pType)),
               Predicates.notNull());
@@ -103,23 +103,23 @@ public final class AbstractElements {
    *
    * The returned Iterable contains the elements in pre-order.
    */
-  public static <T extends AbstractElement> Iterable<T> extractAllElementsOfType(AbstractElement pElement, Class<T> pType) {
+  public static <T extends AbstractState> Iterable<T> extractAllElementsOfType(AbstractState pElement, Class<T> pType) {
     return Iterables.filter(asIterable(pElement), pType);
   }
 
-  public static CFANode extractLocation(AbstractElement pElement) {
-    AbstractElementWithLocation e = extractElementByType(pElement, AbstractElementWithLocation.class);
+  public static CFANode extractLocation(AbstractState pElement) {
+    AbstractStateWithLocation e = extractElementByType(pElement, AbstractStateWithLocation.class);
     return e == null ? null : e.getLocationNode();
   }
 
-  public static final Function<AbstractElement, CFANode> EXTRACT_LOCATION = new Function<AbstractElement, CFANode>() {
+  public static final Function<AbstractState, CFANode> EXTRACT_LOCATION = new Function<AbstractState, CFANode>() {
     @Override
-    public CFANode apply(AbstractElement pArg0) {
+    public CFANode apply(AbstractState pArg0) {
       return extractLocation(pArg0);
     }
   };
 
-  public static Iterable<CFANode> extractLocations(Iterable<? extends AbstractElement> pElements) {
+  public static Iterable<CFANode> extractLocations(Iterable<? extends AbstractState> pElements) {
     if (pElements instanceof LocationMappedReachedSet) {
       return ((LocationMappedReachedSet)pElements).getLocations();
     }
@@ -128,7 +128,7 @@ public final class AbstractElements {
                   Predicates.notNull());
   }
 
-  public static Iterable<AbstractElement> filterLocation(Iterable<AbstractElement> pElements, CFANode pLoc) {
+  public static Iterable<AbstractState> filterLocation(Iterable<AbstractState> pElements, CFANode pLoc) {
     if (pElements instanceof LocationMappedReachedSet) {
       // only do this for LocationMappedReachedSet, not for all ReachedSet,
       // because this method is imprecise for the rest
@@ -139,70 +139,70 @@ public final class AbstractElements {
                                                 EXTRACT_LOCATION));
   }
 
-  public static boolean isTargetElement(AbstractElement e) {
+  public static boolean isTargetElement(AbstractState e) {
     return (e instanceof Targetable) && ((Targetable)e).isTarget();
   }
 
-  public static final Predicate<AbstractElement> IS_TARGET_ELEMENT = new Predicate<AbstractElement>() {
+  public static final Predicate<AbstractState> IS_TARGET_ELEMENT = new Predicate<AbstractState>() {
     @Override
-    public boolean apply(AbstractElement pArg0) {
+    public boolean apply(AbstractState pArg0) {
       return isTargetElement(pArg0);
     }
   };
 
-  public static <T extends AbstractElement> Iterable<T> filterTargetElements(Iterable<T> pElements) {
+  public static <T extends AbstractState> Iterable<T> filterTargetElements(Iterable<T> pElements) {
     return filter(pElements, IS_TARGET_ELEMENT);
   }
 
   /**
-   * Function object for {@link #extractElementByType(AbstractElement, Class)}.
+   * Function object for {@link #extractElementByType(AbstractState, Class)}.
    */
-  public static <T extends AbstractElement>
-                Function<AbstractElement, T> extractElementByTypeFunction(final Class<T> pType) {
+  public static <T extends AbstractState>
+                Function<AbstractState, T> extractElementByTypeFunction(final Class<T> pType) {
 
-    return new Function<AbstractElement, T>() {
+    return new Function<AbstractState, T>() {
       @Override
-      public T apply(AbstractElement ae) {
+      public T apply(AbstractState ae) {
         return extractElementByType(ae, pType);
       }
     };
   }
 
   /**
-   * Creates an iterable that enumerates all the AbstractElements contained in
+   * Creates an iterable that enumerates all the AbstractStates contained in
    * a single element, including the root element itself.
    * The tree of elements is traversed in pre-order.
    */
-  public static Iterable<AbstractElement> asIterable(final AbstractElement ae) {
+  public static Iterable<AbstractState> asIterable(final AbstractState ae) {
 
-    return new TreeIterable<AbstractElement>(ae, ABSTRACT_ELEMENT_CHILDREN_FUNCTION);
+    return new TreeIterable<AbstractState>(ae, ABSTRACT_ELEMENT_CHILDREN_FUNCTION);
   }
 
-  private static final Function<AbstractElement, Iterator<? extends AbstractElement>> ABSTRACT_ELEMENT_CHILDREN_FUNCTION
-    = new Function<AbstractElement, Iterator<? extends AbstractElement>>() {
+  private static final Function<AbstractState, Iterator<? extends AbstractState>> ABSTRACT_ELEMENT_CHILDREN_FUNCTION
+    = new Function<AbstractState, Iterator<? extends AbstractState>>() {
       @Override
-      public Iterator<? extends AbstractElement> apply(AbstractElement element) {
-        if (element instanceof AbstractSingleWrapperElement) {
-          AbstractElement wrapped = ((AbstractSingleWrapperElement)element).getWrappedElement();
+      public Iterator<? extends AbstractState> apply(AbstractState element) {
+        if (element instanceof AbstractSingleWrapperState) {
+          AbstractState wrapped = ((AbstractSingleWrapperState)element).getWrappedElement();
           return Iterators.singletonIterator(wrapped);
 
-        } else if (element instanceof AbstractWrapperElement) {
-          return ((AbstractWrapperElement)element).getWrappedElements().iterator();
+        } else if (element instanceof AbstractWrapperState) {
+          return ((AbstractWrapperState)element).getWrappedElements().iterator();
         }
 
         return Iterators.emptyIterator();
       }
     };
 
-  private static final Function<AbstractElement, Iterable<AbstractElement>> AS_ITERABLE
-    = new Function<AbstractElement, Iterable<AbstractElement>>() {
+  private static final Function<AbstractState, Iterable<AbstractState>> AS_ITERABLE
+    = new Function<AbstractState, Iterable<AbstractState>>() {
       @Override
-      public Iterable<AbstractElement> apply(AbstractElement pElement) {
+      public Iterable<AbstractState> apply(AbstractState pElement) {
         return asIterable(pElement);
       }
     };
 
-  public static Iterable<AbstractElement> asIterable(final Iterable<AbstractElement> pElements) {
+  public static Iterable<AbstractState> asIterable(final Iterable<AbstractState> pElements) {
     return Iterables.concat(transform(pElements, AS_ITERABLE));
   }
 
@@ -211,11 +211,11 @@ public final class AbstractElements {
    * the given abstract element, according to reported
    * formulas
    */
-  public static Formula extractReportedFormulas(FormulaManager manager, AbstractElement element) {
+  public static Formula extractReportedFormulas(FormulaManager manager, AbstractState element) {
     Formula result = manager.makeTrue();
 
     // traverse through all the sub-elements contained in this element
-    for (FormulaReportingElement e :  extractAllElementsOfType(element, FormulaReportingElement.class)) {
+    for (FormulaReportingState e :  extractAllElementsOfType(element, FormulaReportingState.class)) {
 
       result = manager.makeAnd(result, e.getFormulaApproximation(manager));
     }

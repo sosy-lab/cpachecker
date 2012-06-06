@@ -28,7 +28,7 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
@@ -68,10 +68,10 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
    * If this method throws an exception, no guarantees about the state of the
    * current instance of this class are made.
    */
-  protected abstract K getSortKey(AbstractElement pElement);
+  protected abstract K getSortKey(AbstractState pElement);
 
   @Override
-  public void add(AbstractElement pElement) {
+  public void add(AbstractState pElement) {
     K key = getSortKey(pElement);
     Waitlist localWaitlist = waitlist.get(key);
     if (localWaitlist == null) {
@@ -85,7 +85,7 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   }
 
   @Override
-  public boolean contains(AbstractElement pElement) {
+  public boolean contains(AbstractState pElement) {
     K key = getSortKey(pElement);
     Waitlist localWaitlist = waitlist.get(key);
     if (localWaitlist == null) {
@@ -108,16 +108,16 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   }
 
   @Override
-  public Iterator<AbstractElement> iterator() {
+  public Iterator<AbstractState> iterator() {
     return Iterables.concat(waitlist.values()).iterator();
   }
 
   @Override
-  public AbstractElement pop() {
+  public AbstractState pop() {
     Entry<K, Waitlist> highestEntry = waitlist.lastEntry();
     Waitlist localWaitlist = highestEntry.getValue();
     assert !localWaitlist.isEmpty();
-    AbstractElement result = localWaitlist.pop();
+    AbstractState result = localWaitlist.pop();
     if (localWaitlist.isEmpty()) {
       waitlist.remove(highestEntry.getKey());
     }
@@ -126,7 +126,7 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   }
 
   @Override
-  public boolean remove(AbstractElement pElement) {
+  public boolean remove(AbstractState pElement) {
     K key = getSortKey(pElement);
     Waitlist localWaitlist = waitlist.get(key);
     if (localWaitlist == null) {

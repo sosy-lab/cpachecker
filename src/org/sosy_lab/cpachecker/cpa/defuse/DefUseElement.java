@@ -27,11 +27,11 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.collect.ImmutableSet;
 
-public class DefUseElement implements AbstractElement, Iterable<DefUseDefinition>
+public class DefUseElement implements AbstractState, Iterable<DefUseDefinition>
 {
     private final Set<DefUseDefinition> definitions;
 

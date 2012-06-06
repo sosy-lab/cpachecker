@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.alwaystop;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
@@ -37,12 +37,12 @@ enum AlwaysTopStopOperator implements StopOperator {
   INSTANCE;
 
   @Override
-  public boolean stop(AbstractElement pElement,
-      Collection<AbstractElement> pReached, Precision pPrecision) {
+  public boolean stop(AbstractState pElement,
+      Collection<AbstractState> pReached, Precision pPrecision) {
 
     assert pElement == AlwaysTopElement.INSTANCE;
     assert pPrecision == AlwaysTopPrecision.INSTANCE;
-    assert Iterables.all(pReached, Predicates.<AbstractElement>equalTo(AlwaysTopElement.INSTANCE));
+    assert Iterables.all(pReached, Predicates.<AbstractState>equalTo(AlwaysTopElement.INSTANCE));
 
     return !pReached.isEmpty();
   }

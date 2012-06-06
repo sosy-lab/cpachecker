@@ -21,32 +21,21 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.interfaces.conditions;
+package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 /**
- * Interface to implement in order for an abstract element to be able to
- * make the system generate an assumption to avoid re-considering
- * this node.
+ * Interface to implement in order for an abstract element
+ * to be able to be over-approximated by a formula representing
+ * the abstract element.
  */
-public interface AvoidanceReportingElement extends AbstractElement {
+public interface FormulaReportingState extends AbstractState {
 
   /**
-   * Returns true if an invariant must be added so as to avoid
-   * the given state in the future.
+   * Returns a formula over-approximating the element
    */
-  public boolean mustDumpAssumptionForAvoidance();
-
-  /**
-   * If {@link #mustDumpAssumptionForAvoidance()} returned true, this method
-   * returns a formula that provides an explanation. This formula may not be TRUE.
-   * If the element cannot provide such a formula, it SHOULD return FALSE.
-   * If {@link #mustDumpAssumptionForAvoidance()} returned false, this method
-   * SHOULD return TRUE.
-   */
-  public Formula getReasonFormula(FormulaManager mgr);
+  public Formula getFormulaApproximation(FormulaManager manager);
 
 }

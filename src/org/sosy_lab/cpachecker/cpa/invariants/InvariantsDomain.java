@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.MapDifference.ValueDifference;
@@ -39,7 +39,7 @@ enum InvariantsDomain implements AbstractDomain {
   INSTANCE;
 
   @Override
-  public InvariantsElement join(AbstractElement pElement1, AbstractElement pElement2) {
+  public InvariantsElement join(AbstractState pElement1, AbstractState pElement2) {
     InvariantsElement element1 = (InvariantsElement)pElement1;
     InvariantsElement element2 = (InvariantsElement)pElement2;
 
@@ -61,7 +61,7 @@ enum InvariantsDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractElement pElement1, AbstractElement pElement2) {
+  public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) {
     // check whether element 1 (or left) contains more information than element 2 (or right)
     InvariantsElement element1 = (InvariantsElement)pElement1;
     InvariantsElement element2 = (InvariantsElement)pElement2;

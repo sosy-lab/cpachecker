@@ -25,17 +25,17 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class GenericAssumptionsDomain extends FlatLatticeDomain {
 
-  public GenericAssumptionsDomain(AbstractElement top) {
+  public GenericAssumptionsDomain(AbstractState top) {
     super(top);
   }
 
   @Override
-  public AbstractElement join(AbstractElement el1, AbstractElement el2) throws CPAException {
+  public AbstractState join(AbstractState el1, AbstractState el2) throws CPAException {
     throw new UnsupportedOperationException();
   }
 }

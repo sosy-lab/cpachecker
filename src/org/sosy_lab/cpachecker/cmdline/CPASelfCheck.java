@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -153,7 +153,7 @@ public class CPASelfCheck {
   private static boolean checkJoin(Class<ConfigurableProgramAnalysis> pCpa,
                                 ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws CPAException {
     AbstractDomain d = pCpaInst.getAbstractDomain();
-    AbstractElement initial = pCpaInst.getInitialElement(pMain);
+    AbstractState initial = pCpaInst.getInitialElement(pMain);
 
     return ensure(d.isLessOrEqual(initial, d.join(initial,initial)),
         "Join of same elements is unsound!");
@@ -163,7 +163,7 @@ public class CPASelfCheck {
                                  ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws CPAException {
     AbstractDomain d = pCpaInst.getAbstractDomain();
     MergeOperator merge = pCpaInst.getMergeOperator();
-    AbstractElement initial = pCpaInst.getInitialElement(pMain);
+    AbstractState initial = pCpaInst.getInitialElement(pMain);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
 
     return ensure(d.isLessOrEqual(initial, merge.merge(initial,initial,initialPrec)),
@@ -175,8 +175,8 @@ public class CPASelfCheck {
                                             Class<ConfigurableProgramAnalysis> pCpa,
                                             ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws CPAException {
     StopOperator stop = pCpaInst.getStopOperator();
-    HashSet<AbstractElement> reached = new HashSet<AbstractElement>();
-    AbstractElement initial = pCpaInst.getInitialElement(pMain);
+    HashSet<AbstractState> reached = new HashSet<AbstractState>();
+    AbstractState initial = pCpaInst.getInitialElement(pMain);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
 
     return ensure(!stop.stop(initial, reached, initialPrec), "Stopped on empty set!");
@@ -185,8 +185,8 @@ public class CPASelfCheck {
   private static boolean checkStopReached(Class<ConfigurableProgramAnalysis> pCpa,
                                        ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws CPAException {
     StopOperator stop = pCpaInst.getStopOperator();
-    HashSet<AbstractElement> reached = new HashSet<AbstractElement>();
-    AbstractElement initial = pCpaInst.getInitialElement(pMain);
+    HashSet<AbstractState> reached = new HashSet<AbstractState>();
+    AbstractState initial = pCpaInst.getInitialElement(pMain);
     reached.add(initial);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
 

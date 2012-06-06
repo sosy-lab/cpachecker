@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -291,12 +291,12 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge, Collection<? extends AbstractElement> pSuccessors) throws CPATransferException, InterruptedException {
+  public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     return getTransferRelation().areAbstractSuccessors(pElement, pCfaEdge, pSuccessors);
   }
 
   @Override
-  public boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement) throws CPAException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException {
     // isLessOrEqual for proof checking; formula based; elements can be trusted (i.e., invariants do not have to be checked)
 
     PredicateAbstractElement e1 = (PredicateAbstractElement) pElement;

@@ -30,7 +30,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -62,8 +62,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Triple<AbstractElement, Precision, Action> prec(
-      AbstractElement pElement, Precision pPrecision,
+  public Triple<AbstractState, Precision, Action> prec(
+      AbstractState pElement, Precision pPrecision,
       UnmodifiableReachedSet pElements) {
 
     totalPrecTime.start();
@@ -82,7 +82,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   /**
    * Compute an abstraction.
    */
-  private AbstractElement computeAbstraction(
+  private AbstractState computeAbstraction(
       ComputeAbstractionElement element,
       PredicatePrecision precision) {
 

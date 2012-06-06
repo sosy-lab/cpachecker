@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import static org.sosy_lab.cpachecker.util.AbstractElements.filterTargetElements;
+import static org.sosy_lab.cpachecker.util.AbstractStates.filterTargetElements;
 
 import java.io.File;
 import java.io.IOException;
@@ -56,13 +56,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -320,12 +320,12 @@ class MainCPAStatistics implements Statistics {
           if (locs > 0) {
             out.println("  Number of locations:        " + locs);
             out.println("    Avg states per loc.:      " + reachedSize / locs);
-            Map.Entry<Object, Collection<AbstractElement>> maxPartition = l.getMaxPartition();
+            Map.Entry<Object, Collection<AbstractState>> maxPartition = l.getMaxPartition();
             out.println("    Max states per loc.:      " + maxPartition.getValue().size() + " (at node " + maxPartition.getKey() + ")");
           }
 
         } else {
-          HashMultiset<CFANode> allLocations = HashMultiset.create(AbstractElements.extractLocations(reached));
+          HashMultiset<CFANode> allLocations = HashMultiset.create(AbstractStates.extractLocations(reached));
           int locs = allLocations.entrySet().size();
           if (locs > 0) {
             out.println("  Number of locations:        " + locs);
@@ -349,7 +349,7 @@ class MainCPAStatistics implements Statistics {
           int partitions = p.getNumberOfPartitions();
           out.println("  Number of partitions:       " + partitions);
           out.println("    Avg size of partitions:   " + reachedSize / partitions);
-          Map.Entry<Object, Collection<AbstractElement>> maxPartition = p.getMaxPartition();
+          Map.Entry<Object, Collection<AbstractState>> maxPartition = p.getMaxPartition();
           out.print  ("    Max size of partitions:   " + maxPartition.getValue().size());
           if (maxPartition.getValue().size() > 1) {
             out.println(" (with key " + maxPartition.getKey() + ")");

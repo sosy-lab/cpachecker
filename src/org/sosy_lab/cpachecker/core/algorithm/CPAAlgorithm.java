@@ -42,7 +42,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCovering;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -178,7 +178,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       stats.countWaitlistSize += size;
 
       stats.chooseTimer.start();
-      final AbstractElement element = reachedSet.popFromWaitlist();
+      final AbstractState element = reachedSet.popFromWaitlist();
       final Precision precision = reachedSet.getPrecision(element);
       stats.chooseTimer.stop();
 
@@ -198,7 +198,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       stats.transferTimer.start();
-      Collection<? extends AbstractElement> successors =
+      Collection<? extends AbstractState> successors =
           transferRelation.getAbstractSuccessors(element, precision, null);
       stats.transferTimer.stop();
       // TODO When we have a nice way to mark the analysis result as incomplete,
@@ -210,12 +210,12 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       stats.countSuccessors += numSuccessors;
       stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
 
-      for (AbstractElement successor : Iterables.consumingIterable(successors)) {
+      for (AbstractState successor : Iterables.consumingIterable(successors)) {
         logger.log(Level.FINER, "Considering successor of current element");
         logger.log(Level.ALL, "Successor of", element, "\nis", successor);
 
         stats.precisionTimer.start();
-        Triple<AbstractElement, Precision, Action> precAdjustmentResult =
+        Triple<AbstractState, Precision, Action> precAdjustmentResult =
             precisionAdjustment.prec(successor, precision, reachedSet);
         stats.precisionTimer.stop();
 
@@ -255,21 +255,21 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         }
         assert action == Action.CONTINUE : "Enum Action has unhandled values!";
 
-        Collection<AbstractElement> reached = reachedSet.getReached(successor);
+        Collection<AbstractState> reached = reachedSet.getReached(successor);
 
         // An optimization, we don't bother merging if we know that the
         // merge operator won't do anything (i.e., it is merge-sep).
         if (mergeOperator != MergeSepOperator.getInstance() && !reached.isEmpty()) {
           stats.mergeTimer.start();
 
-          List<AbstractElement> toRemove = new ArrayList<AbstractElement>();
-          List<Pair<AbstractElement, Precision>> toAdd =
-              new ArrayList<Pair<AbstractElement, Precision>>();
+          List<AbstractState> toRemove = new ArrayList<AbstractState>();
+          List<Pair<AbstractState, Precision>> toAdd =
+              new ArrayList<Pair<AbstractState, Precision>>();
 
           logger.log(Level.FINER, "Considering", reached.size(),
               "elements from reached set for merge");
-          for (AbstractElement reachedElement : reached) {
-            AbstractElement mergedElement =
+          for (AbstractState reachedElement : reached) {
+            AbstractState mergedElement =
                 mergeOperator.merge(successor, reachedElement,
                     successorPrecision);
 

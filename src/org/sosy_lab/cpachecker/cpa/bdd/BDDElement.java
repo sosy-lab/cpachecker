@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
-public class BDDElement implements AbstractElement {
+public class BDDElement implements AbstractState {
 
   private Region currentState;
   private final NamedRegionManager manager;

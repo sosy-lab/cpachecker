@@ -34,7 +34,7 @@ import javax.management.ObjectName;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -72,7 +72,7 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
   }
 
   @Override
-  public Action prec(AbstractElement pElement, Precision pPrecision) throws CPAException {
+  public Action prec(AbstractState pElement, Precision pPrecision) throws CPAException {
 
     if (checkWallTime()) {
       logger.log(Level.WARNING, "Wall time threshold reached, terminating.");

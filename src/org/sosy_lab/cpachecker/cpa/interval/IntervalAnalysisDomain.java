@@ -24,25 +24,25 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public class IntervalAnalysisDomain implements AbstractDomain
 {
     /* (non-Javadoc)
-     * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#isLessOrEqual(org.sosy_lab.cpachecker.core.interfaces.AbstractElement, org.sosy_lab.cpachecker.core.interfaces.AbstractElement)
+     * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#isLessOrEqual(org.sosy_lab.cpachecker.core.interfaces.AbstractState, org.sosy_lab.cpachecker.core.interfaces.AbstractState)
      */
     @Override
-    public boolean isLessOrEqual(AbstractElement currentAbstractElement, AbstractElement reachedAbstractElement)
+    public boolean isLessOrEqual(AbstractState currentAbstractState, AbstractState reachedAbstractState)
     {
-      return ((IntervalAnalysisElement)currentAbstractElement).isLessOrEqual((IntervalAnalysisElement)reachedAbstractElement);
+      return ((IntervalAnalysisElement)currentAbstractState).isLessOrEqual((IntervalAnalysisElement)reachedAbstractState);
     }
 
     /* (non-Javadoc)
-     * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#join(org.sosy_lab.cpachecker.core.interfaces.AbstractElement, org.sosy_lab.cpachecker.core.interfaces.AbstractElement)
+     * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#join(org.sosy_lab.cpachecker.core.interfaces.AbstractState, org.sosy_lab.cpachecker.core.interfaces.AbstractState)
      */
     @Override
-    public AbstractElement join(AbstractElement currentAbstractElement, AbstractElement reachedAbstractElement)
+    public AbstractState join(AbstractState currentAbstractState, AbstractState reachedAbstractState)
     {
-      return ((IntervalAnalysisElement)currentAbstractElement).join((IntervalAnalysisElement)reachedAbstractElement);
+      return ((IntervalAnalysisElement)currentAbstractState).join((IntervalAnalysisElement)reachedAbstractState);
     }
 }

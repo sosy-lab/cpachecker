@@ -35,7 +35,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
@@ -97,7 +97,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
     assert checkART(pReached) : "ARG and reached set do not match before refinement";
 
-    AbstractElement lastElement = pReached.getLastElement();
+    AbstractState lastElement = pReached.getLastElement();
     assert lastElement instanceof ARGElement : "Element in reached set which is not an ARGElement";
     assert ((ARGElement)lastElement).isTarget() : "Last element in reached is not a target element before refinement";
     ARGReachedSet reached = new ARGReachedSet(pReached);
@@ -170,7 +170,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
   private static boolean checkART(ReachedSet pReached) {
 
-    Deque<AbstractElement> workList = new ArrayDeque<AbstractElement>();
+    Deque<AbstractState> workList = new ArrayDeque<AbstractState>();
     Set<ARGElement> arg = new HashSet<ARGElement>();
 
     workList.add(pReached.getFirstElement());

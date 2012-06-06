@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.Iterables.isEmpty;
-import static org.sosy_lab.cpachecker.util.AbstractElements.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 @Options(prefix="counterexample.checker")
 public class CounterexampleCPAChecker implements CounterexampleChecker {
@@ -126,7 +126,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
 
     for (ARGElement e : pPathElements) {
 
-      CFANode loc = AbstractElements.extractLocation(e);
+      CFANode loc = AbstractStates.extractLocation(e);
       sb.append("STATE USEFIRST ARG" + e.getElementId() + " :\n");
 
       for (ARGElement child : e.getChildren()) {
@@ -136,7 +136,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
         }
 
         if (pPathElements.contains(child)) {
-          CFANode childLoc = AbstractElements.extractLocation(child);
+          CFANode childLoc = AbstractStates.extractLocation(child);
           CFAEdge edge = loc.getEdgeTo(childLoc);
           sb.append("    MATCH \"");
           escape(edge.getRawStatement(), sb);

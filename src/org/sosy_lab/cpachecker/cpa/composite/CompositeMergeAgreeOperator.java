@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import java.util.Collections;
 import java.util.Iterator;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -58,8 +58,8 @@ public class CompositeMergeAgreeOperator implements MergeOperator {
   }
 
   @Override
-  public AbstractElement merge(AbstractElement element1,
-                               AbstractElement element2,
+  public AbstractState merge(AbstractState element1,
+                               AbstractState element2,
                                Precision precision) throws CPAException {
 
     // Merge Sep Code
@@ -69,20 +69,20 @@ public class CompositeMergeAgreeOperator implements MergeOperator {
 
     assert(comp1.getNumberofElements() == comp2.getNumberofElements());
 
-    ImmutableList.Builder<AbstractElement> mergedElements = ImmutableList.builder();
+    ImmutableList.Builder<AbstractState> mergedElements = ImmutableList.builder();
     Iterator<StopOperator> stopIter = stopOperators.iterator();
-    Iterator<AbstractElement> iter1 = comp1.getWrappedElements().iterator();
-    Iterator<AbstractElement> iter2 = comp2.getWrappedElements().iterator();
+    Iterator<AbstractState> iter1 = comp1.getWrappedElements().iterator();
+    Iterator<AbstractState> iter2 = comp2.getWrappedElements().iterator();
     Iterator<Precision> precIter = compositePrec.getPrecisions().iterator();
 
     boolean identicElements = true;
     for (MergeOperator mergeOp : mergeOperators) {
-      AbstractElement absElem1 = iter1.next();
-      AbstractElement absElem2 = iter2.next();
+      AbstractState absElem1 = iter1.next();
+      AbstractState absElem2 = iter2.next();
       Precision prec = precIter.next();
       StopOperator stopOp = stopIter.next();
 
-      AbstractElement merged = mergeOp.merge(absElem1, absElem2, prec);
+      AbstractState merged = mergeOp.merge(absElem1, absElem2, prec);
 
       // check whether merged covers absElem1
       // by definition of MergeOperator, we know it covers absElem2

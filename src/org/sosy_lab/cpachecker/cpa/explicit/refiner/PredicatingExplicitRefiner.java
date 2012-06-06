@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
 import static com.google.common.collect.Lists.transform;
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractElementByType;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -73,7 +73,7 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
     for (ARGElement ae : transform(errorPath, Pair.<ARGElement>getProjectionToFirst())) {
       PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
       if (pe.isAbstractionElement()) {
-        CFANode location = AbstractElements.extractLocation(ae);
+        CFANode location = AbstractStates.extractLocation(ae);
         result.add(Pair.of(ae, location));
       }
     }
@@ -88,7 +88,7 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
         Functions.compose(
             GET_BLOCK_FORMULA,
         Functions.compose(
-            AbstractElements.extractElementByTypeFunction(PredicateAbstractElement.class),
+            AbstractStates.extractElementByTypeFunction(PredicateAbstractElement.class),
             Pair.<ARGElement>getProjectionToFirst())));
 
     return formulas;

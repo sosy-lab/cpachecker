@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static org.sosy_lab.cpachecker.util.AbstractElements.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.util.Collection;
 import java.util.Set;

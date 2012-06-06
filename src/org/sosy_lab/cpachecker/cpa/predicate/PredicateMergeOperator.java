@@ -27,7 +27,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -54,8 +54,8 @@ public class PredicateMergeOperator implements MergeOperator {
   }
 
   @Override
-  public AbstractElement merge(AbstractElement element1,
-                               AbstractElement element2, Precision precision) {
+  public AbstractState merge(AbstractState element1,
+                               AbstractState element2, Precision precision) {
 
     PredicateAbstractElement elem1 = (PredicateAbstractElement)element1;
     PredicateAbstractElement elem2 = (PredicateAbstractElement)element2;

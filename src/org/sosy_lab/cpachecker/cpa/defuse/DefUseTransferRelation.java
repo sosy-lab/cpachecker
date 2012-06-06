@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -73,7 +73,7 @@ public class DefUseTransferRelation implements TransferRelation
   }
 
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
+  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
     DefUseElement defUseElement = (DefUseElement) element;
 
     switch (cfaEdge.getEdgeType ())
@@ -97,8 +97,8 @@ public class DefUseTransferRelation implements TransferRelation
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement element,
-                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
+  public Collection<? extends AbstractState> strengthen(AbstractState element,
+                         List<AbstractState> otherElements, CFAEdge cfaEdge,
                          Precision precision) {
     return null;
   }

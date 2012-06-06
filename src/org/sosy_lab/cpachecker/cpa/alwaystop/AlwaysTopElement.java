@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.alwaystop;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-enum AlwaysTopElement implements AbstractElement {
+enum AlwaysTopElement implements AbstractState {
 
   INSTANCE;
 

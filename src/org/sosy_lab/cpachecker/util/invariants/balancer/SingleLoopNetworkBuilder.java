@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
@@ -110,10 +110,10 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     logger.log(Level.FINEST, "Constructing single loop network builder.");
 
     // Get root location.
-    root = AbstractElements.extractLocation(cePath.getFirst().getFirst());
+    root = AbstractStates.extractLocation(cePath.getFirst().getFirst());
 
     // Get error location
-    error = AbstractElements.extractLocation(cePath.getLast().getFirst());
+    error = AbstractStates.extractLocation(cePath.getLast().getFirst());
 
     // Get entry path formula, from root node up to loop head,
     // loop formula, from loop head back to loop head, and
@@ -173,7 +173,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
   private Set<CFANode> getAllNodes() {
     Pair<ARGElement, CFAEdge> rootPair = cePath.getFirst();
     ARGElement ae = rootPair.getFirst();
-    CFANode root = AbstractElements.extractLocation(ae);
+    CFANode root = AbstractStates.extractLocation(ae);
     return CFATraversal.dfs().collectNodesReachableFrom(root);
   }
 
@@ -184,7 +184,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     for (Pair<ARGElement, CFAEdge> pair : pPath) {
       ARGElement ae = pair.getFirst();
       CFAEdge edge = pair.getSecond();
-      CFANode loc = AbstractElements.extractLocation(ae);
+      CFANode loc = AbstractStates.extractLocation(ae);
       if (loc == loopHead) {
         break;
       } else {
@@ -232,7 +232,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
         edges.add(edge);
       } else {
         ARGElement ae = pair.getFirst();
-        CFANode loc = AbstractElements.extractLocation(ae);
+        CFANode loc = AbstractStates.extractLocation(ae);
         if (loc == loopHead) {
           begun = true;
           CFAEdge edge = pair.getSecond();
@@ -260,7 +260,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
         tailEdges.add(edge);
       } else {
         ARGElement ae = pair.getFirst();
-        CFANode loc = AbstractElements.extractLocation(ae);
+        CFANode loc = AbstractStates.extractLocation(ae);
         if (loc == loopHead) {
           begun = true;
           CFAEdge edge = pair.getSecond();

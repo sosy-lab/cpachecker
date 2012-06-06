@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -48,7 +48,7 @@ abstract class AutomatonAction {
 
   /**
    * Returns if the action can execute on the given AutomatonExpressionArguments.
-   * If it cannot execute this is probably because of missing AbstractElements (from other CPAs).
+   * If it cannot execute this is probably because of missing AbstractStates (from other CPAs).
    * @param pArgs
    * @return
    * @throws CPATransferException
@@ -140,9 +140,9 @@ abstract class AutomatonAction {
       if (pArgs.replaceVariables(modificationString) == null) {
         return false;
       }
-      for (AbstractElement ae : pArgs.getAbstractElements()) {
-        if (ae instanceof AbstractQueryableElement) {
-          AbstractQueryableElement aqe = (AbstractQueryableElement) ae;
+      for (AbstractState ae : pArgs.getAbstractStates()) {
+        if (ae instanceof AbstractQueryableState) {
+          AbstractQueryableState aqe = (AbstractQueryableState) ae;
           if (aqe.getCPAName().equals(cpaName)) {
             return true;
           }
@@ -158,9 +158,9 @@ abstract class AutomatonAction {
         pArgs.getLogger().log(Level.WARNING, "Modification String \"" + modificationString + "\" could not be processed (Variable not found).");
         return new ResultValue<Boolean>("Modification String \"" + modificationString + "\" could not be processed (Variable not found).", "AutomatonActionExpr.CPAModification");
       }
-      for (AbstractElement ae : pArgs.getAbstractElements()) {
-        if (ae instanceof AbstractQueryableElement) {
-          AbstractQueryableElement aqe = (AbstractQueryableElement) ae;
+      for (AbstractState ae : pArgs.getAbstractStates()) {
+        if (ae instanceof AbstractQueryableState) {
+          AbstractQueryableState aqe = (AbstractQueryableState) ae;
           if (aqe.getCPAName().equals(cpaName)) {
             try {
               aqe.modifyProperty(processedModificationString);

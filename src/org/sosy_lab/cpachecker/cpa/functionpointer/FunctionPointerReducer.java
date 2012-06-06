@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.functionpointer;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
@@ -41,8 +41,8 @@ public class FunctionPointerReducer implements Reducer {
   }
 
   @Override
-  public AbstractElement getVariableReducedElement(
-      AbstractElement pExpandedElement, Block pContext,
+  public AbstractState getVariableReducedElement(
+      AbstractState pExpandedElement, Block pContext,
       CFANode pLocation) {
 
     FunctionPointerElement funElement = (FunctionPointerElement)pExpandedElement;
@@ -50,9 +50,9 @@ public class FunctionPointerReducer implements Reducer {
   }
 
   @Override
-  public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, Block pReducedContext,
-      AbstractElement pReducedElement) {
+  public AbstractState getVariableExpandedElement(
+      AbstractState pRootElement, Block pReducedContext,
+      AbstractState pReducedElement) {
 
     FunctionPointerElement funRootElement = (FunctionPointerElement)pRootElement;
     FunctionPointerElement funReducedElement = (FunctionPointerElement)pReducedElement;
@@ -61,7 +61,7 @@ public class FunctionPointerReducer implements Reducer {
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
+  public Object getHashCodeForElement(AbstractState pElementKey, Precision pPrecisionKey) {
     FunctionPointerElement funElement = (FunctionPointerElement)pElementKey;
     return Pair.of(funElement.getTargetMap(), wrappedReducer.getHashCodeForElement(funElement.getWrappedElement(), pPrecisionKey));
   }

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractElementByType;
 
 import java.util.Collection;
 import java.util.List;
@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.invariants.Farkas;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Balancer;
 import org.sosy_lab.cpachecker.util.invariants.balancer.MatrixBalancer;
@@ -285,7 +285,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     for (ARGElement ae : skip(transform(pPath, Pair.<ARGElement>getProjectionToFirst()), 1)) {
       PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
       if (pe.isAbstractionElement()) {
-        CFANode loc = AbstractElements.extractLocation(ae);
+        CFANode loc = AbstractStates.extractLocation(ae);
         result.add(Pair.of(ae, loc));
       }
     }

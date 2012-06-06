@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -43,7 +43,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement,
+  public Triple<AbstractState, Precision, Action> prec(AbstractState pElement,
       Precision oldPrecision, UnmodifiableReachedSet pElements) throws CPAException {
 
     Preconditions.checkArgument(pElement instanceof ARGElement);
@@ -52,11 +52,11 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
         pElements,  ARGElement.getUnwrapFunction(), Functions.<Precision>identity());
 
-    AbstractElement oldElement = element.getWrappedElement();
+    AbstractState oldElement = element.getWrappedElement();
 
-    Triple<AbstractElement, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
+    Triple<AbstractState, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
 
-    AbstractElement newElement = unwrappedResult.getFirst();
+    AbstractState newElement = unwrappedResult.getFirst();
     Precision newPrecision = unwrappedResult.getSecond();
     Action action = unwrappedResult.getThird();
 
@@ -69,6 +69,6 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
     element.replaceInARTWith(resultElement); // this completely eliminates element
 
-    return Triple.<AbstractElement, Precision, Action>of(resultElement, newPrecision, action);
+    return Triple.<AbstractState, Precision, Action>of(resultElement, newPrecision, action);
   }
 }

@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.assume;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-public interface AssumeElement extends AbstractElement {
+public interface AssumeElement extends AbstractState {
 
 }

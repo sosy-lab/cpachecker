@@ -27,15 +27,15 @@ import org.osgi.framework.InvalidSyntaxException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
- * An AbstractElement that evaluates Properties (String-encoded) and
- * returns whether they are satisfied in concrete states represented by the AbstractElement.
+ * An AbstractState that evaluates Properties (String-encoded) and
+ * returns whether they are satisfied in concrete states represented by the AbstractState.
  */
-public interface AbstractQueryableElement extends AbstractElement {
+public interface AbstractQueryableState extends AbstractState {
 
   public String getCPAName();
 
   /**
-   * Checks whether this AbstractElement satisfies the property.
+   * Checks whether this AbstractState satisfies the property.
    * Each CPA defines which properties can be evaluated.
    * @param property
    * @return if the property is satisfied
@@ -46,7 +46,7 @@ public interface AbstractQueryableElement extends AbstractElement {
   public Object evaluateProperty(String property) throws InvalidQueryException;
 
   /**
-   * Modifies the internal state of this AbstractElement.
+   * Modifies the internal state of this AbstractState.
    * Each CPA defines a separate language for definition of modifications.
    * @param modification
    * @throws InvalidQueryException

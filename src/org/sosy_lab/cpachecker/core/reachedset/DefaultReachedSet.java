@@ -34,7 +34,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
@@ -49,20 +49,20 @@ import com.google.common.collect.Iterators;
  */
 class DefaultReachedSet implements ReachedSet {
 
-  private final LinkedHashMap<AbstractElement, Precision> reached;
-  private final Set<AbstractElement> unmodifiableReached;
-  private AbstractElement lastElement = null;
-  private AbstractElement firstElement = null;
+  private final LinkedHashMap<AbstractState, Precision> reached;
+  private final Set<AbstractState> unmodifiableReached;
+  private AbstractState lastElement = null;
+  private AbstractState firstElement = null;
   private final Waitlist waitlist;
 
   DefaultReachedSet(WaitlistFactory waitlistFactory) {
-    reached = new LinkedHashMap<AbstractElement, Precision>();
+    reached = new LinkedHashMap<AbstractState, Precision>();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
     waitlist = waitlistFactory.createWaitlistInstance();
   }
 
   @Override
-  public void add(AbstractElement element, Precision precision) throws IllegalArgumentException {
+  public void add(AbstractState element, Precision precision) throws IllegalArgumentException {
     Preconditions.checkNotNull(element);
     Preconditions.checkNotNull(precision);
 
@@ -105,14 +105,14 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
-  public void addAll(Iterable<Pair<AbstractElement, Precision>> toAdd) {
-    for (Pair<AbstractElement, Precision> pair : toAdd) {
+  public void addAll(Iterable<Pair<AbstractState, Precision>> toAdd) {
+    for (Pair<AbstractState, Precision> pair : toAdd) {
       add(pair.getFirst(), pair.getSecond());
     }
   }
 
   @Override
-  public void reAddToWaitlist(AbstractElement e) {
+  public void reAddToWaitlist(AbstractState e) {
     Preconditions.checkNotNull(e);
     Preconditions.checkArgument(reached.containsKey(e), "Element has to be in the reached set");
 
@@ -122,7 +122,7 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
-  public void updatePrecision(AbstractElement e, Precision newPrecision) {
+  public void updatePrecision(AbstractState e, Precision newPrecision) {
     Preconditions.checkNotNull(e);
     Preconditions.checkNotNull(newPrecision);
 
@@ -136,7 +136,7 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
-  public void remove(AbstractElement element) {
+  public void remove(AbstractState element) {
     Preconditions.checkNotNull(element);
     int hc = element.hashCode();
     if ((firstElement == null) || hc == firstElement.hashCode() && element.equals(firstElement)) {
@@ -151,15 +151,15 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
-  public void removeAll(Iterable<? extends AbstractElement> toRemove) {
-    for (AbstractElement element : toRemove) {
+  public void removeAll(Iterable<? extends AbstractState> toRemove) {
+    for (AbstractState element : toRemove) {
       remove(element);
     }
     assert firstElement != null || reached.isEmpty() : "firstElement may only be removed if the whole reached set is cleared";
   }
 
   @Override
-  public void removeOnlyFromWaitlist(AbstractElement element) {
+  public void removeOnlyFromWaitlist(AbstractState element) {
     checkNotNull(element);
     waitlist.remove(element);
   }
@@ -173,20 +173,20 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
-  public Set<AbstractElement> getReached() {
+  public Set<AbstractState> getReached() {
     return unmodifiableReached;
   }
 
   @Override
-  public Iterator<AbstractElement> iterator() {
+  public Iterator<AbstractState> iterator() {
     return unmodifiableReached.iterator();
   }
 
   @Override
-  public Collection<Pair<AbstractElement, Precision>> getReachedWithPrecision() {
+  public Collection<Pair<AbstractState, Precision>> getReachedWithPrecision() {
     return Collections.unmodifiableCollection(
         Collections2.transform(reached.entrySet(),
-                               Pair.<AbstractElement, Precision>getPairFomMapEntry()));
+                               Pair.<AbstractState, Precision>getPairFomMapEntry()));
   }
 
   @Override
@@ -195,23 +195,23 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
-  public Collection<AbstractElement> getReached(AbstractElement element) {
+  public Collection<AbstractState> getReached(AbstractState element) {
     return getReached();
   }
 
   @Override
-  public Collection<AbstractElement> getReached(CFANode location) {
+  public Collection<AbstractState> getReached(CFANode location) {
     return getReached();
   }
 
   @Override
-  public AbstractElement getFirstElement() {
+  public AbstractState getFirstElement() {
     Preconditions.checkState(firstElement != null);
     return firstElement;
   }
 
   @Override
-  public AbstractElement getLastElement() {
+  public AbstractState getLastElement() {
     return lastElement;
   }
 
@@ -221,20 +221,20 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
-  public Collection<AbstractElement> getWaitlist() {
-    return new AbstractCollection<AbstractElement>() {
+  public Collection<AbstractState> getWaitlist() {
+    return new AbstractCollection<AbstractState>() {
 
       @Override
-      public Iterator<AbstractElement> iterator() {
+      public Iterator<AbstractState> iterator() {
         return Iterators.unmodifiableIterator(waitlist.iterator());
       }
 
       @Override
       public boolean contains(Object obj) {
-        if (!(obj instanceof AbstractElement)) {
+        if (!(obj instanceof AbstractState)) {
           return false;
         }
-        return waitlist.contains((AbstractElement)obj);
+        return waitlist.contains((AbstractState)obj);
       }
 
       @Override
@@ -255,7 +255,7 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
-  public AbstractElement popFromWaitlist() {
+  public AbstractState popFromWaitlist() {
     return waitlist.pop();
   }
 
@@ -265,7 +265,7 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
-  public Precision getPrecision(AbstractElement element) {
+  public Precision getPrecision(AbstractState element) {
     Preconditions.checkNotNull(element);
     Precision prec = reached.get(element);
     Preconditions.checkArgument(prec != null, "Element not in reached set.");
@@ -273,7 +273,7 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
-  public boolean contains(AbstractElement element) {
+  public boolean contains(AbstractState element) {
     Preconditions.checkNotNull(element);
     return reached.containsKey(element);
   }

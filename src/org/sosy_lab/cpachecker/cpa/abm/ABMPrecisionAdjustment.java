@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.abm;
 import java.util.Map;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class ABMPrecisionAdjustment implements PrecisionAdjustment {
 
-  private Map<AbstractElement, Precision> forwardPrecisionToExpandedPrecision;
+  private Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision;
   private boolean breakAnalysis = false;
   private final PrecisionAdjustment wrappedPrecisionAdjustment;
 
@@ -43,17 +43,17 @@ public class ABMPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   void setForwardPrecisionToExpandedPrecision(
-      Map<AbstractElement, Precision> pForwardPrecisionToExpandedPrecision) {
+      Map<AbstractState, Precision> pForwardPrecisionToExpandedPrecision) {
     forwardPrecisionToExpandedPrecision = pForwardPrecisionToExpandedPrecision;
   }
 
   @Override
-  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement, Precision pPrecision, UnmodifiableReachedSet pElements) throws CPAException {
+  public Triple<AbstractState, Precision, Action> prec(AbstractState pElement, Precision pPrecision, UnmodifiableReachedSet pElements) throws CPAException {
     if(breakAnalysis) {
       return Triple.of(pElement, pPrecision, Action.BREAK);
     }
 
-    Triple<AbstractElement, Precision, Action> result = wrappedPrecisionAdjustment.prec(pElement, pPrecision, pElements);
+    Triple<AbstractState, Precision, Action> result = wrappedPrecisionAdjustment.prec(pElement, pPrecision, pElements);
 
     Precision newPrecision = forwardPrecisionToExpandedPrecision.get(pElement);
     if(newPrecision != null) {

@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
@@ -242,10 +242,10 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public AbstractElement getInitialElement (CFANode node) {
+  public AbstractState getInitialElement (CFANode node) {
     Preconditions.checkNotNull(node);
 
-    ImmutableList.Builder<AbstractElement> initialElements = ImmutableList.builder();
+    ImmutableList.Builder<AbstractState> initialElements = ImmutableList.builder();
     for (ConfigurableProgramAnalysis sp : cpas) {
       initialElements.add(sp.getInitialElement(node));
     }
@@ -300,12 +300,12 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge, Collection<? extends AbstractElement> pSuccessors) throws CPATransferException, InterruptedException {
+  public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     return transferRelation.areAbstractSuccessors(pElement, pCfaEdge, pSuccessors, cpas);
   }
 
   @Override
-  public boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement) throws CPAException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException {
     return stopOperator.isCoveredBy(pElement, pOtherElement, cpas);
   }
 }

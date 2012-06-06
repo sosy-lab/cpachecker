@@ -23,8 +23,5 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
-public interface AbstractElementWithLocation extends AbstractElement {
-    public CFANode getLocationNode();
+public interface AbstractState {
 }

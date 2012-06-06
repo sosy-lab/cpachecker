@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class MergeSepOperator implements MergeOperator {
 
   @Override
-  public AbstractElement merge(AbstractElement el1, AbstractElement el2, Precision p)
+  public AbstractState merge(AbstractState el1, AbstractState el2, Precision p)
     throws CPAException
   {
     return el2;

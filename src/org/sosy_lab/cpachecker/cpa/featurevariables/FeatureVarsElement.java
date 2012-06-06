@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.featurevariables;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
-public class FeatureVarsElement implements AbstractQueryableElement {
+public class FeatureVarsElement implements AbstractQueryableState {
 
   private Region currentState;
   private final NamedRegionManager manager;

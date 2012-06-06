@@ -24,19 +24,19 @@
 package org.sosy_lab.cpachecker.cpa.bdd;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public class BDDDomain implements AbstractDomain {
 
   public BDDDomain() {}
 
   @Override
-  public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement) {
+  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedElement) {
     return ((BDDElement) newElement).isLessOrEqual((BDDElement) reachedElement);
   }
 
   @Override
-  public AbstractElement join(AbstractElement newElement, AbstractElement reachedElement) {
+  public AbstractState join(AbstractState newElement, AbstractState reachedElement) {
     return ((BDDElement) newElement).join((BDDElement) reachedElement);
   }
 }

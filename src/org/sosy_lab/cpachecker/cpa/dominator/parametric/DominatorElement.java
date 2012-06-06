@@ -28,15 +28,15 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 
-public class DominatorElement implements AbstractElementWithLocation, AbstractElement {
+public class DominatorElement implements AbstractStateWithLocation, AbstractState {
 
-	private AbstractElement dominatedElement;
-	private Set<AbstractElement> dominators = new HashSet<AbstractElement>();
+	private AbstractState dominatedElement;
+	private Set<AbstractState> dominators = new HashSet<AbstractState>();
 
-	public DominatorElement(AbstractElement dominatedElement) {
+	public DominatorElement(AbstractState dominatedElement) {
 		if (dominatedElement == null) {
 			throw new IllegalArgumentException("dominatedElement is null!");
 		}
@@ -44,7 +44,7 @@ public class DominatorElement implements AbstractElementWithLocation, AbstractEl
 		this.dominatedElement = dominatedElement;
 	}
 
-	public DominatorElement(AbstractElement dominatedElement, Set<AbstractElement> dominators) {
+	public DominatorElement(AbstractState dominatedElement, Set<AbstractState> dominators) {
 		this(dominatedElement);
 
 		if (dominators == null) {
@@ -62,11 +62,11 @@ public class DominatorElement implements AbstractElementWithLocation, AbstractEl
 		this(other.dominatedElement, other.dominators);
 	}
 
-	public DominatorElement(AbstractElement dominatedElement, DominatorElement other) {
+	public DominatorElement(AbstractState dominatedElement, DominatorElement other) {
 		this(dominatedElement, other.dominators);
 	}
 
-	public void update(AbstractElement dominator) {
+	public void update(AbstractState dominator) {
 		if (dominator == null) {
 			throw new IllegalArgumentException("dominator is null!");
 		}
@@ -74,16 +74,16 @@ public class DominatorElement implements AbstractElementWithLocation, AbstractEl
 		dominators.add(dominator);
 	}
 
-	public AbstractElement getDominatedElement() {
+	public AbstractState getDominatedElement() {
 		return this.dominatedElement;
 	}
 
-	public Iterator<AbstractElement> getIterator ()
+	public Iterator<AbstractState> getIterator ()
     {
         return this.dominators.iterator();
     }
 
-	public boolean isDominatedBy(AbstractElement dominator) {
+	public boolean isDominatedBy(AbstractState dominator) {
 		return this.dominators.contains(dominator);
 	}
 
@@ -103,7 +103,7 @@ public class DominatorElement implements AbstractElementWithLocation, AbstractEl
 			return false;
 		}
 
-		for (AbstractElement dominator : dominators) {
+		for (AbstractState dominator : dominators) {
 			if (!other_element.isDominatedBy(dominator)) {
 				return false;
 			}
@@ -118,7 +118,7 @@ public class DominatorElement implements AbstractElementWithLocation, AbstractEl
         builder.append ("( " + this.dominatedElement.toString() + ", {");
 
         boolean first = true;
-        for (AbstractElement dominator : this.dominators) {
+        for (AbstractState dominator : this.dominators) {
         	if (first)  {
         		first = false;
         	}
@@ -136,7 +136,7 @@ public class DominatorElement implements AbstractElementWithLocation, AbstractEl
 
 	@Override
   public CFANode getLocationNode() {
-		return ((AbstractElementWithLocation)dominatedElement).getLocationNode();
+		return ((AbstractStateWithLocation)dominatedElement).getLocationNode();
 	}
 
 	@Override

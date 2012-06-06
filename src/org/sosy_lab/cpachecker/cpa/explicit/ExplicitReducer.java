@@ -27,7 +27,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
@@ -45,7 +45,7 @@ public class ExplicitReducer implements Reducer {
   }
 
   @Override
-  public AbstractElement getVariableReducedElement(AbstractElement pExpandedElement, Block pContext, CFANode pCallNode) {
+  public AbstractState getVariableReducedElement(AbstractState pExpandedElement, Block pContext, CFANode pCallNode) {
     ExplicitElement expandedElement = (ExplicitElement)pExpandedElement;
 
     ExplicitElement clonedElement = expandedElement.clone();
@@ -59,8 +59,8 @@ public class ExplicitReducer implements Reducer {
   }
 
   @Override
-  public AbstractElement getVariableExpandedElement(AbstractElement pRootElement, Block pReducedContext,
-      AbstractElement pReducedElement) {
+  public AbstractState getVariableExpandedElement(AbstractState pRootElement, Block pReducedContext,
+      AbstractState pReducedElement) {
     ExplicitElement rootElement = (ExplicitElement)pRootElement;
     ExplicitElement reducedElement = (ExplicitElement)pReducedElement;
 
@@ -107,7 +107,7 @@ public class ExplicitReducer implements Reducer {
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
+  public Object getHashCodeForElement(AbstractState pElementKey, Precision pPrecisionKey) {
     ExplicitElement elementKey = (ExplicitElement)pElementKey;
     ExplicitPrecision precisionKey = (ExplicitPrecision)pPrecisionKey;
 

@@ -28,8 +28,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serializable;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -40,9 +40,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 
 /**
- * AbstractElement for Symbolic Predicate Abstraction CPA
+ * AbstractState for Symbolic Predicate Abstraction CPA
  */
-public abstract class PredicateAbstractElement implements AbstractElement, Partitionable, FormulaReportingElement, Serializable {
+public abstract class PredicateAbstractElement implements AbstractState, Partitionable, FormulaReportingState, Serializable {
 
   private static final long serialVersionUID = -265763837277453447L;
 

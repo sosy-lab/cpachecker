@@ -41,7 +41,7 @@ public interface AbstractDomain {
    * @throws CPAException If any error occurred.
    * @throws UnsupportedOperationException If this domain does not provide a join method.
    */
-  public AbstractElement join(AbstractElement element1, AbstractElement element2) throws CPAException;
+  public AbstractState join(AbstractState element1, AbstractState element2) throws CPAException;
 
   /**
    * Returns true if element1 is less or equal than element with respect to
@@ -52,6 +52,6 @@ public interface AbstractDomain {
    * @return (element1 <= element2)
    * @throws CPAException If any error occurred.
    */
-  public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) throws CPAException;
+  public boolean isLessOrEqual(AbstractState element1, AbstractState element2) throws CPAException;
 
 }

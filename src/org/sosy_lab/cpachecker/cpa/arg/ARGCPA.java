@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
@@ -150,7 +150,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   }
 
   @Override
-  public AbstractElement getInitialElement (CFANode pNode) {
+  public AbstractState getInitialElement (CFANode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ARG
     return new ARGElement(getWrappedCpa().getInitialElement(pNode), null);
   }
@@ -179,14 +179,14 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   }
 
   @Override
-  public boolean areAbstractSuccessors(AbstractElement pElement, CFAEdge pCfaEdge,
-      Collection<? extends AbstractElement> pSuccessors) throws CPATransferException, InterruptedException {
+  public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge,
+      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
     return transferRelation.areAbstractSuccessors(pElement, pCfaEdge, pSuccessors, wrappedProofChecker);
   }
 
   @Override
-  public boolean isCoveredBy(AbstractElement pElement, AbstractElement pOtherElement) throws CPAException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException {
     Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
     return stopOperator.isCoveredBy(pElement, pOtherElement, wrappedProofChecker);
   }

@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.cwriter;
 
 import static com.google.common.collect.Iterables.concat;
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.util.ArrayList;
 import java.util.Collection;

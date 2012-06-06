@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -39,8 +39,8 @@ public class CFAPathTransferRelation implements TransferRelation {
   private static final Set<CFAPathTopElement> sTopElementSingleton = CFAPathTopElement.getSingleton();
 
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors(
-      AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
     if (pElement.equals(CFAPathTopElement.getInstance())) {
       return sTopElementSingleton;
@@ -58,8 +58,8 @@ public class CFAPathTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(
-      AbstractElement pElement, List<AbstractElement> pOtherElements,
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pElement, List<AbstractState> pOtherElements,
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
 
     return null;

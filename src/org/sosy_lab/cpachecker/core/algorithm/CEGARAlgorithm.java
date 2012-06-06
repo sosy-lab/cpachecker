@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
@@ -225,7 +225,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         sound &= algorithm.run(reached);
 
         // if the last element is a target element do refinement
-        if (AbstractElements.isTargetElement(reached.getLastElement())) {
+        if (AbstractStates.isTargetElement(reached.getLastElement())) {
 
           refinementSuccessful = refine(reached);
         }

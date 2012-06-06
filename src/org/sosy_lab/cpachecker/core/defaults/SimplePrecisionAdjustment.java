@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.defaults;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -38,12 +38,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * - prec does not need access to the reached set
  *
  * By inheriting from this class, implementations give callers the opportunity
- * to directly call {@link #prec(AbstractElement, Precision)}, which is faster.
+ * to directly call {@link #prec(AbstractState, Precision)}, which is faster.
  */
 public abstract class SimplePrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
-  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement, Precision pPrecision,
+  public Triple<AbstractState, Precision, Action> prec(AbstractState pElement, Precision pPrecision,
       UnmodifiableReachedSet pElements) throws CPAException {
 
     Action action = prec(pElement, pPrecision);
@@ -51,5 +51,5 @@ public abstract class SimplePrecisionAdjustment implements PrecisionAdjustment {
     return Triple.of(pElement, pPrecision, action);
   }
 
-  public abstract Action prec(AbstractElement pElement, Precision pPrecision) throws CPAException;
+  public abstract Action prec(AbstractState pElement, Precision pPrecision) throws CPAException;
 }

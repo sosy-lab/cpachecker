@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.pointer;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public class PointerDomain implements AbstractDomain {
 
   @Override
-  public AbstractElement join(AbstractElement element1, AbstractElement element2) {
+  public AbstractState join(AbstractState element1, AbstractState element2) {
     throw new UnsupportedOperationException();
     /*
       PointerElement pointerElement1 = (PointerElement)element1;
@@ -64,7 +64,7 @@ public class PointerDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement) {
+  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedElement) {
       PointerElement newPointerElement = (PointerElement)newElement;
       PointerElement reachedPointerElement = (PointerElement)reachedElement;
 

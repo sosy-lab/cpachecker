@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.base.Preconditions;
@@ -32,7 +32,7 @@ import com.google.common.base.Preconditions;
  * Abstract element for the Collector CPA. Encapsulate a
  * symbolic formula
  */
-public class AssumptionStorageElement implements AbstractElement {
+public class AssumptionStorageElement implements AbstractState {
 
   // this formula provides the assumption generated from other sources than heuristics,
   // e.g. assumptions for arithmetic overflow

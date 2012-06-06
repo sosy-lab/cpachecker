@@ -26,9 +26,9 @@ package org.sosy_lab.cpachecker.cpa.interval;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-public class IntervalAnalysisElement implements AbstractElement
+public class IntervalAnalysisElement implements AbstractState
 {
   /**
    * the intervals of the element

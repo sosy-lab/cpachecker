@@ -35,7 +35,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
@@ -71,8 +71,8 @@ public class ABMPredicateReducer implements Reducer {
   }
 
   @Override
-  public AbstractElement getVariableReducedElement(
-      AbstractElement pExpandedElement, Block pContext,
+  public AbstractState getVariableReducedElement(
+      AbstractState pExpandedElement, Block pContext,
       CFANode pLocation) {
 
     PredicateAbstractElement predicateElement = (PredicateAbstractElement)pExpandedElement;
@@ -103,9 +103,9 @@ public class ABMPredicateReducer implements Reducer {
   }
 
   @Override
-  public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, Block pReducedContext,
-      AbstractElement pReducedElement) {
+  public AbstractState getVariableExpandedElement(
+      AbstractState pRootElement, Block pReducedContext,
+      AbstractState pReducedElement) {
 
     PredicateAbstractElement rootElement = (PredicateAbstractElement)pRootElement;
     PredicateAbstractElement reducedElement = (PredicateAbstractElement)pReducedElement;
@@ -162,7 +162,7 @@ public class ABMPredicateReducer implements Reducer {
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
+  public Object getHashCodeForElement(AbstractState pElementKey, Precision pPrecisionKey) {
 
     PredicateAbstractElement element = (PredicateAbstractElement)pElementKey;
     PredicatePrecision precision = (PredicatePrecision)pPrecisionKey;

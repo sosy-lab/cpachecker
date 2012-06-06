@@ -31,7 +31,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.As
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionElement;
 import org.sosy_lab.cpachecker.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -87,10 +87,10 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
   }
 
   /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment#prec(org.sosy_lab.cpachecker.core.interfaces.AbstractElement, org.sosy_lab.cpachecker.core.interfaces.Precision, java.util.Collection)
+   * @see org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment#prec(org.sosy_lab.cpachecker.core.interfaces.AbstractState, org.sosy_lab.cpachecker.core.interfaces.Precision, java.util.Collection)
    */
   @Override
-  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement,
+  public Triple<AbstractState, Precision, Action> prec(AbstractState pElement,
                                                Precision pPrecision,
                                                UnmodifiableReachedSet pElements) throws CPAException {
     total.start();
@@ -105,7 +105,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
       throw new CPAException("The OmniscientCompositePrecisionAdjustment needs an ExplicitElement");
     }
 
-    ImmutableList.Builder<AbstractElement> outElements  = ImmutableList.builder();
+    ImmutableList.Builder<AbstractState> outElements  = ImmutableList.builder();
     ImmutableList.Builder<Precision> outPrecisions      = ImmutableList.builder();
 
     Action action = Action.CONTINUE;
@@ -113,7 +113,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
     for (int i = 0, size = composite.getWrappedElements().size(); i < size; ++i) {
       UnmodifiableReachedSet slice = new UnmodifiableReachedSetView(pElements, elementProjectionFunctions.get(i), precisionProjectionFunctions.get(i));
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
-      AbstractElement oldElement = composite.get(i);
+      AbstractState oldElement = composite.get(i);
       Precision oldPrecision = precision.get(i);
 
       // enforce thresholds for explicit element, by incorporating information from reached set and path condition element
@@ -121,8 +121,8 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
         ExplicitElement explicit                  = (ExplicitElement)oldElement;
         ExplicitPrecision explicitPrecision       = (ExplicitPrecision)oldPrecision;
 
-        LocationElement location                  = AbstractElements.extractElementByType(composite, LocationElement.class);
-        AssignmentsInPathConditionElement assigns = AbstractElements.extractElementByType(composite, AssignmentsInPathConditionElement.class);
+        LocationElement location                  = AbstractStates.extractElementByType(composite, LocationElement.class);
+        AssignmentsInPathConditionElement assigns = AbstractStates.extractElementByType(composite, AssignmentsInPathConditionElement.class);
 
         totalEnforceReachedSetThreshold.start();
         ExplicitElement newElement = enforceReachedSetThreshold(explicit, explicitPrecision, slice.getReached(location.getLocationNode()));
@@ -138,8 +138,8 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
       else {
         totalComposite.start();
 
-        Triple<AbstractElement, Precision, Action> result = precisionAdjustment.prec(oldElement, oldPrecision, slice);
-        AbstractElement newElement = result.getFirst();
+        Triple<AbstractState, Precision, Action> result = precisionAdjustment.prec(oldElement, oldPrecision, slice);
+        AbstractState newElement = result.getFirst();
         Precision newPrecision = result.getSecond();
 
         if (result.getThird() == Action.BREAK) {
@@ -157,7 +157,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
       }
     }
 
-    AbstractElement outElement = modified ? new CompositeElement(outElements.build())     : pElement;
+    AbstractState outElement = modified ? new CompositeElement(outElements.build())     : pElement;
     Precision outPrecision     = modified ? new CompositePrecision(outPrecisions.build()) : pPrecision;
 
     total.stop();
@@ -165,7 +165,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
     return Triple.of(outElement, outPrecision, action);
   }
 
-  private ExplicitElement enforceReachedSetThreshold(ExplicitElement element, ExplicitPrecision precision, Collection<AbstractElement> reachedSetAtLocation) {
+  private ExplicitElement enforceReachedSetThreshold(ExplicitElement element, ExplicitPrecision precision, Collection<AbstractState> reachedSetAtLocation) {
     // if an actual meaningful threshold is set
     if(precision.getReachedSetThresholds().defaultThreshold != -1) {
       // create the mapping from variable name to the number of different values this variable has
@@ -224,12 +224,12 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
   /**
    * This method creates the map which tracks how many different values are stored for a variable, based on the elements in the reached set.
    *
-   * @param reachedSetAtLocation the collection of AbstractElements in the reached set that refer to the current location
+   * @param reachedSetAtLocation the collection of AbstractStates in the reached set that refer to the current location
    */
-  private HashMultimap<String, Long> createMappingFromReachedSet(Collection<AbstractElement> reachedSetAtLocation) {
+  private HashMultimap<String, Long> createMappingFromReachedSet(Collection<AbstractState> reachedSetAtLocation) {
     HashMultimap<String, Long> valueMapping = HashMultimap.create();
 
-    for(AbstractElement element : reachedSetAtLocation) {
+    for(AbstractState element : reachedSetAtLocation) {
       for(Map.Entry<String, Long> entry : ((ExplicitElement)element).getConstantsMap().entrySet()) {
         valueMapping.put(entry.getKey(), entry.getValue());
       }

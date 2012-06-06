@@ -21,17 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.defaults;
+package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
-
-public enum SingletonAbstractElement implements AbstractElement {
-
-  INSTANCE;
-
-  @Override
-  public String toString() {
-    return "empty element";
-  }
+public interface AbstractStateWithLocation extends AbstractState {
+    public CFANode getLocationNode();
 }

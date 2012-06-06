@@ -29,7 +29,7 @@ import java.util.List;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
@@ -43,43 +43,43 @@ public class CompositeReducer implements Reducer {
   }
 
   @Override
-  public AbstractElement getVariableReducedElement(
-      AbstractElement pExpandedElement, Block pContext,
+  public AbstractState getVariableReducedElement(
+      AbstractState pExpandedElement, Block pContext,
       CFANode pLocation) {
 
-    List<AbstractElement> result = new ArrayList<AbstractElement>();
+    List<AbstractState> result = new ArrayList<AbstractState>();
     int i = 0;
-    for (AbstractElement expandedElement : ((CompositeElement)pExpandedElement).getWrappedElements()) {
+    for (AbstractState expandedElement : ((CompositeElement)pExpandedElement).getWrappedElements()) {
       result.add(wrappedReducers.get(i++).getVariableReducedElement(expandedElement, pContext, pLocation));
     }
     return new CompositeElement(result);
   }
 
   @Override
-  public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, Block pReducedContext,
-      AbstractElement pReducedElement) {
+  public AbstractState getVariableExpandedElement(
+      AbstractState pRootElement, Block pReducedContext,
+      AbstractState pReducedElement) {
 
-    List<AbstractElement> rootElements = ((CompositeElement)pRootElement).getWrappedElements();
-    List<AbstractElement> reducedElements = ((CompositeElement)pReducedElement).getWrappedElements();
+    List<AbstractState> rootElements = ((CompositeElement)pRootElement).getWrappedElements();
+    List<AbstractState> reducedElements = ((CompositeElement)pReducedElement).getWrappedElements();
 
-    List<AbstractElement> result = new ArrayList<AbstractElement>();
+    List<AbstractState> result = new ArrayList<AbstractState>();
     int i = 0;
-    for (Pair<AbstractElement, AbstractElement> p : Pair.zipList(rootElements, reducedElements)) {
+    for (Pair<AbstractState, AbstractState> p : Pair.zipList(rootElements, reducedElements)) {
       result.add(wrappedReducers.get(i++).getVariableExpandedElement(p.getFirst(), pReducedContext, p.getSecond()));
     }
     return new CompositeElement(result);
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
+  public Object getHashCodeForElement(AbstractState pElementKey, Precision pPrecisionKey) {
 
-    List<AbstractElement> elements = ((CompositeElement)pElementKey).getWrappedElements();
+    List<AbstractState> elements = ((CompositeElement)pElementKey).getWrappedElements();
     List<Precision> precisions = ((CompositePrecision)pPrecisionKey).getPrecisions();
 
     List<Object> result = new ArrayList<Object>(elements.size());
     int i = 0;
-    for (Pair<AbstractElement, Precision> p : Pair.zipList(elements, precisions)) {
+    for (Pair<AbstractState, Precision> p : Pair.zipList(elements, precisions)) {
       result.add(wrappedReducers.get(i++).getHashCodeForElement(p.getFirst(), p.getSecond()));
     }
     return result;

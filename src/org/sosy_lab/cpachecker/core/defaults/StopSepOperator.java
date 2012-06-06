@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.defaults;
 import java.util.Collection;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -47,10 +47,10 @@ public class StopSepOperator implements StopOperator {
   }
 
   @Override
-  public boolean stop(AbstractElement el, Collection<AbstractElement> reached, Precision precision)
+  public boolean stop(AbstractState el, Collection<AbstractState> reached, Precision precision)
     throws CPAException {
 
-    for (AbstractElement reachedElement : reached) {
+    for (AbstractState reachedElement : reached) {
       if (domain.isLessOrEqual(el, reachedElement)) {
         return true;
       }

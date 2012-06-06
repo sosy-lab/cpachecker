@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -50,7 +50,7 @@ class CompositeSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
   }
 
   @Override
-  public Action prec(AbstractElement pElement, Precision pPrecision) throws CPAException {
+  public Action prec(AbstractState pElement, Precision pPrecision) throws CPAException {
     CompositeElement comp = (CompositeElement) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
     assert (comp.getWrappedElements().size() == prec.getPrecisions().size());
@@ -58,7 +58,7 @@ class CompositeSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
 
     for (int i = 0; i < dim; ++i) {
       SimplePrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
-      AbstractElement oldElement = comp.get(i);
+      AbstractState oldElement = comp.get(i);
       Precision oldPrecision = prec.get(i);
       Action action = precisionAdjustment.prec(oldElement, oldPrecision);
 

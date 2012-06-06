@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
@@ -106,7 +106,7 @@ interface AutomatonIntExpr extends AutomatonExpression {
   }
 
   /**
-   * Sends a query-String to an <code>AbstractElement</code> of another analysis and returns the query-Result.
+   * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the query-Result.
    */
   static class CPAQuery implements AutomatonIntExpr {
     private final String cpaName;
@@ -124,9 +124,9 @@ interface AutomatonIntExpr extends AutomatonExpression {
         return new ResultValue<Integer>("Failed to modify queryString \"" + queryString + "\"", "AutomatonIntExpr.CPAQuery");
       }
 
-      for (AbstractElement ae : pArgs.getAbstractElements()) {
-        if (ae instanceof AbstractQueryableElement) {
-          AbstractQueryableElement aqe = (AbstractQueryableElement) ae;
+      for (AbstractState ae : pArgs.getAbstractStates()) {
+        if (ae instanceof AbstractQueryableState) {
+          AbstractQueryableState aqe = (AbstractQueryableState) ae;
           if (aqe.getCPAName().equals(cpaName)) {
             try {
               Object result = aqe.evaluateProperty(modifiedQueryString);

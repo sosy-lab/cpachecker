@@ -43,7 +43,7 @@ public interface TransferRelation {
    * @param cfaEdge null or an edge of the CFA
    * @return list of all successors of the current state (may be empty)
    */
-  public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement element, Precision precision, CFAEdge cfaEdge)
+  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState element, Precision precision, CFAEdge cfaEdge)
     throws CPATransferException, InterruptedException;
 
   /**
@@ -56,8 +56,8 @@ public interface TransferRelation {
    * @param precision
    * @return list of all abstract elements which should replace the old one, empty list for bottom or null for no change.
    */
-  public Collection<? extends AbstractElement> strengthen (AbstractElement element,
-                                     List<AbstractElement> otherElements,
+  public Collection<? extends AbstractState> strengthen (AbstractState element,
+                                     List<AbstractState> otherElements,
                                      CFAEdge cfaEdge,
                                      Precision precision)
                                      throws CPATransferException,

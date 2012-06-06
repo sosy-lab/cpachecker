@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -38,7 +38,7 @@ class PredicateStopOperator extends StopSepOperator implements ForcedCoveringSto
   }
 
   @Override
-  public boolean isForcedCoveringPossible(AbstractElement pElement, AbstractElement pReachedElement,
+  public boolean isForcedCoveringPossible(AbstractState pElement, AbstractState pReachedElement,
       Precision pPrecision) throws CPAException {
 
     // We support forced covering, so this is always possible,

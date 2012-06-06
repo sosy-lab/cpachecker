@@ -58,5 +58,5 @@ public interface ForcedCovering {
    * @param reached The current reached set.
    * @return Whether forced covering was successful.
    */
-  boolean tryForcedCovering(AbstractElement element, Precision precision, ReachedSet reached) throws CPAException, InterruptedException;
+  boolean tryForcedCovering(AbstractState element, Precision precision, ReachedSet reached) throws CPAException, InterruptedException;
 }

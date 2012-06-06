@@ -71,7 +71,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer.Memory;
@@ -98,7 +98,7 @@ public class ExplicitTransferRelation implements TransferRelation
   }
 
   @Override
-  public Collection<ExplicitElement> getAbstractSuccessors(AbstractElement element, Precision pPrecision, CFAEdge cfaEdge)
+  public Collection<ExplicitElement> getAbstractSuccessors(AbstractState element, Precision pPrecision, CFAEdge cfaEdge)
     throws CPATransferException {
 
     ExplicitElement explicitElement     = (ExplicitElement)element;
@@ -823,12 +823,12 @@ public class ExplicitTransferRelation implements TransferRelation
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement element, List<AbstractElement> elements, CFAEdge cfaEdge, Precision precision)
+  public Collection<? extends AbstractState> strengthen(AbstractState element, List<AbstractState> elements, CFAEdge cfaEdge, Precision precision)
     throws UnrecognizedCCodeException {
     assert element instanceof ExplicitElement;
     ExplicitElement explicitElement = (ExplicitElement)element;
 
-    for(AbstractElement ae : elements) {
+    for(AbstractState ae : elements) {
       if(ae instanceof PointerElement) {
         return strengthen(explicitElement, (PointerElement)ae, cfaEdge, precision);
       }
@@ -837,7 +837,7 @@ public class ExplicitTransferRelation implements TransferRelation
     return null;
   }
 
-  private Collection<? extends AbstractElement> strengthen(ExplicitElement explicitElement, PointerElement pointerElement, CFAEdge cfaEdge, Precision precision)
+  private Collection<? extends AbstractState> strengthen(ExplicitElement explicitElement, PointerElement pointerElement, CFAEdge cfaEdge, Precision precision)
     throws UnrecognizedCCodeException {
     try {
       if(missingInformationRightExpression != null) {

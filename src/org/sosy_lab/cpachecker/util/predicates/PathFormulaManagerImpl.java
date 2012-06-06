@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
@@ -292,7 +292,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
         // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractElement,
         // it is used without PredicateCPA as well.
         PathFormula pf;
-        PredicateAbstractElement pe = AbstractElements.extractElementByType(pathElement, PredicateAbstractElement.class);
+        PredicateAbstractElement pe = AbstractStates.extractElementByType(pathElement, PredicateAbstractElement.class);
         if (pe == null) {
           logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA");
           return fmgr.makeTrue();

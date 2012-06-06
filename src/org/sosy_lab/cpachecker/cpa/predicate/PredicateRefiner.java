@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractElementByType;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -132,7 +132,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     for (ARGElement ae : skip(transform(pPath, Pair.<ARGElement>getProjectionToFirst()), 1)) {
       PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
       if (pe.isAbstractionElement()) {
-        CFANode loc = AbstractElements.extractLocation(ae);
+        CFANode loc = AbstractStates.extractLocation(ae);
         result.add(Pair.of(ae, loc));
       }
     }
@@ -157,7 +157,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
         Functions.compose(
             GET_BLOCK_FORMULA,
         Functions.compose(
-            AbstractElements.extractElementByTypeFunction(PredicateAbstractElement.class),
+            AbstractStates.extractElementByTypeFunction(PredicateAbstractElement.class),
             Pair.<ARGElement>getProjectionToFirst())));
 
     return formulas;

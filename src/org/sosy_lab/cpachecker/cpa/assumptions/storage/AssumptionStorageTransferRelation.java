@@ -29,13 +29,13 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingElement;
-import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingElement;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -51,18 +51,18 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
   private final CtoFormulaConverter converter;
   private final FormulaManager formulaManager;
 
-  private final Collection<AbstractElement> topElementSet;
+  private final Collection<AbstractState> topElementSet;
 
   public AssumptionStorageTransferRelation(CtoFormulaConverter pConverter,
-      FormulaManager pFormulaManager, AbstractElement pTopElement) {
+      FormulaManager pFormulaManager, AbstractState pTopElement) {
     converter = pConverter;
     formulaManager = pFormulaManager;
     topElementSet = Collections.singleton(pTopElement);
   }
 
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors(
-      AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge) {
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) {
     AssumptionStorageElement element = (AssumptionStorageElement)pElement;
 
     // If we must stop, then let's stop by returning an empty set
@@ -74,7 +74,7 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p) throws UnrecognizedCCodeException {
+  public Collection<? extends AbstractState> strengthen(AbstractState el, List<AbstractState> others, CFAEdge edge, Precision p) throws UnrecognizedCCodeException {
     AssumptionStorageElement asmptStorageElem = (AssumptionStorageElement)el;
     assert asmptStorageElem.getAssumption().isTrue();
     assert asmptStorageElem.getStopFormula().isTrue();
@@ -86,15 +86,15 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
     // process stop flag
     boolean stop = false;
 
-    for (AbstractElement element : AbstractElements.asIterable(others)) {
-      if (element instanceof AssumptionReportingElement) {
-        IASTExpression inv = ((AssumptionReportingElement)element).getAssumption();
+    for (AbstractState element : AbstractStates.asIterable(others)) {
+      if (element instanceof AssumptionReportingState) {
+        IASTExpression inv = ((AssumptionReportingState)element).getAssumption();
         Formula invFormula = converter.makePredicate(inv, edge, function, SSAMap.emptySSAMap().builder());
         assumption = formulaManager.makeAnd(assumption, formulaManager.uninstantiate(invFormula));
       }
 
-      if (element instanceof AvoidanceReportingElement) {
-        AvoidanceReportingElement e = (AvoidanceReportingElement)element;
+      if (element instanceof AvoidanceReportingState) {
+        AvoidanceReportingState e = (AvoidanceReportingState)element;
 
         if (e.mustDumpAssumptionForAvoidance()) {
           stopFormula = formulaManager.makeOr(stopFormula, e.getReasonFormula(formulaManager));

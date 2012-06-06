@@ -32,10 +32,10 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-public class UninitializedVariablesElement implements AbstractQueryableElement {
+public class UninitializedVariablesElement implements AbstractQueryableState {
 
   private final Collection<String> globalVars;
   private final Deque<Pair<String, Collection<String>>> localVars;

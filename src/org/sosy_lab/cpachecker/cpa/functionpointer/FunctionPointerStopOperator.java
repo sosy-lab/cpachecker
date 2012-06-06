@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.functionpointer;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -40,12 +40,12 @@ class FunctionPointerStopOperator implements StopOperator {
   }
 
   @Override
-  public boolean stop(AbstractElement pElement,
-      Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
+  public boolean stop(AbstractState pElement,
+      Collection<AbstractState> pReached, Precision pPrecision) throws CPAException {
 
     FunctionPointerElement fpElement = (FunctionPointerElement)pElement;
 
-    for (AbstractElement reachedElement : pReached) {
+    for (AbstractState reachedElement : pReached) {
       FunctionPointerElement fpReachedElement = (FunctionPointerElement)reachedElement;
       if (stop(fpElement, fpReachedElement, pPrecision)) {
         return true;
@@ -62,8 +62,8 @@ class FunctionPointerStopOperator implements StopOperator {
       return false;
     }
 
-    AbstractElement wrappedElement = pElement.getWrappedElement();
-    AbstractElement wrappedReachedElement = pReachedElement.getWrappedElement();
+    AbstractState wrappedElement = pElement.getWrappedElement();
+    AbstractState wrappedReachedElement = pReachedElement.getWrappedElement();
 
     return wrappedStop.stop(wrappedElement, Collections.singleton(wrappedReachedElement), pPrecision);
   }

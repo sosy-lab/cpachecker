@@ -23,19 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-
-/**
- * Interface to implement in order for an abstract element
- * to be able to be over-approximated by a formula representing
- * the abstract element.
- */
-public interface FormulaReportingElement extends AbstractElement {
+public interface AbstractWrapperState extends AbstractState {
 
   /**
-   * Returns a formula over-approximating the element
+   * Retrieve all wrapped abstract elements contained directly in this object.
+   * @return A non-empty list of abstract elements.
    */
-  public Formula getFormulaApproximation(FormulaManager manager);
+  public Iterable<? extends AbstractState> getWrappedElements();
 
 }

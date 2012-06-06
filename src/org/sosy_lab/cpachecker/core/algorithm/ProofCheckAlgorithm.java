@@ -46,7 +46,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
@@ -166,7 +166,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     logger.log(Level.INFO, "Proof check algorithm started");
 
-    AbstractElement initialElement = reachedSet.popFromWaitlist();
+    AbstractState initialElement = reachedSet.popFromWaitlist();
     Precision initialPrecision = reachedSet.getPrecision(initialElement);
 
     logger.log(Level.FINE, "Checking root element");

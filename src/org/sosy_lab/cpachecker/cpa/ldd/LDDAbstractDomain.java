@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.ldd;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.ldd.LDDRegionManager;
 
@@ -33,7 +33,7 @@ public class LDDAbstractDomain implements AbstractDomain {
 
   private final LDDRegionManager regionManager;
 
-  private final AbstractElement topElement;
+  private final AbstractState topElement;
 
   public LDDAbstractDomain(LDDRegionManager regionManager) {
     this.regionManager = regionManager;
@@ -41,7 +41,7 @@ public class LDDAbstractDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement) throws CPAException {
+  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedElement) throws CPAException {
     if (this.topElement.equals(reachedElement) || newElement.equals(reachedElement)) { return true; }
     if (newElement instanceof LDDAbstractElement && reachedElement instanceof LDDAbstractElement) {
       LDDAbstractElement lddElement1 = (LDDAbstractElement) newElement;
@@ -52,7 +52,7 @@ public class LDDAbstractDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) throws CPAException {
+  public AbstractState join(AbstractState pElement1, AbstractState pElement2) throws CPAException {
     if (isLessOrEqual(pElement1, pElement2)) { return pElement2; }
     if (isLessOrEqual(pElement2, pElement1)) { return pElement1; }
     if (pElement1 instanceof LDDAbstractElement && pElement2 instanceof LDDAbstractElement) {

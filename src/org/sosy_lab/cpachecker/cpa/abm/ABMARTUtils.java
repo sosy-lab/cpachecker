@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.abm;
 
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.util.Deque;
 import java.util.HashSet;

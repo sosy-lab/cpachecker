@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.ldd;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.predicates.ldd.LDDRegion;
 
-public class LDDAbstractElement implements AbstractElement {
+public class LDDAbstractElement implements AbstractState {
 
   private LDDRegion region;
 

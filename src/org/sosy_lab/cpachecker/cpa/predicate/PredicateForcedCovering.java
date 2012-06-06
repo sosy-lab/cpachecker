@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractElementByType;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -38,7 +38,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCovering;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -135,7 +135,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
   }
 
   @Override
-  public boolean tryForcedCovering(AbstractElement pElement, Precision pPrecision, ReachedSet pReached)
+  public boolean tryForcedCovering(AbstractState pElement, Precision pPrecision, ReachedSet pReached)
       throws CPAException, InterruptedException {
     ARGElement argElement = (ARGElement)pElement;
     if (argElement.isCovered()) {
@@ -162,7 +162,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
     List<ARGElement> parentList = ImmutableList.copyOf(getParentAbstractionElements(argElement)).reverse();
     Set<ARGElement> parentSet = ImmutableSet.copyOf(parentList);
 
-    for (AbstractElement reachedElement : pReached.getReached(pElement)) {
+    for (AbstractState reachedElement : pReached.getReached(pElement)) {
       if (pElement == reachedElement) {
         continue;
       }
@@ -208,7 +208,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         {
           formulas.add(getPredicateElement(commonParent).getAbstractionFormula().asInstantiatedFormula());
 
-          for (AbstractElement pathElement : path) {
+          for (AbstractState pathElement : path) {
             formulas.add(getPredicateElement(pathElement).getAbstractionFormula().getBlockFormula());
           }
 
@@ -284,10 +284,10 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
             Iterables.transform(pathToRoot, Pair.<ARGElement>getProjectionToFirst()),
         Predicates.compose(
             PredicateAbstractElement.FILTER_ABSTRACTION_ELEMENTS,
-            AbstractElements.extractElementByTypeFunction(PredicateAbstractElement.class)));
+            AbstractStates.extractElementByTypeFunction(PredicateAbstractElement.class)));
   }
 
-  private static PredicateAbstractElement getPredicateElement(AbstractElement pElement) {
+  private static PredicateAbstractElement getPredicateElement(AbstractState pElement) {
     return extractElementByType(pElement, PredicateAbstractElement.class);
   }
 

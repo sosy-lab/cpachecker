@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
@@ -93,7 +93,7 @@ class OctTransferRelation implements TransferRelation{
   }
 
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors (AbstractElement element, Precision prec, CFAEdge cfaEdge) throws UnrecognizedCCodeException
+  public Collection<? extends AbstractState> getAbstractSuccessors (AbstractState element, Precision prec, CFAEdge cfaEdge) throws UnrecognizedCCodeException
   {
 
     // octElement is the region of the current state
@@ -313,7 +313,7 @@ class OctTransferRelation implements TransferRelation{
     return octagonElement;
   }
 
-  private AbstractElement handleAssumption (OctElement pElement,
+  private AbstractState handleAssumption (OctElement pElement,
       IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
   throws UnrecognizedCCodeException {
 
@@ -357,7 +357,7 @@ class OctTransferRelation implements TransferRelation{
 
   }
 
-  private AbstractElement propagateBooleanExpression(OctElement pElement,
+  private AbstractState propagateBooleanExpression(OctElement pElement,
       BinaryOperator opType,IASTExpression op1,
       IASTExpression op2, String functionName, boolean truthValue, CFAEdge edge)
   throws UnrecognizedCCodeException {
@@ -696,13 +696,13 @@ class OctTransferRelation implements TransferRelation{
   }
 
 
-  private AbstractElement forgetElement(OctElement pElement,
+  private AbstractState forgetElement(OctElement pElement,
       String pVariableName) {
     pElement.forget(pVariableName);
     return pElement;
   }
 
-  private AbstractElement addSmallerEqConstraint(OctElement pElement,
+  private AbstractState addSmallerEqConstraint(OctElement pElement,
       String pRightVariableName, String pLeftVariableName) {
     int rVarIdx = pElement.getVariableIndexFor(pRightVariableName);
     int lVarIdx = pElement.getVariableIndexFor(pLeftVariableName);
@@ -711,7 +711,7 @@ class OctTransferRelation implements TransferRelation{
   }
 
   // Note that this only works if both variables are integers
-  private AbstractElement addSmallerConstraint(OctElement pElement,
+  private AbstractState addSmallerConstraint(OctElement pElement,
       String pRightVariableName, String pLeftVariableName) {
     int rVarIdx = pElement.getVariableIndexFor(pRightVariableName);
     int lVarIdx = pElement.getVariableIndexFor(pLeftVariableName);
@@ -720,7 +720,7 @@ class OctTransferRelation implements TransferRelation{
   }
 
 
-  private AbstractElement addGreaterEqConstraint(OctElement pElement,
+  private AbstractState addGreaterEqConstraint(OctElement pElement,
       String pRightVariableName, String pLeftVariableName) {
     int rVarIdx = pElement.getVariableIndexFor(pRightVariableName);
     int lVarIdx = pElement.getVariableIndexFor(pLeftVariableName);
@@ -729,7 +729,7 @@ class OctTransferRelation implements TransferRelation{
   }
 
   // Note that this only works if both variables are integers
-  private AbstractElement addGreaterConstraint(OctElement pElement,
+  private AbstractState addGreaterConstraint(OctElement pElement,
       String pRightVariableName, String pLeftVariableName) {
     int rVarIdx = pElement.getVariableIndexFor(pRightVariableName);
     int lVarIdx = pElement.getVariableIndexFor(pLeftVariableName);
@@ -738,7 +738,7 @@ class OctTransferRelation implements TransferRelation{
   }
 
   // Note that this only works if both variables are integers
-  private AbstractElement addIneqConstraint(OctElement pElement,
+  private AbstractState addIneqConstraint(OctElement pElement,
       String pRightVariableName, String pLeftVariableName) {
     OctElement newElem1 = null;
     newElem1 = pElement.clone();
@@ -751,7 +751,7 @@ class OctTransferRelation implements TransferRelation{
     }
   }
 
-  private AbstractElement addEqConstraint(OctElement pElement,
+  private AbstractState addEqConstraint(OctElement pElement,
       String pRightVariableName, String pLeftVariableName) {
 //    addSmallerEqConstraint(pElement, pRightVariableName, pLeftVariableName);
 //    addGreaterEqConstraint(pElement, pRightVariableName, pLeftVariableName);
@@ -769,7 +769,7 @@ class OctTransferRelation implements TransferRelation{
     }
   }
 
-  private AbstractElement addSmallerEqConstraint(OctElement pElement,
+  private AbstractState addSmallerEqConstraint(OctElement pElement,
       String pVariableName, long pValueOfLiteral) {
     int varIdx = pElement.getVariableIndexFor(pVariableName);
     pElement.addConstraint(0, varIdx, 0, (int)pValueOfLiteral);
@@ -777,14 +777,14 @@ class OctTransferRelation implements TransferRelation{
   }
 
   // Note that this only works if both variables are integers
-  private AbstractElement addSmallerConstraint(OctElement pElement,
+  private AbstractState addSmallerConstraint(OctElement pElement,
       String pVariableName, long pValueOfLiteral) {
     int varIdx = pElement.getVariableIndexFor(pVariableName);
     pElement.addConstraint(0, varIdx, -1, (int)pValueOfLiteral-1);
     return pElement;
   }
 
-  private AbstractElement addGreaterEqConstraint(OctElement pElement,
+  private AbstractState addGreaterEqConstraint(OctElement pElement,
       String pVariableName, long pValueOfLiteral) {
     int varIdx = pElement.getVariableIndexFor(pVariableName);
     pElement.addConstraint(1, varIdx, 0, (0 - (int)pValueOfLiteral));
@@ -792,14 +792,14 @@ class OctTransferRelation implements TransferRelation{
   }
 
   // Note that this only works if both variables are integers
-  private AbstractElement addGreaterConstraint(OctElement pElement,
+  private AbstractState addGreaterConstraint(OctElement pElement,
       String pVariableName, long pValueOfLiteral) {
     int varIdx = pElement.getVariableIndexFor(pVariableName);
     pElement.addConstraint(1, varIdx, 0, (-1 - (int)pValueOfLiteral));
     return pElement;
   }
 
-  private AbstractElement addEqConstraint(OctElement pElement,
+  private AbstractState addEqConstraint(OctElement pElement,
       String pVariableName, long pI) {
 //    addGreaterEqConstraint(pElement, pVariableName, pI);
 //    addSmallerEqConstraint(pElement, pVariableName, pI);
@@ -819,7 +819,7 @@ class OctTransferRelation implements TransferRelation{
   }
 
   // Note that this only works if both variables are integers
-  private AbstractElement addIneqConstraint(OctElement pElement,
+  private AbstractState addIneqConstraint(OctElement pElement,
       String pVariableName, long pI) {
     OctElement newElem1 = null;
     newElem1 = pElement.clone();
@@ -1375,14 +1375,14 @@ class OctTransferRelation implements TransferRelation{
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement element,
-      List<AbstractElement> otherElements, CFAEdge cfaEdge,
+  public Collection<? extends AbstractState> strengthen(AbstractState element,
+      List<AbstractState> otherElements, CFAEdge cfaEdge,
       Precision precision) {
 
     assert element instanceof OctElement;
     OctElement octagonElement = (OctElement)element;
 
-    for (AbstractElement ae : otherElements) {
+    for (AbstractState ae : otherElements) {
       if (ae instanceof PointerElement) {
         return strengthen(octagonElement, (PointerElement)ae, cfaEdge, precision);
       }
@@ -1395,14 +1395,14 @@ class OctTransferRelation implements TransferRelation{
 
   }
 
-  private Collection<? extends AbstractElement> strengthen(
+  private Collection<? extends AbstractState> strengthen(
       OctElement pOctagonElement, AssumptionStorageElement pAe,
       CFAEdge pCfaEdge, Precision pPrecision) {
     // TODO Auto-generated method stub
     return null;
   }
 
-  private Collection<? extends AbstractElement> strengthen(
+  private Collection<? extends AbstractState> strengthen(
       OctElement pOctagonElement, PointerElement pAe, CFAEdge pCfaEdge,
       Precision pPrecision) {
     // TODO Auto-generated method stub

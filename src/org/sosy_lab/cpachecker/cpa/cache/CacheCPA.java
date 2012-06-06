@@ -28,7 +28,7 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -46,7 +46,7 @@ import com.google.common.collect.ImmutableList;
 public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
 
   private final ConfigurableProgramAnalysis mCachedCPA;
-  private final Map<CFANode, AbstractElement> mInitialElementsCache;
+  private final Map<CFANode, AbstractState> mInitialElementsCache;
   private final Map<CFANode, Precision> mInitialPrecisionsCache;
   private final CacheTransferRelation mCacheTransferRelation;
   private final CachePrecisionAdjustment mCachePrecisionAdjustment;
@@ -54,7 +54,7 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
 
   public CacheCPA(ConfigurableProgramAnalysis pCachedCPA) {
     mCachedCPA = pCachedCPA;
-    mInitialElementsCache = new HashMap<CFANode, AbstractElement>();
+    mInitialElementsCache = new HashMap<CFANode, AbstractState>();
     mInitialPrecisionsCache = new HashMap<CFANode, Precision>();
     mCacheTransferRelation = new CacheTransferRelation(mCachedCPA.getTransferRelation());
     mCachePrecisionAdjustment = new CachePrecisionAdjustment(mCachedCPA.getPrecisionAdjustment());
@@ -87,8 +87,8 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFANode pNode) {
-    AbstractElement lInitialElement = mInitialElementsCache.get(pNode);
+  public AbstractState getInitialElement(CFANode pNode) {
+    AbstractState lInitialElement = mInitialElementsCache.get(pNode);
 
     if (lInitialElement == null) {
       lInitialElement = mCachedCPA.getInitialElement(pNode);

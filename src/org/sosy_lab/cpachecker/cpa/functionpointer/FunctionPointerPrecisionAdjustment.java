@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -44,7 +44,7 @@ class FunctionPointerPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement,
+  public Triple<AbstractState, Precision, Action> prec(AbstractState pElement,
       Precision oldPrecision, UnmodifiableReachedSet pElements) throws CPAException {
 
     Preconditions.checkArgument(pElement instanceof FunctionPointerElement);
@@ -53,11 +53,11 @@ class FunctionPointerPrecisionAdjustment implements PrecisionAdjustment {
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
         pElements,  ARGElement.getUnwrapFunction(), Functions.<Precision>identity());
 
-    AbstractElement oldElement = element.getWrappedElement();
+    AbstractState oldElement = element.getWrappedElement();
 
-    Triple<AbstractElement, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
+    Triple<AbstractState, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
 
-    AbstractElement newElement = unwrappedResult.getFirst();
+    AbstractState newElement = unwrappedResult.getFirst();
     Precision newPrecision = unwrappedResult.getSecond();
     Action action = unwrappedResult.getThird();
 
@@ -66,7 +66,7 @@ class FunctionPointerPrecisionAdjustment implements PrecisionAdjustment {
       return Triple.of(pElement, oldPrecision, action);
     }
 
-    AbstractElement resultElement = element.createDuplicateWithNewWrappedElement(newElement);
+    AbstractState resultElement = element.createDuplicateWithNewWrappedElement(newElement);
 
     return Triple.of(resultElement, newPrecision, action);
   }

@@ -44,7 +44,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCChecker;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -118,7 +118,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
     while (reached.hasWaitingElement()) {
       sound &= algorithm.run(reached);
 
-      AbstractElement lastElement = reached.getLastElement();
+      AbstractState lastElement = reached.getLastElement();
       if (!(lastElement instanceof ARGElement)) {
         // no analysis possible
         break;
@@ -150,7 +150,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
 
           // BDD specials
           Region errorBDD = null;
-          for (AbstractElement x : ((CompositeElement)errorElement.getWrappedElement()).getWrappedElements()) {
+          for (AbstractState x : ((CompositeElement)errorElement.getWrappedElement()).getWrappedElements()) {
             if (x instanceof FeatureVarsElement) {
               errorBDD = ((FeatureVarsElement) x).getRegion();
               //logger.log(Level.INFO,"BDD: " + ((FeatureVarsElement) x).toString());
@@ -164,10 +164,10 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
           }
 
           //TODO: would be better to delete elements that should not be explored further from the waitlist
-          for (AbstractElement x : reached.getWaitlist()) {
+          for (AbstractState x : reached.getWaitlist()) {
             ARGElement xart = (ARGElement)x;
             FeatureVarsElement fvelem = null;
-            for (AbstractElement y : ((CompositeElement)xart.getWrappedElement()).getWrappedElements()) {
+            for (AbstractState y : ((CompositeElement)xart.getWrappedElement()).getWrappedElements()) {
               if (y instanceof FeatureVarsElement)
                 fvelem = (FeatureVarsElement)y;
             }

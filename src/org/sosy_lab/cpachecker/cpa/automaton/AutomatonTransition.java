@@ -110,7 +110,7 @@ class AutomatonTransition {
 
   /** Determines if this Transition matches on the current State of the CPA.
    * This might return a <code>MaybeBoolean.MAYBE</code> value if the method cannot determine if the transition matches.
-   * In this case more information (e.g. more AbstractElements of other CPAs) are needed.
+   * In this case more information (e.g. more AbstractStates of other CPAs) are needed.
    * @throws CPATransferException
    */
   public ResultValue<Boolean> match(AutomatonExpressionArguments pArgs) throws CPATransferException {
@@ -144,7 +144,7 @@ class AutomatonTransition {
   }
 
   /** Returns if the actions of this transiton can be executed on these AutomatonExpressionArguments.
-   * If false is returned more Information is needed (probably more AbstractElements from other CPAs).
+   * If false is returned more Information is needed (probably more AbstractStates from other CPAs).
    * @param pArgs
    * @return
    * @throws CPATransferException

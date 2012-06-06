@@ -21,14 +21,17 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.interfaces;
+package org.sosy_lab.cpachecker.core.defaults;
 
-public interface AbstractWrapperElement extends AbstractElement {
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-  /**
-   * Retrieve all wrapped abstract elements contained directly in this object.
-   * @return A non-empty list of abstract elements.
-   */
-  public Iterable<? extends AbstractElement> getWrappedElements();
 
+public enum SingletonAbstractState implements AbstractState {
+
+  INSTANCE;
+
+  @Override
+  public String toString() {
+    return "empty element";
+  }
 }

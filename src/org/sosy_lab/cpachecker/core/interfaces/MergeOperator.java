@@ -26,5 +26,5 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface MergeOperator {
-  public AbstractElement merge (AbstractElement element1, AbstractElement element2, Precision precision) throws CPAException;
+  public AbstractState merge (AbstractState element1, AbstractState element2, Precision precision) throws CPAException;
 }

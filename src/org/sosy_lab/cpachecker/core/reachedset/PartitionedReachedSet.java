@@ -28,7 +28,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
@@ -40,12 +40,12 @@ import com.google.common.collect.Multimap;
  * Special implementation of the reached set that partitions the set by keys that
  * depend on the abstract element.
  * Which key is used for an abstract element can be changed by overriding
- * {@link #getPartitionKey(AbstractElement)} in a sub-class.
+ * {@link #getPartitionKey(AbstractState)} in a sub-class.
  * By default, this implementation needs abstract elements which implement
  * {@link Partitionable} and uses the return value of {@link Partitionable#getPartitionKey()}
  * as the key.
  *
- * Whenever the method {@link PartitionedReachedSet#getReached(AbstractElement)}
+ * Whenever the method {@link PartitionedReachedSet#getReached(AbstractState)}
  * is called (which is usually done by the CPAAlgorithm to get the candidates
  * for merging and coverage checks), it will return a subset of the set of all
  * reached elements. This subset contains exactly those elements, whose partition
@@ -53,21 +53,21 @@ import com.google.common.collect.Multimap;
  */
 public class PartitionedReachedSet extends DefaultReachedSet {
 
-  private final Multimap<Object, AbstractElement> partitionedReached = HashMultimap.create(100, 1);
+  private final Multimap<Object, AbstractState> partitionedReached = HashMultimap.create(100, 1);
 
   public PartitionedReachedSet(WaitlistFactory waitlistFactory) {
     super(waitlistFactory);
   }
 
   @Override
-  public void add(AbstractElement pElement, Precision pPrecision) {
+  public void add(AbstractState pElement, Precision pPrecision) {
     super.add(pElement, pPrecision);
 
     partitionedReached.put(getPartitionKey(pElement), pElement);
   }
 
   @Override
-  public void remove(AbstractElement pElement) {
+  public void remove(AbstractState pElement) {
     super.remove(pElement);
 
     partitionedReached.remove(getPartitionKey(pElement), pElement);
@@ -81,7 +81,7 @@ public class PartitionedReachedSet extends DefaultReachedSet {
   }
 
   @Override
-  public Collection<AbstractElement> getReached(AbstractElement pElement) {
+  public Collection<AbstractState> getReached(AbstractState pElement) {
     return getReachedForKey(getPartitionKey(pElement));
   }
 
@@ -89,11 +89,11 @@ public class PartitionedReachedSet extends DefaultReachedSet {
     return partitionedReached.keySet().size();
   }
 
-  public Map.Entry<Object, Collection<AbstractElement>> getMaxPartition() {
+  public Map.Entry<Object, Collection<AbstractState>> getMaxPartition() {
     int max = 0;
-    Map.Entry<Object, Collection<AbstractElement>> maxPartition = null;
+    Map.Entry<Object, Collection<AbstractState>> maxPartition = null;
 
-    for (Map.Entry<Object, Collection<AbstractElement>> partition : partitionedReached.asMap().entrySet()) {
+    for (Map.Entry<Object, Collection<AbstractState>> partition : partitionedReached.asMap().entrySet()) {
       int size = partition.getValue().size();
       if (size > max) {
         max = partition.getValue().size();
@@ -103,12 +103,12 @@ public class PartitionedReachedSet extends DefaultReachedSet {
     return maxPartition;
   }
 
-  protected Object getPartitionKey(AbstractElement pElement) {
+  protected Object getPartitionKey(AbstractState pElement) {
     assert pElement instanceof Partitionable : "Partitionable elements necessary for PartitionedReachedSet";
     return ((Partitionable)pElement).getPartitionKey();
   }
 
-  protected Collection<AbstractElement> getReachedForKey(Object key) {
+  protected Collection<AbstractState> getReachedForKey(Object key) {
     return Collections.unmodifiableCollection(partitionedReached.get(key));
   }
 

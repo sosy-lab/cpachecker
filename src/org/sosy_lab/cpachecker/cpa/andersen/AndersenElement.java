@@ -31,13 +31,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.andersen.util.BaseConstraint;
 import org.sosy_lab.cpachecker.cpa.andersen.util.ComplexConstraint;
 import org.sosy_lab.cpachecker.cpa.andersen.util.DirectedGraph;
 import org.sosy_lab.cpachecker.cpa.andersen.util.SimpleConstraint;
 
-public class AndersenElement implements AbstractElement, Cloneable {
+public class AndersenElement implements AbstractState, Cloneable {
 
   // ------- global constraint system -------
   private static final Set<BaseConstraint> gBaseConstraints = new HashSet<BaseConstraint>();

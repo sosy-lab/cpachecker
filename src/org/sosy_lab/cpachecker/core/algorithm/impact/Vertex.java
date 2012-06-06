@@ -33,18 +33,18 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 /**
  * This class represents the vertices/abstract states used by the
  * {@link ImpactAlgorithm}.
- * This class is basically similar to {@link AbstractElement},
+ * This class is basically similar to {@link AbstractState},
  * but allows only one parent and additionally stores a modifiable state formula.
  */
-class Vertex extends AbstractSingleWrapperElement {
+class Vertex extends AbstractSingleWrapperState {
   /* Boilerplate code to avoid serializing this class */
   private static final long serialVersionUID = 0xDEADBEEF;
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
@@ -63,14 +63,14 @@ class Vertex extends AbstractSingleWrapperElement {
   private Vertex coveredBy = null;
   private List<Vertex> coveredNodes = new ArrayList<Vertex>(0);
 
-  public Vertex(Formula pStateFormula, AbstractElement pElement) {
+  public Vertex(Formula pStateFormula, AbstractState pElement) {
     super(pElement);
     parent = null;
     assert pStateFormula.isTrue();
     stateFormula = pStateFormula;
   }
 
-  public Vertex(Vertex pParent, Formula pStateFormula, AbstractElement pElement) {
+  public Vertex(Vertex pParent, Formula pStateFormula, AbstractState pElement) {
     super(pElement);
     parent = checkNotNull(pParent);
     parent.children.add(this);
@@ -83,8 +83,8 @@ class Vertex extends AbstractSingleWrapperElement {
   }
 
   public CFAEdge getIncomingEdge() {
-    CFANode thisLocation = AbstractElements.extractLocation(getWrappedElement());
-    CFANode parentLocation = AbstractElements.extractLocation(parent.getWrappedElement());
+    CFANode thisLocation = AbstractStates.extractLocation(getWrappedElement());
+    CFANode parentLocation = AbstractStates.extractLocation(parent.getWrappedElement());
     return parentLocation.getEdgeTo(thisLocation);
   }
 
@@ -166,7 +166,7 @@ class Vertex extends AbstractSingleWrapperElement {
   }
 
   public boolean isLeaf() {
-    return children.isEmpty() && AbstractElements.extractLocation(getWrappedElement()).getNumLeavingEdges() > 0;
+    return children.isEmpty() && AbstractStates.extractLocation(getWrappedElement()).getNumLeavingEdges() > 0;
   }
 
   @Override

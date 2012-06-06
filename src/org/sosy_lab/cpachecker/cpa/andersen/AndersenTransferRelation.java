@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.andersen.util.BaseConstraint;
@@ -64,11 +64,11 @@ public class AndersenTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<AbstractElement> getAbstractSuccessors(AbstractElement element, Precision pPrecision,
+  public Collection<AbstractState> getAbstractSuccessors(AbstractState element, Precision pPrecision,
       CFAEdge cfaEdge)
       throws CPATransferException {
 
-    AbstractElement successor = null;
+    AbstractState successor = null;
     AndersenElement andersenElement = (AndersenElement) element;
 
     // check the type of the edge
@@ -107,7 +107,7 @@ public class AndersenTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement element, List<AbstractElement> elements,
+  public Collection<? extends AbstractState> strengthen(AbstractState element, List<AbstractState> elements,
       CFAEdge cfaEdge, Precision precision)
       throws UnrecognizedCCodeException {
 

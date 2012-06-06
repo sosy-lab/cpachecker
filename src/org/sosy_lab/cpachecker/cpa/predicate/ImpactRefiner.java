@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractElementByType;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
@@ -308,11 +308,11 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
   }
 
   private Formula getStateFormula(ARGElement pARGElement) {
-    return AbstractElements.extractElementByType(pARGElement, PredicateAbstractElement.class).getAbstractionFormula().asFormula();
+    return AbstractStates.extractElementByType(pARGElement, PredicateAbstractElement.class).getAbstractionFormula().asFormula();
   }
 
   private void addFormulaToState(Formula f, ARGElement e) {
-    PredicateAbstractElement predElement = AbstractElements.extractElementByType(e, PredicateAbstractElement.class);
+    PredicateAbstractElement predElement = AbstractStates.extractElementByType(e, PredicateAbstractElement.class);
     AbstractionFormula af = predElement.getAbstractionFormula();
 
     Formula newFormula = fmgr.makeAnd(f, af.asFormula());

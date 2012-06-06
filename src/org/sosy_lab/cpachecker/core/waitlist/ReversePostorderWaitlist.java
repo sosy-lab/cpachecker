@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.util.LinkedList;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /**
  * Waitlist implementation that sorts the abstract elements in reverse postorder
@@ -38,17 +38,17 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
  * replaced by RevsersePostorderSortedWaitlist.
  */
 @Deprecated
-public class ReversePostorderWaitlist extends AbstractWaitlist<LinkedList<AbstractElement>> {
+public class ReversePostorderWaitlist extends AbstractWaitlist<LinkedList<AbstractState>> {
 
   protected ReversePostorderWaitlist() {
-    super(new LinkedList<AbstractElement>());
+    super(new LinkedList<AbstractState>());
   }
 
   @Override
-  public AbstractElement pop() {
-    AbstractElement result = null;
+  public AbstractState pop() {
+    AbstractState result = null;
     int resultRpoId = Integer.MIN_VALUE;
-    for (AbstractElement currentElement : waitlist) {
+    for (AbstractState currentElement : waitlist) {
       if ((result == null)
           || (extractLocation(currentElement).getReversePostorderId() >
           resultRpoId)) {

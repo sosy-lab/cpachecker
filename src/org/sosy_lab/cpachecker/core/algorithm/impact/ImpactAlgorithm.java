@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.impact;
 
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.io.PrintStream;
@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -142,7 +142,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     imgr = new UninstantiatingInterpolationManager(fmgr, pfmgr, solver, factory, config, logger);
   }
 
-  public AbstractElement getInitialElement(CFANode location) {
+  public AbstractState getInitialElement(CFANode location) {
     return new Vertex(fmgr.makeTrue(), cpa.getInitialElement(location));
   }
 
@@ -162,13 +162,13 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     try {
       assert v.isLeaf() && !v.isCovered();
 
-      AbstractElement predecessor = v.getWrappedElement();
+      AbstractState predecessor = v.getWrappedElement();
       Precision precision = reached.getPrecision(v);
 
       CFANode loc = extractLocation(v);
       for (CFAEdge edge : leavingEdges(loc)) {
 
-        Collection<? extends AbstractElement> successors = cpa.getTransferRelation().getAbstractSuccessors(predecessor, precision, edge);
+        Collection<? extends AbstractState> successors = cpa.getTransferRelation().getAbstractSuccessors(predecessor, precision, edge);
         if (successors.isEmpty()) {
           // edge not feasible
           // create fake vertex
@@ -370,7 +370,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       Precision prec = reached.getPrecision(v);
-      for (AbstractElement ae : reached.getReached(v)) {
+      for (AbstractState ae : reached.getReached(v)) {
         Vertex w = (Vertex)ae;
 
         if (cover(v, w, prec)) {
@@ -416,7 +416,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       forceCoverTime.start();
       try {
         Precision prec = reached.getPrecision(v);
-        for (AbstractElement ae : reached.getReached(v)) {
+        for (AbstractState ae : reached.getReached(v)) {
           Vertex w = (Vertex)ae;
           if (mayCover(v, w, prec)) {
             if (forceCover(v, w, prec)) {
@@ -444,7 +444,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
     outer:
     while (true) {
-      for (AbstractElement ae : reached) {
+      for (AbstractState ae : reached) {
         Vertex v = (Vertex)ae;
         if (v.isLeaf() && !v.isCovered()) {
 

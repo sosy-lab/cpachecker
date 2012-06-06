@@ -28,7 +28,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix="cpa.predicate")
@@ -51,8 +51,8 @@ public class PredicateAbstractDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractElement element1,
-                                       AbstractElement element2) throws CPAException {
+  public boolean isLessOrEqual(AbstractState element1,
+                                       AbstractState element2) throws CPAException {
     coverageCheckTimer.start();
     try {
 
@@ -106,8 +106,8 @@ public class PredicateAbstractDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractElement join(AbstractElement pElement1,
-      AbstractElement pElement2) throws CPAException {
+  public AbstractState join(AbstractState pElement1,
+      AbstractState pElement2) throws CPAException {
     throw new UnsupportedOperationException();
   }
 }

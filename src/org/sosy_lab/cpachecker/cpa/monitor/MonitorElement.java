@@ -27,23 +27,23 @@ import java.io.IOException;
 import java.io.NotSerializableException;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingElement;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Preconditions;
 
-public class MonitorElement extends AbstractSingleWrapperElement implements AvoidanceReportingElement {
+public class MonitorElement extends AbstractSingleWrapperState implements AvoidanceReportingState {
   /* Boilerplate code to avoid serializing this class */
   private static final long serialVersionUID = 0xDEADBEEF;
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     throw new NotSerializableException();
   }
 
-  static enum TimeoutElement implements AbstractElement {
+  static enum TimeoutElement implements AbstractState {
     INSTANCE;
 
     @Override
@@ -57,11 +57,11 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
   // stores what caused the element to go further (may be null)
   private final Pair<PreventingHeuristic, Long> preventingCondition;
 
-  protected MonitorElement(AbstractElement pWrappedElement, long totalTimeOnPath) {
+  protected MonitorElement(AbstractState pWrappedElement, long totalTimeOnPath) {
     this(pWrappedElement, totalTimeOnPath, null);
   }
 
-  protected MonitorElement(AbstractElement pWrappedElement, long totalTimeOnPath,
+  protected MonitorElement(AbstractState pWrappedElement, long totalTimeOnPath,
       Pair<PreventingHeuristic, Long> preventingCondition) {
     super(pWrappedElement);
     Preconditions.checkArgument(!(pWrappedElement instanceof MonitorElement), "Don't wrap a MonitorCPA in a MonitorCPA, this makes no sense!");

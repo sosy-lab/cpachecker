@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.exceptions;
 
 /**
- * Signals that the check method of a AbstractElement has
+ * Signals that the check method of a AbstractState has
  * been passed an Argument that could not be evaluated.
  */
 public class InvalidQueryException extends CPATransferException {

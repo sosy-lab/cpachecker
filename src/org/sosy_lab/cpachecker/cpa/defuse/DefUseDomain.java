@@ -27,12 +27,12 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public class DefUseDomain implements AbstractDomain
 {
   @Override
-  public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) {
+  public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
             DefUseElement defUseElement1 = (DefUseElement) element1;
             DefUseElement defUseElement2 = (DefUseElement) element2;
 
@@ -40,7 +40,7 @@ public class DefUseDomain implements AbstractDomain
     }
 
     @Override
-    public AbstractElement join(AbstractElement element1, AbstractElement element2) {
+    public AbstractState join(AbstractState element1, AbstractState element2) {
             // Useless code, but helps to catch bugs by causing cast exceptions
             DefUseElement defUseElement1 = (DefUseElement) element1;
             DefUseElement defUseElement2 = (DefUseElement) element2;

@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.cfapath;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-public interface CFAPathElement extends AbstractElement {
+public interface CFAPathElement extends AbstractState {
 
 }

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.monitor;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -54,8 +54,8 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
   }
 
   @Override
-  public Triple<AbstractElement, Precision, Action> prec(
-      AbstractElement pElement, Precision oldPrecision,
+  public Triple<AbstractState, Precision, Action> prec(
+      AbstractState pElement, Precision oldPrecision,
       UnmodifiableReachedSet pElements) throws CPAException {
 
     Preconditions.checkArgument(pElement instanceof MonitorElement);
@@ -70,10 +70,10 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
         pElements,  MonitorElement.getUnwrapFunction(), Functions.<Precision>identity());
     // TODO we really would have to filter out all TimeoutElements in this view
 
-    AbstractElement oldElement = element.getWrappedElement();
+    AbstractState oldElement = element.getWrappedElement();
 
     totalTimeOfPrecAdj.start();
-    Triple<AbstractElement, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
+    Triple<AbstractState, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
     long totalTimeOfExecution = totalTimeOfPrecAdj.stop();
     // add total execution time to the total time of the previous element
     long updatedTotalTime = totalTimeOfExecution + element.getTotalTimeOnPath();
@@ -86,7 +86,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
 //      }
 //    }
 
-    AbstractElement newElement = unwrappedResult.getFirst();
+    AbstractState newElement = unwrappedResult.getFirst();
     Precision newPrecision = unwrappedResult.getSecond();
     Action action = unwrappedResult.getThird();
 
@@ -95,6 +95,6 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
     MonitorElement resultElement =
       new MonitorElement(newElement, updatedTotalTime, preventingCondition);
 
-    return Triple.<AbstractElement, Precision, Action>of(resultElement, newPrecision, action);
+    return Triple.<AbstractState, Precision, Action>of(resultElement, newPrecision, action);
   }
 }

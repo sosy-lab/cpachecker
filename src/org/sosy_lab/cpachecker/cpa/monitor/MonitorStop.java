@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.monitor;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -41,25 +41,25 @@ public class MonitorStop implements StopOperator {
   }
 
   @Override
-  public boolean stop(AbstractElement pElement,
-      Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
+  public boolean stop(AbstractState pElement,
+      Collection<AbstractState> pReached, Precision pPrecision) throws CPAException {
 
     MonitorElement monitorElement = (MonitorElement)pElement;
     if (monitorElement.mustDumpAssumptionForAvoidance()) {
       return false;
     }
 
-    AbstractElement wrappedElement = monitorElement.getWrappedElement();
+    AbstractState wrappedElement = monitorElement.getWrappedElement();
     StopOperator stopOp = wrappedCpa.getStopOperator();
 
-    for (AbstractElement reachedElement : pReached) {
+    for (AbstractState reachedElement : pReached) {
 
       MonitorElement monitorReachedElement = (MonitorElement)reachedElement;
       if (monitorReachedElement.mustDumpAssumptionForAvoidance()) {
         return false;
       }
 
-      AbstractElement wrappedReachedElement = monitorReachedElement.getWrappedElement();
+      AbstractState wrappedReachedElement = monitorReachedElement.getWrappedElement();
 
       if (stopOp.stop(wrappedElement, Collections.singleton(wrappedReachedElement), pPrecision)) {
         return true;

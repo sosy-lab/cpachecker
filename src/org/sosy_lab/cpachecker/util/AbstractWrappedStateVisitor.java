@@ -24,29 +24,29 @@
 
 package org.sosy_lab.cpachecker.util;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 
 /**
  * Utility class to visit all wrapped abstract elements
  * (including the wrapper elements)
  */
-public abstract class AbstractWrappedElementVisitor {
+public abstract class AbstractWrappedStateVisitor {
 
   /**
    * Operation to apply on an element when it is visited
    */
-  protected abstract void process(AbstractElement element);
+  protected abstract void process(AbstractState element);
 
   /**
    * Visit a given abstract element and all its sub-elements
    */
-  public final void visit(AbstractElement element) {
+  public final void visit(AbstractState element) {
     process(element);
 
-    if (element instanceof AbstractWrapperElement) {
-      AbstractWrapperElement wrapperElement = (AbstractWrapperElement) element;
-      for (AbstractElement wrappedElement : wrapperElement.getWrappedElements()) {
+    if (element instanceof AbstractWrapperState) {
+      AbstractWrapperState wrapperElement = (AbstractWrapperState) element;
+      for (AbstractState wrappedElement : wrapperElement.getWrappedElements()) {
         visit(wrappedElement);
       }
     }

@@ -28,7 +28,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -48,16 +48,16 @@ public class DominatorTransferRelation implements TransferRelation {
 
 	@Override
 	public Collection<DominatorElement> getAbstractSuccessors(
-	    AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
+	    AbstractState element, Precision prec, CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
 
 	  assert element instanceof DominatorElement;
 
     DominatorElement dominatorElement = (DominatorElement)element;
 
-    Collection<? extends AbstractElement> successorsOfDominatedElement = this.cpa.getTransferRelation().getAbstractSuccessors(dominatorElement.getDominatedElement(), prec, cfaEdge);
+    Collection<? extends AbstractState> successorsOfDominatedElement = this.cpa.getTransferRelation().getAbstractSuccessors(dominatorElement.getDominatedElement(), prec, cfaEdge);
 
     Collection<DominatorElement> successors = new ArrayList<DominatorElement>(successorsOfDominatedElement.size());
-    for (AbstractElement successorOfDominatedElement : successorsOfDominatedElement) {
+    for (AbstractState successorOfDominatedElement : successorsOfDominatedElement) {
       DominatorElement successor = new DominatorElement(successorOfDominatedElement, dominatorElement);
       successor.update(successorOfDominatedElement);
       successors.add(successor);
@@ -67,8 +67,8 @@ public class DominatorTransferRelation implements TransferRelation {
 	}
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement element,
-                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
+  public Collection<? extends AbstractState> strengthen(AbstractState element,
+                         List<AbstractState> otherElements, CFAEdge cfaEdge,
                          Precision precision) {
     return null;
   }
