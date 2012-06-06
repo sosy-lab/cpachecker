@@ -33,30 +33,30 @@ public class DefUseDomain implements AbstractDomain
 {
   @Override
   public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
-            DefUseElement defUseElement1 = (DefUseElement) element1;
-            DefUseElement defUseElement2 = (DefUseElement) element2;
+            DefUseState defUseState1 = (DefUseState) element1;
+            DefUseState defUseState2 = (DefUseState) element2;
 
-            return defUseElement2.containsAllOf(defUseElement1);
+            return defUseState2.containsAllOf(defUseState1);
     }
 
     @Override
     public AbstractState join(AbstractState element1, AbstractState element2) {
             // Useless code, but helps to catch bugs by causing cast exceptions
-            DefUseElement defUseElement1 = (DefUseElement) element1;
-            DefUseElement defUseElement2 = (DefUseElement) element2;
+            DefUseState defUseState1 = (DefUseState) element1;
+            DefUseState defUseState2 = (DefUseState) element2;
 
             Set<DefUseDefinition> joined = new HashSet<DefUseDefinition> ();
-            for (DefUseDefinition definition : defUseElement1) {
+            for (DefUseDefinition definition : defUseState1) {
               joined.add(definition);
             }
 
-            for (DefUseDefinition definition : defUseElement2)
+            for (DefUseDefinition definition : defUseState2)
             {
                 if (!joined.contains(definition)) {
                   joined.add (definition);
                 }
             }
 
-            return new DefUseElement (joined);
+            return new DefUseState (joined);
     }
 }

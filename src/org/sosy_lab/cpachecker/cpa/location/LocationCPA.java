@@ -46,23 +46,23 @@ import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.location.LocationElement.LocationElementFactory;
+import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithABM, ProofChecker {
 
-  private final LocationElementFactory elementFactory;
+  private final LocationStateFactory elementFactory;
   private final AbstractDomain abstractDomain = new FlatLatticeDomain();
 	private final TransferRelation transferRelation;
 	private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
 	public LocationCPA(CFA pCfa) {
-	  elementFactory = new LocationElementFactory(pCfa);
+	  elementFactory = new LocationStateFactory(pCfa);
 	  transferRelation = new LocationTransferRelation(elementFactory);
 
-	  GlobalInfo.getInstance().getCFAInfo().storeLocationElementFactory(elementFactory);
+	  GlobalInfo.getInstance().getCFAInfo().storeLocationStateFactory(elementFactory);
   }
 
 	public static CPAFactory factory() {

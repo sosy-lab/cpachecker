@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * This class is the abstraction of the memory of the program (global variables,
  * local variables, heap).
  */
-public class PointerElement implements AbstractQueryableState, Memory,
+public class PointerState implements AbstractQueryableState, Memory,
     Cloneable, Targetable {
 
   private static final char                                    FUNCTION_NAME_SEPARATOR =
@@ -90,7 +90,7 @@ public class PointerElement implements AbstractQueryableState, Memory,
    *        and ASTNode is the shift operand
    */
 
-  public PointerElement() {
+  public PointerState() {
     stack = new HashMap<String, Map<String, Pointer>>();
     heap = new HashMap<MemoryAddress, Pointer>();
     mallocs = new HashSet<MemoryRegion>();
@@ -101,7 +101,7 @@ public class PointerElement implements AbstractQueryableState, Memory,
     stack.put("", new HashMap<String, Pointer>());
   }
 
-  private PointerElement(final Map<String, Map<String, Pointer>> stack,
+  private PointerState(final Map<String, Map<String, Pointer>> stack,
       final Map<MemoryAddress, Pointer> heap, final Set<MemoryRegion> mallocs,
       final Map<PointerTarget, Set<PointerLocation>> reverseRelation,
       final Map<PointerLocation, Set<PointerLocation>> aliases,
@@ -942,7 +942,7 @@ public class PointerElement implements AbstractQueryableState, Memory,
     stack.remove(oldFunctionName);
   }
 
-  public boolean isSubsetOf(PointerElement other) {
+  public boolean isSubsetOf(PointerState other) {
     assert other.currentFunctionName.matches("^" + currentFunctionName + "("
         + FUNCTION_NAME_SEPARATOR + ".*)?$");
 
@@ -988,9 +988,9 @@ public class PointerElement implements AbstractQueryableState, Memory,
   @Override
   public boolean equals(Object other) {
     if (other == this) { return true; }
-    if (other == null || !(other instanceof PointerElement)) { return false; }
+    if (other == null || !(other instanceof PointerState)) { return false; }
 
-    PointerElement otherElement = (PointerElement) other;
+    PointerState otherElement = (PointerState) other;
 
     return currentFunctionName.equals(otherElement.currentFunctionName)
         && stack.equals(otherElement.stack) && heap.equals(otherElement.heap)
@@ -1005,8 +1005,8 @@ public class PointerElement implements AbstractQueryableState, Memory,
   }
 
   @Override
-  public PointerElement clone() {
-    return new PointerElement(stack, heap, mallocs, reverseRelation,
+  public PointerState clone() {
+    return new PointerState(stack, heap, mallocs, reverseRelation,
         aliases, tempTracked, currentFunctionName, properties);
   }
 

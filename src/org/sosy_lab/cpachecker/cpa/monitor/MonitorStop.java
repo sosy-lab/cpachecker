@@ -44,17 +44,17 @@ public class MonitorStop implements StopOperator {
   public boolean stop(AbstractState pElement,
       Collection<AbstractState> pReached, Precision pPrecision) throws CPAException {
 
-    MonitorElement monitorElement = (MonitorElement)pElement;
-    if (monitorElement.mustDumpAssumptionForAvoidance()) {
+    MonitorState monitorState = (MonitorState)pElement;
+    if (monitorState.mustDumpAssumptionForAvoidance()) {
       return false;
     }
 
-    AbstractState wrappedElement = monitorElement.getWrappedElement();
+    AbstractState wrappedElement = monitorState.getWrappedElement();
     StopOperator stopOp = wrappedCpa.getStopOperator();
 
     for (AbstractState reachedElement : pReached) {
 
-      MonitorElement monitorReachedElement = (MonitorElement)reachedElement;
+      MonitorState monitorReachedElement = (MonitorState)reachedElement;
       if (monitorReachedElement.mustDumpAssumptionForAvoidance()) {
         return false;
       }

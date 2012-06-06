@@ -39,9 +39,9 @@ enum InvariantsDomain implements AbstractDomain {
   INSTANCE;
 
   @Override
-  public InvariantsElement join(AbstractState pElement1, AbstractState pElement2) {
-    InvariantsElement element1 = (InvariantsElement)pElement1;
-    InvariantsElement element2 = (InvariantsElement)pElement2;
+  public InvariantsState join(AbstractState pElement1, AbstractState pElement2) {
+    InvariantsState element1 = (InvariantsState)pElement1;
+    InvariantsState element2 = (InvariantsState)pElement2;
 
     MapDifference<String, SimpleInterval> differences = Maps.difference(element1.getIntervals(), element2.getIntervals());
 
@@ -57,14 +57,14 @@ enum InvariantsDomain implements AbstractDomain {
       result.put(entry.getKey(), SimpleInterval.span(values.leftValue(), values.rightValue()));
     }
 
-    return new InvariantsElement(result);
+    return new InvariantsState(result);
   }
 
   @Override
   public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) {
     // check whether element 1 (or left) contains more information than element 2 (or right)
-    InvariantsElement element1 = (InvariantsElement)pElement1;
-    InvariantsElement element2 = (InvariantsElement)pElement2;
+    InvariantsState element1 = (InvariantsState)pElement1;
+    InvariantsState element2 = (InvariantsState)pElement2;
 
     MapDifference<String, SimpleInterval> differences = Maps.difference(element1.getIntervals(), element2.getIntervals());
 

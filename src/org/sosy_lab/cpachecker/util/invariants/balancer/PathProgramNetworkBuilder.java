@@ -33,7 +33,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -79,8 +79,8 @@ public class PathProgramNetworkBuilder implements NetworkBuilder {
 
   private SortedSet<CFANode> getNodeSet() {
     SortedSet<CFANode> nodes = new TreeSet<CFANode>();
-    for (Pair<ARGElement, CFAEdge> pair : cePath) {
-      ARGElement ae = pair.getFirst();
+    for (Pair<ARGState, CFAEdge> pair : cePath) {
+      ARGState ae = pair.getFirst();
       CFANode n = AbstractStates.extractLocation(ae);
       nodes.add(n);
     }
@@ -100,8 +100,8 @@ public class PathProgramNetworkBuilder implements NetworkBuilder {
 
     // Go through the counterexample path, and form all the transitions in it.
     int N = cePath.size() - 1; // we ignore last pair, since last edge is useless, hence " - 1"
-    Pair<ARGElement, CFAEdge> pair;
-    ARGElement ae1, ae2;
+    Pair<ARGState, CFAEdge> pair;
+    ARGState ae1, ae2;
     CFAEdge edge;
     TemplateFormula transitionFormula;
     Location l1, l2;

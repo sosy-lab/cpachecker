@@ -54,6 +54,6 @@ public class InvariantsCPA extends AbstractCPA {
 
   @Override
   public AbstractState getInitialElement(CFANode pNode) {
-    return new InvariantsElement();
+    return new InvariantsState();
   }
 }

@@ -42,54 +42,54 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
 
-public class ARGElement extends AbstractSingleWrapperState implements Comparable<ARGElement> {
+public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState> {
 
   private static final long serialVersionUID = 2608287648397165040L;
-  private final Set<ARGElement> children;
-  private final Set<ARGElement> parents; // more than one parent if joining elements
+  private final Set<ARGState> children;
+  private final Set<ARGState> parents; // more than one parent if joining elements
 
-  private ARGElement mCoveredBy = null;
-  private Set<ARGElement> mCoveredByThis = null; // lazy initialization because rarely needed
+  private ARGState mCoveredBy = null;
+  private Set<ARGState> mCoveredByThis = null; // lazy initialization because rarely needed
 
   // boolean which keeps track of which elements have already had their successors computed
   private boolean wasExpanded = false;
   private boolean mayCover = true;
   private boolean destroyed = false;
 
-  private ARGElement mergedWith = null;
+  private ARGState mergedWith = null;
 
   private final int elementId;
 
   private static int nextArtElementId = 0;
 
-  public ARGElement(AbstractState pWrappedElement, ARGElement pParentElement) {
+  public ARGState(AbstractState pWrappedElement, ARGState pParentElement) {
     super(pWrappedElement);
     elementId = ++nextArtElementId;
-    parents = new LinkedHashSet<ARGElement>(1); // TODO Is HashSet enough? It would be more memory-efficient.
+    parents = new LinkedHashSet<ARGState>(1); // TODO Is HashSet enough? It would be more memory-efficient.
     if(pParentElement != null){
       addParent(pParentElement);
     }
-    children = new LinkedHashSet<ARGElement>(1);
+    children = new LinkedHashSet<ARGState>(1);
   }
 
-  public Set<ARGElement> getParents(){
+  public Set<ARGState> getParents(){
     // TODO return unmodifiable view?
     return parents;
   }
 
-  public void addParent(ARGElement pOtherParent){
-    assert !destroyed : "Don't use destroyed ARGElement " + this;
+  public void addParent(ARGState pOtherParent){
+    assert !destroyed : "Don't use destroyed ARGState " + this;
     if(parents.add(pOtherParent)){
       pOtherParent.children.add(this);
     }
   }
 
-  public Set<ARGElement> getChildren() {
-    assert !destroyed : "Don't use destroyed ARGElement " + this;
+  public Set<ARGState> getChildren() {
+    assert !destroyed : "Don't use destroyed ARGState " + this;
     return children;
   }
 
-  public void setCovered(ARGElement pCoveredBy) {
+  public void setCovered(ARGState pCoveredBy) {
     checkState(!isCovered(), "Cannot cover already covered element %s", this);
     checkNotNull(pCoveredBy);
     checkArgument(pCoveredBy.mayCover, "Trying to cover with non-covering element %s", pCoveredBy);
@@ -97,7 +97,7 @@ public class ARGElement extends AbstractSingleWrapperState implements Comparable
     mCoveredBy = pCoveredBy;
     if (pCoveredBy.mCoveredByThis == null) {
       // lazy initialization because rarely needed
-      pCoveredBy.mCoveredByThis = new HashSet<ARGElement>(2);
+      pCoveredBy.mCoveredByThis = new HashSet<ARGState>(2);
     }
     pCoveredBy.mCoveredByThis.add(this);
   }
@@ -111,17 +111,17 @@ public class ARGElement extends AbstractSingleWrapperState implements Comparable
   }
 
   public boolean isCovered() {
-    assert !destroyed : "Don't use destroyed ARGElement " + this;
+    assert !destroyed : "Don't use destroyed ARGState " + this;
     return mCoveredBy != null;
   }
 
-  public ARGElement getCoveringElement() {
+  public ARGState getCoveringElement() {
     checkState(isCovered());
     return mCoveredBy;
   }
 
-  public Set<ARGElement> getCoveredByThis() {
-    assert !destroyed : "Don't use destroyed ARGElement " + this;
+  public Set<ARGState> getCoveredByThis() {
+    assert !destroyed : "Don't use destroyed ARGState " + this;
     if (mCoveredByThis == null) {
       return Collections.emptySet();
     } else {
@@ -129,14 +129,14 @@ public class ARGElement extends AbstractSingleWrapperState implements Comparable
     }
   }
 
-  protected void setMergedWith(ARGElement pMergedWith) {
-    assert !destroyed : "Don't use destroyed ARGElement " + this;
+  protected void setMergedWith(ARGState pMergedWith) {
+    assert !destroyed : "Don't use destroyed ARGState " + this;
     assert mergedWith == null : "Second merging of element " + this;
 
     mergedWith = pMergedWith;
   }
 
-  protected ARGElement getMergedWith() {
+  protected ARGState getMergedWith() {
     return mergedWith;
   }
 
@@ -145,12 +145,12 @@ public class ARGElement extends AbstractSingleWrapperState implements Comparable
   }
 
   public void setNotCovering() {
-    assert !destroyed : "Don't use destroyed ARGElement " + this;
+    assert !destroyed : "Don't use destroyed ARGState " + this;
     mayCover = false;
   }
 
   public void setCovering() {
-    assert !destroyed : "Don't use destroyed ARGElement " + this;
+    assert !destroyed : "Don't use destroyed ARGState " + this;
     mayCover = true;
   }
 
@@ -192,25 +192,25 @@ public class ARGElement extends AbstractSingleWrapperState implements Comparable
     return sb.toString();
   }
 
-  private final Iterable<Integer> elementIdsOf(Iterable<ARGElement> elements) {
-    return Iterables.transform(elements, new Function<ARGElement, Integer>() {
+  private final Iterable<Integer> elementIdsOf(Iterable<ARGState> elements) {
+    return Iterables.transform(elements, new Function<ARGState, Integer>() {
       @Override
-      public Integer apply(ARGElement pInput) {
+      public Integer apply(ARGState pInput) {
         return pInput.elementId;
       }
     });
   }
 
   // TODO check
-  public Set<ARGElement> getSubtree() {
-    assert !destroyed : "Don't use destroyed ARGElement " + this;
-    Set<ARGElement> result = new HashSet<ARGElement>();
-    Deque<ARGElement> workList = new ArrayDeque<ARGElement>();
+  public Set<ARGState> getSubtree() {
+    assert !destroyed : "Don't use destroyed ARGState " + this;
+    Set<ARGState> result = new HashSet<ARGState>();
+    Deque<ARGState> workList = new ArrayDeque<ARGState>();
 
     workList.add(this);
 
     while (!workList.isEmpty()) {
-      ARGElement currentElement = workList.removeFirst();
+      ARGState currentElement = workList.removeFirst();
       if (result.add(currentElement)) {
         // currentElement was not in result
         workList.addAll(currentElement.children);
@@ -231,17 +231,17 @@ public class ARGElement extends AbstractSingleWrapperState implements Comparable
    * elements will not be removed from the covered set.
    */
   public void removeFromART() {
-    assert !destroyed : "Don't use destroyed ARGElement " + this;
+    assert !destroyed : "Don't use destroyed ARGState " + this;
 
     // clear children
-    for (ARGElement child : children) {
+    for (ARGState child : children) {
       assert (child.parents.contains(this));
       child.parents.remove(this);
     }
     children.clear();
 
     // clear parents
-    for (ARGElement parent : parents) {
+    for (ARGState parent : parents) {
       assert (parent.children.contains(this));
       parent.children.remove(this);
     }
@@ -256,7 +256,7 @@ public class ARGElement extends AbstractSingleWrapperState implements Comparable
     }
 
     if (mCoveredByThis != null) {
-      for (ARGElement covered : mCoveredByThis) {
+      for (ARGState covered : mCoveredByThis) {
         covered.mCoveredBy = null;
       }
       mCoveredByThis.clear();
@@ -275,21 +275,21 @@ public class ARGElement extends AbstractSingleWrapperState implements Comparable
    *
    * @param replacement
    */
-  protected void replaceInARTWith(ARGElement replacement) {
-    assert !destroyed : "Don't use destroyed ARGElement " + this;
-    assert !replacement.destroyed : "Don't use destroyed ARGElement " + replacement;
+  protected void replaceInARTWith(ARGState replacement) {
+    assert !destroyed : "Don't use destroyed ARGState " + this;
+    assert !replacement.destroyed : "Don't use destroyed ARGState " + replacement;
     assert !isCovered() : "Not implemented: Replacement of covered element " + this;
     assert !replacement.isCovered() : "Cannot replace with covered element " + replacement;
 
     // copy children
-    for (ARGElement child : children) {
+    for (ARGState child : children) {
       assert (child.parents.contains(this)) : "Inconsistent ARG at " + this;
       child.parents.remove(this);
       child.addParent(replacement);
     }
     children.clear();
 
-    for (ARGElement parent : parents) {
+    for (ARGState parent : parents) {
       assert (parent.children.contains(this)) : "Inconsistent ARG at " + this;
       parent.children.remove(this);
       replacement.addParent(parent);
@@ -299,10 +299,10 @@ public class ARGElement extends AbstractSingleWrapperState implements Comparable
     if (mCoveredByThis != null) {
       if (replacement.mCoveredByThis == null) {
         // lazy initialization because rarely needed
-        replacement.mCoveredByThis = new HashSet<ARGElement>(mCoveredByThis.size());
+        replacement.mCoveredByThis = new HashSet<ARGState>(mCoveredByThis.size());
       }
 
-      for (ARGElement covered : mCoveredByThis) {
+      for (ARGState covered : mCoveredByThis) {
         assert covered.mCoveredBy == this : "Inconsistent coverage relation at " + this;
         covered.mCoveredBy = replacement;
         replacement.mCoveredByThis.add(covered);
@@ -319,7 +319,7 @@ public class ARGElement extends AbstractSingleWrapperState implements Comparable
     return elementId;
   }
 
-  public CFAEdge getEdgeToChild(ARGElement pChild) {
+  public CFAEdge getEdgeToChild(ARGState pChild) {
     checkArgument(children.contains(pChild));
 
     CFANode currentLoc = extractLocation(this);
@@ -339,11 +339,11 @@ public class ARGElement extends AbstractSingleWrapperState implements Comparable
    * with equals() as the elementId field is unique.
    */
   @Override
-  public int compareTo(ARGElement pO) {
+  public int compareTo(ARGState pO) {
     return Ints.compare(this.elementId, pO.elementId);
   }
 
-  public boolean isOlderThan(ARGElement other) {
+  public boolean isOlderThan(ARGState other) {
     return (elementId < other.elementId);
   }
 }

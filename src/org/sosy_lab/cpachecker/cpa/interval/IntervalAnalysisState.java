@@ -28,7 +28,7 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-public class IntervalAnalysisElement implements AbstractState
+public class IntervalAnalysisState implements AbstractState
 {
   /**
    * the intervals of the element
@@ -43,12 +43,12 @@ public class IntervalAnalysisElement implements AbstractState
   /**
    * the element from the previous context, used solely for return edges
    */
-  private final IntervalAnalysisElement previousElement;
+  private final IntervalAnalysisState previousElement;
 
   /**
    *  This method acts as the default constructor, which initializes the intervals and reference counts to empty maps and the previous element to null.
    */
-  public IntervalAnalysisElement()
+  public IntervalAnalysisState()
   {
     this(new HashMap<String, Interval>(), new HashMap<String, Integer>(), null);
   }
@@ -58,7 +58,7 @@ public class IntervalAnalysisElement implements AbstractState
    *
    * @param previousElement from the previous context
    */
-  public IntervalAnalysisElement(IntervalAnalysisElement previousElement)
+  public IntervalAnalysisState(IntervalAnalysisState previousElement)
   {
     this(new HashMap<String, Interval>(), new HashMap<String, Integer>(), previousElement);
   }
@@ -70,7 +70,7 @@ public class IntervalAnalysisElement implements AbstractState
    * @param referencesMap the reference counts
    * @param previousElement from the previous context
    */
-  public IntervalAnalysisElement(Map<String, Interval> intervals, Map<String, Integer> referencesMap, IntervalAnalysisElement previousElement)
+  public IntervalAnalysisState(Map<String, Interval> intervals, Map<String, Integer> referencesMap, IntervalAnalysisState previousElement)
   {
     this.intervals        = intervals;
 
@@ -85,7 +85,7 @@ public class IntervalAnalysisElement implements AbstractState
    * @param variableName the name of the variable
    * @return the intervals of the variable
    */
-  // see ExplicitElement::getValueFor
+  // see ExplicitState::getValueFor
   public Interval getInterval(String variableName)
   {
     return intervals.get(variableName);
@@ -122,7 +122,7 @@ public class IntervalAnalysisElement implements AbstractState
    *
    * @return the previous element
    */
-  public IntervalAnalysisElement getPreviousElement()
+  public IntervalAnalysisState getPreviousElement()
   {
     return previousElement;
   }
@@ -146,8 +146,8 @@ public class IntervalAnalysisElement implements AbstractState
    * @param pThreshold threshold from property explicitAnalysis.threshold
    * @return this
    */
-  // see ExplicitElement::assignConstant
-  public IntervalAnalysisElement addInterval(String variableName, Interval interval, int pThreshold)
+  // see ExplicitState::assignConstant
+  public IntervalAnalysisState addInterval(String variableName, Interval interval, int pThreshold)
   {
     // only add the interval if it is not already present
     if(!intervals.containsKey(variableName) || !intervals.get(variableName).equals(interval))
@@ -174,8 +174,8 @@ public class IntervalAnalysisElement implements AbstractState
    * @param variableName the name of the variable whose interval should be removed
    * @return this
    */
-  // see ExplicitElement::forget
-  public IntervalAnalysisElement removeInterval(String variableName)
+  // see ExplicitState::forget
+  public IntervalAnalysisState removeInterval(String variableName)
   {
     if(intervals.containsKey(variableName))
       intervals.remove(variableName);
@@ -189,7 +189,7 @@ public class IntervalAnalysisElement implements AbstractState
    * @param reachedElement the reached element to join this element with
    * @return a new element representing the join of this element and the reached element
    */
-  public IntervalAnalysisElement join(IntervalAnalysisElement reachedElement)
+  public IntervalAnalysisState join(IntervalAnalysisState reachedElement)
   {
     Map<String, Interval> newIntervals = new HashMap<String, Interval>();
     Map<String, Integer> newReferences = new HashMap<String, Integer>();
@@ -212,7 +212,7 @@ public class IntervalAnalysisElement implements AbstractState
         newReferences.put(variableName, reachedElement.getReferenceCount(variableName));
     }
 
-    return new IntervalAnalysisElement(newIntervals, newReferences, previousElement);
+    return new IntervalAnalysisState(newIntervals, newReferences, previousElement);
   }
 
   /**
@@ -221,7 +221,7 @@ public class IntervalAnalysisElement implements AbstractState
    * @param reachedElement the reached element
    * @return true, if this element is less or equal than the reached element, based on the order imposed by the lattice
    */
-  public boolean isLessOrEqual(IntervalAnalysisElement reachedElement)
+  public boolean isLessOrEqual(IntervalAnalysisState reachedElement)
   {
     // this element is not less or equal than the reached element, if it contains less intervals
     if(intervals.size() < reachedElement.intervals.size())
@@ -243,9 +243,9 @@ public class IntervalAnalysisElement implements AbstractState
    * @see java.lang.Object#clone()
    */
   @Override
-  public IntervalAnalysisElement clone()
+  public IntervalAnalysisState clone()
   {
-    IntervalAnalysisElement newElement = new IntervalAnalysisElement(previousElement);
+    IntervalAnalysisState newElement = new IntervalAnalysisState(previousElement);
 
     // clone the intervals ...
     for(String variableName : intervals.keySet())
@@ -270,7 +270,7 @@ public class IntervalAnalysisElement implements AbstractState
     if(other == null || !getClass().equals(other.getClass()))
       return false;
 
-    IntervalAnalysisElement otherElement = (IntervalAnalysisElement)other;
+    IntervalAnalysisState otherElement = (IntervalAnalysisState)other;
 
     if(intervals.size() != otherElement.intervals.size())
       return false;

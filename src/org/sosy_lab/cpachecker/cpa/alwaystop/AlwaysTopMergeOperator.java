@@ -35,10 +35,10 @@ enum AlwaysTopMergeOperator implements MergeOperator {
   public AbstractState merge(AbstractState pElement1,
       AbstractState pElement2, Precision pPrecision) {
 
-    assert pElement1 == AlwaysTopElement.INSTANCE;
-    assert pElement2 == AlwaysTopElement.INSTANCE;
+    assert pElement1 == AlwaysTopState.INSTANCE;
+    assert pElement2 == AlwaysTopState.INSTANCE;
     assert pPrecision == AlwaysTopPrecision.INSTANCE;
-    return AlwaysTopElement.INSTANCE;
+    return AlwaysTopState.INSTANCE;
   }
 
 }

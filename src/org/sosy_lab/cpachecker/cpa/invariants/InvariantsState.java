@@ -38,15 +38,15 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Joiner;
 
-public class InvariantsElement implements AbstractState, FormulaReportingState {
+public class InvariantsState implements AbstractState, FormulaReportingState {
 
   private final Map<String, SimpleInterval> vars;
 
-  InvariantsElement() {
+  InvariantsState() {
     vars = new HashMap<String, SimpleInterval>();
   }
 
-  InvariantsElement(Map<String, SimpleInterval> pVars) {
+  InvariantsState(Map<String, SimpleInterval> pVars) {
     vars = new HashMap<String, SimpleInterval>(pVars);
   }
 
@@ -58,7 +58,7 @@ public class InvariantsElement implements AbstractState, FormulaReportingState {
     return Collections.unmodifiableMap(vars);
   }
 
-  InvariantsElement copyAndSet(String var, SimpleInterval value) {
+  InvariantsState copyAndSet(String var, SimpleInterval value) {
     SimpleInterval oldValue = vars.get(var);
 
     if (value.equals(oldValue)) {
@@ -69,7 +69,7 @@ public class InvariantsElement implements AbstractState, FormulaReportingState {
       // new value is (-INF, INF)
 
       if (oldValue != null) {
-        InvariantsElement result = new InvariantsElement(vars);
+        InvariantsState result = new InvariantsState(vars);
         result.vars.remove(var);
         return result;
       } else {
@@ -77,7 +77,7 @@ public class InvariantsElement implements AbstractState, FormulaReportingState {
       }
     }
 
-    InvariantsElement result = new InvariantsElement(vars);
+    InvariantsState result = new InvariantsState(vars);
     result.vars.put(checkNotNull(var), checkNotNull(value));
     return result;
   }
@@ -108,11 +108,11 @@ public class InvariantsElement implements AbstractState, FormulaReportingState {
   public boolean equals(Object pObj) {
     if (pObj == this) {
       return true;
-    } else if (!(pObj instanceof InvariantsElement)) {
+    } else if (!(pObj instanceof InvariantsState)) {
       return false;
     }
 
-    return vars.equals(((InvariantsElement)pObj).vars);
+    return vars.equals(((InvariantsState)pObj).vars);
   }
 
   @Override

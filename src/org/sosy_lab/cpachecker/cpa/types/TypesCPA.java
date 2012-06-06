@@ -47,6 +47,6 @@ public class TypesCPA extends AbstractCPA {
       //remember the entry function definition node for later use
       ((TypesTransferRelation)getTransferRelation()).setEntryFunctionDefinitionNode((FunctionDefinitionNode)pNode);
     }
-    return new TypesElement();
+    return new TypesState();
   }
 }

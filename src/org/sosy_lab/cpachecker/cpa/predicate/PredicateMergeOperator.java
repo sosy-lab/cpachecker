@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
  * This is not a trivial merge operator in the sense that it implements
  * mergeSep and mergeJoin together. If the abstract element is on an
  * abstraction location we don't merge, otherwise we merge two elements
- * and update the {@link PredicateAbstractElement}'s pathFormula.
+ * and update the {@link PredicateAbstractState}'s pathFormula.
  */
 public class PredicateMergeOperator implements MergeOperator {
 
@@ -57,11 +57,11 @@ public class PredicateMergeOperator implements MergeOperator {
   public AbstractState merge(AbstractState element1,
                                AbstractState element2, Precision precision) {
 
-    PredicateAbstractElement elem1 = (PredicateAbstractElement)element1;
-    PredicateAbstractElement elem2 = (PredicateAbstractElement)element2;
+    PredicateAbstractState elem1 = (PredicateAbstractState)element1;
+    PredicateAbstractState elem2 = (PredicateAbstractState)element2;
 
     // this will be the merged element
-    PredicateAbstractElement merged;
+    PredicateAbstractState merged;
 
     if (elem1.isAbstractionElement() || elem2.isAbstractionElement()) {
       // we don't merge if this is an abstraction location
@@ -81,7 +81,7 @@ public class PredicateMergeOperator implements MergeOperator {
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
-        merged = PredicateAbstractElement.nonAbstractionElement(pathFormula, elem1.getAbstractionFormula());
+        merged = PredicateAbstractState.nonAbstractionElement(pathFormula, elem1.getAbstractionFormula());
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

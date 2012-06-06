@@ -77,13 +77,13 @@ public class TypesTransferRelation implements TransferRelation {
   private boolean entryFunctionProcessed = false;
 
   @Override
-  public Collection<TypesElement> getAbstractSuccessors(
+  public Collection<TypesState> getAbstractSuccessors(
                                               AbstractState element,
                                               Precision precision,
                                               CFAEdge cfaEdge)
                                               throws CPATransferException {
     // no need to clone as type information is global
-    TypesElement successor = (TypesElement)element;
+    TypesState successor = (TypesState)element;
 
     switch (cfaEdge.getEdgeType()) {
     case DeclarationEdge:
@@ -129,7 +129,7 @@ public class TypesTransferRelation implements TransferRelation {
     return Collections.singleton(successor);
   }
 
-  private void handleDeclaration(TypesElement element,
+  private void handleDeclaration(TypesState element,
                                  DeclarationEdge declarationEdge)
                                  throws UnrecognizedCCodeException {
     IASTDeclaration decl = declarationEdge.getDeclaration();
@@ -156,7 +156,7 @@ public class TypesTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleFunctionDeclaration(TypesElement element,
+  private void handleFunctionDeclaration(TypesState element,
                                         CFAEdge cfaEdge,
                                         IASTFunctionTypeSpecifier funcDeclSpecifier)
                                         throws UnrecognizedCCodeException {
@@ -170,7 +170,7 @@ public class TypesTransferRelation implements TransferRelation {
     element.addFunction(function.getName(), function);
   }
 
-  private Type getType(TypesElement element, CFAEdge cfaEdge, IType declSpecifier)
+  private Type getType(TypesState element, CFAEdge cfaEdge, IType declSpecifier)
                        throws UnrecognizedCCodeException {
     Type type;
     boolean constant = declSpecifier.isConst();
@@ -386,7 +386,7 @@ public class TypesTransferRelation implements TransferRelation {
     return type;
   }
 
-  private FunctionType getType(TypesElement element, CFAEdge cfaEdge, IASTFunctionTypeSpecifier funcDeclSpecifier)
+  private FunctionType getType(TypesState element, CFAEdge cfaEdge, IASTFunctionTypeSpecifier funcDeclSpecifier)
                       throws UnrecognizedCCodeException {
 
     Type returnType = getType(element, cfaEdge, funcDeclSpecifier.getReturnType());

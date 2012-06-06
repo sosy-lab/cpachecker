@@ -49,10 +49,10 @@ public class CompositeReducer implements Reducer {
 
     List<AbstractState> result = new ArrayList<AbstractState>();
     int i = 0;
-    for (AbstractState expandedElement : ((CompositeElement)pExpandedElement).getWrappedElements()) {
+    for (AbstractState expandedElement : ((CompositeState)pExpandedElement).getWrappedElements()) {
       result.add(wrappedReducers.get(i++).getVariableReducedElement(expandedElement, pContext, pLocation));
     }
-    return new CompositeElement(result);
+    return new CompositeState(result);
   }
 
   @Override
@@ -60,21 +60,21 @@ public class CompositeReducer implements Reducer {
       AbstractState pRootElement, Block pReducedContext,
       AbstractState pReducedElement) {
 
-    List<AbstractState> rootElements = ((CompositeElement)pRootElement).getWrappedElements();
-    List<AbstractState> reducedElements = ((CompositeElement)pReducedElement).getWrappedElements();
+    List<AbstractState> rootElements = ((CompositeState)pRootElement).getWrappedElements();
+    List<AbstractState> reducedElements = ((CompositeState)pReducedElement).getWrappedElements();
 
     List<AbstractState> result = new ArrayList<AbstractState>();
     int i = 0;
     for (Pair<AbstractState, AbstractState> p : Pair.zipList(rootElements, reducedElements)) {
       result.add(wrappedReducers.get(i++).getVariableExpandedElement(p.getFirst(), pReducedContext, p.getSecond()));
     }
-    return new CompositeElement(result);
+    return new CompositeState(result);
   }
 
   @Override
   public Object getHashCodeForElement(AbstractState pElementKey, Precision pPrecisionKey) {
 
-    List<AbstractState> elements = ((CompositeElement)pElementKey).getWrappedElements();
+    List<AbstractState> elements = ((CompositeState)pElementKey).getWrappedElements();
     List<Precision> precisions = ((CompositePrecision)pPrecisionKey).getPrecisions();
 
     List<Object> result = new ArrayList<Object>(elements.size());

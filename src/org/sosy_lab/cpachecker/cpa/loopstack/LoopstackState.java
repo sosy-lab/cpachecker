@@ -33,15 +33,15 @@ import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
-public class LoopstackElement implements AbstractState, Partitionable, AvoidanceReportingState {
+public class LoopstackState implements AbstractState, Partitionable, AvoidanceReportingState {
 
-  private final LoopstackElement previousElement;
+  private final LoopstackState previousElement;
   private final Loop loop;
   private final int depth;
   private final int iteration;
   private final boolean stop;
 
-  public LoopstackElement(LoopstackElement previousElement, Loop loop, int iteration, boolean stop) {
+  public LoopstackState(LoopstackState previousElement, Loop loop, int iteration, boolean stop) {
     this.previousElement = checkNotNull(previousElement);
     this.loop = checkNotNull(loop);
     this.depth = previousElement.getDepth() + 1;
@@ -50,7 +50,7 @@ public class LoopstackElement implements AbstractState, Partitionable, Avoidance
     this.stop = stop;
   }
 
-  public LoopstackElement() {
+  public LoopstackState() {
     previousElement = null;
     loop = null;
     depth = 0;
@@ -58,7 +58,7 @@ public class LoopstackElement implements AbstractState, Partitionable, Avoidance
     stop = false;
   }
 
-  public LoopstackElement getPreviousElement() {
+  public LoopstackState getPreviousElement() {
     return previousElement;
   }
 
@@ -100,11 +100,11 @@ public class LoopstackElement implements AbstractState, Partitionable, Avoidance
     if (obj == this) {
       return true;
     }
-    if (!(obj instanceof LoopstackElement)) {
+    if (!(obj instanceof LoopstackState)) {
       return false;
     }
 
-    LoopstackElement other = (LoopstackElement)obj;
+    LoopstackState other = (LoopstackState)obj;
     return (this.previousElement == other.previousElement)
         && (this.iteration == other.iteration)
         && (this.loop == other.loop);

@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 public class AssumeTransferRelation implements TransferRelation {
 
-  private static Collection<? extends AbstractState> sUnconstrainedSingleton = Collections.singleton(UnconstrainedAssumeElement.getInstance());
+  private static Collection<? extends AbstractState> sUnconstrainedSingleton = Collections.singleton(UnconstrainedAssumeState.getInstance());
 
   private String mFunctionName;
 
@@ -68,7 +68,7 @@ public class AssumeTransferRelation implements TransferRelation {
             throw new UnrecognizedCCodeException("Function " + mFunctionName + " called with wrong number of arguments",
                                                  pCfaEdge, lCallExpression);
           }
-          AssumeElement lElement = new ConstrainedAssumeElement(lParameterExpressions.get(0));
+          AssumeState lElement = new ConstrainedAssumeState(lParameterExpressions.get(0));
 
           return Collections.singleton(lElement);
         }

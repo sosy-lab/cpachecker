@@ -21,25 +21,17 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cfapath;
+package org.sosy_lab.cpachecker.cpa.assume;
 
-import java.util.Collections;
-import java.util.Set;
+public class AssumeTopState implements AssumeState {
 
-public class CFAPathTopElement implements CFAPathElement {
+  private static final AssumeTopState sInstance = new AssumeTopState();
 
-  private static final CFAPathTopElement sInstance = new CFAPathTopElement();
-  private static final Set<CFAPathTopElement> sSingleton = Collections.singleton(sInstance);
-
-  public static CFAPathTopElement getInstance() {
+  public static AssumeTopState getInstance() {
     return sInstance;
   }
 
-  public static Set<CFAPathTopElement> getSingleton() {
-    return sSingleton;
-  }
-
-  private CFAPathTopElement() {
+  private AssumeTopState() {
 
   }
 

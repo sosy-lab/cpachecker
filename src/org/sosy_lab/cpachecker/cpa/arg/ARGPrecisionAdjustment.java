@@ -46,11 +46,11 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
   public Triple<AbstractState, Precision, Action> prec(AbstractState pElement,
       Precision oldPrecision, UnmodifiableReachedSet pElements) throws CPAException {
 
-    Preconditions.checkArgument(pElement instanceof ARGElement);
-    ARGElement element = (ARGElement)pElement;
+    Preconditions.checkArgument(pElement instanceof ARGState);
+    ARGState element = (ARGState)pElement;
 
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
-        pElements,  ARGElement.getUnwrapFunction(), Functions.<Precision>identity());
+        pElements,  ARGState.getUnwrapFunction(), Functions.<Precision>identity());
 
     AbstractState oldElement = element.getWrappedElement();
 
@@ -65,7 +65,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
       return Triple.of(pElement, oldPrecision, action);
     }
 
-    ARGElement resultElement = new ARGElement(newElement, null);
+    ARGState resultElement = new ARGState(newElement, null);
 
     element.replaceInARTWith(resultElement); // this completely eliminates element
 

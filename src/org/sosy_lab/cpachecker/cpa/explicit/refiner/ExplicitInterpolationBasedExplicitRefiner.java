@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision.CegarPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssignedVariablesCollector;
@@ -61,7 +61,7 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
   /**
    * the ARG element, from where to cut-off the subtree, and restart the analysis
    */
-  private ARGElement firstInterpolationPoint = null;
+  private ARGState firstInterpolationPoint = null;
 
   // statistics
   private int numberOfCounterExampleChecks                  = 0;
@@ -82,7 +82,7 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
     Multimap<CFANode, String> increment = HashMultimap.create();
 
     List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
-    for(Pair<ARGElement, CFAEdge> pathElement : currentEdgePath){
+    for(Pair<ARGState, CFAEdge> pathElement : currentEdgePath){
       // expand any multi-edge
       if(pathElement.getSecond() instanceof MultiEdge) {
         for(CFAEdge singleEdge : (MultiEdge)pathElement.getSecond()) {
@@ -158,8 +158,8 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
   }
 
   @Override
-  protected ARGElement determineInterpolationPoint(
-      List<Pair<ARGElement, CFANode>> errorPath,
+  protected ARGState determineInterpolationPoint(
+      List<Pair<ARGState, CFANode>> errorPath,
       Multimap<CFANode, String> precisionIncrement) {
 
     // just use initial node of error path if the respective option is set

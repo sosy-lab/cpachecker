@@ -63,25 +63,25 @@ public class ARGReachedSet {
    *
    * @param e The root of the removed subtree, may not be the initial element.
    */
-  public void removeSubtree(ARGElement e) {
-    Set<ARGElement> toWaitlist = removeSubtree0(e);
+  public void removeSubtree(ARGState e) {
+    Set<ARGState> toWaitlist = removeSubtree0(e);
 
-    for (ARGElement ae : toWaitlist) {
+    for (ARGState ae : toWaitlist) {
       mReached.reAddToWaitlist(ae);
     }
   }
 
   /**
-   * Like {@link #removeSubtree(ARGElement)}, but when re-adding elements to the
+   * Like {@link #removeSubtree(ARGState)}, but when re-adding elements to the
    * waitlist adapts precisions with respect to the supplied precision p (see
-   * {@link #adaptPrecision(ARGElement, Precision)}).
+   * {@link #adaptPrecision(ARGState, Precision)}).
    * @param e The root of the removed subtree, may not be the initial element.
    * @param p The new precision.
    */
-  public void removeSubtree(ARGElement e, Precision p) {
-    Set<ARGElement> toWaitlist = removeSubtree0(e);
+  public void removeSubtree(ARGState e, Precision p) {
+    Set<ARGState> toWaitlist = removeSubtree0(e);
 
-    for (ARGElement ae : toWaitlist) {
+    for (ARGState ae : toWaitlist) {
       mReached.updatePrecision(ae, adaptPrecision(ae, p));
       mReached.reAddToWaitlist(ae);
     }
@@ -92,33 +92,33 @@ public class ARGReachedSet {
    * If the stored precision is a wrapper precision, pNewPrecision replaces the
    * component of the wrapper precision that corresponds to pNewPrecision.
    * Otherwise, pNewPrecision replaces the stored precision.
-   * @param pARGElement Reached element for which the precision has to be adapted.
+   * @param pARGState Reached element for which the precision has to be adapted.
    * @param pNewPrecision New precision.
    * @return The adapted precision.
    */
-  private Precision adaptPrecision(ARGElement pARGElement, Precision pNewPrecision) {
-    Precision lOldPrecision = mReached.getPrecision(pARGElement);
+  private Precision adaptPrecision(ARGState pARGState, Precision pNewPrecision) {
+    Precision lOldPrecision = mReached.getPrecision(pARGState);
 
     return Precisions.replaceByType(lOldPrecision, pNewPrecision, pNewPrecision.getClass());
   }
 
-  private Set<ARGElement> removeSubtree0(ARGElement e) {
+  private Set<ARGState> removeSubtree0(ARGState e) {
     Preconditions.checkNotNull(e);
     Preconditions.checkArgument(!e.getParents().isEmpty(), "May not remove the initial element from the ARG/reached set");
 
-    Set<ARGElement> toUnreach = e.getSubtree();
+    Set<ARGState> toUnreach = e.getSubtree();
 
     // collect all elements covered by the subtree
-    List<ARGElement> newToUnreach = new ArrayList<ARGElement>();
+    List<ARGState> newToUnreach = new ArrayList<ARGState>();
 
-    for (ARGElement ae : toUnreach) {
+    for (ARGState ae : toUnreach) {
       newToUnreach.addAll(ae.getCoveredByThis());
     }
     toUnreach.addAll(newToUnreach);
 
     mReached.removeAll(toUnreach);
 
-    Set<ARGElement> toWaitlist = removeSet(toUnreach);
+    Set<ARGState> toWaitlist = removeSet(toUnreach);
 
     return toWaitlist;
   }
@@ -133,11 +133,11 @@ public class ARGReachedSet {
    * @param elements the elements to remove
    * @return the elements to re-add to the waitlist
    */
-  private static Set<ARGElement> removeSet(Set<ARGElement> elements) {
-    Set<ARGElement> toWaitlist = new LinkedHashSet<ARGElement>();
-    for (ARGElement ae : elements) {
+  private static Set<ARGState> removeSet(Set<ARGState> elements) {
+    Set<ARGState> toWaitlist = new LinkedHashSet<ARGState>();
+    for (ARGState ae : elements) {
 
-      for (ARGElement parent : ae.getParents()) {
+      for (ARGState parent : ae.getParents()) {
         if (!elements.contains(parent)) {
           toWaitlist.add(parent);
         }
@@ -155,8 +155,8 @@ public class ARGReachedSet {
    *
    * Call this method when you have changed (strengthened) an abstract element.
    */
-  public void removeCoverageOf(ARGElement v) {
-    for (ARGElement coveredByChildOfV : ImmutableList.copyOf(v.getCoveredByThis())) {
+  public void removeCoverageOf(ARGState v) {
+    for (ARGState coveredByChildOfV : ImmutableList.copyOf(v.getCoveredByThis())) {
       uncover(coveredByChildOfV);
     }
     assert v.getCoveredByThis().isEmpty();
@@ -166,15 +166,15 @@ public class ARGReachedSet {
    * Mark a covered element as non-covered.
    * This method also re-adds all leaves in that part of the ARG to the waitlist.
    *
-   * @param element The covered ARGElement to uncover.
+   * @param element The covered ARGState to uncover.
    */
-  public void uncover(ARGElement element) {
+  public void uncover(ARGState element) {
     element.uncover();
 
     // this is the subtree of elements which now become uncovered
-    Set<ARGElement> uncoveredSubTree = element.getSubtree();
+    Set<ARGState> uncoveredSubTree = element.getSubtree();
 
-    for (ARGElement e : uncoveredSubTree) {
+    for (ARGState e : uncoveredSubTree) {
       assert !e.isCovered();
 
       e.setCovering();
@@ -201,12 +201,12 @@ public class ARGReachedSet {
     }
 
     @Override
-    public void removeSubtree(ARGElement pE) {
+    public void removeSubtree(ARGState pE) {
       delegate.removeSubtree(pE);
     }
 
     @Override
-    public void removeSubtree(ARGElement pE, Precision pP) {
+    public void removeSubtree(ARGState pE, Precision pP) {
       delegate.removeSubtree(pE, pP);
     }
   }

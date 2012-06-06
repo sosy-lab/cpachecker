@@ -68,7 +68,7 @@ enum InvariantsTransferRelation implements TransferRelation {
       AbstractState pElement, Precision pPrecision, CFAEdge edge)
       throws CPATransferException {
 
-    InvariantsElement element = (InvariantsElement)pElement;
+    InvariantsState element = (InvariantsState)pElement;
 
     switch (edge.getEdgeType()) {
     case BlankEdge:
@@ -103,7 +103,7 @@ enum InvariantsTransferRelation implements TransferRelation {
     }
   }
 
-  private InvariantsElement handleAssume(InvariantsElement element, AssumeEdge edge) throws UnrecognizedCCodeException {
+  private InvariantsState handleAssume(InvariantsState element, AssumeEdge edge) throws UnrecognizedCCodeException {
 
     // handle special case "a == i" where i is an integer literal
     IASTExpression exp = edge.getExpression();
@@ -149,7 +149,7 @@ enum InvariantsTransferRelation implements TransferRelation {
     return element;
   }
 
-  private InvariantsElement handleDeclaration(InvariantsElement element, DeclarationEdge edge) throws UnrecognizedCCodeException {
+  private InvariantsState handleDeclaration(InvariantsState element, DeclarationEdge edge) throws UnrecognizedCCodeException {
     if (!(edge.getDeclaration() instanceof IASTVariableDeclaration)) {
 
       return element;
@@ -170,9 +170,9 @@ enum InvariantsTransferRelation implements TransferRelation {
     return element.copyAndSet(varName, value);
   }
 
-  private InvariantsElement handleFunctionCall(InvariantsElement element, FunctionCallEdge edge) throws UnrecognizedCCodeException {
+  private InvariantsState handleFunctionCall(InvariantsState element, FunctionCallEdge edge) throws UnrecognizedCCodeException {
 
-    InvariantsElement newElement = element;
+    InvariantsState newElement = element;
     List<String> formalParams = edge.getSuccessor().getFunctionParameterNames();
     List<IASTExpression> actualParams = edge.getArguments();
 
@@ -193,7 +193,7 @@ enum InvariantsTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private InvariantsElement handleStatement(InvariantsElement element, StatementEdge edge) throws UnrecognizedCCodeException {
+  private InvariantsState handleStatement(InvariantsState element, StatementEdge edge) throws UnrecognizedCCodeException {
 
     if (edge.getStatement() instanceof IASTAssignment) {
       IASTAssignment assignment = (IASTAssignment)edge.getStatement();

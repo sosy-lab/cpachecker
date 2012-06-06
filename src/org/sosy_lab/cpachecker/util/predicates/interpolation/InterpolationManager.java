@@ -53,7 +53,7 @@ import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -227,7 +227,7 @@ public abstract class InterpolationManager<I> {
    */
   public CounterexampleTraceInfo<I> buildCounterexampleTrace(
       final List<Formula> pFormulas,
-      final Set<ARGElement> elementsOnPath) throws CPAException, InterruptedException {
+      final Set<ARGState> elementsOnPath) throws CPAException, InterruptedException {
 
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
@@ -286,7 +286,7 @@ public abstract class InterpolationManager<I> {
    * @throws CPAException
    */
   private <T> CounterexampleTraceInfo<I> buildCounterexampleTraceWithSpecifiedItp(
-      List<Formula> pFormulas, Set<ARGElement> elementsOnPath, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
+      List<Formula> pFormulas, Set<ARGState> elementsOnPath, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
 
     logger.log(Level.FINEST, "Building counterexample trace");
     stats.cexAnalysisTimer.start();
@@ -816,7 +816,7 @@ public abstract class InterpolationManager<I> {
    * @throws InterruptedException
    */
   private <T> CounterexampleTraceInfo<I> getErrorPath(List<Formula> f,
-      InterpolatingTheoremProver<T> pItpProver, Set<ARGElement> elementsOnPath)
+      InterpolatingTheoremProver<T> pItpProver, Set<ARGState> elementsOnPath)
       throws CPATransferException, InterruptedException {
 
     // get the branchingFormula

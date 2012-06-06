@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class FlatLatticeDomain implements AbstractDomain {
   private final AbstractState mTopElement;
 
-  private static class TopElement implements AbstractState {
+  private static class TopState implements AbstractState {
     @Override
     public String toString() {
       return "<TOP>";
@@ -51,7 +51,7 @@ public class FlatLatticeDomain implements AbstractDomain {
   }
 
   public FlatLatticeDomain() {
-    this(new TopElement());
+    this(new TopState());
   }
 
   @Override

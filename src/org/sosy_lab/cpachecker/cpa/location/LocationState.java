@@ -41,37 +41,37 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 
-public class LocationElement implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
+public class LocationState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
 
   private static final long serialVersionUID = -801176497691618779L;
 
-  public static class LocationElementFactory {
-    private final LocationElement[] elements;
+  public static class LocationStateFactory {
+    private final LocationState[] elements;
 
-    public LocationElementFactory(CFA pCfa) {
+    public LocationStateFactory(CFA pCfa) {
       elements = initialize(checkNotNull(pCfa));
     }
 
-    private static LocationElement[] initialize(CFA pCfa) {
+    private static LocationState[] initialize(CFA pCfa) {
 
       SortedSet<CFANode> allNodes = ImmutableSortedSet.copyOf(pCfa.getAllNodes());
       int maxNodeNumber = allNodes.last().getNodeNumber();
-      LocationElement[] elements = new LocationElement[maxNodeNumber+1];
+      LocationState[] elements = new LocationState[maxNodeNumber+1];
       for (CFANode node : allNodes) {
-        elements[node.getNodeNumber()] = new LocationElement(node);
+        elements[node.getNodeNumber()] = new LocationState(node);
       }
 
       return elements;
     }
 
-    public LocationElement getElement(CFANode node) {
+    public LocationState getElement(CFANode node) {
       return Preconditions.checkNotNull(elements[node.getNodeNumber()]);
     }
   }
 
     private transient CFANode locationNode;
 
-    private LocationElement(CFANode locationNode) {
+    private LocationState(CFANode locationNode) {
         this.locationNode = locationNode;
     }
 
@@ -147,7 +147,7 @@ public class LocationElement implements AbstractStateWithLocation, AbstractQuery
 
       private Object readResolve() throws ObjectStreamException {
         CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo();
-        return cfaInfo.getLocationElementFactory().getElement(cfaInfo.getNodeByNodeNumber(nodeNumber));
+        return cfaInfo.getLocationStateFactory().getElement(cfaInfo.getNodeByNodeNumber(nodeNumber));
       }
     }
 

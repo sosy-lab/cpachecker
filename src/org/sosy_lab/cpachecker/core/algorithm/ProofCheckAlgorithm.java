@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
@@ -93,7 +93,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   @Option(name = "pcc.proofFile", description = "file in which ARG representation needed for proof checking is stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File file = new File("arg.obj");
-  private final ARGElement rootElement;
+  private final ARGState rootElement;
 
 
   public ProofCheckAlgorithm(ConfigurableProgramAnalysis cpa, Configuration pConfig, LogManager logger) throws InvalidConfigurationException {
@@ -105,7 +105,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     this.cpa = (ProofChecker)cpa;
     this.logger = logger;
 
-    ARGElement rootElement = null;
+    ARGState rootElement = null;
     try {
       rootElement = readART();
     } catch(Throwable e) {
@@ -116,7 +116,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     System.gc();
   }
 
-  private ARGElement readART() throws IOException, ClassNotFoundException {
+  private ARGState readART() throws IOException, ClassNotFoundException {
     stats.totalTimer.start();
     stats.readTimer.start();
     InputStream fis = null;
@@ -149,7 +149,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       assert entry.getName().equals("Proof");
       o = new ObjectInputStream(zis);
       //read ARG
-      return (ARGElement)o.readObject();
+      return (ARGState)o.readObject();
     }
     finally {
       fis.close();
@@ -179,10 +179,10 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     reachedSet.add(rootElement, initialPrecision);
 
-    Set<ARGElement> postponedElements = new HashSet<ARGElement>();
+    Set<ARGState> postponedElements = new HashSet<ARGState>();
 
     do {
-      for(ARGElement e : postponedElements) {
+      for(ARGState e : postponedElements) {
         if(!reachedSet.contains(e.getCoveringElement())) {
           stats.totalTimer.stop();
           logger.log(Level.WARNING, "Covering element", e.getCoveringElement(), "was not found in reached set");
@@ -196,14 +196,14 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         CPAchecker.stopIfNecessary();
 
         stats.countIterations++;
-        ARGElement element = (ARGElement)reachedSet.popFromWaitlist();
+        ARGState element = (ARGState)reachedSet.popFromWaitlist();
 
         logger.log(Level.FINE, "Looking at element", element);
 
         if(element.isCovered()) {
 
           logger.log(Level.FINER, "Element is covered by another abstract element; checking coverage");
-          ARGElement coveringElement = element.getCoveringElement();
+          ARGState coveringElement = element.getCoveringElement();
 
           if(!reachedSet.contains(coveringElement)) {
             postponedElements.add(element);
@@ -227,7 +227,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         }
         else {
           stats.transferTimer.start();
-          Collection<ARGElement> successors = element.getChildren();
+          Collection<ARGState> successors = element.getChildren();
           logger.log(Level.FINER, "Checking abstract successors", successors);
           if(!cpa.areAbstractSuccessors(element, null, successors)) {
             stats.transferTimer.stop();
@@ -236,7 +236,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
             return false;
           }
           stats.transferTimer.stop();
-          for(ARGElement e : successors) {
+          for(ARGState e : successors) {
             reachedSet.add(e, initialPrecision);
           }
         }
@@ -246,8 +246,8 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     return true;
   }
 
-  private boolean isCoveringCycleFree(ARGElement pElement) {
-    HashSet<ARGElement> seen = new HashSet<ARGElement>();
+  private boolean isCoveringCycleFree(ARGState pElement) {
+    HashSet<ARGState> seen = new HashSet<ARGState>();
     seen.add(pElement);
     while(pElement.isCovered()) {
       pElement = pElement.getCoveringElement();

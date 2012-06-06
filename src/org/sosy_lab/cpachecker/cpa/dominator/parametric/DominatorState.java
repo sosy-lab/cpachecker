@@ -31,12 +31,12 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 
-public class DominatorElement implements AbstractStateWithLocation, AbstractState {
+public class DominatorState implements AbstractStateWithLocation, AbstractState {
 
 	private AbstractState dominatedElement;
 	private Set<AbstractState> dominators = new HashSet<AbstractState>();
 
-	public DominatorElement(AbstractState dominatedElement) {
+	public DominatorState(AbstractState dominatedElement) {
 		if (dominatedElement == null) {
 			throw new IllegalArgumentException("dominatedElement is null!");
 		}
@@ -44,7 +44,7 @@ public class DominatorElement implements AbstractStateWithLocation, AbstractStat
 		this.dominatedElement = dominatedElement;
 	}
 
-	public DominatorElement(AbstractState dominatedElement, Set<AbstractState> dominators) {
+	public DominatorState(AbstractState dominatedElement, Set<AbstractState> dominators) {
 		this(dominatedElement);
 
 		if (dominators == null) {
@@ -54,15 +54,15 @@ public class DominatorElement implements AbstractStateWithLocation, AbstractStat
 		this.dominators.addAll(dominators);
 	}
 
-	protected DominatorElement() {
+	protected DominatorState() {
 	  dominatedElement = null;
 	}
 
-	public DominatorElement(DominatorElement other) {
+	public DominatorState(DominatorState other) {
 		this(other.dominatedElement, other.dominators);
 	}
 
-	public DominatorElement(AbstractState dominatedElement, DominatorElement other) {
+	public DominatorState(AbstractState dominatedElement, DominatorState other) {
 		this(dominatedElement, other.dominators);
 	}
 
@@ -89,11 +89,11 @@ public class DominatorElement implements AbstractStateWithLocation, AbstractStat
 
 	@Override
 	public boolean equals(Object other) {
-		if (!(other instanceof DominatorElement)) {
+		if (!(other instanceof DominatorState)) {
 			return false;
 		}
 
-		DominatorElement other_element = (DominatorElement)other;
+		DominatorState other_element = (DominatorState)other;
 
 		if (!(this.dominatedElement.equals(other_element.dominatedElement))) {
 			return false;

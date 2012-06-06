@@ -67,8 +67,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
-import org.sosy_lab.cpachecker.cpa.pointer.PointerElement;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
+import org.sosy_lab.cpachecker.cpa.pointer.PointerState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 /**
  * Handles transfer relation for Octagon abstract domain library.
@@ -99,11 +99,11 @@ class OctTransferRelation implements TransferRelation{
     // octElement is the region of the current state
     // this state will be updated using the edge
 
-    OctElement octElement = null;
-    OctElement prevElement = (OctElement)element;
-    octElement = ((OctElement)element).clone();
+    OctState octState = null;
+    OctState prevElement = (OctState)element;
+    octState = ((OctState)element).clone();
 
-    assert(octElement != null);
+    assert(octState != null);
 
     // check the type of the edge
     switch (cfaEdge.getEdgeType ())
@@ -114,7 +114,7 @@ class OctTransferRelation implements TransferRelation{
     {
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
       IASTStatement expression = statementEdge.getStatement();
-      octElement = handleStatement (octElement, expression, cfaEdge);
+      octState = handleStatement (octState, expression, cfaEdge);
       break;
     }
 
@@ -126,7 +126,7 @@ class OctTransferRelation implements TransferRelation{
       // this is a statement edge which leads the function to the
       // last node of its CFA, where return edge is from that last node
       // to the return site of the caller function
-      octElement = handleExitFromFunction(octElement, statementEdge.getExpression(), statementEdge);
+      octState = handleExitFromFunction(octState, statementEdge.getExpression(), statementEdge);
       break;
     }
 
@@ -134,7 +134,7 @@ class OctTransferRelation implements TransferRelation{
     case DeclarationEdge:
     {
       DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
-      octElement = handleDeclaration (octElement, declarationEdge);
+      octState = handleDeclaration (octState, declarationEdge);
       break;
     }
 
@@ -143,7 +143,7 @@ class OctTransferRelation implements TransferRelation{
     {
       AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
       IASTExpression expression = assumeEdge.getExpression();
-      octElement = (OctElement)handleAssumption (octElement, expression, cfaEdge, assumeEdge.getTruthAssumption());
+      octState = (OctState)handleAssumption (octState, expression, cfaEdge, assumeEdge.getTruthAssumption());
       break;
 
     }
@@ -156,7 +156,7 @@ class OctTransferRelation implements TransferRelation{
     case FunctionCallEdge:
     {
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
-      octElement = handleFunctionCall(octElement, prevElement, functionCallEdge, cfaEdge);
+      octState = handleFunctionCall(octState, prevElement, functionCallEdge, cfaEdge);
       break;
     }
 
@@ -165,7 +165,7 @@ class OctTransferRelation implements TransferRelation{
     case FunctionReturnEdge:
     {
       FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) cfaEdge;
-      octElement = handleFunctionReturn(octElement, functionReturnEdge);
+      octState = handleFunctionReturn(octState, functionReturnEdge);
       break;
     }
 
@@ -177,11 +177,11 @@ class OctTransferRelation implements TransferRelation{
     }
     }
 
-    if (octElement == null || octElement.isEmpty()) {
+    if (octState == null || octState.isEmpty()) {
       return Collections.emptySet();
     }
 
-    return Collections.singleton(octElement);
+    return Collections.singleton(octState);
   }
 
   /**
@@ -190,7 +190,7 @@ class OctTransferRelation implements TransferRelation{
    * @param functionReturnEdge return edge from a function to its call site.
    * @return new abstract element.
    */
-  private OctElement handleFunctionReturn(OctElement element,
+  private OctState handleFunctionReturn(OctState element,
       FunctionReturnEdge functionReturnEdge)
   throws UnrecognizedCCodeException {
 
@@ -198,7 +198,7 @@ class OctTransferRelation implements TransferRelation{
       functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
     IASTFunctionCall exprOnSummary = summaryEdge.getExpression();
 
-    OctElement previousElem = element.getPreviousElement();
+    OctState previousElem = element.getPreviousElement();
 
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
@@ -238,7 +238,7 @@ class OctTransferRelation implements TransferRelation{
     return element;
   }
 
-  private OctElement handleExitFromFunction(OctElement element,
+  private OctState handleExitFromFunction(OctState element,
       IASTExpression expression,
       ReturnStatementEdge returnEdge)
   throws UnrecognizedCCodeException {
@@ -247,8 +247,8 @@ class OctTransferRelation implements TransferRelation{
     return handleAssignmentToVariable(element, "___cpa_temp_result_var_", expression, returnEdge);
   }
 
-  private OctElement handleFunctionCall(OctElement octagonElement,
-      OctElement pPrevElement, FunctionCallEdge callEdge, CFAEdge edge)
+  private OctState handleFunctionCall(OctState octagonElement,
+      OctState pPrevElement, FunctionCallEdge callEdge, CFAEdge edge)
   throws UnrecognizedCCodeException {
 
     octagonElement.setPreviousElement(pPrevElement);
@@ -313,7 +313,7 @@ class OctTransferRelation implements TransferRelation{
     return octagonElement;
   }
 
-  private AbstractState handleAssumption (OctElement pElement,
+  private AbstractState handleAssumption (OctState pElement,
       IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
   throws UnrecognizedCCodeException {
 
@@ -357,7 +357,7 @@ class OctTransferRelation implements TransferRelation{
 
   }
 
-  private AbstractState propagateBooleanExpression(OctElement pElement,
+  private AbstractState propagateBooleanExpression(OctState pElement,
       BinaryOperator opType,IASTExpression op1,
       IASTExpression op2, String functionName, boolean truthValue, CFAEdge edge)
   throws UnrecognizedCCodeException {
@@ -696,13 +696,13 @@ class OctTransferRelation implements TransferRelation{
   }
 
 
-  private AbstractState forgetElement(OctElement pElement,
+  private AbstractState forgetElement(OctState pElement,
       String pVariableName) {
     pElement.forget(pVariableName);
     return pElement;
   }
 
-  private AbstractState addSmallerEqConstraint(OctElement pElement,
+  private AbstractState addSmallerEqConstraint(OctState pElement,
       String pRightVariableName, String pLeftVariableName) {
     int rVarIdx = pElement.getVariableIndexFor(pRightVariableName);
     int lVarIdx = pElement.getVariableIndexFor(pLeftVariableName);
@@ -711,7 +711,7 @@ class OctTransferRelation implements TransferRelation{
   }
 
   // Note that this only works if both variables are integers
-  private AbstractState addSmallerConstraint(OctElement pElement,
+  private AbstractState addSmallerConstraint(OctState pElement,
       String pRightVariableName, String pLeftVariableName) {
     int rVarIdx = pElement.getVariableIndexFor(pRightVariableName);
     int lVarIdx = pElement.getVariableIndexFor(pLeftVariableName);
@@ -720,7 +720,7 @@ class OctTransferRelation implements TransferRelation{
   }
 
 
-  private AbstractState addGreaterEqConstraint(OctElement pElement,
+  private AbstractState addGreaterEqConstraint(OctState pElement,
       String pRightVariableName, String pLeftVariableName) {
     int rVarIdx = pElement.getVariableIndexFor(pRightVariableName);
     int lVarIdx = pElement.getVariableIndexFor(pLeftVariableName);
@@ -729,7 +729,7 @@ class OctTransferRelation implements TransferRelation{
   }
 
   // Note that this only works if both variables are integers
-  private AbstractState addGreaterConstraint(OctElement pElement,
+  private AbstractState addGreaterConstraint(OctState pElement,
       String pRightVariableName, String pLeftVariableName) {
     int rVarIdx = pElement.getVariableIndexFor(pRightVariableName);
     int lVarIdx = pElement.getVariableIndexFor(pLeftVariableName);
@@ -738,9 +738,9 @@ class OctTransferRelation implements TransferRelation{
   }
 
   // Note that this only works if both variables are integers
-  private AbstractState addIneqConstraint(OctElement pElement,
+  private AbstractState addIneqConstraint(OctState pElement,
       String pRightVariableName, String pLeftVariableName) {
-    OctElement newElem1 = null;
+    OctState newElem1 = null;
     newElem1 = pElement.clone();
     addEqConstraint(newElem1, pLeftVariableName, pRightVariableName);
     if(! newElem1.isEmpty()){
@@ -751,13 +751,13 @@ class OctTransferRelation implements TransferRelation{
     }
   }
 
-  private AbstractState addEqConstraint(OctElement pElement,
+  private AbstractState addEqConstraint(OctState pElement,
       String pRightVariableName, String pLeftVariableName) {
 //    addSmallerEqConstraint(pElement, pRightVariableName, pLeftVariableName);
 //    addGreaterEqConstraint(pElement, pRightVariableName, pLeftVariableName);
 //    return pElement;
 
-    OctElement newElem1 = null;
+    OctState newElem1 = null;
     newElem1 = pElement.clone();
     addSmallerEqConstraint(pElement, pRightVariableName, pLeftVariableName);
     addGreaterEqConstraint(pElement, pRightVariableName, pLeftVariableName);
@@ -769,7 +769,7 @@ class OctTransferRelation implements TransferRelation{
     }
   }
 
-  private AbstractState addSmallerEqConstraint(OctElement pElement,
+  private AbstractState addSmallerEqConstraint(OctState pElement,
       String pVariableName, long pValueOfLiteral) {
     int varIdx = pElement.getVariableIndexFor(pVariableName);
     pElement.addConstraint(0, varIdx, 0, (int)pValueOfLiteral);
@@ -777,14 +777,14 @@ class OctTransferRelation implements TransferRelation{
   }
 
   // Note that this only works if both variables are integers
-  private AbstractState addSmallerConstraint(OctElement pElement,
+  private AbstractState addSmallerConstraint(OctState pElement,
       String pVariableName, long pValueOfLiteral) {
     int varIdx = pElement.getVariableIndexFor(pVariableName);
     pElement.addConstraint(0, varIdx, -1, (int)pValueOfLiteral-1);
     return pElement;
   }
 
-  private AbstractState addGreaterEqConstraint(OctElement pElement,
+  private AbstractState addGreaterEqConstraint(OctState pElement,
       String pVariableName, long pValueOfLiteral) {
     int varIdx = pElement.getVariableIndexFor(pVariableName);
     pElement.addConstraint(1, varIdx, 0, (0 - (int)pValueOfLiteral));
@@ -792,20 +792,20 @@ class OctTransferRelation implements TransferRelation{
   }
 
   // Note that this only works if both variables are integers
-  private AbstractState addGreaterConstraint(OctElement pElement,
+  private AbstractState addGreaterConstraint(OctState pElement,
       String pVariableName, long pValueOfLiteral) {
     int varIdx = pElement.getVariableIndexFor(pVariableName);
     pElement.addConstraint(1, varIdx, 0, (-1 - (int)pValueOfLiteral));
     return pElement;
   }
 
-  private AbstractState addEqConstraint(OctElement pElement,
+  private AbstractState addEqConstraint(OctState pElement,
       String pVariableName, long pI) {
 //    addGreaterEqConstraint(pElement, pVariableName, pI);
 //    addSmallerEqConstraint(pElement, pVariableName, pI);
 //    return pElement;
 
-    OctElement newElem1 = null;
+    OctState newElem1 = null;
     newElem1 = pElement.clone();
     addSmallerEqConstraint(pElement, pVariableName, pI);
     addGreaterEqConstraint(pElement, pVariableName, pI);
@@ -819,9 +819,9 @@ class OctTransferRelation implements TransferRelation{
   }
 
   // Note that this only works if both variables are integers
-  private AbstractState addIneqConstraint(OctElement pElement,
+  private AbstractState addIneqConstraint(OctState pElement,
       String pVariableName, long pI) {
-    OctElement newElem1 = null;
+    OctState newElem1 = null;
     newElem1 = pElement.clone();
     addEqConstraint(newElem1, pVariableName, pI);
     if(! newElem1.isEmpty()){
@@ -832,7 +832,7 @@ class OctTransferRelation implements TransferRelation{
     }
   }
 
-  private OctElement handleDeclaration(OctElement pElement,
+  private OctState handleDeclaration(OctState pElement,
       DeclarationEdge declarationEdge) throws UnrecognizedCCodeException {
 
     if (declarationEdge.getDeclaration() instanceof IASTVariableDeclaration) {
@@ -885,18 +885,18 @@ class OctTransferRelation implements TransferRelation{
     return null;
   }
 
-  private OctElement declareVariable(OctElement pElement, String pVariableName) {
+  private OctState declareVariable(OctState pElement, String pVariableName) {
     pElement.declareVariable(pVariableName);
     return pElement;
   }
 
-  private OctElement assignConstant(OctElement pElement, String pVarName,
+  private OctState assignConstant(OctState pElement, String pVarName,
       long pLongValue) {
     pElement.assignConstant(pVarName, pLongValue);
     return pElement;
   }
 
-  private OctElement handleStatement(OctElement pElement,
+  private OctState handleStatement(OctState pElement,
       IASTStatement expression, CFAEdge cfaEdge)
   throws UnrecognizedCCodeException {
     // expression is a binary operation, e.g. a = b;
@@ -918,7 +918,7 @@ class OctTransferRelation implements TransferRelation{
     return null;
   }
 
-  private OctElement handleAssignment(OctElement pElement,
+  private OctState handleAssignment(OctState pElement,
       IASTAssignment assignExpression, CFAEdge cfaEdge)
   throws UnrecognizedCCodeException {
 
@@ -964,7 +964,7 @@ class OctTransferRelation implements TransferRelation{
     }
   }
 
-  private OctElement handleAssignmentToVariable(OctElement pElement,
+  private OctState handleAssignmentToVariable(OctState pElement,
       String lParam, IASTRightHandSide rightExp, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
@@ -994,7 +994,7 @@ class OctTransferRelation implements TransferRelation{
     // a = extCall();  or  a = b->c;
     else if(rightExp instanceof IASTFunctionCallExpression
         || rightExp instanceof IASTFieldReference){
-      //      OctElement newElement = element.clone();
+      //      OctState newElement = element.clone();
       String lvarName = getvarName(lParam, functionName);
       return forget(pElement, lvarName);
     }
@@ -1003,12 +1003,12 @@ class OctTransferRelation implements TransferRelation{
     }
   }
 
-  private OctElement forget(OctElement pElement, String pLvarName) {
+  private OctState forget(OctState pElement, String pLvarName) {
     pElement.forget(pLvarName);
     return pElement;
   }
 
-  private OctElement handleAssignmentOfCast(OctElement pElement,
+  private OctState handleAssignmentOfCast(OctState pElement,
       String lParam, IASTCastExpression castExp, CFAEdge cfaEdge)
   throws UnrecognizedCCodeException
   {
@@ -1016,14 +1016,14 @@ class OctTransferRelation implements TransferRelation{
     return handleAssignmentToVariable(pElement, lParam, castOperand, cfaEdge);
   }
 
-  private OctElement handleAssignmentOfUnaryExp(OctElement pElement,
+  private OctState handleAssignmentOfUnaryExp(OctState pElement,
       String lParam, IASTUnaryExpression unaryExp, CFAEdge cfaEdge)
   throws UnrecognizedCCodeException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // name of the updated variable, so if a = -b is handled, lParam is a
     String assignedVar = getvarName(lParam, functionName);
-    //    OctElement newElement = element.clone();
+    //    OctState newElement = element.clone();
 
     IASTExpression unaryOperand = unaryExp.getOperand();
     UnaryOperator unaryOperator = unaryExp.getOperator();
@@ -1031,7 +1031,7 @@ class OctTransferRelation implements TransferRelation{
     if (unaryOperator == UnaryOperator.STAR) {
       // a = * b
       // TODO what is this?
-//      OctElement newElement = forget(pElement, assignedVar);
+//      OctState newElement = forget(pElement, assignedVar);
 
       // Cil produces code like
       // __cil_tmp8 = *((int *)__cil_tmp7);
@@ -1063,7 +1063,7 @@ class OctTransferRelation implements TransferRelation{
     return null;
   }
 
-  private OctElement handleAssignmentOfBinaryExp(OctElement pElement,
+  private OctState handleAssignmentOfBinaryExp(OctState pElement,
       String lParam, IASTExpression lVarInBinaryExp, IASTExpression rVarInBinaryExp,
       BinaryOperator binaryOperator, CFAEdge cfaEdge)
   throws UnrecognizedCCodeException {
@@ -1071,7 +1071,7 @@ class OctTransferRelation implements TransferRelation{
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // name of the updated variable, so if a = b + c is handled, lParam is a
     String assignedVar = getvarName(lParam, functionName);
-    //    OctElement newElement = element.clone();
+    //    OctState newElement = element.clone();
 
     switch (binaryOperator) {
     case DIVIDE:
@@ -1251,7 +1251,7 @@ class OctTransferRelation implements TransferRelation{
   }
 
   //  // TODO modify this.
-  private Long getExpressionValue(OctElement pElement, IASTRightHandSide expression,
+  private Long getExpressionValue(OctState pElement, IASTRightHandSide expression,
       String functionName, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
 
     if (expression instanceof IASTLiteralExpression) {
@@ -1286,7 +1286,7 @@ class OctTransferRelation implements TransferRelation{
     }
   }
 
-  private OctElement assignmentOfBinaryExp(OctElement pElement,
+  private OctState assignmentOfBinaryExp(OctState pElement,
       String pAssignedVar, String pLeftVarName, int pLeftVarCoef,
       String pRightVarName, int pRightVarCoef, int pConstVal) {
     pElement.assignmentOfBinaryExp(pAssignedVar, pLeftVarName, pLeftVarCoef,
@@ -1294,7 +1294,7 @@ class OctTransferRelation implements TransferRelation{
     return pElement;
   }
 
-  private OctElement handleAssignmentOfVariable(OctElement pElement,
+  private OctState handleAssignmentOfVariable(OctState pElement,
       String lParam, IASTExpression op2, String functionName, int coef)
   {
     String rParam = op2.toASTString();
@@ -1305,7 +1305,7 @@ class OctTransferRelation implements TransferRelation{
     return assignVariable(pElement, leftVarName, rightVarName, coef);
   }
 
-//  private OctElement handleAssignmentOfReturnVariable(OctElement pElement,
+//  private OctState handleAssignmentOfReturnVariable(OctState pElement,
 //      String lParam, String tempVarName, String functionName, int coef)
 //  {
 //    String leftVarName = getvarName(lParam, functionName);
@@ -1313,17 +1313,17 @@ class OctTransferRelation implements TransferRelation{
 //    return assignVariable(pElement, leftVarName, tempVarName, coef);
 //  }
 
-  private OctElement assignVariable(OctElement pElement, String pLeftVarName,
+  private OctState assignVariable(OctState pElement, String pLeftVarName,
       String pRightVarName, int coef) {
     pElement.assignVariable(pLeftVarName, pRightVarName, coef);
     return pElement;
   }
 
-  private OctElement handleAssignmentOfLiteral(OctElement pElement,
+  private OctState handleAssignmentOfLiteral(OctState pElement,
       String lParam, IASTLiteralExpression op2, String functionName, CFAEdge edge)
   throws UnrecognizedCCodeException
   {
-    //    OctElement newElement = element.clone();
+    //    OctState newElement = element.clone();
 
     // op2 may be null if this is a "return;" statement
     Long val = (op2 == null ? Long.valueOf(0L) : parseLiteral(op2, edge));
@@ -1379,15 +1379,15 @@ class OctTransferRelation implements TransferRelation{
       List<AbstractState> otherElements, CFAEdge cfaEdge,
       Precision precision) {
 
-    assert element instanceof OctElement;
-    OctElement octagonElement = (OctElement)element;
+    assert element instanceof OctState;
+    OctState octagonElement = (OctState)element;
 
     for (AbstractState ae : otherElements) {
-      if (ae instanceof PointerElement) {
-        return strengthen(octagonElement, (PointerElement)ae, cfaEdge, precision);
+      if (ae instanceof PointerState) {
+        return strengthen(octagonElement, (PointerState)ae, cfaEdge, precision);
       }
-      else if(ae instanceof AssumptionStorageElement){
-        return strengthen(octagonElement, (AssumptionStorageElement)ae, cfaEdge, precision);
+      else if(ae instanceof AssumptionStorageState){
+        return strengthen(octagonElement, (AssumptionStorageState)ae, cfaEdge, precision);
       }
     }
     return null;
@@ -1396,14 +1396,14 @@ class OctTransferRelation implements TransferRelation{
   }
 
   private Collection<? extends AbstractState> strengthen(
-      OctElement pOctagonElement, AssumptionStorageElement pAe,
+      OctState pOctagonElement, AssumptionStorageState pAe,
       CFAEdge pCfaEdge, Precision pPrecision) {
     // TODO Auto-generated method stub
     return null;
   }
 
   private Collection<? extends AbstractState> strengthen(
-      OctElement pOctagonElement, PointerElement pAe, CFAEdge pCfaEdge,
+      OctState pOctagonElement, PointerState pAe, CFAEdge pCfaEdge,
       Precision pPrecision) {
     // TODO Auto-generated method stub
     return null;

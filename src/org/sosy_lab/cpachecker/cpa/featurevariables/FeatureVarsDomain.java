@@ -40,9 +40,9 @@ public class FeatureVarsDomain implements AbstractDomain {
   public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedElement) {
       // returns true if element1 < element2 on lattice
       // true if newElement represents less states (and a subset of the states of) reachedElement
-    if (newElement instanceof FeatureVarsElement && reachedElement instanceof FeatureVarsElement){
-      FeatureVarsElement fvn = (FeatureVarsElement)newElement;
-      FeatureVarsElement fvr = (FeatureVarsElement)reachedElement;
+    if (newElement instanceof FeatureVarsState && reachedElement instanceof FeatureVarsState){
+      FeatureVarsState fvn = (FeatureVarsState)newElement;
+      FeatureVarsState fvr = (FeatureVarsState)reachedElement;
       return rmgr.entails(fvn.getRegion(), fvr.getRegion());
     } else {
       throw new IllegalArgumentException("Called with non-FeatureVars-Elements");
@@ -51,8 +51,8 @@ public class FeatureVarsDomain implements AbstractDomain {
 
   @Override
   public AbstractState join(AbstractState element1, AbstractState element2) {
-    FeatureVarsElement fv1 = (FeatureVarsElement)element1;
-    FeatureVarsElement fv2 = (FeatureVarsElement)element2;
+    FeatureVarsState fv1 = (FeatureVarsState)element1;
+    FeatureVarsState fv2 = (FeatureVarsState)element2;
 
     Region result = rmgr.makeOr(fv1.getRegion(), fv2.getRegion());
     if (result.equals(fv2.getRegion())) {
@@ -60,7 +60,7 @@ public class FeatureVarsDomain implements AbstractDomain {
     } else if (result.equals(fv1.getRegion())) {
       return fv1;
     } else {
-      return new FeatureVarsElement(result, rmgr);
+      return new FeatureVarsState(result, rmgr);
     }
   }
 }

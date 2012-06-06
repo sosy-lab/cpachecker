@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.assume;
 
-public class UnconstrainedAssumeElement implements AssumeElement {
+public class UnconstrainedAssumeState implements AssumeState {
 
-  private static final UnconstrainedAssumeElement sInstance = new UnconstrainedAssumeElement();
+  private static final UnconstrainedAssumeState sInstance = new UnconstrainedAssumeState();
 
-  public static UnconstrainedAssumeElement getInstance() {
+  public static UnconstrainedAssumeState getInstance() {
     return sInstance;
   }
 
-  private UnconstrainedAssumeElement() {
+  private UnconstrainedAssumeState() {
 
   }
 

@@ -63,7 +63,7 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) {
-    AssumptionStorageElement element = (AssumptionStorageElement)pElement;
+    AssumptionStorageState element = (AssumptionStorageState)pElement;
 
     // If we must stop, then let's stop by returning an empty set
     if (element.isStop()) {
@@ -75,7 +75,7 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState el, List<AbstractState> others, CFAEdge edge, Precision p) throws UnrecognizedCCodeException {
-    AssumptionStorageElement asmptStorageElem = (AssumptionStorageElement)el;
+    AssumptionStorageState asmptStorageElem = (AssumptionStorageState)el;
     assert asmptStorageElem.getAssumption().isTrue();
     assert asmptStorageElem.getStopFormula().isTrue();
     String function = (edge.getSuccessor() != null) ? edge.getSuccessor().getFunctionName() : null;
@@ -112,7 +112,7 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
       return null; // nothing has changed
 
     } else {
-      return Collections.singleton(new AssumptionStorageElement(assumption, stopFormula));
+      return Collections.singleton(new AssumptionStorageState(assumption, stopFormula));
     }
   }
 }

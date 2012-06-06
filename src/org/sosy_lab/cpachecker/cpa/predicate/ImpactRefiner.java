@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
@@ -67,7 +67,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, ARGElement> implements StatisticsProvider {
+public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, ARGState> implements StatisticsProvider {
 
   private class Stats implements Statistics {
 
@@ -139,19 +139,19 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
 
 
   @Override
-  protected List<ARGElement> transformPath(Path pPath) {
+  protected List<ARGState> transformPath(Path pPath) {
     // filter abstraction elements
 
-    List<ARGElement> result = ImmutableList.copyOf(
+    List<ARGState> result = ImmutableList.copyOf(
         Iterables.filter(
             Iterables.transform(
                 skip(pPath, 1),
-                Pair.<ARGElement>getProjectionToFirst()),
+                Pair.<ARGState>getProjectionToFirst()),
 
-            new Predicate<ARGElement>() {
+            new Predicate<ARGState>() {
                 @Override
-                public boolean apply(ARGElement pInput) {
-                  return extractElementByType(pInput, PredicateAbstractElement.class).isAbstractionElement();
+                public boolean apply(ARGState pInput) {
+                  return extractElementByType(pInput, PredicateAbstractState.class).isAbstractionElement();
                 }
             }));
 
@@ -160,34 +160,34 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
   }
 
   @Override
-  protected List<Formula> getFormulasForPath(List<ARGElement> pPath, ARGElement pInitialElement) {
+  protected List<Formula> getFormulasForPath(List<ARGState> pPath, ARGState pInitialElement) {
 
     return transform(pPath,
-        new Function<ARGElement, Formula>() {
+        new Function<ARGState, Formula>() {
           @Override
-          public Formula apply(ARGElement e) {
-            return extractElementByType(e, PredicateAbstractElement.class).getAbstractionFormula().getBlockFormula();
+          public Formula apply(ARGState e) {
+            return extractElementByType(e, PredicateAbstractState.class).getAbstractionFormula().getBlockFormula();
           }
         });
   }
 
   @Override
-  protected void performRefinement(ARGReachedSet pReached, List<ARGElement> path,
+  protected void performRefinement(ARGReachedSet pReached, List<ARGState> path,
       CounterexampleTraceInfo<Formula> cex, boolean pRepeatedCounterexample) throws CPAException {
 
     ReachedSet reached = pReached.asReachedSet();
-    ARGElement lastElement = path.get(path.size()-1);
+    ARGState lastElement = path.get(path.size()-1);
     assert lastElement.isTarget();
 
     path = path.subList(0, path.size()-1); // skip last element, itp is always false there
     assert cex.getPredicatesForRefinement().size() ==  path.size();
 
-    List<ARGElement> changedElements = new ArrayList<ARGElement>();
-    ARGElement infeasiblePartOfART = lastElement;
+    List<ARGState> changedElements = new ArrayList<ARGState>();
+    ARGState infeasiblePartOfART = lastElement;
 
-    for (Pair<Formula, ARGElement> interpolationPoint : Pair.zipList(cex.getPredicatesForRefinement(), path)) {
+    for (Pair<Formula, ARGState> interpolationPoint : Pair.zipList(cex.getPredicatesForRefinement(), path)) {
       Formula itp = interpolationPoint.getFirst();
-      ARGElement w = interpolationPoint.getSecond();
+      ARGState w = interpolationPoint.getSecond();
 
       if (itp.isTrue()) {
         // do nothing
@@ -224,16 +224,16 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
     }
 
     stats.argUpdate.start();
-    for (ARGElement w : changedElements) {
+    for (ARGState w : changedElements) {
       pReached.removeCoverageOf(w);
     }
 
-    Set<ARGElement> infeasibleSubtree = infeasiblePartOfART.getSubtree();
+    Set<ARGState> infeasibleSubtree = infeasiblePartOfART.getSubtree();
     assert infeasibleSubtree.contains(lastElement);
 
     uncover(infeasibleSubtree, pReached);
 
-    for (ARGElement removedNode : infeasibleSubtree) {
+    for (ARGState removedNode : infeasibleSubtree) {
       removedNode.removeFromART();
     }
     reached.removeAll(infeasibleSubtree);
@@ -243,7 +243,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
     // close only those that were strengthened during refine
     stats.coverTime.start();
     try {
-      for (ARGElement w : changedElements) {
+      for (ARGState w : changedElements) {
         if (cover(w, pReached)) {
           break; // all further elements are covered anyway
         }
@@ -256,7 +256,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
   }
 
 
-  private boolean cover(ARGElement v, ARGReachedSet pReached) throws CPAException {
+  private boolean cover(ARGState v, ARGReachedSet pReached) throws CPAException {
     assert v.mayCover();
     ReachedSet reached = pReached.asReachedSet();
 
@@ -266,7 +266,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
     if (v.isCovered()) {
       reached.removeOnlyFromWaitlist(v);
 
-      Set<ARGElement> subtree = v.getSubtree();
+      Set<ARGState> subtree = v.getSubtree();
 
       // first, uncover all necessary states
 
@@ -275,7 +275,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
       // second, clean subtree of covered element
       subtree.remove(v); // but no not clean v itself
 
-      for (ARGElement childOfV : subtree) {
+      for (ARGState childOfV : subtree) {
         // each child of v is now not covered directly anymore
         if (childOfV.isCovered()) {
           childOfV.uncover();
@@ -286,7 +286,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
         childOfV.setNotCovering();
       }
 
-      for (ARGElement childOfV : subtree) {
+      for (ARGState childOfV : subtree) {
         // each child of v now doesn't cover anything anymore
         assert childOfV.getCoveredByThis().isEmpty();
         assert !childOfV.mayCover();
@@ -298,21 +298,21 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
     return false;
   }
 
-  private void uncover(Set<ARGElement> subtree, ARGReachedSet reached) {
-    Set<ARGElement> coveredStates = ARGUtils.getCoveredBy(subtree);
-    for (ARGElement coveredState : coveredStates) {
+  private void uncover(Set<ARGState> subtree, ARGReachedSet reached) {
+    Set<ARGState> coveredStates = ARGUtils.getCoveredBy(subtree);
+    for (ARGState coveredState : coveredStates) {
       // uncover each previously covered state
       reached.uncover(coveredState);
     }
     assert ARGUtils.getCoveredBy(subtree).isEmpty() : "Subtree of covered node still covers other elements";
   }
 
-  private Formula getStateFormula(ARGElement pARGElement) {
-    return AbstractStates.extractElementByType(pARGElement, PredicateAbstractElement.class).getAbstractionFormula().asFormula();
+  private Formula getStateFormula(ARGState pARGState) {
+    return AbstractStates.extractElementByType(pARGState, PredicateAbstractState.class).getAbstractionFormula().asFormula();
   }
 
-  private void addFormulaToState(Formula f, ARGElement e) {
-    PredicateAbstractElement predElement = AbstractStates.extractElementByType(e, PredicateAbstractElement.class);
+  private void addFormulaToState(Formula f, ARGState e) {
+    PredicateAbstractState predElement = AbstractStates.extractElementByType(e, PredicateAbstractState.class);
     AbstractionFormula af = predElement.getAbstractionFormula();
 
     Formula newFormula = fmgr.makeAnd(f, af.asFormula());

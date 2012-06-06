@@ -93,7 +93,7 @@ public class PointerCPA implements ConfigurableProgramAnalysis {
     if (pNode instanceof FunctionDefinitionNode) {
       ((PointerTransferRelation)getTransferRelation()).setEntryFunctionDefinitionNode((FunctionDefinitionNode)pNode);
     }
-    return new PointerElement();
+    return new PointerState();
   }
 
   @Override

@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -72,14 +72,14 @@ public interface PathFormulaManager {
    * @return A formula containing a predicate for each branching.
    * @throws CPATransferException
    */
-  Formula buildBranchingFormula(Iterable<ARGElement> pElementsOnPath)
+  Formula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
       throws CPATransferException;
 
   /**
    * Extract the information about the branching predicates created by
    * {@link #buildBranchingFormula(Set)} from a satisfying assignment.
    *
-   * A map is created that stores for each ARGElement (using its element id as
+   * A map is created that stores for each ARGState (using its element id as
    * the map key) which edge was taken (the positive or the negated one).
    *
    * @param model A satisfying assignment that should contain values for branching predicates.

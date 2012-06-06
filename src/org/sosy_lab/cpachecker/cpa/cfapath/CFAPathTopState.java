@@ -21,44 +21,26 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.assume;
+package org.sosy_lab.cpachecker.cpa.cfapath;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import java.util.Collections;
+import java.util.Set;
 
-public class ConstrainedAssumeElement implements AssumeElement {
+public class CFAPathTopState implements CFAPathState {
 
-  private IASTExpression mExpression;
+  private static final CFAPathTopState sInstance = new CFAPathTopState();
+  private static final Set<CFAPathTopState> sSingleton = Collections.singleton(sInstance);
 
-  public ConstrainedAssumeElement(IASTExpression pExpression) {
-    mExpression = pExpression;
+  public static CFAPathTopState getInstance() {
+    return sInstance;
   }
 
-  public IASTExpression getExpression() {
-    return mExpression;
+  public static Set<CFAPathTopState> getSingleton() {
+    return sSingleton;
   }
 
-  @Override
-  public boolean equals(Object pOther) {
-    if (this == pOther) {
-      return true;
-    }
+  private CFAPathTopState() {
 
-    if (pOther == null) {
-      return false;
-    }
-
-    if (!getClass().equals(pOther.getClass())) {
-      return false;
-    }
-
-    ConstrainedAssumeElement lElement = (ConstrainedAssumeElement)pOther;
-
-    return lElement.mExpression.equals(mExpression);
-  }
-
-  @Override
-  public int hashCode() {
-    return mExpression.hashCode() + 1029;
   }
 
 }

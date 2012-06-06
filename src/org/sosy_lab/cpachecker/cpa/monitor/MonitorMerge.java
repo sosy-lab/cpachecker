@@ -42,25 +42,25 @@ public class MonitorMerge implements MergeOperator{
       AbstractState pElement1,
       AbstractState pElement2, Precision pPrecision)
   throws CPAException {
-    MonitorElement monitorElement1= (MonitorElement)pElement1;
-    MonitorElement monitorElement2 = (MonitorElement)pElement2;
+    MonitorState monitorState1= (MonitorState)pElement1;
+    MonitorState monitorState2 = (MonitorState)pElement2;
 
-    if (monitorElement1.mustDumpAssumptionForAvoidance() || monitorElement2.mustDumpAssumptionForAvoidance()) {
+    if (monitorState1.mustDumpAssumptionForAvoidance() || monitorState2.mustDumpAssumptionForAvoidance()) {
       return pElement2;
     }
 
     MergeOperator mergeOperator = wrappedCpa.getMergeOperator();
-    AbstractState wrappedElement1 = monitorElement1.getWrappedElement();
-    AbstractState wrappedElement2 = monitorElement2.getWrappedElement();
+    AbstractState wrappedElement1 = monitorState1.getWrappedElement();
+    AbstractState wrappedElement2 = monitorState2.getWrappedElement();
     AbstractState retElement = mergeOperator.merge(wrappedElement1, wrappedElement2, pPrecision);
     if(retElement.equals(wrappedElement2)){
       return pElement2;
     }
 
-    long totalTimeOnPath = Math.max(monitorElement1.getTotalTimeOnPath(),
-                                    monitorElement2.getTotalTimeOnPath());
+    long totalTimeOnPath = Math.max(monitorState1.getTotalTimeOnPath(),
+                                    monitorState2.getTotalTimeOnPath());
 
-    MonitorElement mergedElement = new MonitorElement(
+    MonitorState mergedElement = new MonitorState(
         retElement, totalTimeOnPath);
 
     return mergedElement;

@@ -56,8 +56,8 @@ public class PredicateAbstractDomain implements AbstractDomain {
     coverageCheckTimer.start();
     try {
 
-    PredicateAbstractElement e1 = (PredicateAbstractElement)element1;
-    PredicateAbstractElement e2 = (PredicateAbstractElement)element2;
+    PredicateAbstractState e1 = (PredicateAbstractState)element1;
+    PredicateAbstractState e2 = (PredicateAbstractState)element2;
 
     // TODO time statistics (previously in formula manager)
     /*

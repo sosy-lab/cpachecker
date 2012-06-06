@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cpa.andersen.util.ComplexConstraint;
 import org.sosy_lab.cpachecker.cpa.andersen.util.DirectedGraph;
 import org.sosy_lab.cpachecker.cpa.andersen.util.SimpleConstraint;
 
-public class AndersenElement implements AbstractState, Cloneable {
+public class AndersenState implements AbstractState, Cloneable {
 
   // ------- global constraint system -------
   private static final Set<BaseConstraint> gBaseConstraints = new HashSet<BaseConstraint>();
@@ -57,7 +57,7 @@ public class AndersenElement implements AbstractState, Cloneable {
 
   private boolean lChanged = false;
 
-  public AndersenElement() {}
+  public AndersenState() {}
 
   /**
    * Add a (new) {@link BaseConstraint} to this element.
@@ -446,7 +446,7 @@ public class AndersenElement implements AbstractState, Cloneable {
     if (other == null || !this.getClass().equals(other.getClass()))
       return false;
 
-    AndersenElement oEl = (AndersenElement) other;
+    AndersenState oEl = (AndersenState) other;
 
     return (this.lBaseConstraints.equals(oEl.lBaseConstraints)
         && this.lSimpleConstraints.equals(oEl.lSimpleConstraints)
@@ -454,11 +454,11 @@ public class AndersenElement implements AbstractState, Cloneable {
   }
 
   @Override
-  public AndersenElement clone() {
+  public AndersenState clone() {
 
     // super.clone() is not possible for final attributes... and the list interface also doesn't
     // provide a clone() method
-    AndersenElement clone = new AndersenElement();
+    AndersenState clone = new AndersenState();
 
     clone.lBaseConstraints.addAll(this.lBaseConstraints);
     clone.lSimpleConstraints.addAll(this.lSimpleConstraints);

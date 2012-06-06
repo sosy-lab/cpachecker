@@ -43,7 +43,7 @@ public class ARGReducer implements Reducer {
       AbstractState pExpandedElement, Block pContext,
       CFANode pLocation) {
 
-    return new ARGElement(wrappedReducer.getVariableReducedElement(((ARGElement)pExpandedElement).getWrappedElement(), pContext, pLocation), null);
+    return new ARGState(wrappedReducer.getVariableReducedElement(((ARGState)pExpandedElement).getWrappedElement(), pContext, pLocation), null);
   }
 
   @Override
@@ -51,13 +51,13 @@ public class ARGReducer implements Reducer {
       AbstractState pRootElement, Block pReducedContext,
       AbstractState pReducedElement) {
 
-    return new ARGElement(wrappedReducer.getVariableExpandedElement(((ARGElement)pRootElement).getWrappedElement(), pReducedContext, ((ARGElement)pReducedElement).getWrappedElement()), null);
+    return new ARGState(wrappedReducer.getVariableExpandedElement(((ARGState)pRootElement).getWrappedElement(), pReducedContext, ((ARGState)pReducedElement).getWrappedElement()), null);
   }
 
   @Override
   public Object getHashCodeForElement(AbstractState pElementKey, Precision pPrecisionKey) {
 
-    return wrappedReducer.getHashCodeForElement(((ARGElement)pElementKey).getWrappedElement(), pPrecisionKey);
+    return wrappedReducer.getHashCodeForElement(((ARGState)pElementKey).getWrappedElement(), pPrecisionKey);
   }
 
   @Override

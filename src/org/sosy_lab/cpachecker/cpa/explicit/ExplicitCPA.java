@@ -153,7 +153,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
 
   @Override
   public AbstractState getInitialElement(CFANode node) {
-    return new ExplicitElement();
+    return new ExplicitState();
   }
 
   @Override

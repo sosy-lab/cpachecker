@@ -26,22 +26,22 @@ package org.sosy_lab.cpachecker.util.cwriter;
 import java.util.Stack;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 class Edge implements Comparable<Edge> {
 
-  private final ARGElement childElement;
+  private final ARGState childElement;
   private final CFAEdge edge;
   private final Stack<FunctionBody> stack;
 
-  public Edge(ARGElement pChildElement,
+  public Edge(ARGState pChildElement,
       CFAEdge pEdge, Stack<FunctionBody> pStack) {
     childElement = pChildElement;
     edge = pEdge;
     stack = pStack;
   }
 
-  public ARGElement getChildElement() {
+  public ARGState getChildElement() {
     return childElement;
   }
 

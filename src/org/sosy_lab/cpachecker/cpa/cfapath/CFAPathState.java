@@ -21,18 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.assume;
+package org.sosy_lab.cpachecker.cpa.cfapath;
 
-public class AssumeTopElement implements AssumeElement {
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-  private static final AssumeTopElement sInstance = new AssumeTopElement();
-
-  public static AssumeTopElement getInstance() {
-    return sInstance;
-  }
-
-  private AssumeTopElement() {
-
-  }
+public interface CFAPathState extends AbstractState {
 
 }

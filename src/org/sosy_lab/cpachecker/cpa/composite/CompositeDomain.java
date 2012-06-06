@@ -50,8 +50,8 @@ public class CompositeDomain implements AbstractDomain {
 
   @Override
   public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) throws CPAException {
-    CompositeElement comp1 = (CompositeElement)pElement1;
-    CompositeElement comp2 = (CompositeElement)pElement2;
+    CompositeState comp1 = (CompositeState)pElement1;
+    CompositeState comp2 = (CompositeState)pElement2;
 
     List<AbstractState> comp1Elements = comp1.getWrappedElements();
     List<AbstractState> comp2Elements = comp2.getWrappedElements();

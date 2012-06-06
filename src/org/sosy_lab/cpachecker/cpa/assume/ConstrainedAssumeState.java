@@ -21,10 +21,44 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cfapath;
+package org.sosy_lab.cpachecker.cpa.assume;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 
-public interface CFAPathElement extends AbstractState {
+public class ConstrainedAssumeState implements AssumeState {
+
+  private IASTExpression mExpression;
+
+  public ConstrainedAssumeState(IASTExpression pExpression) {
+    mExpression = pExpression;
+  }
+
+  public IASTExpression getExpression() {
+    return mExpression;
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+
+    if (pOther == null) {
+      return false;
+    }
+
+    if (!getClass().equals(pOther.getClass())) {
+      return false;
+    }
+
+    ConstrainedAssumeState lElement = (ConstrainedAssumeState)pOther;
+
+    return lElement.mExpression.equals(mExpression);
+  }
+
+  @Override
+  public int hashCode() {
+    return mExpression.hashCode() + 1029;
+  }
 
 }

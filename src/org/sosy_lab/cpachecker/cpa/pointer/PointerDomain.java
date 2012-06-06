@@ -32,10 +32,10 @@ public class PointerDomain implements AbstractDomain {
   public AbstractState join(AbstractState element1, AbstractState element2) {
     throw new UnsupportedOperationException();
     /*
-      PointerElement pointerElement1 = (PointerElement)element1;
-      PointerElement pointerElement2 = (PointerElement)element2;
+      PointerState pointerElement1 = (PointerState)element1;
+      PointerState pointerElement2 = (PointerState)element2;
 
-      PointerElement pointerElementNew = pointerElement1.clone();
+      PointerState pointerElementNew = pointerElement1.clone();
 
       // TODO Join Operator
       Map<String, Pointer> pointers2   = pointerElement2.getGlobalPointers();
@@ -65,9 +65,9 @@ public class PointerDomain implements AbstractDomain {
 
   @Override
   public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedElement) {
-      PointerElement newPointerElement = (PointerElement)newElement;
-      PointerElement reachedPointerElement = (PointerElement)reachedElement;
+      PointerState newPointerState = (PointerState)newElement;
+      PointerState reachedPointerState = (PointerState)reachedElement;
 
-      return reachedPointerElement.isSubsetOf(newPointerElement);
+      return reachedPointerState.isSubsetOf(newPointerState);
   }
 }

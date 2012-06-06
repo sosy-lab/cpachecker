@@ -75,7 +75,7 @@ public class ABMPredicateReducer implements Reducer {
       AbstractState pExpandedElement, Block pContext,
       CFANode pLocation) {
 
-    PredicateAbstractElement predicateElement = (PredicateAbstractElement)pExpandedElement;
+    PredicateAbstractState predicateElement = (PredicateAbstractState)pExpandedElement;
 
     if (!predicateElement.isAbstractionElement()) {
       return predicateElement;
@@ -96,7 +96,7 @@ public class ABMPredicateReducer implements Reducer {
 
       AbstractionFormula newAbstraction = pamgr.reduce(oldAbstraction, removePredicates, pathFormula.getSsa());
 
-      return PredicateAbstractElement.abstractionElement(pathFormula, newAbstraction);
+      return PredicateAbstractState.abstractionElement(pathFormula, newAbstraction);
     } finally {
       reduceTimer.stop();
     }
@@ -107,8 +107,8 @@ public class ABMPredicateReducer implements Reducer {
       AbstractState pRootElement, Block pReducedContext,
       AbstractState pReducedElement) {
 
-    PredicateAbstractElement rootElement = (PredicateAbstractElement)pRootElement;
-    PredicateAbstractElement reducedElement = (PredicateAbstractElement)pReducedElement;
+    PredicateAbstractState rootElement = (PredicateAbstractState)pRootElement;
+    PredicateAbstractState reducedElement = (PredicateAbstractState)pReducedElement;
 
     if (!reducedElement.isAbstractionElement()) { return reducedElement; }
     //Note: ABM might introduce some additional abstraction if root region is not a cube
@@ -144,7 +144,7 @@ public class ABMPredicateReducer implements Reducer {
       AbstractionFormula newAbstractionFormula =
           pamgr.expand(reducedAbstraction, rootAbstraction, relevantRootPredicates, newSSA);
 
-      return PredicateAbstractElement.abstractionElement(newPathFormula,
+      return PredicateAbstractState.abstractionElement(newPathFormula,
           newAbstractionFormula);
     } finally {
       expandTimer.stop();
@@ -164,7 +164,7 @@ public class ABMPredicateReducer implements Reducer {
   @Override
   public Object getHashCodeForElement(AbstractState pElementKey, Precision pPrecisionKey) {
 
-    PredicateAbstractElement element = (PredicateAbstractElement)pElementKey;
+    PredicateAbstractState element = (PredicateAbstractState)pElementKey;
     PredicatePrecision precision = (PredicatePrecision)pPrecisionKey;
 
     return Pair.of(element.getAbstractionFormula().asRegion(), precision);

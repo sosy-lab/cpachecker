@@ -60,7 +60,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -73,7 +73,7 @@ import com.google.common.collect.Iterables;
 @Options(prefix="cpa.abm")
 public class ABMTransferRelation implements TransferRelation {
 
-  private class AbstractElementHash {
+  private class AbstractStateHash {
 
     private final Object wrappedHash;
     private final Block context;
@@ -81,7 +81,7 @@ public class ABMTransferRelation implements TransferRelation {
     private final AbstractState predicateKey;
     private final Precision precisionKey;
 
-    public AbstractElementHash(AbstractState pPredicateKey, Precision pPrecisionKey, Block pContext) {
+    public AbstractStateHash(AbstractState pPredicateKey, Precision pPrecisionKey, Block pContext) {
       wrappedHash = wrappedReducer.getHashCodeForElement(pPredicateKey, pPrecisionKey);
       context = checkNotNull(pContext);
 
@@ -91,10 +91,10 @@ public class ABMTransferRelation implements TransferRelation {
 
     @Override
     public boolean equals(Object pObj) {
-      if (!(pObj instanceof AbstractElementHash)) {
+      if (!(pObj instanceof AbstractStateHash)) {
         return false;
       }
-      AbstractElementHash other = (AbstractElementHash)pObj;
+      AbstractStateHash other = (AbstractStateHash)pObj;
       equalsTimer.start();
       try {
         return context.equals(other.context)
@@ -116,7 +116,7 @@ public class ABMTransferRelation implements TransferRelation {
 
     @Override
     public String toString() {
-      return "AbstractElementHash [hash=" + hashCode() + ", wrappedHash=" + wrappedHash + ", context="
+      return "AbstractStateHash [hash=" + hashCode() + ", wrappedHash=" + wrappedHash + ", context="
           + context + ", predicateKey=" + predicateKey + ", precisionKey="
           + precisionKey + "]";
     }
@@ -124,23 +124,23 @@ public class ABMTransferRelation implements TransferRelation {
 
   private class Cache {
 
-    private final Map<AbstractElementHash, ReachedSet> preciseReachedCache = new HashMap<AbstractElementHash, ReachedSet>();
-    private final Map<AbstractElementHash, ReachedSet> unpreciseReachedCache = new HashMap<AbstractElementHash, ReachedSet>();
+    private final Map<AbstractStateHash, ReachedSet> preciseReachedCache = new HashMap<AbstractStateHash, ReachedSet>();
+    private final Map<AbstractStateHash, ReachedSet> unpreciseReachedCache = new HashMap<AbstractStateHash, ReachedSet>();
 
-    private final Map<AbstractElementHash, Collection<AbstractState>> returnCache = new HashMap<AbstractElementHash, Collection<AbstractState>>();
+    private final Map<AbstractStateHash, Collection<AbstractState>> returnCache = new HashMap<AbstractStateHash, Collection<AbstractState>>();
 
-    private AbstractElementHash getHashCode(AbstractState predicateKey, Precision precisionKey, Block context) {
-      return new AbstractElementHash(predicateKey, precisionKey, context);
+    private AbstractStateHash getHashCode(AbstractState predicateKey, Precision precisionKey, Block context) {
+      return new AbstractStateHash(predicateKey, precisionKey, context);
     }
 
     private void put(AbstractState predicateKey, Precision precisionKey, Block context, ReachedSet item) {
-      AbstractElementHash hash = getHashCode(predicateKey, precisionKey, context);
+      AbstractStateHash hash = getHashCode(predicateKey, precisionKey, context);
       assert !preciseReachedCache.containsKey(hash);
       preciseReachedCache.put(hash, item);
     }
 
     private void put(AbstractState predicateKey, Precision precisionKey, Block context, Collection<AbstractState> item) {
-      AbstractElementHash hash = getHashCode(predicateKey, precisionKey, context);
+      AbstractStateHash hash = getHashCode(predicateKey, precisionKey, context);
       assert allElementsContainedInReachedSet(item, preciseReachedCache.get(hash));
       returnCache.put(hash, item);
     }
@@ -159,7 +159,7 @@ public class ABMTransferRelation implements TransferRelation {
     }
 
     private Pair<ReachedSet, Collection<AbstractState>> get(AbstractState predicateKey, Precision precisionKey, Block context) {
-      AbstractElementHash hash = getHashCode(predicateKey, precisionKey, context);
+      AbstractStateHash hash = getHashCode(predicateKey, precisionKey, context);
 
       ReachedSet result = preciseReachedCache.get(hash);
       if(result != null) {
@@ -190,9 +190,9 @@ public class ABMTransferRelation implements TransferRelation {
         int min = Integer.MAX_VALUE;
         Pair<ReachedSet, Collection<AbstractState>> result = null;
 
-        for(AbstractElementHash cacheKey : preciseReachedCache.keySet()) {
+        for(AbstractStateHash cacheKey : preciseReachedCache.keySet()) {
           //searchKey != cacheKey, check whether it is the same if we ignore the precision
-          AbstractElementHash ignorePrecisionSearchKey = getHashCode(pPredicateKey, cacheKey.precisionKey, pContext);
+          AbstractStateHash ignorePrecisionSearchKey = getHashCode(pPredicateKey, cacheKey.precisionKey, pContext);
           if(ignorePrecisionSearchKey.equals(cacheKey)) {
             int distance = wrappedReducer.measurePrecisionDifference(pPrecisionKey, cacheKey.precisionKey);
             if(distance < min) { //prefer similar precisions
@@ -209,17 +209,17 @@ public class ABMTransferRelation implements TransferRelation {
     }
 
     private void findCacheMissCause(AbstractState pPredicateKey, Precision pPrecisionKey, Block pContext) {
-      AbstractElementHash searchKey = getHashCode(pPredicateKey, pPrecisionKey, pContext);
-      for(AbstractElementHash cacheKey : preciseReachedCache.keySet()) {
+      AbstractStateHash searchKey = getHashCode(pPredicateKey, pPrecisionKey, pContext);
+      for(AbstractStateHash cacheKey : preciseReachedCache.keySet()) {
         assert !searchKey.equals(cacheKey);
         //searchKey != cacheKey, check whether it is the same if we ignore the precision
-        AbstractElementHash ignorePrecisionSearchKey = getHashCode(pPredicateKey, cacheKey.precisionKey, pContext);
+        AbstractStateHash ignorePrecisionSearchKey = getHashCode(pPredicateKey, cacheKey.precisionKey, pContext);
         if(ignorePrecisionSearchKey.equals(cacheKey)) {
           precisionCausedMisses++;
           return;
         }
         //precision was not the cause. Check abstraction.
-        AbstractElementHash ignoreAbsSearchKey = getHashCode(cacheKey.predicateKey, pPrecisionKey, pContext);
+        AbstractStateHash ignoreAbsSearchKey = getHashCode(cacheKey.predicateKey, pPrecisionKey, pContext);
         if(ignoreAbsSearchKey.equals(cacheKey)) {
           abstractionCausedMisses++;
           return;
@@ -235,12 +235,12 @@ public class ABMTransferRelation implements TransferRelation {
     }
 
     private boolean containsPreciseKey(AbstractState predicateKey, Precision precisionKey, Block context) {
-      AbstractElementHash hash = getHashCode(predicateKey, precisionKey, context);
+      AbstractStateHash hash = getHashCode(predicateKey, precisionKey, context);
       return preciseReachedCache.containsKey(hash);
     }
 
     public void updatePrecisionForEntry(AbstractState predicateKey, Precision precisionKey, Block context, Precision newPrecisionKey) {
-      AbstractElementHash hash = getHashCode(predicateKey, precisionKey, context);
+      AbstractStateHash hash = getHashCode(predicateKey, precisionKey, context);
       ReachedSet reachedSet = preciseReachedCache.get(hash);
       if(reachedSet != null) {
         preciseReachedCache.remove(hash);
@@ -366,12 +366,12 @@ public class ABMTransferRelation implements TransferRelation {
           AbstractState reducedElement = reducedPair.getFirst();
           Precision reducedPrecision = reducedPair.getSecond();
 
-          ARGElement expandedElement = (ARGElement)wrappedReducer.getVariableExpandedElement(pElement, currentBlock, reducedElement);
+          ARGState expandedElement = (ARGState)wrappedReducer.getVariableExpandedElement(pElement, currentBlock, reducedElement);
           expandedToReducedCache.put(expandedElement, reducedElement);
 
           Precision expandedPrecision = wrappedReducer.getVariableExpandedPrecision(pPrecision, outerSubtree, reducedPrecision);
 
-          expandedElement.addParent((ARGElement)pElement);
+          expandedElement.addParent((ARGState)pElement);
           expandedResult.add(expandedElement);
 
           forwardPrecisionToExpandedPrecision.put(expandedElement, expandedPrecision);
@@ -501,26 +501,26 @@ public class ABMTransferRelation implements TransferRelation {
     return reached;
   }
 
-  void removeSubtree(ARGReachedSet mainReachedSet, Path pPath, ARGElement element, Precision newPrecision, Map<ARGElement, ARGElement> pPathElementToReachedElement) {
+  void removeSubtree(ARGReachedSet mainReachedSet, Path pPath, ARGState element, Precision newPrecision, Map<ARGState, ARGState> pPathElementToReachedElement) {
     removeSubtreeTimer.start();
 
-    List<ARGElement> path = trimPath(pPath, element);
+    List<ARGState> path = trimPath(pPath, element);
     assert path.get(path.size()-1).equals(element);
 
-    Set<ARGElement> relevantCallNodes = getRelevantDefinitionNodes(path);
+    Set<ARGState> relevantCallNodes = getRelevantDefinitionNodes(path);
 
-    Set<Pair<ARGReachedSet, ARGElement>> neededRemoveSubtreeCalls = new HashSet<Pair<ARGReachedSet,ARGElement>>();
-    Set<Pair<ARGElement, ARGElement>> neededRemoveCachedSubtreeCalls = new HashSet<Pair<ARGElement, ARGElement>>();
+    Set<Pair<ARGReachedSet, ARGState>> neededRemoveSubtreeCalls = new HashSet<Pair<ARGReachedSet,ARGState>>();
+    Set<Pair<ARGState, ARGState>> neededRemoveCachedSubtreeCalls = new HashSet<Pair<ARGState, ARGState>>();
 
-    ARGElement lastElement = null;
+    ARGState lastElement = null;
     //iterate from root to element and remove all subtrees for subgraph calls
-    for(ARGElement pathElement : Iterables.skip(path, 1)) {
+    for(ARGState pathElement : Iterables.skip(path, 1)) {
       if(pathElement.equals(element)) {
         break;
       }
 
       if(relevantCallNodes.contains(pathElement)) {
-        ARGElement currentElement = pPathElementToReachedElement.get(pathElement);
+        ARGState currentElement = pPathElementToReachedElement.get(pathElement);
 
         if (lastElement == null) {
           neededRemoveSubtreeCalls.add(Pair.of(mainReachedSet, currentElement));
@@ -536,11 +536,11 @@ public class ABMTransferRelation implements TransferRelation {
       ensureExactCacheHitsOnPath(mainReachedSet, pPath, element, newPrecision, pPathElementToReachedElement, neededRemoveCachedSubtreeCalls);
     }
 
-    for(Pair<ARGReachedSet, ARGElement> removeSubtreeArguments : neededRemoveSubtreeCalls) {
+    for(Pair<ARGReachedSet, ARGState> removeSubtreeArguments : neededRemoveSubtreeCalls) {
       removeSubtree(removeSubtreeArguments.getFirst(), removeSubtreeArguments.getSecond());
     }
 
-    for(Pair<ARGElement, ARGElement> removeCachedSubtreeArguments : neededRemoveCachedSubtreeCalls) {
+    for(Pair<ARGState, ARGState> removeCachedSubtreeArguments : neededRemoveCachedSubtreeCalls) {
       removeCachedSubtree(removeCachedSubtreeArguments.getFirst(), removeCachedSubtreeArguments.getSecond(), null);
     }
 
@@ -553,20 +553,20 @@ public class ABMTransferRelation implements TransferRelation {
     removeSubtreeTimer.stop();
   }
 
-  private void ensureExactCacheHitsOnPath(ARGReachedSet mainReachedSet, Path pPath, ARGElement pElement, Precision newPrecision, Map<ARGElement, ARGElement> pPathElementToReachedElement, Set<Pair<ARGElement, ARGElement>> neededRemoveCachedSubtreeCalls) {
-    Map<ARGElement, UnmodifiableReachedSet> pathElementToOuterReachedSet = new HashMap<ARGElement, UnmodifiableReachedSet>();
-    Pair<Set<ARGElement>, Set<ARGElement>> pair = getCallAndReturnNodes(pPath, pathElementToOuterReachedSet, mainReachedSet.asReachedSet(), pPathElementToReachedElement);
-    Set<ARGElement> callNodes = pair.getFirst();
-    Set<ARGElement> returnNodes = pair.getSecond();
+  private void ensureExactCacheHitsOnPath(ARGReachedSet mainReachedSet, Path pPath, ARGState pElement, Precision newPrecision, Map<ARGState, ARGState> pPathElementToReachedElement, Set<Pair<ARGState, ARGState>> neededRemoveCachedSubtreeCalls) {
+    Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet = new HashMap<ARGState, UnmodifiableReachedSet>();
+    Pair<Set<ARGState>, Set<ARGState>> pair = getCallAndReturnNodes(pPath, pathElementToOuterReachedSet, mainReachedSet.asReachedSet(), pPathElementToReachedElement);
+    Set<ARGState> callNodes = pair.getFirst();
+    Set<ARGState> returnNodes = pair.getSecond();
 
-    Deque<ARGElement> remainingPathElements = new LinkedList<ARGElement>();
+    Deque<ARGState> remainingPathElements = new LinkedList<ARGState>();
     for(int i = 0; i < pPath.size(); i++) {
       remainingPathElements.addLast(pPath.get(i).getFirst());
     }
 
     boolean starting = false;
     while(!remainingPathElements.isEmpty()) {
-      ARGElement currentElement = remainingPathElements.pop();
+      ARGState currentElement = remainingPathElements.pop();
 
       if (currentElement.equals(pElement)) {
         starting = true;
@@ -574,7 +574,7 @@ public class ABMTransferRelation implements TransferRelation {
 
       if(starting) {
         if(callNodes.contains(currentElement)) {
-          ARGElement currentReachedElement = pPathElementToReachedElement.get(currentElement);
+          ARGState currentReachedElement = pPathElementToReachedElement.get(currentElement);
           CFANode node = extractLocation(currentReachedElement);
           Block currentBlock = partitioning.getBlockForCallNode(node);
           AbstractState reducedElement = wrappedReducer.getVariableReducedElement(currentReachedElement, currentBlock, node);
@@ -585,7 +585,7 @@ public class ABMTransferRelation implements TransferRelation {
     }
   }
 
-  private boolean removeUnpreciseCacheEntriesOnPath(ARGElement rootElement, AbstractState reducedRootElement, Precision newPrecision, Block rootBlock, Deque<ARGElement> remainingPathElements, Map<ARGElement, ARGElement> pPathElementToReachedElement, Set<ARGElement> callNodes, Set<ARGElement> returnNodes, Map<ARGElement, UnmodifiableReachedSet> pathElementToOuterReachedSet, Set<Pair<ARGElement, ARGElement>> neededRemoveCachedSubtreeCalls) {
+  private boolean removeUnpreciseCacheEntriesOnPath(ARGState rootElement, AbstractState reducedRootElement, Precision newPrecision, Block rootBlock, Deque<ARGState> remainingPathElements, Map<ARGState, ARGState> pPathElementToReachedElement, Set<ARGState> callNodes, Set<ARGState> returnNodes, Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet, Set<Pair<ARGState, ARGState>> neededRemoveCachedSubtreeCalls) {
     UnmodifiableReachedSet outerReachedSet = pathElementToOuterReachedSet.get(rootElement);
 
     Precision rootPrecision = outerReachedSet.getPrecision(pPathElementToReachedElement.get(rootElement));
@@ -606,10 +606,10 @@ public class ABMTransferRelation implements TransferRelation {
     //-> check other (inner) blocks on path
     boolean foundInnerUnpreciseEntries = false;
     while(!remainingPathElements.isEmpty()) {
-      ARGElement currentElement = remainingPathElements.pop();
+      ARGState currentElement = remainingPathElements.pop();
 
       if(callNodes.contains(currentElement)) {
-        ARGElement currentReachedElement = pPathElementToReachedElement.get(currentElement);
+        ARGState currentReachedElement = pPathElementToReachedElement.get(currentElement);
         CFANode node = extractLocation(currentReachedElement);
         Block currentBlock = partitioning.getBlockForCallNode(node);
         AbstractState reducedElement = wrappedReducer.getVariableReducedElement(currentReachedElement, currentBlock, node);
@@ -636,7 +636,7 @@ public class ABMTransferRelation implements TransferRelation {
   }
 
 
-  private void removeCachedSubtree(ARGElement rootElement, ARGElement removeElement, Precision newPrecision) {
+  private void removeCachedSubtree(ARGState rootElement, ARGState removeElement, Precision newPrecision) {
     removeCachedSubtreeTimer.start();
 
     try {
@@ -683,18 +683,18 @@ public class ABMTransferRelation implements TransferRelation {
    * @param newPrecision
    * @return <code>true</code>, if the precision of the first element of the given reachedSet changed by this operation; <code>false</code>, otherwise.
    */
-  private static boolean removeSubtree(ReachedSet reachedSet, ARGElement argElement, Precision newPrecision) {
+  private static boolean removeSubtree(ReachedSet reachedSet, ARGState argElement, Precision newPrecision) {
     ARGReachedSet argReachSet = new ARGReachedSet(reachedSet);
     boolean updateCacheNeeded = argElement.getParents().contains(reachedSet.getFirstElement());
     removeSubtree(argReachSet, argElement, newPrecision);
     return updateCacheNeeded;
   }
 
-  private static void removeSubtree(ARGReachedSet reachedSet, ARGElement argElement) {
+  private static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement) {
     reachedSet.removeSubtree(argElement);
   }
 
-  private static void removeSubtree(ARGReachedSet reachedSet, ARGElement argElement, Precision newPrecision) {
+  private static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement, Precision newPrecision) {
     if(newPrecision == null) {
       removeSubtree(reachedSet, argElement);
     } else {
@@ -702,10 +702,10 @@ public class ABMTransferRelation implements TransferRelation {
     }
   }
 
-  private List<ARGElement> trimPath(Path pPath, ARGElement pElement) {
-    List<ARGElement> result = new ArrayList<ARGElement>();
+  private List<ARGState> trimPath(Path pPath, ARGState pElement) {
+    List<ARGState> result = new ArrayList<ARGState>();
 
-    for (Pair<ARGElement, CFAEdge> e : pPath) {
+    for (Pair<ARGState, CFAEdge> e : pPath) {
       result.add(e.getFirst());
       if (e.getFirst().equals(pElement)) {
         return result;
@@ -714,12 +714,12 @@ public class ABMTransferRelation implements TransferRelation {
     throw new IllegalArgumentException("Element " + pElement + " could not be found in path " + pPath + ".");
   }
 
-  private Set<ARGElement> getRelevantDefinitionNodes(List<ARGElement> path) {
-    Deque<ARGElement> openCallElements = new ArrayDeque<ARGElement>();
+  private Set<ARGState> getRelevantDefinitionNodes(List<ARGState> path) {
+    Deque<ARGState> openCallElements = new ArrayDeque<ARGState>();
     Deque<Block> openSubtrees = new ArrayDeque<Block>();
 
-    ARGElement prevElement = path.get(1);
-    for (ARGElement currentElement : Iterables.skip(path, 2)) {
+    ARGState prevElement = path.get(1);
+    for (ARGState currentElement : Iterables.skip(path, 2)) {
       CFANode currNode = extractLocation(currentElement);
       CFANode prevNode = extractLocation(prevElement);
       if (partitioning.isCallNode(prevNode)
@@ -739,26 +739,26 @@ public class ABMTransferRelation implements TransferRelation {
       prevElement = currentElement;
     }
 
-    ARGElement lastElement = path.get(path.size()-1);
+    ARGState lastElement = path.get(path.size()-1);
     if(partitioning.isCallNode(extractLocation(lastElement))) {
       openCallElements.push(lastElement);
     }
 
-    return new HashSet<ARGElement>(openCallElements);
+    return new HashSet<ARGState>(openCallElements);
   }
 
-  private Pair<Set<ARGElement>, Set<ARGElement>> getCallAndReturnNodes(Path path, Map<ARGElement, UnmodifiableReachedSet> pathElementToOuterReachedSet, UnmodifiableReachedSet mainReachedSet, Map<ARGElement, ARGElement> pPathElementToReachedElement) {
-    Set<ARGElement> callNodes = new HashSet<ARGElement>();
-    Set<ARGElement> returnNodes = new HashSet<ARGElement>();
+  private Pair<Set<ARGState>, Set<ARGState>> getCallAndReturnNodes(Path path, Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet, UnmodifiableReachedSet mainReachedSet, Map<ARGState, ARGState> pPathElementToReachedElement) {
+    Set<ARGState> callNodes = new HashSet<ARGState>();
+    Set<ARGState> returnNodes = new HashSet<ARGState>();
 
     Deque<Block> openSubtrees = new ArrayDeque<Block>();
 
     Deque<UnmodifiableReachedSet> openReachedSets = new ArrayDeque<UnmodifiableReachedSet>();
     openReachedSets.push(mainReachedSet);
 
-    ARGElement prevElement = path.get(1).getFirst();
-    for (Pair<ARGElement, CFAEdge> currentElementPair : Iterables.skip(path, 2)) {
-      ARGElement currentElement = currentElementPair.getFirst();
+    ARGState prevElement = path.get(1).getFirst();
+    for (Pair<ARGState, CFAEdge> currentElementPair : Iterables.skip(path, 2)) {
+      ARGState currentElement = currentElementPair.getFirst();
       CFANode currNode = extractLocation(currentElement);
       CFANode prevNode = extractLocation(prevElement);
 
@@ -784,7 +784,7 @@ public class ABMTransferRelation implements TransferRelation {
       prevElement = currentElement;
     }
 
-    ARGElement lastElement = path.get(path.size()-1).getFirst();
+    ARGState lastElement = path.get(path.size()-1).getFirst();
     if(partitioning.isReturnNode(extractLocation(lastElement))) {
       returnNodes.add(lastElement);
     }
@@ -794,28 +794,28 @@ public class ABMTransferRelation implements TransferRelation {
   }
 
   //returns root of a subtree leading from the root element of the given reachedSet to the target element
-  //subtree is represented using children and parents of ARGElements, where newTreeTarget is the ARGElement
+  //subtree is represented using children and parents of ARGElements, where newTreeTarget is the ARGState
   //in the constructed subtree that represents target
-  ARGElement computeCounterexampleSubgraph(ARGElement target, ARGReachedSet reachedSet, ARGElement newTreeTarget, Map<ARGElement, ARGElement> pPathElementToReachedElement) throws InterruptedException, RecursiveAnalysisFailedException {
+  ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet reachedSet, ARGState newTreeTarget, Map<ARGState, ARGState> pPathElementToReachedElement) throws InterruptedException, RecursiveAnalysisFailedException {
     assert reachedSet.asReachedSet().contains(target);
 
     //start by creating ARGElements for each node needed in the tree
-    Map<ARGElement, ARGElement> elementsMap = new HashMap<ARGElement, ARGElement>();
-    Stack<ARGElement> openElements = new Stack<ARGElement>();
-    ARGElement root = null;
+    Map<ARGState, ARGState> elementsMap = new HashMap<ARGState, ARGState>();
+    Stack<ARGState> openElements = new Stack<ARGState>();
+    ARGState root = null;
 
     pPathElementToReachedElement.put(newTreeTarget, target);
     elementsMap.put(target, newTreeTarget);
     openElements.push(target);
     while(!openElements.empty()) {
-      ARGElement currentElement = openElements.pop();
+      ARGState currentElement = openElements.pop();
 
       assert reachedSet.asReachedSet().contains(currentElement);
 
-      for(ARGElement parent : currentElement.getParents()) {
+      for(ARGState parent : currentElement.getParents()) {
         if(!elementsMap.containsKey(parent)) {
           //create node for parent in the new subtree
-          elementsMap.put(parent, new ARGElement(parent.getWrappedElement(), null));
+          elementsMap.put(parent, new ARGState(parent.getWrappedElement(), null));
           pPathElementToReachedElement.put(elementsMap.get(parent), parent);
           //and remember to explore the parent later
           openElements.push(parent);
@@ -825,12 +825,12 @@ public class ABMTransferRelation implements TransferRelation {
           //this is a summarized call and thus an direct edge could not be found
           //we have the transfer function to handle this case, as our reachSet is wrong
           //(we have to use the cached ones)
-          ARGElement innerTree = computeCounterexampleSubgraph(parent, reachedSet.asReachedSet().getPrecision(parent), elementsMap.get(currentElement), pPathElementToReachedElement);
+          ARGState innerTree = computeCounterexampleSubgraph(parent, reachedSet.asReachedSet().getPrecision(parent), elementsMap.get(currentElement), pPathElementToReachedElement);
           if(innerTree == null) {
             removeSubtree(reachedSet, parent);
             return null;
           }
-          for(ARGElement child : innerTree.getChildren()) {
+          for(ARGState child : innerTree.getChildren()) {
             child.addParent(elementsMap.get(parent));
           }
           innerTree.removeFromART();
@@ -855,7 +855,7 @@ public class ABMTransferRelation implements TransferRelation {
    * (recursively, if needed).
    * @throws RecursiveAnalysisFailedException
    */
-  private ARGElement computeCounterexampleSubgraph(ARGElement root, Precision rootPrecision, ARGElement newTreeTarget, Map<ARGElement, ARGElement> pPathElementToReachedElement) throws InterruptedException, RecursiveAnalysisFailedException {
+  private ARGState computeCounterexampleSubgraph(ARGState root, Precision rootPrecision, ARGState newTreeTarget, Map<ARGState, ARGState> pPathElementToReachedElement) throws InterruptedException, RecursiveAnalysisFailedException {
     CFANode rootNode = extractLocation(root);
     Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
 
@@ -864,14 +864,14 @@ public class ABMTransferRelation implements TransferRelation {
 
     //we found the to the root and precision corresponding reach set
     //now try to find the target in the reach set
-    ARGElement targetARGElement = (ARGElement) expandedToReducedCache.get(pPathElementToReachedElement.get(newTreeTarget));
-    if(targetARGElement.isDestroyed()) {
-      logger.log(Level.FINE, "Target element refers to a destroyed ARGElement, i.e., the cached subtree is outdated. Updating it.");
+    ARGState targetARGState = (ARGState) expandedToReducedCache.get(pPathElementToReachedElement.get(newTreeTarget));
+    if(targetARGState.isDestroyed()) {
+      logger.log(Level.FINE, "Target element refers to a destroyed ARGState, i.e., the cached subtree is outdated. Updating it.");
       return null;
     }
-    assert reachSet.contains(targetARGElement);
+    assert reachSet.contains(targetARGState);
     //we found the target; now construct a subtree in the ARG starting with targetARTElement
-    ARGElement result = computeCounterexampleSubgraph(targetARGElement, new ARGReachedSet(reachSet), newTreeTarget, pPathElementToReachedElement);
+    ARGState result = computeCounterexampleSubgraph(targetARGState, new ARGReachedSet(reachSet), newTreeTarget, pPathElementToReachedElement);
     if(result == null) {
       //enforce recomputation to update cached subtree
       argCache.removeReturnEntry(reducedRootElement, reachSet.getPrecision(reachSet.getFirstElement()), rootSubtree);
@@ -884,7 +884,7 @@ public class ABMTransferRelation implements TransferRelation {
     abstractStateToReachedSet.clear();
   }
 
-  Pair<Block, ReachedSet> getCachedReachedSet(ARGElement root, Precision rootPrecision) {
+  Pair<Block, ReachedSet> getCachedReachedSet(ARGState root, Precision rootPrecision) {
     CFANode rootNode = extractLocation(root);
     Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
 

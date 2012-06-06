@@ -30,11 +30,11 @@ public class ExplicitDomain implements AbstractDomain
 {
   @Override
   public boolean isLessOrEqual(AbstractState currentElement, AbstractState reachedElement) {
-    return ((ExplicitElement)currentElement).isLessOrEqual((ExplicitElement)reachedElement);
+    return ((ExplicitState)currentElement).isLessOrEqual((ExplicitState)reachedElement);
   }
 
   @Override
   public AbstractState join(AbstractState currentElement, AbstractState reachedElement) {
-    return ((ExplicitElement)currentElement).join((ExplicitElement)reachedElement);
+    return ((ExplicitState)currentElement).join((ExplicitState)reachedElement);
   }
 }

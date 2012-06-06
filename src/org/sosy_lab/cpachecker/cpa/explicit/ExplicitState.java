@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Preconditions;
 
-public class ExplicitElement implements AbstractQueryableState, FormulaReportingState, Serializable {
+public class ExplicitState implements AbstractQueryableState, FormulaReportingState, Serializable {
   private static final long serialVersionUID = -3152134511524554357L;
 
   /**
@@ -50,19 +50,19 @@ public class ExplicitElement implements AbstractQueryableState, FormulaReporting
   /**
    * the element from the previous context, needed for return edges
    */
-  private final ExplicitElement previousElement;
+  private final ExplicitState previousElement;
 
-  public ExplicitElement() {
+  public ExplicitState() {
     constantsMap    = new HashMap<String, Long>();
     previousElement = null;
   }
 
-  ExplicitElement(ExplicitElement previousElement) {
+  ExplicitState(ExplicitState previousElement) {
     constantsMap          = new HashMap<String, Long>();
     this.previousElement  = previousElement;
   }
 
-  private ExplicitElement(Map<String, Long> constantsMap, ExplicitElement previousElement) {
+  private ExplicitState(Map<String, Long> constantsMap, ExplicitState previousElement) {
     this.constantsMap     = constantsMap;
     this.previousElement  = previousElement;
   }
@@ -88,7 +88,7 @@ public class ExplicitElement implements AbstractQueryableState, FormulaReporting
     return constantsMap.containsKey(variableName);
   }
 
-  ExplicitElement getPreviousElement() {
+  ExplicitState getPreviousElement() {
     return previousElement;
   }
 
@@ -102,7 +102,7 @@ public class ExplicitElement implements AbstractQueryableState, FormulaReporting
    * @param other the other element to join with this element
    * @return a new element representing the join of this element and the other element
    */
-  ExplicitElement join(ExplicitElement other) {
+  ExplicitState join(ExplicitState other) {
     int size = Math.min(constantsMap.size(), other.constantsMap.size());
 
     Map<String, Long> newConstantsMap = new HashMap<String, Long>(size);
@@ -115,7 +115,7 @@ public class ExplicitElement implements AbstractQueryableState, FormulaReporting
       }
     }
 
-    return new ExplicitElement(newConstantsMap, previousElement);
+    return new ExplicitState(newConstantsMap, previousElement);
   }
 
   /**
@@ -124,7 +124,7 @@ public class ExplicitElement implements AbstractQueryableState, FormulaReporting
    * @param other the other element
    * @return true, if this element is less or equal than the other element, based on the order imposed by the lattice
    */
-  boolean isLessOrEqual(ExplicitElement other) {
+  boolean isLessOrEqual(ExplicitState other) {
     // this element is not less or equal than the other element, if the previous elements differ
     if (previousElement != other.previousElement) {
       return false;
@@ -149,8 +149,8 @@ public class ExplicitElement implements AbstractQueryableState, FormulaReporting
   }
 
   @Override
-  public ExplicitElement clone() {
-    return new ExplicitElement(new HashMap<String, Long>(constantsMap), previousElement);
+  public ExplicitState clone() {
+    return new ExplicitState(new HashMap<String, Long>(constantsMap), previousElement);
   }
 
   @Override
@@ -167,7 +167,7 @@ public class ExplicitElement implements AbstractQueryableState, FormulaReporting
       return false;
     }
 
-    ExplicitElement otherElement = (ExplicitElement) other;
+    ExplicitState otherElement = (ExplicitState) other;
 
     return (otherElement.previousElement == previousElement)
         && otherElement.constantsMap.equals(constantsMap);

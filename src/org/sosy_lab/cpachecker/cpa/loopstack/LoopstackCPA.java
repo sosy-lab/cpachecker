@@ -53,7 +53,7 @@ public class LoopstackCPA extends AbstractCPA {
     if (pNode instanceof CFAFunctionDefinitionNode) {
       // shortcut for the common case, a function start node can never be in a loop
       // (loops don't span across functions)
-      return new LoopstackElement();
+      return new LoopstackState();
     }
 
     Loop loop = null;
@@ -64,11 +64,11 @@ public class LoopstackCPA extends AbstractCPA {
       loop = l;
     }
 
-    LoopstackElement e = new LoopstackElement(); // the bottom element of the stack
+    LoopstackState e = new LoopstackState(); // the bottom element of the stack
 
     if (loop != null) {
       // if loop is present, push one element on the stack for it
-      e = new LoopstackElement(e, loop, 0, false);
+      e = new LoopstackState(e, loop, 0, false);
     }
     return e;
   }

@@ -69,7 +69,7 @@ public class AndersenTransferRelation implements TransferRelation {
       throws CPATransferException {
 
     AbstractState successor = null;
-    AndersenElement andersenElement = (AndersenElement) element;
+    AndersenState andersenState = (AndersenState) element;
 
     // check the type of the edge
     switch (cfaEdge.getEdgeType()) {
@@ -77,22 +77,22 @@ public class AndersenTransferRelation implements TransferRelation {
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge:
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
-      successor = handleStatement(andersenElement, statementEdge.getStatement(), cfaEdge);
+      successor = handleStatement(andersenState, statementEdge.getStatement(), cfaEdge);
       break;
 
     // edge is a declaration edge, e.g. int a;
     case DeclarationEdge:
       DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
-      successor = handleDeclaration(andersenElement, declarationEdge);
+      successor = handleDeclaration(andersenState, declarationEdge);
       break;
 
     // this is an assumption, e.g. if(a == b)
     case AssumeEdge:
-      successor = andersenElement.clone();
+      successor = andersenState.clone();
       break;
 
     case BlankEdge:
-      successor = andersenElement.clone();
+      successor = andersenState.clone();
       break;
 
     default:
@@ -114,7 +114,7 @@ public class AndersenTransferRelation implements TransferRelation {
     return null;
   }
 
-  private AndersenElement handleStatement(AndersenElement element, IASTStatement expression, CFAEdge cfaEdge)
+  private AndersenState handleStatement(AndersenState element, IASTStatement expression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     // e.g. a = b;
@@ -132,7 +132,7 @@ public class AndersenTransferRelation implements TransferRelation {
       throw new UnrecognizedCCodeException(cfaEdge, expression);
   }
 
-  private AndersenElement handleAssignment(AndersenElement element, IASTAssignment assignExpression, CFAEdge cfaEdge)
+  private AndersenState handleAssignment(AndersenState element, IASTAssignment assignExpression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     IASTExpression op1 = assignExpression.getLeftHandSide();
@@ -153,7 +153,7 @@ public class AndersenTransferRelation implements TransferRelation {
 
       if (op1 instanceof IASTIdExpression) {
 
-        AndersenElement succ = element.clone();
+        AndersenState succ = element.clone();
         succ.addConstraint(new ComplexConstraint(op2.toASTString(), op1.toASTString(), false));
         return succ;
 
@@ -179,7 +179,7 @@ public class AndersenTransferRelation implements TransferRelation {
    *
    * @throws UnrecognizedCCodeException
    */
-  private AndersenElement handleAssignmentTo(String op1, IASTRightHandSide op2, AndersenElement element, CFAEdge cfaEdge)
+  private AndersenState handleAssignmentTo(String op1, IASTRightHandSide op2, AndersenState element, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     // unpack cast if necessary
@@ -190,7 +190,7 @@ public class AndersenTransferRelation implements TransferRelation {
 
       // a = b; simple constraint
 
-      AndersenElement succ = element.clone();
+      AndersenState succ = element.clone();
       succ.addConstraint(new SimpleConstraint(op2.toASTString(), op1));
       return succ;
 
@@ -202,7 +202,7 @@ public class AndersenTransferRelation implements TransferRelation {
 
       if (op2 instanceof IASTIdExpression) {
 
-        AndersenElement succ = element.clone();
+        AndersenState succ = element.clone();
         succ.addConstraint(new BaseConstraint(op2.toASTString(), op1));
         return succ;
 
@@ -217,7 +217,7 @@ public class AndersenTransferRelation implements TransferRelation {
 
       if (op2 instanceof IASTIdExpression) {
 
-        AndersenElement succ = element.clone();
+        AndersenState succ = element.clone();
         succ.addConstraint(new ComplexConstraint(op2.toASTString(), op1, true));
         return succ;
 
@@ -227,7 +227,7 @@ public class AndersenTransferRelation implements TransferRelation {
     } else if (op2 instanceof IASTFunctionCallExpression
         && "malloc".equals(((IASTFunctionCallExpression) op2).getFunctionNameExpression().toASTString())) {
 
-      AndersenElement succ = element.clone();
+      AndersenState succ = element.clone();
       succ.addConstraint(new BaseConstraint("malloc-" + cfaEdge.getLineNumber(), op1));
       return succ;
 
@@ -238,7 +238,7 @@ public class AndersenTransferRelation implements TransferRelation {
     return element.clone();
   }
 
-  private AndersenElement handleDeclaration(AndersenElement element, DeclarationEdge declarationEdge)
+  private AndersenState handleDeclaration(AndersenState element, DeclarationEdge declarationEdge)
       throws UnrecognizedCCodeException {
 
     if (!(declarationEdge.getDeclaration() instanceof IASTVariableDeclaration)) {

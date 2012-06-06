@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Functions;
@@ -47,11 +47,11 @@ class FunctionPointerPrecisionAdjustment implements PrecisionAdjustment {
   public Triple<AbstractState, Precision, Action> prec(AbstractState pElement,
       Precision oldPrecision, UnmodifiableReachedSet pElements) throws CPAException {
 
-    Preconditions.checkArgument(pElement instanceof FunctionPointerElement);
-    FunctionPointerElement element = (FunctionPointerElement)pElement;
+    Preconditions.checkArgument(pElement instanceof FunctionPointerState);
+    FunctionPointerState element = (FunctionPointerState)pElement;
 
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
-        pElements,  ARGElement.getUnwrapFunction(), Functions.<Precision>identity());
+        pElements,  ARGState.getUnwrapFunction(), Functions.<Precision>identity());
 
     AbstractState oldElement = element.getWrappedElement();
 

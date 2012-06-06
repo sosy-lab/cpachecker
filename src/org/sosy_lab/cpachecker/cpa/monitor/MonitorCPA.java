@@ -70,7 +70,7 @@ public class MonitorCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public AbstractState getInitialElement(CFANode pNode) {
-    return new MonitorElement(getWrappedCpa().getInitialElement(pNode), 0L);
+    return new MonitorState(getWrappedCpa().getInitialElement(pNode), 0L);
   }
 
   @Override

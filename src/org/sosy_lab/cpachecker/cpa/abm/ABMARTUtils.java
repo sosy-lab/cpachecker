@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -56,15 +56,15 @@ class ABMARTUtils {
 
     blockToReachedSet.put(block, reachedSet);
 
-    ARGElement firstElement = (ARGElement)reachedSet.getFirstElement();
+    ARGState firstElement = (ARGState)reachedSet.getFirstElement();
 
-    Deque<ARGElement> worklist = new LinkedList<ARGElement>();
-    Set<ARGElement> processed = new HashSet<ARGElement>();
+    Deque<ARGState> worklist = new LinkedList<ARGState>();
+    Set<ARGState> processed = new HashSet<ARGState>();
 
     worklist.add(firstElement);
 
     while(worklist.size() != 0){
-      ARGElement currentElement = worklist.removeLast();
+      ARGState currentElement = worklist.removeLast();
 
       assert reachedSet.contains(currentElement);
 
@@ -73,7 +73,7 @@ class ABMARTUtils {
       }
       processed.add(currentElement);
 
-      for (ARGElement child : currentElement.getChildren()) {
+      for (ARGState child : currentElement.getChildren()) {
         CFAEdge edge = getEdgeToChild(currentElement, child);
         if(edge == null) {
           //this is a summary edge
@@ -89,7 +89,7 @@ class ABMARTUtils {
     }
   }
 
-  public static CFAEdge getEdgeToChild(ARGElement parent, ARGElement child) {
+  public static CFAEdge getEdgeToChild(ARGState parent, ARGState child) {
     CFANode currentLoc = extractLocation(parent);
     CFANode childNode = extractLocation(child);
 

@@ -47,18 +47,18 @@ public class DominatorTransferRelation implements TransferRelation {
 	}
 
 	@Override
-	public Collection<DominatorElement> getAbstractSuccessors(
+	public Collection<DominatorState> getAbstractSuccessors(
 	    AbstractState element, Precision prec, CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
 
-	  assert element instanceof DominatorElement;
+	  assert element instanceof DominatorState;
 
-    DominatorElement dominatorElement = (DominatorElement)element;
+    DominatorState dominatorState = (DominatorState)element;
 
-    Collection<? extends AbstractState> successorsOfDominatedElement = this.cpa.getTransferRelation().getAbstractSuccessors(dominatorElement.getDominatedElement(), prec, cfaEdge);
+    Collection<? extends AbstractState> successorsOfDominatedElement = this.cpa.getTransferRelation().getAbstractSuccessors(dominatorState.getDominatedElement(), prec, cfaEdge);
 
-    Collection<DominatorElement> successors = new ArrayList<DominatorElement>(successorsOfDominatedElement.size());
+    Collection<DominatorState> successors = new ArrayList<DominatorState>(successorsOfDominatedElement.size());
     for (AbstractState successorOfDominatedElement : successorsOfDominatedElement) {
-      DominatorElement successor = new DominatorElement(successorOfDominatedElement, dominatorElement);
+      DominatorState successor = new DominatorState(successorOfDominatedElement, dominatorState);
       successor.update(successorOfDominatedElement);
       successors.add(successor);
     }

@@ -69,8 +69,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.types.Type;
 import org.sosy_lab.cpachecker.cpa.types.Type.TypeClass;
-import org.sosy_lab.cpachecker.cpa.types.TypesElement;
-import org.sosy_lab.cpachecker.cpa.uninitvars.UninitializedVariablesElement.ElementProperty;
+import org.sosy_lab.cpachecker.cpa.types.TypesState;
+import org.sosy_lab.cpachecker.cpa.uninitvars.UninitializedVariablesState.ElementProperty;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -103,7 +103,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
                                               Precision precision)
                                               throws CPATransferException {
 
-    UninitializedVariablesElement successor = ((UninitializedVariablesElement)element).clone();
+    UninitializedVariablesState successor = ((UninitializedVariablesState)element).clone();
     successor.clearProperties();
 
     switch (cfaEdge.getEdgeType()) {
@@ -156,7 +156,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   }
 
   private void addWarning(CFAEdge edge, String variable, IASTRightHandSide expression,
-                                                      UninitializedVariablesElement element) {
+                                                      UninitializedVariablesState element) {
 
     if (printWarnings) {
 
@@ -177,7 +177,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     }
   }
 
-  private void setUninitialized(UninitializedVariablesElement element, String varName) {
+  private void setUninitialized(UninitializedVariablesState element, String varName) {
     if (globalVars.contains(varName)) {
       element.addGlobalVariable(varName);
     } else {
@@ -185,7 +185,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     }
   }
 
-  private void setInitialized(UninitializedVariablesElement element, String varName) {
+  private void setInitialized(UninitializedVariablesState element, String varName) {
     if (globalVars.contains(varName)) {
       element.removeGlobalVariable(varName);
     } else {
@@ -193,7 +193,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     }
   }
 
-  private void handleDeclaration(UninitializedVariablesElement element,
+  private void handleDeclaration(UninitializedVariablesState element,
       DeclarationEdge declarationEdge) {
 
     if (!(declarationEdge.getDeclaration() instanceof IASTVariableDeclaration)) {
@@ -222,7 +222,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     }
   }
 
-  private void handleFunctionCall(UninitializedVariablesElement element, FunctionCallEdge callEdge)
+  private void handleFunctionCall(UninitializedVariablesState element, FunctionCallEdge callEdge)
                                                                   throws UnrecognizedCCodeException {
     //find functions's parameters and arguments
     FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
@@ -270,7 +270,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     }
   }
 
-  private void handleStatement(UninitializedVariablesElement element,
+  private void handleStatement(UninitializedVariablesState element,
                                IASTStatement expression, CFAEdge cfaEdge)
                                throws UnrecognizedCCodeException {
 
@@ -307,7 +307,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     }
   }
 
-  private void handleAssign(UninitializedVariablesElement element,
+  private void handleAssign(UninitializedVariablesState element,
                             IASTAssignment expression, CFAEdge cfaEdge)
                             throws UnrecognizedCCodeException {
 
@@ -360,7 +360,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     }
   }
 
-  private boolean isExpressionUninitialized(UninitializedVariablesElement element,
+  private boolean isExpressionUninitialized(UninitializedVariablesState element,
                                             IASTRightHandSide expression,
                                             CFAEdge cfaEdge) throws UnrecognizedCCodeException {
     if (expression == null) {
@@ -480,11 +480,11 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       for (AbstractState other : otherElements) {
 
         //only interested in the types here
-        if (other instanceof TypesElement) {
+        if (other instanceof TypesState) {
           typesCPAPresent = true;
 
           //find type of the item last added to the list of variables
-          TypesElement typeElem = (TypesElement) other;
+          TypesState typeElem = (TypesState) other;
           Type t = findType(typeElem, cfaEdge, lastAdded);
 
           if (t != null) {
@@ -493,7 +493,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
             //fields that are structs themselves
             if (t.getTypeClass() == TypeClass.STRUCT) {
 
-              handleStructDeclaration((UninitializedVariablesElement)element, typeElem,
+              handleStructDeclaration((UninitializedVariablesState)element, typeElem,
                                       (Type.CompositeType)t, lastAdded, lastAdded,
                                       declEdge.getDeclaration().isGlobal());
             }
@@ -527,10 +527,10 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
           for (AbstractState other : otherElements) {
             //only interested in the types here
-            if (other instanceof TypesElement) {
+            if (other instanceof TypesState) {
               typesCPAPresent = true;
 
-              TypesElement typeElem = (TypesElement) other;
+              TypesState typeElem = (TypesState) other;
 
               Type t1 = checkForFieldReferenceType(op1, typeElem, cfaEdge);
               Type t2 = checkForFieldReferenceType(op2, typeElem, cfaEdge);
@@ -545,7 +545,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
                   assert t1.equals(t2);
 
                   //check all fields of the structures' type and set their status
-                  initializeFields((UninitializedVariablesElement)element, cfaEdge, op2, typeElem,
+                  initializeFields((UninitializedVariablesState)element, cfaEdge, op2, typeElem,
                                    (Type.CompositeType)t1, leftName, rightName, leftName, rightName);
                 }
               }
@@ -560,9 +560,9 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
    * recursively checks the initialization status of all fields of a struct being assigned to
    * another struct of the same type, setting the status of the assignee's fields accordingly
    */
-  private void initializeFields(UninitializedVariablesElement element,
+  private void initializeFields(UninitializedVariablesState element,
                                 CFAEdge cfaEdge, IASTRightHandSide exp,
-                                TypesElement typeElem, Type.CompositeType structType,
+                                TypesState typeElem, Type.CompositeType structType,
                                 String leftName, String rightName,
                                 String recursiveLeftName, String recursiveRightName) {
 
@@ -591,8 +591,8 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   /**
    * recursively sets all fields of a struct uninitialized, except if the field is itself a struct
    */
-  private void handleStructDeclaration(UninitializedVariablesElement element,
-                                       TypesElement typeElem,
+  private void handleStructDeclaration(UninitializedVariablesState element,
+                                       TypesState typeElem,
                                        Type.CompositeType structType,
                                        String varName,
                                        String recursiveVarName,
@@ -623,7 +623,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
    * checks wether a given expression is a field reference;
    * if yes, find the type of the referenced field, if no, try to determine the type of the variable
    */
-  private Type checkForFieldReferenceType(IASTRightHandSide exp, TypesElement typeElem, CFAEdge cfaEdge) {
+  private Type checkForFieldReferenceType(IASTRightHandSide exp, TypesState typeElem, CFAEdge cfaEdge) {
 
     String name = exp.toASTString();
     Type t = null;
@@ -649,7 +649,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   /**
    * checks all possible locations for type information of a given name
    */
-  private Type findType(TypesElement typeElem, CFAEdge cfaEdge, String varName) {
+  private Type findType(TypesState typeElem, CFAEdge cfaEdge, String varName) {
     Type t = null;
     //check type definitions
     t = typeElem.getTypedef(varName);

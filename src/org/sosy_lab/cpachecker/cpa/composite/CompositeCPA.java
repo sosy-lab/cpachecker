@@ -250,7 +250,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       initialElements.add(sp.getInitialElement(node));
     }
 
-    return new CompositeElement(initialElements.build());
+    return new CompositeState(initialElements.build());
   }
 
   @Override

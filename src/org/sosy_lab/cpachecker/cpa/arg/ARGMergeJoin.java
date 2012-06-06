@@ -40,8 +40,8 @@ public class ARGMergeJoin implements MergeOperator {
   public AbstractState merge(AbstractState pElement1,
       AbstractState pElement2, Precision pPrecision) throws CPAException {
 
-    ARGElement argElement1 = (ARGElement)pElement1;
-    ARGElement argElement2 = (ARGElement)pElement2;
+    ARGState argElement1 = (ARGState)pElement1;
+    ARGState argElement2 = (ARGState)pElement2;
 
     assert !argElement1.isCovered() : "Trying to merge covered element " + argElement1;
 
@@ -64,13 +64,13 @@ public class ARGMergeJoin implements MergeOperator {
       return pElement2;
     }
 
-    ARGElement mergedElement = new ARGElement(retElement, null);
+    ARGState mergedElement = new ARGState(retElement, null);
 
     // now replace argElement2 by mergedElement in ARG
     argElement2.replaceInARTWith(mergedElement);
 
     // and also replace argElement1 with it
-    for (ARGElement parentOfElement1 : argElement1.getParents()) {
+    for (ARGState parentOfElement1 : argElement1.getParents()) {
       mergedElement.addParent(parentOfElement1);
     }
 

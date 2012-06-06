@@ -36,8 +36,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
@@ -253,10 +253,10 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
    * @throws CPATransferException
    */
   @Override
-  public Formula buildBranchingFormula(Iterable<ARGElement> elementsOnPath) throws CPATransferException {
+  public Formula buildBranchingFormula(Iterable<ARGState> elementsOnPath) throws CPATransferException {
     // build the branching formula that will help us find the real error path
     Formula branchingFormula = fmgr.makeTrue();
-    for (final ARGElement pathElement : elementsOnPath) {
+    for (final ARGState pathElement : elementsOnPath) {
 
       if (pathElement.getChildren().size() > 1) {
         if (pathElement.getChildren().size() > 2) {
@@ -266,9 +266,9 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
         }
 
         Iterable<CFAEdge> outgoingEdges = Iterables.transform(pathElement.getChildren(),
-            new Function<ARGElement, CFAEdge>() {
+            new Function<ARGState, CFAEdge>() {
               @Override
-              public CFAEdge apply(ARGElement child) {
+              public CFAEdge apply(ARGState child) {
                 return pathElement.getEdgeToChild(child);
               }
         });
@@ -289,10 +289,10 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
         Formula pred = fmgr.makePredicateVariable(BRANCHING_PREDICATE_NAME + pathElement.getElementId(), 0);
 
         // create formula by edge, be sure to use the correct SSA indices!
-        // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractElement,
+        // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
         // it is used without PredicateCPA as well.
         PathFormula pf;
-        PredicateAbstractElement pe = AbstractStates.extractElementByType(pathElement, PredicateAbstractElement.class);
+        PredicateAbstractState pe = AbstractStates.extractElementByType(pathElement, PredicateAbstractState.class);
         if (pe == null) {
           logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA");
           return fmgr.makeTrue();
@@ -313,7 +313,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
    * Extract the information about the branching predicates created by
    * {@link #buildBranchingFormula(Set)} from a satisfying assignment.
    *
-   * A map is created that stores for each ARGElement (using its element id as
+   * A map is created that stores for each ARGState (using its element id as
    * the map key) which edge was taken (the positive or the negated one).
    *
    * @param model A satisfying assignment that should contain values for branching predicates.

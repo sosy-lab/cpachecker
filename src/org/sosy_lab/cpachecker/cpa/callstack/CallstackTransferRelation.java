@@ -48,11 +48,11 @@ public class CallstackTransferRelation implements TransferRelation {
     case FunctionCallEdge:
       {
         FunctionCallEdge cfaEdge = (FunctionCallEdge)pCfaEdge;
-        CallstackElement element = (CallstackElement)pElement;
+        CallstackState element = (CallstackState)pElement;
         String functionName = cfaEdge.getSuccessor().getFunctionName();
         CFANode callNode = cfaEdge.getPredecessor();
 
-        CallstackElement e = element;
+        CallstackState e = element;
         while (e != null) {
           if (e.getCurrentFunction().equals(functionName)) {
             throw new UnsupportedCCodeException("recursion", pCfaEdge);
@@ -60,13 +60,13 @@ public class CallstackTransferRelation implements TransferRelation {
           e = e.getPreviousElement();
         }
 
-        return Collections.singleton(new CallstackElement(element, functionName, callNode));
+        return Collections.singleton(new CallstackState(element, functionName, callNode));
       }
     case FunctionReturnEdge:
       {
         FunctionReturnEdge cfaEdge = (FunctionReturnEdge)pCfaEdge;
 
-        CallstackElement element = (CallstackElement)pElement;
+        CallstackState element = (CallstackState)pElement;
 
         String calledFunction = cfaEdge.getPredecessor().getFunctionName();
         String callerFunction = cfaEdge.getSuccessor().getFunctionName();
@@ -81,7 +81,7 @@ public class CallstackTransferRelation implements TransferRelation {
           return Collections.emptySet();
         }
 
-        CallstackElement returnElement = element.getPreviousElement();
+        CallstackState returnElement = element.getPreviousElement();
 
         assert callerFunction.equals(returnElement.getCurrentFunction());
 

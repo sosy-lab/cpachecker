@@ -77,7 +77,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.pointer.PointerElement;
+import org.sosy_lab.cpachecker.cpa.pointer.PointerState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -110,7 +110,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
     AbstractState successor                         = null;
 
-    IntervalAnalysisElement intervalElement           = (IntervalAnalysisElement)element;
+    IntervalAnalysisState intervalElement           = (IntervalAnalysisState)element;
 
     // check the type of the edge
     switch(cfaEdge.getEdgeType())
@@ -174,14 +174,14 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param functionReturnEdge return edge from a function to its call site.
    * @return new abstract element.
    */
-  private IntervalAnalysisElement handleFunctionReturn(IntervalAnalysisElement element, FunctionReturnEdge functionReturnEdge)
+  private IntervalAnalysisState handleFunctionReturn(IntervalAnalysisState element, FunctionReturnEdge functionReturnEdge)
     throws UnrecognizedCCodeException
   {
     CallToReturnEdge summaryEdge = functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
 
     IASTFunctionCall expression = summaryEdge.getExpression();
 
-    IntervalAnalysisElement newElement = element.getPreviousElement().clone();
+    IntervalAnalysisState newElement = element.getPreviousElement().clone();
 
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
@@ -261,7 +261,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return the successor element
    * @throws UnrecognizedCCodeException
    */
-  private IntervalAnalysisElement handleFunctionCall(IntervalAnalysisElement previousElement, FunctionCallEdge callEdge, CFAEdge edge)
+  private IntervalAnalysisState handleFunctionCall(IntervalAnalysisState previousElement, FunctionCallEdge callEdge, CFAEdge edge)
     throws UnrecognizedCCodeException
   {
     FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
@@ -274,7 +274,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
     assert(parameterNames.size() == arguments.size());
 
-    IntervalAnalysisElement newElement = new IntervalAnalysisElement(previousElement);
+    IntervalAnalysisState newElement = new IntervalAnalysisState(previousElement);
 
     // import global variables into the current scope first
     for(String globalVar : globalVars)
@@ -308,7 +308,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param ReturnStatementEdge the CFA edge corresponding to this statement
    * @return the successor elements
    */
-  private IntervalAnalysisElement handleExitFromFunction(IntervalAnalysisElement element, IASTExpression expression, ReturnStatementEdge returnEdge, CFAEdge edge)
+  private IntervalAnalysisState handleExitFromFunction(IntervalAnalysisState element, IASTExpression expression, ReturnStatementEdge returnEdge, CFAEdge edge)
     throws UnrecognizedCCodeException
   {
     if (expression == null)
@@ -329,7 +329,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param truthValue flag to determine whether this is the then- or the else-branch of the assumption
    * @return the successor elements
    */
-  private Collection<? extends AbstractState> handleAssumption(IntervalAnalysisElement element, IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
+  private Collection<? extends AbstractState> handleAssumption(IntervalAnalysisState element, IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
     throws UnrecognizedCCodeException
   {
     // first, unpack the expression to deal with a raw assumption
@@ -359,7 +359,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     // a binary expression, e.g. if(exp1 op exp2)
     else if(expression instanceof IASTBinaryExpression)
     {
-      IntervalAnalysisElement newElement = element.clone();
+      IntervalAnalysisState newElement = element.clone();
 
       BinaryOperator operator = ((IASTBinaryExpression)expression).getOperator();
       IASTExpression operand1 = ((IASTBinaryExpression)expression).getOperand1();
@@ -410,7 +410,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     return noSuccessors();
   }
 
-  private Collection<? extends AbstractState> processAssumption(IntervalAnalysisElement element, BinaryOperator operator, IASTExpression operand1, IASTExpression operand2, boolean truthValue, CFAEdge cfaEdge) throws UnrecognizedCCodeException
+  private Collection<? extends AbstractState> processAssumption(IntervalAnalysisState element, BinaryOperator operator, IASTExpression operand1, IASTExpression operand2, boolean truthValue, CFAEdge cfaEdge) throws UnrecognizedCCodeException
   {
     if(!truthValue)
       return processAssumption(element, negateOperator(operator), operand1, operand2, !truthValue, cfaEdge);
@@ -518,9 +518,9 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       // TODO: currently depends on the fact that operand1 is a identifier, while operand2 is a literal
       if(splitIntervals && isIdOp1 && !isIdOp2)
       {
-        IntervalAnalysisElement newElement = null;
+        IntervalAnalysisState newElement = null;
 
-        Collection<IntervalAnalysisElement> successors = new LinkedList<IntervalAnalysisElement>();
+        Collection<IntervalAnalysisState> successors = new LinkedList<IntervalAnalysisState>();
 
         Interval result = null;
 
@@ -592,10 +592,10 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param declarationEdge the CFA edge
    * @return the successor element
    */
-  private IntervalAnalysisElement handleDeclaration(IntervalAnalysisElement element, DeclarationEdge declarationEdge)
+  private IntervalAnalysisState handleDeclaration(IntervalAnalysisState element, DeclarationEdge declarationEdge)
   throws UnrecognizedCCodeException
   {
-    IntervalAnalysisElement newElement = element.clone();
+    IntervalAnalysisState newElement = element.clone();
     if (declarationEdge.getDeclaration() instanceof IASTVariableDeclaration) {
         IASTVariableDeclaration decl = (IASTVariableDeclaration)declarationEdge.getDeclaration();
 
@@ -651,7 +651,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return the successor
    * @throws UnrecognizedCCodeException
    */
-  private IntervalAnalysisElement handleStatement(IntervalAnalysisElement element, IASTStatement expression, CFAEdge cfaEdge)
+  private IntervalAnalysisState handleStatement(IntervalAnalysisState element, IASTStatement expression, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException
   {
     // expression is an assignment operation, e.g. a = b;
@@ -679,7 +679,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return the successor element
    * TODO pointer dereferencing via strengthening
    */
-  private IntervalAnalysisElement handleAssignment(IntervalAnalysisElement element, IASTAssignment assignExpression, CFAEdge cfaEdge)
+  private IntervalAnalysisState handleAssignment(IntervalAnalysisState element, IASTAssignment assignExpression, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException
   {
     IASTExpression op1 = assignExpression.getLeftHandSide();
@@ -718,12 +718,12 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param cfaEdge the respective CFA edge
    * @return the successor element
    */
-  private IntervalAnalysisElement handleAssignmentToVariable(String lParam, IASTRightHandSide expression, ExpressionValueVisitor v)
+  private IntervalAnalysisState handleAssignmentToVariable(String lParam, IASTRightHandSide expression, ExpressionValueVisitor v)
     throws UnrecognizedCCodeException
   {
     Interval value = expression.accept(v);
 
-    IntervalAnalysisElement newElement = v.element.clone();
+    IntervalAnalysisState newElement = v.element.clone();
     String variableName = constructVariableName(lParam, v.functionName);
 
     newElement.addInterval(variableName, value, this.threshold);
@@ -741,7 +741,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return the interval in respect to the evaluated expression of null, if the expression could not be evaluated properly
    */
   //getExpressionValue
-  private Interval evaluateInterval(IntervalAnalysisElement element, IASTRightHandSide expression, String functionName, CFAEdge cfaEdge)
+  private Interval evaluateInterval(IntervalAnalysisState element, IASTRightHandSide expression, String functionName, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException
   {
     if(expression instanceof IASTLiteralExpression)
@@ -849,20 +849,20 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   public Collection<? extends AbstractState> strengthen(AbstractState element, List<AbstractState> elements,
       CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException
   {
-    assert element instanceof IntervalAnalysisElement;
-    IntervalAnalysisElement intervalElement = (IntervalAnalysisElement)element;
+    assert element instanceof IntervalAnalysisState;
+    IntervalAnalysisState intervalElement = (IntervalAnalysisState)element;
 
     for(AbstractState elem : elements)
     {
-      if(elem instanceof PointerElement)
-        return strengthen(intervalElement, (PointerElement)elem, cfaEdge, precision);
+      if(elem instanceof PointerState)
+        return strengthen(intervalElement, (PointerState)elem, cfaEdge, precision);
     }
 
     return null;
   }
 
-  private Collection<? extends AbstractState> strengthen(IntervalAnalysisElement intervalElement,
-      PointerElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException
+  private Collection<? extends AbstractState> strengthen(IntervalAnalysisState intervalElement,
+      PointerState pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException
   {
     return null;
   }
@@ -897,13 +897,13 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   private class ExpressionValueVisitor extends DefaultExpressionVisitor<Interval, UnrecognizedCCodeException>
                                        implements RightHandSideVisitor<Interval, UnrecognizedCCodeException> {
 
-    protected final IntervalAnalysisElement element;
+    protected final IntervalAnalysisState element;
 
     protected final String functionName;
 
     protected final CFAEdge cfaEdge;
 
-    public ExpressionValueVisitor(IntervalAnalysisElement pElement, String pFunctionName, CFAEdge edge) {
+    public ExpressionValueVisitor(IntervalAnalysisState pElement, String pFunctionName, CFAEdge edge) {
       element = pElement;
       functionName = pFunctionName;
       cfaEdge = edge;

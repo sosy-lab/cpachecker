@@ -65,10 +65,10 @@ public class UninitializedVariablesStatistics implements Statistics {
     if (printWarnings) {
 
       Set<Pair<Integer, String>> warningsDisplayed = new HashSet<Pair<Integer, String>>();
-      Iterable<UninitializedVariablesElement> projectedReached = AbstractStates.projectToType(pReached, UninitializedVariablesElement.class);
+      Iterable<UninitializedVariablesState> projectedReached = AbstractStates.projectToType(pReached, UninitializedVariablesState.class);
 
       //find all UninitializedVariablesElements and get their warnings
-      for (UninitializedVariablesElement uninitElement : filter(projectedReached, Predicates.notNull())) {
+      for (UninitializedVariablesState uninitElement : filter(projectedReached, Predicates.notNull())) {
 
         Collection<Triple<Integer, String, String>> warnings = uninitElement.getWarnings();
         //warnings are identified by line number and variable name

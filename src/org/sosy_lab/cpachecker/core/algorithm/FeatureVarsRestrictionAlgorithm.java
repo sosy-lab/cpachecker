@@ -52,11 +52,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
-import org.sosy_lab.cpachecker.cpa.featurevariables.FeatureVarsElement;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.featurevariables.FeatureVarsState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -119,12 +119,12 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
       sound &= algorithm.run(reached);
 
       AbstractState lastElement = reached.getLastElement();
-      if (!(lastElement instanceof ARGElement)) {
+      if (!(lastElement instanceof ARGState)) {
         // no analysis possible
         break;
       }
 
-      ARGElement errorElement = (ARGElement)lastElement;
+      ARGState errorElement = (ARGState)lastElement;
       if (!errorElement.isTarget()) {
         // no analysis necessary
         break;
@@ -133,9 +133,9 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
       // check counterexample
       checkTime.start();
       try {
-        ARGElement rootElement = (ARGElement)reached.getFirstElement();
+        ARGState rootElement = (ARGState)reached.getFirstElement();
 
-        Set<ARGElement> elementsOnErrorPath = ARGUtils.getAllElementsOnPathsTo(errorElement);
+        Set<ARGState> elementsOnErrorPath = ARGUtils.getAllElementsOnPathsTo(errorElement);
 
         boolean feasibility;
         try {
@@ -150,12 +150,12 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
 
           // BDD specials
           Region errorBDD = null;
-          for (AbstractState x : ((CompositeElement)errorElement.getWrappedElement()).getWrappedElements()) {
-            if (x instanceof FeatureVarsElement) {
-              errorBDD = ((FeatureVarsElement) x).getRegion();
-              //logger.log(Level.INFO,"BDD: " + ((FeatureVarsElement) x).toString());
+          for (AbstractState x : ((CompositeState)errorElement.getWrappedElement()).getWrappedElements()) {
+            if (x instanceof FeatureVarsState) {
+              errorBDD = ((FeatureVarsState) x).getRegion();
+              //logger.log(Level.INFO,"BDD: " + ((FeatureVarsState) x).toString());
               if (manager==null) {
-                manager = ((FeatureVarsElement)x).getManager();
+                manager = ((FeatureVarsState)x).getManager();
                 errorSummary=manager.makeFalse();
               }
               errorSummary=manager.makeOr(errorBDD, errorSummary);
@@ -165,11 +165,11 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
 
           //TODO: would be better to delete elements that should not be explored further from the waitlist
           for (AbstractState x : reached.getWaitlist()) {
-            ARGElement xart = (ARGElement)x;
-            FeatureVarsElement fvelem = null;
-            for (AbstractState y : ((CompositeElement)xart.getWrappedElement()).getWrappedElements()) {
-              if (y instanceof FeatureVarsElement)
-                fvelem = (FeatureVarsElement)y;
+            ARGState xart = (ARGState)x;
+            FeatureVarsState fvelem = null;
+            for (AbstractState y : ((CompositeState)xart.getWrappedElement()).getWrappedElements()) {
+              if (y instanceof FeatureVarsState)
+                fvelem = (FeatureVarsState)y;
             }
             fvelem.restrictWith(manager.makeNot(errorBDD));
           }
@@ -221,17 +221,17 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
     return sound;
   }
 
-  private boolean handleInfeasibleCounterexample(ReachedSet reached, Set<ARGElement> elementsOnErrorPath) {
+  private boolean handleInfeasibleCounterexample(ReachedSet reached, Set<ARGState> elementsOnErrorPath) {
     boolean sound = true;
 
     // So we let the states stay in the reached set, and just prevent
     // them from covering other elements by removing all existing
     // coverage relations (and re-adding the covered elements)
-    // and preventing new ones via ARGElement#setNotCovering().
+    // and preventing new ones via ARGState#setNotCovering().
 
-    Collection<ARGElement> coveredByErrorPath = new ArrayList<ARGElement>();
+    Collection<ARGState> coveredByErrorPath = new ArrayList<ARGState>();
 
-    for (ARGElement errorPathElement : elementsOnErrorPath) {
+    for (ARGState errorPathElement : elementsOnErrorPath) {
       // schedule for coverage removal
       coveredByErrorPath.addAll(errorPathElement.getCoveredByThis());
 
@@ -239,7 +239,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
       errorPathElement.setNotCovering();
     }
 
-    for (ARGElement coveredElement : coveredByErrorPath) {
+    for (ARGState coveredElement : coveredByErrorPath) {
       if (isTransitiveChildOf(coveredElement, coveredElement.getCoveringElement())) {
         // This element is covered by one of it's (transitive) parents
         // so this is a loop.
@@ -250,7 +250,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
         continue;
       }
 
-      for (ARGElement parentOfCovered : coveredElement.getParents()) {
+      for (ARGState parentOfCovered : coveredElement.getParents()) {
         if (elementsOnErrorPath.contains(parentOfCovered)) {
           // this should never happen, but handle anyway
           // we may not re-add this parent, because otherwise
@@ -270,16 +270,16 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
     return sound;
   }
 
-  private boolean isTransitiveChildOf(ARGElement potentialChild, ARGElement potentialParent) {
+  private boolean isTransitiveChildOf(ARGState potentialChild, ARGState potentialParent) {
 
-    Set<ARGElement> seen = new HashSet<ARGElement>();
-    Deque<ARGElement> waitlist = new ArrayDeque<ARGElement>(); // use BFS
+    Set<ARGState> seen = new HashSet<ARGState>();
+    Deque<ARGState> waitlist = new ArrayDeque<ARGState>(); // use BFS
 
     waitlist.addAll(potentialChild.getParents());
     while (!waitlist.isEmpty()) {
-      ARGElement current = waitlist.pollFirst();
+      ARGState current = waitlist.pollFirst();
 
-      for (ARGElement currentParent : current.getParents()) {
+      for (ARGState currentParent : current.getParents()) {
         if (currentParent.equals(potentialParent)) {
           return true;
         }
@@ -293,15 +293,15 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
     return false;
   }
 
-  private boolean removeErrorElement(ReachedSet reached, ARGElement errorElement) {
+  private boolean removeErrorElement(ReachedSet reached, ARGState errorElement) {
     boolean sound = true;
 
     // remove re-added parent of errorElement to prevent computing
     // the same error element over and over
-    Set<ARGElement> parents = errorElement.getParents();
+    Set<ARGState> parents = errorElement.getParents();
     assert parents.size() == 1 : "error element that was merged";
 
-    ARGElement parent = Iterables.getOnlyElement(parents);
+    ARGState parent = Iterables.getOnlyElement(parents);
 
     if (parent.getChildren().size() > 1) {
       // The error element has a sibling, so the parent and the sibling
@@ -313,8 +313,8 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
     }
 
     // this includes the errorElement and its siblings
-    List<ARGElement> siblings = copyOf(parent.getChildren());
-    for (ARGElement toRemove : siblings) {
+    List<ARGState> siblings = copyOf(parent.getChildren());
+    for (ARGState toRemove : siblings) {
 
       assert toRemove.getChildren().isEmpty();
 

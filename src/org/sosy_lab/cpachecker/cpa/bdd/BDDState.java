@@ -29,15 +29,15 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
-public class BDDElement implements AbstractState {
+public class BDDState implements AbstractState {
 
   private Region currentState;
   private final NamedRegionManager manager;
   private Set<String> currentVars;
-  private BDDElement functionCallElement;
+  private BDDState functionCallElement;
   private String functionName;
 
-  public BDDElement(NamedRegionManager mgr, BDDElement functionCallElement,
+  public BDDState(NamedRegionManager mgr, BDDState functionCallElement,
       Region state, Set<String> vars, String functionName) {
     this.currentState = state;
     this.currentVars = vars;
@@ -54,7 +54,7 @@ public class BDDElement implements AbstractState {
     return currentVars;
   }
 
-  public BDDElement getFunctionCallElement() {
+  public BDDState getFunctionCallElement() {
     return functionCallElement;
   }
 
@@ -62,14 +62,14 @@ public class BDDElement implements AbstractState {
     return functionName;
   }
 
-  public boolean isLessOrEqual(BDDElement other) {
+  public boolean isLessOrEqual(BDDState other) {
     assert this.functionName.equals(other.functionName) : "same function needed: "
         + this.functionName + " vs " + other.functionName;
 
     return manager.entails(this.currentState, other.currentState);
   }
 
-  public BDDElement join(BDDElement other) {
+  public BDDState join(BDDState other) {
     assert this.functionName.equals(other.functionName) : "same function needed: "
         + this.functionName + " vs " + other.functionName;
     this.currentVars.addAll(other.currentVars); // some vars more make no difference
@@ -85,7 +85,7 @@ public class BDDElement implements AbstractState {
       return this;
 
     } else {
-      return new BDDElement(this.manager, this.functionCallElement, result,
+      return new BDDState(this.manager, this.functionCallElement, result,
           this.currentVars, this.functionName);
     }
   }
@@ -97,8 +97,8 @@ public class BDDElement implements AbstractState {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof BDDElement) {
-      BDDElement other = (BDDElement) o;
+    if (o instanceof BDDState) {
+      BDDState other = (BDDState) o;
       return this.functionName.equals(other.functionName) &&
           this.currentState.equals(other.currentState);
     }

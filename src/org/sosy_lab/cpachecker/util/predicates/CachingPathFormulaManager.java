@@ -30,7 +30,7 @@ import java.util.Map;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -134,7 +134,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public Formula buildBranchingFormula(Iterable<ARGElement> pElementsOnPath)
+  public Formula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
       throws CPATransferException {
     return delegate.buildBranchingFormula(pElementsOnPath);
   }

@@ -48,19 +48,19 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
 
   @Override
   public boolean stop(AbstractState element, Collection<AbstractState> reached, Precision precision) throws CPAException {
-    CompositeElement compositeElement = (CompositeElement) element;
+    CompositeState compositeState = (CompositeState) element;
     CompositePrecision compositePrecision = (CompositePrecision) precision;
 
     for (AbstractState e : reached) {
-      if (stop(compositeElement, (CompositeElement)e, compositePrecision)) {
+      if (stop(compositeState, (CompositeState)e, compositePrecision)) {
         return true;
       }
     }
     return false;
   }
 
-  private boolean stop(CompositeElement compositeElement, CompositeElement compositeReachedElement, CompositePrecision compositePrecision) throws CPAException {
-    List<AbstractState> compositeElements = compositeElement.getWrappedElements();
+  private boolean stop(CompositeState compositeState, CompositeState compositeReachedElement, CompositePrecision compositePrecision) throws CPAException {
+    List<AbstractState> compositeElements = compositeState.getWrappedElements();
     List<AbstractState> compositeReachedElements = compositeReachedElement.getWrappedElements();
 
     List<Precision> compositePrecisions = compositePrecision.getPrecisions();
@@ -80,10 +80,10 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
   }
 
   boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement, List<ConfigurableProgramAnalysis> cpas) throws CPAException {
-    CompositeElement compositeElement = (CompositeElement)pElement;
-    CompositeElement compositeOtherElement = (CompositeElement)pOtherElement;
+    CompositeState compositeState = (CompositeState)pElement;
+    CompositeState compositeOtherElement = (CompositeState)pOtherElement;
 
-    List<AbstractState> componentElements = compositeElement.getWrappedElements();
+    List<AbstractState> componentElements = compositeState.getWrappedElements();
     List<AbstractState> componentOtherElements = compositeOtherElement.getWrappedElements();
 
     if(componentElements.size() != cpas.size()) {
@@ -107,11 +107,11 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
   @Override
   public boolean isForcedCoveringPossible(AbstractState pElement, AbstractState pReachedElement, Precision pPrecision) throws CPAException {
 
-    CompositeElement compositeElement = (CompositeElement)pElement;
-    CompositeElement compositeReachedElement = (CompositeElement)pReachedElement;
+    CompositeState compositeState = (CompositeState)pElement;
+    CompositeState compositeReachedElement = (CompositeState)pReachedElement;
     CompositePrecision compositePrecision = (CompositePrecision)pPrecision;
 
-    List<AbstractState> compositeElements = compositeElement.getWrappedElements();
+    List<AbstractState> compositeElements = compositeState.getWrappedElements();
     List<AbstractState> compositeReachedElements = compositeReachedElement.getWrappedElements();
     List<Precision> compositePrecisions = compositePrecision.getPrecisions();
 

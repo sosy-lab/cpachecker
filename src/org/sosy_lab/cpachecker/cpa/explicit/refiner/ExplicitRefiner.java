@@ -39,7 +39,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -60,8 +60,8 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
 
   protected final PathFormulaManager pathFormulaManager;
 
-  protected List<Pair<ARGElement, CFAEdge>> currentEdgePath = null;
-  protected List<Pair<ARGElement, CFANode>> currentNodePath = null;
+  protected List<Pair<ARGState, CFAEdge>> currentEdgePath = null;
+  protected List<Pair<ARGState, CFANode>> currentNodePath = null;
 
   protected CounterexampleTraceInfo<Collection<AbstractionPredicate>> currentTraceInfo = null;
 
@@ -79,10 +79,10 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
   }
 
   @Override
-  public final List<Pair<ARGElement, CFANode>> transformPath(Path errorPath) {
-    List<Pair<ARGElement, CFANode>> result = Lists.newArrayList();
+  public final List<Pair<ARGState, CFANode>> transformPath(Path errorPath) {
+    List<Pair<ARGState, CFANode>> result = Lists.newArrayList();
 
-    for(ARGElement ae : transform(errorPath, Pair.<ARGElement>getProjectionToFirst())) {
+    for(ARGState ae : transform(errorPath, Pair.<ARGState>getProjectionToFirst())) {
         result.add(Pair.of(ae, AbstractStates.extractLocation(ae)));
     }
 
@@ -91,15 +91,15 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
   }
 
   @Override
-  public List<Formula> getFormulasForPath(List<Pair<ARGElement,
+  public List<Formula> getFormulasForPath(List<Pair<ARGState,
       CFANode>> errorPath,
-      ARGElement initialElement) throws CPATransferException {
+      ARGState initialElement) throws CPATransferException {
     PathFormula currentPathFormula = pathFormulaManager.makeEmptyPathFormula();
 
     List<Formula> formulas = new ArrayList<Formula>(errorPath.size());
 
     // iterate over edges (not nodes)
-    for (Pair<ARGElement, CFAEdge> pathElement : this.currentEdgePath) {
+    for (Pair<ARGState, CFAEdge> pathElement : this.currentEdgePath) {
       currentPathFormula = pathFormulaManager.makeAnd(currentPathFormula, pathElement.getSecond());
 
       formulas.add(currentPathFormula.getFormula());
@@ -112,9 +112,9 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
   }
 
   @Override
-  public Pair<ARGElement, Precision> performRefinement(
+  public Pair<ARGState, Precision> performRefinement(
       Precision oldPrecision,
-      List<Pair<ARGElement, CFANode>> errorPath,
+      List<Pair<ARGState, CFANode>> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> traceInfo) throws CPAException {
     numberOfExplicitRefinements++;
 
@@ -124,7 +124,7 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
     Multimap<CFANode, String> precisionIncrement = determinePrecisionIncrement(
         extractExplicitPrecision(oldPrecision));
 
-    ARGElement interpolationPoint = determineInterpolationPoint(errorPath, precisionIncrement);
+    ARGState interpolationPoint = determineInterpolationPoint(errorPath, precisionIncrement);
 
     assert interpolationPoint != null;
 
@@ -142,8 +142,8 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
    * @param precisionIncrement the current precision increment
    * @return the new interpolation point
    */
-  protected ARGElement determineInterpolationPoint(
-      List<Pair<ARGElement, CFANode>> errorPath,
+  protected ARGState determineInterpolationPoint(
+      List<Pair<ARGState, CFANode>> errorPath,
       Multimap<CFANode, String> precisionIncrement) {
 
     // just use initial node of error path if the respective option is set
@@ -153,7 +153,7 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
 
     // otherwise, use the first node where new information is present
     else {
-      for(Pair<ARGElement, CFANode> element : errorPath) {
+      for(Pair<ARGState, CFANode> element : errorPath) {
         if(precisionIncrement.containsKey(element.getSecond())) {
           return element.getFirst();
         }
@@ -196,7 +196,7 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
   }
 
   @Override
-  public boolean hasMadeProgress(List<Pair<ARGElement, CFAEdge>> currentErrorPath, Precision currentPrecision) {
+  public boolean hasMadeProgress(List<Pair<ARGState, CFAEdge>> currentErrorPath, Precision currentPrecision) {
     ExplicitPrecision currentExplicitPrecision = extractExplicitPrecision(currentPrecision);
 
     return pathHashes.add(currentExplicitPrecision.getCegarPrecision().toString().hashCode() +
@@ -205,7 +205,7 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
   }
 
   @Override
-  public void setCurrentErrorPath(List<Pair<ARGElement, CFAEdge>> currentErrorPath) {
+  public void setCurrentErrorPath(List<Pair<ARGState, CFAEdge>> currentErrorPath) {
     this.currentEdgePath = currentErrorPath;
   }
 }

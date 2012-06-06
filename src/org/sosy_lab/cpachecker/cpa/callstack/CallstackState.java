@@ -35,15 +35,15 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-public final class CallstackElement implements AbstractState, Partitionable, AbstractQueryableState, Serializable {
+public final class CallstackState implements AbstractState, Partitionable, AbstractQueryableState, Serializable {
 
   private static final long serialVersionUID = 3629687385150064994L;
-  private final CallstackElement previousElement;
+  private final CallstackState previousElement;
   private final String currentFunction;
   private transient CFANode callerNode;
   private final int depth;
 
-  CallstackElement(CallstackElement previousElement, String function, CFANode callerNode) {
+  CallstackState(CallstackState previousElement, String function, CFANode callerNode) {
     this.previousElement = previousElement;
     this.currentFunction = checkNotNull(function);
     this.callerNode = checkNotNull(callerNode);
@@ -54,7 +54,7 @@ public final class CallstackElement implements AbstractState, Partitionable, Abs
     }
   }
 
-  public CallstackElement getPreviousElement() {
+  public CallstackState getPreviousElement() {
     return previousElement;
   }
 
@@ -88,11 +88,11 @@ public final class CallstackElement implements AbstractState, Partitionable, Abs
     if (obj == this) {
       return true;
     }
-    if (CallstackElement.class != obj.getClass()) {
+    if (CallstackState.class != obj.getClass()) {
       return false;
     }
 
-    CallstackElement other = (CallstackElement)obj;
+    CallstackState other = (CallstackState)obj;
     return (this.previousElement == other.previousElement)
         && (this.currentFunction.equals(other.currentFunction))
         && (this.callerNode.equals(other.callerNode));

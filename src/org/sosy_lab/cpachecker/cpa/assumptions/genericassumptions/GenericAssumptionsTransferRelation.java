@@ -76,7 +76,7 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
       allAssumptions = NumericTypes.TRUE;
     }
 
-    return Collections.singleton(new GenericAssumptionsElement(allAssumptions));
+    return Collections.singleton(new GenericAssumptionsState(allAssumptions));
   }
 
   @Override

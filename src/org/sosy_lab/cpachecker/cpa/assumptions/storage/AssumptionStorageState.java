@@ -32,7 +32,7 @@ import com.google.common.base.Preconditions;
  * Abstract element for the Collector CPA. Encapsulate a
  * symbolic formula
  */
-public class AssumptionStorageElement implements AbstractState {
+public class AssumptionStorageState implements AbstractState {
 
   // this formula provides the assumption generated from other sources than heuristics,
   // e.g. assumptions for arithmetic overflow
@@ -44,7 +44,7 @@ public class AssumptionStorageElement implements AbstractState {
 
   // the assumption represented by this class is always the conjunction of "assumption" and "stopFormula"
 
-  public AssumptionStorageElement(Formula pAssumption, Formula pStopFormula) {
+  public AssumptionStorageState(Formula pAssumption, Formula pStopFormula) {
     assumption = Preconditions.checkNotNull(pAssumption);
     stopFormula = Preconditions.checkNotNull(pStopFormula);
 
@@ -70,8 +70,8 @@ public class AssumptionStorageElement implements AbstractState {
 
   @Override
   public boolean equals(Object other) {
-    if (other instanceof AssumptionStorageElement) {
-      AssumptionStorageElement otherElement = (AssumptionStorageElement) other;
+    if (other instanceof AssumptionStorageState) {
+      AssumptionStorageState otherElement = (AssumptionStorageState) other;
       return assumption.equals(otherElement.assumption)
           && stopFormula.equals(otherElement.stopFormula);
     } else {

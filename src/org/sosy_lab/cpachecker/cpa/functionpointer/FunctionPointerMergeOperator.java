@@ -40,8 +40,8 @@ public class FunctionPointerMergeOperator implements MergeOperator {
   public AbstractState merge(AbstractState pElement1,
       AbstractState pElement2, Precision pPrecision) throws CPAException {
 
-    FunctionPointerElement fpElement1 = (FunctionPointerElement)pElement1;
-    FunctionPointerElement fpElement2 = (FunctionPointerElement)pElement2;
+    FunctionPointerState fpElement1 = (FunctionPointerState)pElement1;
+    FunctionPointerState fpElement2 = (FunctionPointerState)pElement2;
 
     if (!fpElement1.isLessOrEqualThan(fpElement2)) {
       // don't merge here

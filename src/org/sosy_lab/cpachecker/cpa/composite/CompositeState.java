@@ -35,12 +35,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public class CompositeElement implements AbstractWrapperState, Targetable, Partitionable, Serializable {
+public class CompositeState implements AbstractWrapperState, Targetable, Partitionable, Serializable {
   private static final long serialVersionUID = -5143296331663510680L;
   private final ImmutableList<AbstractState> elements;
   private transient Object partitionKey; // lazily initialized
 
-  public CompositeElement(List<AbstractState> elements)
+  public CompositeState(List<AbstractState> elements)
   {
     this.elements = ImmutableList.copyOf(elements);
   }

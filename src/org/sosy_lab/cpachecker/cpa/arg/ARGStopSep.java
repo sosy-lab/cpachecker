@@ -58,7 +58,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   public boolean stop(AbstractState pElement,
       Collection<AbstractState> pReached, Precision pPrecision) throws CPAException {
 
-    ARGElement argElement = (ARGElement)pElement;
+    ARGState argElement = (ARGState)pElement;
     assert !argElement.isCovered() : "Passing element to stop which is already covered: " + argElement;
 
     // First check if we can take a shortcut:
@@ -68,7 +68,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
     // in this case and not mark it as covered.
 
     if (argElement.getMergedWith() != null) {
-      ARGElement mergedWith = argElement.getMergedWith();
+      ARGState mergedWith = argElement.getMergedWith();
 
       if (pReached.contains(mergedWith)) {
         // we do this single check first as it should return true in most of the cases
@@ -96,7 +96,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
     // Now do the usual coverage checks
 
     for (AbstractState reachedElement : pReached) {
-      ARGElement argReachedElement = (ARGElement)reachedElement;
+      ARGState argReachedElement = (ARGState)reachedElement;
       if (stop(argElement, argReachedElement, pPrecision)) {
         // if this option is true, we always return false here on purpose
         return !keepCoveredStatesInReached;
@@ -106,7 +106,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
   }
 
-  private boolean stop(ARGElement pElement, ARGElement pReachedElement, Precision pPrecision)
+  private boolean stop(ARGState pElement, ARGState pReachedElement, Precision pPrecision)
                                                       throws CPAException {
 
     if (!pReachedElement.mayCover()) {
@@ -135,8 +135,8 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   }
 
   boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement, ProofChecker wrappedProofChecker) throws CPAException {
-    ARGElement argElement = (ARGElement)pElement;
-    ARGElement otherArtElement = (ARGElement)pOtherElement;
+    ARGState argElement = (ARGState)pElement;
+    ARGState otherArtElement = (ARGState)pOtherElement;
 
     AbstractState wrappedElement = argElement.getWrappedElement();
     AbstractState wrappedOtherElement = otherArtElement.getWrappedElement();
@@ -150,8 +150,8 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       return false;
     }
 
-    ARGElement element = (ARGElement)pElement;
-    ARGElement reachedElement = (ARGElement)pReachedElement;
+    ARGState element = (ARGState)pElement;
+    ARGState reachedElement = (ARGState)pReachedElement;
 
     if (reachedElement.isCovered() || !reachedElement.mayCover()) {
       return false;

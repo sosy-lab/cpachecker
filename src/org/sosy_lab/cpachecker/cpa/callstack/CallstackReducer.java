@@ -36,19 +36,19 @@ public class CallstackReducer implements Reducer {
   public AbstractState getVariableReducedElement(
       AbstractState pExpandedElement, Block pContext, CFANode callNode) {
 
-    CallstackElement element = (CallstackElement)pExpandedElement;
+    CallstackState element = (CallstackState)pExpandedElement;
 
     return copyCallstackUpToCallNode(element, callNode);
-//    return new CallstackElement(null, element.getCurrentFunction(), location);
+//    return new CallstackState(null, element.getCurrentFunction(), location);
   }
 
-  private CallstackElement copyCallstackUpToCallNode(CallstackElement element, CFANode callNode) {
+  private CallstackState copyCallstackUpToCallNode(CallstackState element, CFANode callNode) {
     if (element.getCurrentFunction().equals(callNode.getFunctionName())) {
-      return new CallstackElement(null, element.getCurrentFunction(), callNode);
+      return new CallstackState(null, element.getCurrentFunction(), callNode);
     } else {
       assert element.getPreviousElement() != null;
-      CallstackElement recursiveResult = copyCallstackUpToCallNode(element.getPreviousElement(), callNode);
-      return new CallstackElement(recursiveResult, element.getCurrentFunction(), element.getCallNode());
+      CallstackState recursiveResult = copyCallstackUpToCallNode(element.getPreviousElement(), callNode);
+      return new CallstackState(recursiveResult, element.getCurrentFunction(), element.getCallNode());
     }
   }
 
@@ -57,8 +57,8 @@ public class CallstackReducer implements Reducer {
       AbstractState pRootElement, Block pReducedContext,
       AbstractState pReducedElement) {
 
-    CallstackElement rootElement = (CallstackElement)pRootElement;
-    CallstackElement reducedElement = (CallstackElement)pReducedElement;
+    CallstackState rootElement = (CallstackState)pRootElement;
+    CallstackState reducedElement = (CallstackState)pReducedElement;
 
     // the stackframe on top of rootElement and the stackframe on bottom of reducedElement are the same function
     // now glue both stacks together at this element
@@ -66,19 +66,19 @@ public class CallstackReducer implements Reducer {
     return copyCallstackExceptLast(rootElement, reducedElement);
   }
 
-  private CallstackElement copyCallstackExceptLast(CallstackElement target, CallstackElement source) {
+  private CallstackState copyCallstackExceptLast(CallstackState target, CallstackState source) {
     if (source.getDepth() == 1) {
       assert source.getPreviousElement() == null;
       assert source.getCurrentFunction().equals(target.getCurrentFunction());
       return target;
     } else {
-      CallstackElement recursiveResult = copyCallstackExceptLast(target, source.getPreviousElement());
-      return new CallstackElement(recursiveResult, source.getCurrentFunction(), source.getCallNode());
+      CallstackState recursiveResult = copyCallstackExceptLast(target, source.getPreviousElement());
+      return new CallstackState(recursiveResult, source.getCurrentFunction(), source.getCallNode());
     }
   }
 
- private static boolean isEqual(CallstackElement reducedTargetElement,
-      CallstackElement candidateElement) {
+ private static boolean isEqual(CallstackState reducedTargetElement,
+      CallstackState candidateElement) {
     if (reducedTargetElement.getDepth() != candidateElement.getDepth()) {
       return false;
     }
@@ -97,23 +97,23 @@ public class CallstackReducer implements Reducer {
 
   @Override
   public Object getHashCodeForElement(AbstractState pElementKey, Precision pPrecisionKey) {
-    return new CallstackElementWithEquals((CallstackElement)pElementKey);
+    return new CallstackStateWithEquals((CallstackState)pElementKey);
   }
 
-  private static class CallstackElementWithEquals {
-    private final CallstackElement element;
+  private static class CallstackStateWithEquals {
+    private final CallstackState element;
 
-    public CallstackElementWithEquals(CallstackElement pElement) {
+    public CallstackStateWithEquals(CallstackState pElement) {
       element = pElement;
     }
 
     @Override
     public boolean equals(Object other) {
-      if (!(other instanceof CallstackElementWithEquals)) {
+      if (!(other instanceof CallstackStateWithEquals)) {
         return false;
       }
 
-      return isEqual(element, ((CallstackElementWithEquals)other).element);
+      return isEqual(element, ((CallstackStateWithEquals)other).element);
     }
 
     @Override

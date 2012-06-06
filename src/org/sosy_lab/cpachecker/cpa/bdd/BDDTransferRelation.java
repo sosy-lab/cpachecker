@@ -100,14 +100,14 @@ public class BDDTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<BDDElement> getAbstractSuccessors(
+  public Collection<BDDState> getAbstractSuccessors(
       AbstractState element, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException {
-    BDDElement elem = (BDDElement) element;
+    BDDState elem = (BDDState) element;
 
     if (elem.getRegion().isFalse()) { return Collections.emptyList(); }
 
-    BDDElement successor = null;
+    BDDState successor = null;
 
     switch (cfaEdge.getEdgeType()) {
 
@@ -127,13 +127,13 @@ public class BDDTransferRelation implements TransferRelation {
 
     case MultiEdge: {
       successor = elem;
-      Collection<BDDElement> c = null;
+      Collection<BDDState> c = null;
       for (CFAEdge innerEdge : (MultiEdge) cfaEdge) {
         c = getAbstractSuccessors(successor, precision, innerEdge);
         if (c.isEmpty()) {
           successor = elem; //TODO really correct??
         } else if (c.size() == 1) {
-          successor = c.toArray(new BDDElement[1])[0];
+          successor = c.toArray(new BDDState[1])[0];
         } else {
           throw new AssertionError("only size 0 or 1 allowed");
         }
@@ -167,14 +167,14 @@ public class BDDTransferRelation implements TransferRelation {
   }
 
   /** handles statements like "a = 0;" and "b = !a;" */
-  private BDDElement handleStatementEdge(BDDElement element, StatementEdge cfaEdge)
+  private BDDState handleStatementEdge(BDDState element, StatementEdge cfaEdge)
       throws UnrecognizedCCodeException {
     IASTStatement statement = cfaEdge.getStatement();
     if (!(statement instanceof IASTAssignment)) { return element; }
     IASTAssignment assignment = (IASTAssignment) statement;
 
     IASTExpression lhs = assignment.getLeftHandSide();
-    BDDElement result = element;
+    BDDState result = element;
     if (lhs instanceof IASTIdExpression || lhs instanceof IASTFieldReference
         || lhs instanceof IASTArraySubscriptExpression) {
 
@@ -202,7 +202,7 @@ public class BDDTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException(cfaEdge, rhs);
       }
 
-      result = new BDDElement(rmgr, element.getFunctionCallElement(), newRegion,
+      result = new BDDState(rmgr, element.getFunctionCallElement(), newRegion,
           element.getVars(), cfaEdge.getPredecessor().getFunctionName());
     }
 
@@ -211,7 +211,7 @@ public class BDDTransferRelation implements TransferRelation {
   }
 
   /** handles declarations like "int a = 0;" and "int b = !a;" */
-  private BDDElement handleDeclarationEdge(BDDElement element, DeclarationEdge cfaEdge)
+  private BDDState handleDeclarationEdge(BDDState element, DeclarationEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     IASTDeclaration decl = cfaEdge.getDeclaration();
@@ -244,7 +244,7 @@ public class BDDTransferRelation implements TransferRelation {
         BDDExpressionVisitor ev = new BDDExpressionVisitor(element);
         Region regRHS = init.accept(ev);
         newRegion = addEquality(var, regRHS, newRegion);
-        return new BDDElement(rmgr, element.getFunctionCallElement(), newRegion,
+        return new BDDState(rmgr, element.getFunctionCallElement(), newRegion,
             element.getVars(), cfaEdge.getPredecessor().getFunctionName());
       }
     }
@@ -252,7 +252,7 @@ public class BDDTransferRelation implements TransferRelation {
     return element; // if we know nothing, we return the old element
   }
 
-  private BDDElement handleFunctionCallEdge(BDDElement element, FunctionCallEdge cfaEdge)
+  private BDDState handleFunctionCallEdge(BDDState element, FunctionCallEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     Region newRegion = element.getRegion();
@@ -279,10 +279,10 @@ public class BDDTransferRelation implements TransferRelation {
       newRegion = addEquality(var, arg, newRegion);
     }
 
-    return new BDDElement(rmgr, element, newRegion, newVars, innerFunctionName);
+    return new BDDState(rmgr, element, newRegion, newVars, innerFunctionName);
   }
 
-  private BDDElement handleFunctionReturnEdge(BDDElement element, FunctionReturnEdge cfaEdge) {
+  private BDDState handleFunctionReturnEdge(BDDState element, FunctionReturnEdge cfaEdge) {
     Region newRegion = element.getRegion();
 
     // delete variables from returning function,
@@ -306,7 +306,7 @@ public class BDDTransferRelation implements TransferRelation {
       // make variable (predicate) for LEFT SIDE of assignment,
       // delete variable, if it was used before, this is done with an existential operator
       String varName = lhs.toASTString();
-      BDDElement functionCall = element.getFunctionCallElement();
+      BDDState functionCall = element.getFunctionCallElement();
       Region var = makePredicate(varName, functionCall.getFunctionName(), isGlobal(lhs));
       newRegion = removePredicate(newRegion, var);
       newRegion = addEquality(var, retVar, newRegion);
@@ -315,12 +315,12 @@ public class BDDTransferRelation implements TransferRelation {
     // LAST ACTION: delete varname of right side
     newRegion = removePredicate(newRegion, retVar);
 
-    return new BDDElement(rmgr, element.getFunctionCallElement().getFunctionCallElement(), newRegion,
+    return new BDDState(rmgr, element.getFunctionCallElement().getFunctionCallElement(), newRegion,
         element.getFunctionCallElement().getVars(),
         cfaEdge.getSuccessor().getFunctionName());
   }
 
-  private BDDElement handleReturnStatementEdge(BDDElement element, ReturnStatementEdge cfaEdge)
+  private BDDState handleReturnStatementEdge(BDDState element, ReturnStatementEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     // make variable (predicate) for returnStatement,
@@ -336,13 +336,13 @@ public class BDDTransferRelation implements TransferRelation {
       BDDExpressionVisitor ev = new BDDExpressionVisitor(element);
       Region regRHS = ((IASTExpression) rhs).accept(ev);
       Region newRegion = addEquality(retvar, regRHS, element.getRegion());
-      return new BDDElement(rmgr, element.getFunctionCallElement(), newRegion,
+      return new BDDState(rmgr, element.getFunctionCallElement(), newRegion,
           element.getVars(), cfaEdge.getPredecessor().getFunctionName());
     }
     return element;
   }
 
-  private BDDElement handleAssumption(BDDElement element, AssumeEdge cfaEdge)
+  private BDDState handleAssumption(BDDState element, AssumeEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     IASTExpression expression = cfaEdge.getExpression();
@@ -360,7 +360,7 @@ public class BDDTransferRelation implements TransferRelation {
       if (newRegion.isFalse()) { // assumption is not fulfilled / not possible
         return null;
       } else {
-        return new BDDElement(rmgr, element.getFunctionCallElement(), newRegion,
+        return new BDDState(rmgr, element.getFunctionCallElement(), newRegion,
             element.getVars(), cfaEdge.getPredecessor().getFunctionName());
       }
     }
@@ -419,9 +419,9 @@ public class BDDTransferRelation implements TransferRelation {
       implements ExpressionVisitor<Region, UnrecognizedCCodeException> {
 
     private String functionName;
-    private BDDElement element;
+    private BDDState element;
 
-    BDDExpressionVisitor(BDDElement element) {
+    BDDExpressionVisitor(BDDState element) {
       this.element = element;
       this.functionName = element.getFunctionName();
     }

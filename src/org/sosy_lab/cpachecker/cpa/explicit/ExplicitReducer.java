@@ -46,9 +46,9 @@ public class ExplicitReducer implements Reducer {
 
   @Override
   public AbstractState getVariableReducedElement(AbstractState pExpandedElement, Block pContext, CFANode pCallNode) {
-    ExplicitElement expandedElement = (ExplicitElement)pExpandedElement;
+    ExplicitState expandedElement = (ExplicitState)pExpandedElement;
 
-    ExplicitElement clonedElement = expandedElement.clone();
+    ExplicitState clonedElement = expandedElement.clone();
     for(String trackedVar : expandedElement.getTrackedVariableNames()) {
       if(!occursInBlock(pContext, trackedVar)) {
         clonedElement.deleteValue(trackedVar);
@@ -61,10 +61,10 @@ public class ExplicitReducer implements Reducer {
   @Override
   public AbstractState getVariableExpandedElement(AbstractState pRootElement, Block pReducedContext,
       AbstractState pReducedElement) {
-    ExplicitElement rootElement = (ExplicitElement)pRootElement;
-    ExplicitElement reducedElement = (ExplicitElement)pReducedElement;
+    ExplicitState rootElement = (ExplicitState)pRootElement;
+    ExplicitState reducedElement = (ExplicitState)pReducedElement;
 
-    ExplicitElement diffElement = rootElement.clone();
+    ExplicitState diffElement = rootElement.clone();
     for(String trackedVar : reducedElement.getTrackedVariableNames()) {
       diffElement.deleteValue(trackedVar);
     }
@@ -108,7 +108,7 @@ public class ExplicitReducer implements Reducer {
 
   @Override
   public Object getHashCodeForElement(AbstractState pElementKey, Precision pPrecisionKey) {
-    ExplicitElement elementKey = (ExplicitElement)pElementKey;
+    ExplicitState elementKey = (ExplicitState)pElementKey;
     ExplicitPrecision precisionKey = (ExplicitPrecision)pPrecisionKey;
 
     return Pair.of(elementKey.getConstantsMap(), precisionKey);

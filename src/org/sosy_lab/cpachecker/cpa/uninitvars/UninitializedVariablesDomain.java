@@ -34,10 +34,10 @@ public class UninitializedVariablesDomain implements AbstractDomain {
 
   @Override
   public AbstractState join(AbstractState element1, AbstractState element2) {
-      UninitializedVariablesElement uninitVarsElement1 = (UninitializedVariablesElement)element1;
-      UninitializedVariablesElement uninitVarsElement2 = (UninitializedVariablesElement)element2;
+      UninitializedVariablesState uninitVarsElement1 = (UninitializedVariablesState)element1;
+      UninitializedVariablesState uninitVarsElement2 = (UninitializedVariablesState)element2;
 
-      UninitializedVariablesElement newElement = uninitVarsElement1.clone();
+      UninitializedVariablesState newElement = uninitVarsElement1.clone();
 
       newElement.getGlobalVariables().addAll(uninitVarsElement2.getGlobalVariables());
       newElement.getLocalVariables().addAll(uninitVarsElement2.getLocalVariables());
@@ -50,8 +50,8 @@ public class UninitializedVariablesDomain implements AbstractDomain {
   @Override
   public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
       // returns true if element1 < element2 on lattice
-      UninitializedVariablesElement uninitVarsElement1 = (UninitializedVariablesElement)element1;
-      UninitializedVariablesElement uninitVarsElement2 = (UninitializedVariablesElement)element2;
+      UninitializedVariablesState uninitVarsElement1 = (UninitializedVariablesState)element1;
+      UninitializedVariablesState uninitVarsElement2 = (UninitializedVariablesState)element2;
 
       if (!uninitVarsElement1.getGlobalVariables().containsAll(
                               uninitVarsElement2.getGlobalVariables())) {

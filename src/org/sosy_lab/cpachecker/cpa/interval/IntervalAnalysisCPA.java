@@ -153,7 +153,7 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis
   @Override
   public AbstractState getInitialElement(CFANode node)
   {
-    return new IntervalAnalysisElement();
+    return new IntervalAnalysisState();
   }
 
   /* (non-Javadoc)

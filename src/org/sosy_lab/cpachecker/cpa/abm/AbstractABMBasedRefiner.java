@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
@@ -57,7 +57,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
   final Timer computeCounterexampleTimer = new Timer();
 
   private final ABMTransferRelation transfer;
-  private final Map<ARGElement, ARGElement> pathElementToReachedElement = new HashMap<ARGElement, ARGElement>();
+  private final Map<ARGState, ARGState> pathElementToReachedElement = new HashMap<ARGState, ARGState>();
 
   protected AbstractABMBasedRefiner(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -84,17 +84,17 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
   }
 
   @Override
-  protected final Path computePath(ARGElement pLastElement, ARGReachedSet pReachedSet) throws InterruptedException, CPATransferException {
+  protected final Path computePath(ARGState pLastElement, ARGReachedSet pReachedSet) throws InterruptedException, CPATransferException {
     assert pLastElement.isTarget();
 
     pathElementToReachedElement.clear();
 
     computePathTimer.start();
     try {
-      ARGElement subgraph;
+      ARGState subgraph;
       computeSubtreeTimer.start();
       try {
-        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, new ARGElement(pLastElement.getWrappedElement(), null), pathElementToReachedElement);
+        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, new ARGState(pLastElement.getWrappedElement(), null), pathElementToReachedElement);
         if (subgraph == null) {
           return null;
         }
@@ -113,11 +113,11 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
     }
   }
 
-  private Path computeCounterexample(ARGElement root) {
+  private Path computeCounterexample(ARGState root) {
     Path path = new Path();
-    ARGElement currentElement = root;
+    ARGState currentElement = root;
     while(currentElement.getChildren().size() > 0) {
-      ARGElement child = currentElement.getChildren().iterator().next();
+      ARGState child = currentElement.getChildren().iterator().next();
 
       CFAEdge edge = currentElement.getEdgeToChild(child);
       path.add(Pair.of(currentElement, edge));
@@ -132,9 +132,9 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
 
     private final ABMTransferRelation transfer;
     private final Path path;
-    private final Map<ARGElement, ARGElement> pathElementToReachedElement;
+    private final Map<ARGState, ARGState> pathElementToReachedElement;
 
-    private ABMReachedSet(ABMTransferRelation pTransfer, ARGReachedSet pReached, Path pPath, Map<ARGElement, ARGElement> pPathElementToReachedElement) {
+    private ABMReachedSet(ABMTransferRelation pTransfer, ARGReachedSet pReached, Path pPath, Map<ARGState, ARGState> pPathElementToReachedElement) {
       super(pReached);
       this.transfer = pTransfer;
       this.path = pPath;
@@ -142,12 +142,12 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
     }
 
     @Override
-    public void removeSubtree(ARGElement element, Precision newPrecision) {
+    public void removeSubtree(ARGState element, Precision newPrecision) {
       transfer.removeSubtree(delegate, path, element, newPrecision, pathElementToReachedElement);
     }
 
     @Override
-    public void removeSubtree(ARGElement pE) {
+    public void removeSubtree(ARGState pE) {
       throw new UnsupportedOperationException();
     }
   }

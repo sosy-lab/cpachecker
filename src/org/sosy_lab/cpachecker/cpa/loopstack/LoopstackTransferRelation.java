@@ -111,7 +111,7 @@ public class LoopstackTransferRelation implements TransferRelation {
     }
 
     CFANode loc = pCfaEdge.getSuccessor();
-    LoopstackElement e = (LoopstackElement)pElement;
+    LoopstackState e = (LoopstackState)pElement;
 
     Loop oldLoop = loopExitEdges.get(pCfaEdge);
     if (oldLoop != null) {
@@ -128,14 +128,14 @@ public class LoopstackTransferRelation implements TransferRelation {
 
     Loop newLoop = loopEntryEdges.get(pCfaEdge);
     if (newLoop != null) {
-      e = new LoopstackElement(e, newLoop, 0, false);
+      e = new LoopstackState(e, newLoop, 0, false);
     }
 
     Collection<Loop> loops = loopHeads.get(loc);
     assert loops.size() <= 1;
     if (loops.contains(e.getLoop())) {
       boolean stop = (maxLoopIterations > 0) && (e.getIteration() >= maxLoopIterations);
-      e = new LoopstackElement(e.getPreviousElement(), e.getLoop(), e.getIteration()+1, stop);
+      e = new LoopstackState(e.getPreviousElement(), e.getLoop(), e.getIteration()+1, stop);
     }
 
     return Collections.singleton(e);

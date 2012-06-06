@@ -37,35 +37,35 @@ import com.google.common.collect.ImmutableList;
 public class CompositePrecisionAdjustment implements PrecisionAdjustment {
 
   protected final ImmutableList<PrecisionAdjustment> precisionAdjustments;
-  protected final ImmutableList<ElementProjectionFunction> elementProjectionFunctions;
+  protected final ImmutableList<StateProjectionFunction> stateProjectionFunctions;
   protected final ImmutableList<PrecisionProjectionFunction> precisionProjectionFunctions;
 
   public CompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments) {
     this.precisionAdjustments = precisionAdjustments;
 
-    ImmutableList.Builder<ElementProjectionFunction> elementProjectionFunctions = ImmutableList.builder();
+    ImmutableList.Builder<StateProjectionFunction> stateProjectionFunctions = ImmutableList.builder();
     ImmutableList.Builder<PrecisionProjectionFunction> precisionProjectionFunctions = ImmutableList.builder();
 
     for (int i = 0; i < precisionAdjustments.size(); i++) {
-      elementProjectionFunctions.add(new ElementProjectionFunction(i));
+      stateProjectionFunctions.add(new StateProjectionFunction(i));
       precisionProjectionFunctions.add(new PrecisionProjectionFunction(i));
     }
-    this.elementProjectionFunctions = elementProjectionFunctions.build();
+    this.stateProjectionFunctions = stateProjectionFunctions.build();
     this.precisionProjectionFunctions = precisionProjectionFunctions.build();
   }
 
-  protected static class ElementProjectionFunction
+  protected static class StateProjectionFunction
     implements Function<AbstractState, AbstractState>
   {
     private final int dimension;
 
-    public ElementProjectionFunction(int d) {
+    public StateProjectionFunction(int d) {
       dimension = d;
     }
 
     @Override
     public AbstractState apply(AbstractState from) {
-      return ((CompositeElement)from).get(dimension);
+      return ((CompositeState)from).get(dimension);
     }
   }
 
@@ -91,7 +91,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   public Triple<AbstractState, Precision, Action> prec(AbstractState pElement,
                                                Precision pPrecision,
                                                UnmodifiableReachedSet pElements) throws CPAException {
-    CompositeElement comp = (CompositeElement) pElement;
+    CompositeState comp = (CompositeState) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
     assert (comp.getWrappedElements().size() == prec.getPrecisions().size());
     int dim = comp.getWrappedElements().size();
@@ -104,7 +104,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
 
     for (int i = 0; i < dim; ++i) {
       UnmodifiableReachedSet slice =
-        new UnmodifiableReachedSetView(pElements, elementProjectionFunctions.get(i), precisionProjectionFunctions.get(i));
+        new UnmodifiableReachedSetView(pElements, stateProjectionFunctions.get(i), precisionProjectionFunctions.get(i));
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
       AbstractState oldElement = comp.get(i);
       Precision oldPrecision = prec.get(i);
@@ -123,7 +123,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
       outPrecisions.add(newPrecision);
     }
 
-    AbstractState outElement = modified ? new CompositeElement(outElements.build())     : pElement;
+    AbstractState outElement = modified ? new CompositeState(outElements.build())     : pElement;
     Precision outPrecision     = modified ? new CompositePrecision(outPrecisions.build()) : pPrecision;
 
     return Triple.of(outElement, outPrecision, action);

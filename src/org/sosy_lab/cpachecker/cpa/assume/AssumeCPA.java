@@ -61,8 +61,8 @@ public class AssumeCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AssumeElement getInitialElement(CFANode pNode) {
-    return UnconstrainedAssumeElement.getInstance();
+  public AssumeState getInitialElement(CFANode pNode) {
+    return UnconstrainedAssumeState.getInstance();
   }
 
   @Override

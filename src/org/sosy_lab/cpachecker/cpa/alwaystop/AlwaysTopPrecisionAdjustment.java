@@ -41,11 +41,11 @@ enum AlwaysTopPrecisionAdjustment implements PrecisionAdjustment {
       AbstractState pElement, Precision pPrecision,
       UnmodifiableReachedSet pElements) {
 
-    assert pElement == AlwaysTopElement.INSTANCE;
+    assert pElement == AlwaysTopState.INSTANCE;
     assert pPrecision == AlwaysTopPrecision.INSTANCE;
-    assert Iterables.all(pElements, Predicates.<AbstractState>equalTo(AlwaysTopElement.INSTANCE));
+    assert Iterables.all(pElements, Predicates.<AbstractState>equalTo(AlwaysTopState.INSTANCE));
 
     return Triple.<AbstractState, Precision, Action>of(
-        AlwaysTopElement.INSTANCE, AlwaysTopPrecision.INSTANCE, Action.CONTINUE);
+        AlwaysTopState.INSTANCE, AlwaysTopPrecision.INSTANCE, Action.CONTINUE);
   }
 }

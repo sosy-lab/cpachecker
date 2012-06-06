@@ -40,8 +40,8 @@ public class AssumptionStorageDomain implements AbstractDomain {
   @Override
   public AbstractState join(AbstractState pElement1, AbstractState pElement2) {
 
-    AssumptionStorageElement storageElement1= (AssumptionStorageElement)pElement1;
-    AssumptionStorageElement storageElement2 = (AssumptionStorageElement)pElement2;
+    AssumptionStorageState storageElement1= (AssumptionStorageState)pElement1;
+    AssumptionStorageState storageElement2 = (AssumptionStorageState)pElement2;
 
     // create the disjunction of the stop formulas
     // however, if one of them is true, we would loose the information from the other
@@ -57,7 +57,7 @@ public class AssumptionStorageDomain implements AbstractDomain {
       newStopFormula = formulaManager.makeOr(stopFormula1, stopFormula2);
     }
 
-    return new AssumptionStorageElement(
+    return new AssumptionStorageState(
         formulaManager.makeAnd(storageElement1.getAssumption(),
                                storageElement2.getAssumption()),
         newStopFormula);

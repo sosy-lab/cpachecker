@@ -37,11 +37,11 @@ import com.google.common.collect.Lists;
 
 /**
  * Path contains a path through the ARG that starts at the root node.
- * It is implemented as a list of pairs of an ARGElement and a CFAEdge,
+ * It is implemented as a list of pairs of an ARGState and a CFAEdge,
  * where the edge of a pair is the outgoing edge of the element.
  * The first pair contains the root node of the ARG.
  */
-public class Path extends LinkedList<Pair<ARGElement, CFAEdge>> {
+public class Path extends LinkedList<Pair<ARGState, CFAEdge>> {
 
   private static final long serialVersionUID = -3223480082103314555L;
 
@@ -53,9 +53,9 @@ public class Path extends LinkedList<Pair<ARGElement, CFAEdge>> {
   @SuppressWarnings("unchecked")
   public JSONArray toJSON() {
     JSONArray path = new JSONArray();
-    for (Pair<ARGElement, CFAEdge> pair : this) {
+    for (Pair<ARGState, CFAEdge> pair : this) {
       JSONObject elem = new JSONObject();
-      ARGElement argelem = pair.getFirst();
+      ARGState argelem = pair.getFirst();
       CFAEdge edge = pair.getSecond();
       if (edge == null) continue; // in this case we do not need the edge
       elem.put("argelem", argelem.getElementId());
@@ -72,8 +72,8 @@ public class Path extends LinkedList<Pair<ARGElement, CFAEdge>> {
     return Lists.transform(this, Pair.<CFAEdge>getProjectionToSecond());
   }
 
-  public ImmutableSet<ARGElement> getElementSet() {
-    List<ARGElement> elementList = Lists.transform(this, Pair.<ARGElement>getProjectionToFirst());
+  public ImmutableSet<ARGState> getElementSet() {
+    List<ARGState> elementList = Lists.transform(this, Pair.<ARGState>getProjectionToFirst());
     return ImmutableSet.copyOf(elementList);
   }
 }

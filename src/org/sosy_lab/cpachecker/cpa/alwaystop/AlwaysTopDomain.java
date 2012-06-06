@@ -33,16 +33,16 @@ enum AlwaysTopDomain implements AbstractDomain {
   @Override
   public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) {
 
-    assert pElement1 == AlwaysTopElement.INSTANCE;
-    assert pElement2 == AlwaysTopElement.INSTANCE;
+    assert pElement1 == AlwaysTopState.INSTANCE;
+    assert pElement2 == AlwaysTopState.INSTANCE;
     return true;
   }
 
   @Override
   public AbstractState join(AbstractState pElement1, AbstractState pElement2) {
 
-    assert pElement1 == AlwaysTopElement.INSTANCE;
-    assert pElement2 == AlwaysTopElement.INSTANCE;
-    return AlwaysTopElement.INSTANCE;
+    assert pElement1 == AlwaysTopState.INSTANCE;
+    assert pElement2 == AlwaysTopState.INSTANCE;
+    return AlwaysTopState.INSTANCE;
   }
 }

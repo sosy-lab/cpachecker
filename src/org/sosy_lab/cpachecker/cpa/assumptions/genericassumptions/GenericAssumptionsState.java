@@ -34,12 +34,12 @@ import com.google.common.base.Preconditions;
  * encapsulate a symbolic formula that represents the
  * assumption.
  */
-public class GenericAssumptionsElement implements AbstractState, AssumptionReportingState {
+public class GenericAssumptionsState implements AbstractState, AssumptionReportingState {
 
   // The inner representation is an expression.
   private final IASTExpression assumption;
 
-  public GenericAssumptionsElement(IASTExpression anAssumption)
+  public GenericAssumptionsState(IASTExpression anAssumption)
   {
     Preconditions.checkNotNull(anAssumption);
     assumption = anAssumption;
@@ -53,8 +53,8 @@ public class GenericAssumptionsElement implements AbstractState, AssumptionRepor
 
   @Override
   public boolean equals(Object pObj) {
-    if (pObj instanceof GenericAssumptionsElement) {
-      return assumption.equals(((GenericAssumptionsElement)pObj).assumption);
+    if (pObj instanceof GenericAssumptionsState) {
+      return assumption.equals(((GenericAssumptionsState)pObj).assumption);
     } else {
       return false;
     }

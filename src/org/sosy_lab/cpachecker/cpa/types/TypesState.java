@@ -30,7 +30,7 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.types.Type.FunctionType;
 
-public class TypesElement implements AbstractState {
+public class TypesState implements AbstractState {
 
   private final Map<String, Type> variables;
 
@@ -38,13 +38,13 @@ public class TypesElement implements AbstractState {
 
   private final Map<String, FunctionType> functions;
 
-  public TypesElement() {
+  public TypesState() {
     this.variables = new HashMap<String, Type>();
     this.typedefs  = new HashMap<String, Type>();
     this.functions = new HashMap<String, FunctionType>();
   }
 
-  public TypesElement(Map<String, Type> variables, Map<String, Type> typedefs,
+  public TypesState(Map<String, Type> variables, Map<String, Type> typedefs,
                       Map<String, FunctionType> functions) {
     this.variables = new HashMap<String, Type>(variables);
     this.typedefs  = new HashMap<String, Type>(typedefs);
@@ -99,7 +99,7 @@ public class TypesElement implements AbstractState {
     return functions.get(name);
   }
 
-  public void join(TypesElement other) {
+  public void join(TypesState other) {
     if (other == null) {
       throw new IllegalArgumentException();
     }
@@ -109,7 +109,7 @@ public class TypesElement implements AbstractState {
     }
   }
 
-  public boolean isSubsetOf(TypesElement other) {
+  public boolean isSubsetOf(TypesState other) {
     if (other == null) {
       throw new IllegalArgumentException();
     }
@@ -147,10 +147,10 @@ public class TypesElement implements AbstractState {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == null || !(obj instanceof TypesElement)) {
+    if (obj == null || !(obj instanceof TypesState)) {
       return false;
     }
-    TypesElement other = (TypesElement)obj;
+    TypesState other = (TypesState)obj;
     return variables.equals(other.variables)
         && typedefs.equals(other.typedefs)
         && functions.equals(other.functions);

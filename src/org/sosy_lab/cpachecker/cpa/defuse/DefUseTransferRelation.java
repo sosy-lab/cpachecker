@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class DefUseTransferRelation implements TransferRelation
 {
-  private DefUseElement handleExpression (DefUseElement defUseElement, IASTStatement expression, CFAEdge cfaEdge)
+  private DefUseState handleExpression (DefUseState defUseState, IASTStatement expression, CFAEdge cfaEdge)
   {
     if (expression instanceof IASTAssignment)
     {
@@ -51,12 +51,12 @@ public class DefUseTransferRelation implements TransferRelation
       // String lParam2 = binaryExpression.getOperand2 ().getRawSignature ();
 
       DefUseDefinition definition = new DefUseDefinition (lParam, cfaEdge);
-      defUseElement = new DefUseElement(defUseElement, definition);
+      defUseState = new DefUseState(defUseState, definition);
     }
-    return defUseElement;
+    return defUseState;
   }
 
-  private DefUseElement handleDeclaration (DefUseElement defUseElement, DeclarationEdge cfaEdge)
+  private DefUseState handleDeclaration (DefUseState defUseState, DeclarationEdge cfaEdge)
   {
     if (cfaEdge.getDeclaration() instanceof IASTVariableDeclaration) {
       IASTVariableDeclaration decl = (IASTVariableDeclaration)cfaEdge.getDeclaration();
@@ -66,15 +66,15 @@ public class DefUseTransferRelation implements TransferRelation
         String varName = decl.getName();
         DefUseDefinition definition = new DefUseDefinition (varName, cfaEdge);
 
-        defUseElement = new DefUseElement(defUseElement, definition);
+        defUseState = new DefUseState(defUseState, definition);
       }
     }
-    return defUseElement;
+    return defUseState;
   }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
-    DefUseElement defUseElement = (DefUseElement) element;
+    DefUseState defUseState = (DefUseState) element;
 
     switch (cfaEdge.getEdgeType ())
     {
@@ -82,18 +82,18 @@ public class DefUseTransferRelation implements TransferRelation
     {
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
       IASTStatement expression = statementEdge.getStatement();
-      defUseElement = handleExpression (defUseElement, expression, cfaEdge);
+      defUseState = handleExpression (defUseState, expression, cfaEdge);
       break;
     }
     case DeclarationEdge:
     {
       DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
-      defUseElement = handleDeclaration (defUseElement, declarationEdge);
+      defUseState = handleDeclaration (defUseState, declarationEdge);
       break;
     }
     }
 
-    return Collections.singleton(defUseElement);
+    return Collections.singleton(defUseState);
   }
 
   @Override

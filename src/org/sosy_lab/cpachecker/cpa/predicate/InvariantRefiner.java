@@ -42,7 +42,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
@@ -127,7 +127,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
       // the counterexample path was spurious, and we refine
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
-      List<Pair<ARGElement, CFANode>> path = transformPath(pPath);
+      List<Pair<ARGState, CFANode>> path = transformPath(pPath);
       predicateRefiner.performRefinement(pReached, path, counterexample, false);
 
       totalRefinement.stop();
@@ -212,14 +212,14 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     falseFormula.add(amgr.makePredicate(emgr.makeFalse()));
 
     // Get the list of abstraction elements.
-    List<Pair<ARGElement, CFANode>> path = transformPath(pPath);
+    List<Pair<ARGState, CFANode>> path = transformPath(pPath);
 
     // We ignore the error location, so the iteration is over i < N,
     // where N is /one less than/ the length of the path.
     int N = path.size() - 1;
     TemplateFormula phi;
     for (int i = 0; i < N; i++) {
-      Pair<ARGElement, CFANode> pair = path.get(i);
+      Pair<ARGState, CFANode> pair = path.get(i);
       CFANode loc = pair.getSecond();
       phi = tnet.getTemplate(loc).getTemplateFormula();
       if (phi != null) {
@@ -277,13 +277,13 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     return preds;
   }
 
-  private List<Pair<ARGElement, CFANode>> transformPath(Path pPath) {
+  private List<Pair<ARGState, CFANode>> transformPath(Path pPath) {
     // Just extracts information from pPath, putting it into
     // convenient form.
-    List<Pair<ARGElement, CFANode>> result = Lists.newArrayList();
+    List<Pair<ARGState, CFANode>> result = Lists.newArrayList();
 
-    for (ARGElement ae : skip(transform(pPath, Pair.<ARGElement>getProjectionToFirst()), 1)) {
-      PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
+    for (ARGState ae : skip(transform(pPath, Pair.<ARGState>getProjectionToFirst()), 1)) {
+      PredicateAbstractState pe = extractElementByType(ae, PredicateAbstractState.class);
       if (pe.isAbstractionElement()) {
         CFANode loc = AbstractStates.extractLocation(ae);
         result.add(Pair.of(ae, loc));

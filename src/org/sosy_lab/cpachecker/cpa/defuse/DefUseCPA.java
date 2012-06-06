@@ -126,7 +126,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
       }
     }
 
-    return new DefUseElement (defUseDefinitions);
+    return new DefUseState (defUseDefinitions);
   }
 
   @Override

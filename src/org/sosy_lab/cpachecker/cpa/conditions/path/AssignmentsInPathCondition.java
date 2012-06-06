@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitElement;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -85,7 +85,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   /**
    * the reference to the current element
    */
-  private AssignmentsInPathConditionElement currentElement = null;
+  private AssignmentsInPathConditionState currentElement = null;
 
   /**
    * the maximal number of assignments over all variables for all elements seen to far
@@ -111,14 +111,14 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   @Override
   public AvoidanceReportingState getInitialElement(CFANode node) {
 
-    AvoidanceReportingState element = demandUniqueness ? new UniqueAssignmentsInPathConditionElement() : new AllAssignmentsInPathConditionElement();
+    AvoidanceReportingState element = demandUniqueness ? new UniqueAssignmentsInPathConditionState() : new AllAssignmentsInPathConditionState();
 
     return element;
   }
 
   @Override
   public AvoidanceReportingState getAbstractSuccessor(AbstractState element, CFAEdge edge) {
-    currentElement = (AssignmentsInPathConditionElement)element;
+    currentElement = (AssignmentsInPathConditionState)element;
 
     if(edge.getEdgeType() == CFAEdgeType.StatementEdge) {
       StatementEdge statementEdge = (StatementEdge)edge;
@@ -250,7 +250,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     return builder.toString();
   }
 
-  abstract public class AssignmentsInPathConditionElement implements AbstractState, AvoidanceReportingState {
+  abstract public class AssignmentsInPathConditionState implements AbstractState, AvoidanceReportingState {
     /**
      * the maximal number of assignments over all variables
      */
@@ -262,7 +262,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
      * @param assignedVariable the name of the assigned variable
      * @return the successor of the current element, based on the given assigned variable
      */
-    abstract public AssignmentsInPathConditionElement getSuccessor(String assignedVariable);
+    abstract public AssignmentsInPathConditionState getSuccessor(String assignedVariable);
 
     /**
      * This method returns the maximal number of assignments over all variables.
@@ -317,7 +317,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     }
   }
 
-  public class AllAssignmentsInPathConditionElement extends AssignmentsInPathConditionElement {
+  public class AllAssignmentsInPathConditionState extends AssignmentsInPathConditionState {
 
     /**
      * the mapping from variable name to the number of assignments to this variable
@@ -327,22 +327,22 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     /**
      * default constructor for creating the initial element
      */
-    public AllAssignmentsInPathConditionElement() {}
+    public AllAssignmentsInPathConditionState() {}
 
     /**
      * copy constructor for successor computation
      *
      * @param original the original element to be copied
      */
-    private AllAssignmentsInPathConditionElement(AllAssignmentsInPathConditionElement original) {
+    private AllAssignmentsInPathConditionState(AllAssignmentsInPathConditionState original) {
       mapping = new HashMap<String, Integer>(original.mapping);
       maximum = original.maximum;
     }
 
     @Override
-    public AllAssignmentsInPathConditionElement getSuccessor(String assignedVariable) {
+    public AllAssignmentsInPathConditionState getSuccessor(String assignedVariable) {
       // create a copy ...
-      AllAssignmentsInPathConditionElement successor = new AllAssignmentsInPathConditionElement(this);
+      AllAssignmentsInPathConditionState successor = new AllAssignmentsInPathConditionState(this);
 
       // ... and update the mapping at the maximum
       Integer numberOfAssignments = mapping.containsKey(assignedVariable) ? mapping.get(assignedVariable) + 1 : 1;
@@ -369,7 +369,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     }
   }
 
-  public class UniqueAssignmentsInPathConditionElement extends AssignmentsInPathConditionElement {
+  public class UniqueAssignmentsInPathConditionState extends AssignmentsInPathConditionState {
 
     /**
      * the mapping from variable name to the set of assigned values to this variable
@@ -384,22 +384,22 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     /**
      * default constructor for creating the initial element
      */
-    public UniqueAssignmentsInPathConditionElement() {}
+    public UniqueAssignmentsInPathConditionState() {}
 
     /**
      * copy constructor for successor computation
      *
      * @param original the original element to be copied
      */
-    private UniqueAssignmentsInPathConditionElement(UniqueAssignmentsInPathConditionElement original) {
+    private UniqueAssignmentsInPathConditionState(UniqueAssignmentsInPathConditionState original) {
       mapping = HashMultimap.create(original.mapping);
       maximum = original.maximum;
     }
 
     @Override
-    public UniqueAssignmentsInPathConditionElement getSuccessor(String assignedVariable) {
+    public UniqueAssignmentsInPathConditionState getSuccessor(String assignedVariable) {
       // create a copy ...
-      UniqueAssignmentsInPathConditionElement successor = new UniqueAssignmentsInPathConditionElement(this);
+      UniqueAssignmentsInPathConditionState successor = new UniqueAssignmentsInPathConditionState(this);
 
       // ... and set the later to be assigned variable
       successor.assignedVariable  = assignedVariable;
@@ -408,11 +408,11 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     }
 
     /**
-     * This method adds an assignment for the last assigned variable, if the current value of this assigned variable in the ExplicitElement was not assigned before, i.e. if it is unique.
+     * This method adds an assignment for the last assigned variable, if the current value of this assigned variable in the ExplicitState was not assigned before, i.e. if it is unique.
      *
-     * @param element the ExplicitElement from which to query assignment information
+     * @param element the ExplicitState from which to query assignment information
      */
-    public void addAssignment(ExplicitElement element) {
+    public void addAssignment(ExplicitState element) {
       if(assignedVariable == null) {
         return;
       }

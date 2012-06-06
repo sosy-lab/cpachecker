@@ -135,7 +135,7 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithABM {
 
   @Override
   public AbstractState getInitialElement(CFANode node) {
-    return new AndersenElement();
+    return new AndersenState();
   }
 
   @Override

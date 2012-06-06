@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.Iterables;
@@ -60,17 +60,17 @@ public class ARGUtils {
    * @param pLastElement The last element in the paths.
    * @return A set of elements, all of which have pLastElement as their (transitive) child.
    */
-  public static Set<ARGElement> getAllElementsOnPathsTo(ARGElement pLastElement) {
+  public static Set<ARGState> getAllElementsOnPathsTo(ARGState pLastElement) {
 
-    Set<ARGElement> result = new HashSet<ARGElement>();
-    Deque<ARGElement> waitList = new ArrayDeque<ARGElement>();
+    Set<ARGState> result = new HashSet<ARGState>();
+    Deque<ARGState> waitList = new ArrayDeque<ARGState>();
 
     result.add(pLastElement);
     waitList.add(pLastElement);
 
     while (!waitList.isEmpty()) {
-      ARGElement currentElement = waitList.poll();
-      for (ARGElement parent : currentElement.getParents()) {
+      ARGState currentElement = waitList.poll();
+      for (ARGState parent : currentElement.getParents()) {
         if (result.add(parent)) {
           waitList.push(parent);
         }
@@ -87,54 +87,54 @@ public class ARGUtils {
    * @param pLastElement The last element in the path.
    * @return A path from root to lastElement.
    */
-  public static Path getOnePathTo(ARGElement pLastElement) {
+  public static Path getOnePathTo(ARGState pLastElement) {
     Path path = new Path();
-    Set<ARGElement> seenElements = new HashSet<ARGElement>();
+    Set<ARGState> seenElements = new HashSet<ARGState>();
 
     // each element of the path consists of the abstract element and the outgoing
     // edge to its successor
 
-    ARGElement currentARGElement = pLastElement;
+    ARGState currentARGState = pLastElement;
     // add the error node and its -first- outgoing edge
     // that edge is not important so we pick the first even
     // if there are more outgoing edges
-    CFANode loc = extractLocation(currentARGElement);
+    CFANode loc = extractLocation(currentARGState);
     CFAEdge lastEdge = null;
     if (loc.getNumLeavingEdges() > 0) {
       lastEdge = loc.getLeavingEdge(0);
     }
-    path.addFirst(Pair.of(currentARGElement, lastEdge));
-    seenElements.add(currentARGElement);
+    path.addFirst(Pair.of(currentARGState, lastEdge));
+    seenElements.add(currentARGState);
 
-    while (!currentARGElement.getParents().isEmpty()) {
-      Iterator<ARGElement> parents = currentARGElement.getParents().iterator();
+    while (!currentARGState.getParents().isEmpty()) {
+      Iterator<ARGState> parents = currentARGState.getParents().iterator();
 
-      ARGElement parentElement = parents.next();
+      ARGState parentElement = parents.next();
       while (!seenElements.add(parentElement) && parents.hasNext()) {
         // while seenElements already contained parentElement, try next parent
         parentElement = parents.next();
       }
 
-      CFAEdge edge = parentElement.getEdgeToChild(currentARGElement);
+      CFAEdge edge = parentElement.getEdgeToChild(currentARGState);
       path.addFirst(Pair.of(parentElement, edge));
 
-      currentARGElement = parentElement;
+      currentARGState = parentElement;
     }
     return path;
   }
 
   /**
    * Get the set of all elements covered by any of the given elements,
-   * i.e., the union of calling {@link ARGElement#getCoveredByThis()} on all
+   * i.e., the union of calling {@link ARGState#getCoveredByThis()} on all
    * elements.
    *
    * However, elements in the given set are never in the returned set.
    * If you pass in a subtree, this will return exactly the set of covering
    * edges which enter the subtree.
    */
-  public static Set<ARGElement> getCoveredBy(Set<ARGElement> elements) {
-    Set<ARGElement> result = new HashSet<ARGElement>();
-    for (ARGElement element : elements) {
+  public static Set<ARGState> getCoveredBy(Set<ARGState> elements) {
+    Set<ARGState> result = new HashSet<ARGState>();
+    for (ARGState element : elements) {
       result.addAll(element.getCoveredByThis());
     }
 
@@ -142,7 +142,7 @@ public class ARGUtils {
     return result;
   }
 
-  private static String determineColor(ARGElement currentElement)
+  private static String determineColor(ARGState currentElement)
   {
     String color;
 
@@ -153,7 +153,7 @@ public class ARGUtils {
       color = "red";
 
     } else {
-      PredicateAbstractElement abselem = AbstractStates.extractElementByType(currentElement, PredicateAbstractElement.class);
+      PredicateAbstractState abselem = AbstractStates.extractElementByType(currentElement, PredicateAbstractState.class);
       if (abselem != null && abselem.isAbstractionElement()) {
         color = "cornflowerblue";
       } else {
@@ -171,12 +171,12 @@ public class ARGUtils {
    * @param highlightedEdges Set of edges to highlight in the graph.
    * @return the ARG as DOT graph
    */
-  public static String convertARTToDot(final ARGElement rootElement,
-      final Set<ARGElement> displayedElements,
-      final Set<Pair<ARGElement, ARGElement>> highlightedEdges) {
-    Deque<ARGElement> worklist = new LinkedList<ARGElement>();
+  public static String convertARTToDot(final ARGState rootElement,
+      final Set<ARGState> displayedElements,
+      final Set<Pair<ARGState, ARGState>> highlightedEdges) {
+    Deque<ARGState> worklist = new LinkedList<ARGState>();
     Set<Integer> nodesList = new HashSet<Integer>();
-    Set<ARGElement> processed = new HashSet<ARGElement>();
+    Set<ARGState> processed = new HashSet<ARGState>();
     StringBuilder sb = new StringBuilder();
     StringBuilder edges = new StringBuilder();
 
@@ -187,7 +187,7 @@ public class ARGUtils {
     worklist.add(rootElement);
 
     while(worklist.size() != 0){
-      ARGElement currentElement = worklist.removeLast();
+      ARGState currentElement = worklist.removeLast();
       if(processed.contains(currentElement)){
         continue;
       }
@@ -215,14 +215,14 @@ public class ARGUtils {
         nodesList.add(currentElement.getElementId());
       }
 
-      for (ARGElement covered : currentElement.getCoveredByThis()) {
+      for (ARGState covered : currentElement.getCoveredByThis()) {
         edges.append(covered.getElementId());
         edges.append(" -> ");
         edges.append(currentElement.getElementId());
         edges.append(" [style=\"dashed\" label=\"covered by\"]\n");
       }
 
-      for (ARGElement child : currentElement.getChildren()) {
+      for (ARGState child : currentElement.getChildren()) {
         edges.append(currentElement.getElementId());
         edges.append(" -> ");
         edges.append(child.getElementId());
@@ -262,7 +262,7 @@ public class ARGUtils {
     return sb.toString();
   }
 
-  private static String determineLabel(ARGElement currentElement) {
+  private static String determineLabel(ARGState currentElement) {
     StringBuilder builder = new StringBuilder();
 
     builder.append(currentElement.getElementId());
@@ -283,13 +283,13 @@ public class ARGUtils {
       }
     }
 
-    PredicateAbstractElement abstraction = AbstractStates.extractElementByType(currentElement, PredicateAbstractElement.class);
+    PredicateAbstractState abstraction = AbstractStates.extractElementByType(currentElement, PredicateAbstractState.class);
     if(abstraction != null && abstraction.isAbstractionElement()) {
       builder.append("\\n");
       builder.append(abstraction.getAbstractionFormula());
     }
 
-    ExplicitElement explicit = AbstractStates.extractElementByType(currentElement, ExplicitElement.class);
+    ExplicitState explicit = AbstractStates.extractElementByType(currentElement, ExplicitState.class);
     if(explicit != null) {
       builder.append("\\n");
       builder.append(explicit.toCompactString());
@@ -310,17 +310,17 @@ public class ARGUtils {
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG is inconsistent.
    */
   public static Path getPathFromBranchingInformation(
-      ARGElement root, Collection<? extends AbstractState> arg,
+      ARGState root, Collection<? extends AbstractState> arg,
       Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
 
     checkArgument(arg.contains(root));
 
     Path result = new Path();
-    ARGElement currentElement = root;
+    ARGState currentElement = root;
     while (!currentElement.isTarget()) {
-      Set<ARGElement> children = currentElement.getChildren();
+      Set<ARGState> children = currentElement.getChildren();
 
-      ARGElement child;
+      ARGState child;
       CFAEdge edge;
       switch (children.size()) {
 
@@ -336,10 +336,10 @@ public class ARGUtils {
         // first, find out the edges and the children
         CFAEdge trueEdge = null;
         CFAEdge falseEdge = null;
-        ARGElement trueChild = null;
-        ARGElement falseChild = null;
+        ARGState trueChild = null;
+        ARGState falseChild = null;
 
-        for (ARGElement currentChild : children) {
+        for (ARGState currentChild : children) {
           CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
           if (!(currentEdge instanceof AssumeEdge)) {
             throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
@@ -413,7 +413,7 @@ public class ARGUtils {
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG is inconsistent.
    */
   public static Path getPathFromBranchingInformation(
-      ARGElement root, ARGElement target, Collection<? extends AbstractState> arg,
+      ARGState root, ARGState target, Collection<? extends AbstractState> arg,
       Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
 
     checkArgument(arg.contains(target));

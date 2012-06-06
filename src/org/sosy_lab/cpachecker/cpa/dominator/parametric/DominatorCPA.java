@@ -81,7 +81,7 @@ public class DominatorCPA {
 
     AbstractState dominatedInitialElement = dominatedInitialElement_tmp;
 
-    DominatorElement initialElement = new DominatorElement(dominatedInitialElement);
+    DominatorState initialElement = new DominatorState(dominatedInitialElement);
 
     initialElement.update(dominatedInitialElement);
 

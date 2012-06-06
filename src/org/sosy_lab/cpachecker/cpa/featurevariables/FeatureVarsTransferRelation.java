@@ -73,12 +73,12 @@ public class FeatureVarsTransferRelation implements TransferRelation {
    * a local variable with the same name)
    */
   @Override
-  public Collection<FeatureVarsElement> getAbstractSuccessors(
+  public Collection<FeatureVarsState> getAbstractSuccessors(
       AbstractState element, Precision pPrecision, CFAEdge cfaEdge)
       throws CPATransferException {
     Preconditions.checkArgument(pPrecision instanceof FeatureVarsPrecision, "precision is no FeatureVarsPrecision");
     FeatureVarsPrecision precision = (FeatureVarsPrecision) pPrecision;
-    FeatureVarsElement fvElement = (FeatureVarsElement) element;
+    FeatureVarsState fvElement = (FeatureVarsState) element;
     if (fvElement.getRegion().isFalse()) {
       return Collections.emptyList();
     }
@@ -90,7 +90,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       return Collections.singleton(fvElement);
     }
 
-    FeatureVarsElement successor;
+    FeatureVarsState successor;
     // check the type of the edge
     switch (cfaEdge.getEdgeType()) {
 
@@ -122,11 +122,11 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     }
   }
 
-  private FeatureVarsElement getAbstractSuccessor(
-      FeatureVarsElement fvElement, FeatureVarsPrecision precision, CFAEdge cfaEdge)
+  private FeatureVarsState getAbstractSuccessor(
+      FeatureVarsState fvElement, FeatureVarsPrecision precision, CFAEdge cfaEdge)
       throws CPATransferException {
 
-    FeatureVarsElement successor = fvElement;
+    FeatureVarsState successor = fvElement;
     // check the type of the edge
     switch (cfaEdge.getEdgeType()) {
     // if edge is a statement edge, e.g. a = b + c
@@ -162,7 +162,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     return successor;
   }
 
-  private FeatureVarsElement handleStatementEdge(FeatureVarsElement element,
+  private FeatureVarsState handleStatementEdge(FeatureVarsState element,
       IASTStatement pIastStatement, StatementEdge cfaEdge,
       FeatureVarsPrecision pPrecision) {
 
@@ -172,7 +172,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     IASTAssignment assignment = (IASTAssignment)pIastStatement;
 
     IASTExpression lhs = assignment.getLeftHandSide();
-    FeatureVarsElement result = element;
+    FeatureVarsState result = element;
     if (lhs instanceof IASTIdExpression || lhs instanceof IASTFieldReference
         || lhs instanceof IASTArraySubscriptExpression) {
       String varName = lhs.toASTString();//this.getvarName(op.getRawSignature(), functionName);
@@ -188,10 +188,10 @@ public class FeatureVarsTransferRelation implements TransferRelation {
 
           if (value.trim().equals("0")) {
             Region operand = rmgr.makeNot(rmgr.createPredicate(varName));
-            result = new FeatureVarsElement(rmgr.makeAnd(element.getRegion(), operand), rmgr);
+            result = new FeatureVarsState(rmgr.makeAnd(element.getRegion(), operand), rmgr);
           } else {
             Region operand = rmgr.createPredicate(varName);
-            result = new FeatureVarsElement(rmgr.makeAnd(element.getRegion(), operand), rmgr);
+            result = new FeatureVarsState(rmgr.makeAnd(element.getRegion(), operand), rmgr);
           }
         }
       }
@@ -200,11 +200,11 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     return result;
   }
 
-  private FeatureVarsElement handleAssumption(FeatureVarsElement element,
+  private FeatureVarsState handleAssumption(FeatureVarsState element,
       IASTExpression expression, CFAEdge cfaEdge, boolean truthValue,
       FeatureVarsPrecision precision) throws UnrecognizedCCodeException {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
-    FeatureVarsElement result = handleBooleanExpression(element, expression, functionName, truthValue, precision, cfaEdge);
+    FeatureVarsState result = handleBooleanExpression(element, expression, functionName, truthValue, precision, cfaEdge);
     if (result.getRegion().isFalse()) {
       return null; // assumption is not fulfilled / not possible
     } else {
@@ -212,7 +212,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     }
   }
 
-  private FeatureVarsElement handleBooleanExpression(FeatureVarsElement element,
+  private FeatureVarsState handleBooleanExpression(FeatureVarsState element,
       IASTExpression op, String functionName, boolean pTruthValue,
       FeatureVarsPrecision precision, CFAEdge edge) throws UnrecognizedCCodeException {
     Region operand = propagateBooleanExpression(element, op, functionName, precision, edge);
@@ -228,11 +228,11 @@ public class FeatureVarsTransferRelation implements TransferRelation {
           rmgr.makeAnd(element.getRegion(),
                 rmgr.makeNot(operand));
       }
-      return new FeatureVarsElement(newRegion, rmgr);
+      return new FeatureVarsState(newRegion, rmgr);
     }
   }
 
-  private Region propagateBooleanExpression(FeatureVarsElement element,
+  private Region propagateBooleanExpression(FeatureVarsState element,
       IASTExpression op, String functionName, FeatureVarsPrecision precision, CFAEdge edge)
     throws UnrecognizedCCodeException {
     Region operand = null;
@@ -258,7 +258,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     return operand;
   }
 
-  private Region propagateUnaryBooleanExpression(FeatureVarsElement element,
+  private Region propagateUnaryBooleanExpression(FeatureVarsState element,
       UnaryOperator opType, IASTExpression op, String functionName,
       FeatureVarsPrecision precision, CFAEdge edge) throws UnrecognizedCCodeException {
     Region returnValue = null;
@@ -300,7 +300,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     return returnValue;
   }
 
-  private Region propagateBinaryBooleanExpression(FeatureVarsElement element,
+  private Region propagateBinaryBooleanExpression(FeatureVarsState element,
       BinaryOperator opType, IASTExpression op1, IASTExpression op2,
       String functionName, FeatureVarsPrecision precision, CFAEdge edge)
       throws UnrecognizedCCodeException {

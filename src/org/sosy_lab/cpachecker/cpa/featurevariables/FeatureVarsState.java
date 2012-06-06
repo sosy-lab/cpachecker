@@ -28,12 +28,12 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
-public class FeatureVarsElement implements AbstractQueryableState {
+public class FeatureVarsState implements AbstractQueryableState {
 
   private Region currentState;
   private final NamedRegionManager manager;
 
-  public FeatureVarsElement(Region currentState, NamedRegionManager manager) {
+  public FeatureVarsState(Region currentState, NamedRegionManager manager) {
     this.currentState = currentState;
     this.manager = manager;
   }

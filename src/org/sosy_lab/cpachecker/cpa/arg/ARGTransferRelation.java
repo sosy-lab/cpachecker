@@ -49,10 +49,10 @@ public class ARGTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<ARGElement> getAbstractSuccessors(
+  public Collection<ARGState> getAbstractSuccessors(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
-    ARGElement element = (ARGElement)pElement;
+    ARGState element = (ARGState)pElement;
 
     // covered elements may be in the reached set, but should always be ignored
     if (element.isCovered()) {
@@ -67,9 +67,9 @@ public class ARGTransferRelation implements TransferRelation {
       return Collections.emptySet();
     }
 
-    Collection<ARGElement> wrappedSuccessors = new ArrayList<ARGElement>();
+    Collection<ARGState> wrappedSuccessors = new ArrayList<ARGState>();
     for (AbstractState absElement : successors) {
-      ARGElement successorElem = new ARGElement(absElement, element);
+      ARGState successorElem = new ARGState(absElement, element);
       wrappedSuccessors.add(successorElem);
     }
 
@@ -84,14 +84,14 @@ public class ARGTransferRelation implements TransferRelation {
   }
 
   boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors, ProofChecker wrappedProofChecker) throws CPATransferException, InterruptedException {
-    ARGElement element = (ARGElement)pElement;
+    ARGState element = (ARGState)pElement;
 
     assert element.getChildren().equals(pSuccessors);
 
     AbstractState wrappedElement = element.getWrappedElement();
     Multimap<CFAEdge, AbstractState> wrappedSuccessors = HashMultimap.create();
     for (AbstractState absElement : pSuccessors) {
-      ARGElement successorElem = (ARGElement)absElement;
+      ARGState successorElem = (ARGState)absElement;
       wrappedSuccessors.put(element.getEdgeToChild(successorElem), successorElem.getWrappedElement());
     }
 

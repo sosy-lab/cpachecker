@@ -43,10 +43,10 @@ class FunctionPointerStopOperator implements StopOperator {
   public boolean stop(AbstractState pElement,
       Collection<AbstractState> pReached, Precision pPrecision) throws CPAException {
 
-    FunctionPointerElement fpElement = (FunctionPointerElement)pElement;
+    FunctionPointerState fpElement = (FunctionPointerState)pElement;
 
     for (AbstractState reachedElement : pReached) {
-      FunctionPointerElement fpReachedElement = (FunctionPointerElement)reachedElement;
+      FunctionPointerState fpReachedElement = (FunctionPointerState)reachedElement;
       if (stop(fpElement, fpReachedElement, pPrecision)) {
         return true;
       }
@@ -55,7 +55,7 @@ class FunctionPointerStopOperator implements StopOperator {
 
   }
 
-  private boolean stop(FunctionPointerElement pElement, FunctionPointerElement pReachedElement, Precision pPrecision)
+  private boolean stop(FunctionPointerState pElement, FunctionPointerState pReachedElement, Precision pPrecision)
                                                       throws CPAException {
 
     if (!pElement.isLessOrEqualThan(pReachedElement)) {

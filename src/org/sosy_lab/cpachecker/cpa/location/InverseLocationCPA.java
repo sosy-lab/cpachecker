@@ -39,17 +39,17 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.location.LocationElement.LocationElementFactory;
+import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
 
 public class InverseLocationCPA implements ConfigurableProgramAnalysis {
 
-  private final LocationElementFactory elementFactory;
+  private final LocationStateFactory elementFactory;
   private final AbstractDomain abstractDomain = new FlatLatticeDomain();
   private final TransferRelation transferRelation;
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
   public InverseLocationCPA(CFA pCfa) {
-    elementFactory = new LocationElementFactory(pCfa);
+    elementFactory = new LocationStateFactory(pCfa);
     transferRelation = new InverseLocationTransferRelation(elementFactory);
   }
 

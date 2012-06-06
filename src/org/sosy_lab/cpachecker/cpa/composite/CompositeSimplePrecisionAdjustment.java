@@ -51,7 +51,7 @@ class CompositeSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
 
   @Override
   public Action prec(AbstractState pElement, Precision pPrecision) throws CPAException {
-    CompositeElement comp = (CompositeElement) pElement;
+    CompositeState comp = (CompositeState) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
     assert (comp.getWrappedElements().size() == prec.getPrecisions().size());
     int dim = comp.getNumberofElements();

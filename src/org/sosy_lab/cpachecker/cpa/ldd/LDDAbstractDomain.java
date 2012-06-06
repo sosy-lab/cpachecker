@@ -37,15 +37,15 @@ public class LDDAbstractDomain implements AbstractDomain {
 
   public LDDAbstractDomain(LDDRegionManager regionManager) {
     this.regionManager = regionManager;
-    this.topElement = new LDDAbstractElement(regionManager.makeTrue());
+    this.topElement = new LDDAbstractState(regionManager.makeTrue());
   }
 
   @Override
   public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedElement) throws CPAException {
     if (this.topElement.equals(reachedElement) || newElement.equals(reachedElement)) { return true; }
-    if (newElement instanceof LDDAbstractElement && reachedElement instanceof LDDAbstractElement) {
-      LDDAbstractElement lddElement1 = (LDDAbstractElement) newElement;
-      LDDAbstractElement lddElement2 = (LDDAbstractElement) reachedElement;
+    if (newElement instanceof LDDAbstractState && reachedElement instanceof LDDAbstractState) {
+      LDDAbstractState lddElement1 = (LDDAbstractState) newElement;
+      LDDAbstractState lddElement2 = (LDDAbstractState) reachedElement;
       return this.regionManager.entails(lddElement1.getRegion(), lddElement2.getRegion());
     }
     return false;
@@ -55,10 +55,10 @@ public class LDDAbstractDomain implements AbstractDomain {
   public AbstractState join(AbstractState pElement1, AbstractState pElement2) throws CPAException {
     if (isLessOrEqual(pElement1, pElement2)) { return pElement2; }
     if (isLessOrEqual(pElement2, pElement1)) { return pElement1; }
-    if (pElement1 instanceof LDDAbstractElement && pElement2 instanceof LDDAbstractElement) {
-      LDDAbstractElement lddElement1 = (LDDAbstractElement) pElement1;
-      LDDAbstractElement lddElement2 = (LDDAbstractElement) pElement2;
-      return new LDDAbstractElement(this.regionManager.makeOr(lddElement1.getRegion(), lddElement2.getRegion()));
+    if (pElement1 instanceof LDDAbstractState && pElement2 instanceof LDDAbstractState) {
+      LDDAbstractState lddElement1 = (LDDAbstractState) pElement1;
+      LDDAbstractState lddElement2 = (LDDAbstractState) pElement2;
+      return new LDDAbstractState(this.regionManager.makeOr(lddElement1.getRegion(), lddElement2.getRegion()));
     }
     return this.topElement;
   }

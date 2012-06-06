@@ -40,7 +40,7 @@ import com.google.common.collect.HashBiMap;
  * see {@link Variable}.
  *
  */
-class OctElement implements AbstractState{
+class OctState implements AbstractState{
 
   // the octagon representation
   private Octagon octagon;
@@ -48,16 +48,16 @@ class OctElement implements AbstractState{
   // mapping from variable name to its identifier
   private BiMap<String, Integer> variableToIndexMap;
 
-  private OctElement previousElement;
+  private OctState previousElement;
 
   // also top element
-  public OctElement() {
+  public OctState() {
     octagon = OctagonManager.universe(0);
     variableToIndexMap = HashBiMap.create();
     previousElement = null;
   }
 
-  public OctElement(Octagon oct, BiMap<String, Integer> map, OctElement previousElement){
+  public OctState(Octagon oct, BiMap<String, Integer> map, OctState previousElement){
     octagon = oct;
     variableToIndexMap = map;
     this.previousElement = previousElement;
@@ -65,10 +65,10 @@ class OctElement implements AbstractState{
 
   @Override
   public boolean equals(Object pObj) {
-    if(!(pObj instanceof OctElement)) {
+    if(!(pObj instanceof OctState)) {
       return false;
     }
-    OctElement otherOct = (OctElement) pObj;
+    OctState otherOct = (OctState) pObj;
     return this.octagon.equals(otherOct.octagon);
   }
 
@@ -94,11 +94,11 @@ class OctElement implements AbstractState{
     return variableToIndexMap.size();
   }
 
-  public OctElement getPreviousElement() {
+  public OctState getPreviousElement() {
     return previousElement;
   }
 
-  public void setPreviousElement(OctElement pPreviousElement) {
+  public void setPreviousElement(OctState pPreviousElement) {
     this.previousElement = pPreviousElement;
   }
 
@@ -115,7 +115,7 @@ class OctElement implements AbstractState{
   }
 
   @Override
-  protected OctElement clone() {
+  protected OctState clone() {
     Octagon newOct = OctagonManager.full_copy(octagon);
     BiMap<String, Integer> newMap = HashBiMap.create();
 
@@ -123,7 +123,7 @@ class OctElement implements AbstractState{
       newMap.put(e.getKey(), e.getValue());
     }
 
-    return new OctElement(newOct, newMap, this.previousElement);
+    return new OctState(newOct, newMap, this.previousElement);
   }
 
   public boolean addVar(String pVarName, String pFunctionName, boolean pIsGlobal) {
@@ -279,7 +279,7 @@ class OctElement implements AbstractState{
   }
 
   // keep pSizeOfpreviousElem dimensions at the beginning and remove the rest
-  public void removeLocalVariables(OctElement pPreviousElem, int noOfGlobalVars) {
+  public void removeLocalVariables(OctState pPreviousElem, int noOfGlobalVars) {
     int noOfLocalVars = (size()- pPreviousElem.size());
 
     for(int i = size(); i>pPreviousElem.size(); i--){

@@ -37,14 +37,14 @@ public class AssumptionStorageStop implements StopOperator {
 
   @Override
   public boolean stop(AbstractState pElement, Collection<AbstractState> reached, Precision precision) {
-    AssumptionStorageElement element = (AssumptionStorageElement) pElement;
+    AssumptionStorageState element = (AssumptionStorageState) pElement;
 
     if (element.isStop()) {
       // normally we want to keep this element so that the assumption is not lost
       // but we may return true if the new assumption is implied by the old ones
 
       for (AbstractState ae : reached) {
-        AssumptionStorageElement reachedElement = (AssumptionStorageElement)ae;
+        AssumptionStorageState reachedElement = (AssumptionStorageState)ae;
 
         // implication check is costly, so we do a fast syntactical approximation
         if (   reachedElement.getStopFormula().isFalse()

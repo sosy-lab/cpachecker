@@ -54,7 +54,7 @@ public enum AlwaysTopCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialElement(CFANode pNode) {
-    return AlwaysTopElement.INSTANCE;
+    return AlwaysTopState.INSTANCE;
   }
 
   @Override

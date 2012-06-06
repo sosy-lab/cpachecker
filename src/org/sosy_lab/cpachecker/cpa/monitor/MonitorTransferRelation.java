@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.monitor.MonitorElement.TimeoutElement;
+import org.sosy_lab.cpachecker.cpa.monitor.MonitorState.TimeoutState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 
@@ -92,12 +92,12 @@ public class MonitorTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<MonitorElement> getAbstractSuccessors(
+  public Collection<MonitorState> getAbstractSuccessors(
       AbstractState pElement, final Precision pPrecision, final CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
-    final MonitorElement element = (MonitorElement)pElement;
+    final MonitorState element = (MonitorState)pElement;
 
-    if (element.getWrappedElement() == TimeoutElement.INSTANCE) {
+    if (element.getWrappedElement() == TimeoutState.INSTANCE) {
       // cannot compute a successor
       return Collections.emptySet();
     }
@@ -107,7 +107,7 @@ public class MonitorTransferRelation implements TransferRelation {
     TransferCallable tc = new TransferCallable() {
       @Override
       public Collection<? extends AbstractState> call() throws CPATransferException, InterruptedException {
-        assert !(element.getWrappedElement() instanceof MonitorElement) : element;
+        assert !(element.getWrappedElement() instanceof MonitorState) : element;
         return transferRelation.getAbstractSuccessors(element.getWrappedElement(), pPrecision, pCfaEdge);
       }
     };
@@ -128,7 +128,7 @@ public class MonitorTransferRelation implements TransferRelation {
         preventingCondition = Pair.of(PreventingHeuristic.SUCCESSORCOMPTIME, timeLimit);
 
         // add dummy successor
-        successors = Collections.singleton(TimeoutElement.INSTANCE);
+        successors = Collections.singleton(TimeoutState.INSTANCE);
 
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
@@ -136,7 +136,7 @@ public class MonitorTransferRelation implements TransferRelation {
         preventingCondition = Pair.of(PreventingHeuristic.SUCCESSORCOMPTIME, timeLimit);
 
         // add dummy successor
-        successors = Collections.singleton(TimeoutElement.INSTANCE);
+        successors = Collections.singleton(TimeoutState.INSTANCE);
 
       } catch (ExecutionException e) {
         Throwables.propagateIfPossible(e.getCause(), CPATransferException.class);
@@ -164,9 +164,9 @@ public class MonitorTransferRelation implements TransferRelation {
     }
 
     // wrap elements
-    List<MonitorElement> wrappedSuccessors = new ArrayList<MonitorElement>(successors.size());
+    List<MonitorState> wrappedSuccessors = new ArrayList<MonitorState>(successors.size());
     for (AbstractState absElement : successors) {
-      MonitorElement successorElem = new MonitorElement(absElement, totalTimeOnPath, preventingCondition);
+      MonitorState successorElem = new MonitorState(absElement, totalTimeOnPath, preventingCondition);
 
       wrappedSuccessors.add(successorElem);
     }
@@ -177,9 +177,9 @@ public class MonitorTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> strengthen(AbstractState pElement,
       final List<AbstractState> otherElements, final CFAEdge cfaEdge,
       final Precision precision) throws CPATransferException, InterruptedException {
-    final MonitorElement element = (MonitorElement)pElement;
+    final MonitorState element = (MonitorState)pElement;
 
-    if (element.getWrappedElement() == TimeoutElement.INSTANCE) {
+    if (element.getWrappedElement() == TimeoutState.INSTANCE) {
       // ignore strengthen
       return null;
     }
@@ -208,7 +208,7 @@ public class MonitorTransferRelation implements TransferRelation {
         preventingCondition = Pair.of(PreventingHeuristic.SUCCESSORCOMPTIME, timeLimit);
 
         // add dummy successor
-        successors = Collections.singleton(TimeoutElement.INSTANCE);
+        successors = Collections.singleton(TimeoutState.INSTANCE);
 
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
@@ -216,7 +216,7 @@ public class MonitorTransferRelation implements TransferRelation {
         preventingCondition = Pair.of(PreventingHeuristic.SUCCESSORCOMPTIME, timeLimit);
 
         // add dummy successor
-        successors = Collections.singleton(TimeoutElement.INSTANCE);
+        successors = Collections.singleton(TimeoutState.INSTANCE);
 
       } catch (ExecutionException e) {
         Throwables.propagateIfPossible(e.getCause(), CPATransferException.class);
@@ -254,9 +254,9 @@ public class MonitorTransferRelation implements TransferRelation {
     }
 
     // wrap elements
-    List<MonitorElement> wrappedSuccessors = new ArrayList<MonitorElement>(successors.size());
+    List<MonitorState> wrappedSuccessors = new ArrayList<MonitorState>(successors.size());
     for (AbstractState absElement : successors) {
-      MonitorElement successorElem = new MonitorElement(
+      MonitorState successorElem = new MonitorState(
           absElement, totalTimeOnPath, preventingCondition);
 
       wrappedSuccessors.add(successorElem);

@@ -124,7 +124,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
         return false;
       }
       else{
-        pReachedSet.add(new DummyErrorElement(), SingletonPrecision.getInstance());
+        pReachedSet.add(new DummyErrorState(), SingletonPrecision.getInstance());
         assert pReachedSet.size() == 1 && pReachedSet.hasWaitingElement();
 
         // remove dummy element from waitlist
@@ -178,7 +178,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private static class DummyErrorElement implements AbstractState, Targetable {
+  private static class DummyErrorState implements AbstractState, Targetable {
 
     @Override
     public boolean isTarget() {

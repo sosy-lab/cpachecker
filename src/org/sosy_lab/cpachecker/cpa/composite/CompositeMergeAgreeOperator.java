@@ -63,8 +63,8 @@ public class CompositeMergeAgreeOperator implements MergeOperator {
                                Precision precision) throws CPAException {
 
     // Merge Sep Code
-    CompositeElement comp1 = (CompositeElement) element1;
-    CompositeElement comp2 = (CompositeElement) element2;
+    CompositeState comp1 = (CompositeState) element1;
+    CompositeState comp2 = (CompositeState) element2;
     CompositePrecision compositePrec = (CompositePrecision) precision;
 
     assert(comp1.getNumberofElements() == comp2.getNumberofElements());
@@ -104,7 +104,7 @@ public class CompositeMergeAgreeOperator implements MergeOperator {
     if (identicElements) {
       return element2;
     } else {
-      return new CompositeElement(mergedElements.build());
+      return new CompositeState(mergedElements.build());
     }
   }
 }

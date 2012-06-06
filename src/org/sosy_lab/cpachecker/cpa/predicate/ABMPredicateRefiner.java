@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.abm.AbstractABMBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableRelevantPredicatesComputer;
@@ -142,7 +142,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
 
   /**
    * This is a small extension of PredicateRefiner that overrides
-   * {@link #getFormulasForPath(List, ARGElement)} so that it respects ABM.
+   * {@link #getFormulasForPath(List, ARGState)} so that it respects ABM.
    */
   static final class ExtendedPredicateRefiner extends PredicateRefiner {
 
@@ -184,28 +184,28 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
       return super.performRefinement(pReached, pPath);
     }
 
-    private static final Function<PredicateAbstractElement, Region> GET_REGION
-    = new Function<PredicateAbstractElement, Region>() {
+    private static final Function<PredicateAbstractState, Region> GET_REGION
+    = new Function<PredicateAbstractState, Region>() {
         @Override
-        public Region apply(PredicateAbstractElement e) {
+        public Region apply(PredicateAbstractState e) {
           assert e.isAbstractionElement();
           return e.getAbstractionFormula().asRegion();
         };
       };
 
-    private List<Region> getRegionsForPath(List<Pair<ARGElement, CFANode>> path) throws CPATransferException {
+    private List<Region> getRegionsForPath(List<Pair<ARGState, CFANode>> path) throws CPATransferException {
       return transform(path,
           Functions.compose(
               GET_REGION,
           Functions.compose(
-              AbstractStates.extractElementByTypeFunction(PredicateAbstractElement.class),
-              Pair.<ARGElement>getProjectionToFirst())));
+              AbstractStates.extractElementByTypeFunction(PredicateAbstractState.class),
+              Pair.<ARGState>getProjectionToFirst())));
     }
 
     @Override
     protected void performRefinement(
         ARGReachedSet pReached,
-        List<Pair<ARGElement, CFANode>> pPath,
+        List<Pair<ARGState, CFANode>> pPath,
         CounterexampleTraceInfo<Collection<AbstractionPredicate>> pCounterexample,
         boolean pRepeatedCounterexample) throws CPAException {
 
@@ -231,7 +231,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
       super.performRefinement(pReached, pPath, pCounterexample, pRepeatedCounterexample);
     }
 
-    private void refineRelevantPredicatesComputer(List<Pair<ARGElement, CFANode>> pPath, ARGReachedSet pReached) {
+    private void refineRelevantPredicatesComputer(List<Pair<ARGState, CFANode>> pPath, ARGReachedSet pReached) {
       UnmodifiableReachedSet reached = pReached.asReachedSet();
       Precision oldPrecision = reached.getPrecision(reached.getLastElement());
       PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
@@ -239,7 +239,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
       BlockPartitioning partitioning = predicateCpa.getPartitioning();
       Deque<Block> openBlocks = new ArrayDeque<Block>();
       openBlocks.push(partitioning.getMainBlock());
-      for (Pair<ARGElement, CFANode> pathElement : pPath) {
+      for (Pair<ARGState, CFANode> pathElement : pPath) {
         CFANode currentNode = pathElement.getSecond();
         if(partitioning.isCallNode(currentNode)) {
           openBlocks.push(partitioning.getBlockForCallNode(currentNode));
@@ -261,7 +261,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
     }
 
     @Override
-    protected final List<Formula> getFormulasForPath(List<Pair<ARGElement, CFANode>> pPath, ARGElement initialElement) throws CPATransferException {
+    protected final List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> pPath, ARGState initialElement) throws CPATransferException {
       // the elements in the path are not expanded, so they contain the path formulas
       // with the wrong indices
       // we need to re-create all path formulas in the flattened ARG
@@ -275,11 +275,11 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
       }
     }
 
-    private List<Formula> computeBlockFormulas(ARGElement pRoot) throws CPATransferException {
+    private List<Formula> computeBlockFormulas(ARGState pRoot) throws CPATransferException {
 
-      Map<ARGElement, PathFormula> formulas = new HashMap<ARGElement, PathFormula>();
+      Map<ARGState, PathFormula> formulas = new HashMap<ARGState, PathFormula>();
       List<Formula> abstractionFormulas = Lists.newArrayList();
-      Deque<ARGElement> todo = new ArrayDeque<ARGElement>();
+      Deque<ARGState> todo = new ArrayDeque<ARGState>();
 
       // initialize
       assert pRoot.getParents().isEmpty();
@@ -288,14 +288,14 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
 
       // iterate over all elements in the ARG with BFS
       outer: while (!todo.isEmpty()) {
-        ARGElement currentElement = todo.pollFirst();
+        ARGState currentElement = todo.pollFirst();
         if (formulas.containsKey(currentElement)) {
           continue; // already handled
         }
 
         // collect formulas for current location
         List<PathFormula> currentFormulas = Lists.newArrayListWithExpectedSize(currentElement.getParents().size());
-        for (ARGElement parentElement : currentElement.getParents()) {
+        for (ARGState parentElement : currentElement.getParents()) {
           PathFormula parentFormula = formulas.get(parentElement);
           if (parentFormula == null) {
             // parent not handled yet, re-queue current element
@@ -310,7 +310,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
         }
         assert currentFormulas.size() >= 1;
 
-        PredicateAbstractElement predicateElement = extractElementByType(currentElement, PredicateAbstractElement.class);
+        PredicateAbstractState predicateElement = extractElementByType(currentElement, PredicateAbstractState.class);
         if (predicateElement.isAbstractionElement()) {
           // abstraction element
           PathFormula currentFormula = getOnlyElement(currentFormulas);

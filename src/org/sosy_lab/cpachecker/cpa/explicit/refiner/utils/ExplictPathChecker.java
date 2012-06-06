@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitElement;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -63,7 +63,7 @@ public class ExplictPathChecker {
       Configuration config = Configuration.builder().build();
 
       TransferRelation transfer   = new ExplicitTransferRelation(config);
-      AbstractState next        = new ExplicitElement();
+      AbstractState next        = new ExplicitState();
       ExplicitPrecision precision = new ExplicitPrecision("", config);
 
       precision.getIgnore().setMapping(variablesToBeIgnored);

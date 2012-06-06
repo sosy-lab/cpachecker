@@ -32,11 +32,11 @@ public class BDDDomain implements AbstractDomain {
 
   @Override
   public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedElement) {
-    return ((BDDElement) newElement).isLessOrEqual((BDDElement) reachedElement);
+    return ((BDDState) newElement).isLessOrEqual((BDDState) reachedElement);
   }
 
   @Override
   public AbstractState join(AbstractState newElement, AbstractState reachedElement) {
-    return ((BDDElement) newElement).join((BDDElement) reachedElement);
+    return ((BDDState) newElement).join((BDDState) reachedElement);
   }
 }

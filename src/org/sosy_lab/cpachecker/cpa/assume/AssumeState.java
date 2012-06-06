@@ -21,21 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.ldd;
+package org.sosy_lab.cpachecker.cpa.assume;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.predicates.ldd.LDDRegion;
 
-public class LDDAbstractElement implements AbstractState {
-
-  private LDDRegion region;
-
-  public LDDAbstractElement(LDDRegion region) {
-    this.region = region;
-  }
-
-  public LDDRegion getRegion() {
-    return this.region;
-  }
+public interface AssumeState extends AbstractState {
 
 }

@@ -75,7 +75,7 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
 
   @Override
   public AvoidanceReportingState getInitialElement(CFANode pNode) {
-    return new RepetitionsInPathConditionElement(ImmutableMap.<CFAEdge, Integer>of(), threshold, false);
+    return new RepetitionsInPathConditionState(ImmutableMap.<CFAEdge, Integer>of(), threshold, false);
   }
 
   private boolean isInteresting(CFAEdge edge) {
@@ -85,7 +85,7 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
 
   @Override
   public AvoidanceReportingState getAbstractSuccessor(AbstractState pElement, CFAEdge pEdge) {
-    RepetitionsInPathConditionElement element = (RepetitionsInPathConditionElement)pElement;
+    RepetitionsInPathConditionState element = (RepetitionsInPathConditionState)pElement;
 
     if (!isInteresting(pEdge)) {
       return element;
@@ -105,7 +105,7 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
     Map<CFAEdge, Integer> newFrequencyMap = Maps.newHashMap(element.frequencyMap);
     newFrequencyMap.put(pEdge, repetitions);
 
-    return new RepetitionsInPathConditionElement(newFrequencyMap, threshold, thresholdReached);
+    return new RepetitionsInPathConditionState(newFrequencyMap, threshold, thresholdReached);
   }
 
   @Override
@@ -134,13 +134,13 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
   }
 
 
-  private static class RepetitionsInPathConditionElement implements AbstractState, AvoidanceReportingState {
+  private static class RepetitionsInPathConditionState implements AbstractState, AvoidanceReportingState {
 
     private final ImmutableMap<CFAEdge, Integer> frequencyMap;
     private final int threshold;
     private final boolean thresholdReached;
 
-    private RepetitionsInPathConditionElement(Map<CFAEdge, Integer> pFrequencyMap,
+    private RepetitionsInPathConditionState(Map<CFAEdge, Integer> pFrequencyMap,
         int pThreshold, boolean pThresholdReached) {
       frequencyMap = ImmutableMap.copyOf(pFrequencyMap);
       threshold = pThreshold;

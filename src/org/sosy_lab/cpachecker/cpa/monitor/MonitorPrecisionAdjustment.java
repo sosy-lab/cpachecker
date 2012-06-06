@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
-import org.sosy_lab.cpachecker.cpa.monitor.MonitorElement.TimeoutElement;
+import org.sosy_lab.cpachecker.cpa.monitor.MonitorState.TimeoutState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 
@@ -41,7 +41,7 @@ import com.google.common.base.Preconditions;
 /**
  * Precision Adjustment for Monitoring.
  * Simply delegates the operation to the wrapped CPA's precision adjustment operator
- * and updates the {@link MonitorElement} based on this computation.
+ * and updates the {@link MonitorState} based on this computation.
  */
 public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
 
@@ -58,16 +58,16 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
       AbstractState pElement, Precision oldPrecision,
       UnmodifiableReachedSet pElements) throws CPAException {
 
-    Preconditions.checkArgument(pElement instanceof MonitorElement);
-    MonitorElement element = (MonitorElement)pElement;
+    Preconditions.checkArgument(pElement instanceof MonitorState);
+    MonitorState element = (MonitorState)pElement;
 
-    if (element.getWrappedElement() == TimeoutElement.INSTANCE) {
+    if (element.getWrappedElement() == TimeoutState.INSTANCE) {
       // we can't call prec() in this case because we don't have an element of the CPA
       return Triple.of(pElement, oldPrecision, Action.CONTINUE);
     }
 
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
-        pElements,  MonitorElement.getUnwrapFunction(), Functions.<Precision>identity());
+        pElements,  MonitorState.getUnwrapFunction(), Functions.<Precision>identity());
     // TODO we really would have to filter out all TimeoutElements in this view
 
     AbstractState oldElement = element.getWrappedElement();
@@ -92,8 +92,8 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
 
       // no. of nodes and no. of branches on the path does not change, just update the
       // set the adjusted wrapped element and update the time
-    MonitorElement resultElement =
-      new MonitorElement(newElement, updatedTotalTime, preventingCondition);
+    MonitorState resultElement =
+      new MonitorState(newElement, updatedTotalTime, preventingCondition);
 
     return Triple.<AbstractState, Precision, Action>of(resultElement, newPrecision, action);
   }

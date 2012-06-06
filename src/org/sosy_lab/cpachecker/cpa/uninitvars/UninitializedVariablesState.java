@@ -35,7 +35,7 @@ import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-public class UninitializedVariablesElement implements AbstractQueryableState {
+public class UninitializedVariablesState implements AbstractQueryableState {
 
   private final Collection<String> globalVars;
   private final Deque<Pair<String, Collection<String>>> localVars;
@@ -45,7 +45,7 @@ public class UninitializedVariablesElement implements AbstractQueryableState {
   static enum ElementProperty {UNINITIALIZED_RETURN_VALUE, UNINITIALIZED_VARIABLE_USED}
   private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class); // emptySet
 
-  public UninitializedVariablesElement(String entryFunction) {
+  public UninitializedVariablesState(String entryFunction) {
     globalVars = new ArrayList<String>();
     localVars = new LinkedList<Pair<String, Collection<String>>>();
     warnings = new ArrayList<Triple<Integer, String, String>>();
@@ -53,7 +53,7 @@ public class UninitializedVariablesElement implements AbstractQueryableState {
     callFunction(entryFunction);
   }
 
-  public UninitializedVariablesElement(Collection<String> globalVars,
+  public UninitializedVariablesState(Collection<String> globalVars,
                                        Deque<Pair<String, Collection<String>>> localVars,
                                        Collection<Triple<Integer, String, String>> warnings) {
     this.globalVars = globalVars;
@@ -119,14 +119,14 @@ public class UninitializedVariablesElement implements AbstractQueryableState {
 
   @Override
   public boolean equals(Object o) {
-    if (o == null || !(o instanceof UninitializedVariablesElement)) {
+    if (o == null || !(o instanceof UninitializedVariablesState)) {
       return false;
     }
     if (this == o) {
       return true;
     }
 
-    UninitializedVariablesElement otherElement = (UninitializedVariablesElement)o;
+    UninitializedVariablesState otherElement = (UninitializedVariablesState)o;
 
     return globalVars.equals(otherElement.globalVars)
         && localVars.equals(otherElement.localVars);
@@ -138,7 +138,7 @@ public class UninitializedVariablesElement implements AbstractQueryableState {
   }
 
   @Override
-  protected UninitializedVariablesElement clone() {
+  protected UninitializedVariablesState clone() {
     LinkedList<Pair<String, Collection<String>>> newLocalVars =
                                     new LinkedList<Pair<String, Collection<String>>>();
 
@@ -147,7 +147,7 @@ public class UninitializedVariablesElement implements AbstractQueryableState {
                                    (Collection<String>)new ArrayList<String>(localContext.getSecond())));
     }
 
-    return new UninitializedVariablesElement(new ArrayList<String>(globalVars), newLocalVars,
+    return new UninitializedVariablesState(new ArrayList<String>(globalVars), newLocalVars,
                                              new ArrayList<Triple<Integer, String, String>>(warnings));
   }
 

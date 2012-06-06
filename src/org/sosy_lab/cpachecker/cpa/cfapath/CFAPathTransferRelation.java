@@ -36,23 +36,23 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class CFAPathTransferRelation implements TransferRelation {
 
-  private static final Set<CFAPathTopElement> sTopElementSingleton = CFAPathTopElement.getSingleton();
+  private static final Set<CFAPathTopState> sTopElementSingleton = CFAPathTopState.getSingleton();
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
-    if (pElement.equals(CFAPathTopElement.getInstance())) {
+    if (pElement.equals(CFAPathTopState.getInstance())) {
       return sTopElementSingleton;
     }
 
-    if (!(pElement instanceof CFAPathStandardElement)) {
+    if (!(pElement instanceof CFAPathStandardState)) {
       throw new IllegalArgumentException();
     }
 
-    CFAPathStandardElement lCurrentElement = (CFAPathStandardElement)pElement;
+    CFAPathStandardState lCurrentElement = (CFAPathStandardState)pElement;
 
-    CFAPathStandardElement lSuccessor = new CFAPathStandardElement(lCurrentElement, pCfaEdge);
+    CFAPathStandardState lSuccessor = new CFAPathStandardState(lCurrentElement, pCfaEdge);
 
     return Collections.singleton(lSuccessor);
   }

@@ -31,16 +31,16 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.collect.ImmutableSet;
 
-public class DefUseElement implements AbstractState, Iterable<DefUseDefinition>
+public class DefUseState implements AbstractState, Iterable<DefUseDefinition>
 {
     private final Set<DefUseDefinition> definitions;
 
-    public DefUseElement (Set<DefUseDefinition> definitions)
+    public DefUseState (Set<DefUseDefinition> definitions)
     {
       this.definitions = ImmutableSet.copyOf(definitions);
     }
 
-    public DefUseElement(DefUseElement definitions, DefUseDefinition newDefinition) {
+    public DefUseState(DefUseState definitions, DefUseDefinition newDefinition) {
       ImmutableSet.Builder<DefUseDefinition> builder = ImmutableSet.builder();
       builder.add(newDefinition);
       for(DefUseDefinition def : definitions.definitions) {
@@ -57,7 +57,7 @@ public class DefUseElement implements AbstractState, Iterable<DefUseDefinition>
         return definitions.iterator ();
     }
 
-    public boolean containsAllOf(DefUseElement other) {
+    public boolean containsAllOf(DefUseState other) {
       return definitions.containsAll(other.definitions);
     }
 
@@ -68,11 +68,11 @@ public class DefUseElement implements AbstractState, Iterable<DefUseDefinition>
           return true;
         }
 
-        if (!(other instanceof DefUseElement)) {
+        if (!(other instanceof DefUseState)) {
           return false;
         }
 
-        DefUseElement otherDefUse = (DefUseElement) other;
+        DefUseState otherDefUse = (DefUseState) other;
         return otherDefUse.definitions.equals(this.definitions);
     }
 

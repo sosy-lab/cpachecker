@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackElement;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
@@ -41,10 +41,10 @@ public class CallstackSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 
   @Override
   protected Integer getSortKey(AbstractState pElement) {
-    CallstackElement callstackElement =
-      AbstractStates.extractElementByType(pElement, CallstackElement.class);
+    CallstackState callstackState =
+      AbstractStates.extractElementByType(pElement, CallstackState.class);
 
-    return (callstackElement != null) ? callstackElement.getDepth() : 0;
+    return (callstackState != null) ? callstackState.getDepth() : 0;
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {

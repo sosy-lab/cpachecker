@@ -71,42 +71,42 @@ public class CompositeTransferRelation implements TransferRelation{
   }
 
   @Override
-  public Collection<CompositeElement> getAbstractSuccessors(AbstractState element, Precision precision, CFAEdge cfaEdge)
+  public Collection<CompositeState> getAbstractSuccessors(AbstractState element, Precision precision, CFAEdge cfaEdge)
         throws CPATransferException, InterruptedException {
-    CompositeElement compositeElement = (CompositeElement) element;
+    CompositeState compositeState = (CompositeState) element;
     CompositePrecision compositePrecision = (CompositePrecision)precision;
-    Collection<CompositeElement> results;
+    Collection<CompositeState> results;
 
     if (cfaEdge == null) {
-      CFANode node = extractLocation(compositeElement);
+      CFANode node = extractLocation(compositeState);
       if (node == null) {
         throw new CPATransferException("Analysis without LocationCPA is not supported, please add one to the configuration");
       }
 
-      results = new ArrayList<CompositeElement>(node.getNumLeavingEdges());
+      results = new ArrayList<CompositeState>(node.getNumLeavingEdges());
 
       for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
         CFAEdge edge = node.getLeavingEdge(edgeIdx);
-        getAbstractSuccessorForEdge(compositeElement, compositePrecision, edge, results);
+        getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
       }
 
     } else {
-      results = new ArrayList<CompositeElement>(1);
-      getAbstractSuccessorForEdge(compositeElement, compositePrecision, cfaEdge, results);
+      results = new ArrayList<CompositeState>(1);
+      getAbstractSuccessorForEdge(compositeState, compositePrecision, cfaEdge, results);
 
     }
 
     return results;
   }
 
-  private void getAbstractSuccessorForEdge(CompositeElement compositeElement, CompositePrecision compositePrecision, CFAEdge cfaEdge,
-      Collection<CompositeElement> compositeSuccessors) throws CPATransferException, InterruptedException {
+  private void getAbstractSuccessorForEdge(CompositeState compositeState, CompositePrecision compositePrecision, CFAEdge cfaEdge,
+      Collection<CompositeState> compositeSuccessors) throws CPATransferException, InterruptedException {
     assert cfaEdge != null;
 
 
     // first, call all the post operators
     int resultCount = 1;
-    List<AbstractState> componentElements = compositeElement.getWrappedElements();
+    List<AbstractState> componentElements = compositeState.getWrappedElements();
     List<Collection<? extends AbstractState>> allComponentsSuccessors = new ArrayList<Collection<? extends AbstractState>>(size);
 
     for (int i = 0; i < size; i++) {
@@ -175,9 +175,9 @@ public class CompositeTransferRelation implements TransferRelation{
       Collection<List<AbstractState>> lResultingElements
           = createCartesianProduct(lStrengthenResults, resultCount);
 
-      // finally, create a CompositeElement for each result of the cartesian product
+      // finally, create a CompositeState for each result of the cartesian product
       for (List<AbstractState> lList : lResultingElements) {
-        compositeSuccessors.add(new CompositeElement(lList));
+        compositeSuccessors.add(new CompositeState(lList));
       }
     }
   }
@@ -240,14 +240,14 @@ public class CompositeTransferRelation implements TransferRelation{
   boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors, List<ConfigurableProgramAnalysis> cpas) throws CPATransferException, InterruptedException {
     Preconditions.checkNotNull(pCfaEdge);
 
-    CompositeElement compositeElement = (CompositeElement)pElement;
+    CompositeState compositeState = (CompositeState)pElement;
 
     int resultCount = 1;
     boolean result = true;
     for(int i = 0; i < size; ++i) {
       Set<AbstractState> componentSuccessors = new HashSet<AbstractState>();
       for(AbstractState successor : pSuccessors) {
-        CompositeElement compositeSuccessor = (CompositeElement)successor;
+        CompositeState compositeSuccessor = (CompositeState)successor;
         if(compositeSuccessor.getNumberofElements() != size) {
           return false;
         }
@@ -255,7 +255,7 @@ public class CompositeTransferRelation implements TransferRelation{
       }
       resultCount *= componentSuccessors.size();
       ProofChecker componentProofChecker = (ProofChecker)cpas.get(i);
-      if(!componentProofChecker.areAbstractSuccessors(compositeElement.get(i), pCfaEdge, componentSuccessors)) {
+      if(!componentProofChecker.areAbstractSuccessors(compositeState.get(i), pCfaEdge, componentSuccessors)) {
         result = false; //if there are no successors it might be still ok if one of the other components is fine with the empty set
       } else {
         if(componentSuccessors.isEmpty()) {

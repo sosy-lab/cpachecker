@@ -40,17 +40,17 @@ enum AlwaysTopTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessors(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) {
 
-    assert pElement == AlwaysTopElement.INSTANCE;
+    assert pElement == AlwaysTopState.INSTANCE;
     assert pPrecision == AlwaysTopPrecision.INSTANCE;
 
-    return Collections.singleton(AlwaysTopElement.INSTANCE);
+    return Collections.singleton(AlwaysTopState.INSTANCE);
   }
 
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState pElement,
       List<AbstractState> pOtherElements, CFAEdge pCfaEdge, Precision pPrecision) {
 
-    assert pElement == AlwaysTopElement.INSTANCE;
+    assert pElement == AlwaysTopState.INSTANCE;
     assert pPrecision == AlwaysTopPrecision.INSTANCE;
 
     return null;

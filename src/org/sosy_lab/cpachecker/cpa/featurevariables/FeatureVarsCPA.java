@@ -56,7 +56,7 @@ public class FeatureVarsCPA implements ConfigurableProgramAnalysis {
           description="whitelist regex for variables that will be tracked by FeatureVarsCPA")
   private String variableWhitelist = "";
 
-  private final FeatureVarsElement initialElement;
+  private final FeatureVarsState initialElement;
   private final FeatureVarsPrecision initialPrecision;
 
   private final AbstractDomain abstractDomain;
@@ -70,7 +70,7 @@ public class FeatureVarsCPA implements ConfigurableProgramAnalysis {
 
     NamedRegionManager manager = new NamedRegionManager(BDDRegionManager.getInstance());
 
-    initialElement = new FeatureVarsElement(manager.makeTrue(), manager);
+    initialElement = new FeatureVarsState(manager.makeTrue(), manager);
     initialPrecision = new FeatureVarsPrecision(variableWhitelist);
 
     abstractDomain = new FeatureVarsDomain(manager);

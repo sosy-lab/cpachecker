@@ -36,14 +36,14 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Preconditions;
 
-public class MonitorElement extends AbstractSingleWrapperState implements AvoidanceReportingState {
+public class MonitorState extends AbstractSingleWrapperState implements AvoidanceReportingState {
   /* Boilerplate code to avoid serializing this class */
   private static final long serialVersionUID = 0xDEADBEEF;
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     throw new NotSerializableException();
   }
 
-  static enum TimeoutElement implements AbstractState {
+  static enum TimeoutState implements AbstractState {
     INSTANCE;
 
     @Override
@@ -57,15 +57,15 @@ public class MonitorElement extends AbstractSingleWrapperState implements Avoida
   // stores what caused the element to go further (may be null)
   private final Pair<PreventingHeuristic, Long> preventingCondition;
 
-  protected MonitorElement(AbstractState pWrappedElement, long totalTimeOnPath) {
+  protected MonitorState(AbstractState pWrappedElement, long totalTimeOnPath) {
     this(pWrappedElement, totalTimeOnPath, null);
   }
 
-  protected MonitorElement(AbstractState pWrappedElement, long totalTimeOnPath,
+  protected MonitorState(AbstractState pWrappedElement, long totalTimeOnPath,
       Pair<PreventingHeuristic, Long> preventingCondition) {
     super(pWrappedElement);
-    Preconditions.checkArgument(!(pWrappedElement instanceof MonitorElement), "Don't wrap a MonitorCPA in a MonitorCPA, this makes no sense!");
-    Preconditions.checkArgument(!(pWrappedElement == TimeoutElement.INSTANCE && preventingCondition == null), "Need a preventingCondition in case of TimeoutElement");
+    Preconditions.checkArgument(!(pWrappedElement instanceof MonitorState), "Don't wrap a MonitorCPA in a MonitorCPA, this makes no sense!");
+    Preconditions.checkArgument(!(pWrappedElement == TimeoutState.INSTANCE && preventingCondition == null), "Need a preventingCondition in case of TimeoutState");
     this.totalTimeOnPath = totalTimeOnPath;
     this.preventingCondition = preventingCondition; // may be null
   }
@@ -78,8 +78,8 @@ public class MonitorElement extends AbstractSingleWrapperState implements Avoida
   public boolean equals(Object pObj) {
     if (this == pObj) {
       return true;
-    } else if (pObj instanceof MonitorElement) {
-      MonitorElement otherElem = (MonitorElement)pObj;
+    } else if (pObj instanceof MonitorState) {
+      MonitorState otherElem = (MonitorState)pObj;
       return this.getWrappedElement().equals(otherElem.getWrappedElement());
     } else {
       return false;

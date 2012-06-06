@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
@@ -71,7 +71,7 @@ import com.google.common.collect.Lists;
 
 /**
  * An implementation of {@link ForcedCovering} which works with
- * {@link PredicateAbstractElement}s and tries to strengthen them the
+ * {@link PredicateAbstractState}s and tries to strengthen them the
  * necessary amount by using interpolation.
  */
 public class PredicateForcedCovering implements ForcedCovering, StatisticsProvider {
@@ -137,7 +137,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
   @Override
   public boolean tryForcedCovering(AbstractState pElement, Precision pPrecision, ReachedSet pReached)
       throws CPAException, InterruptedException {
-    ARGElement argElement = (ARGElement)pElement;
+    ARGState argElement = (ARGState)pElement;
     if (argElement.isCovered()) {
       return false;
     }
@@ -146,7 +146,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
       return false;
     }
 
-    PredicateAbstractElement predicateElement = getPredicateElement(pElement);
+    PredicateAbstractState predicateElement = getPredicateElement(pElement);
     if (!(predicateElement.getAbstractionFormula().asRegion() instanceof SymbolicRegion)) {
       throw new CPAException("Cannot use PredicateForcedCovering with non-symbolic abstractions");
     }
@@ -159,8 +159,8 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
 
     ARGReachedSet arg = new ARGReachedSet(pReached);
 
-    List<ARGElement> parentList = ImmutableList.copyOf(getParentAbstractionElements(argElement)).reverse();
-    Set<ARGElement> parentSet = ImmutableSet.copyOf(parentList);
+    List<ARGState> parentList = ImmutableList.copyOf(getParentAbstractionElements(argElement)).reverse();
+    Set<ARGState> parentSet = ImmutableSet.copyOf(parentList);
 
     for (AbstractState reachedElement : pReached.getReached(pElement)) {
       if (pElement == reachedElement) {
@@ -178,15 +178,15 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         stats.attemptedForcedCoverings++;
         logger.log(Level.ALL, "Candidate for forced-covering is", reachedElement);
 
-        List<ARGElement> reachedParentList = ImmutableList.copyOf(getParentAbstractionElements((ARGElement)reachedElement)).reverse();
-        ARGElement commonParent = Iterables.find(
+        List<ARGState> reachedParentList = ImmutableList.copyOf(getParentAbstractionElements((ARGState)reachedElement)).reverse();
+        ARGState commonParent = Iterables.find(
             reachedParentList,
             Predicates.in(parentSet));
         assert commonParent != null : "Elements do not have common parent, but are in the same reached set";
 
 
-        List<ARGElement> path = new ArrayList<ARGElement>();
-        for (ARGElement pathElement : parentList) {
+        List<ARGState> path = new ArrayList<ARGState>();
+        for (ARGState pathElement : parentList) {
           if (pathElement == commonParent) {
             break;
           }
@@ -221,7 +221,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         path.add(0, commonParent); // now path is [commonParent; argElement] (including x and v)
         assert formulas.size() == path.size() + 1;
 
-        CounterexampleTraceInfo<Formula> interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGElement>emptySet());
+        CounterexampleTraceInfo<Formula> interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGState>emptySet());
 
         if (!interpolantInfo.isSpurious()) {
           logger.log(Level.FINER, "Forced covering unsuccessful.");
@@ -236,15 +236,15 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         assert interpolants.size() == formulas.size() - 1 : "Number of interpolants is wrong";
         assert interpolants.size() == path.size();
 
-        for (Pair<Formula, ARGElement> interpolationPoint : Pair.zipList(interpolants, path)) {
+        for (Pair<Formula, ARGState> interpolationPoint : Pair.zipList(interpolants, path)) {
           Formula itp = interpolationPoint.getFirst();
-          ARGElement element = interpolationPoint.getSecond();
+          ARGState element = interpolationPoint.getSecond();
 
           if (itp.isTrue()) {
             continue;
           }
 
-          PredicateAbstractElement predElement = getPredicateElement(element);
+          PredicateAbstractState predElement = getPredicateElement(element);
           AbstractionFormula af = predElement.getAbstractionFormula();
           if (!solver.implies(af.asFormula(), itp)) {
 
@@ -265,7 +265,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
             : "Forced covering did not cover element\n" + argElement + "\nwith\n" + reachedElement;
 
         if (!argElement.isCovered()) {
-          argElement.setCovered((ARGElement)reachedElement);
+          argElement.setCovered((ARGState)reachedElement);
         } else {
           assert argElement.getCoveringElement() == reachedElement;
         }
@@ -277,18 +277,18 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
     return false;
   }
 
-  private Iterable<ARGElement> getParentAbstractionElements(ARGElement argElement) {
+  private Iterable<ARGState> getParentAbstractionElements(ARGState argElement) {
     Path pathToRoot = ARGUtils.getOnePathTo(argElement);
 
     return Iterables.filter(
-            Iterables.transform(pathToRoot, Pair.<ARGElement>getProjectionToFirst()),
+            Iterables.transform(pathToRoot, Pair.<ARGState>getProjectionToFirst()),
         Predicates.compose(
-            PredicateAbstractElement.FILTER_ABSTRACTION_ELEMENTS,
-            AbstractStates.extractElementByTypeFunction(PredicateAbstractElement.class)));
+            PredicateAbstractState.FILTER_ABSTRACTION_ELEMENTS,
+            AbstractStates.extractElementByTypeFunction(PredicateAbstractState.class)));
   }
 
-  private static PredicateAbstractElement getPredicateElement(AbstractState pElement) {
-    return extractElementByType(pElement, PredicateAbstractElement.class);
+  private static PredicateAbstractState getPredicateElement(AbstractState pElement) {
+    return extractElementByType(pElement, PredicateAbstractState.class);
   }
 
   @Override

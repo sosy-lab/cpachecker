@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
@@ -95,7 +95,7 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
   protected CounterexampleInfo performRefinement(final ARGReachedSet pReached, final Path pPath) throws CPAException, InterruptedException {
     totalRefinement.start();
 
-    Set<ARGElement> elementsOnPath = ARGUtils.getAllElementsOnPathsTo(pPath.getLast().getFirst()); // TODO: make this lazy?
+    Set<ARGState> elementsOnPath = ARGUtils.getAllElementsOnPathsTo(pPath.getLast().getFirst()); // TODO: make this lazy?
 
     boolean branchingOccurred = true;
     if (elementsOnPath.size() == pPath.size()) {
@@ -178,7 +178,7 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
    * @return A list of block formulas for this path.
    * @throws CPATransferException
    */
-  protected abstract List<Formula> getFormulasForPath(List<P> path, ARGElement initialElement) throws CPATransferException;
+  protected abstract List<Formula> getFormulasForPath(List<P> path, ARGState initialElement) throws CPATransferException;
 
   protected abstract void performRefinement(ARGReachedSet pReached, List<P> path,
       CounterexampleTraceInfo<I> counterexample, boolean pRepeatedCounterexample) throws CPAException;
@@ -196,9 +196,9 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
       // find correct path
       Path targetPath;
       try {
-        ARGElement root = pPath.getFirst().getFirst();
-        ARGElement target = pPath.getLast().getFirst();
-        Set<ARGElement> pathElements = ARGUtils.getAllElementsOnPathsTo(target);
+        ARGState root = pPath.getFirst().getFirst();
+        ARGState target = pPath.getLast().getFirst();
+        Set<ARGState> pathElements = ARGUtils.getAllElementsOnPathsTo(target);
 
         targetPath = ARGUtils.getPathFromBranchingInformation(root, target,
             pathElements, preds);

@@ -38,7 +38,7 @@ public class ARGSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
 
   @Override
   public Action prec(AbstractState pElement, Precision pPrecision) throws CPAException {
-    ARGElement element = (ARGElement)pElement;
+    ARGState element = (ARGState)pElement;
 
     return wrappedPrecAdjustment.prec(element.getWrappedElement(), pPrecision);
   }

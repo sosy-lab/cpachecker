@@ -65,13 +65,13 @@ public class PathLengthCondition implements PathCondition, Statistics {
 
   @Override
   public AvoidanceReportingState getInitialElement(CFANode pNode) {
-    return new PathLengthConditionElement(0, false);
+    return new PathLengthConditionState(0, false);
   }
 
   @Override
   public AvoidanceReportingState getAbstractSuccessor(AbstractState pElement, CFAEdge pEdge) {
 
-    PathLengthConditionElement element = (PathLengthConditionElement)pElement;
+    PathLengthConditionState element = (PathLengthConditionState)pElement;
     if (element.thresholdReached) {
       return element;
     }
@@ -81,7 +81,7 @@ public class PathLengthCondition implements PathCondition, Statistics {
 
     maxPathLength = Math.max(pathLength, maxPathLength);
 
-    return new PathLengthConditionElement(pathLength, thresholdReached);
+    return new PathLengthConditionState(pathLength, thresholdReached);
   }
 
   @Override
@@ -110,12 +110,12 @@ public class PathLengthCondition implements PathCondition, Statistics {
   }
 
 
-  private static class PathLengthConditionElement implements AbstractState, AvoidanceReportingState {
+  private static class PathLengthConditionState implements AbstractState, AvoidanceReportingState {
 
     private final int pathLength;
     private final boolean thresholdReached;
 
-    private PathLengthConditionElement(int pPathLength, boolean pThresholdReached) {
+    private PathLengthConditionState(int pPathLength, boolean pThresholdReached) {
       pathLength = pPathLength;
       thresholdReached = pThresholdReached;
     }

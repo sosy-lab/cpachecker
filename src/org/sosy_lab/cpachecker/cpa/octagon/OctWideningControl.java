@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.octagon;
 
 import java.util.HashMap;
 
-import org.sosy_lab.cpachecker.cpa.location.LocationElement;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 
 class OctWideningControl {
 
@@ -67,7 +67,7 @@ class OctWideningControl {
 		}
 	}
 
-	public boolean isWideningUsed(LocationElement le){
+	public boolean isWideningUsed(LocationState le){
 	  Integer nodeId = le.getLocationNode().getNodeNumber();
 		LoopNode ln;
 		if(loopNodeList.containsKey(nodeId)){

@@ -44,8 +44,8 @@ class FunctionPointerDomain implements AbstractDomain {
   public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) throws CPAException {
     // returns true if element1 < element2 on lattice
 
-    FunctionPointerElement elem1 = (FunctionPointerElement) pElement1;
-    FunctionPointerElement elem2 = (FunctionPointerElement) pElement2;
+    FunctionPointerState elem1 = (FunctionPointerState) pElement1;
+    FunctionPointerState elem2 = (FunctionPointerState) pElement2;
 
     return elem1.isLessOrEqualThan(elem2)
         && wrappedDomain.isLessOrEqual(elem1.getWrappedElement(), elem2.getWrappedElement());

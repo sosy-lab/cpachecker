@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.ComputeAbstractionElement;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -68,8 +68,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     totalPrecTime.start();
 
-    if (pElement instanceof ComputeAbstractionElement) {
-      ComputeAbstractionElement element = (ComputeAbstractionElement)pElement;
+    if (pElement instanceof ComputeAbstractionState) {
+      ComputeAbstractionState element = (ComputeAbstractionState)pElement;
       PredicatePrecision precision = (PredicatePrecision)pPrecision;
 
       pElement = computeAbstraction(element, precision);
@@ -83,7 +83,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
    * Compute an abstraction.
    */
   private AbstractState computeAbstraction(
-      ComputeAbstractionElement element,
+      ComputeAbstractionState element,
       PredicatePrecision precision) {
 
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
@@ -115,7 +115,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // create new empty path formula
     PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
-    return PredicateAbstractElement.abstractionElement(newPathFormula, newAbstractionFormula);
+    return PredicateAbstractState.abstractionElement(newPathFormula, newAbstractionFormula);
   }
 
   protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {

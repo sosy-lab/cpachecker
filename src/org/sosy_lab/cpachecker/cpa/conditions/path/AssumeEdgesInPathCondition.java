@@ -67,12 +67,12 @@ public class AssumeEdgesInPathCondition implements PathCondition, Statistics {
 
   @Override
   public AvoidanceReportingState getInitialElement(CFANode pNode) {
-    return new RepetitionsInPathConditionElement(0, false);
+    return new RepetitionsInPathConditionState(0, false);
   }
 
   @Override
   public AvoidanceReportingState getAbstractSuccessor(AbstractState pElement, CFAEdge pEdge) {
-    RepetitionsInPathConditionElement element = (RepetitionsInPathConditionElement)pElement;
+    RepetitionsInPathConditionState element = (RepetitionsInPathConditionState)pElement;
 
     if (pEdge.getEdgeType() != CFAEdgeType.AssumeEdge) {
       return element;
@@ -87,7 +87,7 @@ public class AssumeEdgesInPathCondition implements PathCondition, Statistics {
 
     maxAssumeEdgesInPath = Math.max(assumeEdgesInPath, maxAssumeEdgesInPath);
 
-    return new RepetitionsInPathConditionElement(assumeEdgesInPath, thresholdReached);
+    return new RepetitionsInPathConditionState(assumeEdgesInPath, thresholdReached);
   }
 
   @Override
@@ -116,12 +116,12 @@ public class AssumeEdgesInPathCondition implements PathCondition, Statistics {
   }
 
 
-  private static class RepetitionsInPathConditionElement implements AbstractState, AvoidanceReportingState {
+  private static class RepetitionsInPathConditionState implements AbstractState, AvoidanceReportingState {
 
     private final int assumeEdgesInPath;
     private final boolean thresholdReached;
 
-    private RepetitionsInPathConditionElement(int pPathLength, boolean pThresholdReached) {
+    private RepetitionsInPathConditionState(int pPathLength, boolean pThresholdReached) {
       assumeEdgesInPath = pPathLength;
       thresholdReached = pThresholdReached;
     }

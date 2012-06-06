@@ -34,7 +34,7 @@ public class IntervalAnalysisDomain implements AbstractDomain
     @Override
     public boolean isLessOrEqual(AbstractState currentAbstractState, AbstractState reachedAbstractState)
     {
-      return ((IntervalAnalysisElement)currentAbstractState).isLessOrEqual((IntervalAnalysisElement)reachedAbstractState);
+      return ((IntervalAnalysisState)currentAbstractState).isLessOrEqual((IntervalAnalysisState)reachedAbstractState);
     }
 
     /* (non-Javadoc)
@@ -43,6 +43,6 @@ public class IntervalAnalysisDomain implements AbstractDomain
     @Override
     public AbstractState join(AbstractState currentAbstractState, AbstractState reachedAbstractState)
     {
-      return ((IntervalAnalysisElement)currentAbstractState).join((IntervalAnalysisElement)reachedAbstractState);
+      return ((IntervalAnalysisState)currentAbstractState).join((IntervalAnalysisState)reachedAbstractState);
     }
 }

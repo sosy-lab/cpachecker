@@ -55,7 +55,7 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
 
   private GenericAssumptionsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     transferRelation = new GenericAssumptionsTransferRelation();
-    topElement = new GenericAssumptionsElement(NumericTypes.TRUE);
+    topElement = new GenericAssumptionsState(NumericTypes.TRUE);
     abstractDomain = new GenericAssumptionsDomain(topElement);
   }
 

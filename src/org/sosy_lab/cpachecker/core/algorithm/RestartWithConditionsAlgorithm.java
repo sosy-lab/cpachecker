@@ -38,10 +38,10 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
-import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -137,7 +137,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 //      } else {
 
         // check if stored assumption is not "true"
-        AssumptionStorageElement e = AbstractStates.extractElementByType(element, AssumptionStorageElement.class);
+        AssumptionStorageState e = AbstractStates.extractElementByType(element, AssumptionStorageState.class);
 
         if (!e.getAssumption().isTrue()
             || !e.getStopFormula().isTrue()) {
@@ -153,9 +153,9 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
     for (AbstractState e: pElementsWithAssumptions) {
-      ARGElement argElement = (ARGElement)e;
+      ARGState argElement = (ARGState)e;
 
-      for (ARGElement parent : ImmutableSet.copyOf(argElement.getParents())){
+      for (ARGState parent : ImmutableSet.copyOf(argElement.getParents())){
         reached.removeSubtree(parent);
       }
     }

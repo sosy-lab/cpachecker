@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -72,8 +72,8 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   }
 
   @Override
-  public boolean checkCounterexample(ARGElement pRootElement,
-      ARGElement pErrorElement, Set<ARGElement> pErrorPathElements)
+  public boolean checkCounterexample(ARGState pRootElement,
+      ARGState pErrorElement, Set<ARGState> pErrorPathElements)
       throws CPAException, InterruptedException {
 
     String automaton =
@@ -118,18 +118,18 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     }
   }
 
-  private String produceGuidingAutomaton(ARGElement pRootElement,
-      Set<ARGElement> pPathElements) {
+  private String produceGuidingAutomaton(ARGState pRootElement,
+      Set<ARGState> pPathElements) {
     StringBuilder sb = new StringBuilder();
     sb.append("CONTROL AUTOMATON AssumptionAutomaton\n\n");
     sb.append("INITIAL STATE ARG" + pRootElement.getElementId() + ";\n\n");
 
-    for (ARGElement e : pPathElements) {
+    for (ARGState e : pPathElements) {
 
       CFANode loc = AbstractStates.extractLocation(e);
       sb.append("STATE USEFIRST ARG" + e.getElementId() + " :\n");
 
-      for (ARGElement child : e.getChildren()) {
+      for (ARGState child : e.getChildren()) {
         if (child.isCovered()) {
           child = child.getCoveringElement();
           assert !child.isCovered();

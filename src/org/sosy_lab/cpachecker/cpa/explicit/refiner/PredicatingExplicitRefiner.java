@@ -38,10 +38,10 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.PredicateMap;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -59,19 +59,19 @@ import com.google.common.collect.Multimap;
 
 public class PredicatingExplicitRefiner implements IExplicitRefiner {
 
-  protected List<Pair<ARGElement, CFAEdge>> currentErrorPath  = null;
+  protected List<Pair<ARGState, CFAEdge>> currentErrorPath  = null;
 
   private int numberOfPredicateRefinements                    = 0;
   private int numberOfPredicateRefinementsDone                = 0;
 
   @Override
-  public final List<Pair<ARGElement, CFANode>> transformPath(Path errorPath) {
+  public final List<Pair<ARGState, CFANode>> transformPath(Path errorPath) {
     numberOfPredicateRefinements++;
 
-    List<Pair<ARGElement, CFANode>> result = Lists.newArrayList();
+    List<Pair<ARGState, CFANode>> result = Lists.newArrayList();
 
-    for (ARGElement ae : transform(errorPath, Pair.<ARGElement>getProjectionToFirst())) {
-      PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
+    for (ARGState ae : transform(errorPath, Pair.<ARGState>getProjectionToFirst())) {
+      PredicateAbstractState pe = extractElementByType(ae, PredicateAbstractState.class);
       if (pe.isAbstractionElement()) {
         CFANode location = AbstractStates.extractLocation(ae);
         result.add(Pair.of(ae, location));
@@ -83,27 +83,27 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
   }
 
   @Override
-  public List<Formula> getFormulasForPath(List<Pair<ARGElement, CFANode>> errorPath, ARGElement initialElement) throws CPATransferException {
+  public List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> errorPath, ARGState initialElement) throws CPATransferException {
     List<Formula> formulas = transform(errorPath,
         Functions.compose(
             GET_BLOCK_FORMULA,
         Functions.compose(
-            AbstractStates.extractElementByTypeFunction(PredicateAbstractElement.class),
-            Pair.<ARGElement>getProjectionToFirst())));
+            AbstractStates.extractElementByTypeFunction(PredicateAbstractState.class),
+            Pair.<ARGState>getProjectionToFirst())));
 
     return formulas;
   }
 
   @Override
-  public Pair<ARGElement, Precision> performRefinement(Precision oldPrecision,
-      List<Pair<ARGElement, CFANode>> errorPath,
+  public Pair<ARGState, Precision> performRefinement(Precision oldPrecision,
+      List<Pair<ARGState, CFANode>> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException {
     numberOfPredicateRefinementsDone++;
     // create the mapping of CFA nodes to predicates, based on the counter example trace info
     PredicateMap predicateMap = new PredicateMap(pInfo.getPredicatesForRefinement(), errorPath);
 
     Precision precision = createPredicatePrecision(extractPredicatePrecision(oldPrecision), predicateMap);
-    ARGElement interpolationPoint = predicateMap.firstInterpolationPoint.getFirst();
+    ARGState interpolationPoint = predicateMap.firstInterpolationPoint.getFirst();
 
     return Pair.of(interpolationPoint, precision);
   }
@@ -111,10 +111,10 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
   /**
    * This helper function is used to extract the block formula from an abstraction node.
    */
-  private static final Function<PredicateAbstractElement, Formula> GET_BLOCK_FORMULA
-                = new Function<PredicateAbstractElement, Formula>() {
+  private static final Function<PredicateAbstractState, Formula> GET_BLOCK_FORMULA
+                = new Function<PredicateAbstractState, Formula>() {
                     @Override
-                    public Formula apply(PredicateAbstractElement e) {
+                    public Formula apply(PredicateAbstractState e) {
                       assert e.isAbstractionElement();
                       return e.getAbstractionFormula().getBlockFormula();
                     };
@@ -157,12 +157,12 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
   }
 
   @Override
-  public boolean hasMadeProgress(List<Pair<ARGElement, CFAEdge>> currentErrorPath, Precision currentPrecision) {
+  public boolean hasMadeProgress(List<Pair<ARGState, CFAEdge>> currentErrorPath, Precision currentPrecision) {
     return true;
   }
 
   @Override
-  public void setCurrentErrorPath(List<Pair<ARGElement, CFAEdge>> currentErrorPath) {
+  public void setCurrentErrorPath(List<Pair<ARGState, CFAEdge>> currentErrorPath) {
     this.currentErrorPath = currentErrorPath;
   }
 

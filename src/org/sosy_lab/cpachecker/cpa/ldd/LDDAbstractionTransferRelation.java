@@ -76,14 +76,14 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends LDDAbstractElement> getAbstractSuccessors(AbstractState element, Precision precision,
+  public Collection<? extends LDDAbstractState> getAbstractSuccessors(AbstractState element, Precision precision,
       CFAEdge edge) throws CPATransferException, InterruptedException {
-    if (!(element instanceof LDDAbstractElement)) { return Collections.emptyList(); }
-    LDDAbstractElement analysisElement = (LDDAbstractElement) element;
+    if (!(element instanceof LDDAbstractState)) { return Collections.emptyList(); }
+    LDDAbstractState analysisElement = (LDDAbstractState) element;
     LDDRegion region = toRegion(edge, analysisElement.getRegion());
     // If the LDD is null or false, no successor state is reachable.
     if (region == null || region.isFalse()) { return Collections.emptyList(); }
-    return Collections.singleton(new LDDAbstractElement(region));
+    return Collections.singleton(new LDDAbstractState(region));
   }
 
   /**
@@ -712,7 +712,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends LDDAbstractElement> strengthen(AbstractState pElement,
+  public Collection<? extends LDDAbstractState> strengthen(AbstractState pElement,
       List<AbstractState> otherElements, CFAEdge edge, Precision pPrecision) throws CPATransferException,
       InterruptedException {
     return null;

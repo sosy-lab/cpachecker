@@ -43,7 +43,7 @@ import com.google.common.collect.Maps;
 /**
  * Represents one abstract state of the FunctionPointer CPA.
  */
-class FunctionPointerElement extends AbstractSingleWrapperState  {
+class FunctionPointerState extends AbstractSingleWrapperState  {
   /* Boilerplate code to avoid serializing this class */
   private static final long serialVersionUID = 0xDEADBEEF;
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
@@ -180,41 +180,41 @@ class FunctionPointerElement extends AbstractSingleWrapperState  {
       }
     }
 
-    FunctionPointerElement build() {
+    FunctionPointerState build() {
       Map<String, FunctionPointerTarget> map = Objects.firstNonNull(values, oldValues);
-      return new FunctionPointerElement(wrappedElement, map);
+      return new FunctionPointerState(wrappedElement, map);
     }
   }
 
   // This map should never contain UnknownTargets.
   private final ImmutableMap<String,FunctionPointerTarget> pointerVariableValues;
 
-  private FunctionPointerElement(AbstractState pWrappedElement) {
+  private FunctionPointerState(AbstractState pWrappedElement) {
     super(pWrappedElement);
     pointerVariableValues = ImmutableMap.of();
   }
 
-  private FunctionPointerElement(AbstractState pWrappedElement, Map<String, FunctionPointerTarget> pValues) {
+  private FunctionPointerState(AbstractState pWrappedElement, Map<String, FunctionPointerTarget> pValues) {
     super(pWrappedElement);
     pointerVariableValues = ImmutableMap.copyOf(pValues);
   }
 
-  public static FunctionPointerElement createEmptyElement(AbstractState pWrappedElement) {
-    return new FunctionPointerElement(pWrappedElement);
+  public static FunctionPointerState createEmptyElement(AbstractState pWrappedElement) {
+    return new FunctionPointerState(pWrappedElement);
   }
 
-  public FunctionPointerElement.Builder createBuilderWithNewWrappedElement(AbstractState pElement) {
+  public FunctionPointerState.Builder createBuilderWithNewWrappedElement(AbstractState pElement) {
     return new Builder(this.pointerVariableValues, pElement);
   }
 
-  public FunctionPointerElement createDuplicateWithNewWrappedElement(AbstractState pElement) {
-    return new FunctionPointerElement(pElement, this.pointerVariableValues);
+  public FunctionPointerState createDuplicateWithNewWrappedElement(AbstractState pElement) {
+    return new FunctionPointerState(pElement, this.pointerVariableValues);
   }
 
   @Override
   public String toString() {
     StringBuilder str = new StringBuilder();
-    str.append("\n FunctionPointerElement: [");
+    str.append("\n FunctionPointerState: [");
     Joiner.on(", ").withKeyValueSeparator("=").appendTo(str, pointerVariableValues);
     str.append("]\n ");
     str.append(getWrappedElement());
@@ -226,7 +226,7 @@ class FunctionPointerElement extends AbstractSingleWrapperState  {
     return Objects.firstNonNull(pointerVariableValues.get(variableName), UnknownTarget.getInstance());
   }
 
-  public boolean isLessOrEqualThan(FunctionPointerElement pElement) {
+  public boolean isLessOrEqualThan(FunctionPointerState pElement) {
     // check if the other map is a subset of this map
 
     if (this.pointerVariableValues.size() < pElement.pointerVariableValues.size()) {

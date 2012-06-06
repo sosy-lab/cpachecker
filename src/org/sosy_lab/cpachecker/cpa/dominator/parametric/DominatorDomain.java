@@ -41,7 +41,7 @@ public class DominatorDomain implements AbstractDomain {
 		this.cpa = cpa;
 	}
 
-	private static class DominatorTopElement extends DominatorElement
+	private static class DominatorTopState extends DominatorState
     {
 
         @Override
@@ -51,7 +51,7 @@ public class DominatorDomain implements AbstractDomain {
 
         @Override
         public boolean equals(Object o) {
-        	return (o instanceof DominatorTopElement);
+        	return (o instanceof DominatorTopState);
         }
 
         @Override
@@ -66,7 +66,7 @@ public class DominatorDomain implements AbstractDomain {
         }
     }
 
-    private final static DominatorTopElement topElement = new DominatorTopElement();
+    private final static DominatorTopState topElement = new DominatorTopState();
 
     @Override
     public boolean isLessOrEqual(AbstractState element1, AbstractState element2) throws CPAException
@@ -79,17 +79,17 @@ public class DominatorDomain implements AbstractDomain {
           return true;
         }
 
-        if (element1 instanceof DominatorElement && element2 instanceof DominatorElement) {
-        	DominatorElement dominatorElement1 = (DominatorElement)element1;
-        	DominatorElement dominatorElement2 = (DominatorElement)element2;
+        if (element1 instanceof DominatorState && element2 instanceof DominatorState) {
+        	DominatorState dominatorState1 = (DominatorState)element1;
+        	DominatorState dominatorState2 = (DominatorState)element2;
 
-        	if (this.cpa.getAbstractDomain().isLessOrEqual(dominatorElement1.getDominatedElement(), dominatorElement2.getDominatedElement())) {
-        		Iterator<AbstractState> dominatorIterator = dominatorElement2.getIterator();
+        	if (this.cpa.getAbstractDomain().isLessOrEqual(dominatorState1.getDominatedElement(), dominatorState2.getDominatedElement())) {
+        		Iterator<AbstractState> dominatorIterator = dominatorState2.getIterator();
 
         		while (dominatorIterator.hasNext()) {
         		  AbstractState dominator = dominatorIterator.next();
 
-        			if (!dominatorElement1.isDominatedBy(dominator)) {
+        			if (!dominatorState1.isDominatedBy(dominator)) {
         				return false;
         			}
         		}
@@ -103,46 +103,46 @@ public class DominatorDomain implements AbstractDomain {
 
     @Override
     public AbstractState join(AbstractState element1, AbstractState element2) {
-      if (!(element1 instanceof DominatorElement)) {
+      if (!(element1 instanceof DominatorState)) {
         throw new IllegalArgumentException(
-            "element1 is not a DominatorElement!");
+            "element1 is not a DominatorState!");
       }
 
-      if (!(element2 instanceof DominatorElement)) {
+      if (!(element2 instanceof DominatorState)) {
         throw new IllegalArgumentException(
-            "element2 is not a DominatorElement!");
+            "element2 is not a DominatorState!");
       }
 
-      DominatorElement dominatorElement1 = (DominatorElement) element1;
-      DominatorElement dominatorElement2 = (DominatorElement) element2;
+      DominatorState dominatorState1 = (DominatorState) element1;
+      DominatorState dominatorState2 = (DominatorState) element2;
 
 		if (element1.equals(topElement)) {
-			return dominatorElement1;
+			return dominatorState1;
 		}
 
 		if (element2.equals(topElement)) {
-			return dominatorElement2;
+			return dominatorState2;
 		}
 
-		if (!dominatorElement1.getDominatedElement().equals(dominatorElement2.getDominatedElement())) {
+		if (!dominatorState1.getDominatedElement().equals(dominatorState2.getDominatedElement())) {
 			return topElement;
 		}
 
 		Set<AbstractState> intersectingDominators = new HashSet<AbstractState>();
 
-		Iterator<AbstractState> dominatorIterator = dominatorElement1.getIterator();
+		Iterator<AbstractState> dominatorIterator = dominatorState1.getIterator();
 
 		while (dominatorIterator.hasNext()) {
 		  AbstractState dominator = dominatorIterator.next();
 
-			if (dominatorElement2.isDominatedBy(dominator)) {
+			if (dominatorState2.isDominatedBy(dominator)) {
 				intersectingDominators.add(dominator);
 			}
 		}
 
-		DominatorElement result = new DominatorElement(dominatorElement1.getDominatedElement(), intersectingDominators);
+		DominatorState result = new DominatorState(dominatorState1.getDominatedElement(), intersectingDominators);
 
-		result.update(dominatorElement1.getDominatedElement());
+		result.update(dominatorState1.getDominatedElement());
 
 		return result;
 	}

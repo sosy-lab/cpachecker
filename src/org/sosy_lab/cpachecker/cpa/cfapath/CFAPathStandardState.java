@@ -27,23 +27,23 @@ import java.util.Iterator;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
-public class CFAPathStandardElement implements CFAPathElement, Iterable<CFAEdge> {
+public class CFAPathStandardState implements CFAPathState, Iterable<CFAEdge> {
 
-  private static final CFAPathStandardElement sEmptyPath = new CFAPathStandardElement();
+  private static final CFAPathStandardState sEmptyPath = new CFAPathStandardState();
 
-  public static CFAPathStandardElement getEmptyPath() {
+  public static CFAPathStandardState getEmptyPath() {
     return sEmptyPath;
   }
 
-  private final CFAPathStandardElement mPredecessor;
+  private final CFAPathStandardState mPredecessor;
   private final CFAEdge mCFAEdge;
   private final int mLength;
 
   private static class CFAEdgeIterator implements Iterator<CFAEdge> {
 
-    private CFAPathStandardElement mCurrentElement;
+    private CFAPathStandardState mCurrentElement;
 
-    public CFAEdgeIterator(CFAPathStandardElement pLastElement) {
+    public CFAEdgeIterator(CFAPathStandardState pLastElement) {
       mCurrentElement = pLastElement;
     }
 
@@ -68,13 +68,13 @@ public class CFAPathStandardElement implements CFAPathElement, Iterable<CFAEdge>
 
   }
 
-  private CFAPathStandardElement() {
+  private CFAPathStandardState() {
     mPredecessor = null;
     mCFAEdge = null;
     mLength = 0;
   }
 
-  public CFAPathStandardElement(CFAPathStandardElement pPredecessor, CFAEdge pCFAEdge) {
+  public CFAPathStandardState(CFAPathStandardState pPredecessor, CFAEdge pCFAEdge) {
     if (pPredecessor == null) {
       throw new IllegalArgumentException();
     }
@@ -116,7 +116,7 @@ public class CFAPathStandardElement implements CFAPathElement, Iterable<CFAEdge>
   public CFAEdge[] toArray() {
     CFAEdge[] lPath = new CFAEdge[mLength];
 
-    CFAPathStandardElement lElement = this;
+    CFAPathStandardState lElement = this;
 
     for (int lIndex = mLength - 1; lIndex >= 0; lIndex--) {
       lPath[lIndex] = lElement.mCFAEdge;

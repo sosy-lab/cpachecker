@@ -78,10 +78,10 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerElement.FunctionPointerTarget;
-import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerElement.InvalidTarget;
-import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerElement.NamedFunctionTarget;
-import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerElement.UnknownTarget;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.FunctionPointerTarget;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.InvalidTarget;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFunctionTarget;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownTarget;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -115,12 +115,12 @@ class FunctionPointerTransferRelation implements TransferRelation {
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
 
-    final FunctionPointerElement oldState = (FunctionPointerElement)pElement;
-    Collection<FunctionPointerElement> results;
+    final FunctionPointerState oldState = (FunctionPointerState)pElement;
+    Collection<FunctionPointerState> results;
 
     if (pCfaEdge == null) {
       CFANode node = extractLocation(oldState);
-      results = new ArrayList<FunctionPointerElement>(node.getNumLeavingEdges());
+      results = new ArrayList<FunctionPointerState>(node.getNumLeavingEdges());
 
       for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
         CFAEdge edge = node.getLeavingEdge(edgeIdx);
@@ -131,7 +131,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
       }
 
     } else {
-      results = new ArrayList<FunctionPointerElement>(1);
+      results = new ArrayList<FunctionPointerState>(1);
       getAbstractSuccessorForEdge(oldState, pPrecision, pCfaEdge, results);
 
     }
@@ -139,7 +139,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
   }
 
   private void getAbstractSuccessorForEdge(
-      FunctionPointerElement oldState, Precision pPrecision, CFAEdge pCfaEdge, Collection<FunctionPointerElement> results)
+      FunctionPointerState oldState, Precision pPrecision, CFAEdge pCfaEdge, Collection<FunctionPointerState> results)
       throws CPATransferException, InterruptedException {
     CFAEdge cfaEdge;
 
@@ -214,7 +214,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     Collection<? extends AbstractState> newWrappedStates = wrappedTransfer.getAbstractSuccessors(oldState.getWrappedElement(), pPrecision, cfaEdge);
 
     for (AbstractState newWrappedState : newWrappedStates) {
-      FunctionPointerElement.Builder newState = oldState.createBuilderWithNewWrappedElement(newWrappedState);
+      FunctionPointerState.Builder newState = oldState.createBuilderWithNewWrappedElement(newWrappedState);
 
       newState = handleEdge(newState, cfaEdge);
 
@@ -275,7 +275,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
   }
 
-  private FunctionPointerElement.Builder handleEdge(FunctionPointerElement.Builder newState, CFAEdge pCfaEdge) throws CPATransferException {
+  private FunctionPointerState.Builder handleEdge(FunctionPointerState.Builder newState, CFAEdge pCfaEdge) throws CPATransferException {
 
     switch(pCfaEdge.getEdgeType()) {
 
@@ -329,7 +329,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     return newState;
   }
 
-  private void handleDeclaration(FunctionPointerElement.Builder pNewState, DeclarationEdge declEdge) throws UnrecognizedCCodeException {
+  private void handleDeclaration(FunctionPointerState.Builder pNewState, DeclarationEdge declEdge) throws UnrecognizedCCodeException {
 
     if (!(declEdge.getDeclaration() instanceof IASTVariableDeclaration)) {
       // not a variable declaration
@@ -363,7 +363,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     pNewState.setTarget(name, initialValue);
   }
 
-  private void handleStatement(FunctionPointerElement.Builder pNewState, IASTStatement pStatement,
+  private void handleStatement(FunctionPointerState.Builder pNewState, IASTStatement pStatement,
         CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
 
     if (pStatement instanceof IASTAssignment) {
@@ -389,7 +389,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleFunctionCall(FunctionPointerElement.Builder pNewState, FunctionCallEdge callEdge) throws UnrecognizedCCodeException {
+  private void handleFunctionCall(FunctionPointerState.Builder pNewState, FunctionCallEdge callEdge) throws UnrecognizedCCodeException {
 
     FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();
@@ -425,7 +425,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleReturnStatement(FunctionPointerElement.Builder pNewState, IASTExpression returnValue,
+  private void handleReturnStatement(FunctionPointerState.Builder pNewState, IASTExpression returnValue,
       CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
 
     if (returnValue != null) {
@@ -437,7 +437,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
   }
 
 
-  private void handleFunctionReturn(FunctionPointerElement.Builder pNewState, FunctionReturnEdge pFunctionReturnEdge) throws UnrecognizedCCodeException {
+  private void handleFunctionReturn(FunctionPointerState.Builder pNewState, FunctionReturnEdge pFunctionReturnEdge) throws UnrecognizedCCodeException {
     CallToReturnEdge summaryEdge = pFunctionReturnEdge.getSuccessor().getEnteringSummaryEdge();
     assert summaryEdge != null;
 
@@ -491,18 +491,18 @@ class FunctionPointerTransferRelation implements TransferRelation {
     return null;
   }
 
-  private FunctionPointerTarget getValue(IASTRightHandSide exp, FunctionPointerElement.Builder element, String function) throws UnrecognizedCCodeException {
+  private FunctionPointerTarget getValue(IASTRightHandSide exp, FunctionPointerState.Builder element, String function) throws UnrecognizedCCodeException {
     return exp.accept(new ExpressionValueVisitor(element, function, invalidFunctionPointerTarget));
   }
 
   private static class ExpressionValueVisitor extends DefaultExpressionVisitor<FunctionPointerTarget, UnrecognizedCCodeException>
                                               implements RightHandSideVisitor<FunctionPointerTarget, UnrecognizedCCodeException> {
 
-    private final FunctionPointerElement.Builder element;
+    private final FunctionPointerState.Builder element;
     private final String function;
     private final FunctionPointerTarget targetForInvalidPointers;
 
-    private ExpressionValueVisitor(FunctionPointerElement.Builder pElement, String pFunction,
+    private ExpressionValueVisitor(FunctionPointerState.Builder pElement, String pFunction,
                                    FunctionPointerTarget pTargetForInvalidPointers) {
       element = pElement;
       function = pFunction;

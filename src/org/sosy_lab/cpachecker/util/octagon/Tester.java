@@ -145,7 +145,7 @@ public class Tester {
 
 
 
-//		OctElement octelem = new OctElement();
+//		OctState octelem = new OctState();
 //		octelem.addVar("a", "main");
 //		octelem.addVar("b", "main");
 //		octelem.addVar("c", "main");

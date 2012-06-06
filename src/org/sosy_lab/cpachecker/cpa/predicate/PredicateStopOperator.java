@@ -45,7 +45,7 @@ class PredicateStopOperator extends StopSepOperator implements ForcedCoveringSto
     // if we have two abstraction elements.
     // Note that this does not say that the element will actually be covered,
     // it says only that we can try to cover it.
-    return ((PredicateAbstractElement)pElement).isAbstractionElement()
-        && ((PredicateAbstractElement)pReachedElement).isAbstractionElement();
+    return ((PredicateAbstractState)pElement).isAbstractionElement()
+        && ((PredicateAbstractState)pReachedElement).isAbstractionElement();
   }
 }

@@ -34,21 +34,21 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.location.LocationElement.LocationElementFactory;
+import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class LocationTransferRelation implements TransferRelation {
 
-  private final LocationElementFactory factory;
+  private final LocationStateFactory factory;
 
-  public LocationTransferRelation(LocationElementFactory pFactory) {
+  public LocationTransferRelation(LocationStateFactory pFactory) {
     factory = pFactory;
   }
 
-  private Collection<LocationElement> getAbstractSuccessor(AbstractState element,
+  private Collection<LocationState> getAbstractSuccessor(AbstractState element,
       CFAEdge cfaEdge, Precision prec) throws CPATransferException {
 
-    LocationElement inputElement = (LocationElement) element;
+    LocationState inputElement = (LocationState) element;
     CFANode node = inputElement.getLocationNode();
 
     int numLeavingEdges = node.getNumLeavingEdges();
@@ -68,17 +68,17 @@ public class LocationTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<LocationElement> getAbstractSuccessors(AbstractState element,
+  public Collection<LocationState> getAbstractSuccessors(AbstractState element,
       Precision prec, CFAEdge cfaEdge) throws CPATransferException {
 
     if (cfaEdge != null) {
       return getAbstractSuccessor(element, cfaEdge, prec);
     }
 
-    CFANode node = ((LocationElement)element).getLocationNode();
+    CFANode node = ((LocationState)element).getLocationNode();
 
     int numLeavingEdges = node.getNumLeavingEdges();
-    List<LocationElement> allSuccessors = new ArrayList<LocationElement>(numLeavingEdges);
+    List<LocationState> allSuccessors = new ArrayList<LocationState>(numLeavingEdges);
 
     for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++) {
       CFAEdge tempEdge = node.getLeavingEdge(edgeIdx);
