@@ -202,7 +202,7 @@ public class BDDTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException(cfaEdge, rhs);
       }
 
-      result = new BDDState(rmgr, element.getFunctionCallElement(), newRegion,
+      result = new BDDState(rmgr, element.getFunctionCallState(), newRegion,
           element.getVars(), cfaEdge.getPredecessor().getFunctionName());
     }
 
@@ -244,7 +244,7 @@ public class BDDTransferRelation implements TransferRelation {
         BDDExpressionVisitor ev = new BDDExpressionVisitor(element);
         Region regRHS = init.accept(ev);
         newRegion = addEquality(var, regRHS, newRegion);
-        return new BDDState(rmgr, element.getFunctionCallElement(), newRegion,
+        return new BDDState(rmgr, element.getFunctionCallState(), newRegion,
             element.getVars(), cfaEdge.getPredecessor().getFunctionName());
       }
     }
@@ -306,7 +306,7 @@ public class BDDTransferRelation implements TransferRelation {
       // make variable (predicate) for LEFT SIDE of assignment,
       // delete variable, if it was used before, this is done with an existential operator
       String varName = lhs.toASTString();
-      BDDState functionCall = element.getFunctionCallElement();
+      BDDState functionCall = element.getFunctionCallState();
       Region var = makePredicate(varName, functionCall.getFunctionName(), isGlobal(lhs));
       newRegion = removePredicate(newRegion, var);
       newRegion = addEquality(var, retVar, newRegion);
@@ -315,8 +315,8 @@ public class BDDTransferRelation implements TransferRelation {
     // LAST ACTION: delete varname of right side
     newRegion = removePredicate(newRegion, retVar);
 
-    return new BDDState(rmgr, element.getFunctionCallElement().getFunctionCallElement(), newRegion,
-        element.getFunctionCallElement().getVars(),
+    return new BDDState(rmgr, element.getFunctionCallState().getFunctionCallState(), newRegion,
+        element.getFunctionCallState().getVars(),
         cfaEdge.getSuccessor().getFunctionName());
   }
 
@@ -336,7 +336,7 @@ public class BDDTransferRelation implements TransferRelation {
       BDDExpressionVisitor ev = new BDDExpressionVisitor(element);
       Region regRHS = ((IASTExpression) rhs).accept(ev);
       Region newRegion = addEquality(retvar, regRHS, element.getRegion());
-      return new BDDState(rmgr, element.getFunctionCallElement(), newRegion,
+      return new BDDState(rmgr, element.getFunctionCallState(), newRegion,
           element.getVars(), cfaEdge.getPredecessor().getFunctionName());
     }
     return element;
@@ -360,7 +360,7 @@ public class BDDTransferRelation implements TransferRelation {
       if (newRegion.isFalse()) { // assumption is not fulfilled / not possible
         return null;
       } else {
-        return new BDDState(rmgr, element.getFunctionCallElement(), newRegion,
+        return new BDDState(rmgr, element.getFunctionCallState(), newRegion,
             element.getVars(), cfaEdge.getPredecessor().getFunctionName());
       }
     }

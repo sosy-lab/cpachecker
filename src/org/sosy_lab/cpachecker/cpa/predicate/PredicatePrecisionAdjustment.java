@@ -115,7 +115,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // create new empty path formula
     PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
-    return PredicateAbstractState.abstractionElement(newPathFormula, newAbstractionFormula);
+    return PredicateAbstractState.abstractionState(newPathFormula, newAbstractionFormula);
   }
 
   protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {

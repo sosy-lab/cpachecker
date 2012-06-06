@@ -181,7 +181,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
     IASTFunctionCall expression = summaryEdge.getExpression();
 
-    IntervalAnalysisState newElement = element.getPreviousElement().clone();
+    IntervalAnalysisState newElement = element.getPreviousState().clone();
 
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();

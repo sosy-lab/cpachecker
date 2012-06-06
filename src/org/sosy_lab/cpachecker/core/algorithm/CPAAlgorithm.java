@@ -164,7 +164,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     final PrecisionAdjustment precisionAdjustment =
         cpa.getPrecisionAdjustment();
 
-    while (reachedSet.hasWaitingElement()) {
+    while (reachedSet.hasWaitingState()) {
       CPAchecker.stopIfNecessary();
 
       stats.countIterations++;

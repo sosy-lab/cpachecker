@@ -55,7 +55,7 @@ public class CompositeMergePlainOperator implements MergeOperator{
     CompositeState comp2 = (CompositeState) element2;
     CompositePrecision prec = (CompositePrecision) precision;
 
-    assert(comp1.getNumberofElements() == comp2.getNumberofElements());
+    assert(comp1.getNumberOfStates() == comp2.getNumberOfStates());
 
     ImmutableList.Builder<AbstractState> mergedElements = ImmutableList.builder();
     Iterator<AbstractState> iter1 = comp1.getWrappedStates().iterator();

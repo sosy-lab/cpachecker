@@ -57,13 +57,13 @@ public class InverseLocationTransferRelation implements TransferRelation {
       CFAEdge testEdge = node.getEnteringEdge(edgeIdx);
 
       if (testEdge == cfaEdge) {
-        return Collections.singleton(factory.getElement(testEdge.getPredecessor()));
+        return Collections.singleton(factory.getState(testEdge.getPredecessor()));
       }
     }
 
     if (node.getEnteringSummaryEdge() != null) {
       CallToReturnEdge summaryEdge = node.getEnteringSummaryEdge();
-      return Collections.singleton(factory.getElement(summaryEdge.getPredecessor()));
+      return Collections.singleton(factory.getState(summaryEdge.getPredecessor()));
     }
 
     return Collections.emptySet();
@@ -84,7 +84,7 @@ public class InverseLocationTransferRelation implements TransferRelation {
 
     for (int edgeIdx = 0; edgeIdx < numEnteringEdges; edgeIdx++) {
       CFAEdge tempEdge = node.getEnteringEdge(edgeIdx);
-      allSuccessors.add(factory.getElement(tempEdge.getPredecessor()));
+      allSuccessors.add(factory.getState(tempEdge.getPredecessor()));
     }
 
     return allSuccessors;

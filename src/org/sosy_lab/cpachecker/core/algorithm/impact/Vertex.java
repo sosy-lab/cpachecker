@@ -83,8 +83,8 @@ class Vertex extends AbstractSingleWrapperState {
   }
 
   public CFAEdge getIncomingEdge() {
-    CFANode thisLocation = AbstractStates.extractLocation(getWrappedElement());
-    CFANode parentLocation = AbstractStates.extractLocation(parent.getWrappedElement());
+    CFANode thisLocation = AbstractStates.extractLocation(getWrappedState());
+    CFANode parentLocation = AbstractStates.extractLocation(parent.getWrappedState());
     return parentLocation.getEdgeTo(thisLocation);
   }
 
@@ -166,7 +166,7 @@ class Vertex extends AbstractSingleWrapperState {
   }
 
   public boolean isLeaf() {
-    return children.isEmpty() && AbstractStates.extractLocation(getWrappedElement()).getNumLeavingEdges() > 0;
+    return children.isEmpty() && AbstractStates.extractLocation(getWrappedState()).getNumLeavingEdges() > 0;
   }
 
   @Override

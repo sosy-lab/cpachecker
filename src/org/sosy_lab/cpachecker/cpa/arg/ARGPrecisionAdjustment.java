@@ -52,7 +52,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
         pElements,  ARGState.getUnwrapFunction(), Functions.<Precision>identity());
 
-    AbstractState oldElement = element.getWrappedElement();
+    AbstractState oldElement = element.getWrappedState();
 
     Triple<AbstractState, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
 

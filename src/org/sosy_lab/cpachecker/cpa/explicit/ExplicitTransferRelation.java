@@ -247,7 +247,7 @@ public class ExplicitTransferRelation implements TransferRelation
     CallToReturnEdge summaryEdge    = functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
     IASTFunctionCall exprOnSummary  = summaryEdge.getExpression();
 
-    ExplicitState newElement      = element.getPreviousElement().clone();
+    ExplicitState newElement      = element.getPreviousState().clone();
     String callerFunctionName       = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName       = functionReturnEdge.getPredecessor().getFunctionName();
 

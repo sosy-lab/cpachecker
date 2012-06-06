@@ -116,7 +116,7 @@ public class LoopstackTransferRelation implements TransferRelation {
     Loop oldLoop = loopExitEdges.get(pCfaEdge);
     if (oldLoop != null) {
       assert oldLoop.equals(e.getLoop()) : e + " " + oldLoop + " " + pCfaEdge;
-      e = e.getPreviousElement();
+      e = e.getPreviousState();
     }
 
     if (pCfaEdge instanceof FunctionReturnEdge) {
@@ -135,7 +135,7 @@ public class LoopstackTransferRelation implements TransferRelation {
     assert loops.size() <= 1;
     if (loops.contains(e.getLoop())) {
       boolean stop = (maxLoopIterations > 0) && (e.getIteration() >= maxLoopIterations);
-      e = new LoopstackState(e.getPreviousElement(), e.getLoop(), e.getIteration()+1, stop);
+      e = new LoopstackState(e.getPreviousState(), e.getLoop(), e.getIteration()+1, stop);
     }
 
     return Collections.singleton(e);

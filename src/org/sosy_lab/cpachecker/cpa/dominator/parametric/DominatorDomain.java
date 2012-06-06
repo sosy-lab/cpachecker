@@ -83,7 +83,7 @@ public class DominatorDomain implements AbstractDomain {
         	DominatorState dominatorState1 = (DominatorState)element1;
         	DominatorState dominatorState2 = (DominatorState)element2;
 
-        	if (this.cpa.getAbstractDomain().isLessOrEqual(dominatorState1.getDominatedElement(), dominatorState2.getDominatedElement())) {
+        	if (this.cpa.getAbstractDomain().isLessOrEqual(dominatorState1.getDominatedState(), dominatorState2.getDominatedState())) {
         		Iterator<AbstractState> dominatorIterator = dominatorState2.getIterator();
 
         		while (dominatorIterator.hasNext()) {
@@ -124,7 +124,7 @@ public class DominatorDomain implements AbstractDomain {
 			return dominatorState2;
 		}
 
-		if (!dominatorState1.getDominatedElement().equals(dominatorState2.getDominatedElement())) {
+		if (!dominatorState1.getDominatedState().equals(dominatorState2.getDominatedState())) {
 			return topElement;
 		}
 
@@ -140,9 +140,9 @@ public class DominatorDomain implements AbstractDomain {
 			}
 		}
 
-		DominatorState result = new DominatorState(dominatorState1.getDominatedElement(), intersectingDominators);
+		DominatorState result = new DominatorState(dominatorState1.getDominatedState(), intersectingDominators);
 
-		result.update(dominatorState1.getDominatedElement());
+		result.update(dominatorState1.getDominatedState());
 
 		return result;
 	}

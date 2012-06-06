@@ -100,7 +100,7 @@ import com.google.common.collect.Multimaps;
 public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private static final Function<AbstractState, PredicateAbstractState> EXTRACT_PREDICATE_ELEMENT
-      = AbstractStates.extractElementByTypeFunction(PredicateAbstractState.class);
+      = AbstractStates.extractStateByTypeFunction(PredicateAbstractState.class);
 
   private static final Predicate<AbstractState> IS_STOP_ELEMENT =
     Predicates.compose(new Predicate<AssumptionStorageState>() {
@@ -109,12 +109,12 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
                                return (pArg0 != null) && pArg0.isStop();
                              }
                            },
-                       AbstractStates.extractElementByTypeFunction(AssumptionStorageState.class));
+                       AbstractStates.extractStateByTypeFunction(AssumptionStorageState.class));
 
   private static final Predicate<AbstractState> IS_IN_LOOP = new Predicate<AbstractState>() {
     @Override
     public boolean apply(AbstractState pArg0) {
-      LoopstackState loopElement = extractElementByType(pArg0, LoopstackState.class);
+      LoopstackState loopElement = extractStateByType(pArg0, LoopstackState.class);
       return loopElement.getLoop() != null;
     }
   };
@@ -214,7 +214,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   @Override
   public boolean run(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     if (induction) {
-      CFANode initialLocation = extractLocation(pReachedSet.getFirstElement());
+      CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
       invariantGenerator.start(initialLocation);
     }
 
@@ -312,7 +312,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       // get precise error path
       Map<Integer, Boolean> branchingInformation = pmgr.getBranchingPredicateValuesFromModel(model);
-      ARGState root = (ARGState)pReachedSet.getFirstElement();
+      ARGState root = (ARGState)pReachedSet.getFirstState();
 
       Path targetPath;
       try {
@@ -351,7 +351,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private boolean checkTargetStates(final ReachedSet pReachedSet) {
     if (checkTargetStates) {
 
-      List<AbstractState> targetElements = Lists.newArrayList(AbstractStates.filterTargetElements(pReachedSet));
+      List<AbstractState> targetElements = Lists.newArrayList(AbstractStates.filterTargetStates(pReachedSet));
       logger.log(Level.FINER, "Found", targetElements.size(), "potential target elements");
 
       // create formula
@@ -371,7 +371,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     } else {
       // fast check for trivial cases
-      return none(pReachedSet, IS_TARGET_ELEMENT);
+      return none(pReachedSet, IS_TARGET_STATE);
     }
   }
 
@@ -513,7 +513,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     Iterable<AbstractState> loopStates = Iterables.filter(reached, IS_IN_LOOP);
 
     assert !Iterables.isEmpty(loopStates);
-    if (Iterables.any(loopStates, IS_TARGET_ELEMENT)) {
+    if (Iterables.any(loopStates, IS_TARGET_STATE)) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, target state is contained in the loop");
       return false;
     }
@@ -534,7 +534,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
         // the states reachable from the exit edge
         Set<ARGState> outOfLoopStates = lastExitState.getSubtree();
-        if (Iterables.isEmpty(filterTargetElements(outOfLoopStates))) {
+        if (Iterables.isEmpty(filterTargetStates(outOfLoopStates))) {
           // no target state reachable
           continue;
         }
@@ -547,7 +547,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       AbstractState lastcutPointState = Iterables.getLast(cutPointStates);
 
       // Create (A & B)
-      PathFormula pathFormulaAB = extractElementByType(lastcutPointState, PredicateAbstractState.class).getPathFormula();
+      PathFormula pathFormulaAB = extractStateByType(lastcutPointState, PredicateAbstractState.class).getPathFormula();
       Formula formulaAB = fmgr.makeAnd(invariants, pathFormulaAB.getFormula());
 
       // Create C
@@ -658,7 +658,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       checkState(initialLocation == null);
       initialLocation = pInitialLocation;
 
-      if (!reached.hasWaitingElement()) {
+      if (!reached.hasWaitingState()) {
         // invariant generation disabled
         return;
       }
@@ -701,7 +701,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     private ReachedSet findInvariants() throws CPAException, InterruptedException {
       checkState(initialLocation != null);
 
-      if (!reached.hasWaitingElement()) {
+      if (!reached.hasWaitingState()) {
         // invariant generation disabled
         return reached;
       }

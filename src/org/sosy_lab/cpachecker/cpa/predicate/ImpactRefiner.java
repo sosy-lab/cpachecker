@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractElementByType;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -151,7 +151,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
             new Predicate<ARGState>() {
                 @Override
                 public boolean apply(ARGState pInput) {
-                  return extractElementByType(pInput, PredicateAbstractState.class).isAbstractionElement();
+                  return extractStateByType(pInput, PredicateAbstractState.class).isAbstractionState();
                 }
             }));
 
@@ -166,7 +166,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
         new Function<ARGState, Formula>() {
           @Override
           public Formula apply(ARGState e) {
-            return extractElementByType(e, PredicateAbstractState.class).getAbstractionFormula().getBlockFormula();
+            return extractStateByType(e, PredicateAbstractState.class).getAbstractionFormula().getBlockFormula();
           }
         });
   }
@@ -308,11 +308,11 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
   }
 
   private Formula getStateFormula(ARGState pARGState) {
-    return AbstractStates.extractElementByType(pARGState, PredicateAbstractState.class).getAbstractionFormula().asFormula();
+    return AbstractStates.extractStateByType(pARGState, PredicateAbstractState.class).getAbstractionFormula().asFormula();
   }
 
   private void addFormulaToState(Formula f, ARGState e) {
-    PredicateAbstractState predElement = AbstractStates.extractElementByType(e, PredicateAbstractState.class);
+    PredicateAbstractState predElement = AbstractStates.extractStateByType(e, PredicateAbstractState.class);
     AbstractionFormula af = predElement.getAbstractionFormula();
 
     Formula newFormula = fmgr.makeAnd(f, af.asFormula());

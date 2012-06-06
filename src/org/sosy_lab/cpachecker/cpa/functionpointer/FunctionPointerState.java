@@ -199,15 +199,15 @@ class FunctionPointerState extends AbstractSingleWrapperState  {
     pointerVariableValues = ImmutableMap.copyOf(pValues);
   }
 
-  public static FunctionPointerState createEmptyElement(AbstractState pWrappedElement) {
+  public static FunctionPointerState createEmptyState(AbstractState pWrappedElement) {
     return new FunctionPointerState(pWrappedElement);
   }
 
-  public FunctionPointerState.Builder createBuilderWithNewWrappedElement(AbstractState pElement) {
+  public FunctionPointerState.Builder createBuilderWithNewWrappedState(AbstractState pElement) {
     return new Builder(this.pointerVariableValues, pElement);
   }
 
-  public FunctionPointerState createDuplicateWithNewWrappedElement(AbstractState pElement) {
+  public FunctionPointerState createDuplicateWithNewWrappedState(AbstractState pElement) {
     return new FunctionPointerState(pElement, this.pointerVariableValues);
   }
 
@@ -217,7 +217,7 @@ class FunctionPointerState extends AbstractSingleWrapperState  {
     str.append("\n FunctionPointerState: [");
     Joiner.on(", ").withKeyValueSeparator("=").appendTo(str, pointerVariableValues);
     str.append("]\n ");
-    str.append(getWrappedElement());
+    str.append(getWrappedState());
     return str.toString();
   }
 

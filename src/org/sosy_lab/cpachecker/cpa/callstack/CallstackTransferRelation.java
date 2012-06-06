@@ -57,7 +57,7 @@ public class CallstackTransferRelation implements TransferRelation {
           if (e.getCurrentFunction().equals(functionName)) {
             throw new UnsupportedCCodeException("recursion", pCfaEdge);
           }
-          e = e.getPreviousElement();
+          e = e.getPreviousState();
         }
 
         return Collections.singleton(new CallstackState(element, functionName, callNode));
@@ -81,7 +81,7 @@ public class CallstackTransferRelation implements TransferRelation {
           return Collections.emptySet();
         }
 
-        CallstackState returnElement = element.getPreviousElement();
+        CallstackState returnElement = element.getPreviousState();
 
         assert callerFunction.equals(returnElement.getCurrentFunction());
 

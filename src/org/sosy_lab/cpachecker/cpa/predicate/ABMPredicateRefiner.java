@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.collect.Lists.transform;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractElementByType;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -188,7 +188,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
     = new Function<PredicateAbstractState, Region>() {
         @Override
         public Region apply(PredicateAbstractState e) {
-          assert e.isAbstractionElement();
+          assert e.isAbstractionState();
           return e.getAbstractionFormula().asRegion();
         };
       };
@@ -198,7 +198,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
           Functions.compose(
               GET_REGION,
           Functions.compose(
-              AbstractStates.extractElementByTypeFunction(PredicateAbstractState.class),
+              AbstractStates.extractStateByTypeFunction(PredicateAbstractState.class),
               Pair.<ARGState>getProjectionToFirst())));
     }
 
@@ -233,7 +233,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
 
     private void refineRelevantPredicatesComputer(List<Pair<ARGState, CFANode>> pPath, ARGReachedSet pReached) {
       UnmodifiableReachedSet reached = pReached.asReachedSet();
-      Precision oldPrecision = reached.getPrecision(reached.getLastElement());
+      Precision oldPrecision = reached.getPrecision(reached.getLastState());
       PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
 
       BlockPartitioning partitioning = predicateCpa.getPartitioning();
@@ -310,8 +310,8 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
         }
         assert currentFormulas.size() >= 1;
 
-        PredicateAbstractState predicateElement = extractElementByType(currentElement, PredicateAbstractState.class);
-        if (predicateElement.isAbstractionElement()) {
+        PredicateAbstractState predicateElement = extractStateByType(currentElement, PredicateAbstractState.class);
+        if (predicateElement.isAbstractionState()) {
           // abstraction element
           PathFormula currentFormula = getOnlyElement(currentFormulas);
           abstractionFormulas.add(currentFormula.getFormula());

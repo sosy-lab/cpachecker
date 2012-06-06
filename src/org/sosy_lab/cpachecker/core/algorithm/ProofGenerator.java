@@ -69,9 +69,9 @@ public class ProofGenerator {
     UnmodifiableReachedSet reached = pResult.getReached();
     // check result
     if (pResult.getResult() != Result.SAFE
-        || reached.getFirstElement() == null
-        || !(reached.getFirstElement() instanceof ARGState)
-        || (extractLocation(reached.getFirstElement()) == null)) {
+        || reached.getFirstState() == null
+        || !(reached.getFirstState() instanceof ARGState)
+        || (extractLocation(reached.getFirstState()) == null)) {
       logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
       return;
     }
@@ -91,7 +91,7 @@ public class ProofGenerator {
       ObjectOutputStream o = new ObjectOutputStream(zos);
       //TODO might also want to write used configuration to the file so that proof checker does not need to get it as an argument
       //write ARG
-      o.writeObject(reached.getFirstElement());
+      o.writeObject(reached.getFirstState());
       zos.closeEntry();
 
       ze = new ZipEntry("Helper");

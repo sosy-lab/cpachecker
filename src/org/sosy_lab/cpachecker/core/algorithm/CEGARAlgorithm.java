@@ -225,7 +225,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         sound &= algorithm.run(reached);
 
         // if the last element is a target element do refinement
-        if (AbstractStates.isTargetElement(reached.getLastElement())) {
+        if (AbstractStates.isTargetState(reached.getLastState())) {
 
           refinementSuccessful = refine(reached);
         }

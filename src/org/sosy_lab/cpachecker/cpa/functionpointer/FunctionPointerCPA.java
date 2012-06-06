@@ -109,7 +109,7 @@ public class FunctionPointerCPA extends AbstractSingleWrapperCPA implements Conf
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    return FunctionPointerState.createEmptyElement(getWrappedCpa().getInitialState(pNode));
+    return FunctionPointerState.createEmptyState(getWrappedCpa().getInitialState(pNode));
   }
 
   @Override

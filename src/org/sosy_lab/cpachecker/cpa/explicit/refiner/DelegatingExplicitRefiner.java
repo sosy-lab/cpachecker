@@ -215,7 +215,7 @@ public class DelegatingExplicitRefiner
       throws CPAException, InterruptedException {
 
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
-    Precision precision = reachedSet.getPrecision(reachedSet.getLastElement());
+    Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
 
     explicitRefiner.setCurrentErrorPath(errorPath);
 
@@ -249,7 +249,7 @@ public class DelegatingExplicitRefiner
       throws CPAException {
 
     UnmodifiableReachedSet reached = pReached.asReachedSet();
-    Precision oldPrecision = reached.getPrecision(reached.getLastElement());
+    Precision oldPrecision = reached.getPrecision(reached.getLastState());
 
     precisionUpdate.start();
     Pair<ARGState, Precision> result = currentRefiner.performRefinement(oldPrecision, errorPath, counterexampleTraceInfo);

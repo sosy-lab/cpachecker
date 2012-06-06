@@ -198,7 +198,7 @@ class OctTransferRelation implements TransferRelation{
       functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
     IASTFunctionCall exprOnSummary = summaryEdge.getExpression();
 
-    OctState previousElem = element.getPreviousElement();
+    OctState previousElem = element.getPreviousState();
 
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
@@ -251,7 +251,7 @@ class OctTransferRelation implements TransferRelation{
       OctState pPrevElement, FunctionCallEdge callEdge, CFAEdge edge)
   throws UnrecognizedCCodeException {
 
-    octagonElement.setPreviousElement(pPrevElement);
+    octagonElement.setPreviousState(pPrevElement);
 
     FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();
@@ -669,7 +669,7 @@ class OctTransferRelation implements TransferRelation{
       else if(op2 instanceof IASTBinaryExpression){
         String varName = op1.toASTString();
         String variableName = getvarName(varName, functionName);
-        return forgetElement(pElement, variableName);
+        return forgetState(pElement, variableName);
       }
       // right hand side is a cast exp
       else if(op2 instanceof IASTCastExpression){
@@ -680,7 +680,7 @@ class OctTransferRelation implements TransferRelation{
       else{
         String varName = op1.toASTString();
         String variableName = getvarName(varName, functionName);
-        return forgetElement(pElement, variableName);
+        return forgetState(pElement, variableName);
       }
     }
     else if(op1 instanceof IASTCastExpression){
@@ -691,12 +691,12 @@ class OctTransferRelation implements TransferRelation{
     else{
       String varName = op1.toASTString();
       String variableName = getvarName(varName, functionName);
-      return forgetElement(pElement, variableName);
+      return forgetState(pElement, variableName);
     }
   }
 
 
-  private AbstractState forgetElement(OctState pElement,
+  private AbstractState forgetState(OctState pElement,
       String pVariableName) {
     pElement.forget(pVariableName);
     return pElement;

@@ -264,7 +264,7 @@ public class CPAchecker {
 
         // either run only once (if stopAfterError == true)
         // or until the waitlist is empty
-      } while (!stopAfterError && reached.hasWaitingElement());
+      } while (!stopAfterError && reached.hasWaitingState());
 
       logger.log(Level.INFO, "Stopping analysis ...");
       return sound;
@@ -279,11 +279,11 @@ public class CPAchecker {
   }
 
   private Result analyzeResult(final ReachedSet reached, boolean sound) {
-    if (Iterables.any(reached, AbstractStates.IS_TARGET_ELEMENT)) {
+    if (Iterables.any(reached, AbstractStates.IS_TARGET_STATE)) {
       return Result.UNSAFE;
     }
 
-    if (reached.hasWaitingElement()) {
+    if (reached.hasWaitingState()) {
       logger.log(Level.WARNING, "Analysis not completed: there are still elements to be processed.");
       return Result.UNKNOWN;
     }

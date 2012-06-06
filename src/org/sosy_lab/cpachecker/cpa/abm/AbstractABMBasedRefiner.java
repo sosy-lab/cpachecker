@@ -94,7 +94,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
       ARGState subgraph;
       computeSubtreeTimer.start();
       try {
-        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, new ARGState(pLastElement.getWrappedElement(), null), pathElementToReachedElement);
+        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, new ARGState(pLastElement.getWrappedState(), null), pathElementToReachedElement);
         if (subgraph == null) {
           return null;
         }

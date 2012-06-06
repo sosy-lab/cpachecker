@@ -49,7 +49,7 @@ class MergeNode {
     Set<Integer> processedConditions = new HashSet<Integer>();
 
     for (BasicBlock elementInStack: currentFunction) {
-      int idOfElementInStack = elementInStack.getElementId();
+      int idOfElementInStack = elementInStack.getStateId();
       boolean nextConditionValue = elementInStack.isCondition();
       boolean isClosedBefore = elementInStack.isClosedBefore();
 
@@ -72,22 +72,22 @@ class MergeNode {
       }
     }
 
-    setProcessedElements(processedConditions);
+    setProcessedStates(processedConditions);
 
     return incomingElements.size();
   }
 
-  private void setProcessedElements(Set<Integer> pProcessedConditions) {
+  private void setProcessedStates(Set<Integer> pProcessedConditions) {
     for (FunctionBody stack: incomingElements) {
       for (BasicBlock elem: stack) {
-        if (pProcessedConditions.contains(elem.getElementId())) {
+        if (pProcessedConditions.contains(elem.getStateId())) {
           elem.setClosedBefore(true);
         }
       }
     }
   }
 
-  public List<FunctionBody> getIncomingElements() {
+  public List<FunctionBody> getIncomingStates() {
     return incomingElements;
   }
 

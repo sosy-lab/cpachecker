@@ -58,7 +58,7 @@ public class Path extends LinkedList<Pair<ARGState, CFAEdge>> {
       ARGState argelem = pair.getFirst();
       CFAEdge edge = pair.getSecond();
       if (edge == null) continue; // in this case we do not need the edge
-      elem.put("argelem", argelem.getElementId());
+      elem.put("argelem", argelem.getStateId());
       elem.put("source", edge.getPredecessor().getNodeNumber());
       elem.put("target", edge.getSuccessor().getNodeNumber());
       elem.put("desc", edge.getDescription().replaceAll("\n", " "));
@@ -72,7 +72,7 @@ public class Path extends LinkedList<Pair<ARGState, CFAEdge>> {
     return Lists.transform(this, Pair.<CFAEdge>getProjectionToSecond());
   }
 
-  public ImmutableSet<ARGState> getElementSet() {
+  public ImmutableSet<ARGState> getStateSet() {
     List<ARGState> elementList = Lists.transform(this, Pair.<ARGState>getProjectionToFirst());
     return ImmutableSet.copyOf(elementList);
   }

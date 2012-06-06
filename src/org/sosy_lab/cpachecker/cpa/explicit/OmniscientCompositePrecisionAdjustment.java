@@ -121,8 +121,8 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
         ExplicitState explicit                  = (ExplicitState)oldElement;
         ExplicitPrecision explicitPrecision       = (ExplicitPrecision)oldPrecision;
 
-        LocationState location                  = AbstractStates.extractElementByType(composite, LocationState.class);
-        AssignmentsInPathConditionState assigns = AbstractStates.extractElementByType(composite, AssignmentsInPathConditionState.class);
+        LocationState location                  = AbstractStates.extractStateByType(composite, LocationState.class);
+        AssignmentsInPathConditionState assigns = AbstractStates.extractStateByType(composite, AssignmentsInPathConditionState.class);
 
         totalEnforceReachedSetThreshold.start();
         ExplicitState newElement = enforceReachedSetThreshold(explicit, explicitPrecision, slice.getReached(location.getLocationNode()));

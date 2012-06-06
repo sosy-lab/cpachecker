@@ -70,7 +70,7 @@ public class PredicateAbstractDomain implements AbstractDomain {
   ++stats.numCoverageChecks;
      */
 
-    if (e1.isAbstractionElement() && e2.isAbstractionElement()) {
+    if (e1.isAbstractionState() && e2.isAbstractionState()) {
       bddCoverageCheckTimer.start();
 
       // if e1's predicate abstraction entails e2's pred. abst.
@@ -79,7 +79,7 @@ public class PredicateAbstractDomain implements AbstractDomain {
       bddCoverageCheckTimer.stop();
       return result;
 
-    } else if (e2.isAbstractionElement()) {
+    } else if (e2.isAbstractionState()) {
       if (symbolicCoverageCheck) {
         symbolicCoverageCheckTimer.start();
 
@@ -92,7 +92,7 @@ public class PredicateAbstractDomain implements AbstractDomain {
         return false;
       }
 
-    } else if (e1.isAbstractionElement()) {
+    } else if (e1.isAbstractionState()) {
       return false;
 
     } else {

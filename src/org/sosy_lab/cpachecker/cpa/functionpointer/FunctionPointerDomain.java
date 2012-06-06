@@ -48,6 +48,6 @@ class FunctionPointerDomain implements AbstractDomain {
     FunctionPointerState elem2 = (FunctionPointerState) pElement2;
 
     return elem1.isLessOrEqualThan(elem2)
-        && wrappedDomain.isLessOrEqual(elem1.getWrappedElement(), elem2.getWrappedElement());
+        && wrappedDomain.isLessOrEqual(elem1.getWrappedState(), elem2.getWrappedState());
   }
 }

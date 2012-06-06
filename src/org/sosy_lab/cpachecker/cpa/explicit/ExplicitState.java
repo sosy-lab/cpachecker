@@ -88,7 +88,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     return constantsMap.containsKey(variableName);
   }
 
-  ExplicitState getPreviousElement() {
+  ExplicitState getPreviousState() {
     return previousElement;
   }
 

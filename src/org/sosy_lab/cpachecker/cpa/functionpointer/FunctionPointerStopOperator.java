@@ -62,8 +62,8 @@ class FunctionPointerStopOperator implements StopOperator {
       return false;
     }
 
-    AbstractState wrappedElement = pElement.getWrappedElement();
-    AbstractState wrappedReachedElement = pReachedElement.getWrappedElement();
+    AbstractState wrappedElement = pElement.getWrappedState();
+    AbstractState wrappedReachedElement = pReachedElement.getWrappedState();
 
     return wrappedStop.stop(wrappedElement, Collections.singleton(wrappedReachedElement), pPrecision);
   }

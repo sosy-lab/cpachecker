@@ -58,7 +58,7 @@ public class LoopstackState implements AbstractState, Partitionable, AvoidanceRe
     stop = false;
   }
 
-  public LoopstackState getPreviousElement() {
+  public LoopstackState getPreviousState() {
     return previousElement;
   }
 

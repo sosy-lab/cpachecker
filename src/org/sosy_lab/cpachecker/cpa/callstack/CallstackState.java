@@ -54,7 +54,7 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
     }
   }
 
-  public CallstackState getPreviousElement() {
+  public CallstackState getPreviousState() {
     return previousElement;
   }
 

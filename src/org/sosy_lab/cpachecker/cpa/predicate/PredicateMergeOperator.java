@@ -63,7 +63,7 @@ public class PredicateMergeOperator implements MergeOperator {
     // this will be the merged element
     PredicateAbstractState merged;
 
-    if (elem1.isAbstractionElement() || elem2.isAbstractionElement()) {
+    if (elem1.isAbstractionState() || elem2.isAbstractionState()) {
       // we don't merge if this is an abstraction location
       merged = elem2;
     } else {
@@ -81,7 +81,7 @@ public class PredicateMergeOperator implements MergeOperator {
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
-        merged = PredicateAbstractState.nonAbstractionElement(pathFormula, elem1.getAbstractionFormula());
+        merged = PredicateAbstractState.nonAbstractionState(pathFormula, elem1.getAbstractionFormula());
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

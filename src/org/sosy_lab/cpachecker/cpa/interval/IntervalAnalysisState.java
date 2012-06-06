@@ -122,7 +122,7 @@ public class IntervalAnalysisState implements AbstractState
    *
    * @return the previous element
    */
-  public IntervalAnalysisState getPreviousElement()
+  public IntervalAnalysisState getPreviousState()
   {
     return previousElement;
   }

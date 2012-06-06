@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractElementByType;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -130,8 +130,8 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     List<Pair<ARGState, CFANode>> result = Lists.newArrayList();
 
     for (ARGState ae : skip(transform(pPath, Pair.<ARGState>getProjectionToFirst()), 1)) {
-      PredicateAbstractState pe = extractElementByType(ae, PredicateAbstractState.class);
-      if (pe.isAbstractionElement()) {
+      PredicateAbstractState pe = extractStateByType(ae, PredicateAbstractState.class);
+      if (pe.isAbstractionState()) {
         CFANode loc = AbstractStates.extractLocation(ae);
         result.add(Pair.of(ae, loc));
       }
@@ -145,7 +145,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
                 = new Function<PredicateAbstractState, Formula>() {
                     @Override
                     public Formula apply(PredicateAbstractState e) {
-                      assert e.isAbstractionElement();
+                      assert e.isAbstractionState();
                       return e.getAbstractionFormula().getBlockFormula();
                     };
                   };
@@ -157,7 +157,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
         Functions.compose(
             GET_BLOCK_FORMULA,
         Functions.compose(
-            AbstractStates.extractElementByTypeFunction(PredicateAbstractState.class),
+            AbstractStates.extractStateByTypeFunction(PredicateAbstractState.class),
             Pair.<ARGState>getProjectionToFirst())));
 
     return formulas;
@@ -173,7 +173,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
 
     // get previous precision
     UnmodifiableReachedSet reached = pReached.asReachedSet();
-    Precision oldPrecision = reached.getPrecision(reached.getLastElement());
+    Precision oldPrecision = reached.getPrecision(reached.getLastState());
     PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
     if (oldPredicatePrecision == null) {
       throw new IllegalStateException("Could not find the PredicatePrecision for the error element");

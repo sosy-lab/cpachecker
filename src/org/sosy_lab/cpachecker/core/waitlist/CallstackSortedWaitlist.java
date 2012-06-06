@@ -42,7 +42,7 @@ public class CallstackSortedWaitlist extends AbstractSortedWaitlist<Integer> {
   @Override
   protected Integer getSortKey(AbstractState pElement) {
     CallstackState callstackState =
-      AbstractStates.extractElementByType(pElement, CallstackState.class);
+      AbstractStates.extractStateByType(pElement, CallstackState.class);
 
     return (callstackState != null) ? callstackState.getDepth() : 0;
   }

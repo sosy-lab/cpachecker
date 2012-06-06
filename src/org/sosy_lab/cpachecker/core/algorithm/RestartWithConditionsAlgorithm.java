@@ -90,7 +90,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
       // run the inner algorithm to fill the reached set
       sound &= innerAlgorithm.run(pReached);
 
-      if (Iterables.any(pReached, AbstractStates.IS_TARGET_ELEMENT)) {
+      if (Iterables.any(pReached, AbstractStates.IS_TARGET_STATE)) {
         return sound;
       }
 
@@ -100,7 +100,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
         return sound;
       }
 
-      List<AbstractState> elementsWithAssumptions = getElementsWithAssumptions(pReached);
+      List<AbstractState> elementsWithAssumptions = getStatesWithAssumptions(pReached);
 
       // if there are elements that an assumption is generated for
       if (!elementsWithAssumptions.isEmpty()) {
@@ -118,12 +118,12 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
         }
       }
 
-    } while (pReached.hasWaitingElement());
+    } while (pReached.hasWaitingState());
 
     return sound;
   }
 
-  private List<AbstractState> getElementsWithAssumptions(ReachedSet reached) {
+  private List<AbstractState> getStatesWithAssumptions(ReachedSet reached) {
 
     List<AbstractState> retList = new ArrayList<AbstractState>();
 
@@ -137,7 +137,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 //      } else {
 
         // check if stored assumption is not "true"
-        AssumptionStorageState e = AbstractStates.extractElementByType(element, AssumptionStorageState.class);
+        AssumptionStorageState e = AbstractStates.extractStateByType(element, AssumptionStorageState.class);
 
         if (!e.getAssumption().isTrue()
             || !e.getStopFormula().isTrue()) {

@@ -84,15 +84,15 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    * Returns the first element that was added to the reached set.
    * @throws IllegalStateException If the reached set is empty.
    */
-  public AbstractState getFirstElement();
+  public AbstractState getFirstState();
 
   /**
    * Returns the last element that was added to the reached set.
    * May be null if it is unknown, which element was added last.
    */
-  public AbstractState getLastElement();
+  public AbstractState getLastState();
 
-  public boolean hasWaitingElement();
+  public boolean hasWaitingState();
 
   /**
    * An unmodifiable view of the waitlist as an Collection.

@@ -159,7 +159,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
     // create the new abstract element for non-abstraction location
     return Collections.singleton(
-        PredicateAbstractState.nonAbstractionElement(pathFormula, abstractionFormula));
+        PredicateAbstractState.nonAbstractionState(pathFormula, abstractionFormula));
   }
 
   /**
@@ -191,7 +191,7 @@ public class PredicateTransferRelation implements TransferRelation {
     try {
 
       PredicateAbstractState element = (PredicateAbstractState)pElement;
-      if (element.isAbstractionElement()) {
+      if (element.isAbstractionState()) {
         // can't do anything with this object because the path formula of
         // abstraction elements has to stay "true"
         return Collections.singleton(element);
@@ -207,7 +207,7 @@ public class PredicateTransferRelation implements TransferRelation {
           element = strengthen(edge.getSuccessor(), element, (ConstrainedAssumeState)lElement);
         }
 
-        if (AbstractStates.isTargetElement(lElement)) {
+        if (AbstractStates.isTargetState(lElement)) {
           errorFound = true;
         }
       }
@@ -261,8 +261,8 @@ public class PredicateTransferRelation implements TransferRelation {
       CFANode loc = ((ComputeAbstractionState) oldElement).getLocation();
       return new ComputeAbstractionState(newPathFormula, oldElement.getAbstractionFormula(), loc);
     } else {
-      assert !oldElement.isAbstractionElement();
-      return PredicateAbstractState.nonAbstractionElement(newPathFormula, oldElement.getAbstractionFormula());
+      assert !oldElement.isAbstractionState();
+      return PredicateAbstractState.nonAbstractionState(newPathFormula, oldElement.getAbstractionFormula());
     }
   }
 
@@ -288,7 +288,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
       PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
-      return PredicateAbstractState.abstractionElement(newPathFormula, abs);
+      return PredicateAbstractState.abstractionState(newPathFormula, abs);
     }
   }
 
@@ -318,7 +318,7 @@ public class PredicateTransferRelation implements TransferRelation {
     for(AbstractState e : pSuccessors) {
       PredicateAbstractState successor = (PredicateAbstractState)e;
 
-      if(successor.isAbstractionElement()) {
+      if(successor.isAbstractionState()) {
         // check abstraction
         abstractionCheckTimer.start();
         if(!formulaManager.checkCoverage(predicateElement.getAbstractionFormula(), pathFormula, successor.getAbstractionFormula())) {

@@ -46,8 +46,8 @@ public class CallstackReducer implements Reducer {
     if (element.getCurrentFunction().equals(callNode.getFunctionName())) {
       return new CallstackState(null, element.getCurrentFunction(), callNode);
     } else {
-      assert element.getPreviousElement() != null;
-      CallstackState recursiveResult = copyCallstackUpToCallNode(element.getPreviousElement(), callNode);
+      assert element.getPreviousState() != null;
+      CallstackState recursiveResult = copyCallstackUpToCallNode(element.getPreviousState(), callNode);
       return new CallstackState(recursiveResult, element.getCurrentFunction(), element.getCallNode());
     }
   }
@@ -68,11 +68,11 @@ public class CallstackReducer implements Reducer {
 
   private CallstackState copyCallstackExceptLast(CallstackState target, CallstackState source) {
     if (source.getDepth() == 1) {
-      assert source.getPreviousElement() == null;
+      assert source.getPreviousState() == null;
       assert source.getCurrentFunction().equals(target.getCurrentFunction());
       return target;
     } else {
-      CallstackState recursiveResult = copyCallstackExceptLast(target, source.getPreviousElement());
+      CallstackState recursiveResult = copyCallstackExceptLast(target, source.getPreviousState());
       return new CallstackState(recursiveResult, source.getCurrentFunction(), source.getCallNode());
     }
   }
@@ -88,8 +88,8 @@ public class CallstackReducer implements Reducer {
         || !reducedTargetElement.getCurrentFunction().equals(candidateElement.getCurrentFunction())) {
           return false;
       }
-      reducedTargetElement = reducedTargetElement.getPreviousElement();
-      candidateElement = candidateElement.getPreviousElement();
+      reducedTargetElement = reducedTargetElement.getPreviousState();
+      candidateElement = candidateElement.getPreviousState();
     }
 
     return true;

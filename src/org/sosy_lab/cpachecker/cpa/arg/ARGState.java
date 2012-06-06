@@ -115,7 +115,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     return mCoveredBy != null;
   }
 
-  public ARGState getCoveringElement() {
+  public ARGState getCoveringState() {
     checkState(isCovered());
     return mCoveredBy;
   }
@@ -175,24 +175,24 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     sb.append(elementId);
     if (!destroyed) {
       sb.append(", Parents: ");
-      sb.append(elementIdsOf(parents));
+      sb.append(stateIdsOf(parents));
       sb.append(", Children: ");
-      sb.append(elementIdsOf(children));
+      sb.append(stateIdsOf(children));
 
       if (mCoveredBy != null) {
         sb.append(", Covered by: ");
         sb.append(mCoveredBy.elementId);
       } else {
         sb.append(", Covering: ");
-        sb.append(elementIdsOf(getCoveredByThis()));
+        sb.append(stateIdsOf(getCoveredByThis()));
       }
     }
     sb.append(") ");
-    sb.append(getWrappedElement());
+    sb.append(getWrappedState());
     return sb.toString();
   }
 
-  private final Iterable<Integer> elementIdsOf(Iterable<ARGState> elements) {
+  private final Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
     return Iterables.transform(elements, new Function<ARGState, Integer>() {
       @Override
       public Integer apply(ARGState pInput) {
@@ -315,7 +315,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     destroyed = true;
   }
 
-  public int getElementId() {
+  public int getStateId() {
     return elementId;
   }
 

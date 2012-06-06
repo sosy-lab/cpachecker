@@ -115,10 +115,10 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean sound = true;
 
-    while (reached.hasWaitingElement()) {
+    while (reached.hasWaitingState()) {
       sound &= algorithm.run(reached);
 
-      AbstractState lastElement = reached.getLastElement();
+      AbstractState lastElement = reached.getLastState();
       if (!(lastElement instanceof ARGState)) {
         // no analysis possible
         break;
@@ -133,9 +133,9 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
       // check counterexample
       checkTime.start();
       try {
-        ARGState rootElement = (ARGState)reached.getFirstElement();
+        ARGState rootElement = (ARGState)reached.getFirstState();
 
-        Set<ARGState> elementsOnErrorPath = ARGUtils.getAllElementsOnPathsTo(errorElement);
+        Set<ARGState> elementsOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorElement);
 
         boolean feasibility;
         try {
@@ -150,7 +150,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
 
           // BDD specials
           Region errorBDD = null;
-          for (AbstractState x : ((CompositeState)errorElement.getWrappedElement()).getWrappedStates()) {
+          for (AbstractState x : ((CompositeState)errorElement.getWrappedState()).getWrappedStates()) {
             if (x instanceof FeatureVarsState) {
               errorBDD = ((FeatureVarsState) x).getRegion();
               //logger.log(Level.INFO,"BDD: " + ((FeatureVarsState) x).toString());
@@ -167,7 +167,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
           for (AbstractState x : reached.getWaitlist()) {
             ARGState xart = (ARGState)x;
             FeatureVarsState fvelem = null;
-            for (AbstractState y : ((CompositeState)xart.getWrappedElement()).getWrappedStates()) {
+            for (AbstractState y : ((CompositeState)xart.getWrappedState()).getWrappedStates()) {
               if (y instanceof FeatureVarsState)
                 fvelem = (FeatureVarsState)y;
             }
@@ -202,7 +202,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
               sound = false;
             }
 
-            sound &= removeErrorElement(reached, errorElement);
+            sound &= removeErrorState(reached, errorElement);
 
           } else {
             Path path = ARGUtils.getOnePathTo(errorElement);
@@ -240,7 +240,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
     }
 
     for (ARGState coveredElement : coveredByErrorPath) {
-      if (isTransitiveChildOf(coveredElement, coveredElement.getCoveringElement())) {
+      if (isTransitiveChildOf(coveredElement, coveredElement.getCoveringState())) {
         // This element is covered by one of it's (transitive) parents
         // so this is a loop.
         // Don't add the element, because otherwise the loop would
@@ -293,7 +293,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
     return false;
   }
 
-  private boolean removeErrorElement(ReachedSet reached, ARGState errorElement) {
+  private boolean removeErrorState(ReachedSet reached, ARGState errorElement) {
     boolean sound = true;
 
     // remove re-added parent of errorElement to prevent computing

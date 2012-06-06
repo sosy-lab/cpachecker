@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.filterTargetElements;
+import static org.sosy_lab.cpachecker.util.AbstractStates.filterTargetStates;
 
 import java.io.File;
 import java.io.IOException;
@@ -357,7 +357,7 @@ class MainCPAStatistics implements Statistics {
             out.println();
           }
         }
-        out.println("  Number of target elements:  " + Iterables.size(filterTargetElements(reached)));
+        out.println("  Number of target elements:  " + Iterables.size(filterTargetStates(reached)));
         out.println("Time for analysis setup:      " + creationTime);
         out.println("  Time for loading CPAs:      " + cpaCreationTime);
         if (cfaCreator != null) {

@@ -61,7 +61,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
     Preconditions.checkArgument(pElement instanceof MonitorState);
     MonitorState element = (MonitorState)pElement;
 
-    if (element.getWrappedElement() == TimeoutState.INSTANCE) {
+    if (element.getWrappedState() == TimeoutState.INSTANCE) {
       // we can't call prec() in this case because we don't have an element of the CPA
       return Triple.of(pElement, oldPrecision, Action.CONTINUE);
     }
@@ -70,7 +70,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
         pElements,  MonitorState.getUnwrapFunction(), Functions.<Precision>identity());
     // TODO we really would have to filter out all TimeoutElements in this view
 
-    AbstractState oldElement = element.getWrappedElement();
+    AbstractState oldElement = element.getWrappedState();
 
     totalTimeOfPrecAdj.start();
     Triple<AbstractState, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);

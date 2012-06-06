@@ -171,7 +171,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
         Path path = failedRefinement.getErrorPath();
         ARGState errorElement = path.getLast().getFirst();
-        assert errorElement == reached.getLastElement();
+        assert errorElement == reached.getLastState();
 
         // old code, perhaps we can use the information from getFailurePoint()
         //        int pos = failedRefinement.getFailurePoint();
@@ -193,7 +193,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
         ARGState parent = Iterables.getOnlyElement(errorElement.getParents());
         reached.removeOnlyFromWaitlist(parent);
-        exceptionElements.add(parent.getElementId());
+        exceptionElements.add(parent.getStateId());
         addAvoidingAssumptions(exceptionAssumptions, parent);
 
         reached.remove(errorElement);
@@ -219,14 +219,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     logger.log(Level.FINER, "Dumping assumptions resulting from tool assumptions");
     for (AbstractState element : reached) {
 
-      if (AbstractStates.isTargetElement(element)) {
+      if (AbstractStates.isTargetState(element)) {
         // create assumptions for target element
         addAvoidingAssumptions(result, element);
 
       } else {
         // get stored assumption
 
-        AssumptionStorageState e = AbstractStates.extractElementByType(element, AssumptionStorageState.class);
+        AssumptionStorageState e = AbstractStates.extractStateByType(element, AssumptionStorageState.class);
 
         Formula assumption = formulaManager.makeAnd(e.getAssumption(), e.getStopFormula());
 
@@ -264,7 +264,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   private String produceAssumptionAutomaton(ReachedSet reached) {
-    AbstractState firstElement = reached.getFirstElement();
+    AbstractState firstElement = reached.getFirstState();
     if (!(firstElement instanceof ARGState)) {
       return "Cannot dump assumption as automaton if ARGCPA is not used.";
     }
@@ -275,11 +275,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     Set<ARGState> relevantElements = new HashSet<ARGState>();
     for (AbstractState element : reached) {
       ARGState e = (ARGState)element;
-      AssumptionStorageState asmptElement = AbstractStates.extractElementByType(e, AssumptionStorageState.class);
+      AssumptionStorageState asmptElement = AbstractStates.extractStateByType(e, AssumptionStorageState.class);
 
       if (e.isTarget()
           || asmptElement.isStop()
-          || exceptionElements.contains(e.getElementId())) {
+          || exceptionElements.contains(e.getStateId())) {
         falseAssumptionElements.add(e);
       }
 
@@ -295,14 +295,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
     }
 
-    ARGState rootElement = (ARGState)reached.getFirstElement();
+    ARGState rootElement = (ARGState)reached.getFirstState();
 
     Set<ARGState> childrenOfRelevantElements = new TreeSet<ARGState>(relevantElements);
     childrenOfRelevantElements.add(rootElement);
     for (ARGState e : relevantElements) {
       childrenOfRelevantElements.addAll(e.getChildren());
       if (e.isCovered()) {
-        childrenOfRelevantElements.add(e.getCoveringElement());
+        childrenOfRelevantElements.add(e.getCoveringState());
       }
     }
 
@@ -331,7 +331,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       actionOnFinalEdges = "DO branchingCount = 0 ";
     }
 
-    sb.append("INITIAL STATE ARG" + initialState.getElementId() + ";\n\n");
+    sb.append("INITIAL STATE ARG" + initialState.getStateId() + ";\n\n");
     sb.append("STATE __TRUE :\n");
     sb.append("    TRUE -> ASSUME \"true\" GOTO __TRUE;\n\n");
 
@@ -345,7 +345,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         continue;
       }
 
-      sb.append("STATE USEFIRST ARG" + e.getElementId() + " :\n");
+      sb.append("STATE USEFIRST ARG" + e.getStateId() + " :\n");
       automatonStates++;
 
       if (!relevantElements.contains(e)) {
@@ -361,7 +361,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         CFANode loc = AbstractStates.extractLocation(e);
         for (ARGState child : e.getChildren()) {
           if (child.isCovered()) {
-            child = child.getCoveringElement();
+            child = child.getCoveringState();
             assert !child.isCovered();
           }
 
@@ -371,7 +371,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           escape(edge.getRawStatement(), sb);
           sb.append("\" -> ");
 
-          AssumptionStorageState assumptionChild = AbstractStates.extractElementByType(child, AssumptionStorageState.class);
+          AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child, AssumptionStorageState.class);
           Formula assumption = formulaManager.makeAnd(assumptionChild.getAssumption(), assumptionChild.getStopFormula());
           sb.append("ASSUME \"");
           escape(assumption.toString(), sb);
@@ -384,7 +384,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           if (falseAssumptionElements.contains(child)) {
             sb.append(actionOnFinalEdges + "GOTO __FALSE");
           } else {
-            sb.append("GOTO ARG" + child.getElementId());
+            sb.append("GOTO ARG" + child.getStateId());
           }
           sb.append(";\n");
         }

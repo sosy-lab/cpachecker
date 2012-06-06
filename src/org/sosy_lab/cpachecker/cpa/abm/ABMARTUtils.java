@@ -56,7 +56,7 @@ class ABMARTUtils {
 
     blockToReachedSet.put(block, reachedSet);
 
-    ARGState firstElement = (ARGState)reachedSet.getFirstElement();
+    ARGState firstElement = (ARGState)reachedSet.getFirstState();
 
     Deque<ARGState> worklist = new LinkedList<ARGState>();
     Set<ARGState> processed = new HashSet<ARGState>();

@@ -49,7 +49,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
   public final static Predicate<PredicateAbstractState> FILTER_ABSTRACTION_ELEMENTS = new Predicate<PredicateAbstractState>() {
     @Override
     public boolean apply(PredicateAbstractState ae) {
-      return ae.isAbstractionElement();
+      return ae.isAbstractionState();
     }
   };
 
@@ -80,7 +80,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
 
     @Override
-    public boolean isAbstractionElement() {
+    public boolean isAbstractionState() {
       return true;
     }
 
@@ -103,7 +103,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
 
     @Override
-    public boolean isAbstractionElement() {
+    public boolean isAbstractionState() {
       return false;
     }
 
@@ -140,7 +140,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
 
     @Override
-    public boolean isAbstractionElement() {
+    public boolean isAbstractionState() {
       return false;
     }
 
@@ -159,11 +159,11 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
-  static PredicateAbstractState abstractionElement(PathFormula pF, AbstractionFormula pA) {
+  static PredicateAbstractState abstractionState(PathFormula pF, AbstractionFormula pA) {
     return new AbstractionState(pF, pA);
   }
 
-  static PredicateAbstractState nonAbstractionElement(PathFormula pF, AbstractionFormula pA) {
+  static PredicateAbstractState nonAbstractionState(PathFormula pF, AbstractionFormula pA) {
     return new NonAbstractionState(pF, pA);
   }
 
@@ -180,7 +180,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     this.abstractionFormula = a;
   }
 
-  public abstract boolean isAbstractionElement();
+  public abstract boolean isAbstractionState();
 
   PredicateAbstractState getMergedInto() {
     throw new UnsupportedOperationException("Assuming wrong PredicateAbstractElements were merged!");
@@ -202,7 +202,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
    * elements and consider the coverage relation.
    */
   void setAbstraction(AbstractionFormula pAbstractionFormula) {
-    if (isAbstractionElement()) {
+    if (isAbstractionState()) {
       abstractionFormula = checkNotNull(pAbstractionFormula);
     } else {
       throw new UnsupportedOperationException("Changing abstraction formula is only supported for abstraction elements");

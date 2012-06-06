@@ -60,7 +60,7 @@ public class ARGUtils {
    * @param pLastElement The last element in the paths.
    * @return A set of elements, all of which have pLastElement as their (transitive) child.
    */
-  public static Set<ARGState> getAllElementsOnPathsTo(ARGState pLastElement) {
+  public static Set<ARGState> getAllStatesOnPathsTo(ARGState pLastElement) {
 
     Set<ARGState> result = new HashSet<ARGState>();
     Deque<ARGState> waitList = new ArrayDeque<ARGState>();
@@ -153,8 +153,8 @@ public class ARGUtils {
       color = "red";
 
     } else {
-      PredicateAbstractState abselem = AbstractStates.extractElementByType(currentElement, PredicateAbstractState.class);
-      if (abselem != null && abselem.isAbstractionElement()) {
+      PredicateAbstractState abselem = AbstractStates.extractStateByType(currentElement, PredicateAbstractState.class);
+      if (abselem != null && abselem.isAbstractionState()) {
         color = "cornflowerblue";
       } else {
         color = null;
@@ -197,35 +197,35 @@ public class ARGUtils {
 
       processed.add(currentElement);
 
-      if(!nodesList.contains(currentElement.getElementId())){
+      if(!nodesList.contains(currentElement.getStateId())){
 
         String label = determineLabel(currentElement);
 
-        sb.append(currentElement.getElementId());
+        sb.append(currentElement.getStateId());
         sb.append(" [");
         String color = determineColor(currentElement);
         if (color != null) {
           sb.append("fillcolor=\"" + color + "\" ");
         }
         sb.append("label=\"" + label +"\" ");
-        sb.append("id=\"" + currentElement.getElementId() + "\"");
+        sb.append("id=\"" + currentElement.getStateId() + "\"");
         sb.append("]");
         sb.append("\n");
 
-        nodesList.add(currentElement.getElementId());
+        nodesList.add(currentElement.getStateId());
       }
 
       for (ARGState covered : currentElement.getCoveredByThis()) {
-        edges.append(covered.getElementId());
+        edges.append(covered.getStateId());
         edges.append(" -> ");
-        edges.append(currentElement.getElementId());
+        edges.append(currentElement.getStateId());
         edges.append(" [style=\"dashed\" label=\"covered by\"]\n");
       }
 
       for (ARGState child : currentElement.getChildren()) {
-        edges.append(currentElement.getElementId());
+        edges.append(currentElement.getStateId());
         edges.append(" -> ");
-        edges.append(child.getElementId());
+        edges.append(child.getStateId());
         edges.append(" [");
 
         boolean colored = highlightedEdges.contains(Pair.of(currentElement, child));
@@ -245,9 +245,9 @@ public class ARGUtils {
           edges.append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''));
           edges.append("\"");
           edges.append(" id=\"");
-          edges.append(currentElement.getElementId());
+          edges.append(currentElement.getStateId());
           edges.append(" -> ");
-          edges.append(child.getElementId());
+          edges.append(child.getStateId());
           edges.append("\"");
         }
 
@@ -265,7 +265,7 @@ public class ARGUtils {
   private static String determineLabel(ARGState currentElement) {
     StringBuilder builder = new StringBuilder();
 
-    builder.append(currentElement.getElementId());
+    builder.append(currentElement.getStateId());
 
     CFANode loc = AbstractStates.extractLocation(currentElement);
     if(loc != null) {
@@ -273,7 +273,7 @@ public class ARGUtils {
       builder.append(loc.toString());
     }
 
-    Iterable<AutomatonState> states = AbstractStates.extractAllElementsOfType(currentElement, AutomatonState.class);
+    Iterable<AutomatonState> states = AbstractStates.extractAllStatesOfType(currentElement, AutomatonState.class);
     for (AutomatonState state : states) {
       if (!state.getInternalStateName().equals("Init")) {
         builder.append("\\n");
@@ -283,13 +283,13 @@ public class ARGUtils {
       }
     }
 
-    PredicateAbstractState abstraction = AbstractStates.extractElementByType(currentElement, PredicateAbstractState.class);
-    if(abstraction != null && abstraction.isAbstractionElement()) {
+    PredicateAbstractState abstraction = AbstractStates.extractStateByType(currentElement, PredicateAbstractState.class);
+    if(abstraction != null && abstraction.isAbstractionState()) {
       builder.append("\\n");
       builder.append(abstraction.getAbstractionFormula());
     }
 
-    ExplicitState explicit = AbstractStates.extractElementByType(currentElement, ExplicitState.class);
+    ExplicitState explicit = AbstractStates.extractStateByType(currentElement, ExplicitState.class);
     if(explicit != null) {
       builder.append("\\n");
       builder.append(explicit.toCompactString());
@@ -360,7 +360,7 @@ public class ARGUtils {
         assert falseChild != null;
 
         // search first idx where we have a predicate for the current branching
-        Boolean predValue = branchingInformation.get(currentElement.getElementId());
+        Boolean predValue = branchingInformation.get(currentElement.getStateId());
         if (predValue == null) {
           throw new IllegalArgumentException("ARG branches without direction information!");
         }

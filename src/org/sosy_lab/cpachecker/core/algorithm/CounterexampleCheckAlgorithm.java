@@ -105,10 +105,10 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean sound = true;
 
-    while (reached.hasWaitingElement()) {
+    while (reached.hasWaitingState()) {
       sound &= algorithm.run(reached);
 
-      AbstractState lastElement = reached.getLastElement();
+      AbstractState lastElement = reached.getLastState();
       if (!(lastElement instanceof ARGState)) {
         // no analysis possible
         break;
@@ -123,9 +123,9 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       // check counterexample
       checkTime.start();
       try {
-        ARGState rootElement = (ARGState)reached.getFirstElement();
+        ARGState rootElement = (ARGState)reached.getFirstState();
 
-        Set<ARGState> elementsOnErrorPath = ARGUtils.getAllElementsOnPathsTo(errorElement);
+        Set<ARGState> elementsOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorElement);
 
         boolean feasibility;
         try {
@@ -198,7 +198,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     }
 
     for (ARGState coveredElement : coveredByErrorPath) {
-      if (isTransitiveChildOf(coveredElement, coveredElement.getCoveringElement())) {
+      if (isTransitiveChildOf(coveredElement, coveredElement.getCoveringState())) {
         // This element is covered by one of it's (transitive) parents
         // so this is a loop.
         // Don't add the element, because otherwise the loop would

@@ -73,18 +73,18 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   }
 
   @Override
-  public AbstractState getFirstElement() {
-    return delegate.getFirstElement();
+  public AbstractState getFirstState() {
+    return delegate.getFirstState();
   }
 
   @Override
-  public AbstractState getLastElement() {
-    return delegate.getLastElement();
+  public AbstractState getLastState() {
+    return delegate.getLastState();
   }
 
   @Override
-  public boolean hasWaitingElement() {
-    return delegate.hasWaitingElement();
+  public boolean hasWaitingState() {
+    return delegate.hasWaitingState();
   }
 
   @Override

@@ -54,7 +54,7 @@ public class BDDState implements AbstractState {
     return currentVars;
   }
 
-  public BDDState getFunctionCallElement() {
+  public BDDState getFunctionCallState() {
     return functionCallElement;
   }
 

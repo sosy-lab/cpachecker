@@ -102,7 +102,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
 
       lAlgorithm.run(lReached);
 
-      if (isEmpty(filterTargetElements(lReached))) {
+      if (isEmpty(filterTargetStates(lReached))) {
         return false; // target state is not reachable, counterexample is infeasible
       } else {
         return true;
@@ -122,16 +122,16 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       Set<ARGState> pPathElements) {
     StringBuilder sb = new StringBuilder();
     sb.append("CONTROL AUTOMATON AssumptionAutomaton\n\n");
-    sb.append("INITIAL STATE ARG" + pRootElement.getElementId() + ";\n\n");
+    sb.append("INITIAL STATE ARG" + pRootElement.getStateId() + ";\n\n");
 
     for (ARGState e : pPathElements) {
 
       CFANode loc = AbstractStates.extractLocation(e);
-      sb.append("STATE USEFIRST ARG" + e.getElementId() + " :\n");
+      sb.append("STATE USEFIRST ARG" + e.getStateId() + " :\n");
 
       for (ARGState child : e.getChildren()) {
         if (child.isCovered()) {
-          child = child.getCoveringElement();
+          child = child.getCoveringState();
           assert !child.isCovered();
         }
 
@@ -145,7 +145,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
           if (child.isTarget()) {
             sb.append("ERROR");
           } else {
-            sb.append("GOTO ARG" + child.getElementId());
+            sb.append("GOTO ARG" + child.getStateId());
           }
           sb.append(";\n");
         }

@@ -49,7 +49,7 @@ public class MonitorStop implements StopOperator {
       return false;
     }
 
-    AbstractState wrappedElement = monitorState.getWrappedElement();
+    AbstractState wrappedElement = monitorState.getWrappedState();
     StopOperator stopOp = wrappedCpa.getStopOperator();
 
     for (AbstractState reachedElement : pReached) {
@@ -59,7 +59,7 @@ public class MonitorStop implements StopOperator {
         return false;
       }
 
-      AbstractState wrappedReachedElement = monitorReachedElement.getWrappedElement();
+      AbstractState wrappedReachedElement = monitorReachedElement.getWrappedState();
 
       if (stopOp.stop(wrappedElement, Collections.singleton(wrappedReachedElement), pPrecision)) {
         return true;

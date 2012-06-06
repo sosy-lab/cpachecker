@@ -40,6 +40,6 @@ public class ARGSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
   public Action prec(AbstractState pElement, Precision pPrecision) throws CPAException {
     ARGState element = (ARGState)pElement;
 
-    return wrappedPrecAdjustment.prec(element.getWrappedElement(), pPrecision);
+    return wrappedPrecAdjustment.prec(element.getWrappedState(), pPrecision);
   }
 }

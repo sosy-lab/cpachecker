@@ -46,7 +46,7 @@ public class FunctionPointerReducer implements Reducer {
       CFANode pLocation) {
 
     FunctionPointerState funElement = (FunctionPointerState)pExpandedElement;
-    return funElement.createDuplicateWithNewWrappedElement(wrappedReducer.getVariableReducedState(funElement.getWrappedElement(), pContext, pLocation));
+    return funElement.createDuplicateWithNewWrappedState(wrappedReducer.getVariableReducedState(funElement.getWrappedState(), pContext, pLocation));
   }
 
   @Override
@@ -57,13 +57,13 @@ public class FunctionPointerReducer implements Reducer {
     FunctionPointerState funRootElement = (FunctionPointerState)pRootElement;
     FunctionPointerState funReducedElement = (FunctionPointerState)pReducedElement;
 
-    return funReducedElement.createDuplicateWithNewWrappedElement(wrappedReducer.getVariableExpandedState(funRootElement.getWrappedElement(), pReducedContext, funReducedElement.getWrappedElement()));
+    return funReducedElement.createDuplicateWithNewWrappedState(wrappedReducer.getVariableExpandedState(funRootElement.getWrappedState(), pReducedContext, funReducedElement.getWrappedState()));
   }
 
   @Override
   public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
     FunctionPointerState funElement = (FunctionPointerState)pElementKey;
-    return Pair.of(funElement.getTargetMap(), wrappedReducer.getHashCodeForState(funElement.getWrappedElement(), pPrecisionKey));
+    return Pair.of(funElement.getTargetMap(), wrappedReducer.getHashCodeForState(funElement.getWrappedState(), pPrecisionKey));
   }
 
   @Override

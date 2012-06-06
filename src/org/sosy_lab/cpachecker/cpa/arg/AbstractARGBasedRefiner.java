@@ -97,7 +97,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
     assert checkART(pReached) : "ARG and reached set do not match before refinement";
 
-    AbstractState lastElement = pReached.getLastElement();
+    AbstractState lastElement = pReached.getLastState();
     assert lastElement instanceof ARGState : "Element in reached set which is not an ARGState";
     assert ((ARGState)lastElement).isTarget() : "Last element in reached is not a target element before refinement";
     ARGReachedSet reached = new ARGReachedSet(pReached);
@@ -173,7 +173,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     Deque<AbstractState> workList = new ArrayDeque<AbstractState>();
     Set<ARGState> arg = new HashSet<ARGState>();
 
-    workList.add(pReached.getFirstElement());
+    workList.add(pReached.getFirstState());
     while (!workList.isEmpty()) {
       ARGState currentElement = (ARGState)workList.removeFirst();
       assert !currentElement.isDestroyed();

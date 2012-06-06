@@ -97,7 +97,7 @@ public class MonitorTransferRelation implements TransferRelation {
       throws CPATransferException, InterruptedException {
     final MonitorState element = (MonitorState)pElement;
 
-    if (element.getWrappedElement() == TimeoutState.INSTANCE) {
+    if (element.getWrappedState() == TimeoutState.INSTANCE) {
       // cannot compute a successor
       return Collections.emptySet();
     }
@@ -107,8 +107,8 @@ public class MonitorTransferRelation implements TransferRelation {
     TransferCallable tc = new TransferCallable() {
       @Override
       public Collection<? extends AbstractState> call() throws CPATransferException, InterruptedException {
-        assert !(element.getWrappedElement() instanceof MonitorState) : element;
-        return transferRelation.getAbstractSuccessors(element.getWrappedElement(), pPrecision, pCfaEdge);
+        assert !(element.getWrappedState() instanceof MonitorState) : element;
+        return transferRelation.getAbstractSuccessors(element.getWrappedState(), pPrecision, pCfaEdge);
       }
     };
 
@@ -179,7 +179,7 @@ public class MonitorTransferRelation implements TransferRelation {
       final Precision precision) throws CPATransferException, InterruptedException {
     final MonitorState element = (MonitorState)pElement;
 
-    if (element.getWrappedElement() == TimeoutState.INSTANCE) {
+    if (element.getWrappedState() == TimeoutState.INSTANCE) {
       // ignore strengthen
       return null;
     }
@@ -189,7 +189,7 @@ public class MonitorTransferRelation implements TransferRelation {
     TransferCallable sc = new TransferCallable() {
       @Override
       public Collection<? extends AbstractState> call() throws CPATransferException, InterruptedException {
-        return transferRelation.strengthen(element.getWrappedElement(), otherElements, cfaEdge, precision);
+        return transferRelation.strengthen(element.getWrappedState(), otherElements, cfaEdge, precision);
       }
     };
 
@@ -236,7 +236,7 @@ public class MonitorTransferRelation implements TransferRelation {
     // if the returned list is null return null
     if (successors == null) {
       // wrapped strengthen didn't do anything, but we need to update totalTimeOnPath
-      successors = Collections.singleton(element.getWrappedElement());
+      successors = Collections.singleton(element.getWrappedState());
     }
 
     // return if there are no successors

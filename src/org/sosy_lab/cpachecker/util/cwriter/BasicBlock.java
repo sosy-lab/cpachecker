@@ -57,7 +57,7 @@ class BasicBlock {
     firstCodeLine = pConditionString;
   }
 
-  public int getElementId() {
+  public int getStateId() {
     return elementId;
   }
 

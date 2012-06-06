@@ -74,7 +74,7 @@ public class DominatorState implements AbstractStateWithLocation, AbstractState 
 		dominators.add(dominator);
 	}
 
-	public AbstractState getDominatedElement() {
+	public AbstractState getDominatedState() {
 		return this.dominatedElement;
 	}
 

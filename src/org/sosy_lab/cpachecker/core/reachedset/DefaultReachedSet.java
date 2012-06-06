@@ -205,18 +205,18 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
-  public AbstractState getFirstElement() {
+  public AbstractState getFirstState() {
     Preconditions.checkState(firstElement != null);
     return firstElement;
   }
 
   @Override
-  public AbstractState getLastElement() {
+  public AbstractState getLastState() {
     return lastElement;
   }
 
   @Override
-  public boolean hasWaitingElement() {
+  public boolean hasWaitingState() {
     return !waitlist.isEmpty();
   }
 

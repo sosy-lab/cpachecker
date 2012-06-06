@@ -162,7 +162,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     predicateManager = new PredicateAbstractionManager(abstractionManager, formulaManager, solver, config, logger);
     transfer = new PredicateTransferRelation(this, blk);
 
-    topElement = PredicateAbstractState.abstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
+    topElement = PredicateAbstractState.abstractionState(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
     domain = new PredicateAbstractDomain(this);
 
     if (mergeType.equals("SEP")) {
@@ -302,7 +302,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     PredicateAbstractState e1 = (PredicateAbstractState) pElement;
     PredicateAbstractState e2 = (PredicateAbstractState) pOtherElement;
 
-    if (e1.isAbstractionElement() && e2.isAbstractionElement()) {
+    if (e1.isAbstractionState() && e2.isAbstractionState()) {
       return predicateManager.checkCoverage(e1.getAbstractionFormula(), pathFormulaManager.makeEmptyPathFormula(e1.getPathFormula()), e2.getAbstractionFormula());
     } else {
       return false;

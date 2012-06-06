@@ -140,7 +140,7 @@ public class CFAReduction {
 
       lAlgorithm.run(lReached);
 
-      return ImmutableSet.copyOf(extractLocations(filterTargetElements(lReached)));
+      return ImmutableSet.copyOf(extractLocations(filterTargetStates(lReached)));
 
     } catch (CPAException e) {
       logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");

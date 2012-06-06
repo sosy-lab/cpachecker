@@ -41,7 +41,7 @@ class Edge implements Comparable<Edge> {
     stack = pStack;
   }
 
-  public ARGState getChildElement() {
+  public ARGState getChildState() {
     return childElement;
   }
 
@@ -56,8 +56,8 @@ class Edge implements Comparable<Edge> {
   @Override
   /** comparison based on the child element*/
   public int compareTo(Edge pO) {
-    int otherElementId = pO.getChildElement().getElementId();
-    int thisElementId = this.getChildElement().getElementId();
+    int otherElementId = pO.getChildState().getStateId();
+    int thisElementId = this.getChildState().getStateId();
 
     if(thisElementId > otherElementId){
       return 1;
@@ -73,8 +73,8 @@ class Edge implements Comparable<Edge> {
     if (pObj == this) {
       return true;
     } else if (pObj instanceof Edge) {
-      int otherElementId = ((Edge)pObj).getChildElement().getElementId();
-      int thisElementId = this.getChildElement().getElementId();
+      int otherElementId = ((Edge)pObj).getChildState().getStateId();
+      int thisElementId = this.getChildState().getStateId();
       return thisElementId == otherElementId;
     } else {
       return false;
@@ -83,6 +83,6 @@ class Edge implements Comparable<Edge> {
 
   @Override
   public int hashCode() {
-    return getChildElement().getElementId();
+    return getChildState().getStateId();
   }
 }

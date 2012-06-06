@@ -64,7 +64,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       return elements;
     }
 
-    public LocationState getElement(CFANode node) {
+    public LocationState getState(CFANode node) {
       return Preconditions.checkNotNull(elements[node.getNodeNumber()]);
     }
   }
@@ -147,7 +147,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
       private Object readResolve() throws ObjectStreamException {
         CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo();
-        return cfaInfo.getLocationStateFactory().getElement(cfaInfo.getNodeByNodeNumber(nodeNumber));
+        return cfaInfo.getLocationStateFactory().getState(cfaInfo.getNodeByNodeNumber(nodeNumber));
       }
     }
 

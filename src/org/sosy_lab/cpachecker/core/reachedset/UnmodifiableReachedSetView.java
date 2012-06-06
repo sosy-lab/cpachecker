@@ -70,13 +70,13 @@ public class UnmodifiableReachedSetView
   }
 
   @Override
-  public AbstractState getFirstElement() {
-    return mapElementFunction.apply(underlying.getFirstElement());
+  public AbstractState getFirstState() {
+    return mapElementFunction.apply(underlying.getFirstState());
   }
 
   @Override
-  public AbstractState getLastElement() {
-    return mapElementFunction.apply(underlying.getLastElement());
+  public AbstractState getLastState() {
+    return mapElementFunction.apply(underlying.getLastState());
   }
 
   @Override
@@ -120,8 +120,8 @@ public class UnmodifiableReachedSetView
   }
 
   @Override
-  public boolean hasWaitingElement() {
-    return underlying.hasWaitingElement();
+  public boolean hasWaitingState() {
+    return underlying.hasWaitingState();
   }
 
   @Override

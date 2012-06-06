@@ -48,7 +48,7 @@ public abstract class AbstractSingleWrapperState implements AbstractWrapperState
     public AbstractState apply(AbstractState pArg0) {
       Preconditions.checkArgument(pArg0 instanceof AbstractSingleWrapperState);
 
-      return ((AbstractSingleWrapperState)pArg0).getWrappedElement();
+      return ((AbstractSingleWrapperState)pArg0).getWrappedState();
     }
   };
 
@@ -64,7 +64,7 @@ public abstract class AbstractSingleWrapperState implements AbstractWrapperState
     wrappedElement = pWrappedElement;
   }
 
-  public AbstractState getWrappedElement() {
+  public AbstractState getWrappedState() {
     return wrappedElement;
   }
 

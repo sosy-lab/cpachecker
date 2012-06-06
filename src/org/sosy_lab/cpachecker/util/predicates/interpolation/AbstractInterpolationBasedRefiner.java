@@ -95,7 +95,7 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
   protected CounterexampleInfo performRefinement(final ARGReachedSet pReached, final Path pPath) throws CPAException, InterruptedException {
     totalRefinement.start();
 
-    Set<ARGState> elementsOnPath = ARGUtils.getAllElementsOnPathsTo(pPath.getLast().getFirst()); // TODO: make this lazy?
+    Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(pPath.getLast().getFirst()); // TODO: make this lazy?
 
     boolean branchingOccurred = true;
     if (elementsOnPath.size() == pPath.size()) {
@@ -198,7 +198,7 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
       try {
         ARGState root = pPath.getFirst().getFirst();
         ARGState target = pPath.getLast().getFirst();
-        Set<ARGState> pathElements = ARGUtils.getAllElementsOnPathsTo(target);
+        Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(target);
 
         targetPath = ARGUtils.getPathFromBranchingInformation(root, target,
             pathElements, preds);

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractElementByType;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -146,11 +146,11 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
       return false;
     }
 
-    PredicateAbstractState predicateElement = getPredicateElement(pElement);
+    PredicateAbstractState predicateElement = getPredicateState(pElement);
     if (!(predicateElement.getAbstractionFormula().asRegion() instanceof SymbolicRegion)) {
       throw new CPAException("Cannot use PredicateForcedCovering with non-symbolic abstractions");
     }
-    if (!predicateElement.isAbstractionElement()) {
+    if (!predicateElement.isAbstractionState()) {
       return false;
     }
 
@@ -159,7 +159,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
 
     ARGReachedSet arg = new ARGReachedSet(pReached);
 
-    List<ARGState> parentList = ImmutableList.copyOf(getParentAbstractionElements(argElement)).reverse();
+    List<ARGState> parentList = ImmutableList.copyOf(getParentAbstractionStates(argElement)).reverse();
     Set<ARGState> parentSet = ImmutableSet.copyOf(parentList);
 
     for (AbstractState reachedElement : pReached.getReached(pElement)) {
@@ -178,7 +178,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         stats.attemptedForcedCoverings++;
         logger.log(Level.ALL, "Candidate for forced-covering is", reachedElement);
 
-        List<ARGState> reachedParentList = ImmutableList.copyOf(getParentAbstractionElements((ARGState)reachedElement)).reverse();
+        List<ARGState> reachedParentList = ImmutableList.copyOf(getParentAbstractionStates((ARGState)reachedElement)).reverse();
         ARGState commonParent = Iterables.find(
             reachedParentList,
             Predicates.in(parentSet));
@@ -206,14 +206,14 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         // 3) negated state formula of reachedElement instantiated with indices of argElement
         List<Formula> formulas = new ArrayList<Formula>(path.size()+2);
         {
-          formulas.add(getPredicateElement(commonParent).getAbstractionFormula().asInstantiatedFormula());
+          formulas.add(getPredicateState(commonParent).getAbstractionFormula().asInstantiatedFormula());
 
           for (AbstractState pathElement : path) {
-            formulas.add(getPredicateElement(pathElement).getAbstractionFormula().getBlockFormula());
+            formulas.add(getPredicateState(pathElement).getAbstractionFormula().getBlockFormula());
           }
 
-          SSAMap ssaMap = getPredicateElement(argElement).getPathFormula().getSsa().withDefault(1);
-          Formula stateFormula = getPredicateElement(reachedElement).getAbstractionFormula().asFormula();
+          SSAMap ssaMap = getPredicateState(argElement).getPathFormula().getSsa().withDefault(1);
+          Formula stateFormula = getPredicateState(reachedElement).getAbstractionFormula().asFormula();
           assert !stateFormula.isTrue() : "Existing element with state true would cover anyway, no forced covering needed";
           formulas.add(fmgr.makeNot(fmgr.instantiate(stateFormula, ssaMap)));
         }
@@ -244,7 +244,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
             continue;
           }
 
-          PredicateAbstractState predElement = getPredicateElement(element);
+          PredicateAbstractState predElement = getPredicateState(element);
           AbstractionFormula af = predElement.getAbstractionFormula();
           if (!solver.implies(af.asFormula(), itp)) {
 
@@ -267,7 +267,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         if (!argElement.isCovered()) {
           argElement.setCovered((ARGState)reachedElement);
         } else {
-          assert argElement.getCoveringElement() == reachedElement;
+          assert argElement.getCoveringState() == reachedElement;
         }
 
         return true;
@@ -277,18 +277,18 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
     return false;
   }
 
-  private Iterable<ARGState> getParentAbstractionElements(ARGState argElement) {
+  private Iterable<ARGState> getParentAbstractionStates(ARGState argElement) {
     Path pathToRoot = ARGUtils.getOnePathTo(argElement);
 
     return Iterables.filter(
             Iterables.transform(pathToRoot, Pair.<ARGState>getProjectionToFirst()),
         Predicates.compose(
             PredicateAbstractState.FILTER_ABSTRACTION_ELEMENTS,
-            AbstractStates.extractElementByTypeFunction(PredicateAbstractState.class)));
+            AbstractStates.extractStateByTypeFunction(PredicateAbstractState.class)));
   }
 
-  private static PredicateAbstractState getPredicateElement(AbstractState pElement) {
-    return extractElementByType(pElement, PredicateAbstractState.class);
+  private static PredicateAbstractState getPredicateState(AbstractState pElement) {
+    return extractStateByType(pElement, PredicateAbstractState.class);
   }
 
   @Override

@@ -162,7 +162,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     try {
       assert v.isLeaf() && !v.isCovered();
 
-      AbstractState predecessor = v.getWrappedElement();
+      AbstractState predecessor = v.getWrappedState();
       Precision precision = reached.getPrecision(v);
 
       CFANode loc = extractLocation(v);
@@ -252,7 +252,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
         && !w.isCovered() // ???
         && w.isOlderThan(v)
         && !v.isAncestorOf(w)
-        && cpa.getStopOperator().stop(v.getWrappedElement(), Collections.singleton(w.getWrappedElement()), prec);
+        && cpa.getStopOperator().stop(v.getWrappedState(), Collections.singleton(w.getWrappedState()), prec);
   }
 
   private boolean cover(Vertex v, Vertex w, Precision prec) throws CPAException {

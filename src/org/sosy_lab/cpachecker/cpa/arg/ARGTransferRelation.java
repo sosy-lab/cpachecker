@@ -61,7 +61,7 @@ public class ARGTransferRelation implements TransferRelation {
 
     element.markExpanded();
 
-    AbstractState wrappedElement = element.getWrappedElement();
+    AbstractState wrappedElement = element.getWrappedState();
     Collection<? extends AbstractState> successors = transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, pCfaEdge);
     if (successors.isEmpty()) {
       return Collections.emptySet();
@@ -88,11 +88,11 @@ public class ARGTransferRelation implements TransferRelation {
 
     assert element.getChildren().equals(pSuccessors);
 
-    AbstractState wrappedElement = element.getWrappedElement();
+    AbstractState wrappedElement = element.getWrappedState();
     Multimap<CFAEdge, AbstractState> wrappedSuccessors = HashMultimap.create();
     for (AbstractState absElement : pSuccessors) {
       ARGState successorElem = (ARGState)absElement;
-      wrappedSuccessors.put(element.getEdgeToChild(successorElem), successorElem.getWrappedElement());
+      wrappedSuccessors.put(element.getEdgeToChild(successorElem), successorElem.getWrappedState());
     }
 
     if(pCfaEdge != null) {

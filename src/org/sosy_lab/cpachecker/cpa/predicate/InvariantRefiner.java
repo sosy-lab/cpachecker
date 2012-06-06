@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractElementByType;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.util.Collection;
 import java.util.List;
@@ -283,8 +283,8 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     List<Pair<ARGState, CFANode>> result = Lists.newArrayList();
 
     for (ARGState ae : skip(transform(pPath, Pair.<ARGState>getProjectionToFirst()), 1)) {
-      PredicateAbstractState pe = extractElementByType(ae, PredicateAbstractState.class);
-      if (pe.isAbstractionElement()) {
+      PredicateAbstractState pe = extractStateByType(ae, PredicateAbstractState.class);
+      if (pe.isAbstractionState()) {
         CFANode loc = AbstractStates.extractLocation(ae);
         result.add(Pair.of(ae, loc));
       }

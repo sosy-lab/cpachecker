@@ -248,7 +248,7 @@ public class CompositeTransferRelation implements TransferRelation{
       Set<AbstractState> componentSuccessors = new HashSet<AbstractState>();
       for(AbstractState successor : pSuccessors) {
         CompositeState compositeSuccessor = (CompositeState)successor;
-        if(compositeSuccessor.getNumberofElements() != size) {
+        if(compositeSuccessor.getNumberOfStates() != size) {
           return false;
         }
         componentSuccessors.add(compositeSuccessor.get(i));

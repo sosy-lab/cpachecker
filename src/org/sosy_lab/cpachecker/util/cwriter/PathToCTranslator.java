@@ -123,7 +123,7 @@ public class PathToCTranslator {
       // create the first function and put in into newStack
       startFunction(firstElement, newStack);
 
-      waitlist.addAll(getRelevantChildrenOfElement(firstElement, newStack, elementsOnPath));
+      waitlist.addAll(getRelevantChildrenOfState(firstElement, newStack, elementsOnPath));
     }
 
     while (!waitlist.isEmpty()) {
@@ -147,7 +147,7 @@ public class PathToCTranslator {
     // lFunctionHeader is for example "void foo_99(int a)"
 
     // create a new function
-    FunctionBody newFunction = new FunctionBody(firstFunctionElement.getElementId(),
+    FunctionBody newFunction = new FunctionBody(firstFunctionElement.getStateId(),
         lFunctionHeader);
 
     // register function
@@ -181,7 +181,7 @@ public class PathToCTranslator {
   }
 
   private Collection<Edge> handleEdge(Edge nextEdge, Map<Integer, MergeNode> mergeNodes, Set<ARGState> elementsOnPath) {
-    ARGState childElement = nextEdge.getChildElement();
+    ARGState childElement = nextEdge.getChildState();
     CFAEdge edge = nextEdge.getEdge();
     Stack<FunctionBody> functionStack = nextEdge.getStack();
 
@@ -203,7 +203,7 @@ public class PathToCTranslator {
 
       // this is the end of a condition, determine whether we should continue or backtrack
 
-      int elemId = childElement.getElementId();
+      int elemId = childElement.getStateId();
       FunctionBody currentFunction = functionStack.peek();
       currentFunction.write("goto label_" + elemId + ";");
 
@@ -221,7 +221,7 @@ public class PathToCTranslator {
       // if all edges are processed
       if (noOfParents == noOfProcessedBranches) {
         // all branches are processed, now decide which nodes to remove from the stack
-        List<FunctionBody> incomingStacks = mergeNode.getIncomingElements();
+        List<FunctionBody> incomingStacks = mergeNode.getIncomingStates();
 
         FunctionBody newFunction = processIncomingStacks(incomingStacks);
 
@@ -236,10 +236,10 @@ public class PathToCTranslator {
       }
     }
 
-    return getRelevantChildrenOfElement(childElement, functionStack, elementsOnPath);
+    return getRelevantChildrenOfState(childElement, functionStack, elementsOnPath);
   }
 
-  private Collection<Edge> getRelevantChildrenOfElement(
+  private Collection<Edge> getRelevantChildrenOfState(
       ARGState currentElement, Stack<FunctionBody> functionStack,
       Set<ARGState> elementsOnPath) {
     // find the next elements to add to the waitlist
@@ -286,7 +286,7 @@ public class PathToCTranslator {
         }
 
         // create a new block starting with this condition
-        currentFunction.enterBlock(currentElement.getElementId(), assumeEdge, cond);
+        currentFunction.enterBlock(currentElement.getStateId(), assumeEdge, cond);
 
         Edge newEdge = new Edge(elem, e, newStack);
         result.add(newEdge);

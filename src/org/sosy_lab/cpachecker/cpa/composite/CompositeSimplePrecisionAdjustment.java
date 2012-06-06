@@ -54,7 +54,7 @@ class CompositeSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
     CompositeState comp = (CompositeState) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
     assert (comp.getWrappedStates().size() == prec.getPrecisions().size());
-    int dim = comp.getNumberofElements();
+    int dim = comp.getNumberOfStates();
 
     for (int i = 0; i < dim; ++i) {
       SimplePrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);

@@ -80,7 +80,7 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
       return true;
     } else if (pObj instanceof MonitorState) {
       MonitorState otherElem = (MonitorState)pObj;
-      return this.getWrappedElement().equals(otherElem.getWrappedElement());
+      return this.getWrappedState().equals(otherElem.getWrappedState());
     } else {
       return false;
     }
@@ -88,7 +88,7 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
 
   @Override
   public int hashCode() {
-    return getWrappedElement().hashCode();
+    return getWrappedState().hashCode();
   }
 
   @Override

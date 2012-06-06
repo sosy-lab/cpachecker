@@ -133,7 +133,7 @@ public class ARGStatistics implements Statistics {
         // This is imprecise if there are several paths in the ARG,
         // because we randomly select one existing path,
         // but this path may actually be infeasible.
-        ARGState lastElement = (ARGState)pReached.getLastElement();
+        ARGState lastElement = (ARGState)pReached.getLastState();
         if (lastElement != null && lastElement.isTarget()) {
           targetPath = ARGUtils.getOnePathTo(lastElement);
         }
@@ -153,7 +153,7 @@ public class ARGStatistics implements Statistics {
           String pathProgram;
           if (counterexample != null && counterexample.getTargetPath() != null) {
             // precise error path
-            pathElements = targetPath.getElementSet();
+            pathElements = targetPath.getStateSet();
             pathProgram = PathToCTranslator.translateSinglePath(targetPath);
 
           } else {
@@ -161,8 +161,8 @@ public class ARGStatistics implements Statistics {
             // For the text export, we have no other chance,
             // but for the C code and graph export we use all existing paths
             // to avoid this problem.
-            ARGState lastElement = (ARGState)pReached.getLastElement();
-            pathElements = ARGUtils.getAllElementsOnPathsTo(lastElement);
+            ARGState lastElement = (ARGState)pReached.getLastState();
+            pathElements = ARGUtils.getAllStatesOnPathsTo(lastElement);
             pathProgram = PathToCTranslator.translatePaths(rootElement, pathElements);
           }
 
@@ -187,7 +187,7 @@ public class ARGStatistics implements Statistics {
 
     if (exportART && argFile != null) {
       try {
-        ARGState rootElement = (ARGState)pReached.getFirstElement();
+        ARGState rootElement = (ARGState)pReached.getFirstState();
         Files.writeFile(argFile, ARGUtils.convertARTToDot(rootElement, null, getEdgesOfPath(targetPath)));
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file.");

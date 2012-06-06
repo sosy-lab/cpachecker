@@ -94,11 +94,11 @@ class OctState implements AbstractState{
     return variableToIndexMap.size();
   }
 
-  public OctState getPreviousElement() {
+  public OctState getPreviousState() {
     return previousElement;
   }
 
-  public void setPreviousElement(OctState pPreviousElement) {
+  public void setPreviousState(OctState pPreviousElement) {
     this.previousElement = pPreviousElement;
   }
 

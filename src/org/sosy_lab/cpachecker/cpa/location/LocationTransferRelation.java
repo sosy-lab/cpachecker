@@ -55,13 +55,13 @@ public class LocationTransferRelation implements TransferRelation {
     for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++) {
       CFAEdge testEdge = node.getLeavingEdge(edgeIdx);
       if (testEdge == cfaEdge) {
-        return Collections.singleton(factory.getElement(testEdge.getSuccessor()));
+        return Collections.singleton(factory.getState(testEdge.getSuccessor()));
       }
     }
 
     if (node.getLeavingSummaryEdge() != null) {
       CallToReturnEdge summaryEdge = node.getLeavingSummaryEdge();
-      return Collections.singleton(factory.getElement(summaryEdge.getSuccessor()));
+      return Collections.singleton(factory.getState(summaryEdge.getSuccessor()));
     }
 
     return Collections.emptySet();
@@ -82,7 +82,7 @@ public class LocationTransferRelation implements TransferRelation {
 
     for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++) {
       CFAEdge tempEdge = node.getLeavingEdge(edgeIdx);
-      allSuccessors.add(factory.getElement(tempEdge.getSuccessor()));
+      allSuccessors.add(factory.getState(tempEdge.getSuccessor()));
     }
 
     return allSuccessors;

@@ -71,7 +71,7 @@ public class ExplictPathChecker {
       for(CFAEdge edge : path) {
         Collection<? extends AbstractState> successors = transfer.getAbstractSuccessors(next, precision, edge);
 
-        next = extractNextElement(successors);
+        next = extractNextState(successors);
 
         // path is not feasible
         if(next == null && edge != path.get(path.size() - 1)) {
@@ -92,7 +92,7 @@ public class ExplictPathChecker {
    * @param successors the collection of successors
    * @return the successor, or null if none exists
    */
-  private AbstractState extractNextElement(Collection<? extends AbstractState> successors) {
+  private AbstractState extractNextState(Collection<? extends AbstractState> successors) {
     if(successors.isEmpty()) {
       return null;
     }

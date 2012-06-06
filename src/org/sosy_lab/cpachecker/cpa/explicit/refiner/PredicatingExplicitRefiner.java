@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
 import static com.google.common.collect.Lists.transform;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractElementByType;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -71,8 +71,8 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
     List<Pair<ARGState, CFANode>> result = Lists.newArrayList();
 
     for (ARGState ae : transform(errorPath, Pair.<ARGState>getProjectionToFirst())) {
-      PredicateAbstractState pe = extractElementByType(ae, PredicateAbstractState.class);
-      if (pe.isAbstractionElement()) {
+      PredicateAbstractState pe = extractStateByType(ae, PredicateAbstractState.class);
+      if (pe.isAbstractionState()) {
         CFANode location = AbstractStates.extractLocation(ae);
         result.add(Pair.of(ae, location));
       }
@@ -88,7 +88,7 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
         Functions.compose(
             GET_BLOCK_FORMULA,
         Functions.compose(
-            AbstractStates.extractElementByTypeFunction(PredicateAbstractState.class),
+            AbstractStates.extractStateByTypeFunction(PredicateAbstractState.class),
             Pair.<ARGState>getProjectionToFirst())));
 
     return formulas;
@@ -115,7 +115,7 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
                 = new Function<PredicateAbstractState, Formula>() {
                     @Override
                     public Formula apply(PredicateAbstractState e) {
-                      assert e.isAbstractionElement();
+                      assert e.isAbstractionState();
                       return e.getAbstractionFormula().getBlockFormula();
                     };
                   };

@@ -53,7 +53,7 @@ class FunctionPointerPrecisionAdjustment implements PrecisionAdjustment {
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
         pElements,  ARGState.getUnwrapFunction(), Functions.<Precision>identity());
 
-    AbstractState oldElement = element.getWrappedElement();
+    AbstractState oldElement = element.getWrappedState();
 
     Triple<AbstractState, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
 
@@ -66,7 +66,7 @@ class FunctionPointerPrecisionAdjustment implements PrecisionAdjustment {
       return Triple.of(pElement, oldPrecision, action);
     }
 
-    AbstractState resultElement = element.createDuplicateWithNewWrappedElement(newElement);
+    AbstractState resultElement = element.createDuplicateWithNewWrappedState(newElement);
 
     return Triple.of(resultElement, newPrecision, action);
   }

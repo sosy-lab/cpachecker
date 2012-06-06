@@ -211,10 +211,10 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
 
     // now handle the edge, whether it is real or not
-    Collection<? extends AbstractState> newWrappedStates = wrappedTransfer.getAbstractSuccessors(oldState.getWrappedElement(), pPrecision, cfaEdge);
+    Collection<? extends AbstractState> newWrappedStates = wrappedTransfer.getAbstractSuccessors(oldState.getWrappedState(), pPrecision, cfaEdge);
 
     for (AbstractState newWrappedState : newWrappedStates) {
-      FunctionPointerState.Builder newState = oldState.createBuilderWithNewWrappedElement(newWrappedState);
+      FunctionPointerState.Builder newState = oldState.createBuilderWithNewWrappedState(newWrappedState);
 
       newState = handleEdge(newState, cfaEdge);
 

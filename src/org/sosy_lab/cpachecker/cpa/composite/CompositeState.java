@@ -45,7 +45,7 @@ public class CompositeState implements AbstractWrapperState, Targetable, Partiti
     this.elements = ImmutableList.copyOf(elements);
   }
 
-  public int getNumberofElements(){
+  public int getNumberOfStates(){
     return elements.size();
   }
 

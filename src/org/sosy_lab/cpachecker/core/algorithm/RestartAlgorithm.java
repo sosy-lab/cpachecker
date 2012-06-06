@@ -163,7 +163,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     ForwardingReachedSet reached = (ForwardingReachedSet)pReached;
 
-    CFANode mainFunction = AbstractStates.extractLocation(pReached.getFirstElement());
+    CFANode mainFunction = AbstractStates.extractLocation(pReached.getFirstState());
     assert mainFunction != null : "Location information needed";
 
     Iterator<File> configFilesIterator = configFiles.iterator();
@@ -198,7 +198,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         try {
           boolean sound = currentAlgorithm.run(currentReached);
 
-          if (Iterables.any(currentReached, AbstractStates.IS_TARGET_ELEMENT)) {
+          if (Iterables.any(currentReached, AbstractStates.IS_TARGET_STATE)) {
             return sound;
           }
 
@@ -207,7 +207,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
             // another algorithm, continue with the next algorithm
             logger.log(Level.INFO, "Analysis result was unsound.");
 
-          } else if (currentReached.hasWaitingElement()) {
+          } else if (currentReached.hasWaitingState()) {
             // if there are still elements in the waitlist, the result is unknown
             // continue with the next algorithm
             logger.log(Level.INFO, "Analysis not completed: There are still elements to be processed.");

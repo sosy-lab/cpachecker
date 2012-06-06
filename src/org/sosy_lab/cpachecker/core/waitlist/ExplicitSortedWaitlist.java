@@ -43,7 +43,7 @@ public class ExplicitSortedWaitlist extends AbstractSortedWaitlist<Integer> {
   @Override
   protected Integer getSortKey(AbstractState pElement) {
     ExplicitState explicitState =
-      AbstractStates.extractElementByType(pElement, ExplicitState.class);
+      AbstractStates.extractStateByType(pElement, ExplicitState.class);
 
     // negate size so that the highest key corresponds to the smallest map
     return (explicitState != null) ? -explicitState.getSize() : 0;

@@ -73,7 +73,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       if (pReached.contains(mergedWith)) {
         // we do this single check first as it should return true in most of the cases
 
-        if (wrappedStop.stop(argElement.getWrappedElement(), Collections.singleton(mergedWith.getWrappedElement()), pPrecision)) {
+        if (wrappedStop.stop(argElement.getWrappedState(), Collections.singleton(mergedWith.getWrappedState()), pPrecision)) {
           // merged and covered
           argElement.removeFromART();
           logger.log(Level.FINEST, "Element is covered by the element it was merged into");
@@ -123,8 +123,8 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       return false;
     }
 
-    AbstractState wrappedElement = pElement.getWrappedElement();
-    AbstractState wrappedReachedElement = pReachedElement.getWrappedElement();
+    AbstractState wrappedElement = pElement.getWrappedState();
+    AbstractState wrappedReachedElement = pReachedElement.getWrappedState();
 
     boolean stop = wrappedStop.stop(wrappedElement, Collections.singleton(wrappedReachedElement), pPrecision);
 
@@ -138,8 +138,8 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
     ARGState argElement = (ARGState)pElement;
     ARGState otherArtElement = (ARGState)pOtherElement;
 
-    AbstractState wrappedElement = argElement.getWrappedElement();
-    AbstractState wrappedOtherElement = otherArtElement.getWrappedElement();
+    AbstractState wrappedElement = argElement.getWrappedState();
+    AbstractState wrappedOtherElement = otherArtElement.getWrappedState();
 
     return wrappedProofChecker.isCoveredBy(wrappedElement, wrappedOtherElement);
   }
@@ -162,6 +162,6 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
     }
 
     return ((ForcedCoveringStopOperator)wrappedStop).isForcedCoveringPossible(
-        element.getWrappedElement(), reachedElement.getWrappedElement(), pPrecision);
+        element.getWrappedState(), reachedElement.getWrappedState(), pPrecision);
   }
 }

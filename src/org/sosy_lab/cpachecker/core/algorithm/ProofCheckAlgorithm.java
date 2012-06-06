@@ -183,16 +183,16 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     do {
       for(ARGState e : postponedElements) {
-        if(!reachedSet.contains(e.getCoveringElement())) {
+        if(!reachedSet.contains(e.getCoveringState())) {
           stats.totalTimer.stop();
-          logger.log(Level.WARNING, "Covering element", e.getCoveringElement(), "was not found in reached set");
+          logger.log(Level.WARNING, "Covering element", e.getCoveringState(), "was not found in reached set");
           return false;
         }
         reachedSet.reAddToWaitlist(e);
       }
       postponedElements.clear();
 
-      while (reachedSet.hasWaitingElement()) {
+      while (reachedSet.hasWaitingState()) {
         CPAchecker.stopIfNecessary();
 
         stats.countIterations++;
@@ -203,7 +203,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         if(element.isCovered()) {
 
           logger.log(Level.FINER, "Element is covered by another abstract element; checking coverage");
-          ARGState coveringElement = element.getCoveringElement();
+          ARGState coveringElement = element.getCoveringState();
 
           if(!reachedSet.contains(coveringElement)) {
             postponedElements.add(element);
@@ -250,7 +250,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     HashSet<ARGState> seen = new HashSet<ARGState>();
     seen.add(pElement);
     while(pElement.isCovered()) {
-      pElement = pElement.getCoveringElement();
+      pElement = pElement.getCoveringState();
       boolean isNew = seen.add(pElement);
       if(!isNew) {
         return false;
