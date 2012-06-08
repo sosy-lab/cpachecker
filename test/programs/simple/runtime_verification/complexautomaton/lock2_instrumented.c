@@ -42,11 +42,11 @@ void __BLAST___error__(void)
 }
 
 #line 13 "spec.work"
-int __MONITOR_STATE_lockStatus   = 0;
+int __MONITOR_STATE_lockStatus   = -1;
 
 void __initialize__(void) ;
 
-#line 1 "locktest.c"
+#line 1 "lock2.c"
 extern void init() ;
 
 #line 2
@@ -55,206 +55,220 @@ extern void lock() ;
 #line 3
 extern void unlock() ;
 
-#line 5 "locktest.c"
+#line 5 "lock2.c"
 int entry(void) 
-{ int lastLock ;
+{ int initialized ;
+  int lastLock ;
+  int n ;
   int i ;
 
   {
   {
-
+#line 6
+  initialized = 0;
   {
-#line 18 "spec.work"
-  __MONITOR_STATE_lockStatus = 0;
+#line 19 "spec.work"
+  __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
+#line 20
+  if (__MONITOR_STATE_lockStatus != -1) {
+#line 21
+    error_fn();
+  } else {
+#line 23
+    __MONITOR_STATE_lockStatus = 0;
+  }
+#line 25
+  __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
   {
 
   }
   }
-#line 6 "locktest.c"
+#line 7 "lock2.c"
   init();
+#line 8
+  initialized = 1;
   {
-#line 27 "spec.work"
+#line 35 "spec.work"
   __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 28
+#line 36
   if (__MONITOR_STATE_lockStatus == 1) {
-#line 29
+#line 37
     error_fn();
   } else {
-#line 31
+#line 39
     __MONITOR_STATE_lockStatus = 1;
   }
-#line 33
+#line 41
   __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
   {
 
   }
   }
-#line 8 "locktest.c"
+#line 10 "lock2.c"
   lock();
   {
-#line 43 "spec.work"
+#line 51 "spec.work"
   __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 44
+#line 52
   if (__MONITOR_STATE_lockStatus == 0) {
-#line 45
+#line 53
     error_fn();
   } else {
-#line 47
+#line 55
     __MONITOR_STATE_lockStatus = 0;
   }
-#line 49
+#line 57
   __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
   {
 
   }
   }
-#line 9 "locktest.c"
+#line 11 "lock2.c"
   unlock();
   {
-#line 27 "spec.work"
+#line 35 "spec.work"
   __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 28
+#line 36
   if (__MONITOR_STATE_lockStatus == 1) {
-#line 29
+#line 37
     error_fn();
   } else {
-#line 31
+#line 39
     __MONITOR_STATE_lockStatus = 1;
   }
-#line 33
+#line 41
   __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
   {
 
   }
   }
-#line 11 "locktest.c"
+#line 13 "lock2.c"
   lock();
   {
-#line 43 "spec.work"
+#line 51 "spec.work"
   __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 44
+#line 52
   if (__MONITOR_STATE_lockStatus == 0) {
-#line 45
+#line 53
     error_fn();
   } else {
-#line 47
+#line 55
     __MONITOR_STATE_lockStatus = 0;
   }
-#line 49
+#line 57
   __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
   {
 
   }
   }
-#line 12 "locktest.c"
+#line 14 "lock2.c"
   unlock();
-#line 14
+#line 16
   lastLock = 0;
   {
-#line 27 "spec.work"
+#line 35 "spec.work"
   __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 28
+#line 36
   if (__MONITOR_STATE_lockStatus == 1) {
-#line 29
+#line 37
     error_fn();
   } else {
-#line 31
+#line 39
     __MONITOR_STATE_lockStatus = 1;
   }
-#line 33
+#line 41
   __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
   {
 
   }
   }
-#line 16 "locktest.c"
+#line 18 "lock2.c"
   lock();
-#line 17
+#line 19
   i = 1;
   }
-#line 17
-  while (i < 1000) {
-#line 18
-    if (i - lastLock == 2) {
-#line 18
-      if (i < 999) {
-        {
 #line 19
-        lastLock += 2;
-        {
-#line 27 "spec.work"
-        __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 28
-        if (__MONITOR_STATE_lockStatus == 1) {
-#line 29
-          error_fn();
-        } else {
-#line 31
-          __MONITOR_STATE_lockStatus = 1;
-        }
-#line 33
-        __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
-        {
-
-        }
-        }
-#line 20 "locktest.c"
-        lock();
-        }
-      } else {
-        {
-
-        {
-#line 43 "spec.work"
-        __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 44
-        if (__MONITOR_STATE_lockStatus == 0) {
-#line 45
-          error_fn();
-        } else {
-#line 47
-          __MONITOR_STATE_lockStatus = 0;
-        }
-#line 49
-        __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
-        {
-
-        }
-        }
-#line 23 "locktest.c"
-        unlock();
-        }
-      }
-    } else {
+  while (i < n) {
+#line 20
+    if (! initialized) {
       {
 
       {
-#line 43 "spec.work"
+#line 19 "spec.work"
       __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 44
-      if (__MONITOR_STATE_lockStatus == 0) {
-#line 45
+#line 20
+      if (__MONITOR_STATE_lockStatus != -1) {
+#line 21
         error_fn();
       } else {
-#line 47
+#line 23
         __MONITOR_STATE_lockStatus = 0;
       }
-#line 49
+#line 25
       __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
       {
 
       }
       }
-#line 23 "locktest.c"
+#line 21 "lock2.c"
+      init();
+      }
+    }
+#line 22
+    if (i - lastLock == 2) {
+      {
+#line 23
+      lastLock += 2;
+      {
+#line 35 "spec.work"
+      __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
+#line 36
+      if (__MONITOR_STATE_lockStatus == 1) {
+#line 37
+        error_fn();
+      } else {
+#line 39
+        __MONITOR_STATE_lockStatus = 1;
+      }
+#line 41
+      __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
+      {
+
+      }
+      }
+#line 24 "lock2.c"
+      lock();
+      }
+    } else {
+      {
+
+      {
+#line 51 "spec.work"
+      __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
+#line 52
+      if (__MONITOR_STATE_lockStatus == 0) {
+#line 53
+        error_fn();
+      } else {
+#line 55
+        __MONITOR_STATE_lockStatus = 0;
+      }
+#line 57
+      __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
+      {
+
+      }
+      }
+#line 27 "lock2.c"
       unlock();
       }
     }
     {
-#line 17
+#line 19
     i ++;
     }
   }
-#line 27
+#line 31
   return (1);
 }
 }

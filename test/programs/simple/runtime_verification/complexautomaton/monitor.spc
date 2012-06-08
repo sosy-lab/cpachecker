@@ -1,10 +1,18 @@
 #include "include.h"
 
-global int __MONITOR_STATE_lockStatus = 0;
+global int __MONITOR_STATE_lockStatus = -1;
 
 event {
   pattern { init(); }
-  action { __MONITOR_STATE_lockStatus = 0; }
+  action {
+	__MONITOR_START_TRANSITION;
+	if(__MONITOR_STATE_lockStatus != -1) {
+		error_fn();
+	} else {
+		__MONITOR_STATE_lockStatus = 0;
+	}
+	__MONITOR_END_TRANSITION;
+}
 }
 
 event {
