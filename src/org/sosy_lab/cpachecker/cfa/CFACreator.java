@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
@@ -145,7 +146,17 @@ public class CFACreator {
     try {
 
       logger.log(Level.FINE, "Starting parsing of file");
-      ParseResult c = parser.parseFile(filename);
+
+      ParseResult c;
+
+      if( filename.matches(".*.java")){
+        EclipseJavaParser par = new EclipseJavaParser(logger);
+        c = par.parseFile(filename);
+      } else{
+        c = parser.parseFile(filename);
+      }
+
+
       logger.log(Level.FINE, "Parser Finished");
 
       if (c.isEmpty()) {
