@@ -1,0 +1,20 @@
+OBSERVER AUTOMATON Monitor3Automaton
+
+INITIAL STATE Init;
+
+STATE USEFIRST Init :
+  MATCH  {$? = ssl3_get_client_hello();}  -> GOTO STATE1;
+
+STATE USEFIRST STATE1 :
+  MATCH  {$? = ssl3_send_server_hello();}  -> GOTO STATE2;
+
+STATE USEFIRST STATE2 :
+  MATCH  {$? = ssl3_send_change_cipher_spec();}  -> GOTO STATE3;
+
+STATE USEFIRST STATE3 :
+  MATCH  {$? = ssl3_get_finished();}  -> GOTO STATE4;
+
+STATE USEFIRST STATE4 :
+  MATCH  {$? = ssl3_send_finished();}  -> ERROR;
+
+END AUTOMATON
