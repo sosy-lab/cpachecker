@@ -34,14 +34,23 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.BooleanLiteral;
+import org.eclipse.jdt.core.dom.Expression;
+import org.eclipse.jdt.core.dom.ExpressionStatement;
+import org.eclipse.jdt.core.dom.IfStatement;
+import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.core.dom.ParenthesizedExpression;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
+import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.VariableDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
@@ -51,11 +60,15 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Builder to traverse AST.
@@ -65,13 +78,17 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
  */
 class CFAFunctionBuilder extends ASTVisitor {
 
+  private static final boolean PROCESS_CONTINUE = true;
+
+  private static final boolean PROCESS_SKIP = false;
+
   // Data structure for maintaining our scope stack in a function
   private final Deque<CFANode> locStack = new ArrayDeque<CFANode>();
 
   // Data structures for handling loops & else conditions
   //private final Deque<CFANode> loopStartStack = new ArrayDeque<CFANode>();
   //private final Deque<CFANode> loopNextStack  = new ArrayDeque<CFANode>(); // For the node following the current if / while block
-  //private final Deque<CFANode> elseStack      = new ArrayDeque<CFANode>();
+  private final Deque<CFANode> elseStack      = new ArrayDeque<CFANode>();
 
   // Data structure for handling switch-statements
   //private final Deque<org.sosy_lab.cpachecker.cfa.ast.IASTExpression> switchExprStack =
@@ -160,7 +177,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // more than one time
     // TODO Find a better Solution, this should not work
     declaration.getBody().accept(this);
-    return false;
+    return PROCESS_SKIP;
 
   }
 
@@ -176,7 +193,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     assert nextNode != null;
     locStack.push(nextNode);
 
-    return false;
+    return PROCESS_SKIP;
   }
 
   @Override
@@ -191,7 +208,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     assert nextNode != null;
     locStack.push(nextNode);
 
-    return false;
+    return PROCESS_SKIP;
   }
 
   @Override
@@ -226,19 +243,6 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       scope.leaveFunction();
   }
-
-
-
-  // Methods for to handle visiting and leaving Statements
-  /* (non-Javadoc)
-   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTStatement)
-   */
-
-
-
-
-
-
 
 
 
@@ -323,11 +327,142 @@ class CFAFunctionBuilder extends ASTVisitor {
   }
 
 
+ private void handleStatements(Statement statement){
+    // TODO Investigate if this works
+    // Iterate through parent till parent is not a Block
+    ASTNode node = statement;
 
-//TODO Finisch boolean things
+    while(node.getParent().getNodeType() == ASTNode.BLOCK){
+       node = node.getParent();
+    }
 
 
-/*
+   // Handle special condition for else
+   // TODO Ask why == works, but not equals
+   if (node.getLocationInParent() == IfStatement.ELSE_STATEMENT_PROPERTY) {
+     // Edge from current location to post if-statement location
+     CFANode prevNode = locStack.pop();
+     CFANode nextNode = locStack.peek();
+
+     if (isReachableNode(prevNode)) {
+       BlankEdge blankEdge = new BlankEdge("", nextNode.getLineNumber(), prevNode, nextNode, "");
+       addToCFA(blankEdge);
+     }
+
+     //  Push the start of the else clause onto our location stack
+     CFANode elseNode = elseStack.pop();
+     locStack.push(elseNode);
+   }
+ }
+
+ @Override
+ public boolean visit(ExpressionStatement expressionStatement) {
+
+   handleStatements(expressionStatement);
+
+   CFANode prevNode = locStack.pop ();
+
+   org.sosy_lab.cpachecker.cfa.ast.IASTStatement statement = astCreator.convert(expressionStatement);
+
+   //TODO Solution not allowed, find better Solution
+   String rawSignature = expressionStatement.toString();
+
+   CFANode lastNode = new CFANode(statement.getFileLocation().getStartingLineNumber(), cfa.getFunctionName());
+   cfaNodes.add(lastNode);
+
+   if(astCreator.getConditionalExpression() != null) {
+     //TODO Implement ConditionalStatement
+
+     //IASTConditionalExpression condExp = astCreator.getConditionalExpression();
+     //astCreator.resetConditionalExpression();
+     //handleConditionalStatement(condExp, prevNode, lastNode, statement);
+   } else {
+     CFANode nextNode = handleSideassignments(prevNode, rawSignature, statement.getFileLocation().getStartingLineNumber());
+
+     StatementEdge edge = new StatementEdge(rawSignature, statement,
+         statement.getFileLocation().getStartingLineNumber(), nextNode, lastNode);
+     addToCFA(edge);
+   }
+   locStack.push(lastNode);
+
+
+
+   return PROCESS_SKIP;
+ }
+
+
+ @Override
+  public boolean visit(IfStatement ifStatement) {
+   IASTFileLocation fileloc = astCreator.getFileLocation(ifStatement);
+
+   handleStatements(ifStatement);
+
+
+    CFANode prevNode = locStack.pop();
+
+    CFANode postIfNode = new CFANode(fileloc.getEndingLineNumber(),
+        cfa.getFunctionName());
+    cfaNodes.add(postIfNode);
+    locStack.push(postIfNode);
+
+    CFANode thenNode = new CFANode(fileloc.getStartingLineNumber(),
+        cfa.getFunctionName());
+    cfaNodes.add(thenNode);
+    locStack.push(thenNode);
+
+    CFANode elseNode;
+    // elseNode is the start of the else branch,
+    // or the node after the loop if there is no else branch
+    if (ifStatement.getElseStatement() == null) {
+      elseNode = postIfNode;
+    } else {
+      elseNode = new CFANode(fileloc.getStartingLineNumber(),
+          cfa.getFunctionName());
+      cfaNodes.add(elseNode);
+      elseStack.push(elseNode);
+    }
+
+    createConditionEdges(ifStatement.getExpression(),
+        fileloc.getStartingLineNumber(), prevNode, thenNode, elseNode);
+
+    return PROCESS_CONTINUE;
+  }
+
+ @Override
+ public void endVisit(IfStatement ifStatement) {
+
+     final CFANode prevNode = locStack.pop();
+     final CFANode nextNode = locStack.peek();
+
+     if (isReachableNode(prevNode)) {
+
+       for (CFAEdge prevEdge : ImmutableList.copyOf(CFAUtils.allEnteringEdges(prevNode))) {
+         if ((prevEdge instanceof BlankEdge)
+             && prevEdge.getDescription().equals("")) {
+
+           // the only entering edge is a BlankEdge, so we delete this edge and prevNode
+
+           CFANode prevPrevNode = prevEdge.getPredecessor();
+           assert prevPrevNode.getNumLeavingEdges() == 1;
+           prevNode.removeEnteringEdge(prevEdge);
+           prevPrevNode.removeLeavingEdge(prevEdge);
+
+           BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(),
+               prevPrevNode, nextNode, "");
+           addToCFA(blankEdge);
+         }
+       }
+
+       if (prevNode.getNumEnteringEdges() > 0) {
+         BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(),
+             prevNode, nextNode, "");
+         addToCFA(blankEdge);
+       }
+     }
+ }
+
+
+
 
 
   private static enum CONDITION { NORMAL, ALWAYS_FALSE, ALWAYS_TRUE };
@@ -368,17 +503,23 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
   }
 
-*/
 
-  /**
+
+
   private void buildConditionTree(Expression condition, final int filelocStart,
       CFANode rootNode, CFANode thenNode, final CFANode elseNode,
       CFANode thenNodeForLastThen, CFANode elseNodeForLastElse,
       boolean furtherThenComputation, boolean furtherElseComputation) {
 
+    //TODO eager And Implementation
+
+    while (condition.getNodeType() == ASTNode.PARENTHESIZED_EXPRESSION) {
+      condition = ((ParenthesizedExpression) condition).getExpression();
+    }
+
 
     if (condition.getNodeType() == ASTNode.INFIX_EXPRESSION
-        && ((InfixExpression) condition).getOperator().equals(InfixExpression.Operator.AND)) {
+        && ((InfixExpression) condition).getOperator() == InfixExpression.Operator.CONDITIONAL_AND) {
       CFANode innerNode = new CFANode(filelocStart, cfa.getFunctionName());
       cfaNodes.add(innerNode);
       buildConditionTree(((InfixExpression) condition).getLeftOperand(), filelocStart, rootNode, innerNode, elseNode,
@@ -387,7 +528,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           thenNodeForLastThen, elseNodeForLastElse, true, true);
 
     } else if (condition.getNodeType() == ASTNode.INFIX_EXPRESSION
-        && ((InfixExpression) condition).getOperator().equals(InfixExpression.Operator.OR)) {
+      &&  ((InfixExpression) condition).getOperator() == InfixExpression.Operator.CONDITIONAL_OR) {
       CFANode innerNode = new CFANode(filelocStart, cfa.getFunctionName());
       cfaNodes.add(innerNode);
       buildConditionTree(((InfixExpression) condition).getLeftOperand(), filelocStart, rootNode, thenNode, innerNode,
@@ -398,7 +539,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else {
 
       final org.sosy_lab.cpachecker.cfa.ast.IASTExpression exp = astCreator.convertBooleanExpression(condition);
-      // TODO find better Solution, toString not allowed
+
+      //TODO Solution not allowed, find better Solution
       String rawSignature = condition.toString();
 
       CFANode nextNode =
@@ -410,18 +552,19 @@ class CFAFunctionBuilder extends ASTVisitor {
       if (furtherElseComputation) {
         elseNodeForLastElse = elseNode;
       }
-      // TODO find better Solution, toString not allowed
+
+      //TODO Assume Edge not neccessary for Java
       // edge connecting last condition with elseNode
-      final AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + condition.toString() + ")",
+      final AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + rawSignature + ")",
           filelocStart,
           nextNode,
           elseNodeForLastElse,
           exp,
           false);
       addToCFA(assumeEdgeFalse);
-      // TODO find better Solution, toString not allowed
+
       // edge connecting last condition with thenNode
-      final AssumeEdge assumeEdgeTrue = new AssumeEdge(condition.toString(),
+      final AssumeEdge assumeEdgeTrue = new AssumeEdge(rawSignature,
           filelocStart,
           nextNode,
           thenNodeForLastThen,
@@ -439,7 +582,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (cond.getNodeType() == ASTNode.BOOLEAN_LITERAL) {
          if(((BooleanLiteral) cond).booleanValue()){
            return CONDITION.ALWAYS_TRUE;
-
          } else{
            return CONDITION.ALWAYS_FALSE;
          }
@@ -447,7 +589,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     return CONDITION.NORMAL;
 }
 
-*/
+
 
 
 
