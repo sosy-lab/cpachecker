@@ -43,6 +43,7 @@ import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.ParenthesizedExpression;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
@@ -60,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
@@ -82,6 +84,10 @@ class CFAFunctionBuilder extends ASTVisitor {
   private static final boolean PROCESS_CONTINUE = true;
 
   private static final boolean PROCESS_SKIP = false;
+
+  // The first Element of a List of arguments of a
+  // Assert Method Invocation is the Assert Condition
+  private static final int ASSERT_CONDITION = 0;
 
   // Data structure for maintaining our scope stack in a function
   private final Deque<CFANode> locStack = new ArrayDeque<CFANode>();
@@ -336,7 +342,57 @@ class CFAFunctionBuilder extends ASTVisitor {
     // In that case, every Statement needs to be visited
     // and handleElsoCondition be implemented.
     handleElseCondition(bl);
-    return true;
+    return PROCESS_CONTINUE;
+  }
+
+
+  private boolean  handleAsserts(MethodInvocation assertStatement) {
+
+
+
+    IASTFileLocation fileloc = astCreator.getFileLocation(assertStatement);
+
+
+     CFANode prevNode = locStack.pop();
+
+     //Create CFA Node for end of assert Location and push to local Stack
+     CFANode postAssertNode = new CFANode(fileloc.getEndingLineNumber(),
+         cfa.getFunctionName());
+     cfaNodes.add(postAssertNode);
+     locStack.push(postAssertNode);
+
+     // Node for successful assert
+     CFANode successfulNode = new CFANode(fileloc.getStartingLineNumber(),
+         cfa.getFunctionName());
+     cfaNodes.add(successfulNode);
+
+     // Error Label Node and unsuccessfulNode for unSuccessful assert,
+     CFANode unsuccessfulNode = new CFANode(fileloc.getStartingLineNumber(),
+         cfa.getFunctionName());
+     cfaNodes.add(unsuccessfulNode);
+     CFALabelNode  errorLabelNode = new CFALabelNode(fileloc.getStartingLineNumber(),cfa.getFunctionName(), "ERROR");
+       cfaNodes.add(errorLabelNode);
+
+
+     createConditionEdges((Expression)assertStatement.arguments().get(ASSERT_CONDITION),
+         fileloc.getStartingLineNumber(), prevNode, successfulNode, unsuccessfulNode);
+
+
+       //Blank Edge from successful assert to  postAssert location
+
+       BlankEdge blankEdge = new BlankEdge("", postAssertNode.getLineNumber(),
+                                                 successfulNode, postAssertNode, "");
+       addToCFA(blankEdge);
+
+
+      // Blank Edge from unsuccessful assert to Error  location
+
+       blankEdge = new BlankEdge("", errorLabelNode.getLineNumber(),
+           unsuccessfulNode, errorLabelNode, "");
+       addToCFA(blankEdge);
+
+
+    return PROCESS_SKIP;
   }
 
 
@@ -367,6 +423,15 @@ class CFAFunctionBuilder extends ASTVisitor {
  @Override
  public boolean visit(ExpressionStatement expressionStatement) {
 
+    // The parser seems to be unable to parse Assertion Statements
+    // correctly, it is represented as Method_Invocation
+    if (expressionStatement.getExpression().getNodeType() == ASTNode.METHOD_INVOCATION
+        && ((MethodInvocation)expressionStatement.getExpression()).getName().getIdentifier().equals("assert") ) {
+      handleAsserts((MethodInvocation)expressionStatement.getExpression());
+     return PROCESS_SKIP;
+   }
+
+   // When else is not in blocks (else Statement)
    handleElseCondition(expressionStatement);
 
    CFANode prevNode = locStack.pop ();
