@@ -36,6 +36,7 @@ import java.util.Set;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BooleanLiteral;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
@@ -327,14 +328,22 @@ class CFAFunctionBuilder extends ASTVisitor {
   }
 
 
- private void handleStatements(Statement statement){
-    // TODO Investigate if this works
-    // Iterate through parent till parent is not a Block
-    ASTNode node = statement;
 
-    while(node.getParent().getNodeType() == ASTNode.BLOCK){
-       node = node.getParent();
-    }
+  @Override
+  public boolean  visit(Block bl) {
+    // TODO This works if else is a Block (else {Statement})
+    // , but not if it has just one statement (else Statement)
+    // In that case, every Statement needs to be visited
+    // and handleElsoCondition be implemented.
+    handleElseCondition(bl);
+    return true;
+  }
+
+
+ private void handleElseCondition(Statement statement){
+
+
+    ASTNode node = statement;
 
 
    // Handle special condition for else
@@ -358,7 +367,7 @@ class CFAFunctionBuilder extends ASTVisitor {
  @Override
  public boolean visit(ExpressionStatement expressionStatement) {
 
-   handleStatements(expressionStatement);
+   handleElseCondition(expressionStatement);
 
    CFANode prevNode = locStack.pop ();
 
@@ -395,7 +404,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   public boolean visit(IfStatement ifStatement) {
    IASTFileLocation fileloc = astCreator.getFileLocation(ifStatement);
 
-   handleStatements(ifStatement);
+   handleElseCondition(ifStatement);
 
 
     CFANode prevNode = locStack.pop();
