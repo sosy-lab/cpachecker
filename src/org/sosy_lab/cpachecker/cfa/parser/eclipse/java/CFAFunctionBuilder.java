@@ -29,9 +29,11 @@ import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.jdt.core.dom.ASTNode;
@@ -42,6 +44,7 @@ import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.InfixExpression;
+import org.eclipse.jdt.core.dom.LabeledStatement;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.ParenthesizedExpression;
@@ -67,7 +70,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -75,9 +77,9 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Builder to traverse AST.
- * Known Limitations:
- * <p> -- K&R style function definitions not implemented
- * <p> -- Pointer modifiers not tracked (i.e. const, volatile, etc. for *
+ *
+ *
+ *
  */
 class CFAFunctionBuilder extends ASTVisitor {
 
@@ -102,8 +104,8 @@ class CFAFunctionBuilder extends ASTVisitor {
   //  new ArrayDeque<org.sosy_lab.cpachecker.cfa.ast.IASTExpression>();
   //private final Deque<CFANode> switchCaseStack = new ArrayDeque<CFANode>();
 
-  // Data structures for handling goto
-  //private final Map<String, CFALabelNode> labelMap = new HashMap<String, CFALabelNode>();
+  // Data structures for label , continue , break
+  private final Map<String, CFALabelNode> labelMap = new HashMap<String, CFALabelNode>();
   //private final Multimap<String, CFANode> gotoLabelNeeded = ArrayListMultimap.create();
 
   // Data structures for handling function declarations
@@ -395,7 +397,13 @@ class CFAFunctionBuilder extends ASTVisitor {
     return PROCESS_SKIP;
   }
 
-
+ /**
+  * This Method checks, if Statement is start of a else Condition Block
+  * or Statement, changes the cfa accordingly.
+  *
+  *
+  * @param statement Given statement to be checked.
+  */
  private void handleElseCondition(Statement statement){
 
 
@@ -662,6 +670,52 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
     return CONDITION.NORMAL;
 }
+
+
+
+  @Override
+  public boolean visit(LabeledStatement labelStatement) {
+
+    IASTFileLocation fileloc = astCreator.getFileLocation(labelStatement);
+
+    String labelName = labelStatement.getLabel().getIdentifier();
+    if (labelMap.containsKey(labelName)) {
+      throw new CFAGenerationRuntimeException("Duplicate label " + labelName
+          + " in function " + cfa.getFunctionName(), labelStatement);
+    }
+
+    CFANode prevNode = locStack.pop();
+
+    CFALabelNode labelNode = new CFALabelNode(fileloc.getStartingLineNumber(),
+        cfa.getFunctionName(), labelName);
+    cfaNodes.add(labelNode);
+    locStack.push(labelNode);
+    labelMap.put(labelName, labelNode);
+
+    if (isReachableNode(prevNode)) {
+      BlankEdge blankEdge = new BlankEdge(labelStatement.toString(),
+          fileloc.getStartingLineNumber(), prevNode, labelNode, "Label: " + labelName);
+      addToCFA(blankEdge);
+    }
+
+    // Stop , and manually go to Block, to protect Identifier to be processed
+    // more than one time
+    // TODO Find a better Solution, this should not work
+    labelStatement.getBody().accept(this);
+
+    return PROCESS_SKIP;
+  }
+
+  @Override
+  public void endVisit(LabeledStatement labelStatement) {
+
+    String labelName = labelStatement.getLabel().getIdentifier();
+
+    // Delete Label from Scope
+    assert labelMap.containsKey(labelName) : "Label Name " + labelName + " to be deleted "
+    		+ "out of scope, but scope does not contain it";
+    labelMap.remove(labelStatement.getLabel().getIdentifier());
+  }
 
 
 
