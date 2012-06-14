@@ -400,10 +400,11 @@ class Run():
         return self.mergedOptions
 
 
-    def run(self):
+    def run(self, numberOfThread):
         """
         This function runs the tool with a sourcefile with options.
         It also calls functions for output before and after the run.
+        @param numberOfThread: runs are executed in different threads
         """
         logfile = self.benchmark.outputHandler.outputBeforeRun(self)
 
@@ -413,6 +414,7 @@ class Run():
                                      self.sourcefile, 
                                      self.columns,
                                      self.benchmark.rlimits,
+                                     numberOfThread,
                                      logfile)
 
         # sometimes we should check for timeout again, 
@@ -1324,9 +1326,15 @@ def killSubprocess(process):
         pass
 
 
-def run(args, rlimits, outputfilename):
+def run(args, rlimits, numberOfThread, outputfilename):
     args = [os.path.expandvars(arg) for arg in args]
     args = [os.path.expanduser(arg) for arg in args]
+
+    if options.limitCores:
+        # use only one cpu for one subprocess
+        # if there are more threads than cores, some threads share the same core
+        import multiprocessing
+        args = ['taskset', '-c', str(numberOfThread % multiprocessing.cpu_count())] + args
 
     outputfile = open(outputfilename, 'w') # override existing file
     outputfile.write(' '.join(args) + '\n\n\n' + '-'*80 + '\n\n\n')
@@ -1407,12 +1415,12 @@ def isTimeout(cpuTimeDelta, rlimits):
     return cpuTimeDelta > limit*0.99
 
 
-def run_cbmc(exe, options, sourcefile, columns, rlimits, file):
+def run_cbmc(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
     if ("--xml-ui" not in options):
         options = options + ["--xml-ui"]
 
     args = [exe] + options + [sourcefile]
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
 
     #an empty tag cannot be parsed into a tree
     output = output.replace("<>", "<emptyTag>")
@@ -1477,10 +1485,10 @@ def run_cbmc(exe, options, sourcefile, columns, rlimits, file):
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
-def run_satabs(exe, options, sourcefile, columns, rlimits, file):
+def run_satabs(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
     args = [exe] + options + [sourcefile]
 
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
 
     if "VERIFICATION SUCCESSFUL" in output:
         assert returncode == 0
@@ -1502,9 +1510,9 @@ def run_satabs(exe, options, sourcefile, columns, rlimits, file):
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
-def run_wolverine(exe, options, sourcefile, columns, rlimits, file):
+def run_wolverine(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
     args = [exe] + options + [sourcefile]
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
     if "VERIFICATION SUCCESSFUL" in output:
         assert returncode == 0
         status = "SAFE"
@@ -1522,9 +1530,9 @@ def run_wolverine(exe, options, sourcefile, columns, rlimits, file):
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
-def run_ufo(exe, options, sourcefile, columns, rlimits, file):
+def run_ufo(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
     args = [exe, sourcefile] + options
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
     if returnsignal == 9 or returnsignal == (128+9):
         if isTimeout(cpuTimeDelta, rlimits):
             status = "TIMEOUT"
@@ -1543,7 +1551,7 @@ def run_ufo(exe, options, sourcefile, columns, rlimits, file):
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
-def run_acsar(exe, options, sourcefile, columns, rlimits, file):
+def run_acsar(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
 
     # create tmp-files for acsar, acsar needs special error-labels
     prepSourcefile = prepareSourceFileForAcsar(sourcefile)
@@ -1553,7 +1561,7 @@ def run_acsar(exe, options, sourcefile, columns, rlimits, file):
 
     args = [exe] + ["--file"] + [prepSourcefile] + options
 
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
     if "syntax error" in output:
         status = "SYNTAX ERROR"
 
@@ -1604,14 +1612,14 @@ def prepareSourceFileForAcsar(sourcefile):
     return newFilename
 
 
-def run_feaver(exe, options, sourcefile, columns, rlimits, file):
+def run_feaver(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
 
     # create tmp-files for acsar, acsar needs special error-labels
     prepSourcefile = prepareSourceFileForFeaver(sourcefile)
 
     args = [exe] + options + [prepSourcefile]
 
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
     if "collect2: ld returned 1 exit status" in output:
         status = "COMPILE ERROR"
 
@@ -1637,11 +1645,11 @@ def run_feaver(exe, options, sourcefile, columns, rlimits, file):
         status = "UNKNOWN"
 
     # delete tmp-files
-    for file in [prepSourcefile, prepSourcefile[0:-1] + "M",
+    for tmpfile in [prepSourcefile, prepSourcefile[0:-1] + "M",
                  "_modex_main.spn", "_modex_.h", "_modex_.cln", "_modex_.drv",
                  "model", "pan.b", "pan.c", "pan.h", "pan.m", "pan.t"]:
         try:
-            os.remove(file)
+            os.remove(tmpfile)
         except OSError:
             pass
 
@@ -1660,17 +1668,17 @@ def prepareSourceFileForFeaver(sourcefile):
 # perhaps someone can use these function again someday,
 # to use them you need a normal benchmark-xml-file 
 # with the tool and sourcefiles, however options are ignored
-def run_safe(exe, options, sourcefile, columns, rlimits, file):
+def run_safe(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
     args = ['safe'] + options + [sourcefile]
     cpuTimeDelta = wallTimeDelta = 0
     return ('safe', cpuTimeDelta, wallTimeDelta, args)
 
-def run_unsafe(exe, options, sourcefile, columns, rlimits, file):
+def run_unsafe(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
     args = ['unsafe'] + options + [sourcefile]
     cpuTimeDelta = wallTimeDelta = 0
     return ('unsafe', cpuTimeDelta, wallTimeDelta, args)
 
-def run_random(exe, options, sourcefile, columns, rlimits, file):
+def run_random(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
     args = ['random'] + options + [sourcefile]
     cpuTimeDelta = wallTimeDelta = 0
     from random import random
@@ -1688,12 +1696,12 @@ def appendFileToFile(sourcename, targetname):
     finally:
         source.close()
 
-def run_cpachecker(exe, options, sourcefile, columns, rlimits, file):
+def run_cpachecker(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
     if ("-stats" not in options):
         options = options + ["-stats"]
 
     args = [exe] + options + [sourcefile]
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
 
     status = getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
     getCPAcheckerColumns(output, columns)
@@ -1802,9 +1810,9 @@ def getCPAcheckerColumns(output, columns):
                 break
 
 
-def run_blast(exe, options, sourcefile, columns, rlimits, file):
+def run_blast(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
     args = [exe] + options + [sourcefile]
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
 
     status = "UNKNOWN"
     for line in output.splitlines():
@@ -1828,15 +1836,16 @@ class Worker(threading.Thread):
     """
     workingQueue = Queue.Queue()
 
-    def __init__(self):
+    def __init__(self, number):
         threading.Thread.__init__(self) # constuctor of superclass
+        self.number = number
         self.setDaemon(True)
         self.start()
 
     def run(self):
         while not Worker.workingQueue.empty() and not STOPPED_BY_INTERRUPT:
             currentRun = Worker.workingQueue.get_nowait()
-            currentRun.run()
+            currentRun.run(self.number)
             Worker.workingQueue.task_done()
 
 
@@ -1881,7 +1890,7 @@ def runBenchmark(benchmarkFile):
     
             # create some workers
             for i in range(benchmark.numOfThreads):
-                WORKER_THREADS.append(Worker())
+                WORKER_THREADS.append(Worker(i))
 
             # wait until all tasks are done,
             # instead of queue.join(), we use a loop and sleep(1) to handle KeyboardInterrupt
@@ -1964,6 +1973,10 @@ from the output of this script.""")
     parser.add_option("-D", "--memdata", dest="memdata",
                       action="store_true",
                       help="When limiting memory usage, restrict only the data segments instead of the virtual address space.")
+
+    parser.add_option("-c", "--limitCores", dest="limitCores",
+                      action="store_true",
+                      help="When limiting core usage, every run in the benchmark is only allowed to use one core of the cpu.")
 
     global options, OUTPUT_PATH
     (options, args) = parser.parse_args(argv)
