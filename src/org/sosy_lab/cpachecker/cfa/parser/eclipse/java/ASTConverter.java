@@ -605,7 +605,7 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
     IASTExpression binaryExpression = new IASTBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
 
     //TODO Here we could translate the Idea of extended Operands
-    //TODO Maybe change tree Structure
+    //Maybe change tree Structure
     // into the cfa ast model
     // a x b x c is being translated to (((a x b) x c) x d)
     if (e.hasExtendedOperands()) {
