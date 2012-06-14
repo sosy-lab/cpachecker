@@ -45,8 +45,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictPathChecker;
@@ -91,7 +91,7 @@ public class DelegatingExplicitRefiner
 
   // statistics
   final Timer precisionUpdate                               = new Timer();
-  final Timer argUpdate                                     = new Timer();
+  final Timer artUpdate                                     = new Timer();
 
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -235,9 +235,9 @@ public class DelegatingExplicitRefiner
   }
 
   @Override
-  protected List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> errorPath, ARGState initialState)
+  protected List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> errorPath, ARGState initialElement)
       throws CPATransferException {
-    return currentRefiner.getFormulasForPath(errorPath, initialState);
+    return currentRefiner.getFormulasForPath(errorPath, initialElement);
   }
 
   @Override
@@ -252,15 +252,15 @@ public class DelegatingExplicitRefiner
     Precision oldPrecision = reached.getPrecision(reached.getLastState());
 
     precisionUpdate.start();
-    Pair<ARGState, Precision> result = currentRefiner.performRefinement(oldPrecision, errorPath, counterexampleTraceInfo);
+    Pair<ARGState, Precision> result = currentRefiner.performRefinement(reached, oldPrecision, errorPath, counterexampleTraceInfo);
     precisionUpdate.stop();
 
-    argUpdate.start();
+    artUpdate.start();
     ARGState root = result.getFirst();
     logger.log(Level.FINEST, "Found spurious counterexample,",
-        "trying strategy 1: remove everything below", root, "from ARG.");
+        "trying strategy 1: remove everything below", root, "from ART.");
     pReached.removeSubtree(root, result.getSecond());
-    argUpdate.stop();
+    artUpdate.stop();
   }
 
   /**
@@ -303,7 +303,7 @@ public class DelegatingExplicitRefiner
 
     out.println("Explicit Refinement:");
     out.println("total time for refining precision:       " + precisionUpdate);
-    out.println("total time used for updating ARG:        " + argUpdate);
+    out.println("total time used for updating ART:        " + artUpdate);
 
     if(fullPrecisionCheckIsFeasable != null) {
       out.println("full-precision-check is feasable:        " + (fullPrecisionCheckIsFeasable ? "yes" : "no"));

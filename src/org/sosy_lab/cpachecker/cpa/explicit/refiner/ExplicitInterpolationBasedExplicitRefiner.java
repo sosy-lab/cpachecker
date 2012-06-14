@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision.CegarPrecision;
@@ -59,13 +60,13 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
   boolean useAssumptionClosure = true;
 
   /**
-   * the ARG state, from where to cut-off the subtree, and restart the analysis
+   * the ART element, from where to cut-off the subtree, and restart the analysis
    */
   private ARGState firstInterpolationPoint = null;
 
   // statistics
   private int numberOfCounterExampleChecks                  = 0;
-  private int numberOfErrorPathStates                     = 0;
+  private int numberOfErrorPathElements                     = 0;
   private Timer timerCounterExampleChecks                   = new Timer();
 
   protected ExplicitInterpolationBasedExplicitRefiner(
@@ -76,7 +77,9 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
   }
 
   @Override
-  protected Multimap<CFANode, String> determinePrecisionIncrement(ExplicitPrecision oldPrecision) throws CPAException {
+  protected Multimap<CFANode, String> determinePrecisionIncrement(
+      UnmodifiableReachedSet reachedSet,
+      ExplicitPrecision oldPrecision) throws CPAException {
     timerCounterExampleChecks.start();
 
     Multimap<CFANode, String> increment = HashMultimap.create();
@@ -102,7 +105,7 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
     for(int i = 0; i < cfaTrace.size(); i++){
       CFAEdge currentEdge = cfaTrace.get(i);
 
-      numberOfErrorPathStates++;
+      numberOfErrorPathElements++;
 
       if(currentEdge instanceof FunctionReturnEdge) {
         currentEdge = ((FunctionReturnEdge)currentEdge).getSummaryEdge();
@@ -116,22 +119,10 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
       }
 
       // check for each variable, if ignoring it makes the error path feasible
-      // it might be more reasonable to do this once for all variables referenced in this edge (esp. for assumes)
       for(String importantVariable : referencedVariablesAtEdge) {
-        // referenced variable is already known to be important, so skip it, but set the location as interpolation point
-        if(isRedundant(oldPrecision.getCegarPrecision(), currentEdge, importantVariable)) {
-          if(firstInterpolationPoint == null) {
-            firstInterpolationPoint = currentEdgePath.get(i + 1).getFirst();
-          }
-
-          // either set interpolation point and continue with next referenced variable,
-          // or do not set interpolation point and proceed, but then, do not add current
-          // variable to set of variables to be ignored, as it is known to be important,
-          // hence, ignoring it would be wrong!
-          // the strategy of choice is, to continue here, as we can save a few counterexample
-          // checks - an evaluation will show if both strategies are equivalent (which I highly doubt),
-          // or at least lead to the same verification results (which might be the case)
-          // see commits 6143 to 6145
+        // do a redundancy check against current node of the ART (and not against the error node in the ART)
+        ExplicitPrecision currentPrecision = extractExplicitPrecision(reachedSet.getPrecision(currentEdgePath.get(i).getFirst()));
+        if(isRedundant(currentPrecision.getCegarPrecision(), currentEdge, importantVariable)) {
           continue;
         }
 
@@ -163,7 +154,7 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
       Multimap<CFANode, String> precisionIncrement) {
 
     // just use initial node of error path if the respective option is set
-    if(useInitialNodeAsRestartingPoint) {
+    if(useInitialNodeAsRestartingPoint/* || firstInterpolationPoint == null*/) {
       return errorPath.get(1).getFirst();
     }
     else {
@@ -226,8 +217,8 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
     out.println(this.getClass().getSimpleName() + ":");
     out.println("  number of explicit refinements:           " + numberOfExplicitRefinements);
     out.println("  number of counter-example checks:         " + numberOfCounterExampleChecks);
-    out.println("  total number of elements in error paths:  " + numberOfErrorPathStates);
-    out.println("  percentage of elements checked:           " + (Math.round(((double)numberOfCounterExampleChecks / (double)numberOfErrorPathStates) * 10000) / 100.00) + "%");
+    out.println("  total number of elements in error paths:  " + numberOfErrorPathElements);
+    out.println("  percentage of elements checked:           " + (Math.round(((double)numberOfCounterExampleChecks / (double)numberOfErrorPathElements) * 10000) / 100.00) + "%");
     out.println("  max. time for singe check:                " + timerCounterExampleChecks.printMaxTime());
     out.println("  total time for checks:                    " + timerCounterExampleChecks);
   }
