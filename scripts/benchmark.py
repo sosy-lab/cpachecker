@@ -26,7 +26,6 @@ CPAchecker web page:
 
 from datetime import date
 
-import threading
 try:
   import Queue
 except ImportError: # Queue was renamed to queue in Python 3
@@ -43,7 +42,9 @@ import resource
 import signal
 import subprocess
 import sys
+import threading
 import xml.etree.ElementTree as ET
+
 
 CSV_SEPARATOR = "\t"
 
@@ -56,7 +57,7 @@ BYTE_FACTOR = 1024 # byte in kilobyte
 USE_COLORS = True
 COLOR_GREEN = "\033[32;1m{0}\033[m"
 COLOR_RED = "\033[31;1m{0}\033[m"
-COLOR_ORANGE = "\033[33;1m{0}\033[m" # not orange, magenta
+COLOR_ORANGE = "\033[33;1m{0}\033[m"
 COLOR_MAGENTA = "\033[35;1m{0}\033[m"
 COLOR_DIC = {"correctSafe": COLOR_GREEN,
              "correctUnsafe": COLOR_GREEN,
@@ -87,8 +88,6 @@ TOOLS = {"cbmc"      : ["cbmc",
 # for the other columns it can be configured in the xml-file
 TIME_PRECISION = 2
 
-USE_ONLY_DATE = False # use date or date+time for filenames
-
 
 # next lines are needed for stopping the script
 WORKER_THREADS = []
@@ -117,10 +116,7 @@ class Benchmark:
         self.name = os.path.basename(benchmarkFile)[:-4] # remove ending ".xml"
 
         # get current date as String to avoid problems, if script runs over midnight
-        if USE_ONLY_DATE:
-            self.date = str(date.today())
-        else:
-            self.date = time.strftime("%y-%m-%d.%H%M", time.localtime())
+        self.date = time.strftime("%y-%m-%d.%H%M", time.localtime())
 
         # get tool
         self.tool = root.get("tool")
@@ -477,6 +473,7 @@ class Util:
                 return True
         return False
 
+
     @staticmethod
     def removeAll(list, elemToRemove):
         return [elem for elem in list if elem != elemToRemove]
@@ -670,49 +667,6 @@ class OutputHandler:
             return names[tool]
         else:
             return str(self.benchmark.tool)
-
-# this function only for development, currently unused
-    def getVersionOfCPAchecker(self):
-        '''
-        get info about CPAchecker from local svn- or git-svn-directory
-        '''
-        version = ''
-        exe = findExecutable(*TOOLS["cpachecker"])
-        try:
-            cpaFolder = subprocess.Popen(['which', exe],
-                              stdout=subprocess.PIPE).communicate()[0].strip('\n')
-
-            # try to get revision with SVN
-            output = subprocess.Popen(['svn', 'info', cpaFolder],
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT).communicate()[0]
-
-            # parse output and get revision
-            svnInfoList = [line for line in output.strip('\n').split('\n')
-                           if ': ' in line]
-            svnInfo = dict(tuple(str.split(': ')) for str in svnInfoList)
-
-            if 'Revision' in svnInfo: # revision from SVN successful
-                version = 'r' + svnInfo['Revision']
-
-            else: # try to get revision with GIT-SVN
-                output = subprocess.Popen(['git', 'svn', 'info'],
-                                  stdout=subprocess.PIPE,
-                                  stderr=subprocess.STDOUT).communicate()[0]
-
-                # parse output and get revision
-                svnInfoList = [line for line in output.strip('\n').split('\n')
-                               if ': ' in line]
-                svnInfo = dict(tuple(str.split(': ')) for str in svnInfoList)
-
-                if 'Revision' in svnInfo: # revision from GIT-SVN successful
-                    version = 'r' + svnInfo['Revision']
-
-                else:
-                    logging.warning('revision of CPAchecker could not be read.')
-        except OSError:
-            pass
-        return version
 
 
     def getVersion(self, tool):
@@ -1684,6 +1638,7 @@ def run_random(exe, options, sourcefile, columns, rlimits, numberOfThread, file)
     from random import random
     status = 'safe' if random() < 0.5 else 'unsafe'
     return (status, cpuTimeDelta, wallTimeDelta, args)
+
 
 def appendFileToFile(sourcename, targetname):
     source = open(sourcename, 'r')
