@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -48,9 +49,10 @@ public interface IExplicitRefiner {
   List<Formula> getFormulasForPath(
       List<Pair<ARGState,
       CFANode>> errorPath,
-      ARGState initialState) throws CPATransferException;
+      ARGState initialElement) throws CPATransferException;
 
   Pair<ARGState, Precision> performRefinement(
+      UnmodifiableReachedSet reachedSet,
       Precision oldPrecision,
       List<Pair<ARGState, CFANode>> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException;

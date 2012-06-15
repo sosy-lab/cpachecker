@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.PredicateMap;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ReferencedVariablesCollector;
@@ -51,7 +52,7 @@ public class SmtBasedExplicitRefiner extends ExplicitRefiner {
   private final ExtendedFormulaManager formulaManager;
 
   // statistics
-  private Timer timerSyntacticalPathAnalysis                = new Timer();
+  private Timer timerSyntacticalPathAnalysis = new Timer();
 
   protected SmtBasedExplicitRefiner(
       Configuration config,
@@ -63,7 +64,9 @@ public class SmtBasedExplicitRefiner extends ExplicitRefiner {
   }
 
   @Override
-  protected Multimap<CFANode, String> determinePrecisionIncrement(ExplicitPrecision oldPrecision) throws CPAException {
+  protected Multimap<CFANode, String> determinePrecisionIncrement(
+      UnmodifiableReachedSet reachedSet,
+      ExplicitPrecision oldPrecision) throws CPAException {
     // create the mapping of CFA nodes to predicates, based on the counter example trace info
     PredicateMap predicateMap = new PredicateMap(currentTraceInfo.getPredicatesForRefinement(), currentNodePath);
 
@@ -77,7 +80,9 @@ public class SmtBasedExplicitRefiner extends ExplicitRefiner {
     return precisionIncrement;
   }
 
-  private Multimap<CFANode, String> determineReferencedVariablesInPath(ExplicitPrecision precision, Multimap<CFANode, String> precisionIncrement) {
+  private Multimap<CFANode, String> determineReferencedVariablesInPath(
+      ExplicitPrecision precision,
+      Multimap<CFANode, String> precisionIncrement) {
 
     List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
     for(int i = 0; i < currentEdgePath.size(); i++) {

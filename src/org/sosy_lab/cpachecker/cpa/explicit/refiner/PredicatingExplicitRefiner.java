@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
 import static com.google.common.collect.Lists.transform;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -38,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.PredicateMap;
@@ -71,7 +71,7 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
     List<Pair<ARGState, CFANode>> result = Lists.newArrayList();
 
     for (ARGState ae : transform(errorPath, Pair.<ARGState>getProjectionToFirst())) {
-      PredicateAbstractState pe = extractStateByType(ae, PredicateAbstractState.class);
+      PredicateAbstractState pe = AbstractStates.extractStateByType(ae, PredicateAbstractState.class);
       if (pe.isAbstractionState()) {
         CFANode location = AbstractStates.extractLocation(ae);
         result.add(Pair.of(ae, location));
@@ -83,7 +83,7 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
   }
 
   @Override
-  public List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> errorPath, ARGState initialState) throws CPATransferException {
+  public List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> errorPath, ARGState initialElement) throws CPATransferException {
     List<Formula> formulas = transform(errorPath,
         Functions.compose(
             GET_BLOCK_FORMULA,
@@ -95,7 +95,9 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
   }
 
   @Override
-  public Pair<ARGState, Precision> performRefinement(Precision oldPrecision,
+  public Pair<ARGState, Precision> performRefinement(
+      UnmodifiableReachedSet reachedSet,
+      Precision oldPrecision,
       List<Pair<ARGState, CFANode>> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException {
     numberOfPredicateRefinementsDone++;

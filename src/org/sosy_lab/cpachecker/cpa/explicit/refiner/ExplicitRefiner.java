@@ -39,11 +39,14 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -93,7 +96,7 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
   @Override
   public List<Formula> getFormulasForPath(List<Pair<ARGState,
       CFANode>> errorPath,
-      ARGState initialState) throws CPATransferException {
+      ARGState initialElement) throws CPATransferException {
     PathFormula currentPathFormula = pathFormulaManager.makeEmptyPathFormula();
 
     List<Formula> formulas = new ArrayList<Formula>(errorPath.size());
@@ -113,6 +116,7 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
 
   @Override
   public Pair<ARGState, Precision> performRefinement(
+      UnmodifiableReachedSet reachedSet,
       Precision oldPrecision,
       List<Pair<ARGState, CFANode>> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> traceInfo) throws CPAException {
@@ -122,18 +126,21 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
     currentTraceInfo  = traceInfo;
 
     Multimap<CFANode, String> precisionIncrement = determinePrecisionIncrement(
+        reachedSet,
         extractExplicitPrecision(oldPrecision));
 
     ARGState interpolationPoint = determineInterpolationPoint(errorPath, precisionIncrement);
 
-    assert interpolationPoint != null;
+    if(interpolationPoint == null) {
+        throw new RefinementFailedException(Reason.InterpolationFailed, null);
+    }
 
     Precision precision = createExplicitPrecision(extractExplicitPrecision(oldPrecision), precisionIncrement);
 
     return Pair.of(interpolationPoint, precision);
   }
 
-  abstract protected Multimap<CFANode, String> determinePrecisionIncrement(ExplicitPrecision oldPrecision) throws CPAException;
+  abstract protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet, ExplicitPrecision oldPrecision) throws CPAException;
 
   /**
    * This method determines the new interpolation point.
