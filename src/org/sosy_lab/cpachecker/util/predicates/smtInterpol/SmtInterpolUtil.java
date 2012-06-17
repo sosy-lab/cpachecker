@@ -244,15 +244,12 @@ public class SmtInterpolUtil {
   public static Term simplify(SmtInterpolEnvironment env, Term t) {
     if (t instanceof ApplicationTerm) {
       ApplicationTerm at = (ApplicationTerm) t;
-      FunctionSymbol function = at.getFunction();
+      String function = at.getFunction().getName();
 
-      // (a&b&c)|(a&d&e)   -->    a&((b&c)|(d&e))
-      if ("or".equals(function.getName())) {
-        return factorOut(at, "or", env);
-
-        // (a|b|c)&(a|d|e)   -->    a|((b|c)&(d|e))
-      } else if ("and".equals(function.getName())) {
-        return factorOut(at, "and", env);
+      // OR:  (a&b&c)|(a&d&e)   -->    a&((b&c)|(d&e))
+      // AND: (a|b|c)&(a|d|e)   -->    a|((b|c)&(d|e))
+      if ("or".equals(function) || "and".equals(function)) {
+        return factorOut(at, env);
 
       } else {
         return t;
@@ -264,14 +261,16 @@ public class SmtInterpolUtil {
 
  /** This method factors out common children of the term.
   * Example:   (a&b)|(a&c)  -->   a&(b|c)   */
-  private static Term factorOut(ApplicationTerm at, String function,
-      SmtInterpolEnvironment env) {
+  private static Term factorOut(ApplicationTerm at, SmtInterpolEnvironment env) {
     Term[] params = at.getParameters();
+    String function = at.getFunction().getName();
+
     assert params.length >= 2 && ("and".equals(function) || "or".equals(function));
 
     String childFunction = "and".equals(function) ? "or" : "and";
     List<Set<Term>> children = new ArrayList<Set<Term>>(params.length);
 
+    // collect children of params
     for (Term param : params) {
       if (param instanceof ApplicationTerm) {
         ApplicationTerm appTerm = (ApplicationTerm) param;
@@ -285,25 +284,50 @@ public class SmtInterpolUtil {
       }
     }
 
+    // get common terms of children
     Set<Term> commonTerms = intersection(children);
     if (commonTerms.isEmpty()) {
       return at;
     }
-
-    List<Term> newChildren = new ArrayList<Term>(children.size());
-    for (Set<Term> currentChildren : children) {
+    // get distinct terms for each child, build terms for newChildren
+    Term[] newChildren = new Term[children.size()];
+    Term neutralTerm = env.term("and".equals(childFunction) ? "true" : "false");
+    for (int i = 0; i < newChildren.length; i++) {
+      Set<Term> currentChildren = children.get(i);
       currentChildren.removeAll(commonTerms);
 
-      if (currentChildren.size() == 1) {
-        newChildren.add(Iterables.getOnlyElement(currentChildren));
-      } else if (currentChildren.size() > 1) {
-        newChildren.add(env.term(childFunction, toTermArray(currentChildren)));
-      }
+      Term newChild;
+      switch (currentChildren.size()) {
+      case 0:
+        // ((a)&(a|c)) == ((a|false)&(a|c)) --> (a|(false&c)) == (a)
+        // ((a)|(a&c)) == ((a&true)|(a&c)) --> (a&(true|c)) == (a)
+        // all params are common, so child is empty,
+        // we can not remove the child, so use neutral term
+        newChild = neutralTerm;
+        break;
+
+      case 1:
+        // (a|b)&(a|c) --> (a|(b&c))
+        // one param in child, can be used directly
+        newChild = Iterables.getOnlyElement(currentChildren);
+        break;
+
+      default:
+        // (a|b|c)&(a|d|e|f) --> (a|((b|c)&(d|e|f)))
+        // num of distinct params >= 2, function needed to connect params
+        newChild = env.term(childFunction, toTermArray(currentChildren));
+     }
+
+      newChildren[i] = newChild;
     }
 
+    assert newChildren.length >= 2;
+    assert !commonTerms.isEmpty();
+
+    // build new term from commonTerms and newChildren
     Term[] ts = commonTerms.toArray(new Term[commonTerms.size()+1]);
-    ts[commonTerms.size()] = env.term(function, toTermArray(newChildren));
-    assert ts.length > 1;
+    ts[commonTerms.size()] = env.term(function, newChildren);
+
     return env.term(childFunction, ts);
   }
 
