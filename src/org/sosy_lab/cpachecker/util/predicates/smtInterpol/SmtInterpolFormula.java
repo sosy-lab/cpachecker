@@ -58,13 +58,12 @@ public class SmtInterpolFormula implements Formula {
 
   @Override
   public int hashCode() {
-    // return toString().hashCode();
-    return term.hashCode(); // TODO working??
+    return term.hashCode();
   }
 
   @Override
   public boolean equals(Object other) {
     return (other instanceof SmtInterpolFormula) &&
-        this.hashCode() == other.hashCode(); // TODO working??
+        this.term.equals(((SmtInterpolFormula)other).term);
   }
 }
