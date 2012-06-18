@@ -106,8 +106,7 @@ class ASTConverter {
   private final boolean ignoreCasts;
 
   private Scope scope;
-  private LinkedList<IASTNode> preSideAssignments = new LinkedList<IASTNode>();
-  private LinkedList<IASTNode> postSideAssignments = new LinkedList<IASTNode>();
+  private LinkedList<IASTNode> sideAssignments = new LinkedList<IASTNode>();
   private org.eclipse.cdt.core.dom.ast.IASTConditionalExpression conditionalExpression = null;
   private IASTIdExpression conditionalTemporaryVariable = null;
 
@@ -123,20 +122,12 @@ class ASTConverter {
     }
   }
 
-  public int numberOfPreSideAssignments(){
-    return preSideAssignments.size();
+  public int numberOfSideAssignments(){
+    return sideAssignments.size();
   }
 
-  public IASTNode getNextPreSideAssignment() {
-    return preSideAssignments.removeFirst();
-  }
-
-  public int numberOfPostSideAssignments(){
-    return postSideAssignments.size();
-  }
-
-  public IASTNode getNextPostSideAssignment() {
-    return postSideAssignments.removeFirst();
+  public IASTNode getNextSideAssignment() {
+    return sideAssignments.removeFirst();
   }
 
   public void resetConditionalExpression() {
@@ -197,7 +188,7 @@ class ASTConverter {
       return addSideassignmentsForExpressionsWithoutSideEffects(node, e);
 
     } else if (node instanceof IASTAssignment) {
-      preSideAssignments.add(node);
+      sideAssignments.add(node);
       return ((IASTAssignment) node).getLeftHandSide();
 
     } else {
@@ -207,9 +198,9 @@ class ASTConverter {
 
   private IASTExpression addSideassignmentsForExpressionsWithoutSideEffects(IASTNode node,
                                                                             org.eclipse.cdt.core.dom.ast.IASTExpression e){
-    IASTIdExpression tmp = createTemporaryVariable(e, null);
+    IASTIdExpression tmp = createTemporaryVariable(e);
 
-    preSideAssignments.add(new IASTFunctionCallAssignmentStatement(convert(e.getFileLocation()),
+    sideAssignments.add(new IASTFunctionCallAssignmentStatement(convert(e.getFileLocation()),
                                                               tmp,
                                                               (IASTFunctionCallExpression) node));
     return tmp;
@@ -257,7 +248,7 @@ class ASTConverter {
   }
 
   private IASTNode convert(IASTConditionalExpression e) {
-    IASTIdExpression tmp = createTemporaryVariable(e, null);
+    IASTIdExpression tmp = createTemporaryVariable(e);
     conditionalTemporaryVariable = tmp;
     conditionalExpression = e;
     return tmp;
@@ -270,17 +261,13 @@ class ASTConverter {
   /**
    * creates temporary variables with increasing numbers
    */
-  private IASTIdExpression createTemporaryVariable(org.eclipse.cdt.core.dom.ast.IASTExpression e, String name) {
-    boolean nameWasInUse = true;
-    if (name == null) {
-      nameWasInUse = false;
-      name = "__CPAchecker_TMP_";
-      int i = 0;
-      while (scope.variableNameInUse(name + i, name + i)) {
-        i++;
-      }
-      name += i;
+  private IASTIdExpression createTemporaryVariable(org.eclipse.cdt.core.dom.ast.IASTExpression e) {
+    String name = "__CPAchecker_TMP_";
+    int i = 0;
+    while(scope.variableNameInUse(name+i, name+i)){
+      i++;
     }
+    name += i;
 
     IASTVariableDeclaration decl = new IASTVariableDeclaration(convert(e.getFileLocation()),
                                                false,
@@ -290,10 +277,8 @@ class ASTConverter {
                                                name,
                                                null);
 
-    if(!nameWasInUse) {
     scope.registerDeclaration(decl);
-    preSideAssignments.add(decl);
-    }
+    sideAssignments.add(decl);
     IASTIdExpression tmp = new IASTIdExpression(convert(e.getFileLocation()),
                                                 convert(e.getExpressionType()),
                                                 name,
@@ -326,7 +311,7 @@ class ASTConverter {
           return new IASTFunctionCallAssignmentStatement(fileLoc, leftHandSide, (IASTFunctionCallExpression)rightHandSide);
 
         } else if(rightHandSide instanceof IASTAssignment) {
-          preSideAssignments.add(rightHandSide);
+          sideAssignments.add(rightHandSide);
           return new IASTExpressionAssignmentStatement(fileLoc, leftHandSide, ((IASTAssignment) rightHandSide).getLeftHandSide());
         } else {
           throw new CFAGenerationRuntimeException("Expression is not free of side-effects", e);
@@ -740,12 +725,12 @@ class ASTConverter {
                                                                  IASTFileLocation fileLoc,
                                                                  IType type,
                                                                  BinaryOperator op) {
-    IASTIdExpression tmp = createTemporaryVariable(e, null);
-    preSideAssignments.add(new IASTExpressionAssignmentStatement(fileLoc, tmp, exp));
+    IASTIdExpression tmp = createTemporaryVariable(e);
+    sideAssignments.add(new IASTExpressionAssignmentStatement(fileLoc, tmp, exp));
 
     IASTExpression one = new IASTIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
     IASTBinaryExpression postExp = new IASTBinaryExpression(fileLoc, type, exp, one, op);
-    preSideAssignments.add(new IASTExpressionAssignmentStatement(fileLoc, exp, postExp));
+    sideAssignments.add(new IASTExpressionAssignmentStatement(fileLoc, exp, postExp));
     return tmp;
   }
 
@@ -897,7 +882,6 @@ class ASTConverter {
       type = declarator.getFirst();
       IASTInitializer initializer = declarator.getSecond();
       String name = declarator.getThird();
-
 
       if (name == null) {
         throw new CFAGenerationRuntimeException("Declaration without name", d);
@@ -1353,7 +1337,7 @@ class ASTConverter {
   private IASTInitializerExpression convert(org.eclipse.cdt.core.dom.ast.IASTInitializerExpression i) {
     IASTNode initializer = convertExpressionWithSideEffects(i.getExpression());
     if(initializer != null && initializer instanceof IASTAssignment){
-      preSideAssignments.add(initializer);
+      sideAssignments.add(initializer);
       return new IASTInitializerExpression(convert(i.getFileLocation()), ((IASTAssignment)initializer).getLeftHandSide());
     }
 
@@ -1383,27 +1367,16 @@ class ASTConverter {
       IASTNode initializer = convertExpressionWithSideEffects(e);
 
       if(initializer != null && initializer instanceof IASTAssignment){
-        preSideAssignments.add(initializer);
+        sideAssignments.add(initializer);
         return new IASTInitializerExpression(convert(e.getFileLocation()), ((IASTAssignment)initializer).getLeftHandSide());
       } else if (initializer != null && initializer instanceof IASTFunctionCallExpression) {
-
-        String tmpname = convert(((org.eclipse.cdt.core.dom.ast.IASTDeclarator)i.getParent()).getName());
-        postSideAssignments.add(new IASTFunctionCallAssignmentStatement(convert(i.getFileLocation()),
-                                                                        createTemporaryVariable(e, tmpname),
-                                                                        (IASTFunctionCallExpression) initializer));
-
-        return null;
-      } else if (initializer != null && initializer instanceof IASTExpression) {
-        String tmpname = convert(((org.eclipse.cdt.core.dom.ast.IASTDeclarator)i.getParent()).getName());
-        postSideAssignments.add(new IASTExpressionAssignmentStatement(convert(i.getFileLocation()),
-                                                                        createTemporaryVariable(e, tmpname),
-                                                                        (IASTExpression) initializer));
-        return null;
+        IASTExpression exp = addSideassignmentsForExpressionsWithoutSideEffects(initializer, e);
+        return new IASTInitializerExpression(convert(e.getFileLocation()), exp);
       }
-// not needed anymore
-//      if (initializer != null && !(initializer instanceof IASTExpression)) {
-//        throw new CFAGenerationRuntimeException("Initializer is not free of side-effects", e);
-//      }
+
+      if (initializer != null && !(initializer instanceof IASTExpression)) {
+        throw new CFAGenerationRuntimeException("Initializer is not free of side-effects", e);
+      }
 
       return new IASTInitializerExpression(convert(ic.getFileLocation()), (IASTExpression)initializer);
 
