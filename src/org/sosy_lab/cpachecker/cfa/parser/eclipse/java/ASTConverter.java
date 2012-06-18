@@ -45,7 +45,9 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.NullLiteral;
 import org.eclipse.jdt.core.dom.NumberLiteral;
 import org.eclipse.jdt.core.dom.ParenthesizedExpression;
+import org.eclipse.jdt.core.dom.PostfixExpression;
 import org.eclipse.jdt.core.dom.PrefixExpression;
+import org.eclipse.jdt.core.dom.PrefixExpression.Operator;
 import org.eclipse.jdt.core.dom.PrimitiveType;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
@@ -411,38 +413,10 @@ public class ASTConverter {
     }
   }
 
-  private IASTExpression convert(Expression e) {
+  //TODO Refactor to reduce Visibility
+  public IASTNode convertExpressionWithSideEffects(Expression e) {
 
-
-    switch (e.getNodeType()) {
-    case ASTNode.INFIX_EXPRESSION:
-      return convert((InfixExpression) e);
-    case ASTNode.NUMBER_LITERAL:
-      return convert((NumberLiteral) e);
-    case ASTNode.CHARACTER_LITERAL:
-      return convert((CharacterLiteral) e);
-    case ASTNode.STRING_LITERAL:
-      return convert((StringLiteral) e);
-    case ASTNode.NULL_LITERAL:
-      return convert((NullLiteral) e);
-    case ASTNode.PREFIX_EXPRESSION:
-      return convert((PrefixExpression) e);
-    case ASTNode.BOOLEAN_LITERAL:
-      return convert((BooleanLiteral) e);
-    case ASTNode.SIMPLE_NAME:
-      return convert((SimpleName) e);
-    case ASTNode.PARENTHESIZED_EXPRESSION:
-      return convertExpressionWithoutSideEffects(((ParenthesizedExpression) e).getExpression());
-    }
-
-    logger.log(Level.SEVERE, "Expression of typ "+ e.getNodeType() + " not implemented");
-
-    return null;
-  }
-
-  private IASTNode convertExpressionWithSideEffects(Expression e) {
-
-    //TODO Expression Implementation
+    //TODO  All Expression Implementation
 
     if (e == null) {
       return null;
@@ -451,8 +425,31 @@ public class ASTConverter {
     switch(e.getNodeType()){
      case ASTNode.ASSIGNMENT:
        return convert((Assignment)e);
-     default: return convert(e);
+       case ASTNode.INFIX_EXPRESSION:
+         return convert((InfixExpression) e);
+       case ASTNode.NUMBER_LITERAL:
+         return convert((NumberLiteral) e);
+       case ASTNode.CHARACTER_LITERAL:
+         return convert((CharacterLiteral) e);
+       case ASTNode.STRING_LITERAL:
+         return convert((StringLiteral) e);
+       case ASTNode.NULL_LITERAL:
+         return convert((NullLiteral) e);
+       case ASTNode.PREFIX_EXPRESSION:
+         return convert((PrefixExpression) e);
+       case ASTNode.POSTFIX_EXPRESSION:
+         return convert((PostfixExpression) e);
+       case ASTNode.BOOLEAN_LITERAL:
+         return convert((BooleanLiteral) e);
+       case ASTNode.SIMPLE_NAME:
+         return convert((SimpleName) e);
+       case ASTNode.PARENTHESIZED_EXPRESSION:
+         return convertExpressionWithoutSideEffects(((ParenthesizedExpression) e).getExpression());
     }
+
+       logger.log(Level.SEVERE, "Expression of typ "+ e.getNodeType() + " not implemented");
+
+       return null;
   }
 
 
@@ -547,9 +544,6 @@ public class ASTConverter {
 
   }
 
-
-
-
   private IASTExpression convert(BooleanLiteral e) {
     //TODO When new Naming and structure is ready, change this way of expressing true or false in 1 or 0.
     long bool;
@@ -562,17 +556,83 @@ public class ASTConverter {
   }
 
 
-  private IASTExpression convert(PrefixExpression e) {
+  private IASTNode convert(PrefixExpression e) {
 
-    //TODO Implement Decrement and Increment
+    PrefixExpression.Operator op = e.getOperator();
+
+    if (op.equals(PrefixExpression.Operator.INCREMENT)
+        || op.equals(PrefixExpression.Operator.DECREMENT)) {
+     return handlePreFixIncOrDec(e, op);
+    }
 
     IASTExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
     IASTFileLocation fileLoc = getFileLocation(e);
     IType type = convert(e.resolveTypeBinding());
 
-   return new IASTUnaryExpression(fileLoc, type, operand, convertUnaryOperator(e.getOperator()));
-
+    return new IASTUnaryExpression(fileLoc, type, operand, convertUnaryOperator(op));
   }
+
+  private IASTNode convert(PostfixExpression e) {
+    PostfixExpression.Operator op = e.getOperator();
+    return  handlePostFixIncOrDec(e, op);
+  }
+
+
+  private IASTNode handlePostFixIncOrDec(PostfixExpression e, PostfixExpression.Operator op) {
+
+    BinaryOperator postOp = null;
+    if (op.equals(PostfixExpression.Operator.INCREMENT)) {
+
+      postOp = BinaryOperator.PLUS;
+    } else if (op.equals(PostfixExpression.Operator.DECREMENT)) {
+      postOp = BinaryOperator.MINUS;
+    }
+    assert postOp != null : "Increment/Decrement Severe Error.";
+
+    if (e.getParent() instanceof Expression) {
+      new CFAGenerationRuntimeException("Side assignments with Increment/Decrement not yet implemented");
+      return null;
+    } else {
+
+      IASTFileLocation fileLoc = getFileLocation(e);
+      IType type = convert(e.resolveTypeBinding());
+      IASTExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+
+      IASTExpression preOne = new IASTIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
+      IASTBinaryExpression preExp = new IASTBinaryExpression(fileLoc, type, operand, preOne, postOp);
+      return new IASTExpressionAssignmentStatement(fileLoc, operand, preExp);
+    }
+  }
+
+  private IASTNode handlePreFixIncOrDec(PrefixExpression e, Operator op) {
+
+    BinaryOperator preOp = null;
+    if (op.equals(PrefixExpression.Operator.INCREMENT)) {
+
+      preOp = BinaryOperator.PLUS;
+    } else if (op.equals(PrefixExpression.Operator.DECREMENT)) {
+      preOp = BinaryOperator.MINUS;
+    }
+    assert preOp != null : "Increment/Decrement Severe Error.";
+
+
+    if (e.getParent() instanceof Expression) {
+      new CFAGenerationRuntimeException("Side assignments with Increment/Decrement not yet implemented");
+      return null;
+    } else {
+
+      IASTFileLocation fileLoc = getFileLocation(e);
+      IType type = convert(e.resolveTypeBinding());
+      IASTExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+
+      IASTExpression preOne = new IASTIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
+      IASTBinaryExpression preExp = new IASTBinaryExpression(fileLoc, type, operand, preOne, preOp);
+      return new IASTExpressionAssignmentStatement(fileLoc, operand, preExp);
+    }
+  }
+
+
+
 
 private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
 
