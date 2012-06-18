@@ -706,7 +706,8 @@ class ASTConverter {
       default: throw new AssertionError();
       }
 
-      if (e.getParent() instanceof org.eclipse.cdt.core.dom.ast.IASTExpression) {
+      if (e.getParent() instanceof org.eclipse.cdt.core.dom.ast.IASTExpression
+          && !(e.getParent() instanceof org.eclipse.cdt.core.dom.ast.IASTExpressionList)) {
         return addSideAssignmentsForUnaryExpressions(e, operand, fileLoc, type, postOp);
       } else {
         IASTExpression postOne = new IASTIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);

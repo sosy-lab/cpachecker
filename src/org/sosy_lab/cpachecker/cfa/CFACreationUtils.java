@@ -61,8 +61,6 @@ public class CFACreationUtils {
     // no check control flow merging at successor, we might have many incoming edges
 
     // check if predecessor is reachable
-    // or if the predecessor is a loopStart of a forLoop
-    // and the edge is the "counter++"-edge
     if (isReachableNode(predecessor)) {
 
       // all checks passed, add it to the CFA
