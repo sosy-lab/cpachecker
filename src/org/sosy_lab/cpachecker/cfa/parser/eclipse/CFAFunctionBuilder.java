@@ -50,6 +50,7 @@ import org.eclipse.cdt.core.dom.ast.IASTDeclarationStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDefaultStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDoStatement;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTExpressionList;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTForStatement;
@@ -827,10 +828,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     cfaNodes.add(loopEnd);
     loopStartStack.push(loopEnd);
 
-    // this edge connects loopEnd with loopStart and contains the statement "counter++;"
-    createLastEdgeForForLoop(forStatement.getIterationExpression(),
-        filelocStart, loopEnd, loopStart);
-
     // firstLoopNode is Node after "counter < 5"
     final CFANode firstLoopNode = new CFANode(
         filelocStart, cfa.getFunctionName());
@@ -865,6 +862,10 @@ class CFAFunctionBuilder extends ASTVisitor {
           lastNodeInLoop, loopEnd, "");
       addToCFA(blankEdge);
     }
+
+    // this edge connects loopEnd with loopStart and contains the statement "counter++;"
+    createLastEdgeForForLoop(forStatement.getIterationExpression(),
+                             filelocStart, loopEnd, loopStart);
 
     // skip visiting children of loop, because loopbody was handled before
     return PROCESS_SKIP;
@@ -944,14 +945,41 @@ class CFAFunctionBuilder extends ASTVisitor {
     return prevNode;
   }
 
+
   /**
    * This function creates the last edge in a loop (= iteration-edge).
    * The edge contains the statement "counter++" or something similar
    * and is inserted between the loopEnd-Node and the loopStart-Node.
    */
   private void createLastEdgeForForLoop(final IASTExpression exp, final int filelocStart,
-      final CFANode loopEnd, final CFANode loopStart) {
+      CFANode loopEnd, CFANode loopStart) {
+    if(exp instanceof IASTExpressionList) {
+      IASTExpression[] expList = ((IASTExpressionList) exp).getExpressions();
+      CFANode nextNode = null;
+      for (int i = 0; i < expList.length - 1; i++) {
+        nextNode = new CFANode(filelocStart, cfa.getFunctionName());
+        cfaNodes.add(nextNode);
+
+        createForLoopEndStartEdges(expList[i], filelocStart, loopEnd, nextNode);
+        loopEnd = nextNode;
+      }
+      createForLoopEndStartEdges(expList[expList.length - 1], filelocStart, loopEnd, loopStart);
+    } else {
+    createForLoopEndStartEdges(exp, filelocStart, loopEnd, loopStart);
+    }
+  }
+
+  private void createForLoopEndStartEdges(final IASTExpression exp, final int filelocStart, CFANode loopEnd,
+      final CFANode loopStart) throws AssertionError {
     final IASTNode node = astCreator.convertExpressionWithSideEffects(exp);
+
+    CFANode nextNode;
+    if (astCreator.numberOfSideAssignments() > 0) {
+      nextNode = new CFANode(filelocStart, cfa.getFunctionName());
+      cfaNodes.add(nextNode);
+      handleSideassignments(loopEnd, exp.getRawSignature(), filelocStart, nextNode);
+      loopEnd = nextNode;
+    }
 
     if (exp == null) {
       // ignore, only add blankEdge

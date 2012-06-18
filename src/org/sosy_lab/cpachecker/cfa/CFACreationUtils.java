@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 /**
  * Helper class that contains some complex operations that may be useful during
@@ -64,8 +63,7 @@ public class CFACreationUtils {
     // check if predecessor is reachable
     // or if the predecessor is a loopStart of a forLoop
     // and the edge is the "counter++"-edge
-    if (isReachableNode(predecessor) ||
-        (edge instanceof StatementEdge && edge.getSuccessor().isLoopStart())) {
+    if (isReachableNode(predecessor)) {
 
       // all checks passed, add it to the CFA
       edge.getPredecessor().addLeavingEdge(edge);
