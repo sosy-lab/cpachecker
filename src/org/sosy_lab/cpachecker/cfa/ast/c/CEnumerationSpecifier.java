@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.base.Preconditions.*;
+import static com.google.common.collect.Iterables.transform;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CAstNode.TO_AST_STRING;
 
 import java.util.List;
 
@@ -69,7 +71,7 @@ public final class CEnumerationSpecifier extends CType {
     lASTString.append(name);
 
     lASTString.append(" {\n  ");
-    lASTString.append(Joiner.on(",\n  ").join(new CAstStringIterable(enumerators)));
+    lASTString.append(Joiner.on(",\n  ").join(transform(enumerators, TO_AST_STRING)));
     lASTString.append("\n} ");
     lASTString.append(pDeclarator);
 

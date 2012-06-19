@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import static com.google.common.collect.Iterables.transform;
+
 import java.util.List;
 
 import com.google.common.base.Joiner;
@@ -47,7 +49,7 @@ public class CInitializerList extends CInitializer {
     StringBuilder lASTString = new StringBuilder();
 
     lASTString.append("{ ");
-    Joiner.on(", ").appendTo(lASTString, new CAstStringIterable(initializerList));
+    Joiner.on(", ").appendTo(lASTString, transform(initializerList, TO_AST_STRING));
     lASTString.append(" }");
 
     return lASTString.toString();

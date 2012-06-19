@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import static com.google.common.collect.Iterables.transform;
+
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -79,7 +81,7 @@ public class CFunctionCallExpression extends CRightHandSide {
 
     lASTString.append(functionName.toParenthesizedASTString());
     lASTString.append("(");
-    Joiner.on(", ").appendTo(lASTString, new CAstStringIterable(parameters));
+    Joiner.on(", ").appendTo(lASTString, transform(parameters, TO_AST_STRING));
     lASTString.append(")");
 
     return lASTString.toString();

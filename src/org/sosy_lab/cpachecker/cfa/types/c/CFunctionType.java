@@ -24,10 +24,11 @@
 package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterables.transform;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CAstNode.TO_AST_STRING;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstStringIterable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 
 import com.google.common.base.Joiner;
@@ -97,7 +98,7 @@ public class CFunctionType extends CType {
     }
 
     lASTString.append("(");
-    Joiner.on(", ").appendTo(lASTString, new CAstStringIterable(parameters));
+    Joiner.on(", ").appendTo(lASTString, transform(parameters, TO_AST_STRING));
     if (takesVarArgs) {
       if (!parameters.isEmpty()) {
         lASTString.append(", ");
