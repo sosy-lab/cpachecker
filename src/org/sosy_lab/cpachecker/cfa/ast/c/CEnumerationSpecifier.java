@@ -71,7 +71,7 @@ public final class CEnumerationSpecifier extends CType {
     lASTString.append(name);
 
     lASTString.append(" {\n  ");
-    lASTString.append(Joiner.on(",\n  ").join(transform(enumerators, TO_AST_STRING)));
+    Joiner.on(",\n  ").appendTo(lASTString, transform(enumerators, TO_AST_STRING));
     lASTString.append("\n} ");
     lASTString.append(pDeclarator);
 
