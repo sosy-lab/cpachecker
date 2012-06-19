@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.exceptions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
 import com.google.common.base.CharMatcher;
@@ -39,11 +39,11 @@ public class UnrecognizedCCodeException extends CPATransferException {
 
   private static final long serialVersionUID = -8319167530363457020L;
 
-  protected UnrecognizedCCodeException(String msg1, String msg2, CFAEdge edge, IASTNode astNode) {
+  protected UnrecognizedCCodeException(String msg1, String msg2, CFAEdge edge, CAstNode astNode) {
     super(createMessage(msg1, msg2, edge, astNode));
   }
 
-  public UnrecognizedCCodeException(String msg2, CFAEdge edge, IASTNode astNode) {
+  public UnrecognizedCCodeException(String msg2, CFAEdge edge, CAstNode astNode) {
     super(createMessage(MESSAGE, msg2, edge, astNode));
   }
 
@@ -51,15 +51,15 @@ public class UnrecognizedCCodeException extends CPATransferException {
     super(createMessage(MESSAGE, msg2, edge, null));
   }
 
-  public UnrecognizedCCodeException(CFAEdge edge, IASTNode astNode) {
+  public UnrecognizedCCodeException(CFAEdge edge, CAstNode astNode) {
     super(createMessage(MESSAGE, null, edge, astNode));
   }
 
 
-  protected static String createMessage(String msg1, String msg2, CFAEdge edge, IASTNode astNode) {
+  protected static String createMessage(String msg1, String msg2, CFAEdge edge, CAstNode astNode) {
     checkNotNull(msg1);
     if (astNode == null) {
-      astNode = (IASTNode)edge.getRawAST().get();
+      astNode = (CAstNode)edge.getRawAST().get();
     }
 
     String code = astNode.toASTString();

@@ -38,41 +38,41 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.ForwardingExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression.TypeIdOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.StatementVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.ForwardingCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerationSpecifier.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
@@ -201,7 +201,7 @@ public class CtoFormulaConverter {
     this.logger = logger;
   }
 
-  private void warnUnsafeVar(IASTExpression exp) {
+  private void warnUnsafeVar(CExpression exp) {
     logDebug("Unhandled expression treated as free variable", exp);
   }
 
@@ -209,7 +209,7 @@ public class CtoFormulaConverter {
     log(Level.WARNING, "Program contains array, pointer, or field access; analysis is imprecise in case of aliasing.");
   }
 
-  private String getLogMessage(String msg, IASTNode astNode) {
+  private String getLogMessage(String msg, CAstNode astNode) {
     return "Line " + astNode.getFileLocation().getStartingLineNumber()
             + ": " + msg
             + ": " + astNode.toASTString();
@@ -221,7 +221,7 @@ public class CtoFormulaConverter {
             + ": " + edge.getDescription();
   }
 
-  private void logDebug(String msg, IASTNode astNode) {
+  private void logDebug(String msg, CAstNode astNode) {
     if (logger.wouldBeLogged(Level.ALL)) {
       logger.log(Level.ALL, getLogMessage(msg, astNode));
     }
@@ -242,11 +242,11 @@ public class CtoFormulaConverter {
   }
 
   /** Looks up the variable name in the current namespace. */
-  private String scopedIfNecessary(IASTIdExpression var, String function) {
-    IASTSimpleDeclaration decl = var.getDeclaration();
+  private String scopedIfNecessary(CIdExpression var, String function) {
+    CSimpleDeclaration decl = var.getDeclaration();
     boolean isGlobal = false;
-    if (decl instanceof IASTDeclaration) {
-      isGlobal = ((IASTDeclaration)decl).isGlobal();
+    if (decl instanceof CDeclaration) {
+      isGlobal = ((CDeclaration)decl).isGlobal();
     }
 
     if (isGlobal) {
@@ -262,7 +262,7 @@ public class CtoFormulaConverter {
     return function + "::" + var;
   }
 
-  private static String exprToVarName(IASTExpression e) {
+  private static String exprToVarName(CExpression e) {
     return e.toASTString().replaceAll("[ \n\t]", "");
   }
 
@@ -363,7 +363,7 @@ public class CtoFormulaConverter {
   }
 
   /** Returns the pointer variable belonging to a given IdExpression */
-  private Formula makePointerVariable(IASTIdExpression expr, String function,
+  private Formula makePointerVariable(CIdExpression expr, String function,
       SSAMapBuilder ssa) {
     String pVarName = makePointerVariableName(expr, function, ssa);
     return makeVariable(pVarName, ssa);
@@ -385,7 +385,7 @@ public class CtoFormulaConverter {
   }
 
   /** Returns the pointer variable name corresponding to a given IdExpression */
-  private String makePointerVariableName(IASTIdExpression expr,
+  private String makePointerVariableName(CIdExpression expr,
       String function, SSAMapBuilder ssa) {
 
     String scopedId = scopedIfNecessary(expr, function);
@@ -532,13 +532,13 @@ public class CtoFormulaConverter {
       DeclarationEdge edge, String function, SSAMapBuilder ssa,
       Constraints constraints) throws CPATransferException {
 
-    if (!(edge.getDeclaration() instanceof IASTVariableDeclaration)) {
+    if (!(edge.getDeclaration() instanceof CVariableDeclaration)) {
       // struct prototype, function declaration, typedef etc.
       logDebug("Ignoring declaration", edge);
       return fmgr.makeTrue();
     }
 
-    IASTVariableDeclaration decl = (IASTVariableDeclaration)edge.getDeclaration();
+    CVariableDeclaration decl = (CVariableDeclaration)edge.getDeclaration();
 
     String varNameWithoutFunction = decl.getName();
     String varName;
@@ -569,8 +569,8 @@ public class CtoFormulaConverter {
 
     // if there is an initializer associated to this variable,
     // take it into account
-    IASTInitializer initializer = decl.getInitializer();
-    IASTExpression init = null;
+    CInitializer initializer = decl.getInitializer();
+    CExpression init = null;
 
     if (initializer == null) {
       if (initAllVars) {
@@ -579,8 +579,8 @@ public class CtoFormulaConverter {
         init = CDefaults.forType(decl.getDeclSpecifier(), null);
       }
 
-    } else if (initializer instanceof IASTInitializerExpression) {
-      init = ((IASTInitializerExpression)initializer).getExpression();
+    } else if (initializer instanceof CInitializerExpression) {
+      init = ((CInitializerExpression)initializer).getExpression();
 
     } else {
       logDebug("Ignoring unsupported initializer", initializer);
@@ -612,27 +612,27 @@ public class CtoFormulaConverter {
   private Formula makeExitFunction(CallToReturnEdge ce, String function,
       SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
 
-    IASTFunctionCall retExp = ce.getExpression();
-    if (retExp instanceof IASTFunctionCallStatement) {
+    CFunctionCall retExp = ce.getExpression();
+    if (retExp instanceof CFunctionCallStatement) {
       // this should be a void return, just do nothing...
       return fmgr.makeTrue();
 
-    } else if (retExp instanceof IASTFunctionCallAssignmentStatement) {
-      IASTFunctionCallAssignmentStatement exp = (IASTFunctionCallAssignmentStatement)retExp;
+    } else if (retExp instanceof CFunctionCallAssignmentStatement) {
+      CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
 
       String retVarName = scoped(VAR_RETURN_NAME, function);
       Formula retVar = makeVariable(retVarName, ssa);
-      IASTExpression e = exp.getLeftHandSide();
+      CExpression e = exp.getLeftHandSide();
 
       function = ce.getSuccessor().getFunctionName();
       Formula outvarFormula = buildLvalueTerm(e, ce, function, ssa, constraints);
       Formula assignments = fmgr.makeAssignment(outvarFormula, retVar);
 
       if (handlePointerAliasing) {
-        IASTExpression left = removeCast(e);
-        if (left instanceof IASTIdExpression) {
+        CExpression left = removeCast(e);
+        if (left instanceof CIdExpression) {
           Formula ptrAssignment = buildDirectReturnSecondLevelAssignment(
-              (IASTIdExpression) left, retVarName, function, ssa);
+              (CIdExpression) left, retVarName, function, ssa);
           assignments = fmgr.makeAnd(assignments, ptrAssignment);
         }
       }
@@ -646,10 +646,10 @@ public class CtoFormulaConverter {
   private Formula makeFunctionCall(FunctionCallEdge edge,
       String callerFunction, SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
 
-    List<IASTExpression> actualParams = edge.getArguments();
+    List<CExpression> actualParams = edge.getArguments();
 
     FunctionDefinitionNode fn = edge.getSuccessor();
-    List<IASTParameterDeclaration> formalParams = fn.getFunctionParameters();
+    List<CParameterDeclaration> formalParams = fn.getFunctionParameters();
 
     String calledFunction = fn.getFunctionName();
 
@@ -671,7 +671,7 @@ public class CtoFormulaConverter {
 
     int i = 0;
     Formula result = fmgr.makeTrue();
-    for (IASTParameterDeclaration formalParam : formalParams) {
+    for (CParameterDeclaration formalParam : formalParams) {
       // get formal parameter name
       String formalParamName = formalParam.getName();
       assert (!formalParamName.isEmpty()) : edge;
@@ -693,7 +693,7 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  private Formula makeReturn(IASTExpression rightExp, ReturnStatementEdge edge, String function,
+  private Formula makeReturn(CExpression rightExp, ReturnStatementEdge edge, String function,
       SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
     if (rightExp == null) {
       // this is a return from a void function, do nothing
@@ -726,17 +726,17 @@ public class CtoFormulaConverter {
         assume, function, ssa, constraints);
   }
 
-  private Formula buildTerm(IASTExpression exp, CFAEdge edge, String function,
+  private Formula buildTerm(CExpression exp, CFAEdge edge, String function,
       SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
-    return toNumericFormula(exp.accept(getExpressionVisitor(edge, function, ssa, constraints)));
+    return toNumericFormula(exp.accept(getCExpressionVisitor(edge, function, ssa, constraints)));
   }
 
-  private Formula buildLvalueTerm(IASTExpression exp, CFAEdge edge, String function,
+  private Formula buildLvalueTerm(CExpression exp, CFAEdge edge, String function,
       SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
     return exp.accept(getLvalueVisitor(edge, function, ssa, constraints));
   }
 
-  private Formula buildDirectReturnSecondLevelAssignment(IASTIdExpression leftId,
+  private Formula buildDirectReturnSecondLevelAssignment(CIdExpression leftId,
       String retVarName, String function, SSAMapBuilder ssa) {
 
     // include aliases if the left or right side may be a pointer a pointer
@@ -756,17 +756,17 @@ public class CtoFormulaConverter {
   }
 
   private Formula buildDirectSecondLevelAssignment(CType lType,
-      String lVarName, IASTRightHandSide pRight, String function,
+      String lVarName, CRightHandSide pRight, String function,
       Constraints constraints, SSAMapBuilder ssa) {
 
-    IASTRightHandSide right = removeCast(pRight);
+    CRightHandSide right = removeCast(pRight);
     Formula lVar = makeVariable(lVarName, ssa);
 
     if (isVariable(right)) {
       // C statement like: s1 = s2;
 
       // include aliases if the left or right side may be a pointer a pointer
-      IASTIdExpression rIdExp = (IASTIdExpression) right;
+      CIdExpression rIdExp = (CIdExpression) right;
       if (maybePointer(lType, lVarName, ssa) || maybePointer(rIdExp, function, ssa)) {
         // we assume that either the left or the right hand side is a pointer
         // so we add the equality: *l = *r
@@ -788,14 +788,14 @@ public class CtoFormulaConverter {
       removeOldPointerVariablesFromSsaMap(lPVarName, ssa);
       Formula lPVar = makeVariable(lPVarName, ssa);
 
-      IASTExpression rExpr = removeCast(((IASTUnaryExpression) right).getOperand());
-      if (!(rExpr instanceof IASTIdExpression)) {
+      CExpression rExpr = removeCast(((CUnaryExpression) right).getOperand());
+      if (!(rExpr instanceof CIdExpression)) {
         // these are statements like s1 = *(s2.f)
         // TODO check whether doing nothing is correct
         return fmgr.makeTrue();
       }
 
-      IASTIdExpression rIdExpr = (IASTIdExpression)rExpr;
+      CIdExpression rIdExpr = (CIdExpression)rExpr;
       Formula rPVar = makePointerVariable(rIdExpr, function, ssa);
 
       // the dealiased address of the right hand side may be a pointer itself.
@@ -829,13 +829,13 @@ public class CtoFormulaConverter {
     } else if (isMemoryLocation(right)) {
       // s = &x
       // need to update the pointer on the left hand side
-      if (right instanceof IASTUnaryExpression
-          && ((IASTUnaryExpression) right).getOperator() == UnaryOperator.AMPER){
+      if (right instanceof CUnaryExpression
+          && ((CUnaryExpression) right).getOperator() == UnaryOperator.AMPER){
 
-        IASTExpression rOperand =
-            removeCast(((IASTUnaryExpression) right).getOperand());
-        if (rOperand instanceof IASTIdExpression) {
-          String rVarName = scopedIfNecessary((IASTIdExpression) rOperand, function);
+        CExpression rOperand =
+            removeCast(((CUnaryExpression) right).getOperand());
+        if (rOperand instanceof CIdExpression) {
+          String rVarName = scopedIfNecessary((CIdExpression) rOperand, function);
           Formula rVar = makeVariable(rVarName, ssa);
 
           String lPVarName = makePointerMask(lVarName, ssa);
@@ -862,10 +862,10 @@ public class CtoFormulaConverter {
     }
   }
 
-  private Formula makePredicate(IASTExpression exp, boolean isTrue, CFAEdge edge,
+  private Formula makePredicate(CExpression exp, boolean isTrue, CFAEdge edge,
       String function, SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
 
-    Formula result = toBooleanFormula(exp.accept(getExpressionVisitor(edge, function, ssa, constraints)));
+    Formula result = toBooleanFormula(exp.accept(getCExpressionVisitor(edge, function, ssa, constraints)));
 
     if (!isTrue) {
       result = fmgr.makeNot(result);
@@ -873,13 +873,13 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  public Formula makePredicate(IASTExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
+  public Formula makePredicate(CExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     Constraints constraints = new Constraints();
     Formula f = makePredicate(exp, true, edge, function, ssa, constraints);
     return fmgr.makeAnd(f, constraints.get());
   }
 
-  private ExpressionToFormulaVisitor getExpressionVisitor(CFAEdge pEdge, String pFunction,
+  private ExpressionToFormulaVisitor getCExpressionVisitor(CFAEdge pEdge, String pFunction,
       SSAMapBuilder pSsa, Constraints pCo) {
     if (lvalsAsUif) {
       return new ExpressionToFormulaVisitorUIF(pEdge, pFunction, pSsa, pCo);
@@ -916,13 +916,13 @@ public class CtoFormulaConverter {
     return f;
   }
 
-  private static boolean isVariable(IASTNode exp) {
-    return exp instanceof IASTIdExpression;
+  private static boolean isVariable(CAstNode exp) {
+    return exp instanceof CIdExpression;
   }
 
-  private static boolean isPointerDereferencing(IASTNode exp) {
-    return (exp instanceof IASTUnaryExpression
-        && ((IASTUnaryExpression) exp).getOperator() == UnaryOperator.STAR);
+  private static boolean isPointerDereferencing(CAstNode exp) {
+    return (exp instanceof CUnaryExpression
+        && ((CUnaryExpression) exp).getOperator() == UnaryOperator.STAR);
   }
 
   private static boolean isStaticallyDeclaredPointer(CType expr) {
@@ -936,23 +936,23 @@ public class CtoFormulaConverter {
     return POINTER_VARIABLE_PATTERN.matcher(variableName).matches();
   }
 
-  private boolean isMemoryLocation(IASTNode exp) {
+  private boolean isMemoryLocation(CAstNode exp) {
 
     // memory allocating function?
-    if (exp instanceof IASTFunctionCall) {
-      IASTExpression fn =
-          ((IASTFunctionCall) exp).getFunctionCallExpression().getFunctionNameExpression();
+    if (exp instanceof CFunctionCall) {
+      CExpression fn =
+          ((CFunctionCall) exp).getFunctionCallExpression().getFunctionNameExpression();
 
-      if (fn instanceof IASTIdExpression) {
-        String functionName = ((IASTIdExpression) fn).getName();
+      if (fn instanceof CIdExpression) {
+        String functionName = ((CIdExpression) fn).getName();
         if (memoryAllocationFunctions.contains(functionName)) {
           return true;
         }
       }
 
     // explicit heap/stack address?
-    } else if (exp instanceof IASTUnaryExpression
-        && ((IASTUnaryExpression) exp).getOperator() == UnaryOperator.AMPER) {
+    } else if (exp instanceof CUnaryExpression
+        && ((CUnaryExpression) exp).getOperator() == UnaryOperator.AMPER) {
       return true;
     }
 
@@ -960,10 +960,10 @@ public class CtoFormulaConverter {
   }
 
   /** Returns if a given expression may be a pointer. */
-  private boolean maybePointer(IASTExpression pExp, String function, SSAMapBuilder ssa) {
-    IASTExpression exp = removeCast(pExp);
-    if (exp instanceof IASTIdExpression) {
-      IASTIdExpression idExp = (IASTIdExpression) exp;
+  private boolean maybePointer(CExpression pExp, String function, SSAMapBuilder ssa) {
+    CExpression exp = removeCast(pExp);
+    if (exp instanceof CIdExpression) {
+      CIdExpression idExp = (CIdExpression) exp;
       CType type = exp.getExpressionType();
       return maybePointer(type, scopedIfNecessary(idExp, function), ssa);
     }
@@ -1042,16 +1042,16 @@ public class CtoFormulaConverter {
     }
   }
 
-  private static IASTExpression removeCast(IASTExpression exp) {
-    if (exp instanceof IASTCastExpression) {
-      return removeCast(((IASTCastExpression) exp).getOperand());
+  private static CExpression removeCast(CExpression exp) {
+    if (exp instanceof CCastExpression) {
+      return removeCast(((CCastExpression) exp).getOperand());
     }
     return exp;
   }
 
-  private static IASTRightHandSide removeCast(IASTRightHandSide exp) {
-    if (exp instanceof IASTCastExpression) {
-      return removeCast(((IASTCastExpression) exp).getOperand());
+  private static CRightHandSide removeCast(CRightHandSide exp) {
+    if (exp instanceof CCastExpression) {
+      return removeCast(((CCastExpression) exp).getOperand());
     }
     return exp;
   }
@@ -1073,7 +1073,7 @@ public class CtoFormulaConverter {
     }
   }
 
-  private class ExpressionToFormulaVisitor extends DefaultExpressionVisitor<Formula, UnrecognizedCCodeException> {
+  private class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
     protected final CFAEdge       edge;
     protected final String        function;
@@ -1088,17 +1088,17 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    protected Formula visitDefault(IASTExpression exp)
+    protected Formula visitDefault(CExpression exp)
         throws UnrecognizedCCodeException {
       warnUnsafeVar(exp);
       return makeVariable(scoped(exprToVarName(exp), function), ssa);
     }
 
     @Override
-    public Formula visit(IASTBinaryExpression exp) throws UnrecognizedCCodeException {
+    public Formula visit(CBinaryExpression exp) throws UnrecognizedCCodeException {
       BinaryOperator op = exp.getOperator();
-      IASTExpression e1 = exp.getOperand1();
-      IASTExpression e2 = exp.getOperand2();
+      CExpression e1 = exp.getOperand1();
+      CExpression e2 = exp.getOperand2();
 
       switch (op) {
       case LOGICAL_AND:
@@ -1165,17 +1165,17 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTCastExpression cexp) throws UnrecognizedCCodeException {
+    public Formula visit(CCastExpression cexp) throws UnrecognizedCCodeException {
       // we completely ignore type casts
       logDebug("IGNORING TYPE CAST:", cexp);
       return cexp.getOperand().accept(this);
     }
 
     @Override
-    public Formula visit(IASTIdExpression idExp) {
+    public Formula visit(CIdExpression idExp) {
 
-      if (idExp.getDeclaration() instanceof IASTEnumerator) {
-        IASTEnumerator enumerator = (IASTEnumerator)idExp.getDeclaration();
+      if (idExp.getDeclaration() instanceof CEnumerator) {
+        CEnumerator enumerator = (CEnumerator)idExp.getDeclaration();
         if (enumerator.hasValue()) {
           return fmgr.makeNumber(Long.toString(enumerator.getValue()));
         } else {
@@ -1188,11 +1188,11 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTFieldReference fExp) throws UnrecognizedCCodeException {
-      IASTExpression fieldRef = fExp.getFieldOwner();
-      if (fieldRef instanceof IASTIdExpression) {
-        IASTSimpleDeclaration decl = ((IASTIdExpression) fieldRef).getDeclaration();
-        if (decl instanceof IASTDeclaration && ((IASTDeclaration)decl).isGlobal()) {
+    public Formula visit(CFieldReference fExp) throws UnrecognizedCCodeException {
+      CExpression fieldRef = fExp.getFieldOwner();
+      if (fieldRef instanceof CIdExpression) {
+        CSimpleDeclaration decl = ((CIdExpression) fieldRef).getDeclaration();
+        if (decl instanceof CDeclaration && ((CDeclaration)decl).isGlobal()) {
           // this is the reference to a global field variable
 
           // we can omit the warning (no pointers involved),
@@ -1206,23 +1206,23 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTCharLiteralExpression cExp) throws UnrecognizedCCodeException {
+    public Formula visit(CCharLiteralExpression cExp) throws UnrecognizedCCodeException {
       // we just take the byte value
       return fmgr.makeNumber(cExp.getCharacter());
     }
 
     @Override
-    public Formula visit(IASTIntegerLiteralExpression iExp) throws UnrecognizedCCodeException {
+    public Formula visit(CIntegerLiteralExpression iExp) throws UnrecognizedCCodeException {
       return fmgr.makeNumber(iExp.getValue().toString());
     }
 
     @Override
-    public Formula visit(IASTFloatLiteralExpression fExp) throws UnrecognizedCCodeException {
+    public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCCodeException {
       return fmgr.makeNumber(fExp.getValue().toString());
     }
 
     @Override
-    public Formula visit(IASTStringLiteralExpression lexp) throws UnrecognizedCCodeException {
+    public Formula visit(CStringLiteralExpression lexp) throws UnrecognizedCCodeException {
       // we create a string constant representing the given
       // string literal
       String literal = lexp.getValue();
@@ -1239,8 +1239,8 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTUnaryExpression exp) throws UnrecognizedCCodeException {
-      IASTExpression operand = exp.getOperand();
+    public Formula visit(CUnaryExpression exp) throws UnrecognizedCCodeException {
+      CExpression operand = exp.getOperand();
       UnaryOperator op = exp.getOperator();
 
       switch (op) {
@@ -1264,9 +1264,9 @@ public class CtoFormulaConverter {
         return visitDefault(exp);
 
       case SIZEOF:
-        if (exp.getOperand() instanceof IASTIdExpression) {
+        if (exp.getOperand() instanceof CIdExpression) {
           CType lCType =
-              ((IASTIdExpression) exp.getOperand()).getExpressionType();
+              ((CIdExpression) exp.getOperand()).getExpressionType();
           return handleSizeof(exp, lCType);
         } else {
           return visitDefault(exp);
@@ -1278,7 +1278,7 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTTypeIdExpression tIdExp)
+    public Formula visit(CTypeIdExpression tIdExp)
         throws UnrecognizedCCodeException {
 
       if (tIdExp.getOperator() == TypeIdOperator.SIZEOF) {
@@ -1289,7 +1289,7 @@ public class CtoFormulaConverter {
       }
     }
 
-    private Formula handleSizeof(IASTExpression pExp, CType pCType)
+    private Formula handleSizeof(CExpression pExp, CType pCType)
         throws UnrecognizedCCodeException {
 
       if (pCType instanceof CSimpleType) {
@@ -1319,9 +1319,9 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTArraySubscriptExpression aexp) throws UnrecognizedCCodeException {
-      IASTExpression arrexp = aexp.getArrayExpression();
-      IASTExpression subexp = aexp.getSubscriptExpression();
+    public Formula visit(CArraySubscriptExpression aexp) throws UnrecognizedCCodeException {
+      CExpression arrexp = aexp.getArrayExpression();
+      CExpression subexp = aexp.getSubscriptExpression();
       Formula aterm = toNumericFormula(arrexp.accept(this));
       Formula sterm = toNumericFormula(subexp.accept(this));
 
@@ -1330,9 +1330,9 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTFieldReference fexp) throws UnrecognizedCCodeException {
+    public Formula visit(CFieldReference fexp) throws UnrecognizedCCodeException {
       String field = fexp.getFieldName();
-      IASTExpression owner = fexp.getFieldOwner();
+      CExpression owner = fexp.getFieldOwner();
       Formula term = toNumericFormula(owner.accept(this));
 
       String tpname = getTypeName(owner.getExpressionType());
@@ -1345,7 +1345,7 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTUnaryExpression exp) throws UnrecognizedCCodeException {
+    public Formula visit(CUnaryExpression exp) throws UnrecognizedCCodeException {
       UnaryOperator op = exp.getOperator();
       switch (op) {
       case AMPER:
@@ -1381,9 +1381,9 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTUnaryExpression exp)
+    public Formula visit(CUnaryExpression exp)
         throws UnrecognizedCCodeException {
-      IASTExpression opExp = removeCast(exp.getOperand());
+      CExpression opExp = removeCast(exp.getOperand());
       UnaryOperator op = exp.getOperator();
 
       switch (op) {
@@ -1391,8 +1391,8 @@ public class CtoFormulaConverter {
         return makeAddressVariable(exp, function);
 
       case STAR:
-        if (opExp instanceof IASTIdExpression) {
-          return makePointerVariable((IASTIdExpression) opExp, function, ssa);
+        if (opExp instanceof CIdExpression) {
+          return makePointerVariable((CIdExpression) opExp, function, ssa);
         }
         // fall-through
 
@@ -1401,17 +1401,17 @@ public class CtoFormulaConverter {
       }
     }
 
-    private Formula makeAddressVariable(IASTUnaryExpression exp, String function)
+    private Formula makeAddressVariable(CUnaryExpression exp, String function)
         throws UnrecognizedCCodeException {
 
-        IASTExpression operand = removeCast(exp.getOperand());
+        CExpression operand = removeCast(exp.getOperand());
         UnaryOperator op = exp.getOperator();
 
-        if (op != UnaryOperator.AMPER || !(operand instanceof IASTIdExpression)) {
+        if (op != UnaryOperator.AMPER || !(operand instanceof CIdExpression)) {
           return super.visitDefault(exp);
         }
 
-        return makeMemoryLocationVariable((IASTIdExpression) operand, function);
+        return makeMemoryLocationVariable((CIdExpression) operand, function);
     }
 
     /**
@@ -1420,7 +1420,7 @@ public class CtoFormulaConverter {
      *
      * @param function The scope of the variable.
      */
-    private Formula makeMemoryLocationVariable(IASTIdExpression exp, String function) {
+    private Formula makeMemoryLocationVariable(CIdExpression exp, String function) {
       String addressVariable = makeMemoryLocationVariableName(scopedIfNecessary(exp, function));
 
       // a variable address is always initialized, not 0 and cannot change
@@ -1446,8 +1446,8 @@ public class CtoFormulaConverter {
   }
 
   private class RightHandSideToFormulaVisitor extends
-      ForwardingExpressionVisitor<Formula, UnrecognizedCCodeException>
-      implements RightHandSideVisitor<Formula, UnrecognizedCCodeException> {
+      ForwardingCExpressionVisitor<Formula, UnrecognizedCCodeException>
+      implements CRightHandSideVisitor<Formula, UnrecognizedCCodeException> {
 
     protected final CFAEdge       edge;
     protected final String        function;
@@ -1455,7 +1455,7 @@ public class CtoFormulaConverter {
     protected final Constraints   constraints;
 
     public RightHandSideToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pCo, CFAEdge pEdge) {
-      super(getExpressionVisitor(pEdge, pFunction, pSsa, pCo));
+      super(getCExpressionVisitor(pEdge, pFunction, pSsa, pCo));
       edge = pEdge;
       function = pFunction;
       ssa = pSsa;
@@ -1463,13 +1463,13 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTFunctionCallExpression fexp) throws UnrecognizedCCodeException {
+    public Formula visit(CFunctionCallExpression fexp) throws UnrecognizedCCodeException {
 
-      IASTExpression fn = fexp.getFunctionNameExpression();
-      List<IASTExpression> pexps = fexp.getParameterExpressions();
+      CExpression fn = fexp.getFunctionNameExpression();
+      List<CExpression> pexps = fexp.getParameterExpressions();
       String func;
-      if (fn instanceof IASTIdExpression) {
-        func = ((IASTIdExpression)fn).getName();
+      if (fn instanceof CIdExpression) {
+        func = ((CIdExpression)fn).getName();
         if (nondetFunctions.contains(func)) {
           // function call like "random()"
           // ignore parameters and just create a fresh variable for it
@@ -1499,7 +1499,7 @@ public class CtoFormulaConverter {
         func += "{" + pexps.size() + "}"; // add #arguments to function name to cope with varargs functions
 
         List<Formula> args = new ArrayList<Formula>(pexps.size());
-        for (IASTExpression pexp : pexps) {
+        for (CExpression pexp : pexps) {
           args.add(toNumericFormula(pexp.accept(this)));
         }
 
@@ -1508,19 +1508,19 @@ public class CtoFormulaConverter {
     }
   }
 
-  private class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor implements StatementVisitor<Formula, UnrecognizedCCodeException> {
+  private class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor implements CStatementVisitor<Formula, UnrecognizedCCodeException> {
 
     public StatementToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pConstraints, CFAEdge edge) {
       super(pFunction, pSsa, pConstraints, edge);
     }
 
     @Override
-    public Formula visit(IASTExpressionStatement pIastExpressionStatement) {
+    public Formula visit(CExpressionStatement pIastExpressionStatement) {
       // side-effect free statement, ignore
       return fmgr.makeTrue();
     }
 
-    public Formula visit(IASTAssignment assignment) throws UnrecognizedCCodeException {
+    public Formula visit(CAssignment assignment) throws UnrecognizedCCodeException {
       Formula rightVariable = assignment.getRightHandSide().accept(this);
       Formula r = toNumericFormula(rightVariable);
       Formula l = buildLvalueTerm(assignment.getLeftHandSide(), edge, function, ssa, constraints);
@@ -1528,17 +1528,17 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTExpressionAssignmentStatement pIastExpressionAssignmentStatement) throws UnrecognizedCCodeException {
-      return visit((IASTAssignment)pIastExpressionAssignmentStatement);
+    public Formula visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) throws UnrecognizedCCodeException {
+      return visit((CAssignment)pIastExpressionAssignmentStatement);
     }
 
     @Override
-    public Formula visit(IASTFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) throws UnrecognizedCCodeException {
-      return visit((IASTAssignment)pIastFunctionCallAssignmentStatement);
+    public Formula visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) throws UnrecognizedCCodeException {
+      return visit((CAssignment)pIastFunctionCallAssignmentStatement);
     }
 
     @Override
-    public Formula visit(IASTFunctionCallStatement fexp) throws UnrecognizedCCodeException {
+    public Formula visit(CFunctionCallStatement fexp) throws UnrecognizedCCodeException {
       // this is an external call
       // visit expression in order to print warnings if necessary
       visit(fexp.getFunctionCallExpression());
@@ -1554,11 +1554,11 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTFunctionCallExpression fexp) throws UnrecognizedCCodeException {
+    public Formula visit(CFunctionCallExpression fexp) throws UnrecognizedCCodeException {
       // handle malloc
-      IASTExpression fn = fexp.getFunctionNameExpression();
-      if (fn instanceof IASTIdExpression) {
-        String fName = ((IASTIdExpression)fn).getName();
+      CExpression fn = fexp.getFunctionNameExpression();
+      if (fn instanceof CIdExpression) {
+        String fName = ((CIdExpression)fn).getName();
 
         if (memoryAllocationFunctions.contains(fName)) {
           // for now all parameters are ignored
@@ -1592,16 +1592,16 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTAssignment assignment)
+    public Formula visit(CAssignment assignment)
         throws UnrecognizedCCodeException {
-      IASTExpression left = removeCast(assignment.getLeftHandSide());
+      CExpression left = removeCast(assignment.getLeftHandSide());
 
-      if (left instanceof IASTIdExpression) {
+      if (left instanceof CIdExpression) {
         // p = ...
         return handleDirectAssignment(assignment);
 
-      } else if (left instanceof IASTUnaryExpression
-          && ((IASTUnaryExpression) left).getOperator() == UnaryOperator.STAR) {
+      } else if (left instanceof CUnaryExpression
+          && ((CUnaryExpression) left).getOperator() == UnaryOperator.STAR) {
         // *p = ...
         return handleIndirectAssignment(assignment);
 
@@ -1615,10 +1615,10 @@ public class CtoFormulaConverter {
      * left hand side. Instead it changes the value stored in the memory location
      * aliased on the left hand side.
      */
-    private Formula handleIndirectAssignment(IASTAssignment pAssignment)
+    private Formula handleIndirectAssignment(CAssignment pAssignment)
         throws UnrecognizedCCodeException {
-      IASTExpression lExp = removeCast(pAssignment.getLeftHandSide());
-      assert (lExp instanceof IASTUnaryExpression);
+      CExpression lExp = removeCast(pAssignment.getLeftHandSide());
+      assert (lExp instanceof CUnaryExpression);
 
       // the following expressions are supported by cil:
       // *p = a;
@@ -1626,25 +1626,25 @@ public class CtoFormulaConverter {
       // *p = a | b; (or any other binary statement)
       // *p = function();
 
-      IASTUnaryExpression l = (IASTUnaryExpression) lExp;
+      CUnaryExpression l = (CUnaryExpression) lExp;
       assert (l.getOperator() == UnaryOperator.STAR);
 
-      IASTExpression lOperand = removeCast(l.getOperand());
-      if (!(lOperand instanceof IASTIdExpression)) {
+      CExpression lOperand = removeCast(l.getOperand());
+      if (!(lOperand instanceof CIdExpression)) {
         // TODO: *(a + 2) = b
         return super.visit(pAssignment);
       }
 
-      IASTRightHandSide r = pAssignment.getRightHandSide();
+      CRightHandSide r = pAssignment.getRightHandSide();
 
-      String lVarName = scopedIfNecessary((IASTIdExpression) lOperand, function);
+      String lVarName = scopedIfNecessary((CIdExpression) lOperand, function);
       Formula lVar = makeVariable(lVarName, ssa);
 
       String rVarName = null;
       Formula rPVar = null;
-      if (r instanceof IASTIdExpression) {
-        rVarName = scopedIfNecessary((IASTIdExpression) r, function);
-        rPVar = makePointerVariable((IASTIdExpression) r, function, ssa);
+      if (r instanceof CIdExpression) {
+        rVarName = scopedIfNecessary((CIdExpression) r, function);
+        rPVar = makePointerVariable((CIdExpression) r, function, ssa);
       }
 
       Formula rightVariable = pAssignment.getRightHandSide().accept(this);
@@ -1654,7 +1654,7 @@ public class CtoFormulaConverter {
 
       updateAllPointers(lVarName, lVar, rVarName, rightVariable);
 
-      boolean doDeepUpdate = (r instanceof IASTIdExpression);
+      boolean doDeepUpdate = (r instanceof CIdExpression);
       updateAllMemoryLocations(lVar, rPVar, rightVariable, doDeepUpdate);
 
       return assignments;
@@ -1751,13 +1751,13 @@ public class CtoFormulaConverter {
     }
 
     /** A direct assignment changes the value of the variable on the left side. */
-    private Formula handleDirectAssignment(IASTAssignment assignment)
+    private Formula handleDirectAssignment(CAssignment assignment)
         throws UnrecognizedCCodeException {
-      IASTExpression lExpr = removeCast(assignment.getLeftHandSide());
-      assert(lExpr instanceof IASTIdExpression);
+      CExpression lExpr = removeCast(assignment.getLeftHandSide());
+      assert(lExpr instanceof CIdExpression);
 
-      IASTIdExpression left = (IASTIdExpression) lExpr;
-      IASTRightHandSide right = removeCast(assignment.getRightHandSide());
+      CIdExpression left = (CIdExpression) lExpr;
+      CRightHandSide right = removeCast(assignment.getRightHandSide());
 
       String leftVarName = scopedIfNecessary(left, function);
 
@@ -1836,7 +1836,7 @@ public class CtoFormulaConverter {
   }
 
   private class LvalueVisitor extends
-      DefaultExpressionVisitor<Formula, UnrecognizedCCodeException> {
+      DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
     protected final CFAEdge       edge;
     protected final String        function;
@@ -1851,17 +1851,17 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    protected Formula visitDefault(IASTExpression exp) throws UnrecognizedCCodeException {
+    protected Formula visitDefault(CExpression exp) throws UnrecognizedCCodeException {
       throw new UnrecognizedCCodeException("Unknown lvalue", edge, exp);
     }
 
     @Override
-    public Formula visit(IASTIdExpression idExp) {
+    public Formula visit(CIdExpression idExp) {
       String var = scopedIfNecessary(idExp, function);
       return makeFreshVariable(var, ssa);
     }
 
-    protected Formula makeUIF(IASTExpression exp) {
+    protected Formula makeUIF(CExpression exp) {
       warnUnsafeAssignment();
       logDebug("Assigning to ", exp);
 
@@ -1870,17 +1870,17 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTUnaryExpression pE) throws UnrecognizedCCodeException {
+    public Formula visit(CUnaryExpression pE) throws UnrecognizedCCodeException {
       return makeUIF(pE);
     }
 
     @Override
-    public Formula visit(IASTFieldReference fExp) throws UnrecognizedCCodeException {
+    public Formula visit(CFieldReference fExp) throws UnrecognizedCCodeException {
 
-      IASTExpression fieldRef = fExp.getFieldOwner();
-      if (fieldRef instanceof IASTIdExpression) {
-        IASTSimpleDeclaration decl = ((IASTIdExpression) fieldRef).getDeclaration();
-        if (decl instanceof IASTDeclaration && ((IASTDeclaration)decl).isGlobal()) {
+      CExpression fieldRef = fExp.getFieldOwner();
+      if (fieldRef instanceof CIdExpression) {
+        CSimpleDeclaration decl = ((CIdExpression) fieldRef).getDeclaration();
+        if (decl instanceof CDeclaration && ((CDeclaration)decl).isGlobal()) {
           // this is the reference to a global field variable
 
           // we don't need to scope the variable reference
@@ -1894,7 +1894,7 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTArraySubscriptExpression pE) throws UnrecognizedCCodeException {
+    public Formula visit(CArraySubscriptExpression pE) throws UnrecognizedCCodeException {
       return makeUIF(pE);
     }
   }
@@ -1906,9 +1906,9 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTUnaryExpression uExp) throws UnrecognizedCCodeException {
+    public Formula visit(CUnaryExpression uExp) throws UnrecognizedCCodeException {
       UnaryOperator op = uExp.getOperator();
-      IASTExpression operand = uExp.getOperand();
+      CExpression operand = uExp.getOperand();
       String opname;
       switch (op) {
       case AMPER:
@@ -1936,9 +1936,9 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTFieldReference fexp) throws UnrecognizedCCodeException {
+    public Formula visit(CFieldReference fexp) throws UnrecognizedCCodeException {
       String field = fexp.getFieldName();
-      IASTExpression owner = fexp.getFieldOwner();
+      CExpression owner = fexp.getFieldOwner();
       Formula term = buildTerm(owner, edge, function, ssa, constraints);
 
       String tpname = getTypeName(owner.getExpressionType());
@@ -1953,9 +1953,9 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTArraySubscriptExpression aexp) throws UnrecognizedCCodeException {
-      IASTExpression arrexp = aexp.getArrayExpression();
-      IASTExpression subexp = aexp.getSubscriptExpression();
+    public Formula visit(CArraySubscriptExpression aexp) throws UnrecognizedCCodeException {
+      CExpression arrexp = aexp.getArrayExpression();
+      CExpression subexp = aexp.getSubscriptExpression();
       Formula aterm = buildTerm(arrexp, edge, function, ssa, constraints);
       Formula sterm = buildTerm(subexp, edge, function, ssa, constraints);
 
@@ -1974,17 +1974,17 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTCastExpression e) throws UnrecognizedCCodeException {
+    public Formula visit(CCastExpression e) throws UnrecognizedCCodeException {
       return e.getOperand().accept(this);
     }
 
-    private Formula getPointerFormula(IASTExpression pExp) {
-      IASTExpression exp = removeCast(pExp);
+    private Formula getPointerFormula(CExpression pExp) {
+      CExpression exp = removeCast(pExp);
 
-      if (exp instanceof IASTIdExpression) {
+      if (exp instanceof CIdExpression) {
         // *a = ...
         // *((int*) a) = ...
-        IASTIdExpression pId = (IASTIdExpression) exp;
+        CIdExpression pId = (CIdExpression) exp;
         String pVarName = makePointerVariableName(pId, function, ssa);
         makeFreshIndex(pVarName, ssa);
         return makePointerVariable(pId, function, ssa);
@@ -2000,7 +2000,7 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTUnaryExpression pE) throws UnrecognizedCCodeException {
+    public Formula visit(CUnaryExpression pE) throws UnrecognizedCCodeException {
       if (pE.getOperator() == UnaryOperator.STAR) {
         return getPointerFormula(pE.getOperand());
       } else {

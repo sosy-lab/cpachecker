@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerationSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
 
 public class CDefaults {
@@ -40,37 +40,37 @@ public class CDefaults {
 
   private static CType INT_TYPE = new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
 
-  public static IASTLiteralExpression forType(CType type, IASTFileLocation fileLoc) {
+  public static CLiteralExpression forType(CType type, CFileLocation fileLoc) {
     if (type instanceof CPointerType) {
-      return new IASTIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
+      return new CIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
 
     } else if (type instanceof CSimpleType) {
       CBasicType basicType = ((CSimpleType)type).getType();
       switch (basicType) {
       case CHAR:
-        return new IASTCharLiteralExpression(fileLoc, type, '\0');
+        return new CCharLiteralExpression(fileLoc, type, '\0');
 
       case DOUBLE:
       case FLOAT:
-        return new IASTFloatLiteralExpression(fileLoc, type, BigDecimal.ZERO);
+        return new CFloatLiteralExpression(fileLoc, type, BigDecimal.ZERO);
 
       case UNSPECIFIED:
       case BOOL:
       case INT:
       case VOID: // is this legitimate for "void"?
-        return new IASTIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO);
+        return new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO);
 
       default:
         throw new AssertionError("Unknown basic type '" + basicType + "'");
       }
 
-    } else if (type instanceof IASTEnumerationSpecifier) {
+    } else if (type instanceof CEnumerationSpecifier) {
       // enum declaration: enum e { ... } var;
-      return new IASTIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
+      return new CIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
 
     } else if (type instanceof CElaboratedType && ((CElaboratedType)type).getKind() == ElaboratedType.ENUM) {
       // enum declaration: enum e var;
-      return new IASTIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
+      return new CIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
 
     } else {
       // TODO create initializer for arrays, structs, enums

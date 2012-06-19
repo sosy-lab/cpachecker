@@ -35,64 +35,63 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.eclipse.cdt.core.dom.ast.IASTConditionalExpression;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTComplexTypeDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTReturnStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTTypeDefDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression.TypeIdOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerationSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerationSpecifier.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
+import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedef;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.IASTCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
@@ -106,9 +105,9 @@ class ASTConverter {
   private final boolean ignoreCasts;
 
   private Scope scope;
-  private LinkedList<IASTNode> sideAssignments = new LinkedList<IASTNode>();
+  private LinkedList<CAstNode> sideAssignments = new LinkedList<CAstNode>();
   private org.eclipse.cdt.core.dom.ast.IASTConditionalExpression conditionalExpression = null;
-  private IASTIdExpression conditionalTemporaryVariable = null;
+  private CIdExpression conditionalTemporaryVariable = null;
 
   public ASTConverter(Scope pScope, boolean pIgnoreCasts, LogManager pLogger) {
     scope = pScope;
@@ -126,7 +125,7 @@ class ASTConverter {
     return sideAssignments.size();
   }
 
-  public IASTNode getNextSideAssignment() {
+  public CAstNode getNextSideAssignment() {
     return sideAssignments.removeFirst();
   }
 
@@ -138,7 +137,7 @@ class ASTConverter {
     return conditionalExpression;
   }
 
-  public IASTIdExpression getConditionalTemporaryVariable() {
+  public CIdExpression getConditionalTemporaryVariable() {
     return conditionalTemporaryVariable;
   }
 
@@ -152,62 +151,62 @@ class ASTConverter {
       BinaryOperator.LOGICAL_AND,
       BinaryOperator.LOGICAL_OR);
 
-  private boolean isBooleanExpression(IASTExpression e) {
-    if (e instanceof IASTBinaryExpression) {
-      return BOOLEAN_BINARY_OPERATORS.contains(((IASTBinaryExpression)e).getOperator());
+  private boolean isBooleanExpression(CExpression e) {
+    if (e instanceof CBinaryExpression) {
+      return BOOLEAN_BINARY_OPERATORS.contains(((CBinaryExpression)e).getOperator());
 
-    } else if (e instanceof IASTUnaryExpression) {
-      return ((IASTUnaryExpression) e).getOperator() == UnaryOperator.NOT;
+    } else if (e instanceof CUnaryExpression) {
+      return ((CUnaryExpression) e).getOperator() == UnaryOperator.NOT;
 
     } else {
       return false;
     }
   }
 
-  public IASTExpression convertBooleanExpression(org.eclipse.cdt.core.dom.ast.IASTExpression e){
+  public CExpression convertBooleanExpression(org.eclipse.cdt.core.dom.ast.IASTExpression e){
 
-    IASTExpression exp = convertExpressionWithoutSideEffects(e);
+    CExpression exp = convertExpressionWithoutSideEffects(e);
     if (!isBooleanExpression(exp)) {
 
       // TODO: probably the type of the zero is not always correct
-      IASTExpression zero = new IASTIntegerLiteralExpression(exp.getFileLocation(), exp.getExpressionType(), BigInteger.ZERO);
-      return new IASTBinaryExpression(exp.getFileLocation(), exp.getExpressionType(), exp, zero, BinaryOperator.NOT_EQUALS);
+      CExpression zero = new CIntegerLiteralExpression(exp.getFileLocation(), exp.getExpressionType(), BigInteger.ZERO);
+      return new CBinaryExpression(exp.getFileLocation(), exp.getExpressionType(), exp, zero, BinaryOperator.NOT_EQUALS);
     }
 
     return exp;
   }
 
-  public IASTExpression convertExpressionWithoutSideEffects(
+  public CExpression convertExpressionWithoutSideEffects(
       org.eclipse.cdt.core.dom.ast.IASTExpression e) {
 
-    IASTNode node = convertExpressionWithSideEffects(e);
-    if (node == null || node instanceof IASTExpression) {
-      return (IASTExpression) node;
+    CAstNode node = convertExpressionWithSideEffects(e);
+    if (node == null || node instanceof CExpression) {
+      return (CExpression) node;
 
-    } else if (node instanceof IASTFunctionCallExpression) {
+    } else if (node instanceof CFunctionCallExpression) {
       return addSideassignmentsForExpressionsWithoutSideEffects(node, e);
 
-    } else if (node instanceof IASTAssignment) {
+    } else if (node instanceof CAssignment) {
       sideAssignments.add(node);
-      return ((IASTAssignment) node).getLeftHandSide();
+      return ((CAssignment) node).getLeftHandSide();
 
     } else {
       throw new AssertionError("unknown expression " + node);
     }
   }
 
-  private IASTExpression addSideassignmentsForExpressionsWithoutSideEffects(IASTNode node,
+  private CExpression addSideassignmentsForExpressionsWithoutSideEffects(CAstNode node,
                                                                             org.eclipse.cdt.core.dom.ast.IASTExpression e){
-    IASTIdExpression tmp = createTemporaryVariable(e);
+    CIdExpression tmp = createTemporaryVariable(e);
 
-    sideAssignments.add(new IASTFunctionCallAssignmentStatement(convert(e.getFileLocation()),
+    sideAssignments.add(new CFunctionCallAssignmentStatement(convert(e.getFileLocation()),
                                                               tmp,
-                                                              (IASTFunctionCallExpression) node));
+                                                              (CFunctionCallExpression) node));
     return tmp;
   }
 
-  protected IASTNode convertExpressionWithSideEffects(org.eclipse.cdt.core.dom.ast.IASTExpression e) {
-    assert !(e instanceof IASTExpression);
+  protected CAstNode convertExpressionWithSideEffects(org.eclipse.cdt.core.dom.ast.IASTExpression e) {
+    assert !(e instanceof CExpression);
 
     if (e == null) {
       return null;
@@ -247,21 +246,21 @@ class ASTConverter {
     }
   }
 
-  private IASTNode convert(IASTConditionalExpression e) {
-    IASTIdExpression tmp = createTemporaryVariable(e);
+  private CAstNode convert(org.eclipse.cdt.core.dom.ast.IASTConditionalExpression e) {
+    CIdExpression tmp = createTemporaryVariable(e);
     conditionalTemporaryVariable = tmp;
     conditionalExpression = e;
     return tmp;
   }
 
-  private IASTArraySubscriptExpression convert(org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression e) {
-    return new IASTArraySubscriptExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getArrayExpression()), convertExpressionWithoutSideEffects(e.getSubscriptExpression()));
+  private CArraySubscriptExpression convert(org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression e) {
+    return new CArraySubscriptExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getArrayExpression()), convertExpressionWithoutSideEffects(e.getSubscriptExpression()));
   }
 
   /**
    * creates temporary variables with increasing numbers
    */
-  private IASTIdExpression createTemporaryVariable(org.eclipse.cdt.core.dom.ast.IASTExpression e) {
+  private CIdExpression createTemporaryVariable(org.eclipse.cdt.core.dom.ast.IASTExpression e) {
     String name = "__CPAchecker_TMP_";
     int i = 0;
     while(scope.variableNameInUse(name+i, name+i)){
@@ -269,7 +268,7 @@ class ASTConverter {
     }
     name += i;
 
-    IASTVariableDeclaration decl = new IASTVariableDeclaration(convert(e.getFileLocation()),
+    CVariableDeclaration decl = new CVariableDeclaration(convert(e.getFileLocation()),
                                                false,
                                                CStorageClass.AUTO,
                                                convert(e.getExpressionType()),
@@ -279,17 +278,17 @@ class ASTConverter {
 
     scope.registerDeclaration(decl);
     sideAssignments.add(decl);
-    IASTIdExpression tmp = new IASTIdExpression(convert(e.getFileLocation()),
+    CIdExpression tmp = new CIdExpression(convert(e.getFileLocation()),
                                                 convert(e.getExpressionType()),
                                                 name,
                                                 decl);
     return tmp;
   }
 
-  private IASTNode convert(org.eclipse.cdt.core.dom.ast.IASTBinaryExpression e) {
-    IASTFileLocation fileLoc = convert(e.getFileLocation());
+  private CAstNode convert(org.eclipse.cdt.core.dom.ast.IASTBinaryExpression e) {
+    CFileLocation fileLoc = convert(e.getFileLocation());
     CType type = convert(e.getExpressionType());
-    IASTExpression leftHandSide = convertExpressionWithoutSideEffects(e.getOperand1());
+    CExpression leftHandSide = convertExpressionWithoutSideEffects(e.getOperand1());
 
     Pair<BinaryOperator, Boolean> opPair = convertBinaryOperator(e);
     BinaryOperator op = opPair.getFirst();
@@ -299,38 +298,38 @@ class ASTConverter {
 
       if (op == null) {
         // a = b
-        IASTNode rightHandSide = convertExpressionWithSideEffects(e.getOperand2()); // right-hand side may have a function call
+        CAstNode rightHandSide = convertExpressionWithSideEffects(e.getOperand2()); // right-hand side may have a function call
 
 
-        if (rightHandSide instanceof IASTExpression) {
+        if (rightHandSide instanceof CExpression) {
           // a = b
-          return new IASTExpressionAssignmentStatement(fileLoc, leftHandSide, (IASTExpression)rightHandSide);
+          return new CExpressionAssignmentStatement(fileLoc, leftHandSide, (CExpression)rightHandSide);
 
-        } else if (rightHandSide instanceof IASTFunctionCallExpression) {
+        } else if (rightHandSide instanceof CFunctionCallExpression) {
           // a = f()
-          return new IASTFunctionCallAssignmentStatement(fileLoc, leftHandSide, (IASTFunctionCallExpression)rightHandSide);
+          return new CFunctionCallAssignmentStatement(fileLoc, leftHandSide, (CFunctionCallExpression)rightHandSide);
 
-        } else if(rightHandSide instanceof IASTAssignment) {
+        } else if(rightHandSide instanceof CAssignment) {
           sideAssignments.add(rightHandSide);
-          return new IASTExpressionAssignmentStatement(fileLoc, leftHandSide, ((IASTAssignment) rightHandSide).getLeftHandSide());
+          return new CExpressionAssignmentStatement(fileLoc, leftHandSide, ((CAssignment) rightHandSide).getLeftHandSide());
         } else {
           throw new CFAGenerationRuntimeException("Expression is not free of side-effects", e);
         }
 
       } else {
         // a += b etc.
-        IASTExpression rightHandSide = convertExpressionWithoutSideEffects(e.getOperand2());
+        CExpression rightHandSide = convertExpressionWithoutSideEffects(e.getOperand2());
 
         // first create expression "a + b"
-        IASTBinaryExpression exp = new IASTBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
+        CBinaryExpression exp = new CBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
 
         // and now the assignment
-        return new IASTExpressionAssignmentStatement(fileLoc, leftHandSide, exp);
+        return new CExpressionAssignmentStatement(fileLoc, leftHandSide, exp);
       }
 
     } else {
-      IASTExpression rightHandSide = convertExpressionWithoutSideEffects(e.getOperand2());
-      return new IASTBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
+      CExpression rightHandSide = convertExpressionWithoutSideEffects(e.getOperand2());
+      return new CBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
     }
   }
 
@@ -444,37 +443,37 @@ class ASTConverter {
     return Pair.of(operator, isAssign);
   }
 
-  private IASTNode convert(org.eclipse.cdt.core.dom.ast.IASTCastExpression e) {
+  private CAstNode convert(org.eclipse.cdt.core.dom.ast.IASTCastExpression e) {
     if (ignoreCasts) {
       return convertExpressionWithSideEffects(e.getOperand());
     } else {
-      return new IASTCastExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getOperand()), convert(e.getTypeId()));
+      return new CCastExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getOperand()), convert(e.getTypeId()));
     }
   }
 
-  private IASTFieldReference convert(org.eclipse.cdt.core.dom.ast.IASTFieldReference e) {
-    return new IASTFieldReference(convert(e.getFileLocation()), convert(e.getExpressionType()), convert(e.getFieldName()), convertExpressionWithoutSideEffects(e.getFieldOwner()), e.isPointerDereference());
+  private CFieldReference convert(org.eclipse.cdt.core.dom.ast.IASTFieldReference e) {
+    return new CFieldReference(convert(e.getFileLocation()), convert(e.getExpressionType()), convert(e.getFieldName()), convertExpressionWithoutSideEffects(e.getFieldOwner()), e.isPointerDereference());
   }
 
-  private IASTFunctionCallExpression convert(org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression e) {
+  private CFunctionCallExpression convert(org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression e) {
     org.eclipse.cdt.core.dom.ast.IASTExpression p = e.getParameterExpression();
 
-    List<IASTExpression> params;
+    List<CExpression> params;
     if (p instanceof org.eclipse.cdt.core.dom.ast.IASTExpressionList) {
       params = convert((org.eclipse.cdt.core.dom.ast.IASTExpressionList)p);
 
     } else {
-      params = new ArrayList<IASTExpression>();
+      params = new ArrayList<CExpression>();
       if (p != null) {
         params.add(convertExpressionWithoutSideEffects(p));
       }
     }
 
-    IASTExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
-    IASTSimpleDeclaration declaration = null;
+    CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
+    CSimpleDeclaration declaration = null;
 
-    if (functionName instanceof IASTIdExpression) {
-      IASTIdExpression idExpression = (IASTIdExpression)functionName;
+    if (functionName instanceof CIdExpression) {
+      CIdExpression idExpression = (CIdExpression)functionName;
       String name = idExpression.getName();
       declaration = scope.lookupFunction(name);
 
@@ -483,41 +482,41 @@ class ASTConverter {
         // (it's the declaration of an equally named variable)
         // TODO this is ugly
 
-        functionName = new IASTIdExpression(idExpression.getFileLocation(), idExpression.getExpressionType(), name, declaration);
+        functionName = new CIdExpression(idExpression.getFileLocation(), idExpression.getExpressionType(), name, declaration);
       }
     }
 
-    return new IASTFunctionCallExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), functionName, params, declaration);
+    return new CFunctionCallExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), functionName, params, declaration);
   }
 
-  private List<IASTExpression> convert(org.eclipse.cdt.core.dom.ast.IASTExpressionList es) {
-    List<IASTExpression> result = new ArrayList<IASTExpression>(es.getExpressions().length);
+  private List<CExpression> convert(org.eclipse.cdt.core.dom.ast.IASTExpressionList es) {
+    List<CExpression> result = new ArrayList<CExpression>(es.getExpressions().length);
     for (org.eclipse.cdt.core.dom.ast.IASTExpression expression : es.getExpressions()) {
       result.add(convertExpressionWithoutSideEffects(expression));
     }
     return result;
   }
 
-  private IASTIdExpression convert(org.eclipse.cdt.core.dom.ast.IASTIdExpression e) {
+  private CIdExpression convert(org.eclipse.cdt.core.dom.ast.IASTIdExpression e) {
     String name = convert(e.getName());
-    IASTSimpleDeclaration declaration = scope.lookupVariable(name);
+    CSimpleDeclaration declaration = scope.lookupVariable(name);
     if (declaration != null) {
       name = declaration.getName();
     }
-    return new IASTIdExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), name, declaration);
+    return new CIdExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), name, declaration);
   }
 
-  private IASTLiteralExpression convert(org.eclipse.cdt.core.dom.ast.IASTLiteralExpression e) {
-    IASTFileLocation fileLoc = convert(e.getFileLocation());
+  private CLiteralExpression convert(org.eclipse.cdt.core.dom.ast.IASTLiteralExpression e) {
+    CFileLocation fileLoc = convert(e.getFileLocation());
     CType type = convert(e.getExpressionType());
 
     String valueStr = String.valueOf(e.getValue());
     switch (e.getKind()) {
     case org.eclipse.cdt.core.dom.ast.IASTLiteralExpression.lk_char_constant:
-      return new IASTCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, e));
+      return new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, e));
 
     case org.eclipse.cdt.core.dom.ast.IASTLiteralExpression.lk_integer_constant:
-      return new IASTIntegerLiteralExpression(fileLoc, type, parseIntegerLiteral(valueStr, e));
+      return new CIntegerLiteralExpression(fileLoc, type, parseIntegerLiteral(valueStr, e));
 
     case org.eclipse.cdt.core.dom.ast.IASTLiteralExpression.lk_float_constant:
       BigDecimal value;
@@ -534,10 +533,10 @@ class ASTConverter {
         }
       }
 
-      return new IASTFloatLiteralExpression(fileLoc, type, value);
+      return new CFloatLiteralExpression(fileLoc, type, value);
 
     case org.eclipse.cdt.core.dom.ast.IASTLiteralExpression.lk_string_literal:
-      return new IASTStringLiteralExpression(fileLoc, type, valueStr);
+      return new CStringLiteralExpression(fileLoc, type, valueStr);
 
     default:
       throw new CFAGenerationRuntimeException("Unknown literal", e);
@@ -660,14 +659,14 @@ class ASTConverter {
     return result;
   }
 
-  private IASTNode convert(org.eclipse.cdt.core.dom.ast.IASTUnaryExpression e) {
-    IASTExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+  private CAstNode convert(org.eclipse.cdt.core.dom.ast.IASTUnaryExpression e) {
+    CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
 
     if (e.getOperator() == org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_bracketedPrimary) {
       return operand;
     }
 
-    IASTFileLocation fileLoc = convert(e.getFileLocation());
+    CFileLocation fileLoc = convert(e.getFileLocation());
     CType type = convert(e.getExpressionType());
 
 
@@ -686,10 +685,10 @@ class ASTConverter {
         break;
       default: throw new AssertionError();
       }
-      IASTExpression one = new IASTIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
-      IASTBinaryExpression preExp = new IASTBinaryExpression(fileLoc, type, operand, one, preOp);
+      CExpression one = new CIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
+      CBinaryExpression preExp = new CBinaryExpression(fileLoc, type, operand, one, preOp);
 
-      return new IASTExpressionAssignmentStatement(fileLoc, operand, preExp);
+      return new CExpressionAssignmentStatement(fileLoc, operand, preExp);
 
     case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_postFixIncr:
     case org.eclipse.cdt.core.dom.ast.IASTUnaryExpression.op_postFixDecr:
@@ -710,27 +709,27 @@ class ASTConverter {
           && !(e.getParent() instanceof org.eclipse.cdt.core.dom.ast.IASTExpressionList)) {
         return addSideAssignmentsForUnaryExpressions(e, operand, fileLoc, type, postOp);
       } else {
-        IASTExpression postOne = new IASTIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
-        IASTBinaryExpression postExp = new IASTBinaryExpression(fileLoc, type, operand, postOne, postOp);
-        return new IASTExpressionAssignmentStatement(fileLoc, operand, postExp);
+        CExpression postOne = new CIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
+        CBinaryExpression postExp = new CBinaryExpression(fileLoc, type, operand, postOne, postOp);
+        return new CExpressionAssignmentStatement(fileLoc, operand, postExp);
       }
 
     default:
-      return new IASTUnaryExpression(fileLoc, type, operand, convertUnaryOperator(e));
+      return new CUnaryExpression(fileLoc, type, operand, convertUnaryOperator(e));
     }
   }
 
-  private IASTIdExpression addSideAssignmentsForUnaryExpressions(org.eclipse.cdt.core.dom.ast.IASTExpression e,
-                                                                 IASTExpression exp,
-                                                                 IASTFileLocation fileLoc,
+  private CIdExpression addSideAssignmentsForUnaryExpressions(org.eclipse.cdt.core.dom.ast.IASTExpression e,
+                                                                 CExpression exp,
+                                                                 CFileLocation fileLoc,
                                                                  CType type,
                                                                  BinaryOperator op) {
-    IASTIdExpression tmp = createTemporaryVariable(e);
-    sideAssignments.add(new IASTExpressionAssignmentStatement(fileLoc, tmp, exp));
+    CIdExpression tmp = createTemporaryVariable(e);
+    sideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmp, exp));
 
-    IASTExpression one = new IASTIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
-    IASTBinaryExpression postExp = new IASTBinaryExpression(fileLoc, type, exp, one, op);
-    sideAssignments.add(new IASTExpressionAssignmentStatement(fileLoc, exp, postExp));
+    CExpression one = new CIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
+    CBinaryExpression postExp = new CBinaryExpression(fileLoc, type, exp, one, op);
+    sideAssignments.add(new CExpressionAssignmentStatement(fileLoc, exp, postExp));
     return tmp;
   }
 
@@ -755,8 +754,8 @@ class ASTConverter {
     }
   }
 
-  private IASTTypeIdExpression convert(org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression e) {
-    return new IASTTypeIdExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), convertTypeIdOperator(e), convert(e.getTypeId()));
+  private CTypeIdExpression convert(org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression e) {
+    return new CTypeIdExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), convertTypeIdOperator(e), convert(e.getTypeId()));
   }
 
   private TypeIdOperator convertTypeIdOperator(org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression e) {
@@ -774,7 +773,7 @@ class ASTConverter {
     }
   }
 
-  public IASTNode convert(final org.eclipse.cdt.core.dom.ast.IASTStatement s) {
+  public CAstNode convert(final org.eclipse.cdt.core.dom.ast.IASTStatement s) {
 
     if (s instanceof org.eclipse.cdt.core.dom.ast.IASTExpressionStatement) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTExpressionStatement) s);
@@ -790,31 +789,31 @@ class ASTConverter {
     }
   }
 
-  public IASTStatement convert(final org.eclipse.cdt.core.dom.ast.IASTExpressionStatement s) {
-    IASTNode node = convertExpressionWithSideEffects(s.getExpression());
+  public CStatement convert(final org.eclipse.cdt.core.dom.ast.IASTExpressionStatement s) {
+    CAstNode node = convertExpressionWithSideEffects(s.getExpression());
 
-    if (node instanceof IASTExpressionAssignmentStatement) {
-      return (IASTExpressionAssignmentStatement)node;
+    if (node instanceof CExpressionAssignmentStatement) {
+      return (CExpressionAssignmentStatement)node;
 
-    } else if (node instanceof IASTFunctionCallAssignmentStatement) {
-      return (IASTFunctionCallAssignmentStatement)node;
+    } else if (node instanceof CFunctionCallAssignmentStatement) {
+      return (CFunctionCallAssignmentStatement)node;
 
-    } else if (node instanceof IASTFunctionCallExpression) {
-      return new IASTFunctionCallStatement(convert(s.getFileLocation()), (IASTFunctionCallExpression)node);
+    } else if (node instanceof CFunctionCallExpression) {
+      return new CFunctionCallStatement(convert(s.getFileLocation()), (CFunctionCallExpression)node);
 
-    } else if (node instanceof IASTExpression) {
-      return new IASTExpressionStatement(convert(s.getFileLocation()), (IASTExpression)node);
+    } else if (node instanceof CExpression) {
+      return new CExpressionStatement(convert(s.getFileLocation()), (CExpression)node);
 
     } else {
       throw new AssertionError();
     }
   }
 
-  public IASTReturnStatement convert(final org.eclipse.cdt.core.dom.ast.IASTReturnStatement s) {
-    return new IASTReturnStatement(convert(s.getFileLocation()), convertExpressionWithoutSideEffects(s.getReturnValue()));
+  public CReturnStatement convert(final org.eclipse.cdt.core.dom.ast.IASTReturnStatement s) {
+    return new CReturnStatement(convert(s.getFileLocation()), convertExpressionWithoutSideEffects(s.getReturnValue()));
   }
 
-  public IASTFunctionDeclaration convert(final org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition f) {
+  public CFunctionDeclaration convert(final org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition f) {
     Pair<CStorageClass, ? extends CType> specifier = convert(f.getDeclSpecifier());
 
     CStorageClass cStorageClass = specifier.getFirst();
@@ -827,7 +826,7 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("Unsupported storage class for function definition", f);
     }
 
-    Triple<CType, IASTInitializer, String> declarator = convert(f.getDeclarator(), specifier.getSecond());
+    Triple<CType, CInitializer, String> declarator = convert(f.getDeclarator(), specifier.getSecond());
     if (!(declarator.getFirst() instanceof CFunctionType)) {
       throw new CFAGenerationRuntimeException("Unsupported nested declarator for function definition", f);
     }
@@ -841,30 +840,30 @@ class ASTConverter {
     CFunctionType declSpec = (CFunctionType)declarator.getFirst();
     String name = declarator.getThird();
 
-    IASTFileLocation fileLoc = convert(f.getFileLocation());
+    CFileLocation fileLoc = convert(f.getFileLocation());
 
-    return new IASTFunctionDeclaration(fileLoc, declSpec, name);
+    return new CFunctionDeclaration(fileLoc, declSpec, name);
   }
 
-  public List<IASTDeclaration> convert(final org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration d) {
-    IASTFileLocation fileLoc = convert(d.getFileLocation());
+  public List<CDeclaration> convert(final org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration d) {
+    CFileLocation fileLoc = convert(d.getFileLocation());
     Pair<CStorageClass, ? extends CType> specifier = convert(d.getDeclSpecifier());
     CStorageClass cStorageClass = specifier.getFirst();
     CType type = specifier.getSecond();
 
-    List<IASTDeclaration> result;
+    List<CDeclaration> result;
     org.eclipse.cdt.core.dom.ast.IASTDeclarator[] declarators = d.getDeclarators();
     if (declarators == null || declarators.length == 0) {
       // declaration without declarator, i.e. struct prototype
-      IASTDeclaration newD = createDeclaration(fileLoc, cStorageClass, type, null);
+      CDeclaration newD = createDeclaration(fileLoc, cStorageClass, type, null);
       result = Collections.singletonList(newD);
 
     } else if (declarators.length == 1) {
-      IASTDeclaration newD = createDeclaration(fileLoc, cStorageClass, type, declarators[0]);
+      CDeclaration newD = createDeclaration(fileLoc, cStorageClass, type, declarators[0]);
       result = Collections.singletonList(newD);
 
     } else {
-      result = new ArrayList<IASTDeclaration>(declarators.length);
+      result = new ArrayList<CDeclaration>(declarators.length);
       for (org.eclipse.cdt.core.dom.ast.IASTDeclarator c : declarators) {
 
         result.add(createDeclaration(fileLoc, cStorageClass, type, c));
@@ -874,13 +873,13 @@ class ASTConverter {
     return result;
   }
 
-  private IASTDeclaration createDeclaration(IASTFileLocation fileLoc, CStorageClass cStorageClass, CType type, org.eclipse.cdt.core.dom.ast.IASTDeclarator d) {
+  private CDeclaration createDeclaration(CFileLocation fileLoc, CStorageClass cStorageClass, CType type, org.eclipse.cdt.core.dom.ast.IASTDeclarator d) {
     boolean isGlobal = scope.isGlobalScope();
 
     if (d != null) {
-      Triple<CType, IASTInitializer, String> declarator = convert(d, type);
+      Triple<CType, CInitializer, String> declarator = convert(d, type);
       type = declarator.getFirst();
-      IASTInitializer initializer = declarator.getSecond();
+      CInitializer initializer = declarator.getSecond();
       String name = declarator.getThird();
 
       if (name == null) {
@@ -893,7 +892,7 @@ class ASTConverter {
         if (initializer != null) {
           throw new CFAGenerationRuntimeException("Typedef with initializer", d);
         }
-        return new IASTTypeDefDeclaration(fileLoc, isGlobal, type, name);
+        return new CTypeDefDeclaration(fileLoc, isGlobal, type, name);
       }
 
       if (type instanceof CFunctionType) {
@@ -903,7 +902,7 @@ class ASTConverter {
         if (!isGlobal) {
           throw new CFAGenerationRuntimeException("Non-global function definition", d);
         }
-        return new IASTFunctionDeclaration(fileLoc, (CFunctionType)type, name);
+        return new CFunctionDeclaration(fileLoc, (CFunctionType)type, name);
       }
 
       // now it should be a regular variable declaration
@@ -914,10 +913,10 @@ class ASTConverter {
 
       if (initializer == null && scope.isGlobalScope() && cStorageClass != CStorageClass.EXTERN) {
         // global variables are initialized to zero by default in C
-        IASTExpression init = CDefaults.forType(type, fileLoc);
+        CExpression init = CDefaults.forType(type, fileLoc);
         // may still be null, because we currently don't handle initializers for complex types
         if (init != null) {
-          initializer = new IASTInitializerExpression(fileLoc, init);
+          initializer = new CInitializerExpression(fileLoc, init);
         }
       }
 
@@ -939,14 +938,14 @@ class ASTConverter {
         }
         name = name + sep + index;
       }
-      return new IASTVariableDeclaration(fileLoc, isGlobal, cStorageClass, type, name, origName, initializer);
+      return new CVariableDeclaration(fileLoc, isGlobal, cStorageClass, type, name, origName, initializer);
 
     } else {
       if (type instanceof CCompositeType
-          || type instanceof IASTEnumerationSpecifier
+          || type instanceof CEnumerationSpecifier
           || type instanceof CElaboratedType) {
         // struct prototype without variable declaration or similar type definitions
-        return new IASTComplexTypeDeclaration(fileLoc, isGlobal, type);
+        return new CComplexTypeDeclaration(fileLoc, isGlobal, type);
       }
 
       throw new CFAGenerationRuntimeException("Declaration without declarator, but type is unknown: " + type.toASTString(""));
@@ -954,7 +953,7 @@ class ASTConverter {
 
   }
 
-  private List<IASTCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(final org.eclipse.cdt.core.dom.ast.IASTDeclaration d) {
+  private List<CCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(final org.eclipse.cdt.core.dom.ast.IASTDeclaration d) {
     if (d instanceof org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration) {
       throw new CFAGenerationRuntimeException((org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration)d);
     }
@@ -964,26 +963,26 @@ class ASTConverter {
     }
     org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration sd = (org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration)d;
 
-    IASTFileLocation fileLoc = convert(d.getFileLocation());
+    CFileLocation fileLoc = convert(d.getFileLocation());
     Pair<CStorageClass, ? extends CType> specifier = convert(sd.getDeclSpecifier());
     if (specifier.getFirst() != CStorageClass.AUTO) {
       throw new CFAGenerationRuntimeException("Unsupported storage class inside composite type", d);
     }
     CType type = specifier.getSecond();
 
-    List<IASTCompositeTypeMemberDeclaration> result;
+    List<CCompositeTypeMemberDeclaration> result;
     org.eclipse.cdt.core.dom.ast.IASTDeclarator[] declarators = sd.getDeclarators();
     if (declarators == null || declarators.length == 0) {
       // declaration without declarator, anonymous struct field?
-      IASTCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(fileLoc, type, null);
+      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(fileLoc, type, null);
       result = Collections.singletonList(newD);
 
     } else if (declarators.length == 1) {
-      IASTCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(fileLoc, type, declarators[0]);
+      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(fileLoc, type, declarators[0]);
       result = Collections.singletonList(newD);
 
     } else {
-      result = new ArrayList<IASTCompositeTypeMemberDeclaration>(declarators.length);
+      result = new ArrayList<CCompositeTypeMemberDeclaration>(declarators.length);
       for (org.eclipse.cdt.core.dom.ast.IASTDeclarator c : declarators) {
 
         result.add(createDeclarationForCompositeType(fileLoc, type, c));
@@ -993,11 +992,11 @@ class ASTConverter {
     return result;
   }
 
-  private IASTCompositeTypeMemberDeclaration createDeclarationForCompositeType(IASTFileLocation fileLoc, CType type, org.eclipse.cdt.core.dom.ast.IASTDeclarator d) {
+  private CCompositeTypeMemberDeclaration createDeclarationForCompositeType(CFileLocation fileLoc, CType type, org.eclipse.cdt.core.dom.ast.IASTDeclarator d) {
     String name = null;
 
     if (d != null) {
-      Triple<CType, IASTInitializer, String> declarator = convert(d, type);
+      Triple<CType, CInitializer, String> declarator = convert(d, type);
 
       if (declarator.getSecond() != null) {
         throw new CFAGenerationRuntimeException("Unsupported initializer inside composite type", d);
@@ -1007,10 +1006,10 @@ class ASTConverter {
       name = declarator.getThird();
     }
 
-    return new IASTCompositeTypeMemberDeclaration(fileLoc, type, name);
+    return new CCompositeTypeMemberDeclaration(fileLoc, type, name);
   }
 
-  private Triple<CType, IASTInitializer, String> convert(org.eclipse.cdt.core.dom.ast.IASTDeclarator d, CType specifier) {
+  private Triple<CType, CInitializer, String> convert(org.eclipse.cdt.core.dom.ast.IASTDeclarator d, CType specifier) {
     if (d instanceof org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator)d, specifier);
 
@@ -1026,7 +1025,7 @@ class ASTConverter {
       // Collection of all modifiers (outermost modifier is first).
       List<org.eclipse.cdt.core.dom.ast.IASTNode> modifiers = Lists.newArrayListWithExpectedSize(1);
 
-      IASTInitializer initializer = null;
+      CInitializer initializer = null;
       String name = null;
 
       // Descend into the nested chain of declators.
@@ -1109,7 +1108,7 @@ class ASTConverter {
     }
   }
 
-  private Triple<CType, IASTInitializer, String> convert(org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator d, CType returnType) {
+  private Triple<CType, CInitializer, String> convert(org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator d, CType returnType) {
     if (!(d instanceof org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator)) {
       throw new CFAGenerationRuntimeException("Unknown non-standard function definition", d);
     }
@@ -1119,7 +1118,7 @@ class ASTConverter {
     returnType = convertPointerOperators(d.getPointerOperators(), returnType);
 
     // handle parameters
-    List<IASTParameterDeclaration> paramsList = convert(sd.getParameters());
+    List<CParameterDeclaration> paramsList = convert(sd.getParameters());
 
     // TODO constant and volatile
     CFunctionType fType = new CFunctionType(false, false, returnType, paramsList, sd.takesVarArgs());
@@ -1127,7 +1126,7 @@ class ASTConverter {
 
     String name;
     if (d.getNestedDeclarator() != null) {
-      Triple<? extends CType, IASTInitializer, String> nestedDeclarator = convert(d.getNestedDeclarator(), type);
+      Triple<? extends CType, CInitializer, String> nestedDeclarator = convert(d.getNestedDeclarator(), type);
 
       assert d.getName().getRawSignature().isEmpty() : d;
       assert nestedDeclarator.getSecond() == null;
@@ -1190,10 +1189,10 @@ class ASTConverter {
   }
 
   private CCompositeType convert(org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier d) {
-    List<IASTCompositeTypeMemberDeclaration> list = new ArrayList<IASTCompositeTypeMemberDeclaration>(d.getMembers().length);
+    List<CCompositeTypeMemberDeclaration> list = new ArrayList<CCompositeTypeMemberDeclaration>(d.getMembers().length);
 
     for (org.eclipse.cdt.core.dom.ast.IASTDeclaration c : d.getMembers()) {
-      List<IASTCompositeTypeMemberDeclaration> newCs = convertDeclarationInCompositeType(c);
+      List<CCompositeTypeMemberDeclaration> newCs = convertDeclarationInCompositeType(c);
       assert !newCs.isEmpty();
       list.addAll(newCs);
     }
@@ -1219,11 +1218,11 @@ class ASTConverter {
     return new CElaboratedType(d.isConst(), d.isVolatile(), type, convert(d.getName()));
   }
 
-  private IASTEnumerationSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier d) {
-    List<IASTEnumerator> list = new ArrayList<IASTEnumerator>(d.getEnumerators().length);
+  private CEnumerationSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier d) {
+    List<CEnumerator> list = new ArrayList<CEnumerator>(d.getEnumerators().length);
     Long lastValue = -1L; // initialize with -1, so the first one gets value 0
     for (org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator c : d.getEnumerators()) {
-      IASTEnumerator newC = convert(c, lastValue);
+      CEnumerator newC = convert(c, lastValue);
       list.add(newC);
       if (newC.hasValue()) {
         lastValue = newC.getValue();
@@ -1231,7 +1230,7 @@ class ASTConverter {
         lastValue = null;
       }
     }
-    return new IASTEnumerationSpecifier(d.isConst(), d.isVolatile(), list, convert(d.getName()));
+    return new CEnumerationSpecifier(d.isConst(), d.isVolatile(), list, convert(d.getName()));
   }
 
   private CNamedType convert(org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier d) {
@@ -1284,24 +1283,24 @@ class ASTConverter {
   }
 
 
-  private IASTEnumerator convert(org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator e, Long lastValue) {
+  private CEnumerator convert(org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator e, Long lastValue) {
     Long value = null;
 
     if (e.getValue() == null && lastValue != null) {
       value = lastValue + 1;
     } else {
-      IASTExpression v = convertExpressionWithoutSideEffects(e.getValue());
+      CExpression v = convertExpressionWithoutSideEffects(e.getValue());
       boolean negate = false;
 
-      if (v instanceof IASTUnaryExpression) {
-        IASTUnaryExpression u = (IASTUnaryExpression)v;
+      if (v instanceof CUnaryExpression) {
+        CUnaryExpression u = (CUnaryExpression)v;
         assert u.getOperator() == UnaryOperator.MINUS : v;
         negate = true;
         v = u.getOperand();
       }
 
-      if (v instanceof IASTIntegerLiteralExpression) {
-        value = ((IASTIntegerLiteralExpression)v).asLong();
+      if (v instanceof CIntegerLiteralExpression) {
+        value = ((CIntegerLiteralExpression)v).asLong();
         if (negate) {
           value = -value;
         }
@@ -1311,12 +1310,12 @@ class ASTConverter {
       }
     }
 
-    IASTEnumerator result = new IASTEnumerator(convert(e.getFileLocation()), convert(e.getName()), value);
+    CEnumerator result = new CEnumerator(convert(e.getFileLocation()), convert(e.getName()), value);
     scope.registerDeclaration(result);
     return result;
   }
 
-  private IASTInitializer convert(org.eclipse.cdt.core.dom.ast.IASTInitializer i) {
+  private CInitializer convert(org.eclipse.cdt.core.dom.ast.IASTInitializer i) {
     if (i == null) {
       return null;
 
@@ -1334,51 +1333,51 @@ class ASTConverter {
     }
   }
 
-  private IASTInitializerExpression convert(org.eclipse.cdt.core.dom.ast.IASTInitializerExpression i) {
-    IASTNode initializer = convertExpressionWithSideEffects(i.getExpression());
-    if(initializer != null && initializer instanceof IASTAssignment){
+  private CInitializerExpression convert(org.eclipse.cdt.core.dom.ast.IASTInitializerExpression i) {
+    CAstNode initializer = convertExpressionWithSideEffects(i.getExpression());
+    if(initializer != null && initializer instanceof CAssignment){
       sideAssignments.add(initializer);
-      return new IASTInitializerExpression(convert(i.getFileLocation()), ((IASTAssignment)initializer).getLeftHandSide());
+      return new CInitializerExpression(convert(i.getFileLocation()), ((CAssignment)initializer).getLeftHandSide());
     }
 
-    if (initializer != null && !(initializer instanceof IASTExpression)) {
+    if (initializer != null && !(initializer instanceof CExpression)) {
       throw new CFAGenerationRuntimeException("Initializer is not free of side-effects", i);
     }
 
-    return new IASTInitializerExpression(convert(i.getFileLocation()), (IASTExpression)initializer);
+    return new CInitializerExpression(convert(i.getFileLocation()), (CExpression)initializer);
   }
 
-  private IASTInitializerList convert(org.eclipse.cdt.core.dom.ast.IASTInitializerList iList) {
-    List<IASTInitializer> initializerList = new ArrayList<IASTInitializer>(iList.getInitializers().length);
+  private CInitializerList convert(org.eclipse.cdt.core.dom.ast.IASTInitializerList iList) {
+    List<CInitializer> initializerList = new ArrayList<CInitializer>(iList.getInitializers().length);
     for (org.eclipse.cdt.core.dom.ast.IASTInitializer i : iList.getInitializers()) {
-      IASTInitializer newI = convert(i);
+      CInitializer newI = convert(i);
       if (newI != null) {
         initializerList.add(newI);
       }
     }
-    return new IASTInitializerList(convert(iList.getFileLocation()), initializerList);
+    return new CInitializerList(convert(iList.getFileLocation()), initializerList);
   }
 
-  private IASTInitializer convert(org.eclipse.cdt.core.dom.ast.IASTEqualsInitializer i) {
+  private CInitializer convert(org.eclipse.cdt.core.dom.ast.IASTEqualsInitializer i) {
     org.eclipse.cdt.core.dom.ast.IASTInitializerClause ic = i.getInitializerClause();
     if (ic instanceof org.eclipse.cdt.core.dom.ast.IASTExpression) {
       org.eclipse.cdt.core.dom.ast.IASTExpression e = (org.eclipse.cdt.core.dom.ast.IASTExpression)ic;
 
-      IASTNode initializer = convertExpressionWithSideEffects(e);
+      CAstNode initializer = convertExpressionWithSideEffects(e);
 
-      if(initializer != null && initializer instanceof IASTAssignment){
+      if(initializer != null && initializer instanceof CAssignment){
         sideAssignments.add(initializer);
-        return new IASTInitializerExpression(convert(e.getFileLocation()), ((IASTAssignment)initializer).getLeftHandSide());
-      } else if (initializer != null && initializer instanceof IASTFunctionCallExpression) {
-        IASTExpression exp = addSideassignmentsForExpressionsWithoutSideEffects(initializer, e);
-        return new IASTInitializerExpression(convert(e.getFileLocation()), exp);
+        return new CInitializerExpression(convert(e.getFileLocation()), ((CAssignment)initializer).getLeftHandSide());
+      } else if (initializer != null && initializer instanceof CFunctionCallExpression) {
+        CExpression exp = addSideassignmentsForExpressionsWithoutSideEffects(initializer, e);
+        return new CInitializerExpression(convert(e.getFileLocation()), exp);
       }
 
-      if (initializer != null && !(initializer instanceof IASTExpression)) {
+      if (initializer != null && !(initializer instanceof CExpression)) {
         throw new CFAGenerationRuntimeException("Initializer is not free of side-effects", e);
       }
 
-      return new IASTInitializerExpression(convert(ic.getFileLocation()), (IASTExpression)initializer);
+      return new CInitializerExpression(convert(ic.getFileLocation()), (CExpression)initializer);
 
     } else if (ic instanceof org.eclipse.cdt.core.dom.ast.IASTInitializerList) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTInitializerList)ic);
@@ -1387,8 +1386,8 @@ class ASTConverter {
     }
   }
 
-  private List<IASTParameterDeclaration> convert(org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration[] ps) {
-    List<IASTParameterDeclaration> paramsList = new ArrayList<IASTParameterDeclaration>(ps.length);
+  private List<CParameterDeclaration> convert(org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration[] ps) {
+    List<CParameterDeclaration> paramsList = new ArrayList<CParameterDeclaration>(ps.length);
     for (org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration c : ps) {
       if (!c.getRawSignature().equals("void")) {
         paramsList.add(convert(c));
@@ -1401,13 +1400,13 @@ class ASTConverter {
     return paramsList;
   }
 
-  private IASTParameterDeclaration convert(org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration p) {
+  private CParameterDeclaration convert(org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration p) {
     Pair<CStorageClass, ? extends CType> specifier = convert(p.getDeclSpecifier());
     if (specifier.getFirst() != CStorageClass.AUTO) {
       throw new CFAGenerationRuntimeException("Unsupported storage class for parameters", p);
     }
 
-    Triple<CType, IASTInitializer, String> declarator = convert(p.getDeclarator(), specifier.getSecond());
+    Triple<CType, CInitializer, String> declarator = convert(p.getDeclarator(), specifier.getSecond());
     if (declarator.getSecond() != null) {
       throw new CFAGenerationRuntimeException("Unsupported initializer for parameters", p);
     }
@@ -1418,14 +1417,14 @@ class ASTConverter {
       type = new CPointerType(false, false, functionType);
     }
 
-    return new IASTParameterDeclaration(convert(p.getFileLocation()), type, declarator.getThird());
+    return new CParameterDeclaration(convert(p.getFileLocation()), type, declarator.getThird());
   }
 
-  public IASTFileLocation convert(org.eclipse.cdt.core.dom.ast.IASTFileLocation l) {
+  public CFileLocation convert(org.eclipse.cdt.core.dom.ast.IASTFileLocation l) {
     if (l == null) {
       return null;
     }
-    return new IASTFileLocation(l.getEndingLineNumber(), l.getFileName(), l.getNodeLength(), l.getNodeOffset(), l.getStartingLineNumber());
+    return new CFileLocation(l.getEndingLineNumber(), l.getFileName(), l.getNodeLength(), l.getNodeOffset(), l.getStartingLineNumber());
   }
 
   private String convert(org.eclipse.cdt.core.dom.ast.IASTName n) {
@@ -1438,7 +1437,7 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("Unsupported storage class for type ids", t);
     }
 
-    Triple<CType, IASTInitializer, String> declarator = convert(t.getAbstractDeclarator(), specifier.getSecond());
+    Triple<CType, CInitializer, String> declarator = convert(t.getAbstractDeclarator(), specifier.getSecond());
     if (declarator.getSecond() != null) {
       throw new CFAGenerationRuntimeException("Unsupported initializer for type ids", t);
     }

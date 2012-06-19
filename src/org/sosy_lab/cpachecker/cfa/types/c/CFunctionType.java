@@ -27,8 +27,8 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.ASTStringIterable;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstStringIterable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -37,14 +37,14 @@ public class CFunctionType extends CType {
 
   private final CType returnType;
   private String name = null;
-  private final List<IASTParameterDeclaration> parameters;
+  private final List<CParameterDeclaration> parameters;
   private final boolean takesVarArgs;
 
   public CFunctionType(
       boolean pConst,
       boolean pVolatile,
       CType pReturnType,
-      List<IASTParameterDeclaration> pParameters,
+      List<CParameterDeclaration> pParameters,
       boolean pTakesVarArgs) {
     super(pConst, pVolatile);
     returnType = pReturnType;
@@ -65,7 +65,7 @@ public class CFunctionType extends CType {
     name = pName;
   }
 
-  public List<IASTParameterDeclaration> getParameters() {
+  public List<CParameterDeclaration> getParameters() {
     return parameters;
   }
 
@@ -97,7 +97,7 @@ public class CFunctionType extends CType {
     }
 
     lASTString.append("(");
-    Joiner.on(", ").appendTo(lASTString, new ASTStringIterable(parameters));
+    Joiner.on(", ").appendTo(lASTString, new CAstStringIterable(parameters));
     if (takesVarArgs) {
       if (!parameters.isEmpty()) {
         lASTString.append(", ");

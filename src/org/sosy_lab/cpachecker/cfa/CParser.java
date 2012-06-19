@@ -31,7 +31,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.AbstractEclipseCParser;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCDT6Parser;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCDT7Parser;
@@ -76,14 +76,14 @@ public interface CParser {
    * Example output:
    * AST for "bar();"
    *
-   * This method guarantees that the AST does not contain IASTProblem nodes.
+   * This method guarantees that the AST does not contain CProblem nodes.
    *
    * @param code The code snippet as described above.
    * @param dialect The parser dialect to use.
    * @return The AST for the statement.
    * @throws ParserException If parsing fails.
    */
-  IASTNode parseSingleStatement(String code) throws ParserException;
+  CAstNode parseSingleStatement(String code) throws ParserException;
 
   /**
    * Return a timer that measured the time needed for parsing.

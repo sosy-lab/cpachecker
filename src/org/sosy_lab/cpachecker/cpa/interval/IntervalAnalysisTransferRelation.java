@@ -35,34 +35,34 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerationSpecifier.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
@@ -179,7 +179,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   {
     CallToReturnEdge summaryEdge = functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
 
-    IASTFunctionCall expression = summaryEdge.getExpression();
+    CFunctionCall expression = summaryEdge.getExpression();
 
     IntervalAnalysisState newElement = element.getPreviousState().clone();
 
@@ -187,14 +187,14 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
 
     // expression is an assignment operation, e.g. a = g(b);
-    if(expression instanceof IASTFunctionCallAssignmentStatement)
+    if(expression instanceof CFunctionCallAssignmentStatement)
     {
-      IASTFunctionCallAssignmentStatement funcExp = (IASTFunctionCallAssignmentStatement)expression;
+      CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement)expression;
 
-      IASTExpression operand1 = funcExp.getLeftHandSide();
+      CExpression operand1 = funcExp.getLeftHandSide();
 
       // left hand side of the expression has to be a variable
-      if((operand1 instanceof IASTIdExpression) || (operand1 instanceof IASTFieldReference))
+      if((operand1 instanceof CIdExpression) || (operand1 instanceof CFieldReference))
       {
         String assignedVariableName = operand1.toASTString();
 
@@ -229,7 +229,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       }
 
       // a* = b(); TODO: for now, nothing is done here, but cloning the current element
-      else if(operand1 instanceof IASTUnaryExpression && ((IASTUnaryExpression)operand1).getOperator() == UnaryOperator.STAR)
+      else if(operand1 instanceof CUnaryExpression && ((CUnaryExpression)operand1).getOperator() == UnaryOperator.STAR)
           return element.clone();
 
       else
@@ -237,7 +237,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     }
 
     // import the global variables back into the scope of the calling function
-    else if(expression instanceof IASTFunctionCallStatement)
+    else if(expression instanceof CFunctionCallStatement)
     {
       for(String globalVar : globalVars)
       {
@@ -270,7 +270,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     String callerFunctionName = callEdge.getPredecessor().getFunctionName();
 
     List<String> parameterNames = functionEntryNode.getFunctionParameterNames();
-    List<IASTExpression> arguments  = callEdge.getArguments();
+    List<CExpression> arguments  = callEdge.getArguments();
 
     assert(parameterNames.size() == arguments.size());
 
@@ -308,7 +308,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param ReturnStatementEdge the CFA edge corresponding to this statement
    * @return the successor elements
    */
-  private IntervalAnalysisState handleExitFromFunction(IntervalAnalysisState element, IASTExpression expression, ReturnStatementEdge returnEdge, CFAEdge edge)
+  private IntervalAnalysisState handleExitFromFunction(IntervalAnalysisState element, CExpression expression, ReturnStatementEdge returnEdge, CFAEdge edge)
     throws UnrecognizedCCodeException
   {
     if (expression == null)
@@ -329,13 +329,13 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param truthValue flag to determine whether this is the then- or the else-branch of the assumption
    * @return the successor elements
    */
-  private Collection<? extends AbstractState> handleAssumption(IntervalAnalysisState element, IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
+  private Collection<? extends AbstractState> handleAssumption(IntervalAnalysisState element, CExpression expression, CFAEdge cfaEdge, boolean truthValue)
     throws UnrecognizedCCodeException
   {
     // first, unpack the expression to deal with a raw assumption
-    if(expression instanceof IASTUnaryExpression)
+    if(expression instanceof CUnaryExpression)
     {
-      IASTUnaryExpression unaryExp = ((IASTUnaryExpression)expression);
+      CUnaryExpression unaryExp = ((CUnaryExpression)expression);
 
       switch(unaryExp.getOperator())
       {
@@ -353,17 +353,17 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     }
 
     // a plain (boolean) identifier, e.g. if(a)
-    else if(expression instanceof IASTIdExpression)
-        return handleAssumption(element, convertToBinaryAssume((IASTIdExpression)expression), cfaEdge, truthValue);
+    else if(expression instanceof CIdExpression)
+        return handleAssumption(element, convertToBinaryAssume((CIdExpression)expression), cfaEdge, truthValue);
 
     // a binary expression, e.g. if(exp1 op exp2)
-    else if(expression instanceof IASTBinaryExpression)
+    else if(expression instanceof CBinaryExpression)
     {
       IntervalAnalysisState newElement = element.clone();
 
-      BinaryOperator operator = ((IASTBinaryExpression)expression).getOperator();
-      IASTExpression operand1 = ((IASTBinaryExpression)expression).getOperand1();
-      IASTExpression operand2 = ((IASTBinaryExpression)expression).getOperand2();
+      BinaryOperator operator = ((CBinaryExpression)expression).getOperator();
+      CExpression operand1 = ((CBinaryExpression)expression).getOperand1();
+      CExpression operand2 = ((CBinaryExpression)expression).getOperand2();
 
       ExpressionValueVisitor visitor = new ExpressionValueVisitor(newElement, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
 
@@ -410,7 +410,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     return noSuccessors();
   }
 
-  private Collection<? extends AbstractState> processAssumption(IntervalAnalysisState element, BinaryOperator operator, IASTExpression operand1, IASTExpression operand2, boolean truthValue, CFAEdge cfaEdge) throws UnrecognizedCCodeException
+  private Collection<? extends AbstractState> processAssumption(IntervalAnalysisState element, BinaryOperator operator, CExpression operand1, CExpression operand2, boolean truthValue, CFAEdge cfaEdge) throws UnrecognizedCCodeException
   {
     if(!truthValue)
       return processAssumption(element, negateOperator(operator), operand1, operand2, !truthValue, cfaEdge);
@@ -430,8 +430,8 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     String variableName2 = constructVariableName(operand2.toASTString(), cfaEdge.getPredecessor().getFunctionName());
 
     // determine whether or not the respective operand is an identifier
-    boolean isIdOp1 = operand1 instanceof IASTIdExpression;
-    boolean isIdOp2 = operand2 instanceof IASTIdExpression;
+    boolean isIdOp1 = operand1 instanceof CIdExpression;
+    boolean isIdOp2 = operand2 instanceof CIdExpression;
 
     // a < b, a < 1
     if(operator == BinaryOperator.LESS_THAN)
@@ -596,8 +596,8 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   throws UnrecognizedCCodeException
   {
     IntervalAnalysisState newElement = element.clone();
-    if (declarationEdge.getDeclaration() instanceof IASTVariableDeclaration) {
-        IASTVariableDeclaration decl = (IASTVariableDeclaration)declarationEdge.getDeclaration();
+    if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {
+        CVariableDeclaration decl = (CVariableDeclaration)declarationEdge.getDeclaration();
 
         // ignore pointer variables
         if (decl.getDeclSpecifier() instanceof CPointerType)
@@ -610,12 +610,12 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
           Interval interval;
 
-          IASTInitializer init = decl.getInitializer();
+          CInitializer init = decl.getInitializer();
 
           // global variables may be initialized explicitly on the spot ...
-          if(init instanceof IASTInitializerExpression)
+          if(init instanceof CInitializerExpression)
           {
-            IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
+            CExpression exp = ((CInitializerExpression)init).getExpression();
 
             interval = evaluateInterval(element, exp, "", declarationEdge);
           }
@@ -651,19 +651,19 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return the successor
    * @throws UnrecognizedCCodeException
    */
-  private IntervalAnalysisState handleStatement(IntervalAnalysisState element, IASTStatement expression, CFAEdge cfaEdge)
+  private IntervalAnalysisState handleStatement(IntervalAnalysisState element, CStatement expression, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException
   {
     // expression is an assignment operation, e.g. a = b;
-    if(expression instanceof IASTAssignment)
-      return handleAssignment(element, (IASTAssignment)expression, cfaEdge);
+    if(expression instanceof CAssignment)
+      return handleAssignment(element, (CAssignment)expression, cfaEdge);
 
     // ext(); => do nothing
-    else if(expression instanceof IASTFunctionCallStatement)
+    else if(expression instanceof CFunctionCallStatement)
       return element.clone();
 
     // a; nothing to do
-    else if(expression instanceof IASTExpressionStatement)
+    else if(expression instanceof CExpressionStatement)
       return element.clone();
 
     else
@@ -679,30 +679,30 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return the successor element
    * TODO pointer dereferencing via strengthening
    */
-  private IntervalAnalysisState handleAssignment(IntervalAnalysisState element, IASTAssignment assignExpression, CFAEdge cfaEdge)
+  private IntervalAnalysisState handleAssignment(IntervalAnalysisState element, CAssignment assignExpression, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException
   {
-    IASTExpression op1 = assignExpression.getLeftHandSide();
-    IASTRightHandSide op2 = assignExpression.getRightHandSide();
+    CExpression op1 = assignExpression.getLeftHandSide();
+    CRightHandSide op2 = assignExpression.getRightHandSide();
 
     // a = ?
-    if(op1 instanceof IASTIdExpression)
+    if(op1 instanceof CIdExpression)
     {
       ExpressionValueVisitor visitor = new ExpressionValueVisitor(element, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
 
-      return handleAssignmentToVariable(((IASTIdExpression)op1).getName(), op2, visitor);
+      return handleAssignmentToVariable(((CIdExpression)op1).getName(), op2, visitor);
     }
 
     // TODO: assignment to pointer, *a = ?
-    else if(op1 instanceof IASTUnaryExpression && ((IASTUnaryExpression)op1).getOperator() == UnaryOperator.STAR)
+    else if(op1 instanceof CUnaryExpression && ((CUnaryExpression)op1).getOperator() == UnaryOperator.STAR)
       return element.clone();
 
     // TODO assignment to field, a->b = ?
-    else if (op1 instanceof IASTFieldReference)
+    else if (op1 instanceof CFieldReference)
       return element.clone();
 
     // TODO assignment to array cell, a[b] = ?
-    else if (op1 instanceof IASTArraySubscriptExpression)
+    else if (op1 instanceof CArraySubscriptExpression)
       return element.clone();
 
     else
@@ -717,7 +717,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param cfaEdge the respective CFA edge
    * @return the successor element
    */
-  private IntervalAnalysisState handleAssignmentToVariable(String lParam, IASTRightHandSide expression, ExpressionValueVisitor v)
+  private IntervalAnalysisState handleAssignmentToVariable(String lParam, CRightHandSide expression, ExpressionValueVisitor v)
     throws UnrecognizedCCodeException
   {
     Interval value = expression.accept(v);
@@ -740,32 +740,32 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return the interval in respect to the evaluated expression of null, if the expression could not be evaluated properly
    */
   //getExpressionValue
-  private Interval evaluateInterval(IntervalAnalysisState element, IASTRightHandSide expression, String functionName, CFAEdge cfaEdge)
+  private Interval evaluateInterval(IntervalAnalysisState element, CRightHandSide expression, String functionName, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException
   {
-    if(expression instanceof IASTLiteralExpression)
+    if(expression instanceof CLiteralExpression)
     {
-      Long value = parseLiteral((IASTLiteralExpression)expression, cfaEdge);
+      Long value = parseLiteral((CLiteralExpression)expression, cfaEdge);
 
       return (value == null) ? Interval.createUnboundInterval() : new Interval(value, value);
     }
 
-    else if(expression instanceof IASTIdExpression)
+    else if(expression instanceof CIdExpression)
     {
-      String varName = constructVariableName(((IASTIdExpression)expression).getName(), functionName);
+      String varName = constructVariableName(((CIdExpression)expression).getName(), functionName);
 
       return (element.contains(varName)) ? element.getInterval(varName) : Interval.createUnboundInterval();
     }
 
-    else if(expression instanceof IASTCastExpression)
-      return evaluateInterval(element, ((IASTCastExpression)expression).getOperand(), functionName, cfaEdge);
+    else if(expression instanceof CCastExpression)
+      return evaluateInterval(element, ((CCastExpression)expression).getOperand(), functionName, cfaEdge);
 
-    else if(expression instanceof IASTUnaryExpression)
+    else if(expression instanceof CUnaryExpression)
     {
-      IASTUnaryExpression unaryExpression = (IASTUnaryExpression)expression;
+      CUnaryExpression unaryExpression = (CUnaryExpression)expression;
 
       UnaryOperator unaryOperator = unaryExpression.getOperator();
-      IASTExpression unaryOperand = unaryExpression.getOperand();
+      CExpression unaryOperand = unaryExpression.getOperand();
 
       switch(unaryOperator)
       {
@@ -780,9 +780,9 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     }
 
     // added for expression "if (! (req_a___0 + 50 == rsp_d___0))" in "systemc/mem_slave_tlm.1.cil.c"
-    else if(expression instanceof IASTBinaryExpression)
+    else if(expression instanceof CBinaryExpression)
     {
-      IASTBinaryExpression binaryExpression = (IASTBinaryExpression)expression;
+      CBinaryExpression binaryExpression = (CBinaryExpression)expression;
 
       Interval interval1 = evaluateInterval(element, binaryExpression.getOperand1(), functionName, cfaEdge);
       Interval interval2 = evaluateInterval(element, binaryExpression.getOperand2(), functionName, cfaEdge);
@@ -810,18 +810,18 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return a number or null if the parsing failed
    * @throws UnrecognizedCCodeException
    */
-  private static Long parseLiteral(IASTLiteralExpression expression, CFAEdge edge) throws UnrecognizedCCodeException
+  private static Long parseLiteral(CLiteralExpression expression, CFAEdge edge) throws UnrecognizedCCodeException
   {
-    if (expression instanceof IASTIntegerLiteralExpression) {
-      return ((IASTIntegerLiteralExpression)expression).asLong();
+    if (expression instanceof CIntegerLiteralExpression) {
+      return ((CIntegerLiteralExpression)expression).asLong();
 
-    } else if (expression instanceof IASTFloatLiteralExpression) {
+    } else if (expression instanceof CFloatLiteralExpression) {
       return null;
 
-    } else if (expression instanceof IASTCharLiteralExpression) {
-      return (long)((IASTCharLiteralExpression)expression).getCharacter();
+    } else if (expression instanceof CCharLiteralExpression) {
+      return (long)((CCharLiteralExpression)expression).getCharacter();
 
-    } else if (expression instanceof IASTStringLiteralExpression) {
+    } else if (expression instanceof CStringLiteralExpression) {
       return null;
 
     } else {
@@ -876,13 +876,13 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     return Collections.emptySet();
   }
 
-  private IASTBinaryExpression convertToBinaryAssume(IASTIdExpression expression)
+  private CBinaryExpression convertToBinaryAssume(CIdExpression expression)
   {
-    IASTIntegerLiteralExpression zero = new IASTIntegerLiteralExpression(expression.getFileLocation(),
+    CIntegerLiteralExpression zero = new CIntegerLiteralExpression(expression.getFileLocation(),
                                                                          expression.getExpressionType(),
                                                                          BigInteger.ZERO);
 
-    return new IASTBinaryExpression(expression.getFileLocation(),
+    return new CBinaryExpression(expression.getFileLocation(),
                                     expression.getExpressionType(),
                                     expression,
                                     zero,
@@ -893,8 +893,8 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * Visitor that get's the value from an expression.
    * The result may be null, i.e., the value is unknown.
    */
-  private class ExpressionValueVisitor extends DefaultExpressionVisitor<Interval, UnrecognizedCCodeException>
-                                       implements RightHandSideVisitor<Interval, UnrecognizedCCodeException> {
+  private class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, UnrecognizedCCodeException>
+                                       implements CRightHandSideVisitor<Interval, UnrecognizedCCodeException> {
 
     protected final IntervalAnalysisState state;
 
@@ -911,12 +911,12 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     // TODO fields, arrays
 
     @Override
-    protected Interval visitDefault(IASTExpression expression) {
+    protected Interval visitDefault(CExpression expression) {
       return Interval.createUnboundInterval();
     }
 
     @Override
-    public Interval visit(IASTBinaryExpression binaryExpression) throws UnrecognizedCCodeException
+    public Interval visit(CBinaryExpression binaryExpression) throws UnrecognizedCCodeException
     {
       Interval interval1 = binaryExpression.getOperand1().accept(this);
       Interval interval2 = binaryExpression.getOperand2().accept(this);
@@ -975,41 +975,41 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     }
 
     @Override
-    public Interval visit(IASTCastExpression cast) throws UnrecognizedCCodeException {
+    public Interval visit(CCastExpression cast) throws UnrecognizedCCodeException {
       return cast.getOperand().accept(this);
     }
 
     @Override
-    public Interval visit(IASTFunctionCallExpression functionCall) throws UnrecognizedCCodeException {
+    public Interval visit(CFunctionCallExpression functionCall) throws UnrecognizedCCodeException {
       return Interval.createUnboundInterval();
     }
 
     @Override
-    public Interval visit(IASTCharLiteralExpression charLiteral) throws UnrecognizedCCodeException {
+    public Interval visit(CCharLiteralExpression charLiteral) throws UnrecognizedCCodeException {
       Long l = parseLiteral(charLiteral, cfaEdge);
       return l == null ? Interval.createUnboundInterval() : new Interval(l);
     }
 
     @Override
-    public Interval visit(IASTFloatLiteralExpression floatLiteral) throws UnrecognizedCCodeException {
+    public Interval visit(CFloatLiteralExpression floatLiteral) throws UnrecognizedCCodeException {
       return Interval.createUnboundInterval();
     }
 
     @Override
-    public Interval visit(IASTIntegerLiteralExpression integerLiteral) throws UnrecognizedCCodeException {
+    public Interval visit(CIntegerLiteralExpression integerLiteral) throws UnrecognizedCCodeException {
       return new Interval(parseLiteral(integerLiteral, cfaEdge));
     }
 
     @Override
-    public Interval visit(IASTStringLiteralExpression stringLiteral) throws UnrecognizedCCodeException {
+    public Interval visit(CStringLiteralExpression stringLiteral) throws UnrecognizedCCodeException {
       return Interval.createUnboundInterval();
     }
 
     @Override
-    public Interval visit(IASTIdExpression identifier) throws UnrecognizedCCodeException
+    public Interval visit(CIdExpression identifier) throws UnrecognizedCCodeException
     {
-      if(identifier.getDeclaration() instanceof IASTEnumerator)
-        return new Interval(((IASTEnumerator)identifier.getDeclaration()).getValue());
+      if(identifier.getDeclaration() instanceof CEnumerator)
+        return new Interval(((CEnumerator)identifier.getDeclaration()).getValue());
 
       String variableName = constructVariableName(identifier.getName(), functionName);
       if (state.contains(variableName))
@@ -1020,9 +1020,9 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     }
 
     @Override
-    public Interval visit(IASTUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
+    public Interval visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
       UnaryOperator unaryOperator = unaryExpression.getOperator();
-      IASTExpression unaryOperand = unaryExpression.getOperand();
+      CExpression unaryOperand = unaryExpression.getOperand();
 
       Interval interval = unaryOperand.accept(this);
 

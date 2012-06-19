@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -33,10 +33,10 @@ import com.google.common.base.Optional;
 public class AssumeEdge extends AbstractCFAEdge {
 
   private final boolean truthAssumption;
-  private final IASTExpression expression;
+  private final CExpression expression;
 
   public AssumeEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
-      CFANode pSuccessor, IASTExpression pExpression, boolean pTruthAssumption) {
+      CFANode pSuccessor, CExpression pExpression, boolean pTruthAssumption) {
 
     super("[" + pRawStatement + "]", pLineNumber, pPredecessor, pSuccessor);
     truthAssumption = pTruthAssumption;
@@ -52,7 +52,7 @@ public class AssumeEdge extends AbstractCFAEdge {
     return truthAssumption;
   }
 
-  public IASTExpression getExpression() {
+  public CExpression getExpression() {
     return expression;
   }
 
@@ -76,7 +76,7 @@ public class AssumeEdge extends AbstractCFAEdge {
    * of {@link #getRawStatement()} (it misses the outer negation of the expression).
    */
   @Override
-  public Optional<IASTExpression> getRawAST() {
+  public Optional<CExpression> getRawAST() {
     return Optional.of(expression);
   }
 }

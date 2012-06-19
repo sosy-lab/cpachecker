@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
@@ -36,7 +36,7 @@ class FunctionPointerCallEdge extends FunctionCallEdge {
 
   public FunctionPointerCallEdge(String pRawStatement,
       int pLineNumber, CFANode pPredecessor, FunctionDefinitionNode pSuccessor,
-      IASTFunctionCall pFunctionCall, CallToReturnEdge pSummaryEdge) {
+      CFunctionCall pFunctionCall, CallToReturnEdge pSummaryEdge) {
     super(pRawStatement, pLineNumber, pPredecessor, pSuccessor, pFunctionCall, pSummaryEdge);
   }
 

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -32,10 +32,10 @@ import com.google.common.base.Optional;
 
 public class DeclarationEdge extends AbstractCFAEdge {
 
-  private final IASTDeclaration declaration;
+  private final CDeclaration declaration;
 
   public DeclarationEdge(final String pRawSignature, final int pLineNumber,
-      final CFANode pPredecessor, final CFANode pSuccessor, final IASTDeclaration pDeclaration) {
+      final CFANode pPredecessor, final CFANode pSuccessor, final CDeclaration pDeclaration) {
 
     super(pRawSignature, pLineNumber, pPredecessor, pSuccessor);
     declaration = pDeclaration;
@@ -46,12 +46,12 @@ public class DeclarationEdge extends AbstractCFAEdge {
     return CFAEdgeType.DeclarationEdge;
   }
 
-  public IASTDeclaration getDeclaration() {
+  public CDeclaration getDeclaration() {
     return declaration;
   }
 
   @Override
-  public Optional<IASTDeclaration> getRawAST() {
+  public Optional<CDeclaration> getRawAST() {
     return Optional.of(declaration);
   }
 

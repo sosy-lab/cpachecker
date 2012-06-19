@@ -25,43 +25,43 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import java.math.BigInteger;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 
 
 public class CNumericTypes {
 
   private CNumericTypes() { }
 
-  private static IASTIntegerLiteralExpression create(long l) {
-    return new IASTIntegerLiteralExpression(null, null, BigInteger.valueOf(l));
+  private static CIntegerLiteralExpression create(long l) {
+    return new CIntegerLiteralExpression(null, null, BigInteger.valueOf(l));
   }
 
-  public static final IASTIntegerLiteralExpression ZERO = create(0L);
-  public static final IASTIntegerLiteralExpression ONE = create(1L);
+  public static final CIntegerLiteralExpression ZERO = create(0L);
+  public static final CIntegerLiteralExpression ONE = create(1L);
 
-  public static final IASTIntegerLiteralExpression FALSE = ZERO;
-  public static final IASTIntegerLiteralExpression TRUE = ONE;
+  public static final CIntegerLiteralExpression FALSE = ZERO;
+  public static final CIntegerLiteralExpression TRUE = ONE;
 
   /* type bounds, assuming 32-bit machine */
   // TODO use MachineModel here
-  public static final IASTIntegerLiteralExpression INT_MAX = create(2147483647L);
-  public static final IASTIntegerLiteralExpression INT_MIN = create(-2147483648L);
-  public static final IASTIntegerLiteralExpression UINT_MIN = ZERO;
-  public static final IASTIntegerLiteralExpression UINT_MAX = create(4294967295L);
+  public static final CIntegerLiteralExpression INT_MAX = create(2147483647L);
+  public static final CIntegerLiteralExpression INT_MIN = create(-2147483648L);
+  public static final CIntegerLiteralExpression UINT_MIN = ZERO;
+  public static final CIntegerLiteralExpression UINT_MAX = create(4294967295L);
 
-  public static final IASTIntegerLiteralExpression LONG_MAX = create(2147483647L);
-  public static final IASTIntegerLiteralExpression LONG_MIN = create(-2147483648L);
-  public static final IASTIntegerLiteralExpression ULONG_MIN = ZERO;
-  public static final IASTIntegerLiteralExpression ULONG_MAX = create(4294967295L);
+  public static final CIntegerLiteralExpression LONG_MAX = create(2147483647L);
+  public static final CIntegerLiteralExpression LONG_MIN = create(-2147483648L);
+  public static final CIntegerLiteralExpression ULONG_MIN = ZERO;
+  public static final CIntegerLiteralExpression ULONG_MAX = create(4294967295L);
 
-  public static final IASTIntegerLiteralExpression SHRT_MAX = create(32767L);
-  public static final IASTIntegerLiteralExpression SHRT_MIN = create(-32768L);
-  public static final IASTIntegerLiteralExpression USHRT_MIN = ZERO;
-  public static final IASTIntegerLiteralExpression USHRT_MAX = create(65535L);
+  public static final CIntegerLiteralExpression SHRT_MAX = create(32767L);
+  public static final CIntegerLiteralExpression SHRT_MIN = create(-32768L);
+  public static final CIntegerLiteralExpression USHRT_MIN = ZERO;
+  public static final CIntegerLiteralExpression USHRT_MAX = create(65535L);
 
-  public static final IASTIntegerLiteralExpression CHAR_MAX = create(127L);
-  public static final IASTIntegerLiteralExpression CHAR_MIN = create(-128L);
-  public static final IASTIntegerLiteralExpression UCHAR_MIN = ZERO;
-  public static final IASTIntegerLiteralExpression UCHAR_MAX = create(255L);
+  public static final CIntegerLiteralExpression CHAR_MAX = create(127L);
+  public static final CIntegerLiteralExpression CHAR_MIN = create(-128L);
+  public static final CIntegerLiteralExpression UCHAR_MIN = ZERO;
+  public static final CIntegerLiteralExpression UCHAR_MAX = create(255L);
 
 }

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces.conditions;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
 
 
@@ -41,6 +41,6 @@ public interface AssumptionReportingState {
    *         for the given state, or the value null representing
    *         the assumption true.
    */
-  public IASTExpression getAssumption();
+  public CExpression getAssumption();
 
 }

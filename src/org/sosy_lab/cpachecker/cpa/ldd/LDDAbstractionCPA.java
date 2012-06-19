@@ -30,10 +30,10 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -82,14 +82,14 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
         if (edge instanceof DeclarationEdge) {
           DeclarationEdge declarationEdge = (DeclarationEdge) edge;
-          IASTDeclaration declaration = declarationEdge.getDeclaration();
-          if (declaration instanceof IASTVariableDeclaration) {
+          CDeclaration declaration = declarationEdge.getDeclaration();
+          if (declaration instanceof CVariableDeclaration) {
             String name = declaration.getName();
             CType type = declaration.getDeclSpecifier();
             registerVariable(name, type, variables);
-          } else if (declaration instanceof IASTFunctionDeclaration) {
-            IASTFunctionDeclaration funDecl = (IASTFunctionDeclaration) declaration;
-            for (IASTParameterDeclaration paramDecl : funDecl.getDeclSpecifier().getParameters()) {
+          } else if (declaration instanceof CFunctionDeclaration) {
+            CFunctionDeclaration funDecl = (CFunctionDeclaration) declaration;
+            for (CParameterDeclaration paramDecl : funDecl.getDeclSpecifier().getParameters()) {
               String name = paramDecl.getName();
               CType type = paramDecl.getDeclSpecifier();
               registerVariable(name, type, variables);
@@ -101,7 +101,7 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
     for (CFAFunctionDefinitionNode node : cfa.getAllFunctionHeads()) {
       if (node instanceof FunctionDefinitionNode) {
         FunctionDefinitionNode fDefNode = (FunctionDefinitionNode) node;
-        for (IASTParameterDeclaration paramDecl : fDefNode.getFunctionDefinition().getDeclSpecifier().getParameters()) {
+        for (CParameterDeclaration paramDecl : fDefNode.getFunctionDefinition().getDeclSpecifier().getParameters()) {
           String name = paramDecl.getName();
           CType type = paramDecl.getDeclSpecifier();
           registerVariable(name, type, variables);

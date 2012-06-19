@@ -37,10 +37,10 @@ import java.util.Set;
 import java.util.Stack;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
@@ -61,9 +61,9 @@ import com.google.common.collect.Sets;
 
 public class PathToCTranslator {
 
-  private static Function<IASTNode, String> RAW_SIGNATURE_FUNCTION = new Function<IASTNode, String>() {
+  private static Function<CAstNode, String> RAW_SIGNATURE_FUNCTION = new Function<CAstNode, String>() {
     @Override
-    public String apply(IASTNode pArg0) {
+    public String apply(CAstNode pArg0) {
       return pArg0.toASTString();
     }
   };
@@ -402,14 +402,14 @@ public class PathToCTranslator {
       return functionName + lArgumentString + ";";
     }
 
-    IASTFunctionCall expressionOnSummaryEdge = summaryEdge.getExpression();
-    if (expressionOnSummaryEdge instanceof IASTFunctionCallAssignmentStatement) {
-      IASTFunctionCallAssignmentStatement assignExp = (IASTFunctionCallAssignmentStatement)expressionOnSummaryEdge;
+    CFunctionCall expressionOnSummaryEdge = summaryEdge.getExpression();
+    if (expressionOnSummaryEdge instanceof CFunctionCallAssignmentStatement) {
+      CFunctionCallAssignmentStatement assignExp = (CFunctionCallAssignmentStatement)expressionOnSummaryEdge;
       String assignedVarName = assignExp.getLeftHandSide().toASTString();
       return assignedVarName + " = " + functionName + lArgumentString + ";";
 
     } else {
-      assert expressionOnSummaryEdge instanceof IASTFunctionCallStatement;
+      assert expressionOnSummaryEdge instanceof CFunctionCallStatement;
       return functionName + lArgumentString + ";";
     }
   }

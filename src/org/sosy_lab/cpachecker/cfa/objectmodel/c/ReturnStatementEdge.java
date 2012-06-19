@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
@@ -34,9 +34,9 @@ import com.google.common.base.Optional;
 
 public class ReturnStatementEdge extends AbstractCFAEdge {
 
-  private final IASTReturnStatement rawAST;
+  private final CReturnStatement rawAST;
 
-  public ReturnStatementEdge(String pRawStatement, IASTReturnStatement pRawAST,
+  public ReturnStatementEdge(String pRawStatement, CReturnStatement pRawAST,
       int pLineNumber, CFANode pPredecessor, CFAFunctionExitNode pSuccessor) {
 
     super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
@@ -48,12 +48,12 @@ public class ReturnStatementEdge extends AbstractCFAEdge {
     return CFAEdgeType.ReturnStatementEdge;
   }
 
-  public IASTExpression getExpression() {
+  public CExpression getExpression() {
     return rawAST.getReturnValue();
   }
 
   @Override
-  public Optional<IASTReturnStatement> getRawAST() {
+  public Optional<CReturnStatement> getRawAST() {
     return Optional.of(rawAST);
   }
 

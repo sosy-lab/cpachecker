@@ -26,16 +26,16 @@ package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
@@ -54,7 +54,7 @@ public class ArithmeticOverflowAssumptionBuilder
 implements GenericAssumptionBuilder
 {
 
-  private static Pair<IASTIntegerLiteralExpression, IASTIntegerLiteralExpression> boundsForType(CType typ)
+  private static Pair<CIntegerLiteralExpression, CIntegerLiteralExpression> boundsForType(CType typ)
   {
     if (typ instanceof CSimpleType) {
       CSimpleType btyp = (CSimpleType) typ;
@@ -103,7 +103,7 @@ implements GenericAssumptionBuilder
      * expression, ignoring bounds if applicable. The method does
      * not check that the expression is indeed an arithmetic expression.
      */
-    private static IASTExpression conjunctPredicateForArithmeticExpression(IASTExpression exp, IASTExpression result)
+    private static CExpression conjunctPredicateForArithmeticExpression(CExpression exp, CExpression result)
     {
       return conjunctPredicateForArithmeticExpression(exp.getExpressionType(), exp, result);
     }
@@ -114,55 +114,55 @@ implements GenericAssumptionBuilder
    * The two last, boolean arguments allow to avoid generating
    * lower and/or upper bounds predicates.
    */
-  private static IASTExpression conjunctPredicateForArithmeticExpression(CType typ,
-      IASTExpression exp, IASTExpression result) {
+  private static CExpression conjunctPredicateForArithmeticExpression(CType typ,
+      CExpression exp, CExpression result) {
 
-    Pair<IASTIntegerLiteralExpression, IASTIntegerLiteralExpression> bounds =
+    Pair<CIntegerLiteralExpression, CIntegerLiteralExpression> bounds =
         boundsForType(typ);
 
     if (bounds.getFirst() != null) {
 
-      final IASTBinaryExpression secondExp = new IASTBinaryExpression(null, null, exp,
+      final CBinaryExpression secondExp = new CBinaryExpression(null, null, exp,
               bounds.getFirst(), BinaryOperator.GREATER_EQUAL);
-      result = new IASTBinaryExpression(null, null,
+      result = new CBinaryExpression(null, null,
               result, secondExp, BinaryOperator.LOGICAL_AND);
     }
 
     if (bounds.getSecond() != null) {
 
-      final IASTBinaryExpression secondExp = new IASTBinaryExpression(null, null, exp,
+      final CBinaryExpression secondExp = new CBinaryExpression(null, null, exp,
               bounds.getSecond(), BinaryOperator.LESS_EQUAL);
-      result =new IASTBinaryExpression(null, null,
+      result =new CBinaryExpression(null, null,
               result, secondExp, BinaryOperator.LOGICAL_AND);
     }
     return result;
   }
 
-    private static IASTExpression visit(IASTExpression pExpression, IASTExpression result) {
-      if(pExpression instanceof IASTIdExpression){
+    private static CExpression visit(CExpression pExpression, CExpression result) {
+      if(pExpression instanceof CIdExpression){
         result = conjunctPredicateForArithmeticExpression(pExpression, result);
       }
-      else if (pExpression instanceof IASTBinaryExpression)
+      else if (pExpression instanceof CBinaryExpression)
       {
-        IASTBinaryExpression binexp = (IASTBinaryExpression)pExpression;
-        IASTExpression op1 = binexp.getOperand1();
+        CBinaryExpression binexp = (CBinaryExpression)pExpression;
+        CExpression op1 = binexp.getOperand1();
         // Only variables for now, ignoring * & operators
-        if(op1 instanceof IASTIdExpression){
+        if(op1 instanceof CIdExpression){
           result = conjunctPredicateForArithmeticExpression(op1, result);
         }
       }
-      else if (pExpression instanceof IASTUnaryExpression)
+      else if (pExpression instanceof CUnaryExpression)
       {
-        IASTUnaryExpression unexp = (IASTUnaryExpression)pExpression;
-        IASTExpression op1 = unexp.getOperand();
+        CUnaryExpression unexp = (CUnaryExpression)pExpression;
+        CExpression op1 = unexp.getOperand();
         // Only variables. Ignoring * & operators for now
-        if(op1 instanceof IASTIdExpression){
+        if(op1 instanceof CIdExpression){
           result = conjunctPredicateForArithmeticExpression(op1, result);
         }
       }
-      else if (pExpression instanceof IASTCastExpression)
+      else if (pExpression instanceof CCastExpression)
       {
-        IASTCastExpression castexp = (IASTCastExpression)pExpression;
+        CCastExpression castexp = (CCastExpression)pExpression;
         CType toType = castexp.getExpressionType();
         result = conjunctPredicateForArithmeticExpression(toType, castexp.getOperand(), result);
       }
@@ -170,8 +170,8 @@ implements GenericAssumptionBuilder
     }
 
   @Override
-  public IASTExpression assumptionsForEdge(CFAEdge pEdge) {
-    IASTExpression result = CNumericTypes.TRUE;
+  public CExpression assumptionsForEdge(CFAEdge pEdge) {
+    CExpression result = CNumericTypes.TRUE;
 
     switch (pEdge.getEdgeType()) {
     case AssumeEdge:
@@ -182,12 +182,12 @@ implements GenericAssumptionBuilder
       FunctionCallEdge fcallEdge = (FunctionCallEdge) pEdge;
       if (!fcallEdge.getArguments().isEmpty()) {
         FunctionDefinitionNode fdefnode = fcallEdge.getSuccessor();
-        List<IASTParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
-        for (IASTParameterDeclaration paramdecl : formalParams)
+        List<CParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
+        for (CParameterDeclaration paramdecl : formalParams)
         {
           String name = paramdecl.getName();
           CType type = paramdecl.getDeclSpecifier();
-          IASTExpression exp = new IASTIdExpression(paramdecl.getFileLocation(), type, name, paramdecl);
+          CExpression exp = new CIdExpression(paramdecl.getFileLocation(), type, name, paramdecl);
           result = visit(exp, result);
         }
       }
@@ -195,9 +195,9 @@ implements GenericAssumptionBuilder
     case StatementEdge:
       StatementEdge stmtEdge = (StatementEdge) pEdge;
 
-      IASTStatement stmt = stmtEdge.getStatement();
-      if (stmt instanceof IASTAssignment) {
-        result = visit(((IASTAssignment)stmt).getLeftHandSide(), result);
+      CStatement stmt = stmtEdge.getStatement();
+      if (stmt instanceof CAssignment) {
+        result = visit(((CAssignment)stmt).getLeftHandSide(), result);
       }
       break;
     case ReturnStatementEdge:

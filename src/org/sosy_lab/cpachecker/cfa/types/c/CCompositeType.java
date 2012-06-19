@@ -25,19 +25,19 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTFileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 
 import com.google.common.collect.ImmutableList;
 
 public final class CCompositeType extends CType {
 
   private final int                   key;
-  private final List<IASTCompositeTypeMemberDeclaration> members;
+  private final List<CCompositeTypeMemberDeclaration> members;
   private final String                name;
 
   public CCompositeType(final boolean pConst, final boolean pVolatile,
-      final int pKey, final List<IASTCompositeTypeMemberDeclaration> pMembers, final String pName) {
+      final int pKey, final List<CCompositeTypeMemberDeclaration> pMembers, final String pName) {
     super(pConst, pVolatile);
     key = pKey;
     members = ImmutableList.copyOf(pMembers);
@@ -48,7 +48,7 @@ public final class CCompositeType extends CType {
     return key;
   }
 
-  public List<IASTCompositeTypeMemberDeclaration> getMembers() {
+  public List<CCompositeTypeMemberDeclaration> getMembers() {
     return members;
   }
 
@@ -81,7 +81,7 @@ public final class CCompositeType extends CType {
     lASTString.append(name);
 
     lASTString.append(" {\n");
-    for (IASTCompositeTypeMemberDeclaration lMember : members) {
+    for (CCompositeTypeMemberDeclaration lMember : members) {
       lASTString.append("  ");
       lASTString.append(lMember.toASTString());
       lASTString.append("\n");
@@ -97,9 +97,9 @@ public final class CCompositeType extends CType {
    * This is the declaration of a member of a composite type.
    * It contains a type and an optional name.
    */
-  public static final class IASTCompositeTypeMemberDeclaration extends IASTSimpleDeclaration {
+  public static final class CCompositeTypeMemberDeclaration extends CSimpleDeclaration {
 
-    public IASTCompositeTypeMemberDeclaration(IASTFileLocation pFileLocation,
+    public CCompositeTypeMemberDeclaration(CFileLocation pFileLocation,
                                               CType pSpecifier,
                                               String pName) {
       super(pFileLocation, pSpecifier, pName);

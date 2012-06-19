@@ -41,7 +41,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -289,7 +289,7 @@ public class CFACreator {
   /**
    * Insert nodes for global declarations after first node of CFA.
    */
-  public static void insertGlobalDeclarations(final MutableCFA cfa, List<Pair<IASTDeclaration, String>> globalVars) {
+  public static void insertGlobalDeclarations(final MutableCFA cfa, List<Pair<CDeclaration, String>> globalVars) {
     if (globalVars.isEmpty()) {
       return;
     }
@@ -310,8 +310,8 @@ public class CFACreator {
     addToCFA(be);
 
     // create a series of GlobalDeclarationEdges, one for each declaration
-    for (Pair<IASTDeclaration, String> p : globalVars) {
-      IASTDeclaration d = p.getFirst();
+    for (Pair<CDeclaration, String> p : globalVars) {
+      CDeclaration d = p.getFirst();
       String rawSignature = p.getSecond();
       assert d.isGlobal();
 

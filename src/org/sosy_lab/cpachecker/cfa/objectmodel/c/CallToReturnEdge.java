@@ -23,23 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public class CallToReturnEdge extends AbstractCFAEdge {
 
-	private final IASTFunctionCall expression;
+	private final CFunctionCall expression;
 
 	public CallToReturnEdge(String pRawStatement, int pLineNumber,
-	    CFANode pPredecessor, CFANode pSuccessor, IASTFunctionCall pExpression) {
+	    CFANode pPredecessor, CFANode pSuccessor, CFunctionCall pExpression) {
 
 		super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
 		expression = pExpression;
 	}
 
-	public IASTFunctionCall getExpression() {
+	public CFunctionCall getExpression() {
 		return expression;
 	}
 

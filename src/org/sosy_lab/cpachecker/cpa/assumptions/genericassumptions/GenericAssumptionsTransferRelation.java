@@ -27,9 +27,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -60,14 +60,14 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
   throws CPATransferException
   {
 
-    IASTExpression allAssumptions = null;
+    CExpression allAssumptions = null;
     for (GenericAssumptionBuilder b : assumptionBuilders) {
-      IASTExpression assumption = b.assumptionsForEdge(edge);
+      CExpression assumption = b.assumptionsForEdge(edge);
       if (assumption != null) {
         if (allAssumptions == null) {
           allAssumptions = assumption;
         } else {
-          allAssumptions = new IASTBinaryExpression(null, null, allAssumptions, assumption, BinaryOperator.LOGICAL_AND);
+          allAssumptions = new CBinaryExpression(null, null, allAssumptions, assumption, BinaryOperator.LOGICAL_AND);
         }
       }
     }

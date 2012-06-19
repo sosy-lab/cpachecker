@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingState;
 
@@ -37,16 +37,16 @@ import com.google.common.base.Preconditions;
 public class GenericAssumptionsState implements AbstractState, AssumptionReportingState {
 
   // The inner representation is an expression.
-  private final IASTExpression assumption;
+  private final CExpression assumption;
 
-  public GenericAssumptionsState(IASTExpression anAssumption)
+  public GenericAssumptionsState(CExpression anAssumption)
   {
     Preconditions.checkNotNull(anAssumption);
     assumption = anAssumption;
   }
 
   @Override
-  public IASTExpression getAssumption()
+  public CExpression getAssumption()
   {
     return assumption;
   }

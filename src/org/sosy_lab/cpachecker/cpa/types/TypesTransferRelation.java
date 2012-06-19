@@ -27,19 +27,19 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTTypeDefDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerationSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerationSpecifier.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -99,7 +99,7 @@ public class TypesTransferRelation implements TransferRelation {
         // this is not bad, but we don't get type information for external
         // function
 
-        IASTFunctionDeclaration funcDef = funcDefNode.getFunctionDefinition();
+        CFunctionDeclaration funcDef = funcDefNode.getFunctionDefinition();
         handleFunctionDeclaration(successor, funcCallEdge,
             funcDef.getDeclSpecifier());
       }
@@ -115,7 +115,7 @@ public class TypesTransferRelation implements TransferRelation {
       if (!entryFunctionProcessed
           && (cfaEdge.getPredecessor() instanceof CFAFunctionDefinitionNode)) {
         //since by this point all global variables have been processed, we can now process the entry function
-        IASTFunctionDeclaration funcDef = entryFunctionDefinitionNode.getFunctionDefinition();
+        CFunctionDeclaration funcDef = entryFunctionDefinitionNode.getFunctionDefinition();
         handleFunctionDeclaration(successor, null, funcDef.getDeclSpecifier());
 
         entryFunctionProcessed = true;
@@ -132,19 +132,19 @@ public class TypesTransferRelation implements TransferRelation {
   private void handleDeclaration(TypesState element,
                                  DeclarationEdge declarationEdge)
                                  throws UnrecognizedCCodeException {
-    IASTDeclaration decl = declarationEdge.getDeclaration();
+    CDeclaration decl = declarationEdge.getDeclaration();
     CType specifier = declarationEdge.getDeclaration().getDeclSpecifier();
 
-    if (decl instanceof IASTFunctionDeclaration) {
+    if (decl instanceof CFunctionDeclaration) {
       handleFunctionDeclaration(element, declarationEdge, (CFunctionType)specifier);
 
     } else {
       Type type = getType(element, declarationEdge, specifier);
 
-      if (decl instanceof IASTTypeDefDeclaration) {
+      if (decl instanceof CTypeDefDeclaration) {
         element.addTypedef(decl.getName(), type);
 
-      } else if (decl instanceof IASTVariableDeclaration) {
+      } else if (decl instanceof CVariableDeclaration) {
 
         String functionName = null;
         if (!(decl.isGlobal())) {
@@ -253,7 +253,7 @@ public class TypesTransferRelation implements TransferRelation {
         element.addTypedef(name, compType); // add type "struct a"
       }
 
-      for (IASTSimpleDeclaration subDeclaration : compositeSpecifier.getMembers()) {
+      for (CSimpleDeclaration subDeclaration : compositeSpecifier.getMembers()) {
 
         Type subType = getType(element, cfaEdge, subDeclaration.getDeclSpecifier());
 
@@ -300,9 +300,9 @@ public class TypesTransferRelation implements TransferRelation {
         element.addTypedef(name, type);
       }
 
-    } else if (declSpecifier instanceof IASTEnumerationSpecifier) {
+    } else if (declSpecifier instanceof CEnumerationSpecifier) {
       // enum
-      IASTEnumerationSpecifier enumSpecifier = (IASTEnumerationSpecifier)declSpecifier;
+      CEnumerationSpecifier enumSpecifier = (CEnumerationSpecifier)declSpecifier;
       String name = enumSpecifier.getName();
       EnumType enumType;
 
@@ -318,7 +318,7 @@ public class TypesTransferRelation implements TransferRelation {
         element.addTypedef(name, enumType); // add type "enum a"
       }
 
-      for (IASTEnumerator enumerator : enumSpecifier.getEnumerators()) {
+      for (CEnumerator enumerator : enumSpecifier.getEnumerators()) {
         enumType.addEnumerator(enumerator.getName(), enumerator.getValue());
       }
 
@@ -347,11 +347,11 @@ public class TypesTransferRelation implements TransferRelation {
 
       int length = 0;
 
-      IASTExpression lengthExpression = arraySpecifier.getLength();
+      CExpression lengthExpression = arraySpecifier.getLength();
       if (lengthExpression != null) {
         //if the length expression is a literal, get its integer value
-        if (lengthExpression instanceof IASTLiteralExpression) {
-          Integer value = parseLiteral((IASTLiteralExpression)lengthExpression, cfaEdge);
+        if (lengthExpression instanceof CLiteralExpression) {
+          Integer value = parseLiteral((CLiteralExpression)lengthExpression, cfaEdge);
           if (value != null) {
             length = value;
           }
@@ -393,7 +393,7 @@ public class TypesTransferRelation implements TransferRelation {
 
     FunctionType function = new FunctionType(funcDeclSpecifier.getName(), returnType, funcDeclSpecifier.takesVarArgs());
 
-    for (IASTSimpleDeclaration parameter : funcDeclSpecifier.getParameters()) {
+    for (CSimpleDeclaration parameter : funcDeclSpecifier.getParameters()) {
 
       Type parameterType = getType(element, cfaEdge, parameter.getDeclSpecifier());
 
@@ -407,17 +407,17 @@ public class TypesTransferRelation implements TransferRelation {
     return function;
   }
 
-  private Integer parseLiteral(IASTLiteralExpression expression, CFAEdge edge) throws UnrecognizedCCodeException {
-    if (expression instanceof IASTIntegerLiteralExpression) {
-      return ((IASTIntegerLiteralExpression)expression).getValue().intValue();
+  private Integer parseLiteral(CLiteralExpression expression, CFAEdge edge) throws UnrecognizedCCodeException {
+    if (expression instanceof CIntegerLiteralExpression) {
+      return ((CIntegerLiteralExpression)expression).getValue().intValue();
 
-    } else if (expression instanceof IASTFloatLiteralExpression) {
+    } else if (expression instanceof CFloatLiteralExpression) {
       return null;
 
-    } else if (expression instanceof IASTCharLiteralExpression) {
-      return (int)((IASTCharLiteralExpression)expression).getCharacter();
+    } else if (expression instanceof CCharLiteralExpression) {
+      return (int)((CCharLiteralExpression)expression).getCharacter();
 
-    } else if (expression instanceof IASTStringLiteralExpression) {
+    } else if (expression instanceof CStringLiteralExpression) {
       return null;
 
     } else {

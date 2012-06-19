@@ -32,10 +32,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
@@ -100,11 +100,11 @@ public class CFASecondPassBuilder {
       for (CFAEdge edge : leavingEdges(node)) {
         if (edge instanceof StatementEdge) {
           StatementEdge statement = (StatementEdge)edge;
-          IASTStatement expr = statement.getStatement();
+          CStatement expr = statement.getStatement();
 
           // if statement is of the form x = call(a,b); or call(a,b);
           if (shouldCreateCallEdges(expr)) {
-            createCallAndReturnEdges(statement, (IASTFunctionCall)expr);
+            createCallAndReturnEdges(statement, (CFunctionCall)expr);
           }
         }
 
@@ -117,11 +117,11 @@ public class CFASecondPassBuilder {
     }
   }
 
-  private boolean shouldCreateCallEdges(IASTStatement s) {
-    if (!(s instanceof IASTFunctionCall)) {
+  private boolean shouldCreateCallEdges(CStatement s) {
+    if (!(s instanceof CFunctionCall)) {
       return false;
     }
-    IASTFunctionCallExpression f = ((IASTFunctionCall)s).getFunctionCallExpression();
+    CFunctionCallExpression f = ((CFunctionCall)s).getFunctionCallExpression();
     String name = f.getFunctionNameExpression().toASTString();
     return cfas.containsKey(name);
   }
@@ -134,10 +134,10 @@ public class CFASecondPassBuilder {
    * then functionCall is call(b).
    * @throws ParserException
    */
-  private void createCallAndReturnEdges(StatementEdge edge, IASTFunctionCall functionCall) throws ParserException {
+  private void createCallAndReturnEdges(StatementEdge edge, CFunctionCall functionCall) throws ParserException {
     CFANode predecessorNode = edge.getPredecessor();
     CFANode successorNode = edge.getSuccessor();
-    IASTFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
+    CFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
     String functionName = functionCallExpression.getFunctionNameExpression().toASTString();
     int lineNumber = edge.getLineNumber();
     CFAFunctionDefinitionNode fDefNode = cfas.get(functionName);
@@ -146,7 +146,7 @@ public class CFASecondPassBuilder {
     assert fDefNode instanceof FunctionDefinitionNode : "This code creates edges from package cfa.objectmodel.c, so the nodes need to be from this package, too.";
 
     //get the parameter expression
-    List<IASTExpression> parameters = functionCallExpression.getParameterExpressions();
+    List<CExpression> parameters = functionCallExpression.getParameterExpressions();
 
     // check if the number of function parameters are right
     CFunctionType functionType = ((FunctionDefinitionNode)fDefNode).getFunctionDefinition().getDeclSpecifier();

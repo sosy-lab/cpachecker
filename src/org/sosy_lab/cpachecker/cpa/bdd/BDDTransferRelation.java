@@ -34,30 +34,30 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.ExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -169,14 +169,14 @@ public class BDDTransferRelation implements TransferRelation {
   /** handles statements like "a = 0;" and "b = !a;" */
   private BDDState handleStatementEdge(BDDState element, StatementEdge cfaEdge)
       throws UnrecognizedCCodeException {
-    IASTStatement statement = cfaEdge.getStatement();
-    if (!(statement instanceof IASTAssignment)) { return element; }
-    IASTAssignment assignment = (IASTAssignment) statement;
+    CStatement statement = cfaEdge.getStatement();
+    if (!(statement instanceof CAssignment)) { return element; }
+    CAssignment assignment = (CAssignment) statement;
 
-    IASTExpression lhs = assignment.getLeftHandSide();
+    CExpression lhs = assignment.getLeftHandSide();
     BDDState result = element;
-    if (lhs instanceof IASTIdExpression || lhs instanceof IASTFieldReference
-        || lhs instanceof IASTArraySubscriptExpression) {
+    if (lhs instanceof CIdExpression || lhs instanceof CFieldReference
+        || lhs instanceof CArraySubscriptExpression) {
 
       // make variable (predicate) for LEFT SIDE of assignment,
       // delete variable, if it was used before, this is done with an existential operator
@@ -184,15 +184,15 @@ public class BDDTransferRelation implements TransferRelation {
       Region var = makePredicate(varName, element.getFunctionName(), isGlobal(lhs));
       Region newRegion = removePredicate(element.getRegion(), var);
 
-      IASTRightHandSide rhs = assignment.getRightHandSide();
-      if (rhs instanceof IASTExpression) {
+      CRightHandSide rhs = assignment.getRightHandSide();
+      if (rhs instanceof CExpression) {
 
         // make region for RIGHT SIDE and build equality of var and region
-        BDDExpressionVisitor ev = new BDDExpressionVisitor(element);
-        Region regRHS = ((IASTExpression) rhs).accept(ev);
+        BDDCExpressionVisitor ev = new BDDCExpressionVisitor(element);
+        Region regRHS = ((CExpression) rhs).accept(ev);
         newRegion = addEquality(var, regRHS, newRegion);
 
-      } else if (rhs instanceof IASTFunctionCallExpression) {
+      } else if (rhs instanceof CFunctionCallExpression) {
         // call of external function: we know nothing, so we do nothing
 
         // TODO can we assume, that malloc returns something !=0?
@@ -214,17 +214,17 @@ public class BDDTransferRelation implements TransferRelation {
   private BDDState handleDeclarationEdge(BDDState element, DeclarationEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
-    IASTDeclaration decl = cfaEdge.getDeclaration();
+    CDeclaration decl = cfaEdge.getDeclaration();
 
-    if (decl instanceof IASTVariableDeclaration) {
-      IASTVariableDeclaration vdecl = (IASTVariableDeclaration) decl;
-      IASTInitializer initializer = vdecl.getInitializer();
+    if (decl instanceof CVariableDeclaration) {
+      CVariableDeclaration vdecl = (CVariableDeclaration) decl;
+      CInitializer initializer = vdecl.getInitializer();
 
-      IASTExpression init = null;
+      CExpression init = null;
       if (initializer == null && initAllVars) { // auto-initialize variables to zero
         init = CDefaults.forType(decl.getDeclSpecifier(), decl.getFileLocation());
-      } else if (initializer instanceof IASTInitializerExpression) {
-        init = ((IASTInitializerExpression) initializer).getExpression();
+      } else if (initializer instanceof CInitializerExpression) {
+        init = ((CInitializerExpression) initializer).getExpression();
       }
 
       // make variable (predicate) for LEFT SIDE of declaration,
@@ -241,7 +241,7 @@ public class BDDTransferRelation implements TransferRelation {
 
       // initializer on RIGHT SIDE available, make region for it
       if (init != null) {
-        BDDExpressionVisitor ev = new BDDExpressionVisitor(element);
+        BDDCExpressionVisitor ev = new BDDCExpressionVisitor(element);
         Region regRHS = init.accept(ev);
         newRegion = addEquality(var, regRHS, newRegion);
         return new BDDState(rmgr, element.getFunctionCallState(), newRegion,
@@ -260,8 +260,8 @@ public class BDDTransferRelation implements TransferRelation {
 
     // overtake arguments from last functioncall into function,
     // get args from functioncall and make them equal with params from functionstart
-    List<IASTExpression> args = cfaEdge.getArguments();
-    List<IASTParameterDeclaration> params = cfaEdge.getSuccessor().getFunctionParameters();
+    List<CExpression> args = cfaEdge.getArguments();
+    List<CParameterDeclaration> params = cfaEdge.getSuccessor().getFunctionParameters();
     String innerFunctionName = cfaEdge.getSuccessor().getFunctionName();
     assert args.size() == params.size();
 
@@ -274,7 +274,7 @@ public class BDDTransferRelation implements TransferRelation {
       Region var = makePredicate(varName, innerFunctionName, false);
 
       // make region for arg and build equality of var and arg
-      BDDExpressionVisitor ev = new BDDExpressionVisitor(element);
+      BDDCExpressionVisitor ev = new BDDCExpressionVisitor(element);
       Region arg = args.get(i).accept(ev);
       newRegion = addEquality(var, arg, newRegion);
     }
@@ -293,15 +293,15 @@ public class BDDTransferRelation implements TransferRelation {
 
     // set result of function equal to variable on left side
     CallToReturnEdge fnkCall = cfaEdge.getSummaryEdge();
-    IASTStatement call = fnkCall.getExpression().asStatement();
+    CStatement call = fnkCall.getExpression().asStatement();
 
     // make region (predicate) for RIGHT SIDE
     Region retVar = makePredicate(FUNCTION_RETURN_VARIABLE, element.getFunctionName(), false);
 
     // handle assignments like "y = f(x);"
-    if (call instanceof IASTFunctionCallAssignmentStatement) {
-      IASTFunctionCallAssignmentStatement cAssignment = (IASTFunctionCallAssignmentStatement) call;
-      IASTExpression lhs = cAssignment.getLeftHandSide();
+    if (call instanceof CFunctionCallAssignmentStatement) {
+      CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) call;
+      CExpression lhs = cAssignment.getLeftHandSide();
 
       // make variable (predicate) for LEFT SIDE of assignment,
       // delete variable, if it was used before, this is done with an existential operator
@@ -331,10 +331,10 @@ public class BDDTransferRelation implements TransferRelation {
         + " was used twice in one trace??";
 
     // make region for RIGHT SIDE, this is the 'x' from 'return (x);
-    IASTRightHandSide rhs = cfaEdge.getExpression();
-    if (rhs instanceof IASTExpression) {
-      BDDExpressionVisitor ev = new BDDExpressionVisitor(element);
-      Region regRHS = ((IASTExpression) rhs).accept(ev);
+    CRightHandSide rhs = cfaEdge.getExpression();
+    if (rhs instanceof CExpression) {
+      BDDCExpressionVisitor ev = new BDDCExpressionVisitor(element);
+      Region regRHS = ((CExpression) rhs).accept(ev);
       Region newRegion = addEquality(retvar, regRHS, element.getRegion());
       return new BDDState(rmgr, element.getFunctionCallState(), newRegion,
           element.getVars(), cfaEdge.getPredecessor().getFunctionName());
@@ -345,8 +345,8 @@ public class BDDTransferRelation implements TransferRelation {
   private BDDState handleAssumption(BDDState element, AssumeEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
-    IASTExpression expression = cfaEdge.getExpression();
-    BDDExpressionVisitor ev = new BDDExpressionVisitor(element);
+    CExpression expression = cfaEdge.getExpression();
+    BDDCExpressionVisitor ev = new BDDCExpressionVisitor(element);
     Region operand = expression.accept(ev);
 
     if (operand == null) { // assumption cannot be evaluated
@@ -379,10 +379,10 @@ public class BDDTransferRelation implements TransferRelation {
     return rmgr.makeExists(region, existing);
   }
 
-  private boolean isGlobal(IASTExpression exp) {
-    if (exp instanceof IASTIdExpression) {
-      IASTSimpleDeclaration decl = ((IASTIdExpression) exp).getDeclaration();
-      if (decl instanceof IASTDeclaration) { return ((IASTDeclaration) decl).isGlobal(); }
+  private boolean isGlobal(CExpression exp) {
+    if (exp instanceof CIdExpression) {
+      CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
+      if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
     }
     return false;
   }
@@ -415,24 +415,24 @@ public class BDDTransferRelation implements TransferRelation {
   }
 
   /** This Visitor evaluates the visited expression and creates a region for it. */
-  private class BDDExpressionVisitor
-      implements ExpressionVisitor<Region, UnrecognizedCCodeException> {
+  private class BDDCExpressionVisitor
+      implements CExpressionVisitor<Region, UnrecognizedCCodeException> {
 
     private String functionName;
     private BDDState state;
 
-    BDDExpressionVisitor(BDDState element) {
+    BDDCExpressionVisitor(BDDState element) {
       this.state = element;
       this.functionName = element.getFunctionName();
     }
 
     @Override
-    public Region visit(IASTArraySubscriptExpression exp) throws UnrecognizedCCodeException {
+    public Region visit(CArraySubscriptExpression exp) throws UnrecognizedCCodeException {
       return makePredicate(exp.toASTString(), functionName, isGlobal(exp));
     }
 
     @Override
-    public Region visit(IASTBinaryExpression exp) throws UnrecognizedCCodeException {
+    public Region visit(CBinaryExpression exp) throws UnrecognizedCCodeException {
       Region operand1 = exp.getOperand1().accept(this);
       Region operand2 = exp.getOperand2().accept(this);
 
@@ -474,33 +474,33 @@ public class BDDTransferRelation implements TransferRelation {
     }
 
     @Override
-    public Region visit(IASTCastExpression exp) throws UnrecognizedCCodeException {
+    public Region visit(CCastExpression exp) throws UnrecognizedCCodeException {
       // we ignore casts, because Zero is Zero.
       return exp.getOperand().accept(this);
     }
 
     @Override
-    public Region visit(IASTFieldReference exp) throws UnrecognizedCCodeException {
+    public Region visit(CFieldReference exp) throws UnrecognizedCCodeException {
       return makePredicate(exp.toASTString(), functionName, isGlobal(exp));
     }
 
     @Override
-    public Region visit(IASTIdExpression exp) throws UnrecognizedCCodeException {
+    public Region visit(CIdExpression exp) throws UnrecognizedCCodeException {
       return makePredicate(exp.toASTString(), functionName, isGlobal(exp));
     }
 
     @Override
-    public Region visit(IASTCharLiteralExpression exp) throws UnrecognizedCCodeException {
+    public Region visit(CCharLiteralExpression exp) throws UnrecognizedCCodeException {
       return null;
     }
 
     @Override
-    public Region visit(IASTFloatLiteralExpression exp) throws UnrecognizedCCodeException {
+    public Region visit(CFloatLiteralExpression exp) throws UnrecognizedCCodeException {
       return null;
     }
 
     @Override
-    public Region visit(IASTIntegerLiteralExpression exp) throws UnrecognizedCCodeException {
+    public Region visit(CIntegerLiteralExpression exp) throws UnrecognizedCCodeException {
       Region region;
       if (exp.getValue().equals(BigInteger.ZERO)) {
         region = rmgr.makeFalse();
@@ -511,17 +511,17 @@ public class BDDTransferRelation implements TransferRelation {
     }
 
     @Override
-    public Region visit(IASTStringLiteralExpression exp) throws UnrecognizedCCodeException {
+    public Region visit(CStringLiteralExpression exp) throws UnrecognizedCCodeException {
       return null;
     }
 
     @Override
-    public Region visit(IASTTypeIdExpression exp) throws UnrecognizedCCodeException {
+    public Region visit(CTypeIdExpression exp) throws UnrecognizedCCodeException {
       return null;
     }
 
     @Override
-    public Region visit(IASTUnaryExpression exp) throws UnrecognizedCCodeException {
+    public Region visit(CUnaryExpression exp) throws UnrecognizedCCodeException {
       Region operand = exp.getOperand().accept(this);
 
       if (operand == null) { return null; }

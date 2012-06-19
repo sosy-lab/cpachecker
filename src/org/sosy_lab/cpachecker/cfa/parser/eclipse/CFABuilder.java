@@ -41,8 +41,8 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
@@ -64,7 +64,7 @@ class CFABuilder extends ASTVisitor {
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
   // Data structure for storing global declarations
-  private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration, String>> globalDeclarations = Lists.newArrayList();
+  private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration, String>> globalDeclarations = Lists.newArrayList();
 
   private final Scope scope = new Scope();
   private final ASTConverter astCreator;
@@ -107,7 +107,7 @@ class CFABuilder extends ASTVisitor {
    * Retrieves list of all global declarations
    * @return global declarations
    */
-  public List<Pair<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration, String>> getGlobalDeclarations() {
+  public List<Pair<org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration, String>> getGlobalDeclarations() {
     return globalDeclarations;
   }
 
@@ -126,7 +126,7 @@ class CFABuilder extends ASTVisitor {
       functionDeclarations.add(fd);
 
       // add forward declaration to list of global declarations
-      org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration functionDefinition = astCreator.convert(fd);
+      org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration functionDefinition = astCreator.convert(fd);
       if (astCreator.numberOfSideAssignments() > 0) {
         throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
       }
@@ -160,7 +160,7 @@ class CFABuilder extends ASTVisitor {
   private int handleSimpleDeclaration(final IASTSimpleDeclaration sd,
       final IASTFileLocation fileloc) {
 
-    final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> newDs = astCreator.convert(sd);
+    final List<org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
 
     if (astCreator.numberOfSideAssignments() > 0) {
@@ -169,11 +169,11 @@ class CFABuilder extends ASTVisitor {
 
     String rawSignature = sd.getRawSignature();
 
-    for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
-      if (newD instanceof IASTVariableDeclaration) {
+    for (org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration newD : newDs) {
+      if (newD instanceof CVariableDeclaration) {
         scope.registerDeclaration(newD);
-      } else if (newD instanceof IASTFunctionDeclaration) {
-        scope.registerFunctionDeclaration((IASTFunctionDeclaration) newD);
+      } else if (newD instanceof CFunctionDeclaration) {
+        scope.registerFunctionDeclaration((CFunctionDeclaration) newD);
       }
 
       globalDeclarations.add(Pair.of(newD, rawSignature));

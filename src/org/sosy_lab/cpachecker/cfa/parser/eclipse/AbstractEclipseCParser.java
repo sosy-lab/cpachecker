@@ -95,7 +95,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
   }
 
   @Override
-  public org.sosy_lab.cpachecker.cfa.ast.IASTNode parseSingleStatement(String pCode) throws ParserException {
+  public org.sosy_lab.cpachecker.cfa.ast.c.CAstNode parseSingleStatement(String pCode) throws ParserException {
 
     // parse
     IASTTranslationUnit ast = parse(wrapCode(pCode));

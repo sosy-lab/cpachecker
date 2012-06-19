@@ -23,16 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
 
 public class CArrayType extends CType {
 
   private final CType type;
-  private final IASTExpression    length;
+  private final CExpression    length;
 
   public CArrayType(boolean pConst, boolean pVolatile,
-      CType pType, IASTExpression pLength) {
+      CType pType, CExpression pLength) {
     super(pConst, pVolatile);
     type = pType;
     length = pLength;
@@ -42,7 +42,7 @@ public class CArrayType extends CType {
     return type;
   }
 
-  public IASTExpression getLength() {
+  public CExpression getLength() {
     return length;
   }
 

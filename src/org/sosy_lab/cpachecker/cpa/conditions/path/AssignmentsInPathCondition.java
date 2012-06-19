@@ -39,13 +39,13 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -123,9 +123,9 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     if(edge.getEdgeType() == CFAEdgeType.StatementEdge) {
       StatementEdge statementEdge = (StatementEdge)edge;
 
-      IASTStatement statement = statementEdge.getStatement();
-      if(statement instanceof IASTAssignment) {
-        IASTExpression leftHandSide = ((IASTAssignment)statement).getLeftHandSide();
+      CStatement statement = statementEdge.getStatement();
+      if(statement instanceof CAssignment) {
+        CExpression leftHandSide = ((CAssignment)statement).getLeftHandSide();
 
         String assignedVariable = getScopedVariableName(leftHandSide, edge);
         if(assignedVariable != null) {
@@ -155,14 +155,14 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
    * @param edge the cfa edge
    * @return the scoped name of the assigned variable, or null, if neither an identifier nor a field reference where assigned
    */
-  private String getScopedVariableName(IASTExpression expression, CFAEdge edge) {
+  private String getScopedVariableName(CExpression expression, CFAEdge edge) {
     String scope = "";
 
     if(!isGlobalIdentifier(expression))
       scope = edge.getPredecessor().getFunctionName() + "::";
 
-    if(expression instanceof IASTIdExpression
-        || expression instanceof IASTFieldReference) {
+    if(expression instanceof CIdExpression
+        || expression instanceof CFieldReference) {
       return scope + expression.toASTString();
     }
 
@@ -175,13 +175,13 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
    * @param expression the expression in question
    * @return true, if the given expression references a global identifier, else false
    */
-  private boolean isGlobalIdentifier(IASTExpression expression) {
-    if(expression instanceof IASTIdExpression) {
-      IASTIdExpression identifier       = (IASTIdExpression)expression;
-      IASTSimpleDeclaration declaration = identifier.getDeclaration();
+  private boolean isGlobalIdentifier(CExpression expression) {
+    if(expression instanceof CIdExpression) {
+      CIdExpression identifier       = (CIdExpression)expression;
+      CSimpleDeclaration declaration = identifier.getDeclaration();
 
-      if(declaration instanceof IASTDeclaration) {
-        return ((IASTDeclaration)declaration).isGlobal();
+      if(declaration instanceof CDeclaration) {
+        return ((CDeclaration)declaration).isGlobal();
       }
     }
 

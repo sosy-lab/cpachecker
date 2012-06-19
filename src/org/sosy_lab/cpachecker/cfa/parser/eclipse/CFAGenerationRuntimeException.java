@@ -50,7 +50,7 @@ public class CFAGenerationRuntimeException extends RuntimeException {
     this(astNode == null ? msg : createMessage(msg, astNode));
   }
 
-  public CFAGenerationRuntimeException(String msg, org.sosy_lab.cpachecker.cfa.ast.IASTNode astNode) {
+  public CFAGenerationRuntimeException(String msg, org.sosy_lab.cpachecker.cfa.ast.c.CAstNode astNode) {
     this(astNode == null ? msg :
       (msg + " in line " + astNode.getFileLocation().getStartingLineNumber()
           + ": " + astNode.toASTString()));
