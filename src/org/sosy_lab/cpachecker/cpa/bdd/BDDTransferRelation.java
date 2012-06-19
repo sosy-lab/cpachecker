@@ -101,37 +101,37 @@ public class BDDTransferRelation implements TransferRelation {
 
   @Override
   public Collection<BDDState> getAbstractSuccessors(
-      AbstractState element, Precision precision, CFAEdge cfaEdge)
+      AbstractState abstractState, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException {
-    BDDState elem = (BDDState) element;
+    BDDState state = (BDDState) abstractState;
 
-    if (elem.getRegion().isFalse()) { return Collections.emptyList(); }
+    if (state.getRegion().isFalse()) { return Collections.emptyList(); }
 
     BDDState successor = null;
 
     switch (cfaEdge.getEdgeType()) {
 
     case AssumeEdge: {
-      successor = handleAssumption(elem, (CAssumeEdge) cfaEdge);
+      successor = handleAssumption(state, (CAssumeEdge) cfaEdge);
       break;
     }
 
     case StatementEdge: {
-      successor = handleStatementEdge(elem, (CStatementEdge) cfaEdge);
+      successor = handleStatementEdge(state, (CStatementEdge) cfaEdge);
       break;
     }
 
     case DeclarationEdge:
-      successor = handleDeclarationEdge(elem, (CDeclarationEdge) cfaEdge);
+      successor = handleDeclarationEdge(state, (CDeclarationEdge) cfaEdge);
       break;
 
     case MultiEdge: {
-      successor = elem;
+      successor = state;
       Collection<BDDState> c = null;
       for (CFAEdge innerEdge : (MultiEdge) cfaEdge) {
         c = getAbstractSuccessors(successor, precision, innerEdge);
         if (c.isEmpty()) {
-          successor = elem; //TODO really correct??
+          successor = state; //TODO really correct??
         } else if (c.size() == 1) {
           successor = c.toArray(new BDDState[1])[0];
         } else {
@@ -141,21 +141,21 @@ public class BDDTransferRelation implements TransferRelation {
     }
 
     case FunctionCallEdge:
-      successor = handleFunctionCallEdge(elem, (CFunctionCallEdge) cfaEdge);
+      successor = handleFunctionCallEdge(state, (CFunctionCallEdge) cfaEdge);
       break;
 
     case FunctionReturnEdge:
-      successor = handleFunctionReturnEdge(elem, (CFunctionReturnEdge) cfaEdge);
+      successor = handleFunctionReturnEdge(state, (CFunctionReturnEdge) cfaEdge);
       break;
 
     case ReturnStatementEdge:
-      successor = handleReturnStatementEdge(elem, (CReturnStatementEdge) cfaEdge);
+      successor = handleReturnStatementEdge(state, (CReturnStatementEdge) cfaEdge);
       break;
 
     case BlankEdge:
     case CallToReturnEdge:
     default:
-      successor = elem;
+      successor = state;
     }
 
     if (successor == null) {
@@ -167,29 +167,29 @@ public class BDDTransferRelation implements TransferRelation {
   }
 
   /** handles statements like "a = 0;" and "b = !a;" */
-  private BDDState handleStatementEdge(BDDState element, CStatementEdge cfaEdge)
+  private BDDState handleStatementEdge(BDDState state, CStatementEdge cfaEdge)
       throws UnrecognizedCCodeException {
     CStatement statement = cfaEdge.getStatement();
-    if (!(statement instanceof CAssignment)) { return element; }
+    if (!(statement instanceof CAssignment)) { return state; }
     CAssignment assignment = (CAssignment) statement;
 
     CExpression lhs = assignment.getLeftHandSide();
-    BDDState result = element;
+    BDDState result = state;
     if (lhs instanceof CIdExpression || lhs instanceof CFieldReference
         || lhs instanceof CArraySubscriptExpression) {
 
       // make tmp for assignment
       // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
       String varName = lhs.toASTString();
-      Region var = makePredicate(varName, element.getFunctionName(), isGlobal(lhs));
+      Region var = makePredicate(varName, state.getFunctionName(), isGlobal(lhs));
       Region tmp = rmgr.createPredicate();
-      Region newRegion = element.getRegion();
+      Region newRegion = state.getRegion();
 
       CRightHandSide rhs = assignment.getRightHandSide();
       if (rhs instanceof CExpression) {
 
         // make region for RIGHT SIDE and build equality of var and region
-        BDDCExpressionVisitor ev = new BDDCExpressionVisitor(element);
+        BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state);
         Region regRHS = ((CExpression) rhs).accept(ev);
         newRegion = addEquality(tmp, regRHS, newRegion);
 
@@ -208,8 +208,8 @@ public class BDDTransferRelation implements TransferRelation {
       newRegion = addEquality(var, tmp, newRegion);
       newRegion = removePredicate(newRegion, tmp);
 
-      result = new BDDState(rmgr, element.getFunctionCallState(), newRegion,
-          element.getVars(), cfaEdge.getPredecessor().getFunctionName());
+      result = new BDDState(rmgr, state.getFunctionCallState(), newRegion,
+          state.getVars(), cfaEdge.getPredecessor().getFunctionName());
     }
 
     assert !result.getRegion().isFalse();
@@ -217,7 +217,7 @@ public class BDDTransferRelation implements TransferRelation {
   }
 
   /** handles declarations like "int a = 0;" and "int b = !a;" */
-  private BDDState handleDeclarationEdge(BDDState element, CDeclarationEdge cfaEdge)
+  private BDDState handleDeclarationEdge(BDDState state, CDeclarationEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     CDeclaration decl = cfaEdge.getDeclaration();
@@ -236,32 +236,32 @@ public class BDDTransferRelation implements TransferRelation {
       // make variable (predicate) for LEFT SIDE of declaration,
       // delete variable, if it was initialized before i.e. in another block, with an existential operator
       String varName = vdecl.getName();
-      Region var = makePredicate(varName, element.getFunctionName(), vdecl.isGlobal());
-      Region newRegion = removePredicate(element.getRegion(), var);
+      Region var = makePredicate(varName, state.getFunctionName(), vdecl.isGlobal());
+      Region newRegion = removePredicate(state.getRegion(), var);
 
       // track vars, so we can delete them after returning from a function,
       // see handleFunctionReturnEdge(...) for detail.
       if (!vdecl.isGlobal()) {
-        element.getVars().add(varName);
+        state.getVars().add(varName);
       }
 
       // initializer on RIGHT SIDE available, make region for it
       if (init != null) {
-        BDDCExpressionVisitor ev = new BDDCExpressionVisitor(element);
+        BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state);
         Region regRHS = init.accept(ev);
         newRegion = addEquality(var, regRHS, newRegion);
-        return new BDDState(rmgr, element.getFunctionCallState(), newRegion,
-            element.getVars(), cfaEdge.getPredecessor().getFunctionName());
+        return new BDDState(rmgr, state.getFunctionCallState(), newRegion,
+            state.getVars(), cfaEdge.getPredecessor().getFunctionName());
       }
     }
 
-    return element; // if we know nothing, we return the old state
+    return state; // if we know nothing, we return the old state
   }
 
-  private BDDState handleFunctionCallEdge(BDDState element, CFunctionCallEdge cfaEdge)
+  private BDDState handleFunctionCallEdge(BDDState state, CFunctionCallEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
-    Region newRegion = element.getRegion();
+    Region newRegion = state.getRegion();
     Set<String> newVars = new LinkedHashSet<String>();
 
     // overtake arguments from last functioncall into function,
@@ -280,21 +280,21 @@ public class BDDTransferRelation implements TransferRelation {
       Region var = makePredicate(varName, innerFunctionName, false);
 
       // make region for arg and build equality of var and arg
-      BDDCExpressionVisitor ev = new BDDCExpressionVisitor(element);
+      BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state);
       Region arg = args.get(i).accept(ev);
       newRegion = addEquality(var, arg, newRegion);
     }
 
-    return new BDDState(rmgr, element, newRegion, newVars, innerFunctionName);
+    return new BDDState(rmgr, state, newRegion, newVars, innerFunctionName);
   }
 
-  private BDDState handleFunctionReturnEdge(BDDState element, CFunctionReturnEdge cfaEdge) {
-    Region newRegion = element.getRegion();
+  private BDDState handleFunctionReturnEdge(BDDState state, CFunctionReturnEdge cfaEdge) {
+    Region newRegion = state.getRegion();
 
     // delete variables from returning function,
     // this results in a smaller BDD and allows to call a function twice.
-    for (String varName : element.getVars()) {
-      newRegion = removePredicate(newRegion, makePredicate(varName, element.getFunctionName(), false));
+    for (String varName : state.getVars()) {
+      newRegion = removePredicate(newRegion, makePredicate(varName, state.getFunctionName(), false));
     }
 
     // set result of function equal to variable on left side
@@ -302,7 +302,7 @@ public class BDDTransferRelation implements TransferRelation {
     CStatement call = fnkCall.getExpression().asStatement();
 
     // make region (predicate) for RIGHT SIDE
-    Region retVar = makePredicate(FUNCTION_RETURN_VARIABLE, element.getFunctionName(), false);
+    Region retVar = makePredicate(FUNCTION_RETURN_VARIABLE, state.getFunctionName(), false);
 
     // handle assignments like "y = f(x);"
     if (call instanceof CFunctionCallAssignmentStatement) {
@@ -312,7 +312,7 @@ public class BDDTransferRelation implements TransferRelation {
       // make variable (predicate) for LEFT SIDE of assignment,
       // delete variable, if it was used before, this is done with an existential operator
       String varName = lhs.toASTString();
-      BDDState functionCall = element.getFunctionCallState();
+      BDDState functionCall = state.getFunctionCallState();
       Region var = makePredicate(varName, functionCall.getFunctionName(), isGlobal(lhs));
       newRegion = removePredicate(newRegion, var);
       newRegion = addEquality(var, retVar, newRegion);
@@ -321,53 +321,53 @@ public class BDDTransferRelation implements TransferRelation {
     // LAST ACTION: delete varname of right side
     newRegion = removePredicate(newRegion, retVar);
 
-    return new BDDState(rmgr, element.getFunctionCallState().getFunctionCallState(), newRegion,
-        element.getFunctionCallState().getVars(),
+    return new BDDState(rmgr, state.getFunctionCallState().getFunctionCallState(), newRegion,
+        state.getFunctionCallState().getVars(),
         cfaEdge.getSuccessor().getFunctionName());
   }
 
-  private BDDState handleReturnStatementEdge(BDDState element, CReturnStatementEdge cfaEdge)
+  private BDDState handleReturnStatementEdge(BDDState state, CReturnStatementEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     // make variable (predicate) for returnStatement,
     // delete variable, if it was used before, this is done with an existential operator
-    Region retvar = makePredicate(FUNCTION_RETURN_VARIABLE, element.getFunctionName(), false);
+    Region retvar = makePredicate(FUNCTION_RETURN_VARIABLE, state.getFunctionName(), false);
 
-    assert element.getRegion().equals(removePredicate(element.getRegion(), retvar)) : FUNCTION_RETURN_VARIABLE
+    assert state.getRegion().equals(removePredicate(state.getRegion(), retvar)) : FUNCTION_RETURN_VARIABLE
         + " was used twice in one trace??";
 
     // make region for RIGHT SIDE, this is the 'x' from 'return (x);
     CRightHandSide rhs = cfaEdge.getExpression();
     if (rhs instanceof CExpression) {
-      BDDCExpressionVisitor ev = new BDDCExpressionVisitor(element);
+      BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state);
       Region regRHS = ((CExpression) rhs).accept(ev);
-      Region newRegion = addEquality(retvar, regRHS, element.getRegion());
-      return new BDDState(rmgr, element.getFunctionCallState(), newRegion,
-          element.getVars(), cfaEdge.getPredecessor().getFunctionName());
+      Region newRegion = addEquality(retvar, regRHS, state.getRegion());
+      return new BDDState(rmgr, state.getFunctionCallState(), newRegion,
+          state.getVars(), cfaEdge.getPredecessor().getFunctionName());
     }
-    return element;
+    return state;
   }
 
-  private BDDState handleAssumption(BDDState element, CAssumeEdge cfaEdge)
+  private BDDState handleAssumption(BDDState state, CAssumeEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     CExpression expression = cfaEdge.getExpression();
-    BDDCExpressionVisitor ev = new BDDCExpressionVisitor(element);
+    BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state);
     Region operand = expression.accept(ev);
 
     if (operand == null) { // assumption cannot be evaluated
-      return element;
+      return state;
 
     } else {
       if (!cfaEdge.getTruthAssumption()) { // if false-branch
         operand = rmgr.makeNot(operand);
       }
-      Region newRegion = rmgr.makeAnd(element.getRegion(), operand);
+      Region newRegion = rmgr.makeAnd(state.getRegion(), operand);
       if (newRegion.isFalse()) { // assumption is not fulfilled / not possible
         return null;
       } else {
-        return new BDDState(rmgr, element.getFunctionCallState(), newRegion,
-            element.getVars(), cfaEdge.getPredecessor().getFunctionName());
+        return new BDDState(rmgr, state.getFunctionCallState(), newRegion,
+            state.getVars(), cfaEdge.getPredecessor().getFunctionName());
       }
     }
   }
@@ -403,7 +403,7 @@ public class BDDTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractState> strengthen(
-      AbstractState element, List<AbstractState> elements, CFAEdge cfaEdge,
+      AbstractState state, List<AbstractState> states, CFAEdge cfaEdge,
       Precision precision) {
     // do nothing
     return null;
@@ -427,9 +427,9 @@ public class BDDTransferRelation implements TransferRelation {
     private String functionName;
     private BDDState state;
 
-    BDDCExpressionVisitor(BDDState element) {
-      this.state = element;
-      this.functionName = element.getFunctionName();
+    BDDCExpressionVisitor(BDDState state) {
+      this.state = state;
+      this.functionName = state.getFunctionName();
     }
 
     @Override
