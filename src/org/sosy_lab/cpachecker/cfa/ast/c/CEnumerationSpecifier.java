@@ -38,8 +38,8 @@ import com.google.common.collect.ImmutableList;
 
 public final class CEnumerationSpecifier extends CType {
 
-  private final List<CEnumerator> enumerators;
-  private final String               name;
+  private final ImmutableList<CEnumerator> enumerators;
+  private final String                     name;
 
   public CEnumerationSpecifier(final boolean pConst, final boolean pVolatile,
       final List<CEnumerator> pEnumerators, final String pName) {
@@ -48,8 +48,8 @@ public final class CEnumerationSpecifier extends CType {
     name = pName;
   }
 
-  public CEnumerator[] getEnumerators() {
-    return enumerators.toArray(new CEnumerator[enumerators.size()]);
+  public ImmutableList<CEnumerator> getEnumerators() {
+    return enumerators;
   }
 
   public String getName() {
