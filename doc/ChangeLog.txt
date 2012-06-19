@@ -4,6 +4,10 @@ Changes visible to users are listed in NEWS.txt
 
 Changes since CPAchecker 1.1
 ----------------------------
+* r6204-6219: The cfa package was restructured to allow having multiple
+  language frontends. Many classes in this package were renamed or moved.
+* r6169-6175: The core class AbstractElement was renamed to AbstractState,
+  together with many related types, methods and members.
 * r4848: The new revision of the Sosy-Lab Common library removes a few fields
   from the @Option annotation (e.g., min, max, type) and replaces them by
   custom annotations.
