@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.redlog;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 
 public class Equation {
 

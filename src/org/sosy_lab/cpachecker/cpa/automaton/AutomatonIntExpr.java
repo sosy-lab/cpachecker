@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
