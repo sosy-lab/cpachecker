@@ -30,8 +30,8 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -130,7 +130,7 @@ public final class DOTBuilder {
                                      .replaceAll("\n", " "));
 
       sb.append("\"");
-      if (edge instanceof CFunctionSummaryEdge) {
+      if (edge instanceof FunctionSummaryEdge) {
         sb.append(" style=\"dotted\" arrowhead=\"empty\"");
       }
       sb.append("]");

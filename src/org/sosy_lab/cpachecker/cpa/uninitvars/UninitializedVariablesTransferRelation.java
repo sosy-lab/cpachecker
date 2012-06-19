@@ -52,18 +52,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -129,7 +130,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     case FunctionReturnEdge:
       //handle statement like a = func(x) in the CFunctionSummaryEdge
       CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge)cfaEdge;
-      CFunctionSummaryEdge ctrEdge = functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
+      CFunctionSummaryEdge ctrEdge = functionReturnEdge.getSummaryEdge();
       handleStatement(successor, ctrEdge.getExpression().asStatement(), ctrEdge);
       break;
 
@@ -163,7 +164,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       int lineNumber = edge.getLineNumber();
       String message;
 
-      if (edge instanceof CFunctionSummaryEdge && expression instanceof CFunctionCallExpression) {
+      if (edge instanceof FunctionSummaryEdge && expression instanceof CFunctionCallExpression) {
         message = "uninitialized return value of function call " + variable + " in line "
         + lineNumber + ": " + edge.getDescription();
         element.addProperty(ElementProperty.UNINITIALIZED_RETURN_VALUE);
@@ -276,7 +277,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
     if (expression instanceof CFunctionCallStatement) {
       //in case of a return edge, remove the local context of the function from which we returned
-      if (cfaEdge instanceof CFunctionSummaryEdge) {
+      if (cfaEdge instanceof FunctionSummaryEdge) {
         element.returnFromFunction();
       }
       //a mere function call (func(a)) does not change the initialization status of variables
@@ -439,7 +440,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         }
         //get rid of the local context, as it is no longer needed and may be different on the next call.
         //only do this in case of an internal call.
-        if (cfaEdge instanceof CFunctionSummaryEdge) {
+        if (cfaEdge instanceof FunctionSummaryEdge) {
           element.returnFromFunction();
         }
         return returnUninit;

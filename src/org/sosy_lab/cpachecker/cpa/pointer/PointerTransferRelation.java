@@ -35,6 +35,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -48,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -59,11 +59,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -285,7 +285,7 @@ public class PointerTransferRelation implements TransferRelation {
       case FunctionReturnEdge:
         // now handle the complete a = func(x) statement in the CFunctionSummaryEdge
         CFunctionReturnEdge returnEdge = (CFunctionReturnEdge)cfaEdge;
-        CFunctionSummaryEdge ctrEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
+        CFunctionSummaryEdge ctrEdge = returnEdge.getSummaryEdge();
         handleReturnFromFunction(successor, ctrEdge.getExpression(), ctrEdge);
         break;
 

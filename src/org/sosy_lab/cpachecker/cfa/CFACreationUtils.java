@@ -30,8 +30,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
 
 /**
  * Helper class that contains some complex operations that may be useful during
@@ -120,7 +120,7 @@ public class CFACreationUtils {
     e.getSuccessor().removeEnteringEdge(e);
   }
 
-  public static void removeSummaryEdgeFromNodes(CFunctionSummaryEdge e) {
+  public static void removeSummaryEdgeFromNodes(FunctionSummaryEdge e) {
     e.getPredecessor().removeLeavingSummaryEdge(e);
     e.getSuccessor().removeEnteringSummaryEdge(e);
   }

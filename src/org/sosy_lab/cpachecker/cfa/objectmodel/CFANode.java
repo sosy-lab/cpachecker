@@ -28,8 +28,6 @@ import static com.google.common.base.Preconditions.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
-
 import com.google.common.primitives.Ints;
 
 public class CFANode implements Comparable<CFANode> {
@@ -49,8 +47,8 @@ public class CFANode implements Comparable<CFANode> {
   private final String functionName;
 
   // list of summary edges
-  private CFunctionSummaryEdge leavingSummaryEdge = null;
-  private CFunctionSummaryEdge enteringSummaryEdge = null;
+  private FunctionSummaryEdge leavingSummaryEdge = null;
+  private FunctionSummaryEdge enteringSummaryEdge = null;
 
   // reverse postorder sort id, smaller if it appears later in sorting
   private int reversePostorderId = 0;
@@ -153,33 +151,33 @@ public class CFANode implements Comparable<CFANode> {
     return functionName;
   }
 
-  public void addEnteringSummaryEdge(CFunctionSummaryEdge pEdge) {
+  public void addEnteringSummaryEdge(FunctionSummaryEdge pEdge) {
     checkState(leavingSummaryEdge == null,
         "Cannot add two entering summary edges to node %s", this);
     enteringSummaryEdge = pEdge;
   }
 
-  public void addLeavingSummaryEdge(CFunctionSummaryEdge pEdge) {
+  public void addLeavingSummaryEdge(FunctionSummaryEdge pEdge) {
     checkState(leavingSummaryEdge == null,
         "Cannot add two leaving summary edges to node %s", this);
     leavingSummaryEdge = pEdge;
   }
 
-  public CFunctionSummaryEdge getEnteringSummaryEdge() {
+  public FunctionSummaryEdge getEnteringSummaryEdge() {
     return enteringSummaryEdge;
   }
 
-  public CFunctionSummaryEdge getLeavingSummaryEdge() {
+  public FunctionSummaryEdge getLeavingSummaryEdge() {
     return leavingSummaryEdge;
   }
 
-  public void removeEnteringSummaryEdge(CFunctionSummaryEdge pEdge) {
+  public void removeEnteringSummaryEdge(FunctionSummaryEdge pEdge) {
     checkArgument(enteringSummaryEdge == pEdge,
         "Cannot remove non-existing entering summary edge \"%s\" from node \"%s\"", pEdge, this);
     enteringSummaryEdge = null;
   }
 
-  public void removeLeavingSummaryEdge(CFunctionSummaryEdge pEdge) {
+  public void removeLeavingSummaryEdge(FunctionSummaryEdge pEdge) {
     checkArgument(leavingSummaryEdge == pEdge,
         "Cannot remove non-existing leaving summary edge \"%s\" from node \"%s\"", pEdge, this);
     leavingSummaryEdge = null;

@@ -56,11 +56,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -194,8 +194,7 @@ class OctTransferRelation implements TransferRelation{
       CFunctionReturnEdge functionReturnEdge)
   throws UnrecognizedCCodeException {
 
-    CFunctionSummaryEdge summaryEdge =
-      functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
+    CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
     CFunctionCall exprOnSummary = summaryEdge.getExpression();
 
     OctState previousElem = element.getPreviousState();

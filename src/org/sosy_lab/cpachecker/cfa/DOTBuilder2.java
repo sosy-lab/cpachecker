@@ -36,8 +36,8 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
@@ -121,7 +121,7 @@ public final class DOTBuilder2 {
           || (predecessor.getNumEnteringEdges() != 1)
           || (predecessor.getNumLeavingEdges() != 1)
           || (currentComboEdge != null && !predecessor.equals(currentComboEdge.get(currentComboEdge.size()-1).getSuccessor()))
-          || (edge instanceof CFunctionSummaryEdge)
+          || (edge instanceof FunctionSummaryEdge)
           || (edge instanceof CAssumeEdge)) {
         // no, it does not
 
@@ -212,7 +212,7 @@ public final class DOTBuilder2 {
 
     @SuppressWarnings("unchecked")
     private String edgeToDot(CFAEdge edge) {
-      if (edge instanceof CFunctionSummaryEdge) {
+      if (edge instanceof FunctionSummaryEdge) {
        //create the function node
         String calledFunction = edge.getPredecessor().getLeavingEdge(0).getSuccessor().getFunctionName();
         String ret = (++virtFuncCallNodeIdCounter) + " [shape=\"component\" label=\"" + calledFunction + "\"]\n";
