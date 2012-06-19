@@ -62,14 +62,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -112,19 +112,19 @@ public class ExplicitTransferRelation implements TransferRelation
     switch (cfaEdge.getEdgeType()) {
     // this is an assumption, e.g. if(a == b)
     case AssumeEdge:
-      AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
+      CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
       successor = handleAssumption(explicitState.clone(), assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption(), explicitPrecision);
       break;
 
     case FunctionCallEdge:
-      FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
+      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) cfaEdge;
       successor = handleFunctionCall(explicitState, functionCallEdge);
       break;
 
     // this is a return edge from function, this is different from return statement
     // of the function. See case for statement edge for details
     case FunctionReturnEdge:
-      FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) cfaEdge;
+      CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) cfaEdge;
       successor = handleFunctionReturn(explicitState, functionReturnEdge);
       break;
 
@@ -150,12 +150,12 @@ public class ExplicitTransferRelation implements TransferRelation
     switch(cfaEdge.getEdgeType()) {
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge:
-      StatementEdge statementEdge = (StatementEdge) cfaEdge;
+      CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
       handleStatement(element, statementEdge.getStatement(), cfaEdge, precision);
       break;
 
     case ReturnStatementEdge:
-      ReturnStatementEdge returnEdge = (ReturnStatementEdge)cfaEdge;
+      CReturnStatementEdge returnEdge = (CReturnStatementEdge)cfaEdge;
       // this statement is a function return, e.g. return (a);
       // note that this is different from return edge
       // this is a statement edge which leads the function to the
@@ -166,7 +166,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
     // edge is a declaration edge, e.g. int a;
     case DeclarationEdge:
-      DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
+      CDeclarationEdge declarationEdge = (CDeclarationEdge) cfaEdge;
       handleDeclaration(element, declarationEdge, precision);
       break;
 
@@ -184,7 +184,7 @@ public class ExplicitTransferRelation implements TransferRelation
     }
   }
 
-  private ExplicitState handleFunctionCall(ExplicitState element, FunctionCallEdge callEdge)
+  private ExplicitState handleFunctionCall(ExplicitState element, CFunctionCallEdge callEdge)
     throws UnrecognizedCCodeException {
     ExplicitState newElement = new ExplicitState(element);
 
@@ -195,7 +195,7 @@ public class ExplicitTransferRelation implements TransferRelation
       }
     }
 
-    FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
+    CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();
     String callerFunctionName = callEdge.getPredecessor().getFunctionName();
 
@@ -225,7 +225,7 @@ public class ExplicitTransferRelation implements TransferRelation
     return newElement;
   }
 
-  private void handleExitFromFunction(ExplicitState newElement, CExpression expression, ReturnStatementEdge returnEdge)
+  private void handleExitFromFunction(ExplicitState newElement, CExpression expression, CReturnStatementEdge returnEdge)
     throws UnrecognizedCCodeException {
     if(expression == null) {
       expression = CNumericTypes.ZERO; // this is the default in C
@@ -242,9 +242,9 @@ public class ExplicitTransferRelation implements TransferRelation
    * @param functionReturnEdge return edge from a function to its call site
    * @return new abstract state
    */
-  private ExplicitState handleFunctionReturn(ExplicitState element, FunctionReturnEdge functionReturnEdge)
+  private ExplicitState handleFunctionReturn(ExplicitState element, CFunctionReturnEdge functionReturnEdge)
     throws UnrecognizedCCodeException {
-    CallToReturnEdge summaryEdge    = functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
+    CFunctionSummaryEdge summaryEdge    = functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
     CFunctionCall exprOnSummary  = summaryEdge.getExpression();
 
     ExplicitState newElement      = element.getPreviousState().clone();
@@ -320,7 +320,7 @@ public class ExplicitTransferRelation implements TransferRelation
     }
   }
 
-  private void handleDeclaration(ExplicitState newElement, DeclarationEdge declarationEdge, ExplicitPrecision precision)
+  private void handleDeclaration(ExplicitState newElement, CDeclarationEdge declarationEdge, ExplicitPrecision precision)
     throws UnrecognizedCCodeException {
 
     if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {

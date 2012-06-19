@@ -49,13 +49,13 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -128,7 +128,7 @@ public class ReferencedVariablesCollector {
   private void determineGlobalVariables(List<CFAEdge> path) {
     for(CFAEdge edge : path) {
       if(edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-        CDeclaration declaration = ((DeclarationEdge)edge).getDeclaration();
+        CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
         if(isGlobalVariableDeclaration(declaration)) {
           globalVariables.add(declaration.getName());
         }
@@ -157,7 +157,7 @@ public class ReferencedVariablesCollector {
 
     switch(edge.getEdgeType()) {
     case StatementEdge:
-      StatementEdge statementEdge = (StatementEdge)edge;
+      CStatementEdge statementEdge = (CStatementEdge)edge;
       if (statementEdge.getStatement() instanceof CAssignment) {
         CAssignment assignment = (CAssignment)statementEdge.getStatement();
         String assignedVariable = scoped(assignment.getLeftHandSide().toASTString(), currentFunction);
@@ -171,7 +171,7 @@ public class ReferencedVariablesCollector {
       break;
 
     case FunctionCallEdge:
-      FunctionCallEdge functionCallEdge = (FunctionCallEdge)edge;
+      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge)edge;
       CFunctionCall functionCall     = functionCallEdge.getSummaryEdge().getExpression();
 
       if(functionCall instanceof CFunctionCallAssignmentStatement) {
@@ -187,7 +187,7 @@ public class ReferencedVariablesCollector {
       break;
 
     case AssumeEdge:
-      AssumeEdge assumeEdge = (AssumeEdge)edge;
+      CAssumeEdge assumeEdge = (CAssumeEdge)edge;
       CExpression assumeExpression = assumeEdge.getExpression();
 
       // always inspect assume edges
@@ -196,11 +196,11 @@ public class ReferencedVariablesCollector {
 
 
     case FunctionReturnEdge:
-      FunctionReturnEdge returnEdge = (FunctionReturnEdge)edge;
+      CFunctionReturnEdge returnEdge = (CFunctionReturnEdge)edge;
 
-      CallToReturnEdge callToReturnEdge = returnEdge.getSummaryEdge();
+      CFunctionSummaryEdge cFunctionSummaryEdge = returnEdge.getSummaryEdge();
 
-      CFunctionCall functionCall2 = callToReturnEdge.getExpression();
+      CFunctionCall functionCall2 = cFunctionSummaryEdge.getExpression();
 
       if(functionCall2 instanceof CFunctionCallAssignmentStatement) {
         CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCall2;
@@ -210,10 +210,10 @@ public class ReferencedVariablesCollector {
           // is this needed here?
           // for test/programs/benchmarks/ldv-regression/rule60_list2.c-unsafe_1.cil.c this is not needed
           // for tracking my_malloc::tmp
-          collectedVariables.put(callToReturnEdge.getSuccessor(), assignedVariable);
+          collectedVariables.put(cFunctionSummaryEdge.getSuccessor(), assignedVariable);
 
 
-          ReturnStatementEdge returnStatementEdge;
+          CReturnStatementEdge returnStatementEdge;
           CFAEdge currentEdge = null;
           CFAEdge enteringEdge = returnEdge.getPredecessor().getEnteringEdge(0);
 
@@ -225,9 +225,9 @@ public class ReferencedVariablesCollector {
             enteringEdge = currentEdge;
           }
 
-          assert(enteringEdge instanceof ReturnStatementEdge);
+          assert(enteringEdge instanceof CReturnStatementEdge);
 
-          returnStatementEdge = (ReturnStatementEdge)enteringEdge;
+          returnStatementEdge = (CReturnStatementEdge)enteringEdge;
 
           collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables);
         }
@@ -236,7 +236,7 @@ public class ReferencedVariablesCollector {
 
     case DeclarationEdge:
       //System.out.println("inspecting edge " + edge.getRawStatement());
-      CDeclaration declaration = ((DeclarationEdge)edge).getDeclaration();
+      CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
       if(declaration.getName() != null && declaration.isGlobal()) {
         globalVariables.add(declaration.getName());
 
@@ -247,20 +247,20 @@ public class ReferencedVariablesCollector {
     case ReturnStatementEdge:
       if(succ == null)
         break;
-      ReturnStatementEdge returnStatementEdge = (ReturnStatementEdge)edge;
+      CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge)edge;
 
-      FunctionReturnEdge returnEdge2 = (FunctionReturnEdge)succ;
+      CFunctionReturnEdge returnEdge2 = (CFunctionReturnEdge)succ;
 
-      CallToReturnEdge callToReturnEdge2 = returnEdge2.getSummaryEdge();
+      CFunctionSummaryEdge cFunctionSummaryEdge2 = returnEdge2.getSummaryEdge();
 
-      CFunctionCall functionCall3 = callToReturnEdge2.getExpression();
+      CFunctionCall functionCall3 = cFunctionSummaryEdge2.getExpression();
 
       if(functionCall3 instanceof CFunctionCallAssignmentStatement) {
         CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCall3;
         String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), succ.getSuccessor().getFunctionName());
 
         if(dependingVariables.contains(assignedVariable)) {
-          collectedVariables.put(callToReturnEdge2.getSuccessor(), assignedVariable);
+          collectedVariables.put(cFunctionSummaryEdge2.getSuccessor(), assignedVariable);
           collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables);
         }
       }

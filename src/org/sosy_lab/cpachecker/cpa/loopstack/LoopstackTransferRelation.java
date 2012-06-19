@@ -38,8 +38,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -78,9 +78,9 @@ public class LoopstackTransferRelation implements TransferRelation {
     for (Loop l : loops.values()) {
       // function edges do not count as incoming/outgoing edges
       Iterable<CFAEdge> incomingEdges = filter(l.getIncomingEdges(),
-                                               not(instanceOf(FunctionReturnEdge.class)));
+                                               not(instanceOf(CFunctionReturnEdge.class)));
       Iterable<CFAEdge> outgoingEdges = filter(l.getOutgoingEdges(),
-                                               not(instanceOf(FunctionCallEdge.class)));
+                                               not(instanceOf(CFunctionCallEdge.class)));
 
       for (CFAEdge e : incomingEdges) {
         entryEdges.put(e, l);
@@ -103,7 +103,7 @@ public class LoopstackTransferRelation implements TransferRelation {
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
 
-    if (pCfaEdge instanceof FunctionCallEdge) {
+    if (pCfaEdge instanceof CFunctionCallEdge) {
       // such edges do never change loop stack status
       // Return here because they might be mis-classified as exit edges
       // because our idea of a loop contains only those nodes within the same function
@@ -119,7 +119,7 @@ public class LoopstackTransferRelation implements TransferRelation {
       e = e.getPreviousState();
     }
 
-    if (pCfaEdge instanceof FunctionReturnEdge) {
+    if (pCfaEdge instanceof CFunctionReturnEdge) {
       // such edges may be real loop-exit edges "while () { return; }",
       // but never loop-entry edges
       // Return here because they might be mis-classified as entry edges

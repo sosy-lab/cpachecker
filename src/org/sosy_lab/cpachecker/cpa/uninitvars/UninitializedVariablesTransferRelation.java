@@ -52,14 +52,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -109,17 +109,17 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     switch (cfaEdge.getEdgeType()) {
 
     case DeclarationEdge:
-      handleDeclaration(successor, (DeclarationEdge)cfaEdge);
+      handleDeclaration(successor, (CDeclarationEdge)cfaEdge);
       break;
 
     case StatementEdge:
-      handleStatement(successor, ((StatementEdge)cfaEdge).getStatement(), cfaEdge);
+      handleStatement(successor, ((CStatementEdge)cfaEdge).getStatement(), cfaEdge);
       break;
 
     case ReturnStatementEdge:
       //this is the return-statement of a function
       //set a local variable tracking the return statement's initialization status
-      if (isExpressionUninitialized(successor, ((ReturnStatementEdge)cfaEdge).getExpression(), cfaEdge)) {
+      if (isExpressionUninitialized(successor, ((CReturnStatementEdge)cfaEdge).getExpression(), cfaEdge)) {
         setUninitialized(successor, "CPAChecker_UninitVars_FunctionReturn");
       } else {
         setInitialized(successor, "CPAChecker_UninitVars_FunctionReturn");
@@ -127,22 +127,22 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       break;
 
     case FunctionReturnEdge:
-      //handle statement like a = func(x) in the CallToReturnEdge
-      FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge)cfaEdge;
-      CallToReturnEdge ctrEdge = functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
+      //handle statement like a = func(x) in the CFunctionSummaryEdge
+      CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge)cfaEdge;
+      CFunctionSummaryEdge ctrEdge = functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
       handleStatement(successor, ctrEdge.getExpression().asStatement(), ctrEdge);
       break;
 
     case AssumeEdge:
       // just check if there are uninitialized variable usages
       if (printWarnings) {
-        isExpressionUninitialized(successor, ((AssumeEdge)cfaEdge).getExpression(), cfaEdge);
+        isExpressionUninitialized(successor, ((CAssumeEdge)cfaEdge).getExpression(), cfaEdge);
       }
       break;
 
     case FunctionCallEdge:
       //on calling a function, check initialization status of the parameters
-      handleFunctionCall(successor, (FunctionCallEdge)cfaEdge);
+      handleFunctionCall(successor, (CFunctionCallEdge)cfaEdge);
       break;
 
     case BlankEdge:
@@ -163,7 +163,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       int lineNumber = edge.getLineNumber();
       String message;
 
-      if (edge instanceof CallToReturnEdge && expression instanceof CFunctionCallExpression) {
+      if (edge instanceof CFunctionSummaryEdge && expression instanceof CFunctionCallExpression) {
         message = "uninitialized return value of function call " + variable + " in line "
         + lineNumber + ": " + edge.getDescription();
         element.addProperty(ElementProperty.UNINITIALIZED_RETURN_VALUE);
@@ -194,7 +194,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   }
 
   private void handleDeclaration(UninitializedVariablesState element,
-      DeclarationEdge declarationEdge) {
+      CDeclarationEdge declarationEdge) {
 
     if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
       // typedefs etc. do not concern this CPA
@@ -222,10 +222,10 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     }
   }
 
-  private void handleFunctionCall(UninitializedVariablesState element, FunctionCallEdge callEdge)
+  private void handleFunctionCall(UninitializedVariablesState element, CFunctionCallEdge callEdge)
                                                                   throws UnrecognizedCCodeException {
     //find functions's parameters and arguments
-    FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
+    CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
     List<CExpression> arguments = callEdge.getArguments();
 
@@ -276,7 +276,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
     if (expression instanceof CFunctionCallStatement) {
       //in case of a return edge, remove the local context of the function from which we returned
-      if (cfaEdge instanceof CallToReturnEdge) {
+      if (cfaEdge instanceof CFunctionSummaryEdge) {
         element.returnFromFunction();
       }
       //a mere function call (func(a)) does not change the initialization status of variables
@@ -424,7 +424,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       //if the FunctionCallExpression is associated with a statement edge, then this is
       //an external function call, and call to return edges for external calls are disabled.
       //since we can not know its return value's initialization status, only check the parameters
-      if (cfaEdge instanceof StatementEdge) {
+      if (cfaEdge instanceof CStatementEdge) {
         for (CExpression param : funcExpression.getParameterExpressions()) {
           isExpressionUninitialized(element, param, cfaEdge);
         }
@@ -439,7 +439,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         }
         //get rid of the local context, as it is no longer needed and may be different on the next call.
         //only do this in case of an internal call.
-        if (cfaEdge instanceof CallToReturnEdge) {
+        if (cfaEdge instanceof CFunctionSummaryEdge) {
           element.returnFromFunction();
         }
         return returnUninit;
@@ -475,7 +475,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     boolean typesCPAPresent = false;
 
     if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge && lastAdded != null) {
-      DeclarationEdge declEdge = (DeclarationEdge)cfaEdge;
+      CDeclarationEdge declEdge = (CDeclarationEdge)cfaEdge;
 
       for (AbstractState other : otherElements) {
 
@@ -515,7 +515,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     //the following deals with structs being assigned to other structs
     if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
 
-      CStatement exp = ((StatementEdge)cfaEdge).getStatement();
+      CStatement exp = ((CStatementEdge)cfaEdge).getStatement();
 
       if (exp instanceof CAssignment) {
 

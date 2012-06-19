@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 
 
@@ -130,8 +130,8 @@ public class BlockPartitioningBuilder {
     for(CFANode node : pNodes) {
       for(int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge e = node.getLeavingEdge(i);
-        if (e instanceof FunctionCallEdge) {
-          result.add(((FunctionCallEdge)e).getSuccessor());
+        if (e instanceof CFunctionCallEdge) {
+          result.add(((CFunctionCallEdge)e).getSuccessor());
         }
       }
     }
@@ -182,12 +182,12 @@ public class BlockPartitioningBuilder {
         if(!pNodes.contains(succ)) {
           //leaving edge from inside of the given set of nodes to outside
           //-> this is a either return-node or a function call
-          if(!(node.getLeavingEdge(i) instanceof FunctionCallEdge)) {
+          if(!(node.getLeavingEdge(i) instanceof CFunctionCallEdge)) {
             //-> only add if its not a function call
             result.add(node);
           } else {
             //otherwise check if the summary edge is inside of the block
-            CFANode sumSucc = ((FunctionCallEdge)node.getLeavingEdge(i)).getSummaryEdge().getSuccessor();
+            CFANode sumSucc = ((CFunctionCallEdge)node.getLeavingEdge(i)).getSummaryEdge().getSuccessor();
             if(!pNodes.contains(sumSucc)) {
               //summary edge successor not in nodes set; this is a leaving edge
               //add entering nodes

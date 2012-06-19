@@ -23,45 +23,33 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
-public class FunctionReturnEdge extends AbstractCFAEdge {
+public class CFunctionSummaryEdge extends AbstractCFAEdge {
 
-  private final CallToReturnEdge summaryEdge;
+	private final CFunctionCall expression;
 
-  public FunctionReturnEdge(int pLineNumber,
-      CFAFunctionExitNode pPredecessor, CFANode pSuccessor,
-      CallToReturnEdge pSummaryEdge) {
+	public CFunctionSummaryEdge(String pRawStatement, int pLineNumber,
+	    CFANode pPredecessor, CFANode pSuccessor, CFunctionCall pExpression) {
 
-    super("", pLineNumber, pPredecessor, pSuccessor);
-    summaryEdge = pSummaryEdge;
-  }
+		super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+		expression = pExpression;
+	}
 
-  public CallToReturnEdge getSummaryEdge() {
-    return summaryEdge;
-  }
+	public CFunctionCall getExpression() {
+		return expression;
+	}
 
-  @Override
-  public String getCode() {
-    return "";
-  }
+	@Override
+	public String getCode() {
+	  return expression.asStatement().toASTString();
+	}
 
-  @Override
-  public String getDescription() {
-    return "Return edge from " + getPredecessor().getFunctionName() + " to " + getSuccessor().getFunctionName();
-  }
-
-  @Override
+	@Override
   public CFAEdgeType getEdgeType() {
-    return CFAEdgeType.FunctionReturnEdge;
-  }
-
-  @Override
-  public CFAFunctionExitNode getPredecessor() {
-    // the constructor enforces that the predecessor is always a CFAFunctionExitNode
-    return (CFAFunctionExitNode)super.getPredecessor();
-  }
+		return CFAEdgeType.CallToReturnEdge;
+	}
 }

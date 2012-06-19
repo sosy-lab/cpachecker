@@ -33,7 +33,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -73,8 +73,8 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     @Override
     public String apply(Pair<ARGState,CFAEdge> arg) {
 
-      if (arg.getSecond() instanceof FunctionCallEdge) {
-        FunctionCallEdge funcEdge = (FunctionCallEdge)arg.getSecond();
+      if (arg.getSecond() instanceof CFunctionCallEdge) {
+        CFunctionCallEdge funcEdge = (CFunctionCallEdge)arg.getSecond();
         return funcEdge.toString();
       } else {
         return null;

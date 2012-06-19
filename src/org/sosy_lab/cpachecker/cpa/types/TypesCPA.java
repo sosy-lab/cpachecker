@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.types;
 
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -43,9 +43,9 @@ public class TypesCPA extends AbstractCPA {
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    if (pNode instanceof FunctionDefinitionNode) {
+    if (pNode instanceof CFunctionEntryNode) {
       //remember the entry function definition node for later use
-      ((TypesTransferRelation)getTransferRelation()).setEntryFunctionDefinitionNode((FunctionDefinitionNode)pNode);
+      ((TypesTransferRelation)getTransferRelation()).setFunctionEntryNode((CFunctionEntryNode)pNode);
     }
     return new TypesState();
   }

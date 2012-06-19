@@ -23,40 +23,45 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
-import com.google.common.base.Optional;
+public class CFunctionReturnEdge extends AbstractCFAEdge {
 
-public class DeclarationEdge extends AbstractCFAEdge {
+  private final CFunctionSummaryEdge summaryEdge;
 
-  private final CDeclaration declaration;
+  public CFunctionReturnEdge(int pLineNumber,
+      CFAFunctionExitNode pPredecessor, CFANode pSuccessor,
+      CFunctionSummaryEdge pSummaryEdge) {
 
-  public DeclarationEdge(final String pRawSignature, final int pLineNumber,
-      final CFANode pPredecessor, final CFANode pSuccessor, final CDeclaration pDeclaration) {
-
-    super(pRawSignature, pLineNumber, pPredecessor, pSuccessor);
-    declaration = pDeclaration;
+    super("", pLineNumber, pPredecessor, pSuccessor);
+    summaryEdge = pSummaryEdge;
   }
 
-  @Override
-  public CFAEdgeType getEdgeType() {
-    return CFAEdgeType.DeclarationEdge;
-  }
-
-  public CDeclaration getDeclaration() {
-    return declaration;
-  }
-
-  @Override
-  public Optional<CDeclaration> getRawAST() {
-    return Optional.of(declaration);
+  public CFunctionSummaryEdge getSummaryEdge() {
+    return summaryEdge;
   }
 
   @Override
   public String getCode() {
-    return declaration.toASTString();
+    return "";
+  }
+
+  @Override
+  public String getDescription() {
+    return "Return edge from " + getPredecessor().getFunctionName() + " to " + getSuccessor().getFunctionName();
+  }
+
+  @Override
+  public CFAEdgeType getEdgeType() {
+    return CFAEdgeType.FunctionReturnEdge;
+  }
+
+  @Override
+  public CFAFunctionExitNode getPredecessor() {
+    // the constructor enforces that the predecessor is always a CFAFunctionExitNode
+    return (CFAFunctionExitNode)super.getPredecessor();
   }
 }

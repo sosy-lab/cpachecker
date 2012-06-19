@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.cwriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
 
 class BasicBlock {
 
@@ -49,7 +49,7 @@ class BasicBlock {
     firstCodeLine = pFunctionName;
   }
 
-  public BasicBlock(int pElementId, AssumeEdge pEdge, String pConditionString) {
+  public BasicBlock(int pElementId, CAssumeEdge pEdge, String pConditionString) {
     stateId = pElementId;
     codeList = new ArrayList<Object>();
     boolean truthAssumption = pEdge.getTruthAssumption();

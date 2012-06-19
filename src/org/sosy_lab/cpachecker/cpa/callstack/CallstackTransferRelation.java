@@ -29,8 +29,8 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -47,7 +47,7 @@ public class CallstackTransferRelation implements TransferRelation {
     switch (pCfaEdge.getEdgeType()) {
     case FunctionCallEdge:
       {
-        FunctionCallEdge cfaEdge = (FunctionCallEdge)pCfaEdge;
+        CFunctionCallEdge cfaEdge = (CFunctionCallEdge)pCfaEdge;
         CallstackState element = (CallstackState)pElement;
         String functionName = cfaEdge.getSuccessor().getFunctionName();
         CFANode callNode = cfaEdge.getPredecessor();
@@ -64,7 +64,7 @@ public class CallstackTransferRelation implements TransferRelation {
       }
     case FunctionReturnEdge:
       {
-        FunctionReturnEdge cfaEdge = (FunctionReturnEdge)pCfaEdge;
+        CFunctionReturnEdge cfaEdge = (CFunctionReturnEdge)pCfaEdge;
 
         CallstackState element = (CallstackState)pElement;
 

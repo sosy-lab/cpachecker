@@ -30,7 +30,7 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -60,7 +60,7 @@ public class LocationTransferRelation implements TransferRelation {
     }
 
     if (node.getLeavingSummaryEdge() != null) {
-      CallToReturnEdge summaryEdge = node.getLeavingSummaryEdge();
+      CFunctionSummaryEdge summaryEdge = node.getLeavingSummaryEdge();
       return Collections.singleton(factory.getState(summaryEdge.getSuccessor()));
     }
 

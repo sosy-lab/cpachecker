@@ -60,13 +60,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -112,17 +112,17 @@ public class BDDTransferRelation implements TransferRelation {
     switch (cfaEdge.getEdgeType()) {
 
     case AssumeEdge: {
-      successor = handleAssumption(elem, (AssumeEdge) cfaEdge);
+      successor = handleAssumption(elem, (CAssumeEdge) cfaEdge);
       break;
     }
 
     case StatementEdge: {
-      successor = handleStatementEdge(elem, (StatementEdge) cfaEdge);
+      successor = handleStatementEdge(elem, (CStatementEdge) cfaEdge);
       break;
     }
 
     case DeclarationEdge:
-      successor = handleDeclarationEdge(elem, (DeclarationEdge) cfaEdge);
+      successor = handleDeclarationEdge(elem, (CDeclarationEdge) cfaEdge);
       break;
 
     case MultiEdge: {
@@ -141,15 +141,15 @@ public class BDDTransferRelation implements TransferRelation {
     }
 
     case FunctionCallEdge:
-      successor = handleFunctionCallEdge(elem, (FunctionCallEdge) cfaEdge);
+      successor = handleFunctionCallEdge(elem, (CFunctionCallEdge) cfaEdge);
       break;
 
     case FunctionReturnEdge:
-      successor = handleFunctionReturnEdge(elem, (FunctionReturnEdge) cfaEdge);
+      successor = handleFunctionReturnEdge(elem, (CFunctionReturnEdge) cfaEdge);
       break;
 
     case ReturnStatementEdge:
-      successor = handleReturnStatementEdge(elem, (ReturnStatementEdge) cfaEdge);
+      successor = handleReturnStatementEdge(elem, (CReturnStatementEdge) cfaEdge);
       break;
 
     case BlankEdge:
@@ -167,7 +167,7 @@ public class BDDTransferRelation implements TransferRelation {
   }
 
   /** handles statements like "a = 0;" and "b = !a;" */
-  private BDDState handleStatementEdge(BDDState element, StatementEdge cfaEdge)
+  private BDDState handleStatementEdge(BDDState element, CStatementEdge cfaEdge)
       throws UnrecognizedCCodeException {
     CStatement statement = cfaEdge.getStatement();
     if (!(statement instanceof CAssignment)) { return element; }
@@ -211,7 +211,7 @@ public class BDDTransferRelation implements TransferRelation {
   }
 
   /** handles declarations like "int a = 0;" and "int b = !a;" */
-  private BDDState handleDeclarationEdge(BDDState element, DeclarationEdge cfaEdge)
+  private BDDState handleDeclarationEdge(BDDState element, CDeclarationEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     CDeclaration decl = cfaEdge.getDeclaration();
@@ -252,7 +252,7 @@ public class BDDTransferRelation implements TransferRelation {
     return element; // if we know nothing, we return the old state
   }
 
-  private BDDState handleFunctionCallEdge(BDDState element, FunctionCallEdge cfaEdge)
+  private BDDState handleFunctionCallEdge(BDDState element, CFunctionCallEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     Region newRegion = element.getRegion();
@@ -282,7 +282,7 @@ public class BDDTransferRelation implements TransferRelation {
     return new BDDState(rmgr, element, newRegion, newVars, innerFunctionName);
   }
 
-  private BDDState handleFunctionReturnEdge(BDDState element, FunctionReturnEdge cfaEdge) {
+  private BDDState handleFunctionReturnEdge(BDDState element, CFunctionReturnEdge cfaEdge) {
     Region newRegion = element.getRegion();
 
     // delete variables from returning function,
@@ -292,7 +292,7 @@ public class BDDTransferRelation implements TransferRelation {
     }
 
     // set result of function equal to variable on left side
-    CallToReturnEdge fnkCall = cfaEdge.getSummaryEdge();
+    CFunctionSummaryEdge fnkCall = cfaEdge.getSummaryEdge();
     CStatement call = fnkCall.getExpression().asStatement();
 
     // make region (predicate) for RIGHT SIDE
@@ -320,7 +320,7 @@ public class BDDTransferRelation implements TransferRelation {
         cfaEdge.getSuccessor().getFunctionName());
   }
 
-  private BDDState handleReturnStatementEdge(BDDState element, ReturnStatementEdge cfaEdge)
+  private BDDState handleReturnStatementEdge(BDDState element, CReturnStatementEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     // make variable (predicate) for returnStatement,
@@ -342,7 +342,7 @@ public class BDDTransferRelation implements TransferRelation {
     return element;
   }
 
-  private BDDState handleAssumption(BDDState element, AssumeEdge cfaEdge)
+  private BDDState handleAssumption(BDDState element, CAssumeEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     CExpression expression = cfaEdge.getExpression();

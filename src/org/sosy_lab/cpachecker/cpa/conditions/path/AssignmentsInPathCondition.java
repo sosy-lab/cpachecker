@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -121,7 +121,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     currentState = (AssignmentsInPathConditionState)element;
 
     if(edge.getEdgeType() == CFAEdgeType.StatementEdge) {
-      StatementEdge statementEdge = (StatementEdge)edge;
+      CStatementEdge statementEdge = (CStatementEdge)edge;
 
       CStatement statement = statementEdge.getStatement();
       if(statement instanceof CAssignment) {

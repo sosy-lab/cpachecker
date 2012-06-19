@@ -45,8 +45,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -76,13 +76,13 @@ public class AndersenTransferRelation implements TransferRelation {
 
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge:
-      StatementEdge statementEdge = (StatementEdge) cfaEdge;
+      CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
       successor = handleStatement(andersenState, statementEdge.getStatement(), cfaEdge);
       break;
 
     // edge is a declaration edge, e.g. int a;
     case DeclarationEdge:
-      DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
+      CDeclarationEdge declarationEdge = (CDeclarationEdge) cfaEdge;
       successor = handleDeclaration(andersenState, declarationEdge);
       break;
 
@@ -238,7 +238,7 @@ public class AndersenTransferRelation implements TransferRelation {
     return element.clone();
   }
 
-  private AndersenState handleDeclaration(AndersenState element, DeclarationEdge declarationEdge)
+  private AndersenState handleDeclaration(AndersenState element, CDeclarationEdge declarationEdge)
       throws UnrecognizedCCodeException {
 
     if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {

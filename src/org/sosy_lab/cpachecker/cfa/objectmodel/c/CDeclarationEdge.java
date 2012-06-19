@@ -23,33 +23,40 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
-public class CallToReturnEdge extends AbstractCFAEdge {
+import com.google.common.base.Optional;
 
-	private final CFunctionCall expression;
+public class CDeclarationEdge extends AbstractCFAEdge {
 
-	public CallToReturnEdge(String pRawStatement, int pLineNumber,
-	    CFANode pPredecessor, CFANode pSuccessor, CFunctionCall pExpression) {
+  private final CDeclaration declaration;
 
-		super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
-		expression = pExpression;
-	}
+  public CDeclarationEdge(final String pRawSignature, final int pLineNumber,
+      final CFANode pPredecessor, final CFANode pSuccessor, final CDeclaration pDeclaration) {
 
-	public CFunctionCall getExpression() {
-		return expression;
-	}
+    super(pRawSignature, pLineNumber, pPredecessor, pSuccessor);
+    declaration = pDeclaration;
+  }
 
-	@Override
-	public String getCode() {
-	  return expression.asStatement().toASTString();
-	}
-
-	@Override
+  @Override
   public CFAEdgeType getEdgeType() {
-		return CFAEdgeType.CallToReturnEdge;
-	}
+    return CFAEdgeType.DeclarationEdge;
+  }
+
+  public CDeclaration getDeclaration() {
+    return declaration;
+  }
+
+  @Override
+  public Optional<CDeclaration> getRawAST() {
+    return Optional.of(declaration);
+  }
+
+  @Override
+  public String getCode() {
+    return declaration.toASTString();
+  }
 }

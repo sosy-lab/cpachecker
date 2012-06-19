@@ -37,11 +37,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -175,13 +175,13 @@ implements GenericAssumptionBuilder
 
     switch (pEdge.getEdgeType()) {
     case AssumeEdge:
-      AssumeEdge assumeEdge = (AssumeEdge) pEdge;
+      CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
       result = visit(assumeEdge.getExpression(), result);
       break;
     case FunctionCallEdge:
-      FunctionCallEdge fcallEdge = (FunctionCallEdge) pEdge;
+      CFunctionCallEdge fcallEdge = (CFunctionCallEdge) pEdge;
       if (!fcallEdge.getArguments().isEmpty()) {
-        FunctionDefinitionNode fdefnode = fcallEdge.getSuccessor();
+        CFunctionEntryNode fdefnode = fcallEdge.getSuccessor();
         List<CParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
         for (CParameterDeclaration paramdecl : formalParams)
         {
@@ -193,7 +193,7 @@ implements GenericAssumptionBuilder
       }
       break;
     case StatementEdge:
-      StatementEdge stmtEdge = (StatementEdge) pEdge;
+      CStatementEdge stmtEdge = (CStatementEdge) pEdge;
 
       CStatement stmt = stmtEdge.getStatement();
       if (stmt instanceof CAssignment) {
@@ -201,7 +201,7 @@ implements GenericAssumptionBuilder
       }
       break;
     case ReturnStatementEdge:
-      ReturnStatementEdge returnEdge = (ReturnStatementEdge) pEdge;
+      CReturnStatementEdge returnEdge = (CReturnStatementEdge) pEdge;
 
       if(returnEdge.getExpression() != null){
         result = visit(returnEdge.getExpression(), result);

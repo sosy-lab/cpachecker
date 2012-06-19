@@ -50,11 +50,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -95,24 +95,24 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
    */
   private LDDRegion toRegion(CFAEdge edge, LDDRegion currentRegion) {
     LDDRegion edgePartialRegion = null;
-    if (edge instanceof AssumeEdge) {
-      AssumeEdge assumeEdge = (AssumeEdge) edge;
+    if (edge instanceof CAssumeEdge) {
+      CAssumeEdge assumeEdge = (CAssumeEdge) edge;
       edgePartialRegion = assumeToRegion(assumeEdge.getExpression());
       if (edgePartialRegion != null && !assumeEdge.getTruthAssumption()) {
         edgePartialRegion = this.regionManager.makeNot(edgePartialRegion);
       }
-    } else if (edge instanceof DeclarationEdge) {
-      DeclarationEdge declarationEdge = (DeclarationEdge) edge;
+    } else if (edge instanceof CDeclarationEdge) {
+      CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
       return toRegion(declarationEdge.getDeclaration(), currentRegion);
-    } else if (edge instanceof StatementEdge) {
-      StatementEdge statementEdge = (StatementEdge) edge;
+    } else if (edge instanceof CStatementEdge) {
+      CStatementEdge statementEdge = (CStatementEdge) edge;
       CStatement statement = statementEdge.getStatement();
       return toRegion(statement, currentRegion);
-    } else if (edge instanceof FunctionCallEdge) {
-      // FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
+    } else if (edge instanceof CFunctionCallEdge) {
+      // CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) edge;
       // TODO currently not supported
-    } else if (edge instanceof FunctionReturnEdge) {
-      // FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) edge;
+    } else if (edge instanceof CFunctionReturnEdge) {
+      // CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) edge;
       // TODO currently not supported
     }
     if (edgePartialRegion == null) { return currentRegion; }

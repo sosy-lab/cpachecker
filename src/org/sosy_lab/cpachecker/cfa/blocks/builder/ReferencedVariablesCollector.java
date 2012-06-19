@@ -44,10 +44,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 
 
 /**
@@ -66,7 +66,7 @@ public class ReferencedVariablesCollector {
     for(CFANode node : nodes) {
       for(int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge leavingEdge = node.getLeavingEdge(i);
-        if(nodes.contains(leavingEdge.getSuccessor()) || (leavingEdge instanceof FunctionCallEdge)) {
+        if(nodes.contains(leavingEdge.getSuccessor()) || (leavingEdge instanceof CFunctionCallEdge)) {
           collectVars(leavingEdge, collectedVars);
         }
       }
@@ -80,7 +80,7 @@ public class ReferencedVariablesCollector {
 
     switch(edge.getEdgeType()) {
     case AssumeEdge:
-      AssumeEdge assumeEdge = (AssumeEdge)edge;
+      CAssumeEdge assumeEdge = (CAssumeEdge)edge;
       collectVars(currentFunction, assumeEdge.getExpression(), null, pCollectedVars);
       break;
     case BlankEdge:
@@ -90,7 +90,7 @@ public class ReferencedVariablesCollector {
       //nothing to do
       break;
     case DeclarationEdge:
-      CDeclaration declaration = ((DeclarationEdge)edge).getDeclaration();
+      CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
       boolean isGlobal = declaration.isGlobal();
       String varName = declaration.getName();
       if(isGlobal) {
@@ -99,7 +99,7 @@ public class ReferencedVariablesCollector {
       //putVariable(currentFunction, varName, pCollectedVars);
       break;
     case FunctionCallEdge:
-      FunctionCallEdge functionCallEdge = (FunctionCallEdge)edge;
+      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge)edge;
       for(CExpression argument : functionCallEdge.getArguments()) {
         collectVars(currentFunction, argument, null, pCollectedVars);
       }
@@ -107,7 +107,7 @@ public class ReferencedVariablesCollector {
     case ReturnStatementEdge:
       break;
     case StatementEdge:
-      StatementEdge statementEdge = (StatementEdge)edge;
+      CStatementEdge statementEdge = (CStatementEdge)edge;
       if (statementEdge.getStatement() instanceof CAssignment) {
         CAssignment assignment = (CAssignment)statementEdge.getStatement();
         String lhsVarName = assignment.getLeftHandSide().toASTString();

@@ -44,12 +44,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 
@@ -140,7 +140,7 @@ public class PathToCTranslator {
 
   private String startFunction(ARGState firstFunctionElement, Stack<FunctionBody> functionStack) {
     // create the first stack element using the first element of the function
-    FunctionDefinitionNode functionStartNode = (FunctionDefinitionNode)extractLocation(firstFunctionElement);
+    CFunctionEntryNode functionStartNode = (CFunctionEntryNode)extractLocation(firstFunctionElement);
     String freshFunctionName = getFreshFunctionName(functionStartNode);
 
     String lFunctionHeader = functionStartNode.getFunctionDefinition().getDeclSpecifier().toASTString(freshFunctionName);
@@ -198,7 +198,7 @@ public class PathToCTranslator {
 
     // handle merging if necessary
     if (noOfParents > 1) {
-      assert !(   (edge instanceof FunctionCallEdge)
+      assert !(   (edge instanceof CFunctionCallEdge)
                || (childElement.isTarget()));
 
       // this is the end of a condition, determine whether we should continue or backtrack
@@ -264,8 +264,8 @@ public class PathToCTranslator {
         Stack<FunctionBody> newStack = cloneStack(functionStack);
         CFAEdge e = currentElement.getEdgeToChild(elem);
         FunctionBody currentFunction = newStack.peek();
-        assert e instanceof AssumeEdge;
-        AssumeEdge assumeEdge = (AssumeEdge)e;
+        assert e instanceof CAssumeEdge;
+        CAssumeEdge assumeEdge = (CAssumeEdge)e;
         boolean truthAssumption = assumeEdge.getTruthAssumption();
 
         String cond = "";
@@ -330,7 +330,7 @@ public class PathToCTranslator {
 
     // handle the edge
 
-    if (edge instanceof FunctionCallEdge) {
+    if (edge instanceof CFunctionCallEdge) {
       // if this is a function call edge we need to create a new state and push
       // it to the topmost stack to represent the function
 
@@ -340,7 +340,7 @@ public class PathToCTranslator {
       // write summary edge to the caller site (with the new unique function name)
       currentFunction.write(processFunctionCall(edge, freshFunctionName));
 
-    } else if (edge instanceof FunctionReturnEdge) {
+    } else if (edge instanceof CFunctionReturnEdge) {
       functionStack.pop();
 
     } else {
@@ -358,13 +358,13 @@ public class PathToCTranslator {
       return pCFAEdge.getCode();
 
     case AssumeEdge: {
-      AssumeEdge lAssumeEdge = (AssumeEdge)pCFAEdge;
+      CAssumeEdge lAssumeEdge = (CAssumeEdge)pCFAEdge;
       return ("__CPROVER_assume(" + lAssumeEdge.getCode() + ");");
 //    return ("if(! (" + lAssumptionString + ")) { return (0); }");
     }
 
     case DeclarationEdge: {
-      DeclarationEdge lDeclarationEdge = (DeclarationEdge)pCFAEdge;
+      CDeclarationEdge lDeclarationEdge = (CDeclarationEdge)pCFAEdge;
 
       if (lDeclarationEdge.getDeclaration().isGlobal()) {
         mGlobalDefinitionsList.add(lDeclarationEdge.getCode());
@@ -390,12 +390,12 @@ public class PathToCTranslator {
 
   private String processFunctionCall(CFAEdge pCFAEdge, String functionName) {
 
-    FunctionCallEdge lFunctionCallEdge = (FunctionCallEdge)pCFAEdge;
+    CFunctionCallEdge lFunctionCallEdge = (CFunctionCallEdge)pCFAEdge;
 
     List<String> lArguments = Lists.transform(lFunctionCallEdge.getArguments(), RAW_SIGNATURE_FUNCTION);
     String lArgumentString = "(" + Joiner.on(", ").join(lArguments) + ")";
 
-    CallToReturnEdge summaryEdge = lFunctionCallEdge.getPredecessor().getLeavingSummaryEdge();
+    CFunctionSummaryEdge summaryEdge = lFunctionCallEdge.getPredecessor().getLeavingSummaryEdge();
     if (summaryEdge == null) {
       // no summary edge, i.e., no return to this function (CFA was pruned)
       // we don't need to care whether this was an assignment or just a function call

@@ -46,12 +46,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -122,8 +122,8 @@ public final class ErrorPathShrinker {
       // the pathHandler stops at a functionStart or at the start of program.
       // so if the lastEdge is a functionCall, the path is not finished.
       final CFAEdge lastEdge = shortErrorPath.getFirst().getSecond();
-      if (lastEdge instanceof FunctionCallEdge) {
-        final FunctionCallEdge funcEdge = (FunctionCallEdge) lastEdge;
+      if (lastEdge instanceof CFunctionCallEdge) {
+        final CFunctionCallEdge funcEdge = (CFunctionCallEdge) lastEdge;
 
         // "f(x)" or "a = f(x)",
         // the Error occured in the function, the left param is not important,
@@ -180,8 +180,8 @@ public final class ErrorPathShrinker {
     while (iterator.hasNext()) {
       CFAEdge cfaEdge = iterator.next().getSecond();
 
-      if (cfaEdge instanceof DeclarationEdge) {
-        CDeclaration declaration = ((DeclarationEdge) cfaEdge).getDeclaration();
+      if (cfaEdge instanceof CDeclarationEdge) {
+        CDeclaration declaration = ((CDeclarationEdge) cfaEdge).getDeclaration();
 
         if (declaration.isGlobal()) {
           // only global declarations are important
@@ -277,7 +277,7 @@ public final class ErrorPathShrinker {
    * @param importantVars all important variables
    * @param importantVarsForGlobalVars variables, that influence global vars */
   private void getImportantVarsFromFunctionCall(
-      final FunctionCallEdge funcEdge, final Set<String> importantVars,
+      final CFunctionCallEdge funcEdge, final Set<String> importantVars,
       final Set<String> importantVarsForGlobalVars) {
 
     // get a list with the expressions "x" and "y" from "f(x,y)"
@@ -410,7 +410,7 @@ public final class ErrorPathShrinker {
 
       // in the expression "return r" the value "r" is possibly important.
       final CExpression returnExp =
-          ((ReturnStatementEdge) currentCFAEdgePair.getSecond()).getExpression();
+          ((CReturnStatementEdge) currentCFAEdgePair.getSecond()).getExpression();
       addAllVarsInExpToSet(returnExp, possibleVars,
           importantVarsForGlobalVars);
 
@@ -467,11 +467,11 @@ public final class ErrorPathShrinker {
 
       // the recursive call stops at the functionStart,
       // so the lastEdge is the functionCall and there exist a
-      // CallToReturnEdge, that jumps over the hole function
+      // CFunctionSummaryEdge, that jumps over the hole function
       final CFAEdge lastEdge = shortFunctionPath.getFirst().getSecond();
-      assert (lastEdge instanceof FunctionCallEdge);
-      final FunctionCallEdge funcEdge = (FunctionCallEdge) lastEdge;
-      final CallToReturnEdge funcSummaryEdge = funcEdge.getSummaryEdge();
+      assert (lastEdge instanceof CFunctionCallEdge);
+      final CFunctionCallEdge funcEdge = (CFunctionCallEdge) lastEdge;
+      final CFunctionSummaryEdge funcSummaryEdge = funcEdge.getSummaryEdge();
       final CFunctionCall funcExp = funcSummaryEdge.getExpression();
 
       // "f(x)", without a variable "a" as "a = f(x)".
@@ -554,7 +554,7 @@ public final class ErrorPathShrinker {
     private void handleStatement() {
 
       CStatement statementExp =
-          ((StatementEdge) currentCFAEdgePair.getSecond()).getStatement();
+          ((CStatementEdge) currentCFAEdgePair.getSecond()).getStatement();
 
       // expression is an assignment operation, e.g. a = b;
       if (statementExp instanceof CExpressionAssignmentStatement) {
@@ -646,11 +646,11 @@ public final class ErrorPathShrinker {
     /** This method handles variable declarations ("int a;").
      * Expressions like "int a=b;" are divided by CIL into "int a;" and "a=b;",
      * so there is no need to handle them. The expression "a=b;" is then
-     * handled as StatementEdge. Global declarations are not divided by CIL. */
+     * handled as CStatementEdge. Global declarations are not divided by CIL. */
     private void handleDeclaration() {
 
       CDeclaration declaration =
-          ((DeclarationEdge) currentCFAEdgePair.getSecond()).getDeclaration();
+          ((CDeclarationEdge) currentCFAEdgePair.getSecond()).getDeclaration();
 
       /* If the declared variable is important, the edge is important. */
       if (declaration.getName() != null) {
@@ -674,7 +674,7 @@ public final class ErrorPathShrinker {
      * assumption (expression) to the important variables. */
     private void handleAssumption() {
       final CExpression assumeExp =
-          ((AssumeEdge) currentCFAEdgePair.getSecond()).getExpression();
+          ((CAssumeEdge) currentCFAEdgePair.getSecond()).getExpression();
 
       if (!isSwitchStatement(assumeExp)) {
         addAllVarsInExpToSet(assumeExp, importantVars,
@@ -704,8 +704,8 @@ public final class ErrorPathShrinker {
 
         //check, if the last edge was an assumption
         if (assumeExp instanceof CBinaryExpression
-            && lastEdge instanceof AssumeEdge) {
-          final AssumeEdge lastAss = (AssumeEdge) lastEdge;
+            && lastEdge instanceof CAssumeEdge) {
+          final CAssumeEdge lastAss = (CAssumeEdge) lastEdge;
           final CExpression lastExp = lastAss.getExpression();
 
           // check, if the last egde was like "a==b"

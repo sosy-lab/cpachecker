@@ -55,14 +55,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -112,7 +112,7 @@ class OctTransferRelation implements TransferRelation{
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge:
     {
-      StatementEdge statementEdge = (StatementEdge) cfaEdge;
+      CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
       CStatement expression = statementEdge.getStatement();
       octState = handleStatement (octState, expression, cfaEdge);
       break;
@@ -120,7 +120,7 @@ class OctTransferRelation implements TransferRelation{
 
     case ReturnStatementEdge:
     {
-      ReturnStatementEdge statementEdge = (ReturnStatementEdge) cfaEdge;
+      CReturnStatementEdge statementEdge = (CReturnStatementEdge) cfaEdge;
       // this statement is a function return, e.g. return (a);
       // note that this is different from return edge
       // this is a statement edge which leads the function to the
@@ -133,7 +133,7 @@ class OctTransferRelation implements TransferRelation{
     // edge is a decleration edge, e.g. int a;
     case DeclarationEdge:
     {
-      DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
+      CDeclarationEdge declarationEdge = (CDeclarationEdge) cfaEdge;
       octState = handleDeclaration (octState, declarationEdge);
       break;
     }
@@ -141,7 +141,7 @@ class OctTransferRelation implements TransferRelation{
     // this is an assumption, e.g. if(a == b)
     case AssumeEdge:
     {
-      AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
+      CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
       CExpression expression = assumeEdge.getExpression();
       octState = (OctState)handleAssumption (octState, expression, cfaEdge, assumeEdge.getTruthAssumption());
       break;
@@ -155,7 +155,7 @@ class OctTransferRelation implements TransferRelation{
 
     case FunctionCallEdge:
     {
-      FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
+      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) cfaEdge;
       octState = handleFunctionCall(octState, prevElement, functionCallEdge, cfaEdge);
       break;
     }
@@ -164,7 +164,7 @@ class OctTransferRelation implements TransferRelation{
     // of the function. See case for statement edge for details
     case FunctionReturnEdge:
     {
-      FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) cfaEdge;
+      CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) cfaEdge;
       octState = handleFunctionReturn(octState, functionReturnEdge);
       break;
     }
@@ -191,10 +191,10 @@ class OctTransferRelation implements TransferRelation{
    * @return new abstract state.
    */
   private OctState handleFunctionReturn(OctState element,
-      FunctionReturnEdge functionReturnEdge)
+      CFunctionReturnEdge functionReturnEdge)
   throws UnrecognizedCCodeException {
 
-    CallToReturnEdge summaryEdge =
+    CFunctionSummaryEdge summaryEdge =
       functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
     CFunctionCall exprOnSummary = summaryEdge.getExpression();
 
@@ -240,7 +240,7 @@ class OctTransferRelation implements TransferRelation{
 
   private OctState handleExitFromFunction(OctState element,
       CExpression expression,
-      ReturnStatementEdge returnEdge)
+      CReturnStatementEdge returnEdge)
   throws UnrecognizedCCodeException {
     String tempVarName = getvarName("___cpa_temp_result_var_", returnEdge.getSuccessor().getFunctionName());
     element.declareVariable(tempVarName);
@@ -248,12 +248,12 @@ class OctTransferRelation implements TransferRelation{
   }
 
   private OctState handleFunctionCall(OctState octagonElement,
-      OctState pPrevElement, FunctionCallEdge callEdge, CFAEdge edge)
+      OctState pPrevElement, CFunctionCallEdge callEdge, CFAEdge edge)
   throws UnrecognizedCCodeException {
 
     octagonElement.setPreviousState(pPrevElement);
 
-    FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
+    CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();
     String callerFunctionName = callEdge.getPredecessor().getFunctionName();
 
@@ -833,7 +833,7 @@ class OctTransferRelation implements TransferRelation{
   }
 
   private OctState handleDeclaration(OctState pElement,
-      DeclarationEdge declarationEdge) throws UnrecognizedCCodeException {
+      CDeclarationEdge declarationEdge) throws UnrecognizedCCodeException {
 
     if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {
       CVariableDeclaration decl = (CVariableDeclaration)declarationEdge.getDeclaration();

@@ -32,12 +32,12 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 
 import com.google.common.collect.ImmutableList;
 
-public class FunctionDefinitionNode extends CFAFunctionDefinitionNode {
+public class CFunctionEntryNode extends CFAFunctionDefinitionNode {
 
   private final CFunctionDeclaration functionDefinition;
   private final List<String> parameterNames;
 
-  public FunctionDefinitionNode(final int pLineNumber,
+  public CFunctionEntryNode(final int pLineNumber,
       final CFunctionDeclaration pFunctionDefinition,
       final CFAFunctionExitNode pExitNode,
       final List<String> pParameterNames) {

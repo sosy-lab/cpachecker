@@ -68,13 +68,13 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -155,7 +155,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
         if (fDefNode != null) {
           logger.log(Level.FINEST, "Function pointer", functionCallVariable, "points to", target, "while it is used.");
 
-          StatementEdge edge = (StatementEdge)pCfaEdge;
+          CStatementEdge edge = (CStatementEdge)pCfaEdge;
           CFunctionCall functionCall = (CFunctionCall)edge.getStatement();
           CFANode predecessorNode = edge.getPredecessor();
           CFANode successorNode = edge.getSuccessor();
@@ -164,10 +164,10 @@ class FunctionPointerTransferRelation implements TransferRelation {
           CFAFunctionExitNode fExitNode = fDefNode.getExitNode();
 
           // Create new edges.
-          CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(edge.getRawStatement(),
+          CFunctionSummaryEdge calltoReturnEdge = new CFunctionSummaryEdge(edge.getRawStatement(),
               lineNumber, predecessorNode, successorNode, functionCall);
 
-          FunctionPointerCallEdge callEdge = new FunctionPointerCallEdge(edge.getRawStatement(), lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, functionCall, calltoReturnEdge);
+          FunctionPointerCallEdge callEdge = new FunctionPointerCallEdge(edge.getRawStatement(), lineNumber, predecessorNode, (CFunctionEntryNode)fDefNode, functionCall, calltoReturnEdge);
           predecessorNode.addLeavingEdge(callEdge);
           fDefNode.addEnteringEdge(callEdge);
 
@@ -205,7 +205,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     // Some CPAs rely on the call-to-return edge when processing the return edge.
     // We add it here to the CFA and remove it before returning from this function.
     if (cfaEdge instanceof FunctionPointerReturnEdge) {
-      CallToReturnEdge calltoReturnEdge = ((FunctionPointerReturnEdge) cfaEdge).getSummaryEdge();
+      CFunctionSummaryEdge calltoReturnEdge = ((FunctionPointerReturnEdge) cfaEdge).getSummaryEdge();
       calltoReturnEdge.getPredecessor().addLeavingSummaryEdge(calltoReturnEdge);
       calltoReturnEdge.getSuccessor().addEnteringSummaryEdge(calltoReturnEdge);
     }
@@ -242,7 +242,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
       return null;
     }
 
-    CStatement statement = ((StatementEdge)pCfaEdge).getStatement();
+    CStatement statement = ((CStatementEdge)pCfaEdge).getStatement();
     if (!(statement instanceof CFunctionCall)) {
       return null;
     }
@@ -281,32 +281,32 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
       // declaration of a function pointer.
       case DeclarationEdge: {
-        DeclarationEdge declEdge = (DeclarationEdge) pCfaEdge;
+        CDeclarationEdge declEdge = (CDeclarationEdge) pCfaEdge;
         handleDeclaration(newState, declEdge);
         break;
       }
 
       // if edge is a statement edge, e.g. a = b + c
       case StatementEdge: {
-        StatementEdge statementEdge = (StatementEdge) pCfaEdge;
+        CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
         handleStatement(newState, statementEdge.getStatement(), pCfaEdge);
         break;
       }
 
       case FunctionCallEdge: {
-        FunctionCallEdge functionCallEdge = (FunctionCallEdge) pCfaEdge;
+        CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pCfaEdge;
         handleFunctionCall(newState, functionCallEdge);
         break;
       }
 
       case ReturnStatementEdge: {
-        ReturnStatementEdge returnStatementEdge = (ReturnStatementEdge)pCfaEdge;
+        CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge)pCfaEdge;
         handleReturnStatement(newState, returnStatementEdge.getExpression(), pCfaEdge);
         break;
       }
 
       case FunctionReturnEdge: {
-        FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) pCfaEdge;
+        CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) pCfaEdge;
         handleFunctionReturn(newState, functionReturnEdge);
         break;
       }
@@ -329,7 +329,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     return newState;
   }
 
-  private void handleDeclaration(FunctionPointerState.Builder pNewState, DeclarationEdge declEdge) throws UnrecognizedCCodeException {
+  private void handleDeclaration(FunctionPointerState.Builder pNewState, CDeclarationEdge declEdge) throws UnrecognizedCCodeException {
 
     if (!(declEdge.getDeclaration() instanceof CVariableDeclaration)) {
       // not a variable declaration
@@ -389,9 +389,9 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleFunctionCall(FunctionPointerState.Builder pNewState, FunctionCallEdge callEdge) throws UnrecognizedCCodeException {
+  private void handleFunctionCall(FunctionPointerState.Builder pNewState, CFunctionCallEdge callEdge) throws UnrecognizedCCodeException {
 
-    FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
+    CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();
     String callerFunctionName = callEdge.getPredecessor().getFunctionName();
 
@@ -437,8 +437,8 @@ class FunctionPointerTransferRelation implements TransferRelation {
   }
 
 
-  private void handleFunctionReturn(FunctionPointerState.Builder pNewState, FunctionReturnEdge pFunctionReturnEdge) throws UnrecognizedCCodeException {
-    CallToReturnEdge summaryEdge = pFunctionReturnEdge.getSuccessor().getEnteringSummaryEdge();
+  private void handleFunctionReturn(FunctionPointerState.Builder pNewState, CFunctionReturnEdge pFunctionReturnEdge) throws UnrecognizedCCodeException {
+    CFunctionSummaryEdge summaryEdge = pFunctionReturnEdge.getSuccessor().getEnteringSummaryEdge();
     assert summaryEdge != null;
 
     CFunctionCall funcCall = summaryEdge.getExpression();

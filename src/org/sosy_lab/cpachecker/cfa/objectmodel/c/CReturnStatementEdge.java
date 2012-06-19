@@ -23,57 +23,48 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
-import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import com.google.common.base.Optional;
 
-public class FunctionCallEdge extends AbstractCFAEdge {
+public class CReturnStatementEdge extends AbstractCFAEdge {
 
-	private final CFunctionCall functionCall;
-	private final CallToReturnEdge summaryEdge;
+  private final CReturnStatement rawAST;
 
-  public FunctionCallEdge (String pRawStatement,
-      int pLineNumber, CFANode pPredecessor, FunctionDefinitionNode pSuccessor,
-      CFunctionCall pFunctionCall, CallToReturnEdge pSummaryEdge) {
+  public CReturnStatementEdge(String pRawStatement, CReturnStatement pRawAST,
+      int pLineNumber, CFANode pPredecessor, CFAFunctionExitNode pSuccessor) {
 
     super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
-    functionCall = pFunctionCall;
-    summaryEdge = pSummaryEdge;
+    rawAST = pRawAST;
   }
 
   @Override
   public CFAEdgeType getEdgeType() {
-    return CFAEdgeType.FunctionCallEdge;
+    return CFAEdgeType.ReturnStatementEdge;
   }
 
-  public CallToReturnEdge getSummaryEdge() {
-    return summaryEdge;
+  public CExpression getExpression() {
+    return rawAST.getReturnValue();
   }
 
-  public List<CExpression> getArguments() {
-    return functionCall.getFunctionCallExpression().getParameterExpressions();
+  @Override
+  public Optional<CReturnStatement> getRawAST() {
+    return Optional.of(rawAST);
   }
 
   @Override
   public String getCode() {
-    return functionCall.getFunctionCallExpression().toASTString();
+    return rawAST.toASTString();
   }
 
   @Override
-  public Optional<CStatement> getRawAST() {
-    return Optional.of(functionCall.asStatement());
-  }
-
-  @Override
-  public FunctionDefinitionNode getSuccessor() {
-    // the constructor enforces that the successor is always a CFAFunctionDefinitionNode
-    return (FunctionDefinitionNode)super.getSuccessor();
+  public CFAFunctionExitNode getSuccessor() {
+    // the constructor enforces that the successor is always a CFAFunctionExitNode
+    return (CFAFunctionExitNode)super.getSuccessor();
   }
 }

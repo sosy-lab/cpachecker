@@ -42,8 +42,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -96,7 +96,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
 
     // this is an assumption, e.g. if(a == b)
     case AssumeEdge: {
-      AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
+      CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
       successor =
           handleAssumption(fvElement, assumeEdge.getExpression(), cfaEdge,
               assumeEdge.getTruthAssumption(), precision);
@@ -131,7 +131,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     switch (cfaEdge.getEdgeType()) {
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge: {
-      StatementEdge st = (StatementEdge) cfaEdge;
+      CStatementEdge st = (CStatementEdge) cfaEdge;
       successor = handleStatementEdge(fvElement, st.getStatement(), st, precision);
       break;
     }
@@ -163,7 +163,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
   }
 
   private FeatureVarsState handleStatementEdge(FeatureVarsState element,
-      CStatement pIastStatement, StatementEdge cfaEdge,
+      CStatement pIastStatement, CStatementEdge cfaEdge,
       FeatureVarsPrecision pPrecision) {
 
     if (!(pIastStatement instanceof CAssignment)) {

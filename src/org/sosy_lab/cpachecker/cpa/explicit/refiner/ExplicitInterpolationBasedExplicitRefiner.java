@@ -37,7 +37,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -107,8 +107,8 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
 
       numberOfErrorPathElements++;
 
-      if(currentEdge instanceof FunctionReturnEdge) {
-        currentEdge = ((FunctionReturnEdge)currentEdge).getSummaryEdge();
+      if(currentEdge instanceof CFunctionReturnEdge) {
+        currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
       }
 
       Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge.getSuccessor());

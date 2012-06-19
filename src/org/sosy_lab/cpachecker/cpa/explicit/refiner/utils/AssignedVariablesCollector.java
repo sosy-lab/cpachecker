@@ -45,10 +45,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -85,7 +85,7 @@ public class AssignedVariablesCollector {
       break;
 
     case DeclarationEdge:
-      CDeclaration declaration = ((DeclarationEdge)edge).getDeclaration();
+      CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
       if(declaration.getName() != null && declaration.isGlobal()) {
         globalVariables.add(declaration.getName());
         collectedVariables.put(edge.getSuccessor(), declaration.getName());
@@ -93,12 +93,12 @@ public class AssignedVariablesCollector {
       break;
 
     case AssumeEdge:
-      AssumeEdge assumeEdge = (AssumeEdge)edge;
+      CAssumeEdge assumeEdge = (CAssumeEdge)edge;
       collectVariables(assumeEdge, assumeEdge.getExpression(), collectedVariables);
       break;
 
     case StatementEdge:
-      StatementEdge statementEdge = (StatementEdge)edge;
+      CStatementEdge statementEdge = (CStatementEdge)edge;
       if(statementEdge.getStatement() instanceof CAssignment) {
         CAssignment assignment = (CAssignment)statementEdge.getStatement();
         String assignedVariable = assignment.getLeftHandSide().toASTString();
@@ -107,7 +107,7 @@ public class AssignedVariablesCollector {
       break;
 
     case FunctionCallEdge:
-      FunctionCallEdge functionCallEdge = (FunctionCallEdge)edge;
+      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge)edge;
       CFunctionCall functionCall     = functionCallEdge.getSummaryEdge().getExpression();
 
       if(functionCall instanceof CFunctionCallAssignmentStatement) {

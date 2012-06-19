@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 
@@ -291,8 +291,8 @@ public class BlockedCFAReducer implements BlockComputer {
         }
 
         // Depending on the type of the edge...
-        if (e instanceof FunctionCallEdge) {
-          FunctionCallEdge callEdge = (FunctionCallEdge) e;
+        if (e instanceof CFunctionCallEdge) {
+          CFunctionCallEdge callEdge = (CFunctionCallEdge) e;
           ReducedNode callReturnTarget = functionNodes.getWrapper(callEdge.getSummaryEdge().getSuccessor());
           CFAFunctionDefinitionNode calledFunction = callEdge.getSuccessor();
 

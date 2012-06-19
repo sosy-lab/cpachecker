@@ -58,14 +58,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -164,7 +164,7 @@ public class PointerTransferRelation implements TransferRelation {
   private static LogManager                 logger             = null;
   private static LinkedList<MemoryRegion>   memoryLeakWarnings = null;
 
-  private FunctionDefinitionNode entryFunctionDefinitionNode = null;
+  private CFunctionEntryNode functionEntryNode = null;
   private boolean entryFunctionProcessed = false;
 
   public PointerTransferRelation(boolean pPrintWarnings,
@@ -241,7 +241,7 @@ public class PointerTransferRelation implements TransferRelation {
       switch (cfaEdge.getEdgeType()) {
 
       case DeclarationEdge:
-        DeclarationEdge declEdge = (DeclarationEdge)cfaEdge;
+        CDeclarationEdge declEdge = (CDeclarationEdge)cfaEdge;
 
         // ignore type definitions, struct prototypes etc.
         if (declEdge.getDeclaration() instanceof CVariableDeclaration) {
@@ -251,8 +251,8 @@ public class PointerTransferRelation implements TransferRelation {
         break;
 
       case StatementEdge:
-        handleStatement(successor, ((StatementEdge)cfaEdge).getStatement(),
-                                                      (StatementEdge)cfaEdge);
+        handleStatement(successor, ((CStatementEdge)cfaEdge).getStatement(),
+                                                      (CStatementEdge)cfaEdge);
         break;
 
       case ReturnStatementEdge:
@@ -261,7 +261,7 @@ public class PointerTransferRelation implements TransferRelation {
         // Normally, the resultPointer is there, but if we know through a type
         // information CPA that this function does not return a pointer, it's not.
 
-        CExpression expression = ((ReturnStatementEdge)cfaEdge).getExpression();
+        CExpression expression = ((CReturnStatementEdge)cfaEdge).getExpression();
         if (expression != null) {
           // non-void function
           Pointer resultPointer = successor.lookupPointer(RETURN_VALUE_VARIABLE);
@@ -273,7 +273,7 @@ public class PointerTransferRelation implements TransferRelation {
         break;
 
       case AssumeEdge:
-        AssumeEdge assumeEdge = (AssumeEdge)cfaEdge;
+        CAssumeEdge assumeEdge = (CAssumeEdge)cfaEdge;
         handleAssume(successor, assumeEdge.getExpression(),
                 assumeEdge.getTruthAssumption(), assumeEdge);
         break;
@@ -283,9 +283,9 @@ public class PointerTransferRelation implements TransferRelation {
         break;
 
       case FunctionReturnEdge:
-        // now handle the complete a = func(x) statement in the CallToReturnEdge
-        FunctionReturnEdge returnEdge = (FunctionReturnEdge)cfaEdge;
-        CallToReturnEdge ctrEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
+        // now handle the complete a = func(x) statement in the CFunctionSummaryEdge
+        CFunctionReturnEdge returnEdge = (CFunctionReturnEdge)cfaEdge;
+        CFunctionSummaryEdge ctrEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
         handleReturnFromFunction(successor, ctrEdge.getExpression(), ctrEdge);
         break;
 
@@ -296,9 +296,9 @@ public class PointerTransferRelation implements TransferRelation {
 
           //since by this point all global variables have been processed, we can now process the entry function
           //by first creating its context...
-          successor.callFunction(entryFunctionDefinitionNode.getFunctionName());
+          successor.callFunction(functionEntryNode.getFunctionName());
 
-          List<CParameterDeclaration> l = entryFunctionDefinitionNode.getFunctionParameters();
+          List<CParameterDeclaration> l = functionEntryNode.getFunctionParameters();
 
           //..then adding all parameters as local variables
           for (CParameterDeclaration dec : l) {
@@ -465,7 +465,7 @@ public class PointerTransferRelation implements TransferRelation {
   }
 
   private void handleAssume(PointerState element,
-      CExpression expression, boolean isTrueBranch, AssumeEdge assumeEdge)
+      CExpression expression, boolean isTrueBranch, CAssumeEdge assumeEdge)
       throws UnrecognizedCCodeException, UnreachableStateException, InvalidPointerException {
 
     if (expression instanceof CBinaryExpression) {
@@ -560,7 +560,7 @@ public class PointerTransferRelation implements TransferRelation {
 
   private void handleBinaryAssume(PointerState element,
       CBinaryExpression expression, boolean isTrueBranch,
-      AssumeEdge assumeEdge) throws UnrecognizedCCodeException,
+      CAssumeEdge assumeEdge) throws UnrecognizedCCodeException,
       UnreachableStateException {
 
     CExpression leftOp = expression.getOperand1();
@@ -601,11 +601,11 @@ public class PointerTransferRelation implements TransferRelation {
   private void handleFunctionCall(PointerState element,
       CFAEdge cfaEdge) throws UnrecognizedCCodeException {
 
-    FunctionDefinitionNode funcDefNode = (FunctionDefinitionNode)cfaEdge.getSuccessor();
+    CFunctionEntryNode funcDefNode = (CFunctionEntryNode)cfaEdge.getSuccessor();
     String funcName = funcDefNode.getFunctionName();
 
     List<String> formalParameters = funcDefNode.getFunctionParameterNames();
-    List<CExpression> actualParameters = ((FunctionCallEdge)cfaEdge).getArguments();
+    List<CExpression> actualParameters = ((CFunctionCallEdge)cfaEdge).getArguments();
 
     // TODO: relocate parameter handling to strengthen operator
 
@@ -767,7 +767,7 @@ public class PointerTransferRelation implements TransferRelation {
   }
 
   private void handleStatement(PointerState element,
-      CStatement expression, StatementEdge cfaEdge)
+      CStatement expression, CStatementEdge cfaEdge)
       throws UnrecognizedCCodeException, InvalidPointerException {
 
     if (expression instanceof CFunctionCallStatement) {
@@ -1481,11 +1481,11 @@ public class PointerTransferRelation implements TransferRelation {
       TypesState typesState, CFAEdge cfaEdge, Precision precision)
       throws UnrecognizedCCodeException {
 
-    if (cfaEdge instanceof FunctionCallEdge) {
+    if (cfaEdge instanceof CFunctionCallEdge) {
       // function call, adjust sizeOfTarget of parameters
 
-      FunctionDefinitionNode funcDefNode =
-          (FunctionDefinitionNode)cfaEdge.getSuccessor();
+      CFunctionEntryNode funcDefNode =
+          (CFunctionEntryNode)cfaEdge.getSuccessor();
       String funcName = funcDefNode.getFunctionName();
 
       FunctionType function = typesState.getFunction(funcName);
@@ -1510,8 +1510,8 @@ public class PointerTransferRelation implements TransferRelation {
 
       // pointer variable declaration
       String functionName = cfaEdge.getSuccessor().getFunctionName();
-      if (missing.typeInformationEdge instanceof DeclarationEdge
-          && ((DeclarationEdge) missing.typeInformationEdge).getDeclaration().isGlobal()) {
+      if (missing.typeInformationEdge instanceof CDeclarationEdge
+          && ((CDeclarationEdge) missing.typeInformationEdge).getDeclaration().isGlobal()) {
         functionName = null;
       }
 
@@ -1653,8 +1653,8 @@ public class PointerTransferRelation implements TransferRelation {
     }
   }
 
-  public void setEntryFunctionDefinitionNode(FunctionDefinitionNode pEntryFunctionDefNode) {
-    entryFunctionDefinitionNode = pEntryFunctionDefNode;
+  public void setFunctionEntryNode(CFunctionEntryNode pEntryFunctionDefNode) {
+    functionEntryNode = pEntryFunctionDefNode;
   }
 
 }

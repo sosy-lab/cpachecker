@@ -92,11 +92,11 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -236,7 +236,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     final CFAFunctionExitNode returnNode = new CFAFunctionExitNode(fileloc.getEndingLineNumber(), nameOfFunction);
     cfaNodes.add(returnNode);
 
-    final CFAFunctionDefinitionNode startNode = new FunctionDefinitionNode(
+    final CFAFunctionDefinitionNode startNode = new CFunctionEntryNode(
         fileloc.getStartingLineNumber(), fdef, returnNode, parameterNames);
     cfaNodes.add(startNode);
     cfa = startNode;
@@ -463,16 +463,16 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     if (exp != astCreator.getConditionalTemporaryVariable() && astCreator.getConditionalExpression() == null) {
       prevNode = handleConditionalTail(exp, filelocStart, prevNode, tempVar);
-      StatementEdge edge;
+      CStatementEdge edge;
       if(exp instanceof CExpression) {
-        edge  = new StatementEdge(condExp.getRawSignature(),
+        edge  = new CStatementEdge(condExp.getRawSignature(),
                                   new CExpressionAssignmentStatement(astCreator.convert(condExp.getFileLocation()),
                                                                         tempVar,
                                                                         (CExpression) exp),
                                   filelocStart, prevNode, lastNode);
         addToCFA(edge);
       } else if (exp instanceof CFunctionCallExpression) {
-        edge  = new StatementEdge(condExp.getRawSignature(),
+        edge  = new CStatementEdge(condExp.getRawSignature(),
                                   new CFunctionCallAssignmentStatement(astCreator.convert(condExp.getFileLocation()),
                                                                           tempVar,
                                                                           (CFunctionCallExpression) exp),
@@ -481,9 +481,9 @@ class CFAFunctionBuilder extends ASTVisitor {
       } else {
         CFANode middle = new CFANode(filelocStart, cfa.getFunctionName());
         cfaNodes.add(middle);
-        edge  = new StatementEdge(condExp.getRawSignature(), (CStatement) exp, filelocStart, prevNode, middle);
+        edge  = new CStatementEdge(condExp.getRawSignature(), (CStatement) exp, filelocStart, prevNode, middle);
         addToCFA(edge);
-        edge  = new StatementEdge(condExp.getRawSignature(),
+        edge  = new CStatementEdge(condExp.getRawSignature(),
                                   new CExpressionAssignmentStatement(astCreator.convert(condExp.getFileLocation()),
                                                                         tempVar,
                                                                         ((CExpressionAssignmentStatement) exp).getLeftHandSide()),
@@ -508,7 +508,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       handleConditionalStatement(condExp, branchNode, nextNode, exp);
       CStatement stmt = new CExpressionAssignmentStatement(exp.getFileLocation(), leftHandSide, rightHandSide);
-      addToCFA(new StatementEdge(stmt.toASTString(), stmt, filelocStart, nextNode, lastNode));
+      addToCFA(new CStatementEdge(stmt.toASTString(), stmt, filelocStart, nextNode, lastNode));
 
     } else {
       handleSideassignments(branchNode, exp.toASTString(), filelocStart, lastNode);
@@ -534,7 +534,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       cfaNodes.add(nextNode);
 
       CStatement stmt = new CExpressionAssignmentStatement(exp.getFileLocation(), leftHandSide, rightHandSide);
-      addToCFA(new StatementEdge(stmt.toASTString(), stmt, filelocStart, branchNode, nextNode));
+      addToCFA(new CStatementEdge(stmt.toASTString(), stmt, filelocStart, branchNode, nextNode));
 
     } else {
       nextNode = handleSideassignments(branchNode, exp.toASTString(), exp.getFileLocation().getStartingLineNumber());
@@ -567,7 +567,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else {
       CFANode nextNode = handleSideassignments(prevNode, rawSignature, fileloc.getStartingLineNumber());
 
-      StatementEdge edge = new StatementEdge(rawSignature, statement,
+      CStatementEdge edge = new CStatementEdge(rawSignature, statement,
           fileloc.getStartingLineNumber(), nextNode, lastNode);
       addToCFA(edge);
     }
@@ -622,13 +622,13 @@ class CFAFunctionBuilder extends ASTVisitor {
       int filelocStart, CAstNode sideeffect) {
     CFAEdge previous;
     if(sideeffect instanceof CStatement) {
-      previous = new StatementEdge(rawSignature, (CStatement)sideeffect, filelocStart, prevNode, nextNode);
+      previous = new CStatementEdge(rawSignature, (CStatement)sideeffect, filelocStart, prevNode, nextNode);
     } else if (sideeffect instanceof CAssignment) {
-      previous = new StatementEdge(rawSignature, (CStatement)sideeffect, filelocStart, prevNode, nextNode);
+      previous = new CStatementEdge(rawSignature, (CStatement)sideeffect, filelocStart, prevNode, nextNode);
     } else if (sideeffect instanceof CIdExpression) {
-      previous = new StatementEdge(rawSignature, new CExpressionStatement(sideeffect.getFileLocation(), (CExpression) sideeffect), filelocStart, prevNode, nextNode);
+      previous = new CStatementEdge(rawSignature, new CExpressionStatement(sideeffect.getFileLocation(), (CExpression) sideeffect), filelocStart, prevNode, nextNode);
     } else {
-      previous = new DeclarationEdge(rawSignature, filelocStart, prevNode, nextNode, (CDeclaration) sideeffect);
+      previous = new CDeclarationEdge(rawSignature, filelocStart, prevNode, nextNode, (CDeclaration) sideeffect);
     }
     addToCFA(previous);
   }
@@ -793,7 +793,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
 
       // edge connecting last condition with elseNode
-      final AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + condition.getRawSignature() + ")",
+      final CAssumeEdge assumeEdgeFalse = new CAssumeEdge("!(" + condition.getRawSignature() + ")",
                                                         filelocStart,
                                                         nextNode,
                                                         elseNodeForLastElse,
@@ -802,7 +802,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       addToCFA(assumeEdgeFalse);
 
       // edge connecting last condition with thenNode
-      final AssumeEdge assumeEdgeTrue = new AssumeEdge(condition.getRawSignature(),
+      final CAssumeEdge assumeEdgeTrue = new CAssumeEdge(condition.getRawSignature(),
                                                        filelocStart,
                                                        nextNode,
                                                        thenNodeForLastThen,
@@ -899,7 +899,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       final CFANode nextNode = new CFANode(filelocStart, cfa.getFunctionName());
       cfaNodes.add(nextNode);
 
-      final StatementEdge initEdge = new StatementEdge(statement.getRawSignature(),
+      final CStatementEdge initEdge = new CStatementEdge(statement.getRawSignature(),
               astCreator.convert((IASTExpressionStatement) statement),
               filelocStart, loopInit, nextNode);
       addToCFA(initEdge);
@@ -941,7 +941,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       CFANode nextNode = new CFANode(filelocStart, cfa.getFunctionName());
       cfaNodes.add(nextNode);
 
-      final DeclarationEdge edge = new DeclarationEdge(rawSignature, filelocStart,
+      final CDeclarationEdge edge = new CDeclarationEdge(rawSignature, filelocStart,
           prevNode, nextNode, newD);
       addToCFA(edge);
 
@@ -1000,12 +1000,12 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       // "counter++;"
     } else if (node instanceof CExpressionAssignmentStatement) {
-      final StatementEdge lastEdge = new StatementEdge(exp.getRawSignature(),
+      final CStatementEdge lastEdge = new CStatementEdge(exp.getRawSignature(),
           (CExpressionAssignmentStatement) node, filelocStart, loopEnd, loopStart);
       addToCFA(lastEdge);
 
     } else if (node instanceof CFunctionCallAssignmentStatement) {
-      final StatementEdge edge = new StatementEdge(exp.getRawSignature(),
+      final CStatementEdge edge = new CStatementEdge(exp.getRawSignature(),
           (CFunctionCallAssignmentStatement)node, filelocStart, loopEnd, loopStart);
       addToCFA(edge);
 
@@ -1194,7 +1194,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode prevNode = locStack.pop();
     CFAFunctionExitNode functionExitNode = cfa.getExitNode();
 
-    ReturnStatementEdge edge = new ReturnStatementEdge(returnStatement.getRawSignature(),
+    CReturnStatementEdge edge = new CReturnStatementEdge(returnStatement.getRawSignature(),
         astCreator.convert(returnStatement), fileloc.getStartingLineNumber(), prevNode, functionExitNode);
     addToCFA(edge);
 
@@ -1305,12 +1305,12 @@ class CFAFunctionBuilder extends ASTVisitor {
     locStack.push(caseNode);
 
     // edge connecting rootNode with notCaseNode, "!(a==2)"
-    final AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + binExp.toASTString() + ")",
+    final CAssumeEdge assumeEdgeFalse = new CAssumeEdge("!(" + binExp.toASTString() + ")",
         filelocStart, rootNode, notCaseNode, binExp, false);
     addToCFA(assumeEdgeFalse);
 
     // edge connecting rootNode with caseNode, "a==2"
-    final AssumeEdge assumeEdgeTrue = new AssumeEdge(binExp.toASTString(),
+    final CAssumeEdge assumeEdgeTrue = new CAssumeEdge(binExp.toASTString(),
         filelocStart, rootNode, caseNode, binExp, true);
     addToCFA(assumeEdgeTrue);
 

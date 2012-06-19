@@ -48,10 +48,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -77,19 +77,19 @@ enum InvariantsTransferRelation implements TransferRelation {
       break;
 
     case AssumeEdge:
-      element = handleAssume(element, (AssumeEdge)edge);
+      element = handleAssume(element, (CAssumeEdge)edge);
       break;
 
     case DeclarationEdge:
-      element = handleDeclaration(element, (DeclarationEdge)edge);
+      element = handleDeclaration(element, (CDeclarationEdge)edge);
       break;
 
     case FunctionCallEdge:
-      element = handleFunctionCall(element, (FunctionCallEdge)edge);
+      element = handleFunctionCall(element, (CFunctionCallEdge)edge);
       break;
 
     case StatementEdge:
-      element = handleStatement(element, (StatementEdge)edge);
+      element = handleStatement(element, (CStatementEdge)edge);
       break;
 
     default:
@@ -103,7 +103,7 @@ enum InvariantsTransferRelation implements TransferRelation {
     }
   }
 
-  private InvariantsState handleAssume(InvariantsState element, AssumeEdge edge) throws UnrecognizedCCodeException {
+  private InvariantsState handleAssume(InvariantsState element, CAssumeEdge edge) throws UnrecognizedCCodeException {
 
     // handle special case "a == i" where i is an integer literal
     CExpression exp = edge.getExpression();
@@ -149,7 +149,7 @@ enum InvariantsTransferRelation implements TransferRelation {
     return element;
   }
 
-  private InvariantsState handleDeclaration(InvariantsState element, DeclarationEdge edge) throws UnrecognizedCCodeException {
+  private InvariantsState handleDeclaration(InvariantsState element, CDeclarationEdge edge) throws UnrecognizedCCodeException {
     if (!(edge.getDeclaration() instanceof CVariableDeclaration)) {
 
       return element;
@@ -170,7 +170,7 @@ enum InvariantsTransferRelation implements TransferRelation {
     return element.copyAndSet(varName, value);
   }
 
-  private InvariantsState handleFunctionCall(InvariantsState element, FunctionCallEdge edge) throws UnrecognizedCCodeException {
+  private InvariantsState handleFunctionCall(InvariantsState element, CFunctionCallEdge edge) throws UnrecognizedCCodeException {
 
     InvariantsState newElement = element;
     List<String> formalParams = edge.getSuccessor().getFunctionParameterNames();
@@ -193,7 +193,7 @@ enum InvariantsTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private InvariantsState handleStatement(InvariantsState element, StatementEdge edge) throws UnrecognizedCCodeException {
+  private InvariantsState handleStatement(InvariantsState element, CStatementEdge edge) throws UnrecognizedCCodeException {
 
     if (edge.getStatement() instanceof CAssignment) {
       CAssignment assignment = (CAssignment)edge.getStatement();

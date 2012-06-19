@@ -30,8 +30,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
 
 /**
  * Helper class that contains some complex operations that may be useful during
@@ -48,10 +48,10 @@ public class CFACreationUtils {
     CFANode predecessor = edge.getPredecessor();
 
     // check control flow branching at predecessor
-    if (edge instanceof AssumeEdge) {
+    if (edge instanceof CAssumeEdge) {
       assert predecessor.getNumLeavingEdges() <= 1;
       if (predecessor.getNumLeavingEdges() > 0) {
-        assert predecessor.getLeavingEdge(0) instanceof AssumeEdge;
+        assert predecessor.getLeavingEdge(0) instanceof CAssumeEdge;
       }
 
     } else {
@@ -120,7 +120,7 @@ public class CFACreationUtils {
     e.getSuccessor().removeEnteringEdge(e);
   }
 
-  public static void removeSummaryEdgeFromNodes(CallToReturnEdge e) {
+  public static void removeSummaryEdgeFromNodes(CFunctionSummaryEdge e) {
     e.getPredecessor().removeLeavingSummaryEdge(e);
     e.getSuccessor().removeEnteringSummaryEdge(e);
   }

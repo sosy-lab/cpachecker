@@ -25,18 +25,18 @@ package org.sosy_lab.cpachecker.cpa.functionpointer;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
 
 /**
  * Marker class for edges that were created due to a function pointer call.
  */
-class FunctionPointerCallEdge extends FunctionCallEdge {
+class FunctionPointerCallEdge extends CFunctionCallEdge {
 
   public FunctionPointerCallEdge(String pRawStatement,
-      int pLineNumber, CFANode pPredecessor, FunctionDefinitionNode pSuccessor,
-      CFunctionCall pFunctionCall, CallToReturnEdge pSummaryEdge) {
+      int pLineNumber, CFANode pPredecessor, CFunctionEntryNode pSuccessor,
+      CFunctionCall pFunctionCall, CFunctionSummaryEdge pSummaryEdge) {
     super(pRawStatement, pLineNumber, pPredecessor, pSuccessor, pFunctionCall, pSummaryEdge);
   }
 

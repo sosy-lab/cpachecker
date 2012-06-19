@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -109,10 +109,10 @@ public class CFACheck {
       case 2:
         CFAEdge edge1 = pNode.getLeavingEdge(0);
         CFAEdge edge2 = pNode.getLeavingEdge(1);
-        assert (edge1 instanceof AssumeEdge) && (edge2 instanceof AssumeEdge) : "Branching without conditions at node " + DEBUG_FORMAT.apply(pNode);
+        assert (edge1 instanceof CAssumeEdge) && (edge2 instanceof CAssumeEdge) : "Branching without conditions at node " + DEBUG_FORMAT.apply(pNode);
 
-        AssumeEdge ae1 = (AssumeEdge)edge1;
-        AssumeEdge ae2 = (AssumeEdge)edge2;
+        CAssumeEdge ae1 = (CAssumeEdge)edge1;
+        CAssumeEdge ae2 = (CAssumeEdge)edge2;
         assert ae1.getTruthAssumption() != ae2.getTruthAssumption() : "Inconsistent branching at node " + DEBUG_FORMAT.apply(pNode);
         break;
 

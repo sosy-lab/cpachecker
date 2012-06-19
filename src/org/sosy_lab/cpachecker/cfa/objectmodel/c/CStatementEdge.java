@@ -30,11 +30,11 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import com.google.common.base.Optional;
 
-public class StatementEdge extends AbstractCFAEdge {
+public class CStatementEdge extends AbstractCFAEdge {
 
   private final CStatement statement;
 
-  public StatementEdge(String pRawStatement, CStatement pStatement,
+  public CStatementEdge(String pRawStatement, CStatement pStatement,
       int pLineNumber, CFANode pPredecessor, CFANode pSuccessor) {
 
     super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);

@@ -30,12 +30,12 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import com.google.common.base.Optional;
 
-public class AssumeEdge extends AbstractCFAEdge {
+public class CAssumeEdge extends AbstractCFAEdge {
 
   private final boolean truthAssumption;
   private final CExpression expression;
 
-  public AssumeEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
+  public CAssumeEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
       CFANode pSuccessor, CExpression pExpression, boolean pTruthAssumption) {
 
     super("[" + pRawStatement + "]", pLineNumber, pPredecessor, pSuccessor);

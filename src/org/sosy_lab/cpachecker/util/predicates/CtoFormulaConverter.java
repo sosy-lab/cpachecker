@@ -77,14 +77,14 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
@@ -470,7 +470,7 @@ public class CtoFormulaConverter {
   private Formula createForumlaForEdge(CFAEdge edge, String function, SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
-      StatementEdge statementEdge = (StatementEdge) edge;
+      CStatementEdge statementEdge = (CStatementEdge) edge;
       StatementToFormulaVisitor v;
       if (handlePointerAliasing) {
         v = new StatementToFormulaVisitorPointers(function, ssa, constraints, edge);
@@ -481,17 +481,17 @@ public class CtoFormulaConverter {
     }
 
     case ReturnStatementEdge: {
-      ReturnStatementEdge returnEdge = (ReturnStatementEdge)edge;
+      CReturnStatementEdge returnEdge = (CReturnStatementEdge)edge;
       return makeReturn(returnEdge.getExpression(), returnEdge, function, ssa, constraints);
     }
 
     case DeclarationEdge: {
-      DeclarationEdge d = (DeclarationEdge)edge;
+      CDeclarationEdge d = (CDeclarationEdge)edge;
       return makeDeclaration(d, function, ssa, constraints);
     }
 
     case AssumeEdge: {
-      return makeAssume((AssumeEdge)edge, function, ssa, constraints);
+      return makeAssume((CAssumeEdge)edge, function, ssa, constraints);
     }
 
     case BlankEdge: {
@@ -500,12 +500,12 @@ public class CtoFormulaConverter {
     }
 
     case FunctionCallEdge: {
-      return makeFunctionCall((FunctionCallEdge)edge, function, ssa, constraints);
+      return makeFunctionCall((CFunctionCallEdge)edge, function, ssa, constraints);
     }
 
     case FunctionReturnEdge: {
       // get the expression from the summary edge
-      CallToReturnEdge ce = ((FunctionReturnEdge)edge).getSummaryEdge();
+      CFunctionSummaryEdge ce = ((CFunctionReturnEdge)edge).getSummaryEdge();
       return makeExitFunction(ce, function, ssa, constraints);
     }
 
@@ -529,7 +529,7 @@ public class CtoFormulaConverter {
   }
 
   private Formula makeDeclaration(
-      DeclarationEdge edge, String function, SSAMapBuilder ssa,
+      CDeclarationEdge edge, String function, SSAMapBuilder ssa,
       Constraints constraints) throws CPATransferException {
 
     if (!(edge.getDeclaration() instanceof CVariableDeclaration)) {
@@ -609,7 +609,7 @@ public class CtoFormulaConverter {
     return assignments;
   }
 
-  private Formula makeExitFunction(CallToReturnEdge ce, String function,
+  private Formula makeExitFunction(CFunctionSummaryEdge ce, String function,
       SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
 
     CFunctionCall retExp = ce.getExpression();
@@ -643,12 +643,12 @@ public class CtoFormulaConverter {
     }
   }
 
-  private Formula makeFunctionCall(FunctionCallEdge edge,
+  private Formula makeFunctionCall(CFunctionCallEdge edge,
       String callerFunction, SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
 
     List<CExpression> actualParams = edge.getArguments();
 
-    FunctionDefinitionNode fn = edge.getSuccessor();
+    CFunctionEntryNode fn = edge.getSuccessor();
     List<CParameterDeclaration> formalParams = fn.getFunctionParameters();
 
     String calledFunction = fn.getFunctionName();
@@ -693,7 +693,7 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  private Formula makeReturn(CExpression rightExp, ReturnStatementEdge edge, String function,
+  private Formula makeReturn(CExpression rightExp, CReturnStatementEdge edge, String function,
       SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
     if (rightExp == null) {
       // this is a return from a void function, do nothing
@@ -719,7 +719,7 @@ public class CtoFormulaConverter {
     }
   }
 
-  private Formula makeAssume(AssumeEdge assume, String function,
+  private Formula makeAssume(CAssumeEdge assume, String function,
       SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
 
     return makePredicate(assume.getExpression(), assume.getTruthAssumption(),

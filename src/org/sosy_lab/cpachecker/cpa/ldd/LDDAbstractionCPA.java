@@ -37,8 +37,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -80,8 +80,8 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
 
     for (CFANode node : cfa.getAllNodes()) {
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
-        if (edge instanceof DeclarationEdge) {
-          DeclarationEdge declarationEdge = (DeclarationEdge) edge;
+        if (edge instanceof CDeclarationEdge) {
+          CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
           CDeclaration declaration = declarationEdge.getDeclaration();
           if (declaration instanceof CVariableDeclaration) {
             String name = declaration.getName();
@@ -99,8 +99,8 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
       }
     }
     for (CFAFunctionDefinitionNode node : cfa.getAllFunctionHeads()) {
-      if (node instanceof FunctionDefinitionNode) {
-        FunctionDefinitionNode fDefNode = (FunctionDefinitionNode) node;
+      if (node instanceof CFunctionEntryNode) {
+        CFunctionEntryNode fDefNode = (CFunctionEntryNode) node;
         for (CParameterDeclaration paramDecl : fDefNode.getFunctionDefinition().getDeclSpecifier().getParameters()) {
           String name = paramDecl.getName();
           CType type = paramDecl.getDeclSpecifier();

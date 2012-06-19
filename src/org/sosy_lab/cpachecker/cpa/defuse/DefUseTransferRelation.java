@@ -32,8 +32,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -56,7 +56,7 @@ public class DefUseTransferRelation implements TransferRelation
     return defUseState;
   }
 
-  private DefUseState handleDeclaration (DefUseState defUseState, DeclarationEdge cfaEdge)
+  private DefUseState handleDeclaration (DefUseState defUseState, CDeclarationEdge cfaEdge)
   {
     if (cfaEdge.getDeclaration() instanceof CVariableDeclaration) {
       CVariableDeclaration decl = (CVariableDeclaration)cfaEdge.getDeclaration();
@@ -80,14 +80,14 @@ public class DefUseTransferRelation implements TransferRelation
     {
     case StatementEdge:
     {
-      StatementEdge statementEdge = (StatementEdge) cfaEdge;
+      CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
       CStatement expression = statementEdge.getStatement();
       defUseState = handleExpression (defUseState, expression, cfaEdge);
       break;
     }
     case DeclarationEdge:
     {
-      DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
+      CDeclarationEdge declarationEdge = (CDeclarationEdge) cfaEdge;
       defUseState = handleDeclaration (defUseState, declarationEdge);
       break;
     }

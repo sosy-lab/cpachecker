@@ -43,9 +43,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -73,7 +73,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
 public class TypesTransferRelation implements TransferRelation {
 
-  private FunctionDefinitionNode entryFunctionDefinitionNode = null;
+  private CFunctionEntryNode functionEntryNode = null;
   private boolean entryFunctionProcessed = false;
 
   @Override
@@ -87,12 +87,12 @@ public class TypesTransferRelation implements TransferRelation {
 
     switch (cfaEdge.getEdgeType()) {
     case DeclarationEdge:
-      handleDeclaration(successor, (DeclarationEdge)cfaEdge);
+      handleDeclaration(successor, (CDeclarationEdge)cfaEdge);
       break;
 
     case FunctionCallEdge:
-      FunctionCallEdge funcCallEdge = (FunctionCallEdge)cfaEdge;
-      FunctionDefinitionNode funcDefNode = funcCallEdge.getSuccessor();
+      CFunctionCallEdge funcCallEdge = (CFunctionCallEdge)cfaEdge;
+      CFunctionEntryNode funcDefNode = funcCallEdge.getSuccessor();
       if (successor.getFunction(funcDefNode.getFunctionName()) == null) {
         // we call a function that was not defined
         // probably "analysis.useFunctionDeclarations" is false
@@ -115,7 +115,7 @@ public class TypesTransferRelation implements TransferRelation {
       if (!entryFunctionProcessed
           && (cfaEdge.getPredecessor() instanceof CFAFunctionDefinitionNode)) {
         //since by this point all global variables have been processed, we can now process the entry function
-        CFunctionDeclaration funcDef = entryFunctionDefinitionNode.getFunctionDefinition();
+        CFunctionDeclaration funcDef = functionEntryNode.getFunctionDefinition();
         handleFunctionDeclaration(successor, null, funcDef.getDeclSpecifier());
 
         entryFunctionProcessed = true;
@@ -130,7 +130,7 @@ public class TypesTransferRelation implements TransferRelation {
   }
 
   private void handleDeclaration(TypesState element,
-                                 DeclarationEdge declarationEdge)
+                                 CDeclarationEdge declarationEdge)
                                  throws UnrecognizedCCodeException {
     CDeclaration decl = declarationEdge.getDeclaration();
     CType specifier = declarationEdge.getDeclaration().getDeclSpecifier();
@@ -425,8 +425,8 @@ public class TypesTransferRelation implements TransferRelation {
     }
   }
 
-  public void setEntryFunctionDefinitionNode(FunctionDefinitionNode pEntryFunctionDefNode) {
-    entryFunctionDefinitionNode = pEntryFunctionDefNode;
+  public void setFunctionEntryNode(CFunctionEntryNode pEntryFunctionDefNode) {
+    functionEntryNode = pEntryFunctionDefNode;
   }
 
   @Override

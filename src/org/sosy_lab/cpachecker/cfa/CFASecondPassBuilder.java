@@ -40,11 +40,11 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
@@ -98,8 +98,8 @@ public class CFASecondPassBuilder {
       }
 
       for (CFAEdge edge : leavingEdges(node)) {
-        if (edge instanceof StatementEdge) {
-          StatementEdge statement = (StatementEdge)edge;
+        if (edge instanceof CStatementEdge) {
+          CStatementEdge statement = (CStatementEdge)edge;
           CStatement expr = statement.getStatement();
 
           // if statement is of the form x = call(a,b); or call(a,b);
@@ -134,7 +134,7 @@ public class CFASecondPassBuilder {
    * then functionCall is call(b).
    * @throws ParserException
    */
-  private void createCallAndReturnEdges(StatementEdge edge, CFunctionCall functionCall) throws ParserException {
+  private void createCallAndReturnEdges(CStatementEdge edge, CFunctionCall functionCall) throws ParserException {
     CFANode predecessorNode = edge.getPredecessor();
     CFANode successorNode = edge.getSuccessor();
     CFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
@@ -143,13 +143,13 @@ public class CFASecondPassBuilder {
     CFAFunctionDefinitionNode fDefNode = cfas.get(functionName);
     CFAFunctionExitNode fExitNode = fDefNode.getExitNode();
 
-    assert fDefNode instanceof FunctionDefinitionNode : "This code creates edges from package cfa.objectmodel.c, so the nodes need to be from this package, too.";
+    assert fDefNode instanceof CFunctionEntryNode : "This code creates edges from package cfa.objectmodel.c, so the nodes need to be from this package, too.";
 
     //get the parameter expression
     List<CExpression> parameters = functionCallExpression.getParameterExpressions();
 
     // check if the number of function parameters are right
-    CFunctionType functionType = ((FunctionDefinitionNode)fDefNode).getFunctionDefinition().getDeclSpecifier();
+    CFunctionType functionType = ((CFunctionEntryNode)fDefNode).getFunctionDefinition().getDeclSpecifier();
     int declaredParameters = functionType.getParameters().size();
     int actualParameters = parameters.size();
     if (!functionType.takesVarArgs() && (declaredParameters != actualParameters)) {
@@ -162,14 +162,14 @@ public class CFASecondPassBuilder {
     CFACreationUtils.removeEdgeFromNodes(edge);
 
     // create new edges
-    CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(edge.getRawStatement(),
+    CFunctionSummaryEdge calltoReturnEdge = new CFunctionSummaryEdge(edge.getRawStatement(),
         lineNumber, predecessorNode, successorNode, functionCall);
     predecessorNode.addLeavingSummaryEdge(calltoReturnEdge);
     successorNode.addEnteringSummaryEdge(calltoReturnEdge);
 
-    FunctionCallEdge callEdge = new FunctionCallEdge(edge.getRawStatement(),
+    CFunctionCallEdge callEdge = new CFunctionCallEdge(edge.getRawStatement(),
         lineNumber, predecessorNode,
-        (FunctionDefinitionNode)fDefNode, functionCall, calltoReturnEdge);
+        (CFunctionEntryNode)fDefNode, functionCall, calltoReturnEdge);
     predecessorNode.addLeavingEdge(callEdge);
     fDefNode.addEnteringEdge(callEdge);
 
@@ -181,7 +181,7 @@ public class CFASecondPassBuilder {
 
     } else {
 
-      FunctionReturnEdge returnEdge = new FunctionReturnEdge(lineNumber, fExitNode, successorNode, calltoReturnEdge);
+      CFunctionReturnEdge returnEdge = new CFunctionReturnEdge(lineNumber, fExitNode, successorNode, calltoReturnEdge);
       fExitNode.addLeavingEdge(returnEdge);
       successorNode.addEnteringEdge(returnEdge);
     }

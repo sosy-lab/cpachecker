@@ -64,14 +64,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -117,24 +117,24 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     {
       // if edge is a statement edge, e.g. a = b + c
       case StatementEdge:
-        StatementEdge statementEdge = (StatementEdge)cfaEdge;
+        CStatementEdge statementEdge = (CStatementEdge)cfaEdge;
         successor = handleStatement(intervalElement, statementEdge.getStatement(), cfaEdge);
         break;
 
         // this is the statement edge which leads the function to the last node of its CFA (not same as a return edge)
       case ReturnStatementEdge:
-        ReturnStatementEdge returnEdge = (ReturnStatementEdge)cfaEdge;
+        CReturnStatementEdge returnEdge = (CReturnStatementEdge)cfaEdge;
         successor = handleExitFromFunction(intervalElement, returnEdge.getExpression(), returnEdge, cfaEdge);
         break;
 
       // edge is a declaration edge, e.g. int a;
       case DeclarationEdge:
-        successor = handleDeclaration(intervalElement, (DeclarationEdge)cfaEdge);
+        successor = handleDeclaration(intervalElement, (CDeclarationEdge)cfaEdge);
         break;
 
       // this is an assumption, e.g. if(a == b)
       case AssumeEdge:
-        AssumeEdge assumeEdge = (AssumeEdge)cfaEdge;
+        CAssumeEdge assumeEdge = (CAssumeEdge)cfaEdge;
         successors = handleAssumption(intervalElement, assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption());
         break;
 
@@ -143,14 +143,14 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         break;
 
       case FunctionCallEdge:
-        FunctionCallEdge functionCallEdge = (FunctionCallEdge)cfaEdge;
+        CFunctionCallEdge functionCallEdge = (CFunctionCallEdge)cfaEdge;
         successor = handleFunctionCall(intervalElement, functionCallEdge, cfaEdge);
         break;
 
       // this is a return edge from function, this is different from return statement
       // of the function. See case in statement edge for details
       case FunctionReturnEdge:
-        successor = handleFunctionReturn(intervalElement, (FunctionReturnEdge)cfaEdge);
+        successor = handleFunctionReturn(intervalElement, (CFunctionReturnEdge)cfaEdge);
         break;
 
       default:
@@ -174,10 +174,10 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param functionReturnEdge return edge from a function to its call site.
    * @return new abstract state.
    */
-  private IntervalAnalysisState handleFunctionReturn(IntervalAnalysisState element, FunctionReturnEdge functionReturnEdge)
+  private IntervalAnalysisState handleFunctionReturn(IntervalAnalysisState element, CFunctionReturnEdge functionReturnEdge)
     throws UnrecognizedCCodeException
   {
-    CallToReturnEdge summaryEdge = functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
+    CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
 
     CFunctionCall expression = summaryEdge.getExpression();
 
@@ -261,10 +261,10 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return the successor element
    * @throws UnrecognizedCCodeException
    */
-  private IntervalAnalysisState handleFunctionCall(IntervalAnalysisState previousElement, FunctionCallEdge callEdge, CFAEdge edge)
+  private IntervalAnalysisState handleFunctionCall(IntervalAnalysisState previousElement, CFunctionCallEdge callEdge, CFAEdge edge)
     throws UnrecognizedCCodeException
   {
-    FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
+    CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
 
     String calledFunctionName = functionEntryNode.getFunctionName();
     String callerFunctionName = callEdge.getPredecessor().getFunctionName();
@@ -305,10 +305,10 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    *
    * @param element the analysis element
    * @param expression the expression
-   * @param ReturnStatementEdge the CFA edge corresponding to this statement
+   * @param CReturnStatementEdge the CFA edge corresponding to this statement
    * @return the successor elements
    */
-  private IntervalAnalysisState handleExitFromFunction(IntervalAnalysisState element, CExpression expression, ReturnStatementEdge returnEdge, CFAEdge edge)
+  private IntervalAnalysisState handleExitFromFunction(IntervalAnalysisState element, CExpression expression, CReturnStatementEdge returnEdge, CFAEdge edge)
     throws UnrecognizedCCodeException
   {
     if (expression == null)
@@ -592,7 +592,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param declarationEdge the CFA edge
    * @return the successor element
    */
-  private IntervalAnalysisState handleDeclaration(IntervalAnalysisState element, DeclarationEdge declarationEdge)
+  private IntervalAnalysisState handleDeclaration(IntervalAnalysisState element, CDeclarationEdge declarationEdge)
   throws UnrecognizedCCodeException
   {
     IntervalAnalysisState newElement = element.clone();

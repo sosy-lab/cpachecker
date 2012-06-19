@@ -30,10 +30,10 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
@@ -86,12 +86,12 @@ public final class DOTBuilder {
     @Override
     public TraversalProcess visitEdge(CFAEdge edge) {
       CFANode predecessor = edge.getPredecessor();
-      if (!predecessor.isLoopStart() && edge instanceof AssumeEdge) {
+      if (!predecessor.isLoopStart() && edge instanceof CAssumeEdge) {
         nodes.add(formatNode(predecessor, "diamond"));
       }
 
       List<String> graph;
-      if ((edge instanceof FunctionCallEdge) || edge instanceof FunctionReturnEdge){
+      if ((edge instanceof CFunctionCallEdge) || edge instanceof CFunctionReturnEdge){
         graph = edges.get(MAIN_GRAPH);
       }
       else{
@@ -130,7 +130,7 @@ public final class DOTBuilder {
                                      .replaceAll("\n", " "));
 
       sb.append("\"");
-      if (edge instanceof CallToReturnEdge) {
+      if (edge instanceof CFunctionSummaryEdge) {
         sb.append(" style=\"dotted\" arrowhead=\"empty\"");
       }
       sb.append("]");
