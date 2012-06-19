@@ -13,11 +13,12 @@ public class Readable {
         n1 = 10;
 	
       
-        while(   ){
+        do{
         
+        assert (false);
         
-        }
+        } while( false  )
       
-      	
+      	}
 		
 }

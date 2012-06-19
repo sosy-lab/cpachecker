@@ -8,13 +8,16 @@ public class Readable {
 			String[] args) {
 		
 
-        int n1;
+       int n1 = 1;
+       int n2 = 2;
         
-        n1 = 10;
-	
+    
       
-        while(   ){
+        if(n1 == n2){
         
+        assert(false);
+        
+        } else {
         
         }
       

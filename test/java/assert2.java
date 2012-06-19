@@ -9,14 +9,13 @@ public class Readable {
 		
 
         int n1;
+        int n2;
         
         n1 = 10;
-	
+	    
+	    n2 = 10;
       
-        while(   ){
-        
-        
-        }
+        assert(n1 == n2);
       
       	
 		

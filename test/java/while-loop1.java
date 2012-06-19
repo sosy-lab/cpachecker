@@ -10,14 +10,19 @@ public class Readable {
 
         int n1;
         
-        n1 = 10;
-	
+        n1 = 0;
+	    
+	    
       
-        while(   ){
+        while( n1 < 10  ){
         
         
+        n1 = n1 + 1;
+        
+        if(n1 > 10)
+            assert (false);
         }
       
-      	
+      	}
 		
 }

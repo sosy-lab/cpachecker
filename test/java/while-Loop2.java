@@ -13,8 +13,8 @@ public class Readable {
         n1 = 10;
 	
       
-        while(   ){
-        
+        while(  n1 < 2 ){
+         assert (false);
         
         }
       

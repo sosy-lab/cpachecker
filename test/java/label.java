@@ -13,7 +13,14 @@ public class Readable {
         n1 = 10;
 	
       
-        while(   ){
+        l1 : {
+        
+           n1 = 5;
+           
+           
+           break l1;
+           
+           assert (false);
         
         
         }
