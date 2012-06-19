@@ -41,6 +41,7 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -107,7 +108,7 @@ class CFABuilder extends ASTVisitor {
    * Retrieves list of all global declarations
    * @return global declarations
    */
-  public List<Pair<org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration, String>> getGlobalDeclarations() {
+  public List<Pair<CDeclaration, String>> getGlobalDeclarations() {
     return globalDeclarations;
   }
 
@@ -126,7 +127,7 @@ class CFABuilder extends ASTVisitor {
       functionDeclarations.add(fd);
 
       // add forward declaration to list of global declarations
-      org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration functionDefinition = astCreator.convert(fd);
+      CDeclaration functionDefinition = astCreator.convert(fd);
       if (astCreator.numberOfSideAssignments() > 0) {
         throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
       }
@@ -160,7 +161,7 @@ class CFABuilder extends ASTVisitor {
   private int handleSimpleDeclaration(final IASTSimpleDeclaration sd,
       final IASTFileLocation fileloc) {
 
-    final List<org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration> newDs = astCreator.convert(sd);
+    final List<CDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
 
     if (astCreator.numberOfSideAssignments() > 0) {
@@ -169,7 +170,7 @@ class CFABuilder extends ASTVisitor {
 
     String rawSignature = sd.getRawSignature();
 
-    for (org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration newD : newDs) {
+    for (CDeclaration newD : newDs) {
       if (newD instanceof CVariableDeclaration) {
         scope.registerDeclaration(newD);
       } else if (newD instanceof CFunctionDeclaration) {

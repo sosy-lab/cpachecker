@@ -27,6 +27,7 @@ import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTProblemHolder;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Strings;
@@ -50,7 +51,7 @@ public class CFAGenerationRuntimeException extends RuntimeException {
     this(astNode == null ? msg : createMessage(msg, astNode));
   }
 
-  public CFAGenerationRuntimeException(String msg, org.sosy_lab.cpachecker.cfa.ast.c.CAstNode astNode) {
+  public CFAGenerationRuntimeException(String msg, CAstNode astNode) {
     this(astNode == null ? msg :
       (msg + " in line " + astNode.getFileLocation().getStartingLineNumber()
           + ": " + astNode.toASTString()));
