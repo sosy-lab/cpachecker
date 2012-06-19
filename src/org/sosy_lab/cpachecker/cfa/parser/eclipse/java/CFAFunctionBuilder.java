@@ -57,7 +57,6 @@ import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.SwitchCase;
 import org.eclipse.jdt.core.dom.SwitchStatement;
 import org.eclipse.jdt.core.dom.VariableDeclaration;
-import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.WhileStatement;
 import org.sosy_lab.common.LogManager;
@@ -146,6 +145,19 @@ class CFAFunctionBuilder extends ASTVisitor {
   Set<CFANode> getCfaNodes() {
     checkState(cfa != null);
     return cfaNodes;
+  }
+
+
+
+  //Method to handle visiting a parsing problem.  Hopefully none exist
+  /* (non-Javadoc)
+   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTProblem)
+   */
+  @Override
+  public void preVisit(ASTNode problem) {
+
+    if(ASTNode.RECOVERED == problem.getFlags() || ASTNode.MALFORMED == problem.getFlags() )
+    throw new CFAGenerationRuntimeException("Parse Error", problem);
   }
 
   /* (non-Javadoc)
@@ -1101,7 +1113,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         final IASTNode node = astCreator.convertExpressionWithSideEffects(exp);
 
         // If last Expression, use last loop Node
-        if(size - 1 == c){
+        if(size - 1 != c){
           nextNode = new CFANode(filelocStart, cfa.getFunctionName());
           c++;
           cfaNodes.add(nextNode);
@@ -1138,7 +1150,51 @@ class CFAFunctionBuilder extends ASTVisitor {
   @SuppressWarnings("unchecked")
   private CFANode createInitEdgeForForLoop(List<Expression> initializers, int filelocStart, CFANode loopInit) {
 
+      CFANode nextNode = loopInit;
 
+      // counter indicating current element
+
+
+      for (Expression exp : initializers) {
+        //TODO Investigate if we can use Expression without Side Effect here
+        final IASTNode node = astCreator.convertExpressionWithSideEffects(exp);
+
+        // If last Expression, use last loop Node
+
+          nextNode = new CFANode(filelocStart, cfa.getFunctionName());
+          cfaNodes.add(nextNode);
+
+
+        if (node instanceof IASTIdExpression) {
+          final BlankEdge blankEdge = new BlankEdge(node.toASTString(),
+              filelocStart, nextNode, loopInit, "");
+          addToCFA(blankEdge);
+
+          // "counter++;"
+          //TODO Find better Solution (to String not allowed)
+        } else if (node instanceof IASTExpressionAssignmentStatement) {
+          final StatementEdge lastEdge = new StatementEdge(exp.toString(),
+              (IASTExpressionAssignmentStatement) node, filelocStart, nextNode, loopInit);
+          addToCFA(lastEdge);
+
+          //TODO Find  better Solution (to String not allowed)
+        } else if (node instanceof IASTFunctionCallAssignmentStatement) {
+          final StatementEdge edge = new StatementEdge(exp.toString(),
+              (IASTFunctionCallAssignmentStatement) node, filelocStart, nextNode, loopInit);
+          addToCFA(edge);
+
+        } else { // TODO: are there other iteration-expressions in a for-loop?
+          throw new AssertionError("CFABuilder: unknown iteration-expressions in for-statement:\n"
+              + exp.getClass());
+        }
+      }
+
+      assert nextNode != null;
+
+      return nextNode;
+
+
+      /*
     if (initializers.size() == 0) {
       // no edge inserted
       return loopInit;
@@ -1162,13 +1218,14 @@ class CFAFunctionBuilder extends ASTVisitor {
 
         // Go through initializer
         for(ASTNode ast : initializers){
-          ast.accept(this);
+          System.out.println(ast.getNodeType());
         }
 
         return locStack.pop();
 
       }
     }
+    */
   }
 
   @Override

@@ -132,8 +132,8 @@ class CFABuilder extends ASTVisitor {
   @Override
   public void preVisit(ASTNode problem) {
 
-    if(ASTNode.RECOVERED == problem.getNodeType())
-    throw new CFAGenerationRuntimeException("Error (not implemented)", problem);
+    if(ASTNode.RECOVERED == problem.getFlags() || ASTNode.MALFORMED == problem.getFlags())
+    throw new CFAGenerationRuntimeException("Parse Error", problem);
   }
 
   @Override

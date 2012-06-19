@@ -709,6 +709,8 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
       return BinaryOperator.SHIFT_LEFT;
     }else if (op.equals(InfixExpression.Operator.RIGHT_SHIFT_SIGNED)) {
       return BinaryOperator.SHIFT_RIGHT;
+    }else if(op.equals(InfixExpression.Operator.NOT_EQUALS)){
+     return BinaryOperator.NOT_EQUALS;
     }else {
       logger.log(Level.SEVERE, "Did not find Operator");
       return null;
