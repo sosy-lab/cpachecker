@@ -228,13 +228,13 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
       pReached.removeCoverageOf(w);
     }
 
-    Set<ARGState> infeasibleSubtree = infeasiblePartOfART.getSubtree();
+    Set<ARGState> infeasibleSubtree = infeasiblePartOfART.getSubgraph();
     assert infeasibleSubtree.contains(lastElement);
 
     uncover(infeasibleSubtree, pReached);
 
     for (ARGState removedNode : infeasibleSubtree) {
-      removedNode.removeFromART();
+      removedNode.removeFromARG();
     }
     reached.removeAll(infeasibleSubtree);
     stats.argUpdate.stop();
@@ -266,7 +266,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
     if (v.isCovered()) {
       reached.removeOnlyFromWaitlist(v);
 
-      Set<ARGState> subtree = v.getSubtree();
+      Set<ARGState> subtree = v.getSubgraph();
 
       // first, uncover all necessary states
 
@@ -292,7 +292,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
         assert !childOfV.mayCover();
       }
 
-      assert !reached.getWaitlist().contains(v.getSubtree());
+      assert !reached.getWaitlist().contains(v.getSubgraph());
       return true;
     }
     return false;

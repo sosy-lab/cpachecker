@@ -202,7 +202,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   }
 
   // TODO check
-  public Set<ARGState> getSubtree() {
+  public Set<ARGState> getSubgraph() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     Set<ARGState> result = new HashSet<ARGState>();
     Deque<ARGState> workList = new ArrayDeque<ARGState>();
@@ -230,7 +230,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
    * reachable any more, i.e. they do not belong to the ARG any more. But those
    * elements will not be removed from the covered set.
    */
-  public void removeFromART() {
+  public void removeFromARG() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
 
     // clear children
@@ -267,7 +267,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   }
 
   /**
-   * This method does basically the same as removeFromART for this element, but
+   * This method does basically the same as removeFromARG for this element, but
    * before destroying it, it will copy all relationships to other elements to
    * a new state. I.e., the replacement element will receive all parents and
    * children of this element, and it will also cover all elements which are
@@ -275,7 +275,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
    *
    * @param replacement
    */
-  protected void replaceInARTWith(ARGState replacement) {
+  protected void replaceInARGWith(ARGState replacement) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     assert !replacement.destroyed : "Don't use destroyed ARGState " + replacement;
     assert !isCovered() : "Not implemented: Replacement of covered element " + this;

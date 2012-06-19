@@ -75,7 +75,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
         if (wrappedStop.stop(argElement.getWrappedState(), Collections.singleton(mergedWith.getWrappedState()), pPrecision)) {
           // merged and covered
-          argElement.removeFromART();
+          argElement.removeFromARG();
           logger.log(Level.FINEST, "Element is covered by the element it was merged into");
 
           // in this case, return true even if we should keep covered states

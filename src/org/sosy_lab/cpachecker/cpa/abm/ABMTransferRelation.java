@@ -833,7 +833,7 @@ public class ABMTransferRelation implements TransferRelation {
           for(ARGState child : innerTree.getChildren()) {
             child.addParent(elementsMap.get(parent));
           }
-          innerTree.removeFromART();
+          innerTree.removeFromARG();
         }
         else {
           //normal edge

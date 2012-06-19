@@ -197,7 +197,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         addAvoidingAssumptions(exceptionAssumptions, parent);
 
         reached.remove(errorState);
-        errorState.removeFromART();
+        errorState.removeFromARG();
 
         restartCPA = true;
 
