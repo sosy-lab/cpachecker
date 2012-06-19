@@ -148,9 +148,12 @@ class ASTConverter {
   private final boolean ignoreCasts;
 
   private Scope scope;
-  private LinkedList<CAstNode> sideAssignments = new LinkedList<CAstNode>();
+
+  private LinkedList<CAstNode> preSideAssignments = new LinkedList<CAstNode>();
+  private LinkedList<CAstNode> postSideAssignments = new LinkedList<CAstNode>();
   private IASTConditionalExpression conditionalExpression = null;
   private CIdExpression conditionalTemporaryVariable = null;
+
 
   public ASTConverter(Scope pScope, boolean pIgnoreCasts, LogManager pLogger) {
     scope = pScope;
@@ -164,12 +167,21 @@ class ASTConverter {
     }
   }
 
-  public int numberOfSideAssignments(){
-    return sideAssignments.size();
+  public int numberOfPreSideAssignments(){
+    return preSideAssignments.size();
   }
 
-  public CAstNode getNextSideAssignment() {
-    return sideAssignments.removeFirst();
+
+  public CAstNode getNextPreSideAssignment() {
+    return preSideAssignments.removeFirst();
+  }
+
+  public int numberOfPostSideAssignments(){
+    return postSideAssignments.size();
+  }
+
+  public CAstNode getNextPostSideAssignment() {
+    return postSideAssignments.removeFirst();
   }
 
   public void resetConditionalExpression() {
@@ -230,7 +242,7 @@ class ASTConverter {
       return addSideassignmentsForExpressionsWithoutSideEffects(node, e);
 
     } else if (node instanceof CAssignment) {
-      sideAssignments.add(node);
+      preSideAssignments.add(node);
       return ((CAssignment) node).getLeftHandSide();
 
     } else {
@@ -240,11 +252,11 @@ class ASTConverter {
 
   private CExpression addSideassignmentsForExpressionsWithoutSideEffects(CAstNode node,
                                                                             IASTExpression e){
-    CIdExpression tmp = createTemporaryVariable(e);
+    CIdExpression tmp = createTemporaryVariable(e, null);
 
-    sideAssignments.add(new CFunctionCallAssignmentStatement(convert(e.getFileLocation()),
-                                                              tmp,
-                                                              (CFunctionCallExpression) node));
+    preSideAssignments.add(new CFunctionCallAssignmentStatement(convert(e.getFileLocation()),
+                                                                tmp,
+                                                                (CFunctionCallExpression) node));
     return tmp;
   }
 
@@ -290,7 +302,7 @@ class ASTConverter {
   }
 
   private CAstNode convert(IASTConditionalExpression e) {
-    CIdExpression tmp = createTemporaryVariable(e);
+    CIdExpression tmp = createTemporaryVariable(e, null);
     conditionalTemporaryVariable = tmp;
     conditionalExpression = e;
     return tmp;
@@ -303,13 +315,17 @@ class ASTConverter {
   /**
    * creates temporary variables with increasing numbers
    */
-  private CIdExpression createTemporaryVariable(IASTExpression e) {
-    String name = "__CPAchecker_TMP_";
-    int i = 0;
-    while(scope.variableNameInUse(name+i, name+i)){
-      i++;
+  private CIdExpression createTemporaryVariable(IASTExpression e, String name) {
+    boolean nameWasInUse = true;
+    if (name == null) {
+      nameWasInUse = false;
+      name = "__CPAchecker_TMP_";
+      int i = 0;
+      while (scope.variableNameInUse(name + i, name + i)) {
+        i++;
+      }
+      name += i;
     }
-    name += i;
 
     CVariableDeclaration decl = new CVariableDeclaration(convert(e.getFileLocation()),
                                                false,
@@ -319,8 +335,10 @@ class ASTConverter {
                                                name,
                                                null);
 
+    if(!nameWasInUse) {
     scope.registerDeclaration(decl);
-    sideAssignments.add(decl);
+    preSideAssignments.add(decl);
+    }
     CIdExpression tmp = new CIdExpression(convert(e.getFileLocation()),
                                                 convert(e.getExpressionType()),
                                                 name,
@@ -353,7 +371,7 @@ class ASTConverter {
           return new CFunctionCallAssignmentStatement(fileLoc, leftHandSide, (CFunctionCallExpression)rightHandSide);
 
         } else if(rightHandSide instanceof CAssignment) {
-          sideAssignments.add(rightHandSide);
+          preSideAssignments.add(rightHandSide);
           return new CExpressionAssignmentStatement(fileLoc, leftHandSide, ((CAssignment) rightHandSide).getLeftHandSide());
         } else {
           throw new CFAGenerationRuntimeException("Expression is not free of side-effects", e);
@@ -767,12 +785,14 @@ class ASTConverter {
                                                                  CFileLocation fileLoc,
                                                                  CType type,
                                                                  BinaryOperator op) {
-    CIdExpression tmp = createTemporaryVariable(e);
-    sideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmp, exp));
+    CIdExpression tmp = createTemporaryVariable(e, null);
+    preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmp, exp));
+
 
     CExpression one = new CIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
     CBinaryExpression postExp = new CBinaryExpression(fileLoc, type, exp, one, op);
-    sideAssignments.add(new CExpressionAssignmentStatement(fileLoc, exp, postExp));
+    preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, exp, postExp));
+
     return tmp;
   }
 
@@ -1379,7 +1399,7 @@ class ASTConverter {
   private CInitializerExpression convert(IASTInitializerExpression i) {
     CAstNode initializer = convertExpressionWithSideEffects(i.getExpression());
     if(initializer != null && initializer instanceof CAssignment){
-      sideAssignments.add(initializer);
+      preSideAssignments.add(initializer);
       return new CInitializerExpression(convert(i.getFileLocation()), ((CAssignment)initializer).getLeftHandSide());
     }
 
@@ -1409,11 +1429,15 @@ class ASTConverter {
       CAstNode initializer = convertExpressionWithSideEffects(e);
 
       if(initializer != null && initializer instanceof CAssignment){
-        sideAssignments.add(initializer);
+        preSideAssignments.add(initializer);
         return new CInitializerExpression(convert(e.getFileLocation()), ((CAssignment)initializer).getLeftHandSide());
-      } else if (initializer != null && initializer instanceof CFunctionCallExpression) {
-        CExpression exp = addSideassignmentsForExpressionsWithoutSideEffects(initializer, e);
-        return new CInitializerExpression(convert(e.getFileLocation()), exp);
+      } else if (initializer != null && initializer instanceof IASTFunctionCallExpression && !(i.getParent() instanceof org.eclipse.cdt.core.dom.ast.IASTInitializerList)) {
+
+        String tmpname = convert(((org.eclipse.cdt.core.dom.ast.IASTDeclarator)i.getParent()).getName());
+        postSideAssignments.add(new CFunctionCallAssignmentStatement(convert(i.getFileLocation()),
+                                                                        createTemporaryVariable(e, tmpname),
+                                                                        (CFunctionCallExpression) initializer));
+        return null;
       }
 
       if (initializer != null && !(initializer instanceof CExpression)) {
