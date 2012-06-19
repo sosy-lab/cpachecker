@@ -32,7 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 @SuppressWarnings("unused")
 public class BlockedCFAReducerTest {

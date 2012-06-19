@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.cwriter;
 import java.util.Iterator;
 import java.util.Stack;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 
 /**
  * A function is basically a stack of blocks, where the first element is the

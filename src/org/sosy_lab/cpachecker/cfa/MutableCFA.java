@@ -29,8 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.base.Optional;

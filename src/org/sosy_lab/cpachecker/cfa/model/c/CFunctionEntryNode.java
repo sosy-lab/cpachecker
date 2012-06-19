@@ -21,14 +21,14 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.objectmodel.c;
+package org.sosy_lab.cpachecker.cfa.model.c;
 
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 import com.google.common.collect.ImmutableList;
 

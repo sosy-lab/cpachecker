@@ -21,7 +21,8 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.objectmodel;
+package org.sosy_lab.cpachecker.cfa.model;
+
 
 import com.google.common.base.Optional;
 

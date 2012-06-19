@@ -21,16 +21,20 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.objectmodel;
+package org.sosy_lab.cpachecker.cfa.model.c;
 
-public enum CFAEdgeType {
-    BlankEdge,
-    AssumeEdge,
-    StatementEdge,
-    DeclarationEdge,
-    ReturnStatementEdge,
-    FunctionCallEdge,
-    FunctionReturnEdge,
-    MultiEdge,
-    CallToReturnEdge
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+
+public class CLabelNode extends CFANode {
+
+  private final String label;
+
+  public CLabelNode(int pLineNumber, String pFunctionName, String pLabel) {
+    super(pLineNumber, pFunctionName);
+    label = pLabel;
+  }
+
+  public String getLabel() {
+    return label;
+  }
 }

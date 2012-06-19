@@ -21,21 +21,29 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.objectmodel;
+package org.sosy_lab.cpachecker.cfa.model.c;
 
-public abstract class FunctionEntryNode extends CFANode {
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
-  // Check if call edges are added in the second pass
-  private final FunctionExitNode exitNode;
+public class CFunctionSummaryEdge extends FunctionSummaryEdge {
 
-  public FunctionEntryNode(int pLineNumber, String pFunctionName,
-      FunctionExitNode pExitNode) {
+  private final CFunctionCall expression;
 
-    super(pLineNumber, pFunctionName);
-    exitNode = pExitNode;
+  public CFunctionSummaryEdge(String pRawStatement, int pLineNumber,
+      CFANode pPredecessor, CFANode pSuccessor, CFunctionCall pExpression) {
+
+    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+    expression = pExpression;
   }
 
-  public FunctionExitNode getExitNode() {
-    return exitNode;
+  public CFunctionCall getExpression() {
+    return expression;
+  }
+
+  @Override
+  public String getCode() {
+    return expression.asStatement().toASTString();
   }
 }

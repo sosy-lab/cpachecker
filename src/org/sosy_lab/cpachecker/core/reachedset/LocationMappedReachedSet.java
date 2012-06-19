@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.reachedset;
 import java.util.Collection;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.util.AbstractStates;

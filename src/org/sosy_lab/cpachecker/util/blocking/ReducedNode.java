@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.blocking;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 public class ReducedNode {
   private static int uniqueNodeIdSequence = 0;

@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.exceptions;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
  * Exception thrown when a CPA cannot handle some C code attached to a CFAEdge

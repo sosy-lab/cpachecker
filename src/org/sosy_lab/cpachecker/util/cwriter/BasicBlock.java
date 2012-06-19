@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.cwriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 
 class BasicBlock {
 

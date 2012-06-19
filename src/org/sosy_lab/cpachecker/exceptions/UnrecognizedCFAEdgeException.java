@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.exceptions;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 
 /**
  * Exception thrown if a CPA cannot handle a specific CFAEdge.

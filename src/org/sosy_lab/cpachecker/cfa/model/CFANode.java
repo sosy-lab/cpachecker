@@ -21,12 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.objectmodel;
+package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.*;
 
 import java.util.ArrayList;
 import java.util.List;
+
 
 import com.google.common.primitives.Ints;
 

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.cwriter;
 
 import java.util.Stack;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 class Edge implements Comparable<Edge> {

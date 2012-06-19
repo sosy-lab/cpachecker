@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.cfapath;
 
 import java.util.Iterator;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public class CFAPathStandardState implements CFAPathState, Iterable<CFAEdge> {
 

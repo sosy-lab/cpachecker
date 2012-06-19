@@ -21,31 +21,22 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.objectmodel;
+package org.sosy_lab.cpachecker.cfa.model;
 
-public class BlankEdge extends AbstractCFAEdge {
 
-  private final String description;
+public abstract class FunctionEntryNode extends CFANode {
 
-  public BlankEdge(String pRawStatement, int pLineNumber,  CFANode pPredecessor,
-      CFANode pSuccessor, String pDescription) {
+  // Check if call edges are added in the second pass
+  private final FunctionExitNode exitNode;
 
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
-    description = pDescription;
+  public FunctionEntryNode(int pLineNumber, String pFunctionName,
+      FunctionExitNode pExitNode) {
+
+    super(pLineNumber, pFunctionName);
+    exitNode = pExitNode;
   }
 
-  @Override
-  public String getDescription() {
-    return description;
-  }
-
-  @Override
-  public String getCode() {
-    return "";
-  }
-
-  @Override
-  public CFAEdgeType getEdgeType() {
-    return CFAEdgeType.BlankEdge;
+  public FunctionExitNode getExitNode() {
+    return exitNode;
   }
 }

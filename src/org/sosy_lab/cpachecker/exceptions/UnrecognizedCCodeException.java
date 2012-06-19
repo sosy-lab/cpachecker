@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.exceptions;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 import com.google.common.base.CharMatcher;
 

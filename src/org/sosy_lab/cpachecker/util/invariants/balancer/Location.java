@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class Location {
 

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.pointer;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public interface Memory {
 

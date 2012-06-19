@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.blocking.interfaces;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 import com.google.common.collect.ImmutableSet;
 
