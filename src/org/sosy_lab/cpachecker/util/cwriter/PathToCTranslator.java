@@ -94,16 +94,7 @@ public class PathToCTranslator {
   }
 
   private String generateCCode() {
-    List<String> includeList = new ArrayList<String>();
-
-    // do not include stdlib.h, as some examples (ntdrivers) define
-    // "typedef unsigned short wchar_t;" that is also defined in stdlib.h
-    // as "typedef int wchar_t;" - these contradicting definitions make cbmc fail
-//  includeList.add("#include<stdlib.h>");
-    includeList.add("#include<stdio.h>");
-
-    return Joiner.on('\n').join(concat(includeList,
-                                       mGlobalDefinitionsList,
+    return Joiner.on('\n').join(concat(mGlobalDefinitionsList,
                                        mFunctionDecls,
                                        mFunctionBodies));
   }
