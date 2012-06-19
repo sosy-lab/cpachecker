@@ -186,7 +186,7 @@ implements GenericAssumptionBuilder
         for (CParameterDeclaration paramdecl : formalParams)
         {
           String name = paramdecl.getName();
-          CType type = paramdecl.getDeclSpecifier();
+          CType type = paramdecl.getType();
           CExpression exp = new CIdExpression(paramdecl.getFileLocation(), type, name, paramdecl);
           result = visit(exp, result);
         }

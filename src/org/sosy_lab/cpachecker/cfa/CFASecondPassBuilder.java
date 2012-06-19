@@ -149,7 +149,7 @@ public class CFASecondPassBuilder {
     List<CExpression> parameters = functionCallExpression.getParameterExpressions();
 
     // check if the number of function parameters are right
-    CFunctionType functionType = ((CFunctionEntryNode)fDefNode).getFunctionDefinition().getDeclSpecifier();
+    CFunctionType functionType = ((CFunctionEntryNode)fDefNode).getFunctionDefinition().getType();
     int declaredParameters = functionType.getParameters().size();
     int actualParameters = parameters.size();
     if (!functionType.takesVarArgs() && (declaredParameters != actualParameters)) {

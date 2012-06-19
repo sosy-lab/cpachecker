@@ -40,8 +40,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public final class CComplexTypeDeclaration extends CDeclaration {
 
   public CComplexTypeDeclaration(CFileLocation pFileLocation,
-      boolean pIsGlobal, CType pSpecifier) {
-    super(pFileLocation, pIsGlobal, pSpecifier, null, null);
+      boolean pIsGlobal, CType pType) {
+    super(pFileLocation, pIsGlobal, pType, null, null);
   }
 
 }

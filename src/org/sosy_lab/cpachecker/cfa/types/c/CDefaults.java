@@ -27,7 +27,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -64,7 +63,7 @@ public class CDefaults {
         throw new AssertionError("Unknown basic type '" + basicType + "'");
       }
 
-    } else if (type instanceof CEnumerationSpecifier) {
+    } else if (type instanceof CEnumType) {
       // enum declaration: enum e { ... } var;
       return new CIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
 

@@ -225,7 +225,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     scope.enterFunction(fdef);
 
-    final List<CParameterDeclaration> parameters = fdef.getDeclSpecifier().getParameters();
+    final List<CParameterDeclaration> parameters = fdef.getType().getParameters();
     final List<String> parameterNames = new ArrayList<String>(parameters.size());
 
     for (CParameterDeclaration param : parameters) {

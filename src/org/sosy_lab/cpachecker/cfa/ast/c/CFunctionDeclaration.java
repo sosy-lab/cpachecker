@@ -36,12 +36,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 public final class CFunctionDeclaration extends CDeclaration {
 
   public CFunctionDeclaration(CFileLocation pFileLocation,
-      CFunctionType pSpecifier, String pName) {
-    super(pFileLocation, true, pSpecifier, checkNotNull(pName), pName);
+      CFunctionType pType, String pName) {
+    super(pFileLocation, true, pType, checkNotNull(pName), pName);
   }
 
   @Override
-  public CFunctionType getDeclSpecifier() {
-    return (CFunctionType) super.getDeclSpecifier();
+  public CFunctionType getType() {
+    return (CFunctionType) super.getType();
   }
 }

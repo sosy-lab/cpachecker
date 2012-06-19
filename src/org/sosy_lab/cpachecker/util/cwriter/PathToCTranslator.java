@@ -134,7 +134,7 @@ public class PathToCTranslator {
     CFunctionEntryNode functionStartNode = (CFunctionEntryNode)extractLocation(firstFunctionElement);
     String freshFunctionName = getFreshFunctionName(functionStartNode);
 
-    String lFunctionHeader = functionStartNode.getFunctionDefinition().getDeclSpecifier().toASTString(freshFunctionName);
+    String lFunctionHeader = functionStartNode.getFunctionDefinition().getType().toASTString(freshFunctionName);
     // lFunctionHeader is for example "void foo_99(int a)"
 
     // create a new function

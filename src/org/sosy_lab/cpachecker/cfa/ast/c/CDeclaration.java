@@ -39,9 +39,9 @@ public abstract class CDeclaration extends CSimpleDeclaration {
 
   public CDeclaration(CFileLocation pFileLocation,
                          boolean pIsGlobal,
-                         CType pSpecifier, String pName,
+                         CType pType, String pName,
                          String pOrigName) {
-    super(pFileLocation, pSpecifier, pName, pOrigName);
+    super(pFileLocation, pType, pName, pOrigName);
     isGlobal = pIsGlobal;
   }
 

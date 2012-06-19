@@ -41,10 +41,10 @@ public final class CVariableDeclaration extends CDeclaration {
   private final CInitializer initializer;
 
   public CVariableDeclaration(CFileLocation pFileLocation, boolean pIsGlobal,
-      CStorageClass pCStorageClass, CType pSpecifier, String pName, String pOrigName,
+      CStorageClass pCStorageClass, CType pType, String pName, String pOrigName,
       CInitializer pInitializer) {
 
-    super(pFileLocation, pIsGlobal, pSpecifier, checkNotNull(pName), pOrigName);
+    super(pFileLocation, pIsGlobal, pType, checkNotNull(pName), pOrigName);
     cStorageClass = pCStorageClass;
     initializer = pInitializer;
 
@@ -73,7 +73,7 @@ public final class CVariableDeclaration extends CDeclaration {
     StringBuilder lASTString = new StringBuilder();
 
     lASTString.append(cStorageClass.toASTString());
-    lASTString.append(getDeclSpecifier().toASTString(getName()));
+    lASTString.append(getType().toASTString(getName()));
 
     if (initializer != null) {
       lASTString.append(" = ");

@@ -209,14 +209,14 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
     lastAdded = varName;
 
-    CType specifier = decl.getDeclSpecifier();
+    CType type = decl.getType();
     CInitializer initializer = decl.getInitializer();
     // initializers in CIL are always constant, so no need to check if
     // initializer expression contains uninitialized variables
     if (initializer == null &&
         !(decl.getCStorageClass() == CStorageClass.EXTERN) &&
-        !(specifier instanceof CArrayType) &&
-        !(specifier instanceof CFunctionType)) {
+        !(type instanceof CArrayType) &&
+        !(type instanceof CFunctionType)) {
       setUninitialized(element, varName);
     } else {
       setInitialized(element, varName);

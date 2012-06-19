@@ -100,9 +100,9 @@ public final class CCompositeType extends CType {
   public static final class CCompositeTypeMemberDeclaration extends CSimpleDeclaration {
 
     public CCompositeTypeMemberDeclaration(CFileLocation pFileLocation,
-                                              CType pSpecifier,
+                                              CType pType,
                                               String pName) {
-      super(pFileLocation, pSpecifier, pName);
+      super(pFileLocation, pType, pName);
     }
   }
 }

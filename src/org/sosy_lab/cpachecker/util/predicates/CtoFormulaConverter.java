@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerationSpecifier.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -91,6 +90,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedef;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -576,7 +576,7 @@ public class CtoFormulaConverter {
       if (initAllVars) {
         // auto-initialize variables to zero
         logDebug("AUTO-INITIALIZING VAR: ", edge);
-        init = CDefaults.forType(decl.getDeclSpecifier(), null);
+        init = CDefaults.forType(decl.getType(), null);
       }
 
     } else if (initializer instanceof CInitializerExpression) {
@@ -597,7 +597,7 @@ public class CtoFormulaConverter {
 
     if (handlePointerAliasing) {
       // we need to add the pointer alias
-      Formula pAssign = buildDirectSecondLevelAssignment(decl.getDeclSpecifier(), varName,
+      Formula pAssign = buildDirectSecondLevelAssignment(decl.getType(), varName,
           removeCast(init), function, constraints, ssa);
       assignments = fmgr.makeAnd(pAssign, assignments);
 
@@ -653,7 +653,7 @@ public class CtoFormulaConverter {
 
     String calledFunction = fn.getFunctionName();
 
-    if (fn.getFunctionDefinition().getDeclSpecifier().takesVarArgs()) {
+    if (fn.getFunctionDefinition().getType().takesVarArgs()) {
       if (formalParams.size() > actualParams.size()) {
         throw new UnrecognizedCCodeException("Number of parameters on function call does " +
             "not match function definition", edge);
@@ -676,7 +676,7 @@ public class CtoFormulaConverter {
       String formalParamName = formalParam.getName();
       assert (!formalParamName.isEmpty()) : edge;
 
-      if (formalParam.getDeclSpecifier() instanceof CPointerType) {
+      if (formalParam.getType() instanceof CPointerType) {
         warnUnsafeAssignment();
         logDebug("Ignoring the semantics of pointer for parameter "
             + formalParamName, fn.getFunctionDefinition());

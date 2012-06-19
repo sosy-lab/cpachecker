@@ -85,13 +85,13 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
           CDeclaration declaration = declarationEdge.getDeclaration();
           if (declaration instanceof CVariableDeclaration) {
             String name = declaration.getName();
-            CType type = declaration.getDeclSpecifier();
+            CType type = declaration.getType();
             registerVariable(name, type, variables);
           } else if (declaration instanceof CFunctionDeclaration) {
             CFunctionDeclaration funDecl = (CFunctionDeclaration) declaration;
-            for (CParameterDeclaration paramDecl : funDecl.getDeclSpecifier().getParameters()) {
+            for (CParameterDeclaration paramDecl : funDecl.getType().getParameters()) {
               String name = paramDecl.getName();
-              CType type = paramDecl.getDeclSpecifier();
+              CType type = paramDecl.getType();
               registerVariable(name, type, variables);
             }
           }
@@ -101,9 +101,9 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
     for (FunctionEntryNode node : cfa.getAllFunctionHeads()) {
       if (node instanceof CFunctionEntryNode) {
         CFunctionEntryNode fDefNode = (CFunctionEntryNode) node;
-        for (CParameterDeclaration paramDecl : fDefNode.getFunctionDefinition().getDeclSpecifier().getParameters()) {
+        for (CParameterDeclaration paramDecl : fDefNode.getFunctionDefinition().getType().getParameters()) {
           String name = paramDecl.getName();
-          CType type = paramDecl.getDeclSpecifier();
+          CType type = paramDecl.getType();
           registerVariable(name, type, variables);
         }
       }

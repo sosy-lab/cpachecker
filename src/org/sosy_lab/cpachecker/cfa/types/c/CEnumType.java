@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast.c;
+package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.collect.Iterables.transform;
@@ -29,19 +29,18 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CAstNode.TO_AST_STRING;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public final class CEnumerationSpecifier extends CType {
+public final class CEnumType extends CType {
 
   private final ImmutableList<CEnumerator> enumerators;
   private final String                     name;
 
-  public CEnumerationSpecifier(final boolean pConst, final boolean pVolatile,
+  public CEnumType(final boolean pConst, final boolean pVolatile,
       final List<CEnumerator> pEnumerators, final String pName) {
     super(pConst, pVolatile);
     enumerators = ImmutableList.copyOf(pEnumerators);

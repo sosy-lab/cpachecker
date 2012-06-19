@@ -40,27 +40,27 @@ import com.google.common.base.Strings;
  */
 public abstract class CSimpleDeclaration extends CAstNode {
 
-  private final CType    specifier;
+  private final CType    type;
   private final String   name;
   private final String   origName;
 
   public CSimpleDeclaration(final CFileLocation pFileLocation,
-      final CType pSpecifier, final String pName) {
-    this(pFileLocation, pSpecifier, pName, pName);
+      final CType pType, final String pName) {
+    this(pFileLocation, pType, pName, pName);
   }
 
   public CSimpleDeclaration(final CFileLocation pFileLocation,
-      final CType pSpecifier, final String pName, final String pOrigName) {
+      final CType pType, final String pName, final String pOrigName) {
 
     super(pFileLocation);
 
-    specifier = checkNotNull(pSpecifier);
+    type = checkNotNull(pType);
     name = pName;
     origName = pOrigName;
   }
 
-  public CType getDeclSpecifier() {
-    return specifier;
+  public CType getType() {
+    return type;
   }
 
   public String getName() {
@@ -74,6 +74,6 @@ public abstract class CSimpleDeclaration extends CAstNode {
   @Override
   public String toASTString() {
     String name = Strings.nullToEmpty(getName());
-    return getDeclSpecifier().toASTString(name) + ";";
+    return getType().toASTString(name) + ";";
   }
 }

@@ -34,13 +34,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public final class CParameterDeclaration extends CSimpleDeclaration {
 
   public CParameterDeclaration(CFileLocation pFileLocation,
-                                  CType pSpecifier,
+                                  CType pType,
                                   String pName) {
-    super(pFileLocation, pSpecifier, checkNotNull(pName));
+    super(pFileLocation, pType, checkNotNull(pName));
   }
 
   @Override
   public String toASTString() {
-    return getDeclSpecifier().toASTString(getName());
+    return getType().toASTString(getName());
   }
 }

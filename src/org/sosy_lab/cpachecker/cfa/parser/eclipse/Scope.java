@@ -30,12 +30,12 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerationSpecifier.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -130,7 +130,7 @@ class Scope {
         || declaration instanceof CEnumerator
         || declaration instanceof CParameterDeclaration
         : "Tried to register a declaration which does not define a name in the standard namespace: " + declaration;
-    assert  !(declaration.getDeclSpecifier() instanceof CFunctionType);
+    assert  !(declaration.getType() instanceof CFunctionType);
 
     String name = declaration.getOrigName();
     assert name != null;

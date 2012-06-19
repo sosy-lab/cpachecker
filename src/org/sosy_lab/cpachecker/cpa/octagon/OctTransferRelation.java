@@ -843,7 +843,7 @@ class OctTransferRelation implements TransferRelation{
       // TODO check other types of variables later - just handle primitive
       // types for the moment
       // don't add pointer variables to the list since we don't track them
-      if (decl.getDeclSpecifier() instanceof CPointerType) {
+      if (decl.getType() instanceof CPointerType) {
         return pElement;
       }
       // if this is a global variable, add to the list of global variables

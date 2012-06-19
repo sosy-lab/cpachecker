@@ -398,7 +398,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
     List<CExpression> arguments = callEdge.getArguments();
 
-    if (functionEntryNode.getFunctionDefinition().getDeclSpecifier().takesVarArgs()) {
+    if (functionEntryNode.getFunctionDefinition().getType().takesVarArgs()) {
       if (paramNames.size() > arguments.size()) {
         throw new UnrecognizedCCodeException("Number of parameters on function call does " +
             "not match function definition", callEdge);

@@ -222,7 +222,7 @@ public class BDDTransferRelation implements TransferRelation {
 
       CExpression init = null;
       if (initializer == null && initAllVars) { // auto-initialize variables to zero
-        init = CDefaults.forType(decl.getDeclSpecifier(), decl.getFileLocation());
+        init = CDefaults.forType(decl.getType(), decl.getFileLocation());
       } else if (initializer instanceof CInitializerExpression) {
         init = ((CInitializerExpression) initializer).getExpression();
       }

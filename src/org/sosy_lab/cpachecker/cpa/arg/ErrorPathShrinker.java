@@ -185,11 +185,11 @@ public final class ErrorPathShrinker {
 
         if (declaration.isGlobal()) {
           // only global declarations are important
-          CType specifier = declaration.getDeclSpecifier();
+          CType type = declaration.getType();
           if (declaration.getName() != null) {
             // if a variable (declarator) is no pointer variable,
             // it is added to the list of global variables
-            if (!(specifier instanceof CPointerType)) {
+            if (!(type instanceof CPointerType)) {
               GLOBAL_VARS.add(declaration.getName());
             }
           }

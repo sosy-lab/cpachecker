@@ -29,8 +29,6 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerationSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerationSpecifier.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -49,12 +47,14 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedef;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -100,8 +100,7 @@ public class TypesTransferRelation implements TransferRelation {
         // function
 
         CFunctionDeclaration funcDef = funcDefNode.getFunctionDefinition();
-        handleFunctionDeclaration(successor, funcCallEdge,
-            funcDef.getDeclSpecifier());
+        handleFunctionDeclaration(successor, funcCallEdge, funcDef.getType());
       }
       break;
 
@@ -116,7 +115,7 @@ public class TypesTransferRelation implements TransferRelation {
           && (cfaEdge.getPredecessor() instanceof FunctionEntryNode)) {
         //since by this point all global variables have been processed, we can now process the entry function
         CFunctionDeclaration funcDef = functionEntryNode.getFunctionDefinition();
-        handleFunctionDeclaration(successor, null, funcDef.getDeclSpecifier());
+        handleFunctionDeclaration(successor, null, funcDef.getType());
 
         entryFunctionProcessed = true;
       }
@@ -133,7 +132,7 @@ public class TypesTransferRelation implements TransferRelation {
                                  CDeclarationEdge declarationEdge)
                                  throws UnrecognizedCCodeException {
     CDeclaration decl = declarationEdge.getDeclaration();
-    CType specifier = declarationEdge.getDeclaration().getDeclSpecifier();
+    CType specifier = declarationEdge.getDeclaration().getType();
 
     if (decl instanceof CFunctionDeclaration) {
       handleFunctionDeclaration(element, declarationEdge, (CFunctionType)specifier);
@@ -255,7 +254,7 @@ public class TypesTransferRelation implements TransferRelation {
 
       for (CSimpleDeclaration subDeclaration : compositeSpecifier.getMembers()) {
 
-        Type subType = getType(element, cfaEdge, subDeclaration.getDeclSpecifier());
+        Type subType = getType(element, cfaEdge, subDeclaration.getType());
 
         if (subDeclaration.getName() != null) {
           String thisSubName = subDeclaration.getName();
@@ -300,9 +299,9 @@ public class TypesTransferRelation implements TransferRelation {
         element.addTypedef(name, type);
       }
 
-    } else if (declSpecifier instanceof CEnumerationSpecifier) {
+    } else if (declSpecifier instanceof CEnumType) {
       // enum
-      CEnumerationSpecifier enumSpecifier = (CEnumerationSpecifier)declSpecifier;
+      CEnumType enumSpecifier = (CEnumType)declSpecifier;
       String name = enumSpecifier.getName();
       EnumType enumType;
 
@@ -395,7 +394,7 @@ public class TypesTransferRelation implements TransferRelation {
 
     for (CSimpleDeclaration parameter : funcDeclSpecifier.getParameters()) {
 
-      Type parameterType = getType(element, cfaEdge, parameter.getDeclSpecifier());
+      Type parameterType = getType(element, cfaEdge, parameter.getType());
 
       String parameterName = null;
       if (parameter.getName() != null) {

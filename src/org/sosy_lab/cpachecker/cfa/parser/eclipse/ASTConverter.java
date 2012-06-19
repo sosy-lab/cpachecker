@@ -90,8 +90,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerationSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerationSpecifier.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -128,6 +126,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -1005,7 +1005,7 @@ class ASTConverter {
 
     } else {
       if (type instanceof CCompositeType
-          || type instanceof CEnumerationSpecifier
+          || type instanceof CEnumType
           || type instanceof CElaboratedType) {
         // struct prototype without variable declaration or similar type definitions
         return new CComplexTypeDeclaration(fileLoc, isGlobal, type);
@@ -1281,7 +1281,7 @@ class ASTConverter {
     return new CElaboratedType(d.isConst(), d.isVolatile(), type, convert(d.getName()));
   }
 
-  private CEnumerationSpecifier convert(IASTEnumerationSpecifier d) {
+  private CEnumType convert(IASTEnumerationSpecifier d) {
     List<CEnumerator> list = new ArrayList<CEnumerator>(d.getEnumerators().length);
     Long lastValue = -1L; // initialize with -1, so the first one gets value 0
     for (IASTEnumerationSpecifier.IASTEnumerator c : d.getEnumerators()) {
@@ -1293,7 +1293,7 @@ class ASTConverter {
         lastValue = null;
       }
     }
-    return new CEnumerationSpecifier(d.isConst(), d.isVolatile(), list, convert(d.getName()));
+    return new CEnumType(d.isConst(), d.isVolatile(), list, convert(d.getName()));
   }
 
   private CNamedType convert(IASTNamedTypeSpecifier d) {

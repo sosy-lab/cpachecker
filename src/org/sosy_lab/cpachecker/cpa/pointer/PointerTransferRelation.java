@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -69,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -246,7 +246,7 @@ public class PointerTransferRelation implements TransferRelation {
         // ignore type definitions, struct prototypes etc.
         if (declEdge.getDeclaration() instanceof CVariableDeclaration) {
           CVariableDeclaration decl = (CVariableDeclaration)declEdge.getDeclaration();
-          handleDeclaration(successor, cfaEdge, decl.isGlobal(), decl.getName(), decl.getDeclSpecifier());
+          handleDeclaration(successor, cfaEdge, decl.isGlobal(), decl.getName(), decl.getType());
         }
         break;
 
@@ -302,7 +302,7 @@ public class PointerTransferRelation implements TransferRelation {
 
           //..then adding all parameters as local variables
           for (CParameterDeclaration dec : l) {
-            CType declSpecifier = dec.getDeclSpecifier();
+            CType declSpecifier = dec.getType();
             handleDeclaration(successor, cfaEdge, false, dec.getName(), declSpecifier);
           }
           entryFunctionProcessed = true;
@@ -349,7 +349,7 @@ public class PointerTransferRelation implements TransferRelation {
 
     if (specifier instanceof CCompositeType
         || specifier instanceof CElaboratedType
-        || specifier instanceof CEnumerationSpecifier) {
+        || specifier instanceof CEnumType) {
 
       // structs on stack etc.
       return;

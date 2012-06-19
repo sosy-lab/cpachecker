@@ -56,6 +56,6 @@ public class CFunctionEntryNode extends FunctionEntryNode {
   }
 
   public List<CParameterDeclaration> getFunctionParameters() {
-    return functionDefinition.getDeclSpecifier().getParameters();
+    return functionDefinition.getType().getParameters();
   }
 }
