@@ -27,10 +27,10 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CLabelNode;
 
 /**
@@ -48,10 +48,10 @@ public class CFACreationUtils {
     CFANode predecessor = edge.getPredecessor();
 
     // check control flow branching at predecessor
-    if (edge instanceof CAssumeEdge) {
+    if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
       assert predecessor.getNumLeavingEdges() <= 1;
       if (predecessor.getNumLeavingEdges() > 0) {
-        assert predecessor.getLeavingEdge(0) instanceof CAssumeEdge;
+        assert predecessor.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge;
       }
 
     } else {

@@ -28,12 +28,10 @@ import java.util.Collection;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
@@ -86,12 +84,12 @@ public final class DOTBuilder {
     @Override
     public TraversalProcess visitEdge(CFAEdge edge) {
       CFANode predecessor = edge.getPredecessor();
-      if (!predecessor.isLoopStart() && edge instanceof CAssumeEdge) {
+      if (!predecessor.isLoopStart() && edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
         nodes.add(formatNode(predecessor, "diamond"));
       }
 
       List<String> graph;
-      if ((edge instanceof CFunctionCallEdge) || edge instanceof CFunctionReturnEdge){
+      if ((edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) || edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge){
         graph = edges.get(MAIN_GRAPH);
       }
       else{

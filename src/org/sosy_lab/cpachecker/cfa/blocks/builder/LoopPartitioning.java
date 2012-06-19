@@ -34,9 +34,9 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
@@ -136,7 +136,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
     for(CFANode node : pLoopBody) {
       for(int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge edge = node.getLeavingEdge(i);
-        if(!pLoopBody.contains(edge.getSuccessor()) && !(node.getLeavingEdge(i) instanceof CFunctionCallEdge))  {
+        if(!pLoopBody.contains(edge.getSuccessor()) && !(node.getLeavingEdge(i).getEdgeType() == CFAEdgeType.FunctionCallEdge))  {
           addNodes.add(edge.getSuccessor());
         }
       }

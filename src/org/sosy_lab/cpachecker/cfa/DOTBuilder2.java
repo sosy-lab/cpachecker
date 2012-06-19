@@ -34,10 +34,9 @@ import java.util.Set;
 import org.json.simple.JSONObject;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
@@ -121,8 +120,8 @@ public final class DOTBuilder2 {
           || (predecessor.getNumEnteringEdges() != 1)
           || (predecessor.getNumLeavingEdges() != 1)
           || (currentComboEdge != null && !predecessor.equals(currentComboEdge.get(currentComboEdge.size()-1).getSuccessor()))
-          || (edge instanceof FunctionSummaryEdge)
-          || (edge instanceof CAssumeEdge)) {
+          || (edge.getEdgeType() == CFAEdgeType.CallToReturnEdge)
+          || (edge.getEdgeType() == CFAEdgeType.AssumeEdge)) {
         // no, it does not
 
         edges.add(edge);
@@ -203,7 +202,7 @@ public final class DOTBuilder2 {
       if(node.isLoopStart()){
         shape = "doublecircle";
       } else if (node.getNumLeavingEdges() > 0 &&
-          node.getLeavingEdge(0) instanceof CAssumeEdge) {
+          node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge) {
         shape = "diamond";
       }
 
@@ -212,7 +211,7 @@ public final class DOTBuilder2 {
 
     @SuppressWarnings("unchecked")
     private String edgeToDot(CFAEdge edge) {
-      if (edge instanceof FunctionSummaryEdge) {
+      if (edge.getEdgeType() == CFAEdgeType.CallToReturnEdge) {
        //create the function node
         String calledFunction = edge.getPredecessor().getLeavingEdge(0).getSuccessor().getFunctionName();
         String ret = (++virtFuncCallNodeIdCounter) + " [shape=\"component\" label=\"" + calledFunction + "\"]\n";
