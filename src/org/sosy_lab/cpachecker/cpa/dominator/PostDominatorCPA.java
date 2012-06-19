@@ -43,11 +43,11 @@ public class PostDominatorCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(PostDominatorCPA.class);
   }
 
-	private org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA parametricDominatorCPA;
+  private org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA parametricDominatorCPA;
 
-	public PostDominatorCPA(CFA pCfa) {
-		this.parametricDominatorCPA = new org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA(new InverseLocationCPA(pCfa));
-	}
+  public PostDominatorCPA(CFA pCfa) {
+    this.parametricDominatorCPA = new org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA(new InverseLocationCPA(pCfa));
+  }
 
   @Override
   public AbstractDomain getAbstractDomain() {

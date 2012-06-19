@@ -29,21 +29,21 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionSummaryEdge;
 
 public class CFunctionSummaryEdge extends FunctionSummaryEdge {
 
-	private final CFunctionCall expression;
+  private final CFunctionCall expression;
 
-	public CFunctionSummaryEdge(String pRawStatement, int pLineNumber,
-	    CFANode pPredecessor, CFANode pSuccessor, CFunctionCall pExpression) {
+  public CFunctionSummaryEdge(String pRawStatement, int pLineNumber,
+      CFANode pPredecessor, CFANode pSuccessor, CFunctionCall pExpression) {
 
-		super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
-		expression = pExpression;
-	}
+    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+    expression = pExpression;
+  }
 
-	public CFunctionCall getExpression() {
-		return expression;
-	}
+  public CFunctionCall getExpression() {
+    return expression;
+  }
 
-	@Override
-	public String getCode() {
-	  return expression.asStatement().toASTString();
-	}
+  @Override
+  public String getCode() {
+    return expression.asStatement().toASTString();
+  }
 }

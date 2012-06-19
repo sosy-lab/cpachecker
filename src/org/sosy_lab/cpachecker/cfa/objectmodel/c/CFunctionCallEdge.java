@@ -36,8 +36,8 @@ import com.google.common.base.Optional;
 
 public class CFunctionCallEdge extends AbstractCFAEdge {
 
-	private final CFunctionCall functionCall;
-	private final CFunctionSummaryEdge summaryEdge;
+  private final CFunctionCall functionCall;
+  private final CFunctionSummaryEdge summaryEdge;
 
   public CFunctionCallEdge (String pRawStatement,
       int pLineNumber, CFANode pPredecessor, CFunctionEntryNode pSuccessor,

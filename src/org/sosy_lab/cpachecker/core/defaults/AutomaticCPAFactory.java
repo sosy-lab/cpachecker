@@ -92,7 +92,7 @@ public class AutomaticCPAFactory implements CPAFactory {
       // TODO if necessary, provide method which constructor should be chosen
       // or choose automatically
       throw new UnsupportedOperationException("Cannot automatically create CPAs " +
-      		"with more than one constructor!");
+          "with more than one constructor!");
     }
     Constructor<?> cons = allConstructors[0];
     cons.setAccessible(true);

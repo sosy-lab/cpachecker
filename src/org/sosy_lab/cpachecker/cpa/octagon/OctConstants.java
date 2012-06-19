@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.octagon;
 
 class OctConstants {
 
-	static final int wideningThreshold = 2;
-	static final boolean useWidening = true;
+  static final int wideningThreshold = 2;
+  static final boolean useWidening = true;
 
 }

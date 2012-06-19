@@ -36,21 +36,21 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class DominatorTransferRelation implements TransferRelation {
 
-	private final ConfigurableProgramAnalysis cpa;
+  private final ConfigurableProgramAnalysis cpa;
 
-	public DominatorTransferRelation(ConfigurableProgramAnalysis cpa) {
-		if (cpa == null) {
-			throw new IllegalArgumentException("cpa is null!");
-		}
+  public DominatorTransferRelation(ConfigurableProgramAnalysis cpa) {
+    if (cpa == null) {
+      throw new IllegalArgumentException("cpa is null!");
+    }
 
-		this.cpa = cpa;
-	}
+    this.cpa = cpa;
+  }
 
-	@Override
-	public Collection<DominatorState> getAbstractSuccessors(
-	    AbstractState element, Precision prec, CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
+  @Override
+  public Collection<DominatorState> getAbstractSuccessors(
+    AbstractState element, Precision prec, CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
 
-	  assert element instanceof DominatorState;
+    assert element instanceof DominatorState;
 
     DominatorState dominatorState = (DominatorState)element;
 
@@ -64,7 +64,7 @@ public class DominatorTransferRelation implements TransferRelation {
     }
 
     return successors;
-	}
+  }
 
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState element,

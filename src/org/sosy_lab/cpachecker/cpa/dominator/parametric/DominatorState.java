@@ -33,115 +33,114 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 
 public class DominatorState implements AbstractStateWithLocation, AbstractState {
 
-	private AbstractState dominatedState;
-	private Set<AbstractState> dominators = new HashSet<AbstractState>();
+  private AbstractState dominatedState;
+  private Set<AbstractState> dominators = new HashSet<AbstractState>();
 
-	public DominatorState(AbstractState dominatedElement) {
-		if (dominatedElement == null) {
-			throw new IllegalArgumentException("dominatedState is null!");
-		}
-
-		this.dominatedState = dominatedElement;
-	}
-
-	public DominatorState(AbstractState dominatedElement, Set<AbstractState> dominators) {
-		this(dominatedElement);
-
-		if (dominators == null) {
-			throw new IllegalArgumentException("dominators is null!");
-		}
-
-		this.dominators.addAll(dominators);
-	}
-
-	protected DominatorState() {
-	  dominatedState = null;
-	}
-
-	public DominatorState(DominatorState other) {
-		this(other.dominatedState, other.dominators);
-	}
-
-	public DominatorState(AbstractState dominatedElement, DominatorState other) {
-		this(dominatedElement, other.dominators);
-	}
-
-	public void update(AbstractState dominator) {
-		if (dominator == null) {
-			throw new IllegalArgumentException("dominator is null!");
-		}
-
-		dominators.add(dominator);
-	}
-
-	public AbstractState getDominatedState() {
-		return this.dominatedState;
-	}
-
-	public Iterator<AbstractState> getIterator ()
-    {
-        return this.dominators.iterator();
+  public DominatorState(AbstractState dominatedElement) {
+    if (dominatedElement == null) {
+      throw new IllegalArgumentException("dominatedState is null!");
     }
 
-	public boolean isDominatedBy(AbstractState dominator) {
-		return this.dominators.contains(dominator);
-	}
+    this.dominatedState = dominatedElement;
+  }
 
-	@Override
-	public boolean equals(Object other) {
-		if (!(other instanceof DominatorState)) {
-			return false;
-		}
+  public DominatorState(AbstractState dominatedElement, Set<AbstractState> dominators) {
+    this(dominatedElement);
 
-		DominatorState other_element = (DominatorState)other;
+    if (dominators == null) {
+      throw new IllegalArgumentException("dominators is null!");
+    }
 
-		if (!(this.dominatedState.equals(other_element.dominatedState))) {
-			return false;
-		}
+    this.dominators.addAll(dominators);
+  }
 
-		if (dominators.size() != other_element.dominators.size()) {
-			return false;
-		}
+  protected DominatorState() {
+    dominatedState = null;
+  }
 
-		for (AbstractState dominator : dominators) {
-			if (!other_element.isDominatedBy(dominator)) {
-				return false;
-			}
-		}
+  public DominatorState(DominatorState other) {
+    this(other.dominatedState, other.dominators);
+  }
 
-		return true;
-	}
+  public DominatorState(AbstractState dominatedElement, DominatorState other) {
+    this(dominatedElement, other.dominators);
+  }
 
-	@Override
-	public String toString() {
-		StringBuilder builder = new StringBuilder ();
-        builder.append ("( " + this.dominatedState.toString() + ", {");
+  public void update(AbstractState dominator) {
+    if (dominator == null) {
+      throw new IllegalArgumentException("dominator is null!");
+    }
 
-        boolean first = true;
-        for (AbstractState dominator : this.dominators) {
-        	if (first)  {
-        		first = false;
-        	}
-        	else {
-        		builder.append(", ");
-        	}
+    dominators.add(dominator);
+  }
 
-        	builder.append(dominator.toString());
-        }
+  public AbstractState getDominatedState() {
+    return this.dominatedState;
+  }
 
-        builder.append ("})");
+  public Iterator<AbstractState> getIterator() {
+    return this.dominators.iterator();
+  }
 
-        return builder.toString ();
-	}
+  public boolean isDominatedBy(AbstractState dominator) {
+    return this.dominators.contains(dominator);
+  }
 
-	@Override
+  @Override
+  public boolean equals(Object other) {
+    if (!(other instanceof DominatorState)) {
+      return false;
+    }
+
+    DominatorState other_element = (DominatorState)other;
+
+    if (!(this.dominatedState.equals(other_element.dominatedState))) {
+      return false;
+    }
+
+    if (dominators.size() != other_element.dominators.size()) {
+      return false;
+    }
+
+    for (AbstractState dominator : dominators) {
+      if (!other_element.isDominatedBy(dominator)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder ();
+    builder.append ("( " + this.dominatedState.toString() + ", {");
+
+    boolean first = true;
+    for (AbstractState dominator : this.dominators) {
+      if (first)  {
+        first = false;
+      }
+      else {
+        builder.append(", ");
+      }
+
+      builder.append(dominator.toString());
+    }
+
+    builder.append ("})");
+
+    return builder.toString ();
+  }
+
+  @Override
   public CFANode getLocationNode() {
-		return ((AbstractStateWithLocation)dominatedState).getLocationNode();
-	}
+    return ((AbstractStateWithLocation)dominatedState).getLocationNode();
+  }
 
-	@Override
-	public int hashCode() {
-		// TODO: create better hash code?
-		return this.dominatedState.hashCode();
-	}
+  @Override
+  public int hashCode() {
+    // TODO: create better hash code?
+    return this.dominatedState.hashCode();
+  }
 }

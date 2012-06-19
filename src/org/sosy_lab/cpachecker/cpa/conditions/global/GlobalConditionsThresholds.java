@@ -54,7 +54,7 @@ class GlobalConditionsThresholds {
 
   @Option(name="time.wall.hardlimit",
       description="Hard limit for wall time used by CPAchecker (use milliseconds or specify a unit; -1 for infinite)" +
-      		"\nWhen using adjustable conditions, analysis will end after this threshold")
+                  "\nWhen using adjustable conditions, analysis will end after this threshold")
   @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
       defaultUserUnit=TimeUnit.MILLISECONDS,
       min=-1)

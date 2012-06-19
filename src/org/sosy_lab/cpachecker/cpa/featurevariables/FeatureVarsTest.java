@@ -243,7 +243,7 @@ public class FeatureVarsTest {
       File tmpFile = new File("test/config/automata/tmpSpecification.spc");
       tmpFile.deleteOnExit();
       Files.writeFile(tmpFile , "OBSERVER AUTOMATON tmpAutomaton\n" +
-      		"INITIAL STATE Init;\n"+
+          "INITIAL STATE Init;\n"+
           "STATE Init :\n"+
           "MATCH {$1} ->\n"+
           "PRINT \"Found $1 in Line $line\" GOTO Init;\n"+
@@ -251,8 +251,8 @@ public class FeatureVarsTest {
       File sourceFile = new File("test/programs/simple/tmpProgram.c");
       sourceFile.deleteOnExit();
       Files.writeFile(sourceFile, "int __SELECTED_FEATURE_base; int main() { " +
-      		"if (__SELECTED_FEATURE_base && !__SELECTED_FEATURE_base ) { foo(1); } else {foo(2);} " +
-      		"}");
+          "if (__SELECTED_FEATURE_base && !__SELECTED_FEATURE_base ) { foo(1); } else {foo(2);} " +
+          "}");
       TestResults results = run(prop, "test/programs/simple/tmpProgram.c");
       //System.out.println(results.getLog());
       //System.out.println(results.getCheckerResult().getResult());

@@ -46,7 +46,7 @@ public class ReachedSetFactory {
 
   @Option(name="traversal.order",
       description="which strategy to adopt for visiting states? "
-      		      + "RPO is deprecated, use the option analysis.traversal.useReversePostorder instead")
+                + "RPO is deprecated, use the option analysis.traversal.useReversePostorder instead")
   Waitlist.TraversalMethod traversalMethod = Waitlist.TraversalMethod.DFS;
 
   @Option(name = "traversal.useCallstack",

@@ -74,7 +74,7 @@ public class SmtInterpolEnvironment implements Script {
     // TODO more types?
     // TODO merge enum with ModelTypes?
 
-	private final String name;
+    private final String name;
 
     private Type(String s) {
       name = s;

@@ -31,7 +31,7 @@ public abstract class FunctionSummaryEdge extends AbstractCFAEdge {
 
   @Override
   public CFAEdgeType getEdgeType() {
-  	return CFAEdgeType.CallToReturnEdge;
+    return CFAEdgeType.CallToReturnEdge;
   }
 
 }

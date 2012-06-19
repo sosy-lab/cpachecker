@@ -78,7 +78,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final CFA cfa;
 
   @Option(description="Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
-  		              + "or any class that implements a PartitioningHeuristic")
+                    + "or any class that implements a PartitioningHeuristic")
   @ClassOption(packagePrefix="org.sosy_lab.cpachecker.cfa.blocks.builder")
   private Class<? extends PartitioningHeuristic> blockHeuristic = FunctionAndLoopPartitioning.class;
 
