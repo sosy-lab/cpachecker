@@ -77,11 +77,11 @@ import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 /** This Transfer Relation tracks variables and handles them as boolean,
- * so only the case ==0 and the case !=0 are tracked. */
+ * so only the cases ==0 and !=0 are tracked. */
 @Options(prefix = "cpa.bdd")
 public class BDDTransferRelation implements TransferRelation {
 
-  private final NamedRegionManager rmgr;
+  protected final NamedRegionManager rmgr;
 
   /** name for return-variables, it is used for function-returns. */
   private static final String FUNCTION_RETURN_VARIABLE = "__cpachecker_return_var";
@@ -178,11 +178,12 @@ public class BDDTransferRelation implements TransferRelation {
     if (lhs instanceof CIdExpression || lhs instanceof CFieldReference
         || lhs instanceof CArraySubscriptExpression) {
 
-      // make variable (predicate) for LEFT SIDE of assignment,
-      // delete variable, if it was used before, this is done with an existential operator
+      // make tmp for assignment
+      // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
       String varName = lhs.toASTString();
       Region var = makePredicate(varName, element.getFunctionName(), isGlobal(lhs));
-      Region newRegion = removePredicate(element.getRegion(), var);
+      Region tmp = rmgr.createPredicate();
+      Region newRegion = element.getRegion();
 
       CRightHandSide rhs = assignment.getRightHandSide();
       if (rhs instanceof CExpression) {
@@ -190,7 +191,7 @@ public class BDDTransferRelation implements TransferRelation {
         // make region for RIGHT SIDE and build equality of var and region
         BDDCExpressionVisitor ev = new BDDCExpressionVisitor(element);
         Region regRHS = ((CExpression) rhs).accept(ev);
-        newRegion = addEquality(var, regRHS, newRegion);
+        newRegion = addEquality(tmp, regRHS, newRegion);
 
       } else if (rhs instanceof CFunctionCallExpression) {
         // call of external function: we know nothing, so we do nothing
@@ -201,6 +202,11 @@ public class BDDTransferRelation implements TransferRelation {
       } else {
         throw new UnrecognizedCCodeException(cfaEdge, rhs);
       }
+
+      // delete var, make tmp equal to (new) var, then delete tmp
+      newRegion = removePredicate(newRegion, var);
+      newRegion = addEquality(var, tmp, newRegion);
+      newRegion = removePredicate(newRegion, tmp);
 
       result = new BDDState(rmgr, element.getFunctionCallState(), newRegion,
           element.getVars(), cfaEdge.getPredecessor().getFunctionName());
@@ -379,7 +385,7 @@ public class BDDTransferRelation implements TransferRelation {
     return rmgr.makeExists(region, existing);
   }
 
-  private boolean isGlobal(CExpression exp) {
+  protected boolean isGlobal(CExpression exp) {
     if (exp instanceof CIdExpression) {
       CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
       if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
@@ -447,27 +453,43 @@ public class BDDTransferRelation implements TransferRelation {
       Region returnValue = null;
       // binary expression
       switch (exp.getOperator()) {
+
+      case BINARY_AND:
       case LOGICAL_AND:
         returnValue = rmgr.makeAnd(operand1, operand2);
         break;
+
+      case BINARY_OR:
       case LOGICAL_OR:
         returnValue = rmgr.makeOr(operand1, operand2);
         break;
+
       case EQUALS:
         // bdds cannot handle "2==3", only "==0" is possible
         if (isLeftSideZero || isRightSideZero) {
           returnValue = rmgr.makeEqual(operand1, operand2);
         }
         break;
+
       case NOT_EQUALS:
       case LESS_THAN:
       case GREATER_THAN:
+      case BINARY_XOR:
         // bdds cannot handle "2!=3" or "a=2; b=3; a!=b"
         if (isLeftSideZero || isRightSideZero) {
           returnValue = rmgr.makeUnequal(operand1, operand2);
         }
         break;
-      default:
+
+      case MULTIPLY:
+      case DIVIDE:
+      case MODULO:
+      case PLUS:
+      case MINUS:
+      case SHIFT_LEFT:
+      case SHIFT_RIGHT:
+      case LESS_EQUAL:
+      case GREATER_EQUAL:
         // a+b, a-b, etc --> don't know anything
       }
       return returnValue;
