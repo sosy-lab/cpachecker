@@ -21,34 +21,23 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.types.c;
 
-public class DummyType extends IType {
+public final class CTypedef extends CComplexType {
 
-  private final String typeName;
+  private final CType type;
 
-  public DummyType(String pTypeName) {
-    super(false, false);
-    typeName = pTypeName;
+  public CTypedef(final String pName, final CType pType) {
+    super(pName);
+    type = pType;
   }
 
-  @Override
-  public String toString() {
-    return typeName;
-  }
-
-  @Override
-  public boolean isConst() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean isVolatile() {
-    throw new UnsupportedOperationException();
+  public CType getType() {
+    return type;
   }
 
   @Override
   public String toASTString(String pDeclarator) {
-    return typeName + " " + pDeclarator;
+    return type.toASTString(pDeclarator);
   }
 }

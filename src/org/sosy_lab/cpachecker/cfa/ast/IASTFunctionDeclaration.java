@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+
 /**
  * This class represents forward declarations of functions.
  * Example code:
@@ -34,12 +36,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public final class IASTFunctionDeclaration extends IASTDeclaration {
 
   public IASTFunctionDeclaration(IASTFileLocation pFileLocation,
-      IASTFunctionTypeSpecifier pSpecifier, String pName) {
+      CFunctionType pSpecifier, String pName) {
     super(pFileLocation, true, pSpecifier, checkNotNull(pName), pName);
   }
 
   @Override
-  public IASTFunctionTypeSpecifier getDeclSpecifier() {
-    return (IASTFunctionTypeSpecifier) super.getDeclSpecifier();
+  public CFunctionType getDeclSpecifier() {
+    return (CFunctionType) super.getDeclSpecifier();
   }
 }

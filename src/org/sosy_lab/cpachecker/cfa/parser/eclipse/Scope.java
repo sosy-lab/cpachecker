@@ -32,10 +32,10 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -130,7 +130,7 @@ class Scope {
         || declaration instanceof IASTEnumerator
         || declaration instanceof IASTParameterDeclaration
         : "Tried to register a declaration which does not define a name in the standard namespace: " + declaration;
-    assert  !(declaration.getDeclSpecifier() instanceof IASTFunctionTypeSpecifier);
+    assert  !(declaration.getDeclSpecifier() instanceof CFunctionType);
 
     String name = declaration.getOrigName();
     assert name != null;

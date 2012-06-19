@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.*;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+
 /**
  * This class represents variable declarations.
  * Example code:
@@ -34,27 +37,27 @@ import static com.google.common.base.Preconditions.*;
  */
 public final class IASTVariableDeclaration extends IASTDeclaration {
 
-  private final StorageClass    storageClass;
+  private final CStorageClass    cStorageClass;
   private final IASTInitializer initializer;
 
   public IASTVariableDeclaration(IASTFileLocation pFileLocation, boolean pIsGlobal,
-      StorageClass pStorageClass, IType pSpecifier, String pName, String pOrigName,
+      CStorageClass pCStorageClass, CType pSpecifier, String pName, String pOrigName,
       IASTInitializer pInitializer) {
 
     super(pFileLocation, pIsGlobal, pSpecifier, checkNotNull(pName), pOrigName);
-    storageClass = pStorageClass;
+    cStorageClass = pCStorageClass;
     initializer = pInitializer;
 
-    checkArgument(!(storageClass == StorageClass.EXTERN && initializer != null), "Extern declarations cannot have an initializer");
-    checkArgument(storageClass == StorageClass.EXTERN || storageClass == StorageClass.AUTO, "StorageClass is " + storageClass);
-    checkArgument(pIsGlobal || storageClass == StorageClass.AUTO);
+    checkArgument(!(cStorageClass == CStorageClass.EXTERN && initializer != null), "Extern declarations cannot have an initializer");
+    checkArgument(cStorageClass == CStorageClass.EXTERN || cStorageClass == CStorageClass.AUTO, "CStorageClass is " + cStorageClass);
+    checkArgument(pIsGlobal || cStorageClass == CStorageClass.AUTO);
   }
 
   /**
    * The storage class of this variable (either extern or auto).
    */
-  public StorageClass getStorageClass() {
-    return storageClass;
+  public CStorageClass getCStorageClass() {
+    return cStorageClass;
   }
 
   /**
@@ -69,7 +72,7 @@ public final class IASTVariableDeclaration extends IASTDeclaration {
   public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
 
-    lASTString.append(storageClass.toASTString());
+    lASTString.append(cStorageClass.toASTString());
     lASTString.append(getDeclSpecifier().toASTString(getName()));
 
     if (initializer != null) {

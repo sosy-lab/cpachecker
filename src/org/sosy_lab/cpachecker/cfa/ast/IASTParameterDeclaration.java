@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 
 /**
  * This is the declaration of a function parameter. It contains a type and a name.
@@ -32,7 +34,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public final class IASTParameterDeclaration extends IASTSimpleDeclaration {
 
   public IASTParameterDeclaration(IASTFileLocation pFileLocation,
-                                  IType pSpecifier,
+                                  CType pSpecifier,
                                   String pName) {
     super(pFileLocation, pSpecifier, checkNotNull(pName));
   }

@@ -35,7 +35,6 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -46,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -149,7 +149,7 @@ public class CFASecondPassBuilder {
     List<IASTExpression> parameters = functionCallExpression.getParameterExpressions();
 
     // check if the number of function parameters are right
-    IASTFunctionTypeSpecifier functionType = ((FunctionDefinitionNode)fDefNode).getFunctionDefinition().getDeclSpecifier();
+    CFunctionType functionType = ((FunctionDefinitionNode)fDefNode).getFunctionDefinition().getDeclSpecifier();
     int declaredParameters = functionType.getParameters().size();
     int actualParameters = parameters.size();
     if (!functionType.takesVarArgs() && (declaredParameters != actualParameters)) {

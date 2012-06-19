@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.types.c;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,9 +29,9 @@ import java.util.List;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
-public final class IASTSimpleDeclSpecifier extends IType {
+public final class CSimpleType extends CType {
 
-  private final BasicType type;
+  private final CBasicType type;
   private final boolean isLong;
   private final boolean isShort;
   private final boolean isSigned;
@@ -40,8 +40,8 @@ public final class IASTSimpleDeclSpecifier extends IType {
   private final boolean isImaginary;
   private final boolean isLongLong;
 
-  public IASTSimpleDeclSpecifier(final boolean pConst, final boolean pVolatile,
-      final BasicType pType, final boolean pIsLong, final boolean pIsShort,
+  public CSimpleType(final boolean pConst, final boolean pVolatile,
+      final CBasicType pType, final boolean pIsLong, final boolean pIsShort,
       final boolean pIsSigned, final boolean pIsUnsigned,
       final boolean pIsComplex, final boolean pIsImaginary,
       final boolean pIsLongLong) {
@@ -56,7 +56,7 @@ public final class IASTSimpleDeclSpecifier extends IType {
     isLongLong = pIsLongLong;
   }
 
-  public BasicType getType() {
+  public CBasicType getType() {
     return type;
   }
 

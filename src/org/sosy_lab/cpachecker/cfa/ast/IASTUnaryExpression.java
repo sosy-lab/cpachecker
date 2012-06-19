@@ -23,13 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 public class IASTUnaryExpression extends IASTExpression {
 
   private final IASTExpression operand;
   private final UnaryOperator  operator;
 
   public IASTUnaryExpression(final IASTFileLocation pFileLocation,
-                             final IType pType, final IASTExpression pOperand,
+                             final CType pType, final IASTExpression pOperand,
                              final UnaryOperator pOperator) {
     super(pFileLocation, pType);
     operand = pOperand;

@@ -21,23 +21,38 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.types.c;
 
-public final class ITypedef extends IComplexType {
+/**
+ * Fake class, should not be used by CPAs.
+ */
+public class CComplexType extends CType {
 
-  private final IType type;
+  private final String name;
 
-  public ITypedef(final String pName, final IType pType) {
-    super(pName);
-    type = pType;
+  public CComplexType(final String pName) {
+    super(false, false);
+    name = pName.intern();
   }
 
-  public IType getType() {
-    return type;
+  public String getName() {
+    return name;
   }
 
   @Override
-  public String toASTString(String pDeclarator) {
-    return type.toASTString(pDeclarator);
+  public boolean isConst() {
+    // TODO is this correct?
+    return false;
+  }
+
+  @Override
+  public boolean isVolatile() {
+    // TODO is this correct?
+    return false;
+  }
+
+  @Override
+  public String toASTString(String pDeclator) {
+    return name + " " + pDeclator;
   }
 }

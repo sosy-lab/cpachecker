@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 /**
  * This class represent typedef declarations.
  * Example code:
@@ -34,7 +36,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public final class IASTTypeDefDeclaration extends IASTDeclaration {
 
   public IASTTypeDefDeclaration(IASTFileLocation pFileLocation, boolean pIsGlobal,
-      IType pSpecifier, String pName) {
+      CType pSpecifier, String pName) {
     super(pFileLocation, pIsGlobal, pSpecifier, checkNotNull(pName), pName);
   }
 

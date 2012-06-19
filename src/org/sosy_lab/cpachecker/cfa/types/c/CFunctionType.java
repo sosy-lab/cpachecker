@@ -21,26 +21,29 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkState;
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.ast.ASTStringIterable;
+import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public class IASTFunctionTypeSpecifier extends IType {
+public class CFunctionType extends CType {
 
-  private final IType returnType;
+  private final CType returnType;
   private String name = null;
   private final List<IASTParameterDeclaration> parameters;
   private final boolean takesVarArgs;
 
-  public IASTFunctionTypeSpecifier(
+  public CFunctionType(
       boolean pConst,
       boolean pVolatile,
-      IType pReturnType,
+      CType pReturnType,
       List<IASTParameterDeclaration> pParameters,
       boolean pTakesVarArgs) {
     super(pConst, pVolatile);
@@ -49,7 +52,7 @@ public class IASTFunctionTypeSpecifier extends IType {
     takesVarArgs = pTakesVarArgs;
   }
 
-  public IType getReturnType() {
+  public CType getReturnType() {
     return returnType;
   }
 

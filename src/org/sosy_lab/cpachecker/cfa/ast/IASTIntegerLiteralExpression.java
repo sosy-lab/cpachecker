@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 public class IASTIntegerLiteralExpression extends IASTLiteralExpression {
 
   // use BigInteger here because a C unsigned long long constant doesn't fit in
@@ -32,7 +35,7 @@ public class IASTIntegerLiteralExpression extends IASTLiteralExpression {
   private final BigInteger value;
 
   public IASTIntegerLiteralExpression(IASTFileLocation pFileLocation,
-                                      IType pType,
+                                      CType pType,
                                       BigInteger pValue) {
     super(pFileLocation, pType);
     value = pValue;
@@ -62,9 +65,9 @@ public class IASTIntegerLiteralExpression extends IASTLiteralExpression {
   public String toASTString() {
     String suffix = "";
 
-    IType iType = getExpressionType();
-    if (iType instanceof IASTSimpleDeclSpecifier) {
-      IASTSimpleDeclSpecifier type = (IASTSimpleDeclSpecifier) iType;
+    CType cType = getExpressionType();
+    if (cType instanceof CSimpleType) {
+      CSimpleType type = (CSimpleType) cType;
       if (type.isUnsigned()) {
         suffix += "U";
       }

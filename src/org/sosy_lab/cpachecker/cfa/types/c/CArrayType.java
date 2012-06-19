@@ -21,38 +21,36 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.types.c;
 
-/**
- * Fake class, should not be used by CPAs.
- */
-public class IComplexType extends IType {
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 
-  private final String name;
 
-  public IComplexType(final String pName) {
-    super(false, false);
-    name = pName.intern();
+public class CArrayType extends CType {
+
+  private final CType type;
+  private final IASTExpression    length;
+
+  public CArrayType(boolean pConst, boolean pVolatile,
+      CType pType, IASTExpression pLength) {
+    super(pConst, pVolatile);
+    type = pType;
+    length = pLength;
   }
 
-  public String getName() {
-    return name;
+  public CType getType() {
+    return type;
   }
 
-  @Override
-  public boolean isConst() {
-    // TODO is this correct?
-    return false;
-  }
-
-  @Override
-  public boolean isVolatile() {
-    // TODO is this correct?
-    return false;
+  public IASTExpression getLength() {
+    return length;
   }
 
   @Override
-  public String toASTString(String pDeclator) {
-    return name + " " + pDeclator;
+  public String toASTString(String pDeclarator) {
+    return (isConst() ? "const " : "")
+        + (isVolatile() ? "volatile " : "")
+        +  type.toASTString(pDeclarator+ ("[" + (length != null ? length.toASTString() : "") + "]"))
+        ;
   }
 }

@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 import com.google.common.base.Strings;
 
 /**
@@ -38,17 +40,17 @@ import com.google.common.base.Strings;
  */
 public abstract class IASTSimpleDeclaration extends IASTNode {
 
-  private final IType    specifier;
+  private final CType    specifier;
   private final String   name;
   private final String   origName;
 
   public IASTSimpleDeclaration(final IASTFileLocation pFileLocation,
-      final IType pSpecifier, final String pName) {
+      final CType pSpecifier, final String pName) {
     this(pFileLocation, pSpecifier, pName, pName);
   }
 
   public IASTSimpleDeclaration(final IASTFileLocation pFileLocation,
-      final IType pSpecifier, final String pName, final String pOrigName) {
+      final CType pSpecifier, final String pName, final String pOrigName) {
 
     super(pFileLocation);
 
@@ -57,7 +59,7 @@ public abstract class IASTSimpleDeclaration extends IASTNode {
     origName = pOrigName;
   }
 
-  public IType getDeclSpecifier() {
+  public CType getDeclSpecifier() {
     return specifier;
   }
 

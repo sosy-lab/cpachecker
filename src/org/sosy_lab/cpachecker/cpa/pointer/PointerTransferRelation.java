@@ -34,13 +34,10 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
@@ -53,15 +50,12 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -72,6 +66,12 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -302,7 +302,7 @@ public class PointerTransferRelation implements TransferRelation {
 
           //..then adding all parameters as local variables
           for (IASTParameterDeclaration dec : l) {
-            IType declSpecifier = dec.getDeclSpecifier();
+            CType declSpecifier = dec.getDeclSpecifier();
             handleDeclaration(successor, cfaEdge, false, dec.getName(), declSpecifier);
           }
           entryFunctionProcessed = true;
@@ -341,14 +341,14 @@ public class PointerTransferRelation implements TransferRelation {
   }
 
   private void handleDeclaration(PointerState element, CFAEdge edge,
-      final boolean global, String name, IType specifier) throws CPATransferException {
+      final boolean global, String name, CType specifier) throws CPATransferException {
 
     if (name == null) {
       throw new UnrecognizedCCodeException("not expected in CIL", edge);
     }
 
-    if (specifier instanceof IASTCompositeTypeSpecifier
-        || specifier instanceof IASTElaboratedTypeSpecifier
+    if (specifier instanceof CCompositeType
+        || specifier instanceof CElaboratedType
         || specifier instanceof IASTEnumerationSpecifier) {
 
       // structs on stack etc.
@@ -357,7 +357,7 @@ public class PointerTransferRelation implements TransferRelation {
 
     String varName = name;
 
-    if (specifier instanceof IASTArrayTypeSpecifier) {
+    if (specifier instanceof CArrayType) {
       Pointer p = new Pointer(1);
       if (global) {
         element.addNewGlobalPointer(varName, p);
@@ -366,12 +366,12 @@ public class PointerTransferRelation implements TransferRelation {
       }
 
       //long length = parseIntegerLiteral(((IASTArrayDeclarator)declarator).)
-      IType nestedSpecifier = ((IASTArrayTypeSpecifier)specifier).getType();
-      if (!(nestedSpecifier instanceof IASTSimpleDeclSpecifier)) {
+      CType nestedSpecifier = ((CArrayType)specifier).getType();
+      if (!(nestedSpecifier instanceof CSimpleType)) {
         throw new UnrecognizedCCodeException("unsupported array declaration", edge);
       }
 
-      IASTExpression lengthExpression = ((IASTArrayTypeSpecifier)specifier).getLength();
+      IASTExpression lengthExpression = ((CArrayType)specifier).getLength();
       if (!(lengthExpression instanceof IASTLiteralExpression)) {
         throw new UnrecognizedCCodeException("variable sized stack arrays are not supported", edge);
       }
@@ -389,17 +389,17 @@ public class PointerTransferRelation implements TransferRelation {
       missing.typeInformationEdge = edge;
       missing.typeInformationName = name;
 
-    } else if (specifier instanceof IASTPointerTypeSpecifier) {
+    } else if (specifier instanceof CPointerType) {
 
       int depth = 0;
-      IType nestedSpecifier = specifier;
+      CType nestedSpecifier = specifier;
       do {
-        nestedSpecifier = ((IASTPointerTypeSpecifier)nestedSpecifier).getType();
+        nestedSpecifier = ((CPointerType)nestedSpecifier).getType();
         depth++;
-      } while (nestedSpecifier instanceof IASTPointerTypeSpecifier);
+      } while (nestedSpecifier instanceof CPointerType);
 
 
-      if (nestedSpecifier instanceof IASTElaboratedTypeSpecifier) {
+      if (nestedSpecifier instanceof CElaboratedType) {
         // declaration of pointer to struct
 
         Pointer ptr = new Pointer(depth);

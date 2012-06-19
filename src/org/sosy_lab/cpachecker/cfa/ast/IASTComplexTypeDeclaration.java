@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 /**
  * This class represents declaration of complex types without declarations of
  * variables at the same time. Typedefs are not represented by this class.
@@ -38,7 +40,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 public final class IASTComplexTypeDeclaration extends IASTDeclaration {
 
   public IASTComplexTypeDeclaration(IASTFileLocation pFileLocation,
-      boolean pIsGlobal, IType pSpecifier) {
+      boolean pIsGlobal, CType pSpecifier) {
     super(pFileLocation, pIsGlobal, pSpecifier, null, null);
   }
 

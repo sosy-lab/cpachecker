@@ -23,13 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 public final class IASTArraySubscriptExpression extends IASTExpression {
 
   private final IASTExpression arrayExpression;
   private final IASTExpression subscriptExpression;
 
   public IASTArraySubscriptExpression(final IASTFileLocation pFileLocation,
-                                      final IType pType,
+                                      final CType pType,
                                       final IASTExpression pArrayExpression,
                                       final IASTExpression pSubscriptExpression) {
     super(pFileLocation, pType);

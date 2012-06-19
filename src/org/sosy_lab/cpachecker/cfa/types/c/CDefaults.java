@@ -21,25 +21,31 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.types.c;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier.ElaboratedType;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
 
-public class Defaults {
+public class CDefaults {
 
-  private Defaults() { }
+  private CDefaults() { }
 
-  private static IType INT_TYPE = new IASTSimpleDeclSpecifier(false, false, BasicType.INT, false, false, true, false, false, false, false);
+  private static CType INT_TYPE = new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
 
-  public static IASTLiteralExpression forType(IType type, IASTFileLocation fileLoc) {
-    if (type instanceof IASTPointerTypeSpecifier) {
+  public static IASTLiteralExpression forType(CType type, IASTFileLocation fileLoc) {
+    if (type instanceof CPointerType) {
       return new IASTIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
 
-    } else if (type instanceof IASTSimpleDeclSpecifier) {
-      BasicType basicType = ((IASTSimpleDeclSpecifier)type).getType();
+    } else if (type instanceof CSimpleType) {
+      CBasicType basicType = ((CSimpleType)type).getType();
       switch (basicType) {
       case CHAR:
         return new IASTCharLiteralExpression(fileLoc, type, '\0');
@@ -62,7 +68,7 @@ public class Defaults {
       // enum declaration: enum e { ... } var;
       return new IASTIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
 
-    } else if (type instanceof IASTElaboratedTypeSpecifier && ((IASTElaboratedTypeSpecifier)type).getKind() == ElaboratedType.ENUM) {
+    } else if (type instanceof CElaboratedType && ((CElaboratedType)type).getKind() == ElaboratedType.ENUM) {
       // enum declaration: enum e var;
       return new IASTIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
 

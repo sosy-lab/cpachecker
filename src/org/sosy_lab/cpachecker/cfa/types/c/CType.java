@@ -21,24 +21,36 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.types.c;
 
-/**
- * Enum for the possible storage classes of C declarations.
- * REGISTER is missing because it is semantically equal to AUTO.
- */
-public enum StorageClass {
+public abstract class CType {
 
-  AUTO,
-  STATIC,
-  EXTERN,
-  TYPEDEF,
-  ;
+  private boolean   isConst;
+  private boolean   isVolatile;
 
-  public String toASTString() {
-    if (equals(AUTO)) {
-      return "";
-    }
-    return name().toLowerCase() + " ";
+  public CType(final boolean pConst, final boolean pVolatile) {
+    isConst = pConst;
+    isVolatile = pVolatile;
   }
+
+  public boolean isConst() {
+    return isConst;
+  }
+
+  public boolean isVolatile() {
+    return isVolatile;
+  }
+
+  /**
+   * Return a string representation of a variable declaration with a given name
+   * and this type.
+   *
+   * Example:
+   * If this type is array of int, and we call <code>toASTString("foo")</code>,
+   * the result is <pre>int foo[]</pre>.
+   *
+   * @param declarator The name of the variable to declare.
+   * @return A string representation of this type.
+   */
+  public abstract String toASTString(String declarator);
 }

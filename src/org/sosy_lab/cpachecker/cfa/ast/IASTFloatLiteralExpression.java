@@ -25,13 +25,15 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.math.BigDecimal;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 public final class IASTFloatLiteralExpression extends IASTLiteralExpression {
 
   // use a BigDecimal here because C code might have floating point types with bigger precision than double
   private final BigDecimal value;
 
   public IASTFloatLiteralExpression(IASTFileLocation pFileLocation,
-                                    IType pType,
+                                    CType pType,
                                     BigDecimal pValue) {
     super(pFileLocation, pType);
     value = pValue;

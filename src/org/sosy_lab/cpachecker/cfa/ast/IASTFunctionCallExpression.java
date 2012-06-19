@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
@@ -35,7 +37,7 @@ public class IASTFunctionCallExpression extends IASTRightHandSide {
   private final IASTSimpleDeclaration declaration;
 
   public IASTFunctionCallExpression(final IASTFileLocation pFileLocation,
-                                    final IType pType,
+                                    final CType pType,
                                     final IASTExpression pFunctionName,
                                     final List<IASTExpression> pParameters,
                                     final IASTSimpleDeclaration pDeclaration) {

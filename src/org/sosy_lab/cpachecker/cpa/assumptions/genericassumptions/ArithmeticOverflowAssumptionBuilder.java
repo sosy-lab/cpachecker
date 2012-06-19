@@ -34,17 +34,17 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IType;
-import org.sosy_lab.cpachecker.cfa.ast.NumericTypes;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 
 /**
  * Class to generate assumptions related to over/underflow
@@ -54,17 +54,17 @@ public class ArithmeticOverflowAssumptionBuilder
 implements GenericAssumptionBuilder
 {
 
-  private static Pair<IASTIntegerLiteralExpression, IASTIntegerLiteralExpression> boundsForType(IType typ)
+  private static Pair<IASTIntegerLiteralExpression, IASTIntegerLiteralExpression> boundsForType(CType typ)
   {
-    if (typ instanceof IASTSimpleDeclSpecifier) {
-      IASTSimpleDeclSpecifier btyp = (IASTSimpleDeclSpecifier) typ;
+    if (typ instanceof CSimpleType) {
+      CSimpleType btyp = (CSimpleType) typ;
 
         switch (btyp.getType()) {
         case INT:
           // TODO not handled yet by mathsat so we assume all vars are signed integers for now
           // will enable later
           return Pair.of
-          (NumericTypes.INT_MIN, NumericTypes.INT_MAX);
+          (CNumericTypes.INT_MIN, CNumericTypes.INT_MAX);
           //          if (btyp.isLong())
           //            if (btyp.isUnsigned())
           //              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
@@ -114,7 +114,7 @@ implements GenericAssumptionBuilder
    * The two last, boolean arguments allow to avoid generating
    * lower and/or upper bounds predicates.
    */
-  private static IASTExpression conjunctPredicateForArithmeticExpression(IType typ,
+  private static IASTExpression conjunctPredicateForArithmeticExpression(CType typ,
       IASTExpression exp, IASTExpression result) {
 
     Pair<IASTIntegerLiteralExpression, IASTIntegerLiteralExpression> bounds =
@@ -163,7 +163,7 @@ implements GenericAssumptionBuilder
       else if (pExpression instanceof IASTCastExpression)
       {
         IASTCastExpression castexp = (IASTCastExpression)pExpression;
-        IType toType = castexp.getExpressionType();
+        CType toType = castexp.getExpressionType();
         result = conjunctPredicateForArithmeticExpression(toType, castexp.getOperand(), result);
       }
       return result;
@@ -171,7 +171,7 @@ implements GenericAssumptionBuilder
 
   @Override
   public IASTExpression assumptionsForEdge(CFAEdge pEdge) {
-    IASTExpression result = NumericTypes.TRUE;
+    IASTExpression result = CNumericTypes.TRUE;
 
     switch (pEdge.getEdgeType()) {
     case AssumeEdge:
@@ -186,7 +186,7 @@ implements GenericAssumptionBuilder
         for (IASTParameterDeclaration paramdecl : formalParams)
         {
           String name = paramdecl.getName();
-          IType type = paramdecl.getDeclSpecifier();
+          CType type = paramdecl.getDeclSpecifier();
           IASTExpression exp = new IASTIdExpression(paramdecl.getFileLocation(), type, name, paramdecl);
           result = visit(exp, result);
         }

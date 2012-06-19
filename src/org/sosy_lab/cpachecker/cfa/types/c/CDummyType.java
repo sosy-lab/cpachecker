@@ -21,37 +21,34 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.types.c;
 
+public class CDummyType extends CType {
 
-public final class IASTPointerTypeSpecifier extends IType {
+  private final String typeName;
 
-  private final IType type;
-
-  public IASTPointerTypeSpecifier(final boolean pConst, final boolean pVolatile,
-      final IType pType) {
-    super(pConst, pVolatile);
-    type = pType;
+  public CDummyType(String pTypeName) {
+    super(false, false);
+    typeName = pTypeName;
   }
 
-  public IType getType() {
-    return type;
+  @Override
+  public String toString() {
+    return typeName;
+  }
+
+  @Override
+  public boolean isConst() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean isVolatile() {
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public String toASTString(String pDeclarator) {
-    // ugly hack but it works:
-    // We need to insert the "*" between the type and the name (e.g. "int *var").
-    String decl;
-
-    if (type instanceof IASTArrayTypeSpecifier) {
-      decl = type.toASTString("(*" + pDeclarator + ")");
-    } else {
-      decl = type.toASTString("*" + pDeclarator);
-    }
-
-    return (isConst() ? "const " : "")
-        + (isVolatile() ? "volatile " : "")
-        + decl;
+    return typeName + " " + pDeclarator;
   }
 }

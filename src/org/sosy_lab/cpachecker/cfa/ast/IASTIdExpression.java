@@ -23,13 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 public final class IASTIdExpression extends IASTExpression {
 
   private final String name;
   private final IASTSimpleDeclaration declaration;
 
   public IASTIdExpression(final IASTFileLocation pFileLocation,
-                          final IType pType, final String pName,
+                          final CType pType, final String pName,
                           final IASTSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType);
     name = pName.intern();

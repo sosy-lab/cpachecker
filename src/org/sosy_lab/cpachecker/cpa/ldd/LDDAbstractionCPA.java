@@ -30,18 +30,18 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.BasicType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -85,13 +85,13 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
           IASTDeclaration declaration = declarationEdge.getDeclaration();
           if (declaration instanceof IASTVariableDeclaration) {
             String name = declaration.getName();
-            IType type = declaration.getDeclSpecifier();
+            CType type = declaration.getDeclSpecifier();
             registerVariable(name, type, variables);
           } else if (declaration instanceof IASTFunctionDeclaration) {
             IASTFunctionDeclaration funDecl = (IASTFunctionDeclaration) declaration;
             for (IASTParameterDeclaration paramDecl : funDecl.getDeclSpecifier().getParameters()) {
               String name = paramDecl.getName();
-              IType type = paramDecl.getDeclSpecifier();
+              CType type = paramDecl.getDeclSpecifier();
               registerVariable(name, type, variables);
             }
           }
@@ -103,7 +103,7 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
         FunctionDefinitionNode fDefNode = (FunctionDefinitionNode) node;
         for (IASTParameterDeclaration paramDecl : fDefNode.getFunctionDefinition().getDeclSpecifier().getParameters()) {
           String name = paramDecl.getName();
-          IType type = paramDecl.getDeclSpecifier();
+          CType type = paramDecl.getDeclSpecifier();
           registerVariable(name, type, variables);
         }
       }
@@ -115,10 +115,10 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
     this.transferRelation = new LDDAbstractionTransferRelation(this.regionManager, variables);
   }
 
-  private void registerVariable(String name, IType type, Map<String, Integer> variables) {
-    if (name != null && !name.isEmpty() && type != null && type instanceof IASTSimpleDeclSpecifier) {
-      BasicType basicType = ((IASTSimpleDeclSpecifier) type).getType();
-      if (basicType == BasicType.INT) {
+  private void registerVariable(String name, CType type, Map<String, Integer> variables) {
+    if (name != null && !name.isEmpty() && type != null && type instanceof CSimpleType) {
+      CBasicType basicType = ((CSimpleType) type).getType();
+      if (basicType == CBasicType.INT) {
         variables.put(name, variables.size());
       }
     }

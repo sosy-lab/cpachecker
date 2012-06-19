@@ -27,10 +27,14 @@ import static com.google.common.base.Preconditions.*;
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public final class IASTEnumerationSpecifier extends IType {
+public final class IASTEnumerationSpecifier extends CType {
 
   private final List<IASTEnumerator> enumerators;
   private final String               name;
@@ -74,7 +78,7 @@ public final class IASTEnumerationSpecifier extends IType {
 
   public static final class IASTEnumerator extends IASTSimpleDeclaration {
 
-    private static final IType INT_TYPE = new IASTSimpleDeclSpecifier(true, false, BasicType.INT, false, false, true, false, false, false, false);
+    private static final CType INT_TYPE = new CSimpleType(true, false, CBasicType.INT, false, false, true, false, false, false, false);
 
     private final Long           value;
 

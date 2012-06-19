@@ -39,7 +39,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.Defaults;
 import org.sosy_lab.cpachecker.cfa.ast.ForwardingExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
@@ -64,9 +63,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
@@ -74,9 +71,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IComplexType;
-import org.sosy_lab.cpachecker.cfa.ast.IType;
-import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StatementVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
@@ -91,6 +85,12 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedef;
+import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -266,16 +266,16 @@ public class CtoFormulaConverter {
     return e.toASTString().replaceAll("[ \n\t]", "");
   }
 
-  private String getTypeName(final IType tp) {
+  private String getTypeName(final CType tp) {
 
-    if (tp instanceof IASTPointerTypeSpecifier) {
-      return getTypeName(((IASTPointerTypeSpecifier)tp).getType());
+    if (tp instanceof CPointerType) {
+      return getTypeName(((CPointerType)tp).getType());
 
-    } else if (tp instanceof ITypedef) {
-      return getTypeName(((ITypedef)tp).getType());
+    } else if (tp instanceof CTypedef) {
+      return getTypeName(((CTypedef)tp).getType());
 
-    } else if (tp instanceof IComplexType){
-      return ((IComplexType)tp).getName();
+    } else if (tp instanceof CComplexType){
+      return ((CComplexType)tp).getName();
 
     } else {
       throw new AssertionError("wrong type");
@@ -552,7 +552,7 @@ public class CtoFormulaConverter {
 
     // if the var is unsigned, add the constraint that it should
     // be > 0
-    //    if (((IASTSimpleDeclSpecifier)spec).isUnsigned()) {
+    //    if (((CSimpleType)spec).isUnsigned()) {
     //    long z = mathsat.api.msat_make_number(msatEnv, "0");
     //    long mvar = buildMsatVariable(var, idx);
     //    long t = mathsat.api.msat_make_gt(msatEnv, mvar, z);
@@ -576,7 +576,7 @@ public class CtoFormulaConverter {
       if (initAllVars) {
         // auto-initialize variables to zero
         logDebug("AUTO-INITIALIZING VAR: ", edge);
-        init = Defaults.forType(decl.getDeclSpecifier(), null);
+        init = CDefaults.forType(decl.getDeclSpecifier(), null);
       }
 
     } else if (initializer instanceof IASTInitializerExpression) {
@@ -676,7 +676,7 @@ public class CtoFormulaConverter {
       String formalParamName = formalParam.getName();
       assert (!formalParamName.isEmpty()) : edge;
 
-      if (formalParam.getDeclSpecifier() instanceof IASTPointerTypeSpecifier) {
+      if (formalParam.getDeclSpecifier() instanceof CPointerType) {
         warnUnsafeAssignment();
         logDebug("Ignoring the semantics of pointer for parameter "
             + formalParamName, fn.getFunctionDefinition());
@@ -741,7 +741,7 @@ public class CtoFormulaConverter {
 
     // include aliases if the left or right side may be a pointer a pointer
     if (maybePointer(leftId, function, ssa)
-        || maybePointer((IType) null, retVarName, ssa)) {
+        || maybePointer((CType) null, retVarName, ssa)) {
       // we assume that either the left or the right hand side is a pointer
       // so we add the equality: *l = *r
       Formula lPVar = makePointerVariable(leftId, function, ssa);
@@ -755,7 +755,7 @@ public class CtoFormulaConverter {
     }
   }
 
-  private Formula buildDirectSecondLevelAssignment(IType lType,
+  private Formula buildDirectSecondLevelAssignment(CType lType,
       String lVarName, IASTRightHandSide pRight, String function,
       Constraints constraints, SSAMapBuilder ssa) {
 
@@ -925,8 +925,8 @@ public class CtoFormulaConverter {
         && ((IASTUnaryExpression) exp).getOperator() == UnaryOperator.STAR);
   }
 
-  private static boolean isStaticallyDeclaredPointer(IType expr) {
-    return expr instanceof IASTPointerTypeSpecifier;
+  private static boolean isStaticallyDeclaredPointer(CType expr) {
+    return expr instanceof CPointerType;
   }
 
   /**
@@ -964,14 +964,14 @@ public class CtoFormulaConverter {
     IASTExpression exp = removeCast(pExp);
     if (exp instanceof IASTIdExpression) {
       IASTIdExpression idExp = (IASTIdExpression) exp;
-      IType type = exp.getExpressionType();
+      CType type = exp.getExpressionType();
       return maybePointer(type, scopedIfNecessary(idExp, function), ssa);
     }
 
     return false;
   }
 
-  private boolean maybePointer(IType type, String varName, SSAMapBuilder ssa) {
+  private boolean maybePointer(CType type, String varName, SSAMapBuilder ssa) {
     if (type != null && isStaticallyDeclaredPointer(type)) {
       return true;
     }
@@ -1265,9 +1265,9 @@ public class CtoFormulaConverter {
 
       case SIZEOF:
         if (exp.getOperand() instanceof IASTIdExpression) {
-          IType lIType =
+          CType lCType =
               ((IASTIdExpression) exp.getOperand()).getExpressionType();
-          return handleSizeof(exp, lIType);
+          return handleSizeof(exp, lCType);
         } else {
           return visitDefault(exp);
         }
@@ -1282,18 +1282,18 @@ public class CtoFormulaConverter {
         throws UnrecognizedCCodeException {
 
       if (tIdExp.getOperator() == TypeIdOperator.SIZEOF) {
-        IType lIType = tIdExp.getType();
-        return handleSizeof(tIdExp, lIType);
+        CType lCType = tIdExp.getType();
+        return handleSizeof(tIdExp, lCType);
       } else {
         return visitDefault(tIdExp);
       }
     }
 
-    private Formula handleSizeof(IASTExpression pExp, IType pIType)
+    private Formula handleSizeof(IASTExpression pExp, CType pCType)
         throws UnrecognizedCCodeException {
 
-      if (pIType instanceof IASTSimpleDeclSpecifier) {
-        return fmgr.makeNumber(machineModel.getSizeof((IASTSimpleDeclSpecifier) pIType));
+      if (pCType instanceof CSimpleType) {
+        return fmgr.makeNumber(machineModel.getSizeof((CSimpleType) pCType));
 
       } else {
         return visitDefault(pExp);

@@ -28,10 +28,10 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.NumericTypes;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -73,7 +73,7 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
     }
 
     if (allAssumptions == null) {
-      allAssumptions = NumericTypes.TRUE;
+      allAssumptions = CNumericTypes.TRUE;
     }
 
     return Collections.singleton(new GenericAssumptionsState(allAssumptions));

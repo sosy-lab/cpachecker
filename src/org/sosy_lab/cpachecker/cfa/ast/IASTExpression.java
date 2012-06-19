@@ -23,13 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 /**
  * Super class for side-effect free expressions.
  */
 public abstract class IASTExpression extends IASTRightHandSide {
 
   public IASTExpression(final IASTFileLocation pFileLocation,
-                        final IType pType) {
+                        final CType pType) {
     super(pFileLocation, pType);
   }
 

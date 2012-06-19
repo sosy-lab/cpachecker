@@ -21,36 +21,26 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.types.c;
 
-public abstract class IType {
+public enum CBasicType {
 
-  private boolean   isConst;
-  private boolean   isVolatile;
+  UNSPECIFIED(""),
+  VOID("void"),
+  BOOL("_Bool"),
+  CHAR("char"),
+  INT("int"),
+  FLOAT("float"),
+  DOUBLE("double"),
+  ;
 
-  public IType(final boolean pConst, final boolean pVolatile) {
-    isConst = pConst;
-    isVolatile = pVolatile;
+  private final String code;
+
+  private CBasicType(String pCode) {
+    code = pCode;
   }
 
-  public boolean isConst() {
-    return isConst;
+  public String toASTString() {
+    return code;
   }
-
-  public boolean isVolatile() {
-    return isVolatile;
-  }
-
-  /**
-   * Return a string representation of a variable declaration with a given name
-   * and this type.
-   *
-   * Example:
-   * If this type is array of int, and we call <code>toASTString("foo")</code>,
-   * the result is <pre>int foo[]</pre>.
-   *
-   * @param declarator The name of the variable to declare.
-   * @return A string representation of this type.
-   */
-  public abstract String toASTString(String declarator);
 }

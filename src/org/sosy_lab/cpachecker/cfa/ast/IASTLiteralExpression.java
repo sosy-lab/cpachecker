@@ -23,10 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 public abstract class IASTLiteralExpression extends IASTExpression {
 
   public IASTLiteralExpression(final IASTFileLocation pFileLocation,
-                               final IType pType) {
+                               final CType pType) {
     super(pFileLocation, pType);
   }
 

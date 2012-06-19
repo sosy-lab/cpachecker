@@ -60,9 +60,9 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StatementVisitor;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -531,7 +531,7 @@ class AutomatonASTComparator {
     }
   }
 
-  private static class CastExpressionMatcher extends OneOperandExpressionMatcher<IASTCastExpression, IType> {
+  private static class CastExpressionMatcher extends OneOperandExpressionMatcher<IASTCastExpression, CType> {
 
     public CastExpressionMatcher(IASTCastExpression pPattern, ASTMatcher pOperand) {
       super(IASTCastExpression.class, pPattern, pOperand);
@@ -543,7 +543,7 @@ class AutomatonASTComparator {
     }
 
     @Override
-    protected IType getFieldValueFrom(IASTCastExpression pSource) {
+    protected CType getFieldValueFrom(IASTCastExpression pSource) {
       return pSource.getType();
     }
   }
@@ -594,7 +594,7 @@ class AutomatonASTComparator {
     }
   }
 
-  private static class TypeIdExpressionMatcher extends ExpressionWithFieldMatcher<IASTTypeIdExpression, IType> {
+  private static class TypeIdExpressionMatcher extends ExpressionWithFieldMatcher<IASTTypeIdExpression, CType> {
 
     private final TypeIdOperator operator;
 
@@ -610,7 +610,7 @@ class AutomatonASTComparator {
     }
 
     @Override
-    protected IType getFieldValueFrom(IASTTypeIdExpression pSource) {
+    protected CType getFieldValueFrom(IASTTypeIdExpression pSource) {
       return pSource.getType();
     }
   }

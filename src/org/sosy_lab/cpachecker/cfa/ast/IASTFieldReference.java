@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 public final class IASTFieldReference extends IASTExpression {
 
   private final String         name;
@@ -30,7 +32,7 @@ public final class IASTFieldReference extends IASTExpression {
   private final boolean        isPointerDereference;
 
   public IASTFieldReference(final IASTFileLocation pFileLocation,
-                            final IType pType,
+                            final CType pType,
                             final String pName,
                             final IASTExpression pOwner,
                             final boolean pIsPointerDereference) {

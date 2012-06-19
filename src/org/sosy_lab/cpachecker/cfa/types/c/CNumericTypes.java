@@ -21,14 +21,16 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.types.c;
 
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 
-public class NumericTypes {
 
-  private NumericTypes() { }
+public class CNumericTypes {
+
+  private CNumericTypes() { }
 
   private static IASTIntegerLiteralExpression create(long l) {
     return new IASTIntegerLiteralExpression(null, null, BigInteger.valueOf(l));

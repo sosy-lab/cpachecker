@@ -27,7 +27,7 @@ import java.util.Iterator;
 
 import com.google.common.collect.UnmodifiableIterator;
 
-class ASTStringIterable implements Iterable<String> {
+public class ASTStringIterable implements Iterable<String> {
 
   private final Iterable<? extends IASTNode> collection;
 

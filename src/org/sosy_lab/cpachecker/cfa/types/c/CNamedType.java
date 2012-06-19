@@ -21,17 +21,15 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.types.c;
 
-public final class IASTElaboratedTypeSpecifier extends IType {
+public final class CNamedType extends CType {
 
-  private final ElaboratedType kind;
-  private final String   name;
+  private final String name;
 
-  public IASTElaboratedTypeSpecifier(boolean pConst, final boolean pVolatile,
-      final ElaboratedType pKind, final String pName) {
+  public CNamedType(final boolean pConst, final boolean pVolatile,
+      final String pName) {
     super(pConst, pVolatile);
-    kind = pKind;
     name = pName.intern();
   }
 
@@ -39,36 +37,11 @@ public final class IASTElaboratedTypeSpecifier extends IType {
     return name;
   }
 
-  public ElaboratedType getKind() {
-    return kind;
-  }
-
   @Override
   public String toASTString(String pDeclarator) {
-    StringBuilder lASTString = new StringBuilder();
-
-    if (isConst()) {
-      lASTString.append("const ");
-    }
-    if (isVolatile()) {
-      lASTString.append("volatile ");
-    }
-
-    lASTString.append(kind.toASTString());
-    lASTString.append(name);
-    lASTString.append(" ");
-    lASTString.append(pDeclarator);
-
-    return lASTString.toString();
-  }
-
-  public static enum ElaboratedType {
-    ENUM,
-    STRUCT,
-    UNION;
-
-    public String toASTString() {
-      return name().toLowerCase() + " ";
-    }
+    return (isConst() ? "const " : "")
+        + (isVolatile() ? "volatile " : "")
+        + name
+        + " " + pDeclarator;
   }
 }

@@ -21,19 +21,22 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.types.c;
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.ast.IASTFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+
 import com.google.common.collect.ImmutableList;
 
-public final class IASTCompositeTypeSpecifier extends IType {
+public final class CCompositeType extends CType {
 
   private final int                   key;
   private final List<IASTCompositeTypeMemberDeclaration> members;
   private final String                name;
 
-  public IASTCompositeTypeSpecifier(final boolean pConst, final boolean pVolatile,
+  public CCompositeType(final boolean pConst, final boolean pVolatile,
       final int pKey, final List<IASTCompositeTypeMemberDeclaration> pMembers, final String pName) {
     super(pConst, pVolatile);
     key = pKey;
@@ -97,7 +100,7 @@ public final class IASTCompositeTypeSpecifier extends IType {
   public static final class IASTCompositeTypeMemberDeclaration extends IASTSimpleDeclaration {
 
     public IASTCompositeTypeMemberDeclaration(IASTFileLocation pFileLocation,
-                                              IType pSpecifier,
+                                              CType pSpecifier,
                                               String pName) {
       super(pFileLocation, pSpecifier, pName);
     }

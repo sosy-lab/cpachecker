@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 public class IASTBinaryExpression extends IASTExpression {
 
   private final IASTExpression operand1;
@@ -30,7 +32,7 @@ public class IASTBinaryExpression extends IASTExpression {
   private final BinaryOperator operator;
 
   public IASTBinaryExpression(final IASTFileLocation pFileLocation,
-                              final IType pType,
+                              final CType pType,
                               final IASTExpression pOperand1,
                               final IASTExpression pOperand2,
                               final BinaryOperator pOperator) {

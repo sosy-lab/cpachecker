@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 
 
 /**
@@ -37,7 +39,7 @@ public abstract class IASTDeclaration extends IASTSimpleDeclaration {
 
   public IASTDeclaration(IASTFileLocation pFileLocation,
                          boolean pIsGlobal,
-                         IType pSpecifier, String pName,
+                         CType pSpecifier, String pName,
                          String pOrigName) {
     super(pFileLocation, pSpecifier, pName, pOrigName);
     isGlobal = pIsGlobal;

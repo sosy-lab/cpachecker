@@ -23,15 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 public final class IASTCastExpression extends IASTExpression {
 
   private final IASTExpression operand;
-  private final IType     type;
+  private final CType     type;
 
   public IASTCastExpression(final IASTFileLocation pFileLocation,
-                            final IType pExpressionType,
+                            final CType pExpressionType,
                             final IASTExpression pOperand,
-                            final IType pType) {
+                            final CType pType) {
     super(pFileLocation, pExpressionType);
     operand = pOperand;
     type = pType;
@@ -41,7 +43,7 @@ public final class IASTCastExpression extends IASTExpression {
     return operand;
   }
 
-  public IType getType() {
+  public CType getType() {
     return type;
   }
 

@@ -21,26 +21,24 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.types.c;
 
-public enum BasicType {
+/**
+ * Enum for the possible storage classes of C declarations.
+ * REGISTER is missing because it is semantically equal to AUTO.
+ */
+public enum CStorageClass {
 
-  UNSPECIFIED(""),
-  VOID("void"),
-  BOOL("_Bool"),
-  CHAR("char"),
-  INT("int"),
-  FLOAT("float"),
-  DOUBLE("double"),
+  AUTO,
+  STATIC,
+  EXTERN,
+  TYPEDEF,
   ;
 
-  private final String code;
-
-  private BasicType(String pCode) {
-    code = pCode;
-  }
-
   public String toASTString() {
-    return code;
+    if (equals(AUTO)) {
+      return "";
+    }
+    return name().toLowerCase() + " ";
   }
 }

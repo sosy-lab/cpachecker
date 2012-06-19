@@ -34,7 +34,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.Defaults;
 import org.sosy_lab.cpachecker.cfa.ast.ExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
@@ -68,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -222,7 +222,7 @@ public class BDDTransferRelation implements TransferRelation {
 
       IASTExpression init = null;
       if (initializer == null && initAllVars) { // auto-initialize variables to zero
-        init = Defaults.forType(decl.getDeclSpecifier(), decl.getFileLocation());
+        init = CDefaults.forType(decl.getDeclSpecifier(), decl.getFileLocation());
       } else if (initializer instanceof IASTInitializerExpression) {
         init = ((IASTInitializerExpression) initializer).getExpression();
       }

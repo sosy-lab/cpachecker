@@ -23,20 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 /**
  * Super class for all possible right-hand sides of an assignment.
  */
 public abstract class IASTRightHandSide extends IASTNode {
 
-  private final IType type;
+  private final CType type;
 
   public IASTRightHandSide(final IASTFileLocation pFileLocation,
-                           final IType pType) {
+                           final CType pType) {
     super(pFileLocation);
     type = pType;
   }
 
-  public IType getExpressionType() {
+  public CType getExpressionType() {
     return type;
   }
 

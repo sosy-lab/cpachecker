@@ -27,34 +27,34 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNamedTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IType;
-import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedef;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -133,10 +133,10 @@ public class TypesTransferRelation implements TransferRelation {
                                  DeclarationEdge declarationEdge)
                                  throws UnrecognizedCCodeException {
     IASTDeclaration decl = declarationEdge.getDeclaration();
-    IType specifier = declarationEdge.getDeclaration().getDeclSpecifier();
+    CType specifier = declarationEdge.getDeclaration().getDeclSpecifier();
 
     if (decl instanceof IASTFunctionDeclaration) {
-      handleFunctionDeclaration(element, declarationEdge, (IASTFunctionTypeSpecifier)specifier);
+      handleFunctionDeclaration(element, declarationEdge, (CFunctionType)specifier);
 
     } else {
       Type type = getType(element, declarationEdge, specifier);
@@ -158,7 +158,7 @@ public class TypesTransferRelation implements TransferRelation {
 
   private void handleFunctionDeclaration(TypesState element,
                                         CFAEdge cfaEdge,
-                                        IASTFunctionTypeSpecifier funcDeclSpecifier)
+                                        CFunctionType funcDeclSpecifier)
                                         throws UnrecognizedCCodeException {
 
     FunctionType function = getType(element, cfaEdge, funcDeclSpecifier);
@@ -170,14 +170,14 @@ public class TypesTransferRelation implements TransferRelation {
     element.addFunction(function.getName(), function);
   }
 
-  private Type getType(TypesState element, CFAEdge cfaEdge, IType declSpecifier)
+  private Type getType(TypesState element, CFAEdge cfaEdge, CType declSpecifier)
                        throws UnrecognizedCCodeException {
     Type type;
     boolean constant = declSpecifier.isConst();
 
-    if (declSpecifier instanceof IASTSimpleDeclSpecifier) {
+    if (declSpecifier instanceof CSimpleType) {
       // primitive type
-      IASTSimpleDeclSpecifier simpleSpecifier = (IASTSimpleDeclSpecifier)declSpecifier;
+      CSimpleType simpleSpecifier = (CSimpleType)declSpecifier;
       Primitive primitiveType;
 
       switch (simpleSpecifier.getType()) {
@@ -221,19 +221,19 @@ public class TypesTransferRelation implements TransferRelation {
 
       type = new PrimitiveType(primitiveType, signed, constant);
 
-    } else if (declSpecifier instanceof IASTCompositeTypeSpecifier) {
+    } else if (declSpecifier instanceof CCompositeType) {
       // struct & union
-      IASTCompositeTypeSpecifier compositeSpecifier = (IASTCompositeTypeSpecifier)declSpecifier;
+      CCompositeType compositeSpecifier = (CCompositeType)declSpecifier;
       String name = compositeSpecifier.getName();
       CompositeType compType;
 
       switch (compositeSpecifier.getKey()) {
-      case IASTCompositeTypeSpecifier.k_struct:
+      case CCompositeType.k_struct:
         compType = new StructType(name, constant);
         name = "struct " + name;
         break;
 
-      case IASTCompositeTypeSpecifier.k_union:
+      case CCompositeType.k_union:
         compType = new StructType(name, constant);
         name = "union " + name;
         break;
@@ -272,9 +272,9 @@ public class TypesTransferRelation implements TransferRelation {
 
       type = compType;
 
-    } else if (declSpecifier instanceof IASTElaboratedTypeSpecifier) {
+    } else if (declSpecifier instanceof CElaboratedType) {
       // type reference like "struct a"
-      IASTElaboratedTypeSpecifier elaboratedTypeSpecifier = (IASTElaboratedTypeSpecifier)declSpecifier;
+      CElaboratedType elaboratedTypeSpecifier = (CElaboratedType)declSpecifier;
       String typeStr = elaboratedTypeSpecifier.getKind().name().toLowerCase();
       String name = typeStr + " " + elaboratedTypeSpecifier.getName();
 
@@ -324,9 +324,9 @@ public class TypesTransferRelation implements TransferRelation {
 
       type = enumType;
 
-    } else if (declSpecifier instanceof IASTNamedTypeSpecifier) {
+    } else if (declSpecifier instanceof CNamedType) {
       // type reference to type declared with typedef
-      IASTNamedTypeSpecifier namedTypeSpecifier = (IASTNamedTypeSpecifier)declSpecifier;
+      CNamedType namedTypeSpecifier = (CNamedType)declSpecifier;
 
       type = element.getTypedef(namedTypeSpecifier.getName());
 
@@ -339,9 +339,9 @@ public class TypesTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException("Undefined type " + namedTypeSpecifier.getName(), cfaEdge);
        }
 
-    } else if (declSpecifier instanceof IASTArrayTypeSpecifier) {
+    } else if (declSpecifier instanceof CArrayType) {
       // array
-      IASTArrayTypeSpecifier arraySpecifier = (IASTArrayTypeSpecifier)declSpecifier;
+      CArrayType arraySpecifier = (CArrayType)declSpecifier;
 
       type = getType(element, cfaEdge, arraySpecifier.getType());
 
@@ -362,21 +362,21 @@ public class TypesTransferRelation implements TransferRelation {
       }
       type = new ArrayType(type, length);
 
-    } else if (declSpecifier instanceof IASTFunctionTypeSpecifier) {
+    } else if (declSpecifier instanceof CFunctionType) {
       // function type, e.g. in a function pointer
-      IASTFunctionTypeSpecifier funcDeclSpecifier = (IASTFunctionTypeSpecifier)declSpecifier;
+      CFunctionType funcDeclSpecifier = (CFunctionType)declSpecifier;
 
       type = getType(element, cfaEdge, funcDeclSpecifier);
 
-    } else if (declSpecifier instanceof IASTPointerTypeSpecifier) {
+    } else if (declSpecifier instanceof CPointerType) {
       // pointer
-      IASTPointerTypeSpecifier pointerSpecifier = (IASTPointerTypeSpecifier)declSpecifier;
+      CPointerType pointerSpecifier = (CPointerType)declSpecifier;
 
       type = getType(element, cfaEdge, pointerSpecifier.getType());
       type = new PointerType(type, pointerSpecifier.isConst());
 
-    } else if (declSpecifier instanceof ITypedef) {
-      ITypedef typedef = (ITypedef)declSpecifier;
+    } else if (declSpecifier instanceof CTypedef) {
+      CTypedef typedef = (CTypedef)declSpecifier;
       return getType(element, cfaEdge, typedef.getType());
 
     } else {
@@ -386,7 +386,7 @@ public class TypesTransferRelation implements TransferRelation {
     return type;
   }
 
-  private FunctionType getType(TypesState element, CFAEdge cfaEdge, IASTFunctionTypeSpecifier funcDeclSpecifier)
+  private FunctionType getType(TypesState element, CFAEdge cfaEdge, CFunctionType funcDeclSpecifier)
                       throws UnrecognizedCCodeException {
 
     Type returnType = getType(element, cfaEdge, funcDeclSpecifier.getReturnType());
