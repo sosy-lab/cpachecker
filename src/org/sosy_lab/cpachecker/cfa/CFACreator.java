@@ -44,7 +44,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -152,7 +152,7 @@ public class CFACreator {
         throw new ParserException("No functions found in program");
       }
 
-      final CFAFunctionDefinitionNode mainFunction = getMainFunction(filename, c.getFunctions());
+      final FunctionEntryNode mainFunction = getMainFunction(filename, c.getFunctions());
 
       MutableCFA cfa = new MutableCFA(c.getFunctions(), c.getCFANodes(), mainFunction);
 
@@ -167,7 +167,7 @@ public class CFACreator {
       processingTime.start();
 
       // annotate CFA nodes with reverse postorder information for later use
-      for(CFAFunctionDefinitionNode function : cfa.getAllFunctionHeads()){
+      for(FunctionEntryNode function : cfa.getAllFunctionHeads()){
         CFAReversePostorder sorter = new CFAReversePostorder();
         sorter.assignSorting(function);
       }
@@ -229,12 +229,12 @@ public class CFACreator {
     }
   }
 
-  private CFAFunctionDefinitionNode getMainFunction(String filename,
-      final Map<String, CFAFunctionDefinitionNode> cfas)
+  private FunctionEntryNode getMainFunction(String filename,
+      final Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
 
     // try specified function
-    CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
+    FunctionEntryNode mainFunction = cfas.get(mainFunctionName);
 
     if (mainFunction != null) {
       return mainFunction;
@@ -295,7 +295,7 @@ public class CFACreator {
     }
 
     // split off first node of CFA
-    CFAFunctionDefinitionNode firstNode = cfa.getMainFunction();
+    FunctionEntryNode firstNode = cfa.getMainFunction();
     assert firstNode.getNumLeavingEdges() == 1;
     CFAEdge firstEdge = firstNode.getLeavingEdge(0);
     assert firstEdge instanceof BlankEdge;

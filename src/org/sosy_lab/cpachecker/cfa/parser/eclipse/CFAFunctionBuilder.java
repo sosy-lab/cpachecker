@@ -88,13 +88,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -125,11 +125,11 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<CFANode>();
 
   // Data structures for handling goto
-  private final Map<String, CFALabelNode> labelMap = new HashMap<String, CFALabelNode>();
+  private final Map<String, CLabelNode> labelMap = new HashMap<String, CLabelNode>();
   private final Multimap<String, CFANode> gotoLabelNeeded = ArrayListMultimap.create();
 
   // Data structures for handling function declarations
-  private CFAFunctionDefinitionNode cfa = null;
+  private FunctionEntryNode cfa = null;
   private final Set<CFANode> cfaNodes = new HashSet<CFANode>();
 
   private final Scope scope;
@@ -153,7 +153,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     shouldVisitStatements = true;
   }
 
-  CFAFunctionDefinitionNode getStartNode() {
+  FunctionEntryNode getStartNode() {
     checkState(cfa != null);
     return cfa;
   }
@@ -233,10 +233,10 @@ class CFAFunctionBuilder extends ASTVisitor {
       parameterNames.add(param.getName());
     }
 
-    final CFAFunctionExitNode returnNode = new CFAFunctionExitNode(fileloc.getEndingLineNumber(), nameOfFunction);
+    final FunctionExitNode returnNode = new FunctionExitNode(fileloc.getEndingLineNumber(), nameOfFunction);
     cfaNodes.add(returnNode);
 
-    final CFAFunctionDefinitionNode startNode = new CFunctionEntryNode(
+    final FunctionEntryNode startNode = new CFunctionEntryNode(
         fileloc.getStartingLineNumber(), fdef, returnNode, parameterNames);
     cfaNodes.add(startNode);
     cfa = startNode;
@@ -299,7 +299,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       Set<CFANode> reachableNodes = CFATraversal.dfs().collectNodesReachableFrom(cfa);
 
-      for (CFALabelNode n : labelMap.values()) {
+      for (CLabelNode n : labelMap.values()) {
         if (!reachableNodes.contains(n)) {
           logDeadLabel(n);
 
@@ -329,7 +329,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     return PROCESS_CONTINUE;
   }
 
-  private void logDeadLabel(CFALabelNode n) {
+  private void logDeadLabel(CLabelNode n) {
     Level level = Level.INFO;
     if (n.getLabel().matches("(switch|while)_(\\d+_[a-z0-9]+|[a-z0-9]+___\\d+)")) {
       // don't mention dead code produced by CIL on normal log levels
@@ -420,7 +420,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         cfa.getFunctionName());
     cfaNodes.add(firstLoopNode);
 
-    final CFANode postLoopNode = new CFALabelNode(fileloc.getEndingLineNumber(),
+    final CFANode postLoopNode = new CLabelNode(fileloc.getEndingLineNumber(),
         cfa.getFunctionName(), "");
     cfaNodes.add(postLoopNode);
     loopNextStack.push(postLoopNode);
@@ -697,7 +697,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         cfa.getFunctionName());
     cfaNodes.add(firstLoopNode);
 
-    final CFANode postLoopNode = new CFALabelNode(fileloc.getEndingLineNumber(),
+    final CFANode postLoopNode = new CLabelNode(fileloc.getEndingLineNumber(),
         cfa.getFunctionName(), "");
     cfaNodes.add(postLoopNode);
     loopNextStack.push(postLoopNode);
@@ -830,7 +830,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     loopStart.setLoopStart();
 
     // loopEnd is Node before "counter++;"
-    final CFANode loopEnd = new CFALabelNode(filelocStart, cfa.getFunctionName(), "");
+    final CFANode loopEnd = new CLabelNode(filelocStart, cfa.getFunctionName(), "");
     cfaNodes.add(loopEnd);
     loopStartStack.push(loopEnd);
 
@@ -840,7 +840,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     cfaNodes.add(firstLoopNode);
 
     // firstLoopNode is Node after "!(counter < 5)"
-    final CFANode postLoopNode = new CFALabelNode(
+    final CFANode postLoopNode = new CLabelNode(
         fileloc.getEndingLineNumber(), cfa.getFunctionName(), "");
     cfaNodes.add(postLoopNode);
     loopNextStack.push(postLoopNode);
@@ -1079,7 +1079,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode prevNode = locStack.pop();
 
-    CFALabelNode labelNode = new CFALabelNode(fileloc.getStartingLineNumber(),
+    CLabelNode labelNode = new CLabelNode(fileloc.getStartingLineNumber(),
         cfa.getFunctionName(), labelName);
     cfaNodes.add(labelNode);
     locStack.push(labelNode);
@@ -1192,7 +1192,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       IASTFileLocation fileloc) {
 
     CFANode prevNode = locStack.pop();
-    CFAFunctionExitNode functionExitNode = cfa.getExitNode();
+    FunctionExitNode functionExitNode = cfa.getExitNode();
 
     CReturnStatementEdge edge = new CReturnStatementEdge(returnStatement.getRawSignature(),
         astCreator.convert(returnStatement), fileloc.getStartingLineNumber(), prevNode, functionExitNode);
@@ -1230,7 +1230,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // postSwitchNode is Node after the switch-statement
     final CFANode postSwitchNode =
-        new CFALabelNode(fileloc.getEndingLineNumber(),
+        new CLabelNode(fileloc.getEndingLineNumber(),
             cfa.getFunctionName(), "");
     cfaNodes.add(postSwitchNode);
     loopNextStack.push(postSwitchNode);

@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.blocking;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public class ReducedNode {
@@ -69,11 +69,11 @@ public class ReducedNode {
   }
 
   public boolean isFunctionEntry() {
-    return getWrapped() instanceof CFAFunctionDefinitionNode;
+    return getWrapped() instanceof FunctionEntryNode;
   }
 
   public boolean isFunctionExit() {
-    return getWrapped() instanceof CFAFunctionExitNode;
+    return getWrapped() instanceof FunctionExitNode;
   }
 
   public boolean isLoopHead() {

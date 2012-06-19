@@ -28,7 +28,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
@@ -51,7 +51,7 @@ public final class DOTBuilder {
   private static final String MAIN_GRAPH = "____Main____Diagram__";
   private static final Joiner JOINER_ON_NEWLINE = Joiner.on('\n');
 
-  public static String generateDOT(Collection<CFAFunctionDefinitionNode> cfasMapList, CFAFunctionDefinitionNode cfa) {
+  public static String generateDOT(Collection<FunctionEntryNode> cfasMapList, FunctionEntryNode cfa) {
     DotGenerator dotGenerator = new DotGenerator();
     CFATraversal.dfs().traverseOnce(cfa, dotGenerator);
 
@@ -64,7 +64,7 @@ public final class DOTBuilder {
     // define the graphic representation for all subsequent nodes
     sb.append("node [shape=\"circle\"]\n");
 
-    for (CFAFunctionDefinitionNode fnode : cfasMapList) {
+    for (FunctionEntryNode fnode : cfasMapList) {
       sb.append("subgraph cluster_" + fnode.getFunctionName() + " {\n");
       sb.append("label=\"" + fnode.getFunctionName() + "()\"\n");
       JOINER_ON_NEWLINE.appendTo(sb, dotGenerator.edges.get(fnode.getFunctionName()));

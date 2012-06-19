@@ -65,8 +65,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
@@ -151,7 +151,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
       FunctionPointerTarget target = oldState.getTarget(functionCallVariable);
       if (target instanceof NamedFunctionTarget) {
         String functionName = ((NamedFunctionTarget)target).getFunctionName();
-        CFAFunctionDefinitionNode fDefNode = functions.getFunctionHead(functionName);
+        FunctionEntryNode fDefNode = functions.getFunctionHead(functionName);
         if (fDefNode != null) {
           logger.log(Level.FINEST, "Function pointer", functionCallVariable, "points to", target, "while it is used.");
 
@@ -161,7 +161,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
           CFANode successorNode = edge.getSuccessor();
           int lineNumber = edge.getLineNumber();
 
-          CFAFunctionExitNode fExitNode = fDefNode.getExitNode();
+          FunctionExitNode fExitNode = fDefNode.getExitNode();
 
           // Create new edges.
           CFunctionSummaryEdge calltoReturnEdge = new CFunctionSummaryEdge(edge.getRawStatement(),

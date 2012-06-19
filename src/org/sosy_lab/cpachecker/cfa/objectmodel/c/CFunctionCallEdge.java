@@ -73,7 +73,7 @@ public class CFunctionCallEdge extends AbstractCFAEdge {
 
   @Override
   public CFunctionEntryNode getSuccessor() {
-    // the constructor enforces that the successor is always a CFAFunctionDefinitionNode
+    // the constructor enforces that the successor is always a FunctionEntryNode
     return (CFunctionEntryNode)super.getSuccessor();
   }
 }

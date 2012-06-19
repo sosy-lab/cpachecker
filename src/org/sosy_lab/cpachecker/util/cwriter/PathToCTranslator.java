@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
@@ -405,7 +405,7 @@ public class PathToCTranslator {
     }
   }
 
-  private String getFreshFunctionName(CFAFunctionDefinitionNode functionStartNode) {
+  private String getFreshFunctionName(FunctionEntryNode functionStartNode) {
     return functionStartNode.getFunctionName() + "_" + mFunctionIndex++;
   }
 

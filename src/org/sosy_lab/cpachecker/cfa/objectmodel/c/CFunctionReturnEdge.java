@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public class CFunctionReturnEdge extends AbstractCFAEdge {
@@ -33,7 +33,7 @@ public class CFunctionReturnEdge extends AbstractCFAEdge {
   private final CFunctionSummaryEdge summaryEdge;
 
   public CFunctionReturnEdge(int pLineNumber,
-      CFAFunctionExitNode pPredecessor, CFANode pSuccessor,
+      FunctionExitNode pPredecessor, CFANode pSuccessor,
       CFunctionSummaryEdge pSummaryEdge) {
 
     super("", pLineNumber, pPredecessor, pSuccessor);
@@ -60,8 +60,8 @@ public class CFunctionReturnEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public CFAFunctionExitNode getPredecessor() {
-    // the constructor enforces that the predecessor is always a CFAFunctionExitNode
-    return (CFAFunctionExitNode)super.getPredecessor();
+  public FunctionExitNode getPredecessor() {
+    // the constructor enforces that the predecessor is always a FunctionExitNode
+    return (FunctionExitNode)super.getPredecessor();
   }
 }

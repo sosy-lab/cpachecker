@@ -32,8 +32,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
 
@@ -48,7 +48,7 @@ public class CFACheck {
    * @param cfa Node to start traversal from
    * @param nodes Optional set of all nodes in the CFA (may be null)
    */
-  public static boolean check(CFAFunctionDefinitionNode cfa, Collection<CFANode> nodes) {
+  public static boolean check(FunctionEntryNode cfa, Collection<CFANode> nodes) {
 
     Set<CFANode> visitedNodes = new HashSet<CFANode>();
     Deque<CFANode> waitingNodeList = new ArrayDeque<CFANode>();
@@ -93,11 +93,11 @@ public class CFACheck {
     // check entering edges
     int entering = pNode.getNumEnteringEdges();
     if (entering == 0) {
-      assert (pNode instanceof CFAFunctionDefinitionNode) : "Dead code: node " + DEBUG_FORMAT.apply(pNode) + " has no incoming edges";
+      assert (pNode instanceof FunctionEntryNode) : "Dead code: node " + DEBUG_FORMAT.apply(pNode) + " has no incoming edges";
     }
 
     // check leaving edges
-    if (!(pNode instanceof CFAFunctionExitNode)) {
+    if (!(pNode instanceof FunctionExitNode)) {
       switch (pNode.getNumLeavingEdges()) {
       case 0:
         // not possible to check this, this case occurs when CFA pruning is enabled

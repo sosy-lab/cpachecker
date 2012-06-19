@@ -674,7 +674,7 @@ public abstract class InterpolationManager<I> {
       // If we are entering or exiting a function, update the stack
       // of entry points
       // TODO checking if the abstraction node is a new function
-//        if (wellScopedPredicates && e.getAbstractionLocation() instanceof CFAFunctionDefinitionNode) {
+//        if (wellScopedPredicates && e.getAbstractionLocation() instanceof FunctionEntryNode) {
 //          entryPoints.push(i);
 //        }
         // TODO check we are returning from a function

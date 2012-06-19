@@ -37,8 +37,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
@@ -54,13 +54,13 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
  */
 public class CFASecondPassBuilder {
 
-  private final Map<String, CFAFunctionDefinitionNode> cfas;
+  private final Map<String, FunctionEntryNode> cfas;
 
   /**
    * Class constructor.
    * @param map List of all CFA's in the program.
    */
-  public CFASecondPassBuilder(Map<String, CFAFunctionDefinitionNode> cfas) {
+  public CFASecondPassBuilder(Map<String, FunctionEntryNode> cfas) {
     this.cfas = cfas;
   }
 
@@ -71,7 +71,7 @@ public class CFASecondPassBuilder {
    * @throws ParserException
    */
   public void insertCallEdgesRecursively() throws ParserException {
-    for (CFAFunctionDefinitionNode functionStartNode : cfas.values()) {
+    for (FunctionEntryNode functionStartNode : cfas.values()) {
       insertCallEdges(functionStartNode);
     }
   }
@@ -83,7 +83,7 @@ public class CFASecondPassBuilder {
    * @param initialNode CFANode where to start processing
    * @throws ParserException
    */
-  private void insertCallEdges(CFAFunctionDefinitionNode initialNode) throws ParserException {
+  private void insertCallEdges(FunctionEntryNode initialNode) throws ParserException {
     // we use a worklist algorithm
     Deque<CFANode> workList = new ArrayDeque<CFANode>();
     Set<CFANode> processed = new HashSet<CFANode>();
@@ -140,8 +140,8 @@ public class CFASecondPassBuilder {
     CFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
     String functionName = functionCallExpression.getFunctionNameExpression().toASTString();
     int lineNumber = edge.getLineNumber();
-    CFAFunctionDefinitionNode fDefNode = cfas.get(functionName);
-    CFAFunctionExitNode fExitNode = fDefNode.getExitNode();
+    FunctionEntryNode fDefNode = cfas.get(functionName);
+    FunctionExitNode fExitNode = fDefNode.getExitNode();
 
     assert fDefNode instanceof CFunctionEntryNode : "This code creates edges from package cfa.objectmodel.c, so the nodes need to be from this package, too.";
 

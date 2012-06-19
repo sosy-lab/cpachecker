@@ -27,8 +27,8 @@ import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
@@ -78,8 +78,8 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFANode successorNode = pArgs.getCfaEdge().getSuccessor();
-      if (successorNode instanceof CFALabelNode) {
-        String label = ((CFALabelNode)successorNode).getLabel();
+      if (successorNode instanceof CLabelNode) {
+        String label = ((CLabelNode)successorNode).getLabel();
         if (pattern.matcher(label).matches()) {
           return CONST_TRUE;
         } else {
@@ -87,7 +87,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
         }
       } else {
         return CONST_FALSE;
-        //return new ResultValue<Boolean>("cannot evaluate if the CFAEdge is not a CFALabelNode", "MatchLabelRegEx.eval(..)");
+        //return new ResultValue<Boolean>("cannot evaluate if the CFAEdge is not a CLabelNode", "MatchLabelRegEx.eval(..)");
       }
     }
 

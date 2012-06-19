@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionSummaryEdge;
@@ -36,7 +36,7 @@ class FunctionPointerReturnEdge extends CFunctionReturnEdge {
   private final FunctionPointerCallEdge callEdge;
 
   public FunctionPointerReturnEdge(int pLineNumber,
-      CFAFunctionExitNode pPredecessor, CFANode pSuccessor,
+      FunctionExitNode pPredecessor, CFANode pSuccessor,
       FunctionPointerCallEdge pCallEdge, CFunctionSummaryEdge pSummaryEdge) {
     super(pLineNumber, pPredecessor, pSuccessor, pSummaryEdge);
 

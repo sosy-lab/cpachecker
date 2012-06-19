@@ -44,7 +44,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import com.google.common.collect.Lists;
@@ -61,7 +61,7 @@ class CFABuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
   private Queue<IASTFunctionDefinition> functionDeclarations = new LinkedList<IASTFunctionDefinition>();
-  private final Map<String, CFAFunctionDefinitionNode> cfas = new HashMap<String, CFAFunctionDefinitionNode>();
+  private final Map<String, FunctionEntryNode> cfas = new HashMap<String, FunctionEntryNode>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
   // Data structure for storing global declarations
@@ -92,7 +92,7 @@ class CFABuilder extends ASTVisitor {
    * Retrieves list of all functions
    * @return all CFAs in the program
    */
-  public Map<String, CFAFunctionDefinitionNode> getCFAs()  {
+  public Map<String, FunctionEntryNode> getCFAs()  {
     return cfas;
   }
 
@@ -200,7 +200,7 @@ class CFABuilder extends ASTVisitor {
 
       declaration.accept(functionBuilder);
 
-      CFAFunctionDefinitionNode startNode = functionBuilder.getStartNode();
+      FunctionEntryNode startNode = functionBuilder.getStartNode();
       String functionName = startNode.getFunctionName();
 
       if (cfas.containsKey(functionName)) {

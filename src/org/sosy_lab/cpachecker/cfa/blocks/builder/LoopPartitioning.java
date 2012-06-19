@@ -34,7 +34,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -73,7 +73,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
 
   @Override
   protected boolean shouldBeCached(CFANode pNode) {
-    if(pNode instanceof CFAFunctionDefinitionNode && pNode.getNumEnteringEdges() == 0) {
+    if(pNode instanceof FunctionEntryNode && pNode.getNumEnteringEdges() == 0) {
       //main function
       return true;
     }
@@ -102,7 +102,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
 
   @Override
   protected Set<CFANode> getBlockForNode(CFANode pNode) {
-    if(pNode instanceof CFAFunctionDefinitionNode) {
+    if(pNode instanceof FunctionEntryNode) {
       return TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
     }
     if(pNode.isLoopStart()) {

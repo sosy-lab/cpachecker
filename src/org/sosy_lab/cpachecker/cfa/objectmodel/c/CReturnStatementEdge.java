@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import com.google.common.base.Optional;
@@ -37,7 +37,7 @@ public class CReturnStatementEdge extends AbstractCFAEdge {
   private final CReturnStatement rawAST;
 
   public CReturnStatementEdge(String pRawStatement, CReturnStatement pRawAST,
-      int pLineNumber, CFANode pPredecessor, CFAFunctionExitNode pSuccessor) {
+      int pLineNumber, CFANode pPredecessor, FunctionExitNode pSuccessor) {
 
     super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
     rawAST = pRawAST;
@@ -63,8 +63,8 @@ public class CReturnStatementEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public CFAFunctionExitNode getSuccessor() {
-    // the constructor enforces that the successor is always a CFAFunctionExitNode
-    return (CFAFunctionExitNode)super.getSuccessor();
+  public FunctionExitNode getSuccessor() {
+    // the constructor enforces that the successor is always a FunctionExitNode
+    return (FunctionExitNode)super.getSuccessor();
   }
 }

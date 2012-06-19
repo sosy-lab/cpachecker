@@ -34,7 +34,7 @@ import java.util.Set;
 import org.json.simple.JSONObject;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CAssumeEdge;
@@ -77,7 +77,7 @@ public final class DOTBuilder2 {
     CFAJSONBuilder jsoner = new CFAJSONBuilder();
     DOTViewBuilder dotter = new DOTViewBuilder();
     CFAVisitor vis = new NodeCollectingCFAVisitor(new CompositeCFAVisitor(jsoner, dotter));
-    for (CFAFunctionDefinitionNode entryNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
       CFATraversal.dfs().ignoreFunctionCalls().traverse(entryNode, vis);
       dotter.writeFunctionFile(entryNode.getFunctionName(), outdir);
     }

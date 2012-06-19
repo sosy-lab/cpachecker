@@ -27,19 +27,19 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionExitNode;
 
 import com.google.common.collect.ImmutableList;
 
-public class CFunctionEntryNode extends CFAFunctionDefinitionNode {
+public class CFunctionEntryNode extends FunctionEntryNode {
 
   private final CFunctionDeclaration functionDefinition;
   private final List<String> parameterNames;
 
   public CFunctionEntryNode(final int pLineNumber,
       final CFunctionDeclaration pFunctionDefinition,
-      final CFAFunctionExitNode pExitNode,
+      final FunctionExitNode pExitNode,
       final List<String> pParameterNames) {
 
     super(pLineNumber, pFunctionDefinition.getName(), pExitNode);

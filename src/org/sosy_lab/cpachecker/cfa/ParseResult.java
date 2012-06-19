@@ -28,7 +28,7 @@ import java.util.Map;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import com.google.common.collect.SortedSetMultimap;
@@ -46,13 +46,13 @@ import com.google.common.collect.SortedSetMultimap;
  */
 public class ParseResult {
 
-  private final Map<String, CFAFunctionDefinitionNode> functions;
+  private final Map<String, FunctionEntryNode> functions;
 
   private final SortedSetMultimap<String, CFANode> cfaNodes;
 
   private final List<Pair<CDeclaration, String>> globalDeclarations;
 
-  public ParseResult(Map<String, CFAFunctionDefinitionNode> pFunctions,
+  public ParseResult(Map<String, FunctionEntryNode> pFunctions,
       SortedSetMultimap<String, CFANode> pCfaNodes,
       List<Pair<CDeclaration, String>> pGlobalDeclarations) {
     functions = pFunctions;
@@ -64,7 +64,7 @@ public class ParseResult {
     return functions.isEmpty();
   }
 
-  public Map<String, CFAFunctionDefinitionNode> getFunctions() {
+  public Map<String, FunctionEntryNode> getFunctions() {
     return functions;
   }
 

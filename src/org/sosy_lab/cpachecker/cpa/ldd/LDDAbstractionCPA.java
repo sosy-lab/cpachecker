@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
@@ -98,7 +98,7 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
         }
       }
     }
-    for (CFAFunctionDefinitionNode node : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode node : cfa.getAllFunctionHeads()) {
       if (node instanceof CFunctionEntryNode) {
         CFunctionEntryNode fDefNode = (CFunctionEntryNode) node;
         for (CParameterDeclaration paramDecl : fDefNode.getFunctionDefinition().getDeclSpecifier().getParameters()) {

@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CFunctionEntryNode;
@@ -113,7 +113,7 @@ public class TypesTransferRelation implements TransferRelation {
     case BlankEdge:
       //the first function start dummy edge is the actual start of the entry function
       if (!entryFunctionProcessed
-          && (cfaEdge.getPredecessor() instanceof CFAFunctionDefinitionNode)) {
+          && (cfaEdge.getPredecessor() instanceof FunctionEntryNode)) {
         //since by this point all global variables have been processed, we can now process the entry function
         CFunctionDeclaration funcDef = functionEntryNode.getFunctionDefinition();
         handleFunctionDeclaration(successor, null, funcDef.getDeclSpecifier());
