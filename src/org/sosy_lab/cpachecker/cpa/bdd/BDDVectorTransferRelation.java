@@ -90,7 +90,7 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
   public BDDVectorTransferRelation(NamedRegionManager manager, Configuration config)
       throws InvalidConfigurationException {
     super(manager, config);
-    this.bvmgr =  new BitvectorManager(manager, config);
+    this.bvmgr = new BitvectorManager(manager, config);
   }
 
   @Override
@@ -546,19 +546,20 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
 
       if (operand == null) { return null; }
 
-      //      // get values for binary expression
-      //      for (int i = 0; i < operand.length; i++) {
-      //        operand[i] = rmgr.makeAnd(state.getRegion(), operand[i]);
-      //      }
-
       Region[] returnValue = null;
       switch (exp.getOperator()) {
       case NOT:
         returnValue = bvmgr.makeNot(operand);
         break;
-      case PLUS: // (+X == 0) <==> (X == 0)
-      case MINUS: // (-X == 0) <==> (X == 0) // TODO switch highest bit?
+
+      case PLUS: // +X == X
         returnValue = operand;
+        break;
+
+      case MINUS: // -X == (0-X)
+        returnValue = bvmgr.makeSub(bvmgr.makeFalse(), operand);
+        break;
+
       default:
         // *exp --> don't know anything
       }
