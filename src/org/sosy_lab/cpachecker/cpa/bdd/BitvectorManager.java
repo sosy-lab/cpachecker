@@ -222,6 +222,12 @@ public class BitvectorManager {
     return newRegions;
   }
 
+  /** A<B,  */
+  public Region[] makeLess(Region[] A, Region[] B) {
+    Region[] diff = makeSub(A, B);
+    return wrapLast(rmgr.makeFalse(), diff[0]);
+  }
+
   /** returns an Array filled with (n-1)*first and 1*last */
   private Region[] wrapLast(Region first, Region last) {
     Region[] newRegions = new Region[bitsize];

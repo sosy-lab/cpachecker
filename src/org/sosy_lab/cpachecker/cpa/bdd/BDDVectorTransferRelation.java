@@ -482,15 +482,27 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
         break;
 
       case LESS_THAN:
-      case GREATER_THAN:
+        returnValue = bvmgr.makeLess(operand1, operand2);
+        break;
+
+      case LESS_EQUAL: // A<=B <--> !(B<A)
+        returnValue = bvmgr.makeNot(bvmgr.makeLess(operand2, operand1));
+        break;
+
+      case GREATER_THAN: // A>B <--> B<A
+        returnValue = bvmgr.makeLess(operand2, operand1);
+        break;
+
+      case GREATER_EQUAL:// A>=B <--> !(A<B)
+        returnValue = bvmgr.makeNot(bvmgr.makeLess(operand1, operand2));
+        break;
+
       case MULTIPLY:
       case DIVIDE:
       case MODULO:
       case SHIFT_LEFT:
       case SHIFT_RIGHT:
-      case LESS_EQUAL:
-      case GREATER_EQUAL:
-        // a+b, a-b, etc --> don't know anything
+        // a*b, a<<b, etc --> don't know anything
       }
       return returnValue;
     }
