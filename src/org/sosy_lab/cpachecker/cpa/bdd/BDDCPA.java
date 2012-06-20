@@ -70,7 +70,12 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
     abstractDomain = new BDDDomain();
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopSepOperator(abstractDomain);
-    transferRelation = new BDDTransferRelation(manager, config);
+    if (false) {
+      transferRelation = new BDDTransferRelation(manager, config);
+    } else {
+      BitvectorManager bvmgr = new BitvectorManager(manager, config);
+      transferRelation = new BDDVectorTransferRelation(manager, bvmgr, config);
+    }
   }
 
   @Override
@@ -121,7 +126,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
       @Override
       public String getName() {
-          return "BDDCPA";
+        return "BDDCPA";
       }
     });
   }
