@@ -87,11 +87,10 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
   @Option(description = "initialize all variables to 0 when they are declared")
   private boolean initAllVars = false;
 
-  public BDDVectorTransferRelation(NamedRegionManager rmanager,
-      BitvectorManager bvmanager, Configuration config)
+  public BDDVectorTransferRelation(NamedRegionManager manager, Configuration config)
       throws InvalidConfigurationException {
-    super(rmanager, config);
-    this.bvmgr = bvmanager;
+    super(manager, config);
+    this.bvmgr =  new BitvectorManager(manager, config);
   }
 
   @Override

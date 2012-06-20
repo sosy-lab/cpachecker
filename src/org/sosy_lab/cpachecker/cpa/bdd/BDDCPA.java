@@ -30,6 +30,8 @@ import java.util.LinkedHashSet;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -52,7 +54,12 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 
+@Options(prefix = "cpa.bdd")
 public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+
+  @Option(description = "either use one bit to know if a value is 0 (or not 0)" +
+  		"or use a vector to store all memory cells of a variable")
+  private boolean useBitvector = false;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(BDDCPA.class);
@@ -65,16 +72,16 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   private final BDDTransferRelation transferRelation;
 
   private BDDCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+    config.inject(this);
 
     manager = new NamedRegionManager(BDDRegionManager.getInstance());
     abstractDomain = new BDDDomain();
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopSepOperator(abstractDomain);
-    if (false) {
+    if (!useBitvector) {
       transferRelation = new BDDTransferRelation(manager, config);
     } else {
-      BitvectorManager bvmgr = new BitvectorManager(manager, config);
-      transferRelation = new BDDVectorTransferRelation(manager, bvmgr, config);
+      transferRelation = new BDDVectorTransferRelation(manager, config);
     }
   }
 
