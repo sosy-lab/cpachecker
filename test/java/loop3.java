@@ -43,7 +43,7 @@ public class Readable {
         
         n1 = n1 + 1;
         }
-        assert(n1 == 10);
+        assert(n1 == 9);
         assert(n2 == 4);
         assert(n3 == 6);		
 }

@@ -11,7 +11,7 @@ public class Readable {
         int n1;
         int n2;
         
-        n1 = 10;
+        n1 = 9;
 	    
 	    n2 = 10;
       
