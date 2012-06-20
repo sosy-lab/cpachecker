@@ -50,7 +50,8 @@ CSV_SEPARATOR = "\t"
 
 BUG_SUBSTRING_LIST = ['bug', 'unsafe']
 
-
+MEMLIMIT = "memlimit"
+TIMELIMIT = "timelimit"
 BYTE_FACTOR = 1024 # byte in kilobyte
 
 # colors for column status in terminal
@@ -129,30 +130,27 @@ class Benchmark:
 
         self.rlimits = {}
         keys = list(root.keys())
-        if ("memlimit" in keys):
-            limit = int(root.get("memlimit")) * BYTE_FACTOR * BYTE_FACTOR
-            self.rlimits[options.memresource] = (limit, limit)
-        if ("timelimit" in keys):
-            limit = int(root.get("timelimit"))
-            self.rlimits[resource.RLIMIT_CPU] = (limit, limit)
+        if MEMLIMIT in keys:
+            self.rlimits[MEMLIMIT] = int(root.get(MEMLIMIT))
+        if TIMELIMIT in keys:
+            self.rlimits[TIMELIMIT] = int(root.get(TIMELIMIT))
 
         # override limits from xml with option-given limits
         if options.memorylimit != None:
             memorylimit = int(options.memorylimit)
             if memorylimit == -1: # infinity
-                if options.memresource in self.rlimits:
-                    self.rlimits.pop(options.memresource)                
+                if MEMLIMIT in self.rlimits:
+                    self.rlimits.pop(MEMLIMIT)                
             else:
-                memorylimit = memorylimit * BYTE_FACTOR * BYTE_FACTOR
-                self.rlimits[options.memresource] = (memorylimit, memorylimit)
+                self.rlimits[MEMLIMIT] = memorylimit
 
         if options.timelimit != None:
             timelimit = int(options.timelimit)
             if timelimit == -1: # infinity
-                if resource.RLIMIT_CPU in self.rlimits:
-                    self.rlimits.pop(resource.RLIMIT_CPU)                
+                if TIMELIMIT in self.rlimits:
+                    self.rlimits.pop(TIMELIMIT)                
             else:
-                self.rlimits[resource.RLIMIT_CPU] = (timelimit, timelimit)
+                self.rlimits[TIMELIMIT] = timelimit
 
         # get number of threads, default value is 1
         self.numOfThreads = int(root.get("threads")) if ("threads" in keys) else 1
@@ -416,8 +414,8 @@ class Run():
         # sometimes we should check for timeout again, 
         # because tools can produce results after they are killed
         # we use an overhead of 20 seconds
-        if resource.RLIMIT_CPU in self.benchmark.rlimits:
-            timeLimit = self.benchmark.rlimits[resource.RLIMIT_CPU][0] + 20
+        if TIMELIMIT in self.benchmark.rlimits:
+            timeLimit = self.benchmark.rlimits[TIMELIMIT] + 20
             if self.wallTime > timeLimit or self.cpuTime > timeLimit:
                 self.status = "TIMEOUT"
 
@@ -572,10 +570,10 @@ class OutputHandler:
 
         memlimit = None
         timelimit = None
-        if (options.memresource in self.benchmark.rlimits):
-            memlimit = str(self.benchmark.rlimits[options.memresource][0] // BYTE_FACTOR // BYTE_FACTOR) + " MB"
-        if (resource.RLIMIT_CPU in self.benchmark.rlimits):
-            timelimit = str(self.benchmark.rlimits[resource.RLIMIT_CPU][0]) + " s"
+        if MEMLIMIT in self.benchmark.rlimits:
+            memlimit = str(self.benchmark.rlimits[MEMLIMIT]) + " MB"
+        if TIMELIMIT in self.benchmark.rlimits:
+            timelimit = str(self.benchmark.rlimits[TIMELIMIT]) + " s"
 
         self.storeHeaderInXML(version, memlimit, timelimit, opSystem, cpuModel,
                               numberOfCores, maxFrequency, memory, hostname)
@@ -591,9 +589,9 @@ class OutputHandler:
                     {"benchmarkname": self.benchmark.name, "date": self.benchmark.date,
                      "tool": self.getToolnameForPrinting(), "version": version})
         if memlimit is not None:
-            self.XMLHeader.set("memlimit", memlimit)
+            self.XMLHeader.set(MEMLIMIT, memlimit)
         if timelimit is not None:
-            self.XMLHeader.set("timelimit", timelimit)
+            self.XMLHeader.set(TIMELIMIT, timelimit)
 
         # store systemInfo in XML
         osElem = ET.Element("os", {"name": opSystem})
@@ -1296,8 +1294,12 @@ def run(args, rlimits, numberOfThread, outputfilename):
 
     def preSubprocess():
         os.setpgrp() # make subprocess to group-leader
-        for rsrc in rlimits:
-            resource.setrlimit(rsrc, rlimits[rsrc])
+        if TIMELIMIT in rlimits:
+            resource.setrlimit(resource.RLIMIT_CPU, (rlimits[TIMELIMIT], rlimits[TIMELIMIT]))
+        if MEMLIMIT in rlimits:
+            memresource = resource.RLIMIT_DATA if options.memdata else resource.RLIMIT_AS
+            memlimit = rlimits[MEMLIMIT] * BYTE_FACTOR * BYTE_FACTOR # MB to Byte
+            resource.setrlimit(memresource, (memlimit, memlimit))
 
     wallTimeBefore = time.time()
 
@@ -1314,8 +1316,8 @@ def run(args, rlimits, numberOfThread, outputfilename):
 
         # if rlimit does not work, a seperate Timer is started to kill the subprocess,
         # Timer has 10 seconds 'overhead'
-        if (resource.RLIMIT_CPU in rlimits):
-          timelimit = rlimits[resource.RLIMIT_CPU][0]
+        if TIMELIMIT in rlimits:
+          timelimit = rlimits[TIMELIMIT]
           timer = threading.Timer(timelimit + 10, killSubprocess, [p])
           timer.start()
 
@@ -1340,7 +1342,7 @@ def run(args, rlimits, numberOfThread, outputfilename):
         finally:
             SUB_PROCESSES_LOCK.release()
         
-        if (resource.RLIMIT_CPU in rlimits) and timer.isAlive():
+        if (TIMELIMIT in rlimits) and timer.isAlive():
             timer.cancel()
 
         outputfile.close() # normally subprocess closes file, we do this again
@@ -1361,8 +1363,8 @@ def run(args, rlimits, numberOfThread, outputfilename):
 
 def isTimeout(cpuTimeDelta, rlimits):
     ''' try to find out whether the tool terminated because of a timeout '''
-    if resource.RLIMIT_CPU in rlimits:
-        limit = rlimits.get(resource.RLIMIT_CPU)[0]
+    if TIMELIMIT in rlimits:
+        limit = rlimits[TIMELIMIT]
     else:
         limit = float('inf')
 
@@ -1936,8 +1938,7 @@ from the output of this script.""")
     global options, OUTPUT_PATH
     (options, args) = parser.parse_args(argv)
     OUTPUT_PATH = options.output_path
-    options.memresource = resource.RLIMIT_DATA if getattr(options, "memdata", False) else resource.RLIMIT_AS
-
+    
     if len(args) < 2:
         parser.error("invalid number of arguments")
     if (options.debug):
