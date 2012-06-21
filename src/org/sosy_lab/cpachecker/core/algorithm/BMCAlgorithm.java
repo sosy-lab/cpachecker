@@ -53,10 +53,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -437,9 +437,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     // function edges do not count as incoming/outgoing edges
     Iterable<CFAEdge> incomingEdges = Iterables.filter(loop.getIncomingEdges(),
-                                                       Predicates.not(instanceOf(FunctionReturnEdge.class)));
+                                                       Predicates.not(instanceOf(CFunctionReturnEdge.class)));
     Iterable<CFAEdge> outgoingEdges = Iterables.filter(loop.getOutgoingEdges(),
-                                                       Predicates.not(instanceOf(FunctionCallEdge.class)));
+                                                       Predicates.not(instanceOf(CFunctionCallEdge.class)));
 
     if (Iterables.size(incomingEdges) > 1) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many incoming edges", incomingEdges);
@@ -463,7 +463,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     // 2) Assume that one loop iteration is safe and prove that the next one is safe, too.
 
     // Suppose that the loop has a single outgoing edge,
-    // which leads to the error location. This edge is always an AssumeEdge,
+    // which leads to the error location. This edge is always an CAssumeEdge,
     // and it has a "sibling" which is an inner edge of the loop and leads to
     // the next iteration. We call the latter the continuation edge.
     // The common predecessor node of these two edges will be called cut point.
@@ -533,7 +533,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         ARGState lastExitState = (ARGState)Iterables.getLast(exitStates);
 
         // the states reachable from the exit edge
-        Set<ARGState> outOfLoopStates = lastExitState.getSubtree();
+        Set<ARGState> outOfLoopStates = lastExitState.getSubgraph();
         if (Iterables.isEmpty(filterTargetStates(outOfLoopStates))) {
           // no target state reachable
           continue;

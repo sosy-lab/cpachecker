@@ -30,23 +30,23 @@ import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -76,13 +76,13 @@ public class AndersenTransferRelation implements TransferRelation {
 
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge:
-      StatementEdge statementEdge = (StatementEdge) cfaEdge;
+      CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
       successor = handleStatement(andersenState, statementEdge.getStatement(), cfaEdge);
       break;
 
     // edge is a declaration edge, e.g. int a;
     case DeclarationEdge:
-      DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
+      CDeclarationEdge declarationEdge = (CDeclarationEdge) cfaEdge;
       successor = handleDeclaration(andersenState, declarationEdge);
       break;
 
@@ -114,44 +114,44 @@ public class AndersenTransferRelation implements TransferRelation {
     return null;
   }
 
-  private AndersenState handleStatement(AndersenState element, IASTStatement expression, CFAEdge cfaEdge)
+  private AndersenState handleStatement(AndersenState element, CStatement expression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     // e.g. a = b;
-    if (expression instanceof IASTAssignment)
-      return handleAssignment(element, (IASTAssignment) expression, cfaEdge);
+    if (expression instanceof CAssignment)
+      return handleAssignment(element, (CAssignment) expression, cfaEdge);
 
     // external function call - do nothing
-    else if (expression instanceof IASTFunctionCallStatement)
+    else if (expression instanceof CFunctionCallStatement)
       return element.clone();
 
-    else if (expression instanceof IASTExpressionStatement)
+    else if (expression instanceof CExpressionStatement)
       return element.clone();
 
     else
       throw new UnrecognizedCCodeException(cfaEdge, expression);
   }
 
-  private AndersenState handleAssignment(AndersenState element, IASTAssignment assignExpression, CFAEdge cfaEdge)
+  private AndersenState handleAssignment(AndersenState element, CAssignment assignExpression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
-    IASTExpression op1 = assignExpression.getLeftHandSide();
-    IASTRightHandSide op2 = assignExpression.getRightHandSide();
+    CExpression op1 = assignExpression.getLeftHandSide();
+    CRightHandSide op2 = assignExpression.getRightHandSide();
 
-    if (op1 instanceof IASTIdExpression) {
+    if (op1 instanceof CIdExpression) {
 
       // a = ...
 
       return handleAssignmentTo(op1.toASTString(), op2, element, cfaEdge);
 
-    } else if (op1 instanceof IASTUnaryExpression && ((IASTUnaryExpression) op1).getOperator() == UnaryOperator.STAR
-        && op2 instanceof IASTIdExpression) {
+    } else if (op1 instanceof CUnaryExpression && ((CUnaryExpression) op1).getOperator() == UnaryOperator.STAR
+        && op2 instanceof CIdExpression) {
 
       // *a = b; complex constraint
 
-      op1 = ((IASTUnaryExpression) op1).getOperand();
+      op1 = ((CUnaryExpression) op1).getOperand();
 
-      if (op1 instanceof IASTIdExpression) {
+      if (op1 instanceof CIdExpression) {
 
         AndersenState succ = element.clone();
         succ.addConstraint(new ComplexConstraint(op2.toASTString(), op1.toASTString(), false));
@@ -179,14 +179,14 @@ public class AndersenTransferRelation implements TransferRelation {
    *
    * @throws UnrecognizedCCodeException
    */
-  private AndersenState handleAssignmentTo(String op1, IASTRightHandSide op2, AndersenState element, CFAEdge cfaEdge)
+  private AndersenState handleAssignmentTo(String op1, CRightHandSide op2, AndersenState element, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
     // unpack cast if necessary
-    while (op2 instanceof IASTCastExpression)
-      op2 = ((IASTCastExpression) op2).getOperand();
+    while (op2 instanceof CCastExpression)
+      op2 = ((CCastExpression) op2).getOperand();
 
-    if (op2 instanceof IASTIdExpression) {
+    if (op2 instanceof CIdExpression) {
 
       // a = b; simple constraint
 
@@ -194,13 +194,13 @@ public class AndersenTransferRelation implements TransferRelation {
       succ.addConstraint(new SimpleConstraint(op2.toASTString(), op1));
       return succ;
 
-    } else if (op2 instanceof IASTUnaryExpression && ((IASTUnaryExpression) op2).getOperator() == UnaryOperator.AMPER) {
+    } else if (op2 instanceof CUnaryExpression && ((CUnaryExpression) op2).getOperator() == UnaryOperator.AMPER) {
 
       // a = &b; base constraint
 
-      op2 = ((IASTUnaryExpression) op2).getOperand();
+      op2 = ((CUnaryExpression) op2).getOperand();
 
-      if (op2 instanceof IASTIdExpression) {
+      if (op2 instanceof CIdExpression) {
 
         AndersenState succ = element.clone();
         succ.addConstraint(new BaseConstraint(op2.toASTString(), op1));
@@ -209,13 +209,13 @@ public class AndersenTransferRelation implements TransferRelation {
       } else
         throw new UnrecognizedCCodeException("not supported", cfaEdge, op2);
 
-    } else if (op2 instanceof IASTUnaryExpression && ((IASTUnaryExpression) op2).getOperator() == UnaryOperator.STAR) {
+    } else if (op2 instanceof CUnaryExpression && ((CUnaryExpression) op2).getOperator() == UnaryOperator.STAR) {
 
       // a = *b; complex constraint
 
-      op2 = ((IASTUnaryExpression) op2).getOperand();
+      op2 = ((CUnaryExpression) op2).getOperand();
 
-      if (op2 instanceof IASTIdExpression) {
+      if (op2 instanceof CIdExpression) {
 
         AndersenState succ = element.clone();
         succ.addConstraint(new ComplexConstraint(op2.toASTString(), op1, true));
@@ -224,8 +224,8 @@ public class AndersenTransferRelation implements TransferRelation {
       } else
         throw new UnrecognizedCCodeException("not supported", cfaEdge, op2);
 
-    } else if (op2 instanceof IASTFunctionCallExpression
-        && "malloc".equals(((IASTFunctionCallExpression) op2).getFunctionNameExpression().toASTString())) {
+    } else if (op2 instanceof CFunctionCallExpression
+        && "malloc".equals(((CFunctionCallExpression) op2).getFunctionNameExpression().toASTString())) {
 
       AndersenState succ = element.clone();
       succ.addConstraint(new BaseConstraint("malloc-" + cfaEdge.getLineNumber(), op1));
@@ -238,24 +238,24 @@ public class AndersenTransferRelation implements TransferRelation {
     return element.clone();
   }
 
-  private AndersenState handleDeclaration(AndersenState element, DeclarationEdge declarationEdge)
+  private AndersenState handleDeclaration(AndersenState element, CDeclarationEdge declarationEdge)
       throws UnrecognizedCCodeException {
 
-    if (!(declarationEdge.getDeclaration() instanceof IASTVariableDeclaration)) {
+    if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
       // nothing interesting to see here, please move along
       return element.clone();
     }
 
-    IASTVariableDeclaration decl = (IASTVariableDeclaration) declarationEdge.getDeclaration();
+    CVariableDeclaration decl = (CVariableDeclaration) declarationEdge.getDeclaration();
 
     // get the variable name in the declarator
     String varName = decl.getName();
 
     // get initial value
-    IASTInitializer init = decl.getInitializer();
-    if (init instanceof IASTInitializerExpression) {
+    CInitializer init = decl.getInitializer();
+    if (init instanceof CInitializerExpression) {
 
-      IASTRightHandSide exp = ((IASTInitializerExpression) init).getExpression();
+      CRightHandSide exp = ((CInitializerExpression) init).getExpression();
 
       return handleAssignmentTo(varName, exp, element, declarationEdge);
     }

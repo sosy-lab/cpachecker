@@ -27,8 +27,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -88,7 +88,7 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
 
     for (AbstractState element : AbstractStates.asIterable(others)) {
       if (element instanceof AssumptionReportingState) {
-        IASTExpression inv = ((AssumptionReportingState)element).getAssumption();
+        CExpression inv = ((AssumptionReportingState)element).getAssumption();
         Formula invFormula = converter.makePredicate(inv, edge, function, SSAMap.emptySSAMap().builder());
         assumption = formulaManager.makeAnd(assumption, formulaManager.uninstantiate(invFormula));
       }

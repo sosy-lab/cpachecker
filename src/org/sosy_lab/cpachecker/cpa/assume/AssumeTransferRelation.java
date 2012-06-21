@@ -27,13 +27,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -55,15 +55,15 @@ public class AssumeTransferRelation implements TransferRelation {
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
     if (pCfaEdge.getEdgeType().equals(CFAEdgeType.StatementEdge)) {
-      StatementEdge lEdge = (StatementEdge)pCfaEdge;
+      CStatementEdge lEdge = (CStatementEdge)pCfaEdge;
 
-      IASTStatement lExpression = lEdge.getStatement();
+      CStatement lExpression = lEdge.getStatement();
 
-      if (lExpression instanceof IASTFunctionCallStatement) {
-        IASTFunctionCallExpression lCallExpression = ((IASTFunctionCallStatement)lExpression).getFunctionCallExpression();
+      if (lExpression instanceof CFunctionCallStatement) {
+        CFunctionCallExpression lCallExpression = ((CFunctionCallStatement)lExpression).getFunctionCallExpression();
 
         if (lCallExpression.getFunctionNameExpression().toASTString().equals(mFunctionName)) {
-          List<IASTExpression> lParameterExpressions = lCallExpression.getParameterExpressions();
+          List<CExpression> lParameterExpressions = lCallExpression.getParameterExpressions();
           if (lParameterExpressions.size() != 1) {
             throw new UnrecognizedCCodeException("Function " + mFunctionName + " called with wrong number of arguments",
                                                  pCfaEdge, lCallExpression);

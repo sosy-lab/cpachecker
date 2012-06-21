@@ -27,13 +27,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -41,11 +41,11 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class DefUseTransferRelation implements TransferRelation
 {
-  private DefUseState handleExpression (DefUseState defUseState, IASTStatement expression, CFAEdge cfaEdge)
+  private DefUseState handleExpression (DefUseState defUseState, CStatement expression, CFAEdge cfaEdge)
   {
-    if (expression instanceof IASTAssignment)
+    if (expression instanceof CAssignment)
     {
-      IASTAssignment assignExpression = (IASTAssignment) expression;
+      CAssignment assignExpression = (CAssignment) expression;
 
       String lParam = assignExpression.getLeftHandSide().toASTString();
       // String lParam2 = binaryExpression.getOperand2 ().getRawSignature ();
@@ -56,11 +56,11 @@ public class DefUseTransferRelation implements TransferRelation
     return defUseState;
   }
 
-  private DefUseState handleDeclaration (DefUseState defUseState, DeclarationEdge cfaEdge)
+  private DefUseState handleDeclaration (DefUseState defUseState, CDeclarationEdge cfaEdge)
   {
-    if (cfaEdge.getDeclaration() instanceof IASTVariableDeclaration) {
-      IASTVariableDeclaration decl = (IASTVariableDeclaration)cfaEdge.getDeclaration();
-      IASTInitializer initializer = decl.getInitializer();
+    if (cfaEdge.getDeclaration() instanceof CVariableDeclaration) {
+      CVariableDeclaration decl = (CVariableDeclaration)cfaEdge.getDeclaration();
+      CInitializer initializer = decl.getInitializer();
       if (initializer != null)
       {
         String varName = decl.getName();
@@ -80,14 +80,14 @@ public class DefUseTransferRelation implements TransferRelation
     {
     case StatementEdge:
     {
-      StatementEdge statementEdge = (StatementEdge) cfaEdge;
-      IASTStatement expression = statementEdge.getStatement();
+      CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
+      CStatement expression = statementEdge.getStatement();
       defUseState = handleExpression (defUseState, expression, cfaEdge);
       break;
     }
     case DeclarationEdge:
     {
-      DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
+      CDeclarationEdge declarationEdge = (CDeclarationEdge) cfaEdge;
       defUseState = handleDeclaration (defUseState, declarationEdge);
       break;
     }

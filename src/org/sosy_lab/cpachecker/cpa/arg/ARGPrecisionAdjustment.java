@@ -67,7 +67,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
     ARGState resultElement = new ARGState(newElement, null);
 
-    element.replaceInARTWith(resultElement); // this completely eliminates element
+    element.replaceInARGWith(resultElement); // this completely eliminates element
 
     return Triple.<AbstractState, Precision, Action>of(resultElement, newPrecision, action);
   }

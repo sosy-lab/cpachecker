@@ -33,11 +33,11 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 
 
@@ -53,7 +53,7 @@ public class BlockPartitioningBuilder {
   private final Map<CFANode, Set<ReferencedVariable>> referencedVariablesMap = new HashMap<CFANode, Set<ReferencedVariable>>();
   private final Map<CFANode, Set<CFANode>> callNodesMap = new HashMap<CFANode, Set<CFANode>>();
   private final Map<CFANode, Set<CFANode>> returnNodesMap = new HashMap<CFANode, Set<CFANode>>();
-  private final Map<CFANode, Set<CFAFunctionDefinitionNode>> innerFunctionCallsMap = new HashMap<CFANode, Set<CFAFunctionDefinitionNode>>();
+  private final Map<CFANode, Set<FunctionEntryNode>> innerFunctionCallsMap = new HashMap<CFANode, Set<FunctionEntryNode>>();
   private final Map<CFANode, Set<CFANode>> blockNodesMap = new HashMap<CFANode, Set<CFANode>>();
 
   public BlockPartitioningBuilder(Set<CFANode> mainFunctionBody) {
@@ -108,12 +108,12 @@ public class BlockPartitioningBuilder {
     Set<ReferencedVariable> referencedVariables = collectReferencedVariables(nodes);
     Set<CFANode> callNodes = collectCallNodes(nodes, mainFunction);
     Set<CFANode> returnNodes = collectReturnNodes(nodes, mainFunction);
-    Set<CFAFunctionDefinitionNode> innerFunctionCalls = collectInnerFunctionCalls(nodes);
+    Set<FunctionEntryNode> innerFunctionCalls = collectInnerFunctionCalls(nodes);
 
     CFANode registerNode = null;
     for(CFANode node : callNodes) {
       registerNode = node;
-      if(node instanceof CFAFunctionDefinitionNode) {
+      if(node instanceof FunctionEntryNode) {
         break;
       }
     }
@@ -125,13 +125,13 @@ public class BlockPartitioningBuilder {
     blockNodesMap.put(registerNode, nodes);
   }
 
-  private Set<CFAFunctionDefinitionNode> collectInnerFunctionCalls(Set<CFANode> pNodes) {
-    Set<CFAFunctionDefinitionNode> result = new HashSet<CFAFunctionDefinitionNode>();
+  private Set<FunctionEntryNode> collectInnerFunctionCalls(Set<CFANode> pNodes) {
+    Set<FunctionEntryNode> result = new HashSet<FunctionEntryNode>();
     for(CFANode node : pNodes) {
       for(int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge e = node.getLeavingEdge(i);
-        if (e instanceof FunctionCallEdge) {
-          result.add(((FunctionCallEdge)e).getSuccessor());
+        if (e instanceof CFunctionCallEdge) {
+          result.add(((CFunctionCallEdge)e).getSuccessor());
         }
       }
     }
@@ -141,7 +141,7 @@ public class BlockPartitioningBuilder {
   private Set<CFANode> collectCallNodes(Set<CFANode> pNodes, CFANode mainFunction) {
     Set<CFANode> result = new HashSet<CFANode>();
     for(CFANode node : pNodes) {
-      if(node instanceof CFAFunctionDefinitionNode &&
+      if(node instanceof FunctionEntryNode &&
          node.getFunctionName().equalsIgnoreCase(mainFunction.getFunctionName())) {
         //main definition is always a call edge
         result.add(node);
@@ -170,7 +170,7 @@ public class BlockPartitioningBuilder {
   private Set<CFANode> collectReturnNodes(Set<CFANode> pNodes, CFANode mainFunction) {
     Set<CFANode> result = new HashSet<CFANode>();
     for(CFANode node : pNodes) {
-      if(node instanceof CFAFunctionExitNode &&
+      if(node instanceof FunctionExitNode &&
          node.getFunctionName().equalsIgnoreCase(mainFunction.getFunctionName())) {
         //main exit nodes are always return nodes
         result.add(node);
@@ -182,12 +182,12 @@ public class BlockPartitioningBuilder {
         if(!pNodes.contains(succ)) {
           //leaving edge from inside of the given set of nodes to outside
           //-> this is a either return-node or a function call
-          if(!(node.getLeavingEdge(i) instanceof FunctionCallEdge)) {
+          if(!(node.getLeavingEdge(i) instanceof CFunctionCallEdge)) {
             //-> only add if its not a function call
             result.add(node);
           } else {
             //otherwise check if the summary edge is inside of the block
-            CFANode sumSucc = ((FunctionCallEdge)node.getLeavingEdge(i)).getSummaryEdge().getSuccessor();
+            CFANode sumSucc = ((CFunctionCallEdge)node.getLeavingEdge(i)).getSummaryEdge().getSuccessor();
             if(!pNodes.contains(sumSucc)) {
               //summary edge successor not in nodes set; this is a leaving edge
               //add entering nodes

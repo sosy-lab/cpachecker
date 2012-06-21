@@ -67,7 +67,7 @@ public class ARGMergeJoin implements MergeOperator {
     ARGState mergedElement = new ARGState(retElement, null);
 
     // now replace argElement2 by mergedElement in ARG
-    argElement2.replaceInARTWith(mergedElement);
+    argElement2.replaceInARGWith(mergedElement);
 
     // and also replace argElement1 with it
     for (ARGState parentOfElement1 : argElement1.getParents()) {

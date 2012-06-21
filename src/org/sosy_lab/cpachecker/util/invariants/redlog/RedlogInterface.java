@@ -30,7 +30,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.cpachecker.cfa.CParser;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 
 public class RedlogInterface {
 
@@ -121,7 +121,7 @@ public class RedlogInterface {
         E = new Equation();
       } else if (line.equals("~end-eq")) {
         E.setFormula(formula);
-        IASTNode tree = parse(formula);
+        CAstNode tree = parse(formula);
         E.setTree(tree);
         /**
         if (verbose) {
@@ -146,8 +146,8 @@ public class RedlogInterface {
     return EA;
   }
 
-  private IASTNode parse(String f) {
-    IASTNode root = null;
+  private CAstNode parse(String f) {
+    CAstNode root = null;
     try {
       // The statement must be wrapped inside a function
       // declaration. This however gets stripped away.
@@ -159,7 +159,7 @@ public class RedlogInterface {
     return root;
   }
 
-  public IASTNode parseFormula(String f) {
+  public CAstNode parseFormula(String f) {
     return parse(f);
   }
 

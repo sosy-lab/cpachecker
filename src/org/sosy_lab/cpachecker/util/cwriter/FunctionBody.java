@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.cwriter;
 import java.util.Iterator;
 import java.util.Stack;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 
 /**
  * A function is basically a stack of blocks, where the first element is the
@@ -44,7 +44,7 @@ class FunctionBody implements Iterable<BasicBlock> {
     stack.addAll(oldStack.stack);
   }
 
-  public void enterBlock(int pElementId, AssumeEdge pEdge, String pConditionString) {
+  public void enterBlock(int pElementId, CAssumeEdge pEdge, String pConditionString) {
     BasicBlock block = new BasicBlock(pElementId, pEdge, pConditionString);
     stack.peek().write(block); // register the inner block in its outer block
     stack.push(block);

@@ -106,7 +106,7 @@ public class ARGReachedSet {
     Preconditions.checkNotNull(e);
     Preconditions.checkArgument(!e.getParents().isEmpty(), "May not remove the initial element from the ARG/reached set");
 
-    Set<ARGState> toUnreach = e.getSubtree();
+    Set<ARGState> toUnreach = e.getSubgraph();
 
     // collect all elements covered by the subtree
     List<ARGState> newToUnreach = new ArrayList<ARGState>();
@@ -143,7 +143,7 @@ public class ARGReachedSet {
         }
       }
 
-      ae.removeFromART();
+      ae.removeFromARG();
     }
     return toWaitlist;
   }
@@ -172,7 +172,7 @@ public class ARGReachedSet {
     element.uncover();
 
     // this is the subtree of elements which now become uncovered
-    Set<ARGState> uncoveredSubTree = element.getSubtree();
+    Set<ARGState> uncoveredSubTree = element.getSubgraph();
 
     for (ARGState e : uncoveredSubTree) {
       assert !e.isCovered();

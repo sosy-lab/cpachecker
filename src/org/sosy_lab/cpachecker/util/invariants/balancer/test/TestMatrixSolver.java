@@ -27,11 +27,11 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Matrix;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Polynomial;
 import org.sosy_lab.cpachecker.util.invariants.balancer.RationalFunction;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Variable;
-import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 import org.sosy_lab.cpachecker.util.invariants.balancer.prh12.PivotRowHandler;
 
 

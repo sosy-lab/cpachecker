@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.blocking;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 @SuppressWarnings("unused")
 public class ReducedFunctionTest {

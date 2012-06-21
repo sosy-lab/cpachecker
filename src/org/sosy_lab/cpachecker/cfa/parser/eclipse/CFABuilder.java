@@ -41,10 +41,11 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.SortedSetMultimap;
@@ -60,11 +61,11 @@ class CFABuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
   private Queue<IASTFunctionDefinition> functionDeclarations = new LinkedList<IASTFunctionDefinition>();
-  private final Map<String, CFAFunctionDefinitionNode> cfas = new HashMap<String, CFAFunctionDefinitionNode>();
+  private final Map<String, FunctionEntryNode> cfas = new HashMap<String, FunctionEntryNode>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
   // Data structure for storing global declarations
-  private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration, String>> globalDeclarations = Lists.newArrayList();
+  private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration, String>> globalDeclarations = Lists.newArrayList();
 
   private final Scope scope = new Scope();
   private final ASTConverter astCreator;
@@ -91,7 +92,7 @@ class CFABuilder extends ASTVisitor {
    * Retrieves list of all functions
    * @return all CFAs in the program
    */
-  public Map<String, CFAFunctionDefinitionNode> getCFAs()  {
+  public Map<String, FunctionEntryNode> getCFAs()  {
     return cfas;
   }
 
@@ -107,7 +108,7 @@ class CFABuilder extends ASTVisitor {
    * Retrieves list of all global declarations
    * @return global declarations
    */
-  public List<Pair<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration, String>> getGlobalDeclarations() {
+  public List<Pair<CDeclaration, String>> getGlobalDeclarations() {
     return globalDeclarations;
   }
 
@@ -126,8 +127,8 @@ class CFABuilder extends ASTVisitor {
       functionDeclarations.add(fd);
 
       // add forward declaration to list of global declarations
-      org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration functionDefinition = astCreator.convert(fd);
-      if (astCreator.numberOfSideAssignments() > 0) {
+      CDeclaration functionDefinition = astCreator.convert(fd);
+      if (astCreator.numberOfPreSideAssignments() > 0) {
         throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
       }
 
@@ -160,20 +161,20 @@ class CFABuilder extends ASTVisitor {
   private int handleSimpleDeclaration(final IASTSimpleDeclaration sd,
       final IASTFileLocation fileloc) {
 
-    final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> newDs = astCreator.convert(sd);
+    final List<CDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
 
-    if (astCreator.numberOfSideAssignments() > 0) {
+    if (astCreator.numberOfPreSideAssignments() > 0) {
       throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
     }
 
     String rawSignature = sd.getRawSignature();
 
-    for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
-      if (newD instanceof IASTVariableDeclaration) {
+    for (CDeclaration newD : newDs) {
+      if (newD instanceof CVariableDeclaration) {
         scope.registerDeclaration(newD);
-      } else if (newD instanceof IASTFunctionDeclaration) {
-        scope.registerFunctionDeclaration((IASTFunctionDeclaration) newD);
+      } else if (newD instanceof CFunctionDeclaration) {
+        scope.registerFunctionDeclaration((CFunctionDeclaration) newD);
       }
 
       globalDeclarations.add(Pair.of(newD, rawSignature));
@@ -199,7 +200,7 @@ class CFABuilder extends ASTVisitor {
 
       declaration.accept(functionBuilder);
 
-      CFAFunctionDefinitionNode startNode = functionBuilder.getStartNode();
+      FunctionEntryNode startNode = functionBuilder.getStartNode();
       String functionName = startNode.getFunctionName();
 
       if (cfas.containsKey(functionName)) {

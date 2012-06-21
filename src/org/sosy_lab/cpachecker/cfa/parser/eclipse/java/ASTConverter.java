@@ -37,6 +37,7 @@ import org.eclipse.jdt.core.dom.Assignment;
 import org.eclipse.jdt.core.dom.BooleanLiteral;
 import org.eclipse.jdt.core.dom.CharacterLiteral;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.ConditionalExpression;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.ITypeBinding;
@@ -57,37 +58,37 @@ import org.eclipse.jdt.core.dom.VariableDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.BasicType;
-import org.sosy_lab.cpachecker.cfa.ast.DummyType;
-import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IType;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -99,9 +100,9 @@ public class ASTConverter {
   private final LogManager logger;
 
   private Scope scope;
-  private LinkedList<IASTNode> sideAssignments = new LinkedList<IASTNode>();
-  private org.eclipse.cdt.core.dom.ast.IASTConditionalExpression conditionalExpression = null;
-  private IASTIdExpression conditionalTemporaryVariable = null;
+  private LinkedList<CAstNode> sideAssignments = new LinkedList<CAstNode>();
+  private ConditionalExpression conditionalExpression = null;
+  private CIdExpression conditionalTemporaryVariable = null;
 
   public ASTConverter(Scope pScope, boolean pIgnoreCasts, LogManager pLogger) {
     scope = pScope;
@@ -112,7 +113,7 @@ public class ASTConverter {
     return sideAssignments.size();
   }
 
-  public IASTNode getNextSideAssignment() {
+  public CAstNode getNextSideAssignment() {
     return sideAssignments.removeFirst();
   }
 
@@ -120,11 +121,11 @@ public class ASTConverter {
     conditionalExpression = null;
   }
 
-  public org.eclipse.cdt.core.dom.ast.IASTConditionalExpression getConditionalExpression() {
+  public ConditionalExpression getConditionalExpression() {
     return conditionalExpression;
   }
 
-  public IASTIdExpression getConditionalTemporaryVariable() {
+  public CIdExpression getConditionalTemporaryVariable() {
     return conditionalTemporaryVariable;
   }
 
@@ -135,19 +136,19 @@ public class ASTConverter {
   }
 
   @SuppressWarnings({ "cast", "unchecked" })
-  public IASTFunctionDeclaration convert(final MethodDeclaration f) {
+  public CFunctionDeclaration convert(final MethodDeclaration f) {
   //TODO Protoyp implementation for Method Declaration Converting,
   //     Finish when method calls are to be implemented.
 
-    IASTFunctionTypeSpecifier declSpec = new IASTFunctionTypeSpecifier(false , false , convert(f.getReturnType2()) , convertParameterList((List<SingleVariableDeclaration>)f.parameters()) , false );
+    CFunctionType declSpec = new CFunctionType(false , false , convert(f.getReturnType2()) , convertParameterList((List<SingleVariableDeclaration>)f.parameters()) , false );
     String name = f.getName().getFullyQualifiedName();
 
-    IASTFileLocation fileLoc = getFileLocation(f);
+    CFileLocation fileLoc = getFileLocation(f);
 
-    return new IASTFunctionDeclaration(fileLoc, declSpec, name);
+    return new CFunctionDeclaration(fileLoc, declSpec, name);
   }
 
-  private IType convert(Type t) {
+  private CType convert(Type t) {
     // TODO Not all Types implemented
     if (t.getNodeType() == ASTNode.PRIMITIVE_TYPE) {
       return convert((PrimitiveType)t);
@@ -155,24 +156,24 @@ public class ASTConverter {
     } else if(t.getNodeType() == ASTNode.ARRAY_TYPE){
       return convert((ArrayType)t);
     } else {
-      return new DummyType(t.toString());
+      return new CDummyType(t.toString());
     }
   }
 
-  private IType convert(ITypeBinding t) {
+  private CType convert(ITypeBinding t) {
     //TODO Needs to be completed
 
     if(t.isPrimitive()){
-      return new IASTSimpleDeclSpecifier(false, false, convertPrimitiveType(t.getName()), false, false, false, false, false, false, false);
+      return new CSimpleType(false, false, convertPrimitiveType(t.getName()), false, false, false, false, false, false, false);
     }
 
     return null;
   }
 
 
-  private IASTArrayTypeSpecifier convert(final ArrayType t) {
+  private CArrayType convert(final ArrayType t) {
       //TODO Prototyp implementation for Array Typ
-     return new IASTArrayTypeSpecifier(false, false, convert(t.getElementType()), null);
+     return new CArrayType(false, false, convert(t.getElementType()), null);
 
   }
 
@@ -185,7 +186,7 @@ public class ASTConverter {
    * @return FileLocation with Placement Information of the Code Piece, or null
    *          if such Information could not be obtained.
    */
-  public IASTFileLocation getFileLocation (ASTNode l) {
+  public CFileLocation getFileLocation (ASTNode l) {
     if (l == null) {
       return null;
     } else if(l.getRoot().getNodeType() != ASTNode.COMPILATION_UNIT){
@@ -197,13 +198,13 @@ public class ASTConverter {
 
 
     // TODO Solve File Name Problem
-    return new IASTFileLocation(   co.getLineNumber(l.getLength() + l.getStartPosition()),
+    return new CFileLocation(   co.getLineNumber(l.getLength() + l.getStartPosition()),
                                      "Readable.java", l.getLength(), l.getStartPosition(),
                                        co.getLineNumber(l.getStartPosition()));
   }
 
 
-  private  IASTSimpleDeclSpecifier convert(final PrimitiveType t) {
+  private  CSimpleType convert(final PrimitiveType t) {
 
 
         PrimitiveType.Code primitiveTypeName = t.getPrimitiveTypeCode();
@@ -212,28 +213,28 @@ public class ASTConverter {
         //TODO refactor SimpleDeclSpecifier for Information in Java
         //  Object is instantiated here, but filled with modifier Information later
         // to make the above functions more common
-        return new IASTSimpleDeclSpecifier(false, false, convertPrimitiveType(primitiveTypeName.toString()), false, false, false, false, false, false, false);
+        return new CSimpleType(false, false, convertPrimitiveType(primitiveTypeName.toString()), false, false, false, false, false, false, false);
 
   }
 
-  private BasicType convertPrimitiveType(String primitiveTypeName) {
+  private CBasicType convertPrimitiveType(String primitiveTypeName) {
 
-    BasicType type;
-    // TODO BasicType extension for boolean, best if also in abstract with generic.
+    CBasicType type;
+    // TODO CBasicType extension for boolean, best if also in abstract with generic.
     if(primitiveTypeName.equals("boolean") ){
-      type = BasicType.BOOL;
+      type = CBasicType.BOOL;
     } else if(primitiveTypeName.equals("char")) {
-      type = BasicType.CHAR;
+      type = CBasicType.CHAR;
     } else if(primitiveTypeName.equals("double")) {
-      type = BasicType.DOUBLE;
+      type = CBasicType.DOUBLE;
     } else if(primitiveTypeName.equals("float")) {
-      type = BasicType.FLOAT;
+      type = CBasicType.FLOAT;
     } else if(primitiveTypeName.equals("int")) {
-      type = BasicType.INT;
+      type = CBasicType.INT;
     } else if(primitiveTypeName.equals("boolean")) {
-      type = BasicType.INT;
+      type = CBasicType.INT;
     } else if(primitiveTypeName.equals("void")) {
-      type = BasicType.VOID;
+      type = CBasicType.VOID;
     } else {
       throw new CFAGenerationRuntimeException("Unknown primitive type " + primitiveTypeName);
     }
@@ -241,29 +242,29 @@ public class ASTConverter {
     return type;
 }
 
-  private List<IASTParameterDeclaration> convertParameterList(List<SingleVariableDeclaration> ps) {
-    List<IASTParameterDeclaration> paramsList = new ArrayList<IASTParameterDeclaration>(ps.size());
+  private List<CParameterDeclaration> convertParameterList(List<SingleVariableDeclaration> ps) {
+    List<CParameterDeclaration> paramsList = new ArrayList<CParameterDeclaration>(ps.size());
     for (org.eclipse.jdt.core.dom.SingleVariableDeclaration c : ps) {
         paramsList.add(convertParameter(c));
     }
     return paramsList;
   }
 
-  private IASTParameterDeclaration convertParameter(SingleVariableDeclaration p) {
+  private CParameterDeclaration convertParameter(SingleVariableDeclaration p) {
 
-    IType type = convert(p.getType());
+    CType type = convert(p.getType());
 
-    return new IASTParameterDeclaration(getFileLocation(p), type, p.getName().getFullyQualifiedName());
+    return new CParameterDeclaration(getFileLocation(p), type, p.getName().getFullyQualifiedName());
   }
 
-  public List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> convert(VariableDeclaration vd){
-      List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> result = new ArrayList<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration>();
+  public List<org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration> convert(VariableDeclaration vd){
+      List<org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration> result = new ArrayList<org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration>();
       result.add(createVariableDeclaration(vd));
       return result;
   }
 
 
-  public IASTVariableDeclaration createVariableDeclaration( VariableDeclaration d) {
+  public CVariableDeclaration createVariableDeclaration( VariableDeclaration d) {
 
     if(d.getNodeType() == ASTNode.SINGLE_VARIABLE_DECLARATION){
       return createVariableDeclaration((SingleVariableDeclaration) d);
@@ -273,13 +274,13 @@ public class ASTConverter {
 
   }
 
-  private IASTVariableDeclaration createVariableDeclaration(VariableDeclarationFragment d) {
+  private CVariableDeclaration createVariableDeclaration(VariableDeclarationFragment d) {
 
-  IASTInitializerExpression initializerExpression = null;
+  CInitializerExpression initializerExpression = null;
 
-  // If there is no Initializer, StorageClass expects null to be given.
+  // If there is no Initializer, CStorageClass expects null to be given.
   if(d.getInitializer() != null){
-    initializerExpression = new IASTInitializerExpression( getFileLocation(d) , (IASTExpression) convertExpressionWithSideEffects(d.getInitializer()));
+    initializerExpression = new CInitializerExpression( getFileLocation(d) , (CExpression) convertExpressionWithSideEffects(d.getInitializer()));
   }
 
     // TODO Refactor in tandem with VariableDeclarationStatment
@@ -294,15 +295,15 @@ public class ASTConverter {
       logger.log(Level.SEVERE, "Type of Parent of Variable Declaration Statement not implemented");
     }
 
-    return new IASTVariableDeclaration(getFileLocation(d), false,
-        StorageClass.AUTO, convert(type), d.getName().getFullyQualifiedName(), d.getName().getFullyQualifiedName(), initializerExpression);
+    return new CVariableDeclaration(getFileLocation(d), false,
+        CStorageClass.AUTO, convert(type), d.getName().getFullyQualifiedName(), d.getName().getFullyQualifiedName(), initializerExpression);
   }
 
-  public List<IASTVariableDeclaration> convert(VariableDeclarationStatement vds){
+  public List<CVariableDeclaration> convert(VariableDeclarationStatement vds){
     // TODO Refactor for effectivness, types don't have to be resolved
     //      redundantly in variableDeclarationFragments
 
-    List<IASTVariableDeclaration> variableDeclarations = new ArrayList<IASTVariableDeclaration>();
+    List<CVariableDeclaration> variableDeclarations = new ArrayList<CVariableDeclaration>();
 
     @SuppressWarnings({ "cast", "unchecked" })
     List<VariableDeclarationFragment> variableDeclarationFragments =
@@ -315,57 +316,57 @@ public class ASTConverter {
     return variableDeclarations;
   }
 
-  public IASTVariableDeclaration createVariableDeclaration(SingleVariableDeclaration d) {
+  public CVariableDeclaration createVariableDeclaration(SingleVariableDeclaration d) {
 
 
-    IASTInitializerExpression initializerExpression = null;
+    CInitializerExpression initializerExpression = null;
 
-      // If there is no Initializer, StorageClass expects null to be given.
+      // If there is no Initializer, CStorageClass expects null to be given.
     if(d.getInitializer() != null){
-      initializerExpression = new IASTInitializerExpression( getFileLocation(d) , (IASTExpression) convertExpressionWithSideEffects(d.getInitializer()));
+      initializerExpression = new CInitializerExpression( getFileLocation(d) , (CExpression) convertExpressionWithSideEffects(d.getInitializer()));
     }
 
     //TODO Think about Scope with Storage Class and the meaning behind the names
-    return new IASTVariableDeclaration(getFileLocation(d), false,
-        StorageClass.AUTO, convert(d.getType()), d.getName().getFullyQualifiedName(), d.getName().getFullyQualifiedName(), initializerExpression);
+    return new CVariableDeclaration(getFileLocation(d), false,
+        CStorageClass.AUTO, convert(d.getType()), d.getName().getFullyQualifiedName(), d.getName().getFullyQualifiedName(), initializerExpression);
   }
 
 
 
 
-  public IASTExpression convertExpressionWithoutSideEffects( Expression e) {
+  public CExpression convertExpressionWithoutSideEffects( Expression e) {
 
-    IASTNode node = convertExpressionWithSideEffects(e);
+    CAstNode node = convertExpressionWithSideEffects(e);
 
-    if (node == null || node instanceof IASTExpression) {
-      return (IASTExpression) node;
+    if (node == null || node instanceof CExpression) {
+      return (CExpression) node;
 
-    } else if (node instanceof IASTFunctionCallExpression) {
+    } else if (node instanceof CFunctionCallExpression) {
       return addSideassignmentsForExpressionsWithoutSideEffects(node, e);
 
-    } else if (node instanceof IASTAssignment) {
+    } else if (node instanceof CAssignment) {
       sideAssignments.add(node);
-      return ((IASTAssignment) node).getLeftHandSide();
+      return ((CAssignment) node).getLeftHandSide();
 
     } else {
       throw new AssertionError("unknown expression " + node);
     }
   }
 
-  private IASTExpression addSideassignmentsForExpressionsWithoutSideEffects(IASTNode node,Expression e) {
-    IASTIdExpression tmp = createTemporaryVariable(e);
+  private CExpression addSideassignmentsForExpressionsWithoutSideEffects(CAstNode node,Expression e) {
+    CIdExpression tmp = createTemporaryVariable(e);
 
     //TODO Investigate if FileLoction is instanced
-    sideAssignments.add(new IASTFunctionCallAssignmentStatement( node.getFileLocation(),
+    sideAssignments.add(new CFunctionCallAssignmentStatement( node.getFileLocation(),
         tmp,
-        (IASTFunctionCallExpression) node));
+        (CFunctionCallExpression) node));
     return tmp;
   }
 
   /**
    * creates temporary variables with increasing numbers
    */
-  private IASTIdExpression createTemporaryVariable(Expression e) {
+  private CIdExpression createTemporaryVariable(Expression e) {
     String name = "__CPAchecker_TMP_";
     int i = 0;
     while(scope.variableNameInUse(name+i, name+i)){
@@ -374,9 +375,9 @@ public class ASTConverter {
     name += i;
 
     // TODO Maybe node as parameter to avoid converting File Location?
-    IASTVariableDeclaration decl = new IASTVariableDeclaration(getFileLocation(e),
+    CVariableDeclaration decl = new CVariableDeclaration(getFileLocation(e),
                                                false,
-                                               StorageClass.AUTO,
+                                               CStorageClass.AUTO,
                                                convert(e.resolveTypeBinding()),
                                                name,
                                                name,
@@ -384,7 +385,7 @@ public class ASTConverter {
 
     scope.registerDeclaration(decl);
     sideAssignments.add(decl);
-    IASTIdExpression tmp = new IASTIdExpression(decl.getFileLocation(),
+    CIdExpression tmp = new CIdExpression(decl.getFileLocation(),
                                                 convert(e.resolveTypeBinding()),
                                                 name,
                                                 decl);
@@ -392,21 +393,21 @@ public class ASTConverter {
   }
 
 
-  public IASTStatement convert(final ExpressionStatement s) {
+  public CStatement convert(final ExpressionStatement s) {
 
-    IASTNode node = convertExpressionWithSideEffects(s.getExpression());
+    CAstNode node = convertExpressionWithSideEffects(s.getExpression());
 
-    if (node instanceof IASTExpressionAssignmentStatement) {
-      return (IASTExpressionAssignmentStatement)node;
+    if (node instanceof CExpressionAssignmentStatement) {
+      return (CExpressionAssignmentStatement)node;
 
-    } else if (node instanceof IASTFunctionCallAssignmentStatement) {
-      return (IASTFunctionCallAssignmentStatement)node;
+    } else if (node instanceof CFunctionCallAssignmentStatement) {
+      return (CFunctionCallAssignmentStatement)node;
 
-    } else if (node instanceof IASTFunctionCallExpression) {
-      return new IASTFunctionCallStatement( getFileLocation(s) , (IASTFunctionCallExpression)node);
+    } else if (node instanceof CFunctionCallExpression) {
+      return new CFunctionCallStatement( getFileLocation(s) , (CFunctionCallExpression)node);
 
-    } else if (node instanceof IASTExpression) {
-      return new IASTExpressionStatement(  getFileLocation(s) , (IASTExpression)node);
+    } else if (node instanceof CExpression) {
+      return new CExpressionStatement(  getFileLocation(s) , (CExpression)node);
 
     } else {
       throw new AssertionError();
@@ -414,7 +415,7 @@ public class ASTConverter {
   }
 
   //TODO Refactor to reduce Visibility
-  public IASTNode convertExpressionWithSideEffects(Expression e) {
+  public CAstNode convertExpressionWithSideEffects(Expression e) {
 
     //TODO  All Expression Implementation
 
@@ -456,22 +457,22 @@ public class ASTConverter {
 
 
 
-  private IASTIdExpression convert(SimpleName e) {
+  private CIdExpression convert(SimpleName e) {
     String name = e.getIdentifier();
-    IASTSimpleDeclaration declaration = scope.lookupVariable(name);
+    CSimpleDeclaration declaration = scope.lookupVariable(name);
     if (declaration != null) {
       name = declaration.getName();
     }
-    return new IASTIdExpression(getFileLocation(e), convert(e.resolveTypeBinding()), name, declaration);
+    return new CIdExpression(getFileLocation(e), convert(e.resolveTypeBinding()), name, declaration);
   }
 
 
 
-  private IASTNode convert(Assignment e) {
+  private CAstNode convert(Assignment e) {
 
-    IASTFileLocation fileLoc = getFileLocation(e);
-    IType type = convert(e.resolveTypeBinding());
-    IASTExpression leftHandSide = convertExpressionWithoutSideEffects(e.getLeftHandSide());
+    CFileLocation fileLoc = getFileLocation(e);
+    CType type = convert(e.resolveTypeBinding());
+    CExpression leftHandSide = convertExpressionWithoutSideEffects(e.getLeftHandSide());
 
     BinaryOperator op = convert(e.getOperator());
 
@@ -479,20 +480,20 @@ public class ASTConverter {
 
     if (op == null) {
       // a = b
-      IASTNode rightHandSide =  convertExpressionWithSideEffects(e.getRightHandSide()); // right-hand side may have a function call
+      CAstNode rightHandSide =  convertExpressionWithSideEffects(e.getRightHandSide()); // right-hand side may have a function call
 
 
-      if (rightHandSide instanceof IASTExpression) {
+      if (rightHandSide instanceof CExpression) {
         // a = b
-        return new IASTExpressionAssignmentStatement(fileLoc, leftHandSide, (IASTExpression)rightHandSide);
+        return new CExpressionAssignmentStatement(fileLoc, leftHandSide, (CExpression)rightHandSide);
 
-      } else if (rightHandSide instanceof IASTFunctionCallExpression) {
+      } else if (rightHandSide instanceof CFunctionCallExpression) {
         // a = f()
-        return new IASTFunctionCallAssignmentStatement(fileLoc, leftHandSide, (IASTFunctionCallExpression)rightHandSide);
+        return new CFunctionCallAssignmentStatement(fileLoc, leftHandSide, (CFunctionCallExpression)rightHandSide);
 
-      } else if(rightHandSide instanceof IASTAssignment) {
+      } else if(rightHandSide instanceof CAssignment) {
         sideAssignments.add(rightHandSide);
-        return new IASTExpressionAssignmentStatement(fileLoc, leftHandSide, ((IASTAssignment) rightHandSide).getLeftHandSide());
+        return new CExpressionAssignmentStatement(fileLoc, leftHandSide, ((CAssignment) rightHandSide).getLeftHandSide());
       } else {
         //TODO CFA Exception lacks ASTNode
         throw new CFAGenerationRuntimeException("Expression is not free of side-effects");
@@ -500,13 +501,13 @@ public class ASTConverter {
 
     } else {
       // a += b etc.
-      IASTExpression rightHandSide = convertExpressionWithoutSideEffects(e.getRightHandSide());
+      CExpression rightHandSide = convertExpressionWithoutSideEffects(e.getRightHandSide());
 
       // first create expression "a + b"
-      IASTBinaryExpression exp = new IASTBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
+      CBinaryExpression exp = new CBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
 
       // and now the assignment
-      return new IASTExpressionAssignmentStatement(fileLoc, leftHandSide, exp);
+      return new CExpressionAssignmentStatement(fileLoc, leftHandSide, exp);
     }
   }
 
@@ -544,7 +545,7 @@ public class ASTConverter {
 
   }
 
-  private IASTExpression convert(BooleanLiteral e) {
+  private CExpression convert(BooleanLiteral e) {
     //TODO When new Naming and structure is ready, change this way of expressing true or false in 1 or 0.
     long bool;
     if(e.booleanValue()){
@@ -552,11 +553,11 @@ public class ASTConverter {
     }else {
       bool = 0;
     }
-    return new IASTIntegerLiteralExpression( getFileLocation(e), convert(e.resolveTypeBinding()) , BigInteger.valueOf(Long.valueOf(bool )));
+    return new CIntegerLiteralExpression( getFileLocation(e), convert(e.resolveTypeBinding()) , BigInteger.valueOf(Long.valueOf(bool )));
   }
 
 
-  private IASTNode convert(PrefixExpression e) {
+  private CAstNode convert(PrefixExpression e) {
 
     PrefixExpression.Operator op = e.getOperator();
 
@@ -565,20 +566,20 @@ public class ASTConverter {
      return handlePreFixIncOrDec(e, op);
     }
 
-    IASTExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
-    IASTFileLocation fileLoc = getFileLocation(e);
-    IType type = convert(e.resolveTypeBinding());
+    CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+    CFileLocation fileLoc = getFileLocation(e);
+    CType type = convert(e.resolveTypeBinding());
 
-    return new IASTUnaryExpression(fileLoc, type, operand, convertUnaryOperator(op));
+    return new CUnaryExpression(fileLoc, type, operand, convertUnaryOperator(op));
   }
 
-  private IASTNode convert(PostfixExpression e) {
+  private CAstNode convert(PostfixExpression e) {
     PostfixExpression.Operator op = e.getOperator();
     return  handlePostFixIncOrDec(e, op);
   }
 
 
-  private IASTNode handlePostFixIncOrDec(PostfixExpression e, PostfixExpression.Operator op) {
+  private CAstNode handlePostFixIncOrDec(PostfixExpression e, PostfixExpression.Operator op) {
 
     BinaryOperator postOp = null;
     if (op.equals(PostfixExpression.Operator.INCREMENT)) {
@@ -594,17 +595,17 @@ public class ASTConverter {
       return null;
     } else {
 
-      IASTFileLocation fileLoc = getFileLocation(e);
-      IType type = convert(e.resolveTypeBinding());
-      IASTExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+      CFileLocation fileLoc = getFileLocation(e);
+      CType type = convert(e.resolveTypeBinding());
+      CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
 
-      IASTExpression preOne = new IASTIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
-      IASTBinaryExpression preExp = new IASTBinaryExpression(fileLoc, type, operand, preOne, postOp);
-      return new IASTExpressionAssignmentStatement(fileLoc, operand, preExp);
+      CExpression preOne = new CIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
+      CBinaryExpression preExp = new CBinaryExpression(fileLoc, type, operand, preOne, postOp);
+      return new CExpressionAssignmentStatement(fileLoc, operand, preExp);
     }
   }
 
-  private IASTNode handlePreFixIncOrDec(PrefixExpression e, Operator op) {
+  private CAstNode handlePreFixIncOrDec(PrefixExpression e, Operator op) {
 
     BinaryOperator preOp = null;
     if (op.equals(PrefixExpression.Operator.INCREMENT)) {
@@ -621,13 +622,13 @@ public class ASTConverter {
       return null;
     } else {
 
-      IASTFileLocation fileLoc = getFileLocation(e);
-      IType type = convert(e.resolveTypeBinding());
-      IASTExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+      CFileLocation fileLoc = getFileLocation(e);
+      CType type = convert(e.resolveTypeBinding());
+      CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
 
-      IASTExpression preOne = new IASTIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
-      IASTBinaryExpression preExp = new IASTBinaryExpression(fileLoc, type, operand, preOne, preOp);
-      return new IASTExpressionAssignmentStatement(fileLoc, operand, preExp);
+      CExpression preOne = new CIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
+      CBinaryExpression preExp = new CBinaryExpression(fileLoc, type, operand, preOne, preOp);
+      return new CExpressionAssignmentStatement(fileLoc, operand, preExp);
     }
   }
 
@@ -653,16 +654,16 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
 }
 
   @SuppressWarnings("unchecked")
-  private IASTExpression convert(InfixExpression e) {
-    IASTFileLocation fileLoc = getFileLocation(e);
-    IType type = convert(e.resolveTypeBinding());
-    IASTExpression leftHandSide = convertExpressionWithoutSideEffects(e.getLeftOperand());
+  private CExpression convert(InfixExpression e) {
+    CFileLocation fileLoc = getFileLocation(e);
+    CType type = convert(e.resolveTypeBinding());
+    CExpression leftHandSide = convertExpressionWithoutSideEffects(e.getLeftOperand());
 
     BinaryOperator op =   convertBinaryOperator(e.getOperator());
 
-    IASTExpression rightHandSide = convertExpressionWithoutSideEffects(e.getRightOperand());
+    CExpression rightHandSide = convertExpressionWithoutSideEffects(e.getRightOperand());
 
-    IASTExpression binaryExpression = new IASTBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
+    CExpression binaryExpression = new CBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
 
     //TODO Here we could translate the Idea of extended Operands
     //Maybe change tree Structure
@@ -670,7 +671,7 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
     // a x b x c is being translated to (((a x b) x c) x d)
     if (e.hasExtendedOperands()) {
       for (Expression extendedOperand : (List<Expression>) e.extendedOperands()) {
-        binaryExpression = new IASTBinaryExpression(fileLoc, type, binaryExpression,
+        binaryExpression = new CBinaryExpression(fileLoc, type, binaryExpression,
                                                  convertExpressionWithoutSideEffects(extendedOperand), op);
       }
     }
@@ -718,26 +719,26 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
 
   }
 
-  private IASTExpression convert(NumberLiteral e) {
-    IASTFileLocation fileLoc = getFileLocation(e);
-    IType type = convert(e.resolveTypeBinding());
+  private CExpression convert(NumberLiteral e) {
+    CFileLocation fileLoc = getFileLocation(e);
+    CType type = convert(e.resolveTypeBinding());
     String valueStr = e.getToken();
 
     //TODO only Prototype Solution
-    BasicType t = ((IASTSimpleDeclSpecifier) type).getType();
+    CBasicType t = ((CSimpleType) type).getType();
 
     switch(t){
-      case INT: return new IASTIntegerLiteralExpression(fileLoc, type, parseIntegerLiteral(valueStr, e));
+      case INT: return new CIntegerLiteralExpression(fileLoc, type, parseIntegerLiteral(valueStr, e));
     case FLOAT:
-        return new IASTFloatLiteralExpression(fileLoc, type, parseFloatLiteral(valueStr, e));
+        return new CFloatLiteralExpression(fileLoc, type, parseFloatLiteral(valueStr, e));
 
     case DOUBLE:
-        return new IASTFloatLiteralExpression(fileLoc, type, parseDoubleLiteral(valueStr, e));
+        return new CFloatLiteralExpression(fileLoc, type, parseDoubleLiteral(valueStr, e));
 
 
     }
 
-    return new IASTIntegerLiteralExpression( getFileLocation(e), convert(e.resolveTypeBinding()) , BigInteger.valueOf(Long.valueOf(e.getToken())));
+    return new CIntegerLiteralExpression( getFileLocation(e), convert(e.resolveTypeBinding()) , BigInteger.valueOf(Long.valueOf(e.getToken())));
   }
 
 
@@ -830,27 +831,27 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
   }
 
 
-  IASTStringLiteralExpression convert(StringLiteral e) {
-    IASTFileLocation fileLoc = getFileLocation(e);
+  CStringLiteralExpression convert(StringLiteral e) {
+    CFileLocation fileLoc = getFileLocation(e);
 
     //TODO Prototype , String is in java a class Type
-    IType type = new DummyType("String");
-    return new IASTStringLiteralExpression(fileLoc, type, e.getLiteralValue());
+    CType type = new CDummyType("String");
+    return new CStringLiteralExpression(fileLoc, type, e.getLiteralValue());
   }
 
-  IASTStringLiteralExpression convert(NullLiteral e) {
-    IASTFileLocation fileLoc = getFileLocation(e);
+  CStringLiteralExpression convert(NullLiteral e) {
+    CFileLocation fileLoc = getFileLocation(e);
 
     //TODO Prototype , null has to be created as astType in object model
-    IType type = new DummyType("null");
-    return new IASTStringLiteralExpression(fileLoc, type, "null");
+    CType type = new CDummyType("null");
+    return new CStringLiteralExpression(fileLoc, type, "null");
   }
 
 
-  IASTCharLiteralExpression convert(CharacterLiteral e) {
-    IASTFileLocation fileLoc = getFileLocation(e);
-    IType type = convert(e.resolveTypeBinding());
-    return new IASTCharLiteralExpression(fileLoc, type, e.charValue());
+  CCharLiteralExpression convert(CharacterLiteral e) {
+    CFileLocation fileLoc = getFileLocation(e);
+    CType type = convert(e.resolveTypeBinding());
+    return new CCharLiteralExpression(fileLoc, type, e.charValue());
   }
 
 
@@ -858,12 +859,12 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
 
 
 
-  public IASTExpression convertBooleanExpression(Expression e){
+  public CExpression convertBooleanExpression(Expression e){
 
-    IASTExpression exp = convertExpressionWithoutSideEffects(e);
+    CExpression exp = convertExpressionWithoutSideEffects(e);
     if (!isBooleanExpression(exp)) {
-      IASTExpression zero = new IASTIntegerLiteralExpression(exp.getFileLocation(), exp.getExpressionType(), BigInteger.ZERO);
-      return new IASTBinaryExpression(exp.getFileLocation(), exp.getExpressionType(), exp, zero, BinaryOperator.NOT_EQUALS);
+      CExpression zero = new CIntegerLiteralExpression(exp.getFileLocation(), exp.getExpressionType(), BigInteger.ZERO);
+      return new CBinaryExpression(exp.getFileLocation(), exp.getExpressionType(), exp, zero, BinaryOperator.NOT_EQUALS);
     }
 
     return exp;
@@ -879,12 +880,12 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
       BinaryOperator.LOGICAL_AND,
       BinaryOperator.LOGICAL_OR);
 
-  private boolean isBooleanExpression(IASTExpression e) {
-    if (e instanceof IASTBinaryExpression) {
-      return BOOLEAN_BINARY_OPERATORS.contains(((IASTBinaryExpression)e).getOperator());
+  private boolean isBooleanExpression(CExpression e) {
+    if (e instanceof CBinaryExpression) {
+      return BOOLEAN_BINARY_OPERATORS.contains(((CBinaryExpression)e).getOperator());
 
-    } else if (e instanceof IASTUnaryExpression) {
-      return ((IASTUnaryExpression) e).getOperator() == UnaryOperator.NOT;
+    } else if (e instanceof CUnaryExpression) {
+      return ((CUnaryExpression) e).getOperator() == UnaryOperator.NOT;
 
     } else {
       return false;

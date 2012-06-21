@@ -29,31 +29,31 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /** The Class ErrorPathShrinker gets an targetPath and creates a new Path,
  * with only the important edges of the Path. The idea behind this Class is,
@@ -122,8 +122,8 @@ public final class ErrorPathShrinker {
       // the pathHandler stops at a functionStart or at the start of program.
       // so if the lastEdge is a functionCall, the path is not finished.
       final CFAEdge lastEdge = shortErrorPath.getFirst().getSecond();
-      if (lastEdge instanceof FunctionCallEdge) {
-        final FunctionCallEdge funcEdge = (FunctionCallEdge) lastEdge;
+      if (lastEdge instanceof CFunctionCallEdge) {
+        final CFunctionCallEdge funcEdge = (CFunctionCallEdge) lastEdge;
 
         // "f(x)" or "a = f(x)",
         // the Error occured in the function, the left param is not important,
@@ -180,16 +180,16 @@ public final class ErrorPathShrinker {
     while (iterator.hasNext()) {
       CFAEdge cfaEdge = iterator.next().getSecond();
 
-      if (cfaEdge instanceof DeclarationEdge) {
-        IASTDeclaration declaration = ((DeclarationEdge) cfaEdge).getDeclaration();
+      if (cfaEdge instanceof CDeclarationEdge) {
+        CDeclaration declaration = ((CDeclarationEdge) cfaEdge).getDeclaration();
 
         if (declaration.isGlobal()) {
           // only global declarations are important
-          IType specifier = declaration.getDeclSpecifier();
+          CType type = declaration.getType();
           if (declaration.getName() != null) {
             // if a variable (declarator) is no pointer variable,
             // it is added to the list of global variables
-            if (!(specifier instanceof IASTPointerTypeSpecifier)) {
+            if (!(type instanceof CPointerType)) {
               GLOBAL_VARS.add(declaration.getName());
             }
           }
@@ -207,19 +207,19 @@ public final class ErrorPathShrinker {
    * @param exp the expression to be divided and added
    * @param importantVars all currently important variables
    * @param importantVarsForGlobalVars variables, that influence global vars */
-  private void addAllVarsInExpToSet(final IASTExpression exp,
+  private void addAllVarsInExpToSet(final CExpression exp,
       final Set<String> importantVars,
       final Set<String> importantVarsForGlobalVars) {
 
     // exp = 8.2 or "return;" (when exp == null),
     // this does not change the Set importantVars,
-    if (exp instanceof IASTLiteralExpression || exp == null) {
+    if (exp instanceof CLiteralExpression || exp == null) {
       // do nothing
     }
 
     // exp is an Identifier, i.e. the "b" from "a = b"
-    else if (exp instanceof IASTIdExpression) {
-      final String varName = ((IASTIdExpression)exp).getName();
+    else if (exp instanceof CIdExpression) {
+      final String varName = ((CIdExpression)exp).getName();
       importantVars.add(varName);
       if (GLOBAL_VARS.contains(varName)) {
         importantVarsForGlobalVars.add(varName);
@@ -227,20 +227,20 @@ public final class ErrorPathShrinker {
     }
 
     // (cast) b
-    else if (exp instanceof IASTCastExpression) {
-      addAllVarsInExpToSet(((IASTCastExpression) exp).getOperand(),
+    else if (exp instanceof CCastExpression) {
+      addAllVarsInExpToSet(((CCastExpression) exp).getOperand(),
           importantVars, importantVarsForGlobalVars);
     }
 
     // -b
-    else if (exp instanceof IASTUnaryExpression) {
-      addAllVarsInExpToSet(((IASTUnaryExpression) exp).getOperand(),
+    else if (exp instanceof CUnaryExpression) {
+      addAllVarsInExpToSet(((CUnaryExpression) exp).getOperand(),
           importantVars, importantVarsForGlobalVars);
     }
 
     // b op c; --> b is operand1, c is operand2
-    else if (exp instanceof IASTBinaryExpression) {
-      final IASTBinaryExpression binExp = (IASTBinaryExpression) exp;
+    else if (exp instanceof CBinaryExpression) {
+      final CBinaryExpression binExp = (CBinaryExpression) exp;
       addAllVarsInExpToSet(binExp.getOperand1(), importantVars,
           importantVarsForGlobalVars);
       addAllVarsInExpToSet(binExp.getOperand2(), importantVars,
@@ -248,7 +248,7 @@ public final class ErrorPathShrinker {
     }
 
     // a fieldReference "b->c" is handled as one variable with the name "b->c".
-    else if (exp instanceof IASTFieldReference) {
+    else if (exp instanceof CFieldReference) {
       final String varName = exp.toASTString();
       importantVars.add(varName);
       if (GLOBAL_VARS.contains(varName)) {
@@ -277,12 +277,12 @@ public final class ErrorPathShrinker {
    * @param importantVars all important variables
    * @param importantVarsForGlobalVars variables, that influence global vars */
   private void getImportantVarsFromFunctionCall(
-      final FunctionCallEdge funcEdge, final Set<String> importantVars,
+      final CFunctionCallEdge funcEdge, final Set<String> importantVars,
       final Set<String> importantVarsForGlobalVars) {
 
     // get a list with the expressions "x" and "y" from "f(x,y)"
     // all variables in the expressions are important
-    for (IASTExpression exp : funcEdge.getArguments()) {
+    for (CExpression exp : funcEdge.getArguments()) {
       addAllVarsInExpToSet(exp, importantVars, importantVarsForGlobalVars);
     }
   }
@@ -409,8 +409,8 @@ public final class ErrorPathShrinker {
       addGlobalVarsFromSetToSet(importantVarsForGlobalVars, possibleVars);
 
       // in the expression "return r" the value "r" is possibly important.
-      final IASTExpression returnExp =
-          ((ReturnStatementEdge) currentCFAEdgePair.getSecond()).getExpression();
+      final CExpression returnExp =
+          ((CReturnStatementEdge) currentCFAEdgePair.getSecond()).getExpression();
       addAllVarsInExpToSet(returnExp, possibleVars,
           importantVarsForGlobalVars);
 
@@ -467,17 +467,17 @@ public final class ErrorPathShrinker {
 
       // the recursive call stops at the functionStart,
       // so the lastEdge is the functionCall and there exist a
-      // CallToReturnEdge, that jumps over the hole function
+      // CFunctionSummaryEdge, that jumps over the hole function
       final CFAEdge lastEdge = shortFunctionPath.getFirst().getSecond();
-      assert (lastEdge instanceof FunctionCallEdge);
-      final FunctionCallEdge funcEdge = (FunctionCallEdge) lastEdge;
-      final CallToReturnEdge funcSummaryEdge = funcEdge.getSummaryEdge();
-      final IASTFunctionCall funcExp = funcSummaryEdge.getExpression();
+      assert (lastEdge instanceof CFunctionCallEdge);
+      final CFunctionCallEdge funcEdge = (CFunctionCallEdge) lastEdge;
+      final CFunctionSummaryEdge funcSummaryEdge = funcEdge.getSummaryEdge();
+      final CFunctionCall funcExp = funcSummaryEdge.getExpression();
 
       // "f(x)", without a variable "a" as "a = f(x)".
       // if the function changes the global variables,
       // get the variables from the function and update the Sets and Paths
-      if (funcExp instanceof IASTFunctionCallStatement
+      if (funcExp instanceof CFunctionCallStatement
           && !functionGlobalVarsPath.isEmpty()) {
 
         getImportantVarsFromFunction(possibleImportantVarsForGlobalVars);
@@ -492,9 +492,9 @@ public final class ErrorPathShrinker {
       }
 
       // "a = f(x)"
-      if (funcExp instanceof IASTFunctionCallAssignmentStatement) {
+      if (funcExp instanceof CFunctionCallAssignmentStatement) {
         final String lParam =
-            ((IASTFunctionCallAssignmentStatement) funcExp).getLeftHandSide().toASTString();
+            ((CFunctionCallAssignmentStatement) funcExp).getLeftHandSide().toASTString();
 
         // if the function has a important result or changes the global
         // variables, get the params from the function and update the Sets.
@@ -553,16 +553,16 @@ public final class ErrorPathShrinker {
     /** This method handles statements. */
     private void handleStatement() {
 
-      IASTStatement statementExp =
-          ((StatementEdge) currentCFAEdgePair.getSecond()).getStatement();
+      CStatement statementExp =
+          ((CStatementEdge) currentCFAEdgePair.getSecond()).getStatement();
 
       // expression is an assignment operation, e.g. a = b;
-      if (statementExp instanceof IASTExpressionAssignmentStatement) {
-        handleAssignment((IASTExpressionAssignmentStatement) statementExp);
+      if (statementExp instanceof CExpressionAssignmentStatement) {
+        handleAssignment((CExpressionAssignmentStatement) statementExp);
       }
 
       // ext();
-      else if (statementExp instanceof IASTFunctionCall) {
+      else if (statementExp instanceof CFunctionCall) {
         addCurrentCFAEdgePairToShortPath();
       }
     }
@@ -570,29 +570,29 @@ public final class ErrorPathShrinker {
     /** This method handles assignments (?a = ??).
      *
      * @param binaryExpression the expression to prove */
-    private void handleAssignment(final IASTExpressionAssignmentStatement assignmentExpression) {
+    private void handleAssignment(final CExpressionAssignmentStatement assignmentExpression) {
 
-      IASTExpression lParam = assignmentExpression.getLeftHandSide();
-      IASTExpression rightExp = assignmentExpression.getRightHandSide();
+      CExpression lParam = assignmentExpression.getLeftHandSide();
+      CExpression rightExp = assignmentExpression.getRightHandSide();
 
       // a = ?
-      if (lParam instanceof IASTIdExpression) {
-        handleAssignmentToVariable(((IASTIdExpression)lParam).getName(), rightExp);
+      if (lParam instanceof CIdExpression) {
+        handleAssignmentToVariable(((CIdExpression)lParam).getName(), rightExp);
       }
 
       // TODO: assignment to pointer, *a = ?
-      else if (lParam instanceof IASTUnaryExpression
-          && ((IASTUnaryExpression) lParam).getOperator() == UnaryOperator.STAR) {
+      else if (lParam instanceof CUnaryExpression
+          && ((CUnaryExpression) lParam).getOperator() == UnaryOperator.STAR) {
         addCurrentCFAEdgePairToShortPath();
       }
 
       // "a->b = ?", assignment to field is handled as assignment to variable.
-      else if (lParam instanceof IASTFieldReference) {
+      else if (lParam instanceof CFieldReference) {
         handleAssignmentToVariable(lParam.toASTString(), rightExp);
       }
 
       // TODO assignment to array cell, a[b] = ?
-      else if (lParam instanceof IASTArraySubscriptExpression) {
+      else if (lParam instanceof CArraySubscriptExpression) {
         addCurrentCFAEdgePairToShortPath();
       }
 
@@ -607,7 +607,7 @@ public final class ErrorPathShrinker {
      * @param lParam the local name of the variable to assign to
      * @param rightExp the assigning expression */
     private void handleAssignmentToVariable(final String lParam,
-        final IASTExpression rightExp) {
+        final CExpression rightExp) {
 
       // FIRST add edge to the Path, THEN remove lParam from Set
       if (importantVars.contains(lParam)
@@ -646,11 +646,11 @@ public final class ErrorPathShrinker {
     /** This method handles variable declarations ("int a;").
      * Expressions like "int a=b;" are divided by CIL into "int a;" and "a=b;",
      * so there is no need to handle them. The expression "a=b;" is then
-     * handled as StatementEdge. Global declarations are not divided by CIL. */
+     * handled as CStatementEdge. Global declarations are not divided by CIL. */
     private void handleDeclaration() {
 
-      IASTDeclaration declaration =
-          ((DeclarationEdge) currentCFAEdgePair.getSecond()).getDeclaration();
+      CDeclaration declaration =
+          ((CDeclarationEdge) currentCFAEdgePair.getSecond()).getDeclaration();
 
       /* If the declared variable is important, the edge is important. */
       if (declaration.getName() != null) {
@@ -673,8 +673,8 @@ public final class ErrorPathShrinker {
      * switchStatement. Otherwise this method only adds all variables in an
      * assumption (expression) to the important variables. */
     private void handleAssumption() {
-      final IASTExpression assumeExp =
-          ((AssumeEdge) currentCFAEdgePair.getSecond()).getExpression();
+      final CExpression assumeExp =
+          ((CAssumeEdge) currentCFAEdgePair.getSecond()).getExpression();
 
       if (!isSwitchStatement(assumeExp)) {
         addAllVarsInExpToSet(assumeExp, importantVars,
@@ -696,31 +696,31 @@ public final class ErrorPathShrinker {
      *
      * @param assumeExp the current assumption
      * @return is the assumption part of a switchStatement? */
-    private boolean isSwitchStatement(final IASTExpression assumeExp) {
+    private boolean isSwitchStatement(final CExpression assumeExp) {
 
       // Path can be empty at the end of a functionCall ("if (a) return b;")
       if (!shortPath.isEmpty()) {
         final CFAEdge lastEdge = shortPath.getFirst().getSecond();
 
         //check, if the last edge was an assumption
-        if (assumeExp instanceof IASTBinaryExpression
-            && lastEdge instanceof AssumeEdge) {
-          final AssumeEdge lastAss = (AssumeEdge) lastEdge;
-          final IASTExpression lastExp = lastAss.getExpression();
+        if (assumeExp instanceof CBinaryExpression
+            && lastEdge instanceof CAssumeEdge) {
+          final CAssumeEdge lastAss = (CAssumeEdge) lastEdge;
+          final CExpression lastExp = lastAss.getExpression();
 
           // check, if the last egde was like "a==b"
-          if (lastExp instanceof IASTBinaryExpression) {
-            final IASTExpression currentBinExpOp1 =
-                ((IASTBinaryExpression) assumeExp).getOperand1();
-            final IASTExpression lastBinExpOp1 =
-                ((IASTBinaryExpression) lastExp).getOperand1();
+          if (lastExp instanceof CBinaryExpression) {
+            final CExpression currentBinExpOp1 =
+                ((CBinaryExpression) assumeExp).getOperand1();
+            final CExpression lastBinExpOp1 =
+                ((CBinaryExpression) lastExp).getOperand1();
 
             // only the first variable of the assignment is checked
             final boolean isEqualVarName = currentBinExpOp1.toASTString().
             equals(lastBinExpOp1.toASTString());
 
             // check, if lastEdge is the true-branch of "==" or the false-branch of "!="
-            final BinaryOperator op = ((IASTBinaryExpression) lastExp).getOperator();
+            final BinaryOperator op = ((CBinaryExpression) lastExp).getOperator();
             final boolean isEqualOp = (op == BinaryOperator.EQUALS && lastAss.getTruthAssumption())
                 || (op == BinaryOperator.NOT_EQUALS && !lastAss.getTruthAssumption());
 

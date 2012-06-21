@@ -32,11 +32,11 @@ import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
@@ -73,7 +73,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
 
   @Override
   protected boolean shouldBeCached(CFANode pNode) {
-    if(pNode instanceof CFAFunctionDefinitionNode && pNode.getNumEnteringEdges() == 0) {
+    if(pNode instanceof FunctionEntryNode && pNode.getNumEnteringEdges() == 0) {
       //main function
       return true;
     }
@@ -102,7 +102,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
 
   @Override
   protected Set<CFANode> getBlockForNode(CFANode pNode) {
-    if(pNode instanceof CFAFunctionDefinitionNode) {
+    if(pNode instanceof FunctionEntryNode) {
       return TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
     }
     if(pNode.isLoopStart()) {
@@ -136,7 +136,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
     for(CFANode node : pLoopBody) {
       for(int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge edge = node.getLeavingEdge(i);
-        if(!pLoopBody.contains(edge.getSuccessor()) && !(node.getLeavingEdge(i) instanceof FunctionCallEdge))  {
+        if(!pLoopBody.contains(edge.getSuccessor()) && !(node.getLeavingEdge(i).getEdgeType() == CFAEdgeType.FunctionCallEdge))  {
           addNodes.add(edge.getSuccessor());
         }
       }

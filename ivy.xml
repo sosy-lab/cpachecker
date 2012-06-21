@@ -67,6 +67,6 @@
         <dependency org="org.eclipse.cdt" name="core" rev="5.3.1.201109151620" conf="runtime->default; contrib->sources"/>
 
         <!-- SmtInterpol -->
-        <dependency org="de.uni-freiburg.informatik.ultimate" name="smtinterpol" rev="2.0-r5893qb-sosy0" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="de.uni-freiburg.informatik.ultimate" name="smtinterpol" rev="2.0-r6089qb" conf="runtime->runtime; contrib->sources"/>
     </dependencies>
 </ivy-module>

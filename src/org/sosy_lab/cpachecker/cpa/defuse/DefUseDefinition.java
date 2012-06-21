@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.defuse;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.base.Objects;

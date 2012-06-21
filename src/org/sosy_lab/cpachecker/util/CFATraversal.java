@@ -30,11 +30,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -129,14 +129,14 @@ public class CFATraversal {
 
   /**
    * Returns a new instance of this class which behaves exactly like the current
-   * instance, except it ignores summary edges ({@link CallToReturnEdge}s).
+   * instance, except it ignores summary edges ({@link CFunctionSummaryEdge}s).
    * It will not call the visitor for them, and it will not follow this edge
    * during traversing.
    */
   public CFATraversal ignoreSummaryEdges() {
     return new CFATraversal(edgeSupplier,
         Predicates.<CFAEdge>or(ignoreEdge,
-            Predicates.instanceOf(CallToReturnEdge.class)));
+            Predicates.instanceOf(CFunctionSummaryEdge.class)));
   }
 
   /**
@@ -150,8 +150,8 @@ public class CFATraversal {
     return new CFATraversal(edgeSupplier,
         Predicates.<CFAEdge>or(
             ignoreEdge,
-            Predicates.instanceOf(FunctionCallEdge.class),
-            Predicates.instanceOf(FunctionReturnEdge.class)
+            Predicates.instanceOf(CFunctionCallEdge.class),
+            Predicates.instanceOf(CFunctionReturnEdge.class)
             ));
   }
 

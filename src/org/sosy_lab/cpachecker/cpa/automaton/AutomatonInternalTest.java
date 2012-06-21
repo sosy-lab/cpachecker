@@ -44,7 +44,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -143,7 +143,7 @@ public class AutomatonInternalTest {
   public void testJokerReplacementInAST() throws InvalidAutomatonException {
     // tests the replacement of Joker expressions in the AST comparison
     ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST("$20 = $5($1, $?);");
-    IASTNode sourceAST  = AutomatonASTComparator.generateSourceAST("var1 = function(var2, egal);");
+    CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST("var1 = function(var2, egal);");
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null);
 
     boolean result = patternAST.matches(sourceAST, args);
@@ -207,7 +207,7 @@ public class AutomatonInternalTest {
    */
   public void testAST(String src, String pattern, boolean result) throws InvalidAutomatonException {
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null);
-    IASTNode sourceAST  = AutomatonASTComparator.generateSourceAST(src);
+    CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST(src);
     ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST(pattern);
 
     Assert.assertEquals(result, patternAST.matches(sourceAST, args));

@@ -27,8 +27,8 @@ import static com.google.common.base.Preconditions.*;
 
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.base.Optional;
@@ -45,14 +45,14 @@ import com.google.common.collect.SetMultimap;
  */
 class ImmutableCFA implements CFA {
 
-  private final ImmutableMap<String, CFAFunctionDefinitionNode> functions;
+  private final ImmutableMap<String, FunctionEntryNode> functions;
   private final ImmutableSortedSet<CFANode> allNodes;
-  private final CFAFunctionDefinitionNode mainFunction;
+  private final FunctionEntryNode mainFunction;
   private final Optional<ImmutableMultimap<String, Loop>> loopStructure;
 
-  ImmutableCFA(Map<String, CFAFunctionDefinitionNode> pFunctions,
+  ImmutableCFA(Map<String, FunctionEntryNode> pFunctions,
       SetMultimap<String, CFANode> pAllNodes,
-      CFAFunctionDefinitionNode pMainFunction,
+      FunctionEntryNode pMainFunction,
       Optional<ImmutableMultimap<String, Loop>> pLoopStructure) {
 
     functions = ImmutableMap.copyOf(pFunctions);
@@ -90,17 +90,17 @@ class ImmutableCFA implements CFA {
   }
 
   @Override
-  public ImmutableCollection<CFAFunctionDefinitionNode> getAllFunctionHeads() {
+  public ImmutableCollection<FunctionEntryNode> getAllFunctionHeads() {
     return functions.values();
   }
 
   @Override
-  public CFAFunctionDefinitionNode getFunctionHead(String name) {
+  public FunctionEntryNode getFunctionHead(String name) {
     return functions.get(name);
   }
 
   @Override
-  public ImmutableMap<String, CFAFunctionDefinitionNode> getAllFunctions() {
+  public ImmutableMap<String, FunctionEntryNode> getAllFunctions() {
     return functions;
   }
 
@@ -110,7 +110,7 @@ class ImmutableCFA implements CFA {
   }
 
   @Override
-  public CFAFunctionDefinitionNode getMainFunction() {
+  public FunctionEntryNode getMainFunction() {
     return mainFunction;
   }
 

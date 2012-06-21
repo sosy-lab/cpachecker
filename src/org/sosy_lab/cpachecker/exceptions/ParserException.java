@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.exceptions;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
  * Exception thrown if an error occurs during parsing step (e.g. because the

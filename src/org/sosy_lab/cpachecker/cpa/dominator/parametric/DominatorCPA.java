@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.dominator.parametric;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -46,31 +46,31 @@ public class DominatorCPA {
   private StopOperator stopOperator;
   private PrecisionAdjustment precisionAdjustment;
 
-	public DominatorCPA(ConfigurableProgramAnalysis cpa) {
-	  this.cpa = cpa;
+  public DominatorCPA(ConfigurableProgramAnalysis cpa) {
+    this.cpa = cpa;
 
-		this.abstractDomain = new DominatorDomain(this.cpa);
+    this.abstractDomain = new DominatorDomain(this.cpa);
     this.transferRelation = new DominatorTransferRelation(this.cpa);
     this.mergeOperator = new MergeJoinOperator(abstractDomain);
-		this.stopOperator = new StopSepOperator(abstractDomain);
-		this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-	}
+    this.stopOperator = new StopSepOperator(abstractDomain);
+    this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+  }
 
-	public AbstractDomain getAbstractDomain() {
-		return abstractDomain;
-	}
+  public AbstractDomain getAbstractDomain() {
+    return abstractDomain;
+  }
 
   public TransferRelation getTransferRelation() {
     return transferRelation;
   }
 
-	public MergeOperator getMergeOperator() {
-		return mergeOperator;
-	}
+  public MergeOperator getMergeOperator() {
+    return mergeOperator;
+  }
 
-	public StopOperator getStopOperator() {
-		return stopOperator;
-	}
+  public StopOperator getStopOperator() {
+    return stopOperator;
+  }
 
   public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;

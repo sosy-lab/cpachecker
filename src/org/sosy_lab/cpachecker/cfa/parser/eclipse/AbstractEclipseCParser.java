@@ -29,6 +29,7 @@ import java.util.Map;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
+import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.gnu.c.GCCLanguage;
 import org.eclipse.cdt.core.dom.parser.c.ANSICParserExtensionConfiguration;
@@ -43,6 +44,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -95,7 +97,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
   }
 
   @Override
-  public org.sosy_lab.cpachecker.cfa.ast.IASTNode parseSingleStatement(String pCode) throws ParserException {
+  public CAstNode parseSingleStatement(String pCode) throws ParserException {
 
     // parse
     IASTTranslationUnit ast = parse(wrapCode(pCode));
@@ -109,12 +111,12 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
     }
 
     IASTFunctionDefinition func = (IASTFunctionDefinition)declarations[0];
-    org.eclipse.cdt.core.dom.ast.IASTStatement body = func.getBody();
+    IASTStatement body = func.getBody();
     if (!(body instanceof IASTCompoundStatement)) {
       throw new ParserException("Function has an unexpected " + body.getClass().getSimpleName() + " as body: " + func.getRawSignature());
     }
 
-    org.eclipse.cdt.core.dom.ast.IASTStatement[] statements = ((IASTCompoundStatement)body).getStatements();
+    IASTStatement[] statements = ((IASTCompoundStatement)body).getStatements();
     if (!(statements.length == 2 && statements[1] == null || statements.length == 1)) {
       throw new ParserException("Not exactly one statement in function body: " + body);
     }

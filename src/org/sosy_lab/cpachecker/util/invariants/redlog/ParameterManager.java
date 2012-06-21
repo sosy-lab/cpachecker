@@ -28,8 +28,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 
 public class ParameterManager {
@@ -142,15 +142,15 @@ public class ParameterManager {
 
     // Go through the equations in EAP.
     Iterator<Equation> eqnit = EAP.equationIterator();
-    IASTExpression LHS, RHS;
-    IASTIdExpression ID;
+    CExpression LHS, RHS;
+    CIdExpression ID;
     Equation eqn;
     String a;
     ParameterAssignment PA;
     while (eqnit.hasNext()) {
       eqn = eqnit.next();
       LHS = eqn.getLeftHandSide();
-      ID = (IASTIdExpression) LHS;
+      ID = (CIdExpression) LHS;
       a = ID.getName().toString();
       if (waitlist.contains(a)) {
         RHS = eqn.getRightHandSide();

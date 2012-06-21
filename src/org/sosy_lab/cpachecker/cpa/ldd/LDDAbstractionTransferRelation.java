@@ -33,28 +33,28 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -95,24 +95,24 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
    */
   private LDDRegion toRegion(CFAEdge edge, LDDRegion currentRegion) {
     LDDRegion edgePartialRegion = null;
-    if (edge instanceof AssumeEdge) {
-      AssumeEdge assumeEdge = (AssumeEdge) edge;
+    if (edge instanceof CAssumeEdge) {
+      CAssumeEdge assumeEdge = (CAssumeEdge) edge;
       edgePartialRegion = assumeToRegion(assumeEdge.getExpression());
       if (edgePartialRegion != null && !assumeEdge.getTruthAssumption()) {
         edgePartialRegion = this.regionManager.makeNot(edgePartialRegion);
       }
-    } else if (edge instanceof DeclarationEdge) {
-      DeclarationEdge declarationEdge = (DeclarationEdge) edge;
+    } else if (edge instanceof CDeclarationEdge) {
+      CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
       return toRegion(declarationEdge.getDeclaration(), currentRegion);
-    } else if (edge instanceof StatementEdge) {
-      StatementEdge statementEdge = (StatementEdge) edge;
-      IASTStatement statement = statementEdge.getStatement();
+    } else if (edge instanceof CStatementEdge) {
+      CStatementEdge statementEdge = (CStatementEdge) edge;
+      CStatement statement = statementEdge.getStatement();
       return toRegion(statement, currentRegion);
-    } else if (edge instanceof FunctionCallEdge) {
-      // FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
+    } else if (edge instanceof CFunctionCallEdge) {
+      // CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) edge;
       // TODO currently not supported
-    } else if (edge instanceof FunctionReturnEdge) {
-      // FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) edge;
+    } else if (edge instanceof CFunctionReturnEdge) {
+      // CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) edge;
       // TODO currently not supported
     }
     if (edgePartialRegion == null) { return currentRegion; }
@@ -128,21 +128,21 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
    * @param previousRegion the previous state.
    * @return the new state.
    */
-  private LDDRegion toRegion(IASTStatement pStatement, LDDRegion previousRegion) {
-    if (pStatement instanceof IASTExpressionAssignmentStatement) {
-      IASTExpressionAssignmentStatement eas = (IASTExpressionAssignmentStatement) pStatement;
-      IASTExpression leftHandSide = eas.getLeftHandSide();
-      if (leftHandSide instanceof IASTIdExpression) {
-        IASTExpression rightHandSide = eas.getRightHandSide();
-        IASTIdExpression lhsId = (IASTIdExpression) leftHandSide;
+  private LDDRegion toRegion(CStatement pStatement, LDDRegion previousRegion) {
+    if (pStatement instanceof CExpressionAssignmentStatement) {
+      CExpressionAssignmentStatement eas = (CExpressionAssignmentStatement) pStatement;
+      CExpression leftHandSide = eas.getLeftHandSide();
+      if (leftHandSide instanceof CIdExpression) {
+        CExpression rightHandSide = eas.getRightHandSide();
+        CIdExpression lhsId = (CIdExpression) leftHandSide;
         return assign(lhsId.getName(), rightHandSide, previousRegion);
       }
     }
     // As long as function calls are not supported, it might be dangerous to default
     // to the previous state, because error locations that were previously not reachable might
     // become reachable by the new program state, therefore true is returned.
-    if (pStatement instanceof IASTFunctionCallAssignmentStatement
-        || pStatement instanceof IASTFunctionCallStatement) {
+    if (pStatement instanceof CFunctionCallAssignmentStatement
+        || pStatement instanceof CFunctionCallStatement) {
       return this.regionManager.makeTrue();
  }
     return previousRegion;
@@ -155,14 +155,14 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
    * @param pExpression the assume condition.
    * @return the LDD representing the condition or <code>null</code> if the expression is not supported.
    */
-  private LDDRegion assumeToRegion(IASTExpression pExpression) {
-    if (pExpression instanceof IASTIntegerLiteralExpression) {
+  private LDDRegion assumeToRegion(CExpression pExpression) {
+    if (pExpression instanceof CIntegerLiteralExpression) {
       Integer constant = reduceToConstant(pExpression);
       if (constant == null || constant == 0) { return this.regionManager.makeFalse(); }
       return this.regionManager.makeTrue();
     }
-    if (pExpression instanceof IASTUnaryExpression) {
-      IASTUnaryExpression unaryExpression = (IASTUnaryExpression) pExpression;
+    if (pExpression instanceof CUnaryExpression) {
+      CUnaryExpression unaryExpression = (CUnaryExpression) pExpression;
       if (unaryExpression.getOperator() == UnaryOperator.NOT) {
         LDDRegion assumeRegion = assumeToRegion(unaryExpression.getOperand());
         if (assumeRegion == null) { return null; }
@@ -170,10 +170,10 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
       }
       return null;
     }
-    if (pExpression instanceof IASTBinaryExpression) {
-      IASTBinaryExpression binaryExpression = (IASTBinaryExpression) pExpression;
-      IASTExpression left = binaryExpression.getOperand1();
-      IASTExpression right = binaryExpression.getOperand2();
+    if (pExpression instanceof CBinaryExpression) {
+      CBinaryExpression binaryExpression = (CBinaryExpression) pExpression;
+      CExpression left = binaryExpression.getOperand1();
+      CExpression right = binaryExpression.getOperand2();
       BinaryOperator operator = binaryExpression.getOperator();
       switch (operator) {
       case LESS_EQUAL:
@@ -181,7 +181,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
         break;
       case GREATER_EQUAL: // Revert logic
       case GREATER_THAN:
-        IASTExpression temp = right;
+        CExpression temp = right;
         right = left;
         left = temp;
         operator = operator == BinaryOperator.GREATER_EQUAL ? BinaryOperator.LESS_EQUAL : BinaryOperator.LESS_THAN;
@@ -255,7 +255,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
    * @param previousRegion the previous LDD.
    * @return the successor state.
    */
-  private LDDRegion assign(String variable, IASTExpression expression, LDDRegion previousRegion) {
+  private LDDRegion assign(String variable, CExpression expression, LDDRegion previousRegion) {
     Integer reduced = reduceToConstant(expression);
     if (reduced != null) {
       this.usedVars.add(variable);
@@ -361,7 +361,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
    * @return the integer linear term the expression was converted to or <code>null</code>
    * if the conversion failed.
    */
-  private Map<String, Integer> reduceToTerm(IASTExpression expression) {
+  private Map<String, Integer> reduceToTerm(CExpression expression) {
     Map<String, Integer> variableCoeffs = new HashMap<String, Integer>();
     Map<String, Pair<Integer, Integer>> rationalTerm = reduceToRationalTerm(expression);
     if (rationalTerm == null) { return null; }
@@ -397,21 +397,21 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
    * @return the rational linear term the expression was converted to or <code>null</code>
    * if the conversion failed.
    */
-  private Map<String, Pair<Integer, Integer>> reduceToRationalTerm(IASTExpression expression) {
+  private Map<String, Pair<Integer, Integer>> reduceToRationalTerm(CExpression expression) {
     expression.toASTString();
     Map<String, Pair<Integer, Integer>> variableCoeffs = new HashMap<String, Pair<Integer, Integer>>();
-    if (expression instanceof IASTIntegerLiteralExpression) {
-      IASTIntegerLiteralExpression literal = (IASTIntegerLiteralExpression) expression;
+    if (expression instanceof CIntegerLiteralExpression) {
+      CIntegerLiteralExpression literal = (CIntegerLiteralExpression) expression;
       return Collections.singletonMap("const", Pair.of(literal.getValue().intValue(), 1));
     }
-    if (expression instanceof IASTIdExpression) {
-      IASTIdExpression id = (IASTIdExpression) expression;
+    if (expression instanceof CIdExpression) {
+      CIdExpression id = (CIdExpression) expression;
       return Collections.singletonMap(id.getName(), Pair.of(1, 1));
     }
-    if (expression instanceof IASTBinaryExpression) {
-      IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expression;
-      IASTExpression op1 = binaryExpression.getOperand1();
-      IASTExpression op2 = binaryExpression.getOperand2();
+    if (expression instanceof CBinaryExpression) {
+      CBinaryExpression binaryExpression = (CBinaryExpression) expression;
+      CExpression op1 = binaryExpression.getOperand1();
+      CExpression op2 = binaryExpression.getOperand2();
       BinaryOperator operator = binaryExpression.getOperator();
       Map<String, Pair<Integer, Integer>> firstAsTerm = reduceToRationalTerm(op1);
       Map<String, Pair<Integer, Integer>> secondAsTerm = reduceToRationalTerm(op2);
@@ -520,9 +520,9 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
       }
       return variableCoeffs;
     }
-    if (expression instanceof IASTUnaryExpression) {
-      IASTUnaryExpression unaryExpression = (IASTUnaryExpression) expression;
-      IASTExpression operand = unaryExpression.getOperand();
+    if (expression instanceof CUnaryExpression) {
+      CUnaryExpression unaryExpression = (CUnaryExpression) expression;
+      CExpression operand = unaryExpression.getOperand();
       switch (unaryExpression.getOperator()) {
       case PLUS:
         return reduceToRationalTerm(operand);
@@ -566,19 +566,19 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
    * @return the integer constant represented by the expression or <code>null</code> if the expression
    * did not represent an integer constant.
    */
-  private Integer reduceToConstant(IASTExpression expression) {
+  private Integer reduceToConstant(CExpression expression) {
     // If the expression is an integer literal, return its value
-    if (expression instanceof IASTIntegerLiteralExpression) {
-      IASTIntegerLiteralExpression literal = (IASTIntegerLiteralExpression) expression;
+    if (expression instanceof CIntegerLiteralExpression) {
+      CIntegerLiteralExpression literal = (CIntegerLiteralExpression) expression;
       return literal.getValue().intValue();
     }
     // If the expression is a binary expression and its operands are reducible
     // to constants and the operator is supported on constants, the operator is
     // invoked in the constants and the result is returned
-    if (expression instanceof IASTBinaryExpression) {
-      IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expression;
-      IASTExpression op1 = binaryExpression.getOperand1();
-      IASTExpression op2 = binaryExpression.getOperand2();
+    if (expression instanceof CBinaryExpression) {
+      CBinaryExpression binaryExpression = (CBinaryExpression) expression;
+      CExpression op1 = binaryExpression.getOperand1();
+      CExpression op2 = binaryExpression.getOperand2();
       Integer reduced1 = reduceToConstant(op1);
       Integer reduced2 = reduceToConstant(op2);
       if (reduced1 == null || reduced2 == null) { return null; }
@@ -600,8 +600,8 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
     // If the expression is an unary expression and its operand is reducible to
     // a constant and the operator is supported on integer constants, the
     // operator is applied to the constant and the result is returned
-    if (expression instanceof IASTUnaryExpression) {
-      IASTUnaryExpression unaryExpression = (IASTUnaryExpression) expression;
+    if (expression instanceof CUnaryExpression) {
+      CUnaryExpression unaryExpression = (CUnaryExpression) expression;
       Integer reducedInner = reduceToConstant(unaryExpression.getOperand());
       if (reducedInner == null) { return null; }
       switch (unaryExpression.getOperator()) {
@@ -694,15 +694,15 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
    * @param declaration the declaration to convert.
    * @return the converted LDDRegion.
    */
-  private LDDRegion toRegion(IASTDeclaration declaration, LDDRegion previousRegion) {
+  private LDDRegion toRegion(CDeclaration declaration, LDDRegion previousRegion) {
     String variable = declaration.getName();
     if (this.variables.containsKey(variable)) {
-      if (declaration instanceof IASTVariableDeclaration) {
-        IASTVariableDeclaration varDecl = (IASTVariableDeclaration) declaration;
-        IASTInitializer init = varDecl.getInitializer();
-        if (init instanceof IASTInitializerExpression) {
-          return assign(variable, ((IASTInitializerExpression) init).getExpression(), previousRegion);
-        } else if (init instanceof IASTInitializerList) {
+      if (declaration instanceof CVariableDeclaration) {
+        CVariableDeclaration varDecl = (CVariableDeclaration) declaration;
+        CInitializer init = varDecl.getInitializer();
+        if (init instanceof CInitializerExpression) {
+          return assign(variable, ((CInitializerExpression) init).getExpression(), previousRegion);
+        } else if (init instanceof CInitializerList) {
           // TODO currently not supported
         }
       }

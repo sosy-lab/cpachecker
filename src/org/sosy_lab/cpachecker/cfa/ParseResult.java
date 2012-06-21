@@ -27,9 +27,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 import com.google.common.collect.SortedSetMultimap;
 
@@ -46,15 +46,15 @@ import com.google.common.collect.SortedSetMultimap;
  */
 public class ParseResult {
 
-  private final Map<String, CFAFunctionDefinitionNode> functions;
+  private final Map<String, FunctionEntryNode> functions;
 
   private final SortedSetMultimap<String, CFANode> cfaNodes;
 
-  private final List<Pair<IASTDeclaration, String>> globalDeclarations;
+  private final List<Pair<CDeclaration, String>> globalDeclarations;
 
-  public ParseResult(Map<String, CFAFunctionDefinitionNode> pFunctions,
+  public ParseResult(Map<String, FunctionEntryNode> pFunctions,
       SortedSetMultimap<String, CFANode> pCfaNodes,
-      List<Pair<IASTDeclaration, String>> pGlobalDeclarations) {
+      List<Pair<CDeclaration, String>> pGlobalDeclarations) {
     functions = pFunctions;
     cfaNodes = pCfaNodes;
     globalDeclarations = pGlobalDeclarations;
@@ -64,7 +64,7 @@ public class ParseResult {
     return functions.isEmpty();
   }
 
-  public Map<String, CFAFunctionDefinitionNode> getFunctions() {
+  public Map<String, FunctionEntryNode> getFunctions() {
     return functions;
   }
 
@@ -72,7 +72,7 @@ public class ParseResult {
     return cfaNodes;
   }
 
-  public List<Pair<IASTDeclaration, String>> getGlobalDeclarations() {
+  public List<Pair<CDeclaration, String>> getGlobalDeclarations() {
     return globalDeclarations;
   }
 }

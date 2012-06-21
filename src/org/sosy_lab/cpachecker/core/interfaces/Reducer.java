@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 
 public interface Reducer {

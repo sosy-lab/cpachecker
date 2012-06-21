@@ -265,7 +265,7 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
         }
       }
       assert !reached.contains(coveredState) : "covered state in reached set";
-      coveredState.removeFromART();
+      coveredState.removeFromARG();
     }
     return sound;
   }
@@ -322,11 +322,11 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
       assert siblings.containsAll(toRemove.getCoveredByThis());
 
       reached.remove(toRemove);
-      toRemove.removeFromART();
+      toRemove.removeFromARG();
     }
 
     reached.remove(parent);
-    parent.removeFromART();
+    parent.removeFromARG();
 
     assert errorState.isDestroyed() : "errorState is not the child of its parent";
     assert !reached.contains(errorState) : "reached.remove() didn't work";

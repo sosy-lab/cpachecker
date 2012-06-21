@@ -27,8 +27,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.base.Optional;
@@ -42,15 +42,15 @@ public interface CFA {
 
   Set<String> getAllFunctionNames();
 
-  Collection<CFAFunctionDefinitionNode> getAllFunctionHeads();
+  Collection<FunctionEntryNode> getAllFunctionHeads();
 
-  CFAFunctionDefinitionNode getFunctionHead(String name);
+  FunctionEntryNode getFunctionHead(String name);
 
-  Map<String, CFAFunctionDefinitionNode> getAllFunctions();
+  Map<String, FunctionEntryNode> getAllFunctions();
 
   Collection<CFANode> getAllNodes();
 
-  CFAFunctionDefinitionNode getMainFunction();
+  FunctionEntryNode getMainFunction();
 
   Optional<ImmutableMultimap<String, Loop>> getLoopStructure();
 

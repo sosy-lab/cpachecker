@@ -31,8 +31,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -115,9 +115,9 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
   public AbstractState getInitialState (CFANode node)
   {
     Set<DefUseDefinition> defUseDefinitions = new HashSet<DefUseDefinition>();
-    if (node instanceof FunctionDefinitionNode)
+    if (node instanceof CFunctionEntryNode)
     {
-      List<String> parameterNames = ((FunctionDefinitionNode)node).getFunctionParameterNames ();
+      List<String> parameterNames = ((CFunctionEntryNode)node).getFunctionParameterNames ();
 
       for (String parameterName : parameterNames)
       {

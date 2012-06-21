@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.location;
 import java.util.Collection;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
@@ -55,39 +55,39 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
 
   private final LocationStateFactory stateFactory;
   private final AbstractDomain abstractDomain = new FlatLatticeDomain();
-	private final TransferRelation transferRelation;
-	private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
+  private final TransferRelation transferRelation;
+  private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
-	public LocationCPA(CFA pCfa) {
-	  stateFactory = new LocationStateFactory(pCfa);
-	  transferRelation = new LocationTransferRelation(stateFactory);
+  public LocationCPA(CFA pCfa) {
+    stateFactory = new LocationStateFactory(pCfa);
+    transferRelation = new LocationTransferRelation(stateFactory);
 
-	  GlobalInfo.getInstance().getCFAInfo().storeLocationStateFactory(stateFactory);
+    GlobalInfo.getInstance().getCFAInfo().storeLocationStateFactory(stateFactory);
   }
 
-	public static CPAFactory factory() {
-	  return new LocationCPAFactory(false);
-	}
+  public static CPAFactory factory() {
+    return new LocationCPAFactory(false);
+  }
 
-	@Override
+  @Override
   public AbstractDomain getAbstractDomain() {
-	  return abstractDomain;
-	}
+    return abstractDomain;
+  }
 
   @Override
   public TransferRelation getTransferRelation() {
     return transferRelation;
   }
 
-	@Override
+  @Override
   public MergeOperator getMergeOperator() {
-	  return MergeSepOperator.getInstance();
-	}
+    return MergeSepOperator.getInstance();
+  }
 
-	@Override
+  @Override
   public StopOperator getStopOperator() {
-	  return stopOperator;
-	}
+    return stopOperator;
+  }
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
@@ -100,9 +100,9 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
   }
 
   @Override
-	public AbstractState getInitialState(CFANode node) {
-	  return stateFactory.getState(node);
-	}
+  public AbstractState getInitialState(CFANode node) {
+    return stateFactory.getState(node);
+  }
 
   @Override
   public Precision getInitialPrecision(CFANode pNode) {

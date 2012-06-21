@@ -23,17 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.assume;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
 public class ConstrainedAssumeState implements AssumeState {
 
-  private IASTExpression mExpression;
+  private CExpression mExpression;
 
-  public ConstrainedAssumeState(IASTExpression pExpression) {
+  public ConstrainedAssumeState(CExpression pExpression) {
     mExpression = pExpression;
   }
 
-  public IASTExpression getExpression() {
+  public CExpression getExpression() {
     return mExpression;
   }
 

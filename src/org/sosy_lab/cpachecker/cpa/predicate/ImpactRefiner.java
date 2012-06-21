@@ -43,8 +43,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -228,13 +228,13 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
       pReached.removeCoverageOf(w);
     }
 
-    Set<ARGState> infeasibleSubtree = infeasiblePartOfART.getSubtree();
+    Set<ARGState> infeasibleSubtree = infeasiblePartOfART.getSubgraph();
     assert infeasibleSubtree.contains(lastElement);
 
     uncover(infeasibleSubtree, pReached);
 
     for (ARGState removedNode : infeasibleSubtree) {
-      removedNode.removeFromART();
+      removedNode.removeFromARG();
     }
     reached.removeAll(infeasibleSubtree);
     stats.argUpdate.stop();
@@ -266,7 +266,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
     if (v.isCovered()) {
       reached.removeOnlyFromWaitlist(v);
 
-      Set<ARGState> subtree = v.getSubtree();
+      Set<ARGState> subtree = v.getSubgraph();
 
       // first, uncover all necessary states
 
@@ -292,7 +292,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
         assert !childOfV.mayCover();
       }
 
-      assert !reached.getWaitlist().contains(v.getSubtree());
+      assert !reached.getWaitlist().contains(v.getSubgraph());
       return true;
     }
     return false;

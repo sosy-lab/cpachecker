@@ -75,7 +75,7 @@ public  class EclipseJavaParser implements CParser {
   }
 
   @Override
-  public org.sosy_lab.cpachecker.cfa.ast.IASTNode parseSingleStatement(String pCode) throws ParserException {
+  public org.sosy_lab.cpachecker.cfa.ast.c.CAstNode parseSingleStatement(String pCode) throws ParserException {
       throw new ParserException("Not Implemented");
   }
 

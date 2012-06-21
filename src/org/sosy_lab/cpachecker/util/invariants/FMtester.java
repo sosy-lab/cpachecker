@@ -29,8 +29,8 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormulaManager;
@@ -57,7 +57,7 @@ public class FMtester {
     Configuration config = Configuration.defaultConfiguration();
     LogManager logger;
     CFACreator cfac;
-    CFAFunctionDefinitionNode root = null;
+    FunctionEntryNode root = null;
 
     // declare FormulaManagers
     TemplateFormulaManager fmgr = null;
@@ -88,7 +88,7 @@ public class FMtester {
 
   }
 
-  private static List<CFAEdge> getEdgeSet(CFAFunctionDefinitionNode root) {
+  private static List<CFAEdge> getEdgeSet(FunctionEntryNode root) {
     CFATraversal.EdgeCollectingCFAVisitor visitor = new EdgeCollectingCFAVisitor();
     CFATraversal.dfs()
                 .ignoreSummaryEdges()

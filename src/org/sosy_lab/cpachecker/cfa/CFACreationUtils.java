@@ -26,13 +26,12 @@ package org.sosy_lab.cpachecker.cfa;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 
 /**
  * Helper class that contains some complex operations that may be useful during
@@ -49,10 +48,10 @@ public class CFACreationUtils {
     CFANode predecessor = edge.getPredecessor();
 
     // check control flow branching at predecessor
-    if (edge instanceof AssumeEdge) {
+    if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
       assert predecessor.getNumLeavingEdges() <= 1;
       if (predecessor.getNumLeavingEdges() > 0) {
-        assert predecessor.getLeavingEdge(0) instanceof AssumeEdge;
+        assert predecessor.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge;
       }
 
     } else {
@@ -62,10 +61,7 @@ public class CFACreationUtils {
     // no check control flow merging at successor, we might have many incoming edges
 
     // check if predecessor is reachable
-    // or if the predecessor is a loopStart of a forLoop
-    // and the edge is the "counter++"-edge
-    if (isReachableNode(predecessor) ||
-        (edge instanceof StatementEdge && edge.getSuccessor().isLoopStart())) {
+    if (isReachableNode(predecessor)) {
 
       // all checks passed, add it to the CFA
       edge.getPredecessor().addLeavingEdge(edge);
@@ -94,10 +90,10 @@ public class CFACreationUtils {
    */
   public static boolean isReachableNode(CFANode node) {
     return (node.getNumEnteringEdges() > 0)
-        || (node instanceof CFAFunctionDefinitionNode)
+        || (node instanceof FunctionEntryNode)
         || (node.isLoopStart())
-        || ((node instanceof CFALabelNode)
-            && !((CFALabelNode)node).getLabel().isEmpty());
+        || ((node instanceof CLabelNode)
+            && !((CLabelNode)node).getLabel().isEmpty());
   }
 
   /**
@@ -124,7 +120,7 @@ public class CFACreationUtils {
     e.getSuccessor().removeEnteringEdge(e);
   }
 
-  public static void removeSummaryEdgeFromNodes(CallToReturnEdge e) {
+  public static void removeSummaryEdgeFromNodes(FunctionSummaryEdge e) {
     e.getPredecessor().removeLeavingSummaryEdge(e);
     e.getSuccessor().removeEnteringSummaryEdge(e);
   }

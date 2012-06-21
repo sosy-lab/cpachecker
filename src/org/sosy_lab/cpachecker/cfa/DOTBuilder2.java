@@ -33,11 +33,10 @@ import java.util.Set;
 
 import org.json.simple.JSONObject;
 import org.sosy_lab.common.Files;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
@@ -77,7 +76,7 @@ public final class DOTBuilder2 {
     CFAJSONBuilder jsoner = new CFAJSONBuilder();
     DOTViewBuilder dotter = new DOTViewBuilder();
     CFAVisitor vis = new NodeCollectingCFAVisitor(new CompositeCFAVisitor(jsoner, dotter));
-    for (CFAFunctionDefinitionNode entryNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
       CFATraversal.dfs().ignoreFunctionCalls().traverse(entryNode, vis);
       dotter.writeFunctionFile(entryNode.getFunctionName(), outdir);
     }
@@ -121,8 +120,8 @@ public final class DOTBuilder2 {
           || (predecessor.getNumEnteringEdges() != 1)
           || (predecessor.getNumLeavingEdges() != 1)
           || (currentComboEdge != null && !predecessor.equals(currentComboEdge.get(currentComboEdge.size()-1).getSuccessor()))
-          || (edge instanceof CallToReturnEdge)
-          || (edge instanceof AssumeEdge)) {
+          || (edge.getEdgeType() == CFAEdgeType.CallToReturnEdge)
+          || (edge.getEdgeType() == CFAEdgeType.AssumeEdge)) {
         // no, it does not
 
         edges.add(edge);
@@ -203,7 +202,7 @@ public final class DOTBuilder2 {
       if(node.isLoopStart()){
         shape = "doublecircle";
       } else if (node.getNumLeavingEdges() > 0 &&
-          node.getLeavingEdge(0) instanceof AssumeEdge) {
+          node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge) {
         shape = "diamond";
       }
 
@@ -212,7 +211,7 @@ public final class DOTBuilder2 {
 
     @SuppressWarnings("unchecked")
     private String edgeToDot(CFAEdge edge) {
-      if (edge instanceof CallToReturnEdge) {
+      if (edge.getEdgeType() == CFAEdgeType.CallToReturnEdge) {
        //create the function node
         String calledFunction = edge.getPredecessor().getLeavingEdge(0).getSuccessor().getFunctionName();
         String ret = (++virtFuncCallNodeIdCounter) + " [shape=\"component\" label=\"" + calledFunction + "\"]\n";

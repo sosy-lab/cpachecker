@@ -35,9 +35,9 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -85,7 +85,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
 
     // function edges do not count as incoming edges
     Iterable<CFAEdge> incomingEdges = Iterables.filter(loop.getIncomingEdges(),
-                                                       Predicates.not(instanceOf(FunctionReturnEdge.class)));
+                                                       Predicates.not(instanceOf(CFunctionReturnEdge.class)));
 
     // Check that there is just one incoming edge into the loop,
     // and that the loop has just one loop head.

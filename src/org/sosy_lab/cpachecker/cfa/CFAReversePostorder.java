@@ -28,8 +28,8 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class CFAReversePostorder {
 

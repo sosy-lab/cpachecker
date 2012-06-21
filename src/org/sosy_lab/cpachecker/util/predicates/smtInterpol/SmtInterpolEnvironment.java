@@ -74,7 +74,7 @@ public class SmtInterpolEnvironment implements Script {
     // TODO more types?
     // TODO merge enum with ModelTypes?
 
-	private final String name;
+    private final String name;
 
     private Type(String s) {
       name = s;
@@ -352,7 +352,7 @@ public class SmtInterpolEnvironment implements Script {
   }
 
   @Override
-  public Object[] getInfo(String info) {
+  public Object getInfo(String info) {
     return script.getInfo(info);
   }
 
@@ -499,15 +499,8 @@ public class SmtInterpolEnvironment implements Script {
 
   /** This function returns the version of SmtInterpol, for logging. */
   public String getVersion() {
-    Object[] program = script.getInfo(":name");
-    Object[] version = script.getInfo(":version");
-
-    assert program.length == 2 && ":name".equals(program[0]) &&
-        program[1] instanceof QuotedString;
-    assert version.length == 2 && ":version".equals(version[0]) &&
-        version[1] instanceof QuotedString;
-
-    return ((QuotedString)program[1]).getValue() + " " +
-        ((QuotedString)version[1]).getValue();
+    QuotedString program = (QuotedString)script.getInfo(":name");
+    QuotedString version = (QuotedString)script.getInfo(":version");
+    return program.getValue() + " " + version.getValue();
   }
 }

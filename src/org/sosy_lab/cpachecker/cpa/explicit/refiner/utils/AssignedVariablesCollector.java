@@ -27,28 +27,28 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -85,7 +85,7 @@ public class AssignedVariablesCollector {
       break;
 
     case DeclarationEdge:
-      IASTDeclaration declaration = ((DeclarationEdge)edge).getDeclaration();
+      CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
       if(declaration.getName() != null && declaration.isGlobal()) {
         globalVariables.add(declaration.getName());
         collectedVariables.put(edge.getSuccessor(), declaration.getName());
@@ -93,25 +93,25 @@ public class AssignedVariablesCollector {
       break;
 
     case AssumeEdge:
-      AssumeEdge assumeEdge = (AssumeEdge)edge;
+      CAssumeEdge assumeEdge = (CAssumeEdge)edge;
       collectVariables(assumeEdge, assumeEdge.getExpression(), collectedVariables);
       break;
 
     case StatementEdge:
-      StatementEdge statementEdge = (StatementEdge)edge;
-      if(statementEdge.getStatement() instanceof IASTAssignment) {
-        IASTAssignment assignment = (IASTAssignment)statementEdge.getStatement();
+      CStatementEdge statementEdge = (CStatementEdge)edge;
+      if(statementEdge.getStatement() instanceof CAssignment) {
+        CAssignment assignment = (CAssignment)statementEdge.getStatement();
         String assignedVariable = assignment.getLeftHandSide().toASTString();
         collectedVariables.put(edge.getSuccessor(), scoped(assignedVariable, currentFunction));
       }
       break;
 
     case FunctionCallEdge:
-      FunctionCallEdge functionCallEdge = (FunctionCallEdge)edge;
-      IASTFunctionCall functionCall     = functionCallEdge.getSummaryEdge().getExpression();
+      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge)edge;
+      CFunctionCall functionCall     = functionCallEdge.getSummaryEdge().getExpression();
 
-      if(functionCall instanceof IASTFunctionCallAssignmentStatement) {
-        IASTFunctionCallAssignmentStatement funcAssign = (IASTFunctionCallAssignmentStatement)functionCall;
+      if(functionCall instanceof CFunctionCallAssignmentStatement) {
+        CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCall;
         String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), currentFunction);
 
         // track it at return (2nd statement below), not at call (next, commented statement)
@@ -141,12 +141,12 @@ public class AssignedVariablesCollector {
     }
   }
 
-  private void collectVariables(CFAEdge edge, IASTRightHandSide rightHandSide, Multimap<CFANode, String> collectedVariables) {
+  private void collectVariables(CFAEdge edge, CRightHandSide rightHandSide, Multimap<CFANode, String> collectedVariables) {
     rightHandSide.accept(new CollectVariablesVisitor(edge, collectedVariables));
   }
 
-  private class CollectVariablesVisitor extends DefaultExpressionVisitor<Void, RuntimeException>
-                                               implements RightHandSideVisitor<Void, RuntimeException> {
+  private class CollectVariablesVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>
+                                               implements CRightHandSideVisitor<Void, RuntimeException> {
 
     private final CFAEdge currentEdge;
     private final Multimap<CFANode, String> collectedVariables;
@@ -161,13 +161,13 @@ public class AssignedVariablesCollector {
     }
 
     @Override
-    public Void visit(IASTIdExpression pE) {
+    public Void visit(CIdExpression pE) {
       collectVariable(pE.getName());
       return null;
     }
 
     @Override
-    public Void visit(IASTArraySubscriptExpression pE) {
+    public Void visit(CArraySubscriptExpression pE) {
       collectVariable(pE.toASTString());
       pE.getArrayExpression().accept(this);
       pE.getSubscriptExpression().accept(this);
@@ -175,36 +175,36 @@ public class AssignedVariablesCollector {
     }
 
     @Override
-    public Void visit(IASTBinaryExpression pE) {
+    public Void visit(CBinaryExpression pE) {
       pE.getOperand1().accept(this);
       pE.getOperand2().accept(this);
       return null;
     }
 
     @Override
-    public Void visit(IASTCastExpression pE) {
+    public Void visit(CCastExpression pE) {
       pE.getOperand().accept(this);
       return null;
     }
 
     @Override
-    public Void visit(IASTFieldReference pE) {
+    public Void visit(CFieldReference pE) {
       collectVariable(pE.toASTString());
       pE.getFieldOwner().accept(this);
       return null;
     }
 
     @Override
-    public Void visit(IASTFunctionCallExpression pE) {
+    public Void visit(CFunctionCallExpression pE) {
       pE.getFunctionNameExpression().accept(this);
-      for (IASTExpression param : pE.getParameterExpressions()) {
+      for (CExpression param : pE.getParameterExpressions()) {
         param.accept(this);
       }
       return null;
     }
 
     @Override
-    public Void visit(IASTUnaryExpression pE) {
+    public Void visit(CUnaryExpression pE) {
       UnaryOperator op = pE.getOperator();
 
       switch(op) {
@@ -219,7 +219,7 @@ public class AssignedVariablesCollector {
     }
 
     @Override
-    protected Void visitDefault(IASTExpression pExp) {
+    protected Void visitDefault(CExpression pExp) {
       return null;
     }
   }

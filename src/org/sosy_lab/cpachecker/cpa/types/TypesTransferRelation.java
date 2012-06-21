@@ -27,34 +27,34 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNamedTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTTypeDefDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IType;
-import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedef;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -73,7 +73,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
 public class TypesTransferRelation implements TransferRelation {
 
-  private FunctionDefinitionNode entryFunctionDefinitionNode = null;
+  private CFunctionEntryNode functionEntryNode = null;
   private boolean entryFunctionProcessed = false;
 
   @Override
@@ -87,21 +87,20 @@ public class TypesTransferRelation implements TransferRelation {
 
     switch (cfaEdge.getEdgeType()) {
     case DeclarationEdge:
-      handleDeclaration(successor, (DeclarationEdge)cfaEdge);
+      handleDeclaration(successor, (CDeclarationEdge)cfaEdge);
       break;
 
     case FunctionCallEdge:
-      FunctionCallEdge funcCallEdge = (FunctionCallEdge)cfaEdge;
-      FunctionDefinitionNode funcDefNode = funcCallEdge.getSuccessor();
+      CFunctionCallEdge funcCallEdge = (CFunctionCallEdge)cfaEdge;
+      CFunctionEntryNode funcDefNode = funcCallEdge.getSuccessor();
       if (successor.getFunction(funcDefNode.getFunctionName()) == null) {
         // we call a function that was not defined
         // probably "analysis.useFunctionDeclarations" is false
         // this is not bad, but we don't get type information for external
         // function
 
-        IASTFunctionDeclaration funcDef = funcDefNode.getFunctionDefinition();
-        handleFunctionDeclaration(successor, funcCallEdge,
-            funcDef.getDeclSpecifier());
+        CFunctionDeclaration funcDef = funcDefNode.getFunctionDefinition();
+        handleFunctionDeclaration(successor, funcCallEdge, funcDef.getType());
       }
       break;
 
@@ -113,10 +112,10 @@ public class TypesTransferRelation implements TransferRelation {
     case BlankEdge:
       //the first function start dummy edge is the actual start of the entry function
       if (!entryFunctionProcessed
-          && (cfaEdge.getPredecessor() instanceof CFAFunctionDefinitionNode)) {
+          && (cfaEdge.getPredecessor() instanceof FunctionEntryNode)) {
         //since by this point all global variables have been processed, we can now process the entry function
-        IASTFunctionDeclaration funcDef = entryFunctionDefinitionNode.getFunctionDefinition();
-        handleFunctionDeclaration(successor, null, funcDef.getDeclSpecifier());
+        CFunctionDeclaration funcDef = functionEntryNode.getFunctionDefinition();
+        handleFunctionDeclaration(successor, null, funcDef.getType());
 
         entryFunctionProcessed = true;
       }
@@ -130,21 +129,21 @@ public class TypesTransferRelation implements TransferRelation {
   }
 
   private void handleDeclaration(TypesState element,
-                                 DeclarationEdge declarationEdge)
+                                 CDeclarationEdge declarationEdge)
                                  throws UnrecognizedCCodeException {
-    IASTDeclaration decl = declarationEdge.getDeclaration();
-    IType specifier = declarationEdge.getDeclaration().getDeclSpecifier();
+    CDeclaration decl = declarationEdge.getDeclaration();
+    CType specifier = declarationEdge.getDeclaration().getType();
 
-    if (decl instanceof IASTFunctionDeclaration) {
-      handleFunctionDeclaration(element, declarationEdge, (IASTFunctionTypeSpecifier)specifier);
+    if (decl instanceof CFunctionDeclaration) {
+      handleFunctionDeclaration(element, declarationEdge, (CFunctionType)specifier);
 
     } else {
       Type type = getType(element, declarationEdge, specifier);
 
-      if (decl instanceof IASTTypeDefDeclaration) {
+      if (decl instanceof CTypeDefDeclaration) {
         element.addTypedef(decl.getName(), type);
 
-      } else if (decl instanceof IASTVariableDeclaration) {
+      } else if (decl instanceof CVariableDeclaration) {
 
         String functionName = null;
         if (!(decl.isGlobal())) {
@@ -158,7 +157,7 @@ public class TypesTransferRelation implements TransferRelation {
 
   private void handleFunctionDeclaration(TypesState element,
                                         CFAEdge cfaEdge,
-                                        IASTFunctionTypeSpecifier funcDeclSpecifier)
+                                        CFunctionType funcDeclSpecifier)
                                         throws UnrecognizedCCodeException {
 
     FunctionType function = getType(element, cfaEdge, funcDeclSpecifier);
@@ -170,14 +169,14 @@ public class TypesTransferRelation implements TransferRelation {
     element.addFunction(function.getName(), function);
   }
 
-  private Type getType(TypesState element, CFAEdge cfaEdge, IType declSpecifier)
+  private Type getType(TypesState element, CFAEdge cfaEdge, CType declSpecifier)
                        throws UnrecognizedCCodeException {
     Type type;
     boolean constant = declSpecifier.isConst();
 
-    if (declSpecifier instanceof IASTSimpleDeclSpecifier) {
+    if (declSpecifier instanceof CSimpleType) {
       // primitive type
-      IASTSimpleDeclSpecifier simpleSpecifier = (IASTSimpleDeclSpecifier)declSpecifier;
+      CSimpleType simpleSpecifier = (CSimpleType)declSpecifier;
       Primitive primitiveType;
 
       switch (simpleSpecifier.getType()) {
@@ -221,19 +220,19 @@ public class TypesTransferRelation implements TransferRelation {
 
       type = new PrimitiveType(primitiveType, signed, constant);
 
-    } else if (declSpecifier instanceof IASTCompositeTypeSpecifier) {
+    } else if (declSpecifier instanceof CCompositeType) {
       // struct & union
-      IASTCompositeTypeSpecifier compositeSpecifier = (IASTCompositeTypeSpecifier)declSpecifier;
+      CCompositeType compositeSpecifier = (CCompositeType)declSpecifier;
       String name = compositeSpecifier.getName();
       CompositeType compType;
 
       switch (compositeSpecifier.getKey()) {
-      case IASTCompositeTypeSpecifier.k_struct:
+      case CCompositeType.k_struct:
         compType = new StructType(name, constant);
         name = "struct " + name;
         break;
 
-      case IASTCompositeTypeSpecifier.k_union:
+      case CCompositeType.k_union:
         compType = new StructType(name, constant);
         name = "union " + name;
         break;
@@ -253,9 +252,9 @@ public class TypesTransferRelation implements TransferRelation {
         element.addTypedef(name, compType); // add type "struct a"
       }
 
-      for (IASTSimpleDeclaration subDeclaration : compositeSpecifier.getMembers()) {
+      for (CSimpleDeclaration subDeclaration : compositeSpecifier.getMembers()) {
 
-        Type subType = getType(element, cfaEdge, subDeclaration.getDeclSpecifier());
+        Type subType = getType(element, cfaEdge, subDeclaration.getType());
 
         if (subDeclaration.getName() != null) {
           String thisSubName = subDeclaration.getName();
@@ -272,9 +271,9 @@ public class TypesTransferRelation implements TransferRelation {
 
       type = compType;
 
-    } else if (declSpecifier instanceof IASTElaboratedTypeSpecifier) {
+    } else if (declSpecifier instanceof CElaboratedType) {
       // type reference like "struct a"
-      IASTElaboratedTypeSpecifier elaboratedTypeSpecifier = (IASTElaboratedTypeSpecifier)declSpecifier;
+      CElaboratedType elaboratedTypeSpecifier = (CElaboratedType)declSpecifier;
       String typeStr = elaboratedTypeSpecifier.getKind().name().toLowerCase();
       String name = typeStr + " " + elaboratedTypeSpecifier.getName();
 
@@ -300,9 +299,9 @@ public class TypesTransferRelation implements TransferRelation {
         element.addTypedef(name, type);
       }
 
-    } else if (declSpecifier instanceof IASTEnumerationSpecifier) {
+    } else if (declSpecifier instanceof CEnumType) {
       // enum
-      IASTEnumerationSpecifier enumSpecifier = (IASTEnumerationSpecifier)declSpecifier;
+      CEnumType enumSpecifier = (CEnumType)declSpecifier;
       String name = enumSpecifier.getName();
       EnumType enumType;
 
@@ -318,15 +317,15 @@ public class TypesTransferRelation implements TransferRelation {
         element.addTypedef(name, enumType); // add type "enum a"
       }
 
-      for (IASTEnumerator enumerator : enumSpecifier.getEnumerators()) {
+      for (CEnumerator enumerator : enumSpecifier.getEnumerators()) {
         enumType.addEnumerator(enumerator.getName(), enumerator.getValue());
       }
 
       type = enumType;
 
-    } else if (declSpecifier instanceof IASTNamedTypeSpecifier) {
+    } else if (declSpecifier instanceof CNamedType) {
       // type reference to type declared with typedef
-      IASTNamedTypeSpecifier namedTypeSpecifier = (IASTNamedTypeSpecifier)declSpecifier;
+      CNamedType namedTypeSpecifier = (CNamedType)declSpecifier;
 
       type = element.getTypedef(namedTypeSpecifier.getName());
 
@@ -339,19 +338,19 @@ public class TypesTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException("Undefined type " + namedTypeSpecifier.getName(), cfaEdge);
        }
 
-    } else if (declSpecifier instanceof IASTArrayTypeSpecifier) {
+    } else if (declSpecifier instanceof CArrayType) {
       // array
-      IASTArrayTypeSpecifier arraySpecifier = (IASTArrayTypeSpecifier)declSpecifier;
+      CArrayType arraySpecifier = (CArrayType)declSpecifier;
 
       type = getType(element, cfaEdge, arraySpecifier.getType());
 
       int length = 0;
 
-      IASTExpression lengthExpression = arraySpecifier.getLength();
+      CExpression lengthExpression = arraySpecifier.getLength();
       if (lengthExpression != null) {
         //if the length expression is a literal, get its integer value
-        if (lengthExpression instanceof IASTLiteralExpression) {
-          Integer value = parseLiteral((IASTLiteralExpression)lengthExpression, cfaEdge);
+        if (lengthExpression instanceof CLiteralExpression) {
+          Integer value = parseLiteral((CLiteralExpression)lengthExpression, cfaEdge);
           if (value != null) {
             length = value;
           }
@@ -362,21 +361,21 @@ public class TypesTransferRelation implements TransferRelation {
       }
       type = new ArrayType(type, length);
 
-    } else if (declSpecifier instanceof IASTFunctionTypeSpecifier) {
+    } else if (declSpecifier instanceof CFunctionType) {
       // function type, e.g. in a function pointer
-      IASTFunctionTypeSpecifier funcDeclSpecifier = (IASTFunctionTypeSpecifier)declSpecifier;
+      CFunctionType funcDeclSpecifier = (CFunctionType)declSpecifier;
 
       type = getType(element, cfaEdge, funcDeclSpecifier);
 
-    } else if (declSpecifier instanceof IASTPointerTypeSpecifier) {
+    } else if (declSpecifier instanceof CPointerType) {
       // pointer
-      IASTPointerTypeSpecifier pointerSpecifier = (IASTPointerTypeSpecifier)declSpecifier;
+      CPointerType pointerSpecifier = (CPointerType)declSpecifier;
 
       type = getType(element, cfaEdge, pointerSpecifier.getType());
       type = new PointerType(type, pointerSpecifier.isConst());
 
-    } else if (declSpecifier instanceof ITypedef) {
-      ITypedef typedef = (ITypedef)declSpecifier;
+    } else if (declSpecifier instanceof CTypedef) {
+      CTypedef typedef = (CTypedef)declSpecifier;
       return getType(element, cfaEdge, typedef.getType());
 
     } else {
@@ -386,16 +385,16 @@ public class TypesTransferRelation implements TransferRelation {
     return type;
   }
 
-  private FunctionType getType(TypesState element, CFAEdge cfaEdge, IASTFunctionTypeSpecifier funcDeclSpecifier)
+  private FunctionType getType(TypesState element, CFAEdge cfaEdge, CFunctionType funcDeclSpecifier)
                       throws UnrecognizedCCodeException {
 
     Type returnType = getType(element, cfaEdge, funcDeclSpecifier.getReturnType());
 
     FunctionType function = new FunctionType(funcDeclSpecifier.getName(), returnType, funcDeclSpecifier.takesVarArgs());
 
-    for (IASTSimpleDeclaration parameter : funcDeclSpecifier.getParameters()) {
+    for (CSimpleDeclaration parameter : funcDeclSpecifier.getParameters()) {
 
-      Type parameterType = getType(element, cfaEdge, parameter.getDeclSpecifier());
+      Type parameterType = getType(element, cfaEdge, parameter.getType());
 
       String parameterName = null;
       if (parameter.getName() != null) {
@@ -407,17 +406,17 @@ public class TypesTransferRelation implements TransferRelation {
     return function;
   }
 
-  private Integer parseLiteral(IASTLiteralExpression expression, CFAEdge edge) throws UnrecognizedCCodeException {
-    if (expression instanceof IASTIntegerLiteralExpression) {
-      return ((IASTIntegerLiteralExpression)expression).getValue().intValue();
+  private Integer parseLiteral(CLiteralExpression expression, CFAEdge edge) throws UnrecognizedCCodeException {
+    if (expression instanceof CIntegerLiteralExpression) {
+      return ((CIntegerLiteralExpression)expression).getValue().intValue();
 
-    } else if (expression instanceof IASTFloatLiteralExpression) {
+    } else if (expression instanceof CFloatLiteralExpression) {
       return null;
 
-    } else if (expression instanceof IASTCharLiteralExpression) {
-      return (int)((IASTCharLiteralExpression)expression).getCharacter();
+    } else if (expression instanceof CCharLiteralExpression) {
+      return (int)((CCharLiteralExpression)expression).getCharacter();
 
-    } else if (expression instanceof IASTStringLiteralExpression) {
+    } else if (expression instanceof CStringLiteralExpression) {
       return null;
 
     } else {
@@ -425,8 +424,8 @@ public class TypesTransferRelation implements TransferRelation {
     }
   }
 
-  public void setEntryFunctionDefinitionNode(FunctionDefinitionNode pEntryFunctionDefNode) {
-    entryFunctionDefinitionNode = pEntryFunctionDefNode;
+  public void setFunctionEntryNode(CFunctionEntryNode pEntryFunctionDefNode) {
+    functionEntryNode = pEntryFunctionDefNode;
   }
 
   @Override

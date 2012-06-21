@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.loopstack;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -50,7 +50,7 @@ public class LoopstackCPA extends AbstractCPA {
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    if (pNode instanceof CFAFunctionDefinitionNode) {
+    if (pNode instanceof FunctionEntryNode) {
       // shortcut for the common case, a function start node can never be in a loop
       // (loops don't span across functions)
       return new LoopstackState();

@@ -27,8 +27,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -47,7 +47,7 @@ public class BlockPartitioning {
 
     for(Block subtree : subtrees) {
       for(CFANode callNode : subtree.getCallNodes()) {
-        if(callNode instanceof CFAFunctionDefinitionNode &&
+        if(callNode instanceof FunctionEntryNode &&
            callNode.getFunctionName().equalsIgnoreCase(mainFunction.getFunctionName())) {
           assert mainBlock == null;
           mainBlock = subtree;

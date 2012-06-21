@@ -10,10 +10,10 @@ import java.util.Vector;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 
 public class GraphUtil {
 
@@ -180,7 +180,7 @@ public class GraphUtil {
       if (reverse) {
         for (int i = 0; i < n.getNumEnteringEdges(); ++i) {
           CFAEdge e = n.getEnteringEdge(i);
-          if (!interprocedural && (e instanceof FunctionCallEdge || e instanceof FunctionReturnEdge)) {
+          if (!interprocedural && (e instanceof CFunctionCallEdge || e instanceof CFunctionReturnEdge)) {
             continue;
           }
 
@@ -200,7 +200,7 @@ public class GraphUtil {
       } else {
         for (int i = 0; i < n.getNumLeavingEdges(); ++i) {
           CFAEdge e = n.getLeavingEdge(i);
-          if (!interprocedural && (e instanceof FunctionCallEdge || e instanceof FunctionReturnEdge)) {
+          if (!interprocedural && (e instanceof CFunctionCallEdge || e instanceof CFunctionReturnEdge)) {
             continue;
           }
 

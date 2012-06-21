@@ -38,9 +38,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
@@ -86,7 +86,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       throw new CounterexampleAnalysisFailed("Could not write path automaton to file " + e.getMessage(), e);
     }
 
-    CFAFunctionDefinitionNode entryNode = (CFAFunctionDefinitionNode)extractLocation(pRootState);
+    FunctionEntryNode entryNode = (FunctionEntryNode)extractLocation(pRootState);
 
     try {
       Configuration lConfig = Configuration.builder()

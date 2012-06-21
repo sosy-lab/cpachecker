@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 

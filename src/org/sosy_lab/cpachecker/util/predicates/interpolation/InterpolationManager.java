@@ -50,7 +50,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -674,7 +674,7 @@ public abstract class InterpolationManager<I> {
       // If we are entering or exiting a function, update the stack
       // of entry points
       // TODO checking if the abstraction node is a new function
-//        if (wellScopedPredicates && e.getAbstractionLocation() instanceof CFAFunctionDefinitionNode) {
+//        if (wellScopedPredicates && e.getAbstractionLocation() instanceof FunctionEntryNode) {
 //          entryPoints.push(i);
 //        }
         // TODO check we are returning from a function

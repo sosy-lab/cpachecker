@@ -40,10 +40,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 
@@ -71,14 +71,14 @@ public class BlockedCFAReducer implements BlockComputer {
   private File reducedCfaFile = new File("ReducedCfa.rsf");
 
   private int functionCallSeq = 0;
-  private final Deque<CFAFunctionDefinitionNode> inliningStack;
+  private final Deque<FunctionEntryNode> inliningStack;
 
   public BlockedCFAReducer(Configuration pConfig) throws InvalidConfigurationException {
     if (pConfig != null) {
       pConfig.inject(this);
     }
 
-    this.inliningStack = new ArrayDeque<CFAFunctionDefinitionNode>();
+    this.inliningStack = new ArrayDeque<FunctionEntryNode>();
   }
 
   private boolean isAbstractionNode(ReducedNode pNode) {
@@ -263,7 +263,7 @@ public class BlockedCFAReducer implements BlockComputer {
    * and the outgoing function calls that get inlined.
    *
    */
-  private ReducedFunction inlineAndSummarize(CFAFunctionDefinitionNode pFunctionNode) {
+  private ReducedFunction inlineAndSummarize(FunctionEntryNode pFunctionNode) {
     this.functionCallSeq++;
     this.inliningStack.push(pFunctionNode);
 
@@ -291,10 +291,10 @@ public class BlockedCFAReducer implements BlockComputer {
         }
 
         // Depending on the type of the edge...
-        if (e instanceof FunctionCallEdge) {
-          FunctionCallEdge callEdge = (FunctionCallEdge) e;
+        if (e instanceof CFunctionCallEdge) {
+          CFunctionCallEdge callEdge = (CFunctionCallEdge) e;
           ReducedNode callReturnTarget = functionNodes.getWrapper(callEdge.getSummaryEdge().getSuccessor());
-          CFAFunctionDefinitionNode calledFunction = callEdge.getSuccessor();
+          FunctionEntryNode calledFunction = callEdge.getSuccessor();
 
           if (inliningStack.contains(calledFunction)) {
             System.out.println("Ignoring recursion of " + calledFunction.getFunctionName());

@@ -41,12 +41,12 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
@@ -163,7 +163,7 @@ public class CFACreator {
         throw new ParserException("No functions found in program");
       }
 
-      final CFAFunctionDefinitionNode mainFunction = getMainFunction(filename, c.getFunctions());
+      final FunctionEntryNode mainFunction = getMainFunction(filename, c.getFunctions());
 
       MutableCFA cfa = new MutableCFA(c.getFunctions(), c.getCFANodes(), mainFunction);
 
@@ -178,7 +178,7 @@ public class CFACreator {
       processingTime.start();
 
       // annotate CFA nodes with reverse postorder information for later use
-      for(CFAFunctionDefinitionNode function : cfa.getAllFunctionHeads()){
+      for(FunctionEntryNode function : cfa.getAllFunctionHeads()){
         CFAReversePostorder sorter = new CFAReversePostorder();
         sorter.assignSorting(function);
       }
@@ -240,12 +240,12 @@ public class CFACreator {
     }
   }
 
-  private CFAFunctionDefinitionNode getMainFunction(String filename,
-      final Map<String, CFAFunctionDefinitionNode> cfas)
+  private FunctionEntryNode getMainFunction(String filename,
+      final Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
 
     // try specified function
-    CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
+    FunctionEntryNode mainFunction = cfas.get(mainFunctionName);
 
     if (mainFunction != null) {
       return mainFunction;
@@ -300,13 +300,13 @@ public class CFACreator {
   /**
    * Insert nodes for global declarations after first node of CFA.
    */
-  public static void insertGlobalDeclarations(final MutableCFA cfa, List<Pair<IASTDeclaration, String>> globalVars) {
+  public static void insertGlobalDeclarations(final MutableCFA cfa, List<Pair<CDeclaration, String>> globalVars) {
     if (globalVars.isEmpty()) {
       return;
     }
 
     // split off first node of CFA
-    CFAFunctionDefinitionNode firstNode = cfa.getMainFunction();
+    FunctionEntryNode firstNode = cfa.getMainFunction();
     assert firstNode.getNumLeavingEdges() == 1;
     CFAEdge firstEdge = firstNode.getLeavingEdge(0);
     assert firstEdge instanceof BlankEdge;
@@ -321,14 +321,14 @@ public class CFACreator {
     addToCFA(be);
 
     // create a series of GlobalDeclarationEdges, one for each declaration
-    for (Pair<IASTDeclaration, String> p : globalVars) {
-      IASTDeclaration d = p.getFirst();
+    for (Pair<CDeclaration, String> p : globalVars) {
+      CDeclaration d = p.getFirst();
       String rawSignature = p.getSecond();
       assert d.isGlobal();
 
       CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
       cfa.addNode(n);
-      DeclarationEdge e = new DeclarationEdge(rawSignature,
+      CDeclarationEdge e = new CDeclarationEdge(rawSignature,
           d.getFileLocation().getStartingLineNumber(), cur, n, d);
       addToCFA(e);
       cur = n;

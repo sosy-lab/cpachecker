@@ -36,8 +36,8 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.SortedSetMultimap;
@@ -53,11 +53,11 @@ class CFABuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
   private Queue<MethodDeclaration> functionDeclarations = new LinkedList<MethodDeclaration>();
-  private final Map<String, CFAFunctionDefinitionNode> cfas = new HashMap<String, CFAFunctionDefinitionNode>();
+  private final Map<String, FunctionEntryNode> cfas = new HashMap<String, FunctionEntryNode>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
   // Data structure for storing global declarations
-  private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration, String>> globalDeclarations = Lists.newArrayList();
+  private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration, String>> globalDeclarations = Lists.newArrayList();
 
   private final Scope scope = new Scope();
   private final ASTConverter astCreator;
@@ -80,7 +80,7 @@ class CFABuilder extends ASTVisitor {
    * Retrieves list of all functions
    * @return all CFAs in the program
    */
-  public Map<String, CFAFunctionDefinitionNode> getCFAs()  {
+  public Map<String, FunctionEntryNode> getCFAs()  {
     return cfas;
   }
 
@@ -96,12 +96,12 @@ class CFABuilder extends ASTVisitor {
    * Retrieves list of all global declarations
    * @return global declarations
    */
-  public List<Pair<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration, String>> getGlobalDeclarations() {
+  public List<Pair<org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration, String>> getGlobalDeclarations() {
     return globalDeclarations;
   }
 
   /* (non-Javadoc)
-   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTDeclaration)
+   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.CDeclaration)
    */
   @Override
   public boolean visit(MethodDeclaration fd) {
@@ -111,7 +111,7 @@ class CFABuilder extends ASTVisitor {
       functionDeclarations.add(fd);
 
       // add forward declaration to list of global declarations
-      org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration functionDefinition = astCreator.convert(fd);
+      org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration functionDefinition = astCreator.convert(fd);
       if (astCreator.numberOfSideAssignments() > 0) {
         throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
       }
@@ -127,7 +127,7 @@ class CFABuilder extends ASTVisitor {
 
   //Method to handle visiting a parsing problem.  Hopefully none exist
   /* (non-Javadoc)
-   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTProblem)
+   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.CProblem)
    */
   @Override
   public void preVisit(ASTNode problem) {
@@ -144,7 +144,7 @@ class CFABuilder extends ASTVisitor {
 
       declaration.accept(functionBuilder);
 
-      CFAFunctionDefinitionNode startNode = functionBuilder.getStartNode();
+      FunctionEntryNode startNode = functionBuilder.getStartNode();
       String functionName = startNode.getFunctionName();
 
       if (cfas.containsKey(functionName)) {

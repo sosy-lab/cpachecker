@@ -34,8 +34,8 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -272,15 +272,15 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
                 return pathElement.getEdgeToChild(child);
               }
         });
-        if (!Iterables.all(outgoingEdges, Predicates.instanceOf(AssumeEdge.class))) {
-          logger.log(Level.WARNING, "ARG branching without AssumeEdge");
+        if (!Iterables.all(outgoingEdges, Predicates.instanceOf(CAssumeEdge.class))) {
+          logger.log(Level.WARNING, "ARG branching without CAssumeEdge");
           return fmgr.makeTrue();
         }
 
-        AssumeEdge edge = null;
+        CAssumeEdge edge = null;
         for (CFAEdge currentEdge : outgoingEdges) {
-          if (((AssumeEdge)currentEdge).getTruthAssumption()) {
-            edge = (AssumeEdge)currentEdge;
+          if (((CAssumeEdge)currentEdge).getTruthAssumption()) {
+            edge = (CAssumeEdge)currentEdge;
             break;
           }
         }

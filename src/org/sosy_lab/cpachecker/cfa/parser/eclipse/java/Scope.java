@@ -30,12 +30,12 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -46,10 +46,10 @@ import com.google.common.collect.Lists;
  */
 class Scope {
 
-  private final LinkedList<Map<String, IASTSimpleDeclaration>> varsStack = Lists.newLinkedList();
-  private final LinkedList<Map<String, IASTSimpleDeclaration>> varsList = Lists.newLinkedList();
+  private final LinkedList<Map<String, CSimpleDeclaration>> varsStack = Lists.newLinkedList();
+  private final LinkedList<Map<String, CSimpleDeclaration>> varsList = Lists.newLinkedList();
 
-  private final Map<String, IASTSimpleDeclaration> functions = new HashMap<String, IASTSimpleDeclaration>();
+  private final Map<String, CSimpleDeclaration> functions = new HashMap<String, CSimpleDeclaration>();
   private String currentFunctionName = null;
 
   public Scope() {
@@ -60,7 +60,7 @@ class Scope {
     return varsStack.size() == 1;
   }
 
-  public void enterFunction(IASTFunctionDeclaration pFuncDef) {
+  public void enterFunction(CFunctionDeclaration pFuncDef) {
     currentFunctionName = pFuncDef.getOrigName();
     registerFunctionDeclaration(pFuncDef);
 
@@ -77,7 +77,7 @@ class Scope {
   }
 
   public void enterBlock() {
-    varsStack.addLast(new HashMap<String, IASTSimpleDeclaration>());
+    varsStack.addLast(new HashMap<String, CSimpleDeclaration>());
     varsList.addLast(varsStack.getLast());
   }
 
@@ -90,11 +90,11 @@ class Scope {
       checkNotNull(name);
       checkNotNull(origName);
 
-      Iterator<Map<String, IASTSimpleDeclaration>> it = varsList.descendingIterator();
+      Iterator<Map<String, CSimpleDeclaration>> it = varsList.descendingIterator();
       while (it.hasNext()) {
-        Map<String, IASTSimpleDeclaration> vars = it.next();
+        Map<String, CSimpleDeclaration> vars = it.next();
 
-        IASTSimpleDeclaration binding = vars.get(origName);
+        CSimpleDeclaration binding = vars.get(origName);
         if (binding != null && binding.getName().equals(name)) {
           return true;
         }
@@ -106,14 +106,14 @@ class Scope {
       return false;
     }
 
-  public IASTSimpleDeclaration lookupVariable(String name) {
+  public CSimpleDeclaration lookupVariable(String name) {
     checkNotNull(name);
 
-    Iterator<Map<String, IASTSimpleDeclaration>> it = varsStack.descendingIterator();
+    Iterator<Map<String, CSimpleDeclaration>> it = varsStack.descendingIterator();
     while (it.hasNext()) {
-      Map<String, IASTSimpleDeclaration> vars = it.next();
+      Map<String, CSimpleDeclaration> vars = it.next();
 
-      IASTSimpleDeclaration binding = vars.get(name);
+      CSimpleDeclaration binding = vars.get(name);
       if (binding != null) {
         return binding;
       }
@@ -121,21 +121,21 @@ class Scope {
     return null;
   }
 
-  public IASTSimpleDeclaration lookupFunction(String name) {
+  public CSimpleDeclaration lookupFunction(String name) {
     return functions.get(checkNotNull(name));
   }
 
-  public void registerDeclaration(IASTSimpleDeclaration declaration) {
-    assert declaration instanceof IASTVariableDeclaration
-        || declaration instanceof IASTEnumerator
-        || declaration instanceof IASTParameterDeclaration
+  public void registerDeclaration(CSimpleDeclaration declaration) {
+    assert declaration instanceof CVariableDeclaration
+        || declaration instanceof CEnumerator
+        || declaration instanceof CParameterDeclaration
         : "Tried to register a declaration which does not define a name in the standard namespace: " + declaration;
-    assert  !(declaration.getDeclSpecifier() instanceof IASTFunctionTypeSpecifier);
+    assert  !(declaration.getType() instanceof CFunctionType);
 
     String name = declaration.getOrigName();
     assert name != null;
 
-    Map<String, IASTSimpleDeclaration> vars = varsStack.getLast();
+    Map<String, CSimpleDeclaration> vars = varsStack.getLast();
 
     // multiple declarations of the same variable are disallowed, unless when being in global scope
     if (vars.containsKey(name) && !isGlobalScope()) {
@@ -145,7 +145,7 @@ class Scope {
     vars.put(name, declaration);
   }
 
-  public void registerFunctionDeclaration(IASTFunctionDeclaration declaration) {
+  public void registerFunctionDeclaration(CFunctionDeclaration declaration) {
     checkState(isGlobalScope(), "nested functions not allowed");
 
     String name = declaration.getName();
