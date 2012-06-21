@@ -126,8 +126,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -1431,9 +1431,9 @@ class ASTConverter {
       if(initializer != null && initializer instanceof CAssignment){
         preSideAssignments.add(initializer);
         return new CInitializerExpression(convert(e.getFileLocation()), ((CAssignment)initializer).getLeftHandSide());
-      } else if (initializer != null && initializer instanceof IASTFunctionCallExpression && !(i.getParent() instanceof org.eclipse.cdt.core.dom.ast.IASTInitializerList)) {
+      } else if (initializer != null && initializer instanceof CFunctionCallExpression && i.getParent() instanceof IASTDeclarator) {
 
-        String tmpname = convert(((org.eclipse.cdt.core.dom.ast.IASTDeclarator)i.getParent()).getName());
+        String tmpname = convert(((IASTDeclarator)i.getParent()).getName());
         postSideAssignments.add(new CFunctionCallAssignmentStatement(convert(i.getFileLocation()),
                                                                         createTemporaryVariable(e, tmpname),
                                                                         (CFunctionCallExpression) initializer));
