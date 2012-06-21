@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -1206,8 +1207,11 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode prevNode = locStack.pop();
     FunctionExitNode functionExitNode = cfa.getExitNode();
 
+    CReturnStatement returnstmt = astCreator.convert(returnStatement);
+    prevNode = handleSideassignments(prevNode, returnStatement.getRawSignature(), returnstmt.getFileLocation().getStartingLineNumber());
+
     CReturnStatementEdge edge = new CReturnStatementEdge(returnStatement.getRawSignature(),
-        astCreator.convert(returnStatement), fileloc.getStartingLineNumber(), prevNode, functionExitNode);
+    returnstmt, fileloc.getStartingLineNumber(), prevNode, functionExitNode);
     addToCFA(edge);
 
     CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(),
@@ -1219,7 +1223,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   private int handleSwitchStatement(final IASTSwitchStatement statement,
       IASTFileLocation fileloc) {
 
-    final CFANode prevNode = locStack.pop();
+    CFANode prevNode = locStack.pop();
 
     // firstSwitchNode is first Node of switch-Statement.
     // TODO useful or unnecessary? it can be replaced through prevNode.
@@ -1231,6 +1235,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     CExpression switchExpression = astCreator
         .convertExpressionWithoutSideEffects(statement
             .getControllerExpression());
+    prevNode = handleSideassignments(prevNode, statement.getRawSignature(), switchExpression.getFileLocation().getStartingLineNumber());
 
     String rawSignature = "switch (" + statement.getControllerExpression().getRawSignature() + ")";
     String description = "switch (" + switchExpression.toASTString() + ")";
