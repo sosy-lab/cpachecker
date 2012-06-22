@@ -82,7 +82,7 @@ action code {:
 scan with {: return getScanner().next_token(); :}
 
 /* Predefined Symbols */
-terminal String BANG, AS, DECLAREFUN, EXISTS, FORALL, LET;
+terminal String BANG, DECLAREFUN, EXISTS, FORALL, LET;
 
 /* Predefined Keywords */
 terminal String NAMED, HEXADECIMAL, BINARY, NUMERAL, DECIMAL, STRING;
