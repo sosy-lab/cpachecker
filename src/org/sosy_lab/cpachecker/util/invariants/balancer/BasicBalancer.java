@@ -246,7 +246,7 @@ public class BasicBalancer implements Balancer {
    * For a single Transition in a Program, see whether there is
    * a satisfiable formula for that Transition, for any possible ordered
    * set of UIF axioms.
-   * @return a satisfiable formula, as a String, if there is one; null if not.
+   * Return a satisfiable formula, as a String, if there is one; null if not.
    */
   private void processSingleTransition(Transition t, TemplateNetwork tnet, boolean useRREF)
     throws RefinementFailedException {

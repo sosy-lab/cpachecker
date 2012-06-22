@@ -46,7 +46,7 @@ public class TemplateFormula implements Formula, Template {
    * @param vars list of all variables occurring in the formula prior to aliasing,
    *              written in the PLAIN style.
    *              Probably best to get this using the getAllVariables method.
-   * @return says whether every variable in the formula was replaced or not
+   * Return says whether every variable in the formula was replaced or not
    */
   public void alias(AliasingMap amap) {}
 
