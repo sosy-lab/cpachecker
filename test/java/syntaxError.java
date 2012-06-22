@@ -8,16 +8,10 @@ public class Readable {
 			String[] args) {
 		
 
+        int n1;
         
-	
+        sdasdasdsa;
       
-        if(true){
-        
-        assert(true);
-        
-        }
-      
-
-    }      	
+      	
 		
 }

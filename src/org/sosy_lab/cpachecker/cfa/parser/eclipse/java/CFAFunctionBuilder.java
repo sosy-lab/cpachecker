@@ -1053,15 +1053,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         filelocStart, loopInit);
     loopStart.setLoopStart();
 
-    // loopEnd is Node before "counter++;"
-    final CFANode loopEnd = new CLabelNode(filelocStart, cfa.getFunctionName(), "");
-    cfaNodes.add(loopEnd);
-    loopStartStack.push(loopEnd);
 
-    // this edge connects loopEnd with loopStart and contains the statement "counter++;"
-
-    createLastNodesForForLoop(((List<Expression>)forStatement.updaters()),
-        filelocStart, loopEnd, loopStart);
 
     // firstLoopNode is Node after "counter < 5"
     final CFANode firstLoopNode = new CFANode(
@@ -1081,22 +1073,32 @@ class CFAFunctionBuilder extends ASTVisitor {
     createConditionEdgesForForLoop(forStatement.getExpression(),
         filelocStart, loopStart, postLoopNode, firstLoopNode);
 
-    // visit only loopbody, not children
+
+    // Node before Update "counter++"
+    final CFANode lastNodeInLoop = new CFANode(filelocStart, cfa.getFunctionName());
+    cfaNodes.add(lastNodeInLoop);
+
+    loopStartStack.push(lastNodeInLoop);
+
+
+    // visit only loop body, not children
     forStatement.getBody().accept(this);
 
-    // leave loop
-    final CFANode lastNodeInLoop = locStack.pop();
+ // leave loop
+    final CFANode prev = locStack.pop();
 
-    // loopEnd is the Node before "counter++;"
-    assert loopEnd == loopStartStack.pop();
+    final BlankEdge blankEdge = new BlankEdge("",
+        filelocStart, prev, lastNodeInLoop , "");
+    addToCFA(blankEdge);
+
+    // loopEnd is end of Loop after "counter++;"
+
+    createLastNodesAndEdgeForForLoop(((List<Expression>)forStatement.updaters()),
+        filelocStart, lastNodeInLoop, loopStart);
+
+    assert lastNodeInLoop == loopStartStack.pop();
     assert postLoopNode == loopNextStack.pop();
     assert postLoopNode == locStack.peek();
-
-    if (isReachableNode(lastNodeInLoop)) {
-      final BlankEdge blankEdge = new BlankEdge("", lastNodeInLoop.getLineNumber(),
-          lastNodeInLoop, loopEnd, "");
-      addToCFA(blankEdge);
-    }
 
     // skip visiting children of loop, because loopbody was handled before
     return SKIP_CHILDS;
@@ -1118,52 +1120,50 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
   }
 
-  private void createLastNodesForForLoop(List<Expression> updaters, int filelocStart, CFANode loopEnd, CFANode loopStart) {
+  private void createLastNodesAndEdgeForForLoop(List<Expression> updaters, int filelocStart, CFANode loopEnd , CFANode loopStart) {
 
     int size = updaters.size();
 
     if (size == 0) {
-      // ignore, only add blankEdge
-      final BlankEdge blankEdge = new BlankEdge("", filelocStart, loopEnd, loopStart, "");
+      // no update
+
+      final BlankEdge blankEdge = new BlankEdge("",
+          filelocStart, loopEnd, loopStart , "");
       addToCFA(blankEdge);
 
 
     } else {
 
-      CFANode nextNode;
+      CFANode prevNode = loopEnd;
+      CFANode nextNode = null;
 
-      // counter indicating current element
-      int c = 0;
 
       for (Expression exp : updaters) {
         //TODO Investigate if we can use Expression without Side Effect here
         final CAstNode node = astCreator.convertExpressionWithSideEffects(exp);
 
         // If last Expression, use last loop Node
-        if(size - 1 != c){
+
           nextNode = new CFANode(filelocStart, cfa.getFunctionName());
-          c++;
           cfaNodes.add(nextNode);
-        }else {
-          nextNode = loopEnd;
-        }
+
 
         if (node instanceof CIdExpression) {
           final BlankEdge blankEdge = new BlankEdge(node.toASTString(),
-              filelocStart, nextNode, loopStart, "");
+              filelocStart, prevNode, nextNode , "");
           addToCFA(blankEdge);
 
           // "counter++;"
           //TODO Find better Solution (to String not allowed)
         } else if (node instanceof CExpressionAssignmentStatement) {
           final CStatementEdge lastEdge = new CStatementEdge(exp.toString(),
-              (CExpressionAssignmentStatement) node, filelocStart, nextNode, loopStart);
+              (CExpressionAssignmentStatement) node, filelocStart, prevNode, nextNode);
           addToCFA(lastEdge);
 
           //TODO Find  better Solution (to String not allowed)
         } else if (node instanceof CFunctionCallAssignmentStatement) {
           final CStatementEdge edge = new CStatementEdge(exp.toString(),
-              (CFunctionCallAssignmentStatement) node, filelocStart, nextNode, loopStart);
+              (CFunctionCallAssignmentStatement) node, filelocStart, prevNode, nextNode);
           addToCFA(edge);
 
         } else { // TODO: are there other iteration-expressions in a for-loop?
@@ -1171,6 +1171,15 @@ class CFAFunctionBuilder extends ASTVisitor {
               + exp.getClass());
         }
       }
+
+      //TODO Blank edge here right?
+      final BlankEdge blankEdge = new BlankEdge("",
+          filelocStart, nextNode, loopStart , "");
+      addToCFA(blankEdge);
+
+      assert(nextNode != null) : "Null Pointer not expected. Unexpected behaviour in For Statementen" ;
+
+
     }
   }
 
@@ -1183,10 +1192,14 @@ class CFAFunctionBuilder extends ASTVisitor {
 
 
       for (Expression exp : initializers) {
+
         //TODO Investigate if we can use Expression without Side Effect here
         final CAstNode node = astCreator.convertExpressionWithSideEffects(exp);
 
-        // If last Expression, use last loop Node
+
+
+
+
 
           nextNode = new CFANode(filelocStart, cfa.getFunctionName());
           cfaNodes.add(nextNode);
@@ -1194,20 +1207,20 @@ class CFAFunctionBuilder extends ASTVisitor {
 
         if (node instanceof CIdExpression) {
           final BlankEdge blankEdge = new BlankEdge(node.toASTString(),
-              filelocStart, nextNode, loopInit, "");
+              filelocStart, loopInit, nextNode , "");
           addToCFA(blankEdge);
 
-          // "counter++;"
+
           //TODO Find better Solution (to String not allowed)
         } else if (node instanceof CExpressionAssignmentStatement) {
           final CStatementEdge lastEdge = new CStatementEdge(exp.toString(),
-              (CExpressionAssignmentStatement) node, filelocStart, nextNode, loopInit);
+              (CExpressionAssignmentStatement) node, filelocStart, loopInit, nextNode);
           addToCFA(lastEdge);
 
           //TODO Find  better Solution (to String not allowed)
         } else if (node instanceof CFunctionCallAssignmentStatement) {
           final CStatementEdge edge = new CStatementEdge(exp.toString(),
-              (CFunctionCallAssignmentStatement) node, filelocStart, nextNode, loopInit);
+              (CFunctionCallAssignmentStatement) node, filelocStart,loopInit ,   nextNode);
           addToCFA(edge);
 
         } else { // TODO: are there other iteration-expressions in a for-loop?
@@ -1221,38 +1234,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       return nextNode;
 
 
-      /*
-    if (initializers.size() == 0) {
-      // no edge inserted
-      return loopInit;
-    } else {
 
-      if(initializers.get(0).getNodeType() == ASTNode.VARIABLE_DECLARATION_EXPRESSION){
-        VariableDeclarationExpression variableDeclaraion =
-            (VariableDeclarationExpression) initializers.get(0);
-
-        CFANode prevNode = loopInit;
-
-        for (VariableDeclarationFragment fr : (List<VariableDeclarationFragment>) variableDeclaraion.fragments()) {
-          prevNode = addDeclarationsToCFA(fr, prevNode);
-        }
-
-        return prevNode;
-      } else {
-
-        //Initializer start with loopInit
-        locStack.push( loopInit );
-
-        // Go through initializer
-        for(ASTNode ast : initializers){
-          System.out.println(ast.getNodeType());
-        }
-
-        return locStack.pop();
-
-      }
-    }
-    */
   }
 
   @Override

@@ -1,4 +1,3 @@
-
 public class Readable {
 	
 
@@ -19,11 +18,13 @@ public class Readable {
             
             n1 = n1 + 2;
             assert(n1 < 25);
-            assert(n1 != 14)
+            assert(n1 != 14);
             
              
             
         }
 		
 		
+    }
+
 }

@@ -19,7 +19,7 @@ public class Readable {
         continue;
         n1 = 40;
         
-        }while( n1 > 0 && n1 < 10  )
+        }while( n1 > 0 && n1 < 10  );
       
       
       assert(n1 == 10);

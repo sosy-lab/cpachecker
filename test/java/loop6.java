@@ -7,13 +7,17 @@ public class Readable {
 	public static void main(
 			String[] args) {
 		
+        int c;
 
-       for(int c = 0 ; c < 10 ; c++){
+
+       for(c = 0 ; c < 10 ; c++){
        
        
        }
        
-       assert (c == 9);
+       assert (c == 10);
 		
+		
+   } 
 		
 }
