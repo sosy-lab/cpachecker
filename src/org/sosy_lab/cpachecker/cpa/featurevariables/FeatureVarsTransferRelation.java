@@ -108,6 +108,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       for (CFAEdge innerEdge : (MultiEdge)cfaEdge) {
         successor = getAbstractSuccessor(successor, precision, innerEdge);
       }
+      break;
     }
 
     default:

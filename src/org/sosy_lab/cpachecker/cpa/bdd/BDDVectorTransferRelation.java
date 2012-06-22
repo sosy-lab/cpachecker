@@ -131,6 +131,7 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
           throw new AssertionError("only size 0 or 1 allowed");
         }
       }
+      break;
     }
 
     case FunctionCallEdge:

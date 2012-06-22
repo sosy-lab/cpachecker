@@ -138,6 +138,7 @@ public class BDDTransferRelation implements TransferRelation {
           throw new AssertionError("only size 0 or 1 allowed");
         }
       }
+      break;
     }
 
     case FunctionCallEdge:
@@ -556,6 +557,7 @@ public class BDDTransferRelation implements TransferRelation {
       case PLUS: // (+X == 0) <==> (X == 0)
       case MINUS: // (-X == 0) <==> (X == 0)
         returnValue = operand;
+        break;
       default:
         // *exp --> don't know anything
       }

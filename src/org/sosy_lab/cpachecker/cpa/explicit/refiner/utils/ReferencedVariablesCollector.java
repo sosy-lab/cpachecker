@@ -396,6 +396,7 @@ public class ReferencedVariablesCollector {
         // whether or not it is a pointer (dereference) is not important here
         //collectVariables(pE.getOperand().toASTString());
         pE.getOperand().accept(this);
+        break;
       default:
         pE.getOperand().accept(this);
       }
