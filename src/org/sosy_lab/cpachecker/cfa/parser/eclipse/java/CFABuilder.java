@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.logging.Level;
 
-import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
@@ -121,19 +120,6 @@ class CFABuilder extends ASTVisitor {
       return false;
 
 
-  }
-
-
-
-  //Method to handle visiting a parsing problem.  Hopefully none exist
-  /* (non-Javadoc)
-   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.CProblem)
-   */
-  @Override
-  public void preVisit(ASTNode problem) {
-
-    if(ASTNode.RECOVERED == problem.getFlags() || ASTNode.MALFORMED == problem.getFlags())
-    throw new CFAGenerationRuntimeException("Parse Error", problem);
   }
 
   @Override

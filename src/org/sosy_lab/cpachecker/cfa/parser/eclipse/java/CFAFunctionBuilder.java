@@ -365,7 +365,21 @@ class CFAFunctionBuilder extends ASTVisitor {
     // In that case, every Statement needs to be visited
     // and handleElsoCondition be implemented.
     handleElseCondition(bl);
+    scope.enterBlock();
+
+
     return VISIT_CHILDS;
+  }
+
+  @Override
+  public void  endVisit(Block bl) {
+    // TODO This works if else is a Block (else {Statement})
+    // , but not if it has just one statement (else Statement)
+    // In that case, every Statement needs to be visited
+    // and handleElsoCondition be implemented.
+    scope.leaveBlock();
+
+
   }
 
 
@@ -498,6 +512,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   public boolean visit(IfStatement ifStatement) {
    CFileLocation fileloc = astCreator.getFileLocation(ifStatement);
 
+   // If parent Else is not a Block
    handleElseCondition(ifStatement);
 
 
@@ -693,6 +708,9 @@ class CFAFunctionBuilder extends ASTVisitor {
   @Override
   public boolean visit(LabeledStatement labelStatement) {
 
+    //If parent is a else Condition without block
+    handleElseCondition(labelStatement);
+
     CFileLocation fileloc = astCreator.getFileLocation(labelStatement);
 
     String labelName = labelStatement.getLabel().getIdentifier();
@@ -744,6 +762,10 @@ class CFAFunctionBuilder extends ASTVisitor {
   @SuppressWarnings("unchecked")
   @Override
   public boolean visit(final SwitchStatement statement) {
+
+    // If parent is else and not a block
+    handleElseCondition(statement);
+
 
     CFileLocation fileloc = astCreator.getFileLocation(statement);
 
@@ -906,6 +928,8 @@ class CFAFunctionBuilder extends ASTVisitor {
   @Override
   public boolean visit (WhileStatement whileStatement) {
 
+    handleElseCondition(whileStatement);
+
     CFileLocation fileloc = astCreator.getFileLocation(whileStatement);
 
     final CFANode prevNode = locStack.pop();
@@ -944,6 +968,8 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   @Override
   public boolean visit(DoStatement doStatement) {
+
+    handleElseCondition(doStatement);
 
     CFileLocation fileloc = astCreator.getFileLocation(doStatement);
 
@@ -1008,6 +1034,8 @@ class CFAFunctionBuilder extends ASTVisitor {
   @SuppressWarnings({ "cast", "unchecked" })
   @Override
   public boolean visit(final ForStatement forStatement) {
+
+    handleElseCondition(forStatement);
 
     final CFileLocation fileloc = astCreator.getFileLocation(forStatement);
     final int filelocStart = fileloc.getStartingLineNumber();
@@ -1230,6 +1258,8 @@ class CFAFunctionBuilder extends ASTVisitor {
   @Override
   public boolean visit(BreakStatement breakStatement) {
 
+    handleElseCondition(breakStatement);
+
     //TODO Check Validity of Break Statement
 
     if(breakStatement.getLabel() == null ){
@@ -1282,6 +1312,8 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   @Override
   public boolean visit(ContinueStatement continueStatement) {
+
+    handleElseCondition(continueStatement);
 
     //TODO Check Validity of Continue Statement
 

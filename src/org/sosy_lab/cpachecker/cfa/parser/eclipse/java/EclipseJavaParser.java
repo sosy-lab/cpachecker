@@ -115,8 +115,10 @@ public  class EclipseJavaParser implements CParser {
   private ParseResult buildCFA(CompilationUnit ast) throws ParserException {
     cfaTimer.start();
     try {
+      AstErrorChecker checker = new AstErrorChecker(logger);
       CFABuilder builder = new CFABuilder(logger, ignoreCasts);
       try {
+        ast.accept(checker);
         ast.accept(builder);
       } catch (CFAGenerationRuntimeException e) {
         throw new ParserException(e);
