@@ -85,10 +85,10 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
     Multimap<CFANode, String> increment = HashMultimap.create();
 
     List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
-    for(Pair<ARGState, CFAEdge> pathElement : currentEdgePath){
+    for (Pair<ARGState, CFAEdge> pathElement : currentEdgePath){
       // expand any multi-edge
-      if(pathElement.getSecond() instanceof MultiEdge) {
-        for(CFAEdge singleEdge : (MultiEdge)pathElement.getSecond()) {
+      if (pathElement.getSecond() instanceof MultiEdge) {
+        for (CFAEdge singleEdge : (MultiEdge)pathElement.getSecond()) {
           cfaTrace.add(singleEdge);
         }
       }
@@ -102,27 +102,27 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
     Multimap<CFANode, String> variablesToBeIgnored      = HashMultimap.create();
     Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(cfaTrace);
 
-    for(int i = 0; i < cfaTrace.size(); i++){
+    for (int i = 0; i < cfaTrace.size(); i++){
       CFAEdge currentEdge = cfaTrace.get(i);
 
       numberOfErrorPathElements++;
 
-      if(currentEdge instanceof CFunctionReturnEdge) {
+      if (currentEdge instanceof CFunctionReturnEdge) {
         currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
       }
 
       Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge.getSuccessor());
 
       // no potentially interesting variables referenced - skip
-      if(referencedVariablesAtEdge.isEmpty()) {
+      if (referencedVariablesAtEdge.isEmpty()) {
         continue;
       }
 
       // check for each variable, if ignoring it makes the error path feasible
-      for(String importantVariable : referencedVariablesAtEdge) {
+      for (String importantVariable : referencedVariablesAtEdge) {
         // do a redundancy check against current node of the ART (and not against the error node in the ART)
         ExplicitPrecision currentPrecision = extractExplicitPrecision(reachedSet.getPrecision(currentEdgePath.get(i).getFirst()));
-        if(isRedundant(currentPrecision.getCegarPrecision(), currentEdge, importantVariable)) {
+        if (isRedundant(currentPrecision.getCegarPrecision(), currentEdge, importantVariable)) {
           continue;
         }
 
@@ -133,11 +133,11 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
 
         // if path becomes feasible, remove it from the set of variables to be ignored,
         // and add the variable to the precision increment, also setting the interpolation point
-        if(isPathFeasable(cfaTrace, variablesToBeIgnored)) {
+        if (isPathFeasable(cfaTrace, variablesToBeIgnored)) {
           variablesToBeIgnored.remove(currentEdge.getSuccessor(), importantVariable);
           increment.put(currentEdge.getSuccessor(), importantVariable);
 
-          if(firstInterpolationPoint == null) {
+          if (firstInterpolationPoint == null) {
             firstInterpolationPoint = currentEdgePath.get(i + 1).getFirst();
           }
         }
@@ -154,7 +154,7 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
       Multimap<CFANode, String> precisionIncrement) {
 
     // just use initial node of error path if the respective option is set
-    if(useInitialNodeAsRestartingPoint/* || firstInterpolationPoint == null*/) {
+    if (useInitialNodeAsRestartingPoint/* || firstInterpolationPoint == null*/) {
       return errorPath.get(1).getFirst();
     }
     else {
@@ -169,7 +169,7 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
    * @return
    */
   private Multimap<CFANode, String> determineReferencedVariableMapping(List<CFAEdge> cfaTrace) {
-    if(useAssumptionClosure) {
+    if (useAssumptionClosure) {
       AssumptionVariablesCollector coll = new AssumptionVariablesCollector();
       return coll.collectVariables(cfaTrace);
     }

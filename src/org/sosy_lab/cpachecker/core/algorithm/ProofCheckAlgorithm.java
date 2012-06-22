@@ -99,7 +99,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   public ProofCheckAlgorithm(ConfigurableProgramAnalysis cpa, Configuration pConfig, LogManager logger) throws InvalidConfigurationException {
     pConfig.inject(this);
 
-    if(!(cpa instanceof ProofChecker)) {
+    if (!(cpa instanceof ProofChecker)) {
       throw new InvalidConfigurationException("ProofCheckAlgorithm needs a CPA that implements the ProofChecker interface.");
     }
     this.cpa = (ProofChecker)cpa;
@@ -133,7 +133,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       ObjectInputStream o = new ObjectInputStream(zis);
       //read helper storages
       int numberOfStorages = o.readInt();
-      for(int i = 0; i < numberOfStorages; ++i) {
+      for (int i = 0; i < numberOfStorages; ++i) {
         Serializable storage = (Serializable)o.readObject();
         GlobalInfo.getInstance().addHelperStorage(storage);
       }
@@ -171,7 +171,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     logger.log(Level.FINE, "Checking root state");
 
-    if(!(cpa.isCoveredBy(initialState, rootState) && cpa.isCoveredBy(rootState, initialState))) {
+    if (!(cpa.isCoveredBy(initialState, rootState) && cpa.isCoveredBy(rootState, initialState))) {
       stats.totalTimer.stop();
       logger.log(Level.WARNING, "Root state of proof is invalid.");
       return false;
@@ -182,8 +182,8 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     Set<ARGState> postponedStates = new HashSet<ARGState>();
 
     do {
-      for(ARGState e : postponedStates) {
-        if(!reachedSet.contains(e.getCoveringState())) {
+      for (ARGState e : postponedStates) {
+        if (!reachedSet.contains(e.getCoveringState())) {
           stats.totalTimer.stop();
           logger.log(Level.WARNING, "Covering state", e.getCoveringState(), "was not found in reached set");
           return false;
@@ -200,24 +200,24 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
         logger.log(Level.FINE, "Looking at state", state);
 
-        if(state.isCovered()) {
+        if (state.isCovered()) {
 
           logger.log(Level.FINER, "State is covered by another abstract state; checking coverage");
           ARGState coveringState = state.getCoveringState();
 
-          if(!reachedSet.contains(coveringState)) {
+          if (!reachedSet.contains(coveringState)) {
             postponedStates.add(state);
             continue;
           }
 
           stats.stopTimer.start();
-          if(!isCoveringCycleFree(state)) {
+          if (!isCoveringCycleFree(state)) {
             stats.stopTimer.stop();
             stats.totalTimer.stop();
             logger.log(Level.WARNING, "Found cycle in covering relation for state", state);
             return false;
           }
-          if(!cpa.isCoveredBy(state, coveringState)) {
+          if (!cpa.isCoveredBy(state, coveringState)) {
             stats.stopTimer.stop();
             stats.totalTimer.stop();
             logger.log(Level.WARNING, "State", state, "is not covered by", coveringState);
@@ -229,19 +229,19 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
           stats.transferTimer.start();
           Collection<ARGState> successors = state.getChildren();
           logger.log(Level.FINER, "Checking abstract successors", successors);
-          if(!cpa.areAbstractSuccessors(state, null, successors)) {
+          if (!cpa.areAbstractSuccessors(state, null, successors)) {
             stats.transferTimer.stop();
             stats.totalTimer.stop();
             logger.log(Level.WARNING, "State", state, "has other successors than", successors);
             return false;
           }
           stats.transferTimer.stop();
-          for(ARGState e : successors) {
+          for (ARGState e : successors) {
             reachedSet.add(e, initialPrecision);
           }
         }
       }
-    } while(!postponedStates.isEmpty());
+    } while (!postponedStates.isEmpty());
     stats.totalTimer.stop();
     return true;
   }
@@ -249,10 +249,10 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   private boolean isCoveringCycleFree(ARGState pState) {
     HashSet<ARGState> seen = new HashSet<ARGState>();
     seen.add(pState);
-    while(pState.isCovered()) {
+    while (pState.isCovered()) {
       pState = pState.getCoveringState();
       boolean isNew = seen.add(pState);
-      if(!isNew) {
+      if (!isNew) {
         return false;
       }
     }

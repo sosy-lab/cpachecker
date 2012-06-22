@@ -130,7 +130,7 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
    */
   private PredicatePrecision extractPredicatePrecision(Precision precision) {
     PredicatePrecision predicatePrecision = Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
-    if(predicatePrecision == null) {
+    if (predicatePrecision == null) {
       throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
     }
     return predicatePrecision;
@@ -151,7 +151,7 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
     ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
     pmapBuilder.putAll(oldPredicateMap);
 
-    for(Map.Entry<CFANode, AbstractionPredicate> predicateAtLocation : predicateMap.getPredicateMapping().entries()) {
+    for (Map.Entry<CFANode, AbstractionPredicate> predicateAtLocation : predicateMap.getPredicateMapping().entries()) {
       pmapBuilder.putAll(predicateAtLocation.getKey(), predicateAtLocation.getValue());
     }
 

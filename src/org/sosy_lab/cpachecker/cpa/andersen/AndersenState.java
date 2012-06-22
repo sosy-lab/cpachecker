@@ -147,8 +147,9 @@ public class AndersenState implements AbstractState, Cloneable {
     HashSet<DirectedGraph.Node> workset = new HashSet<DirectedGraph.Node>();
 
     // add all nodes in graph to the initial workset
-    for (Map.Entry<String, DirectedGraph.Node> entry : g.getNameMappings())
+    for (Map.Entry<String, DirectedGraph.Node> entry : g.getNameMappings()) {
       workset.add(entry.getValue());
+    }
 
     HashSet<DirectedGraph.Edge> tested = new HashSet<DirectedGraph.Edge>();
 
@@ -157,12 +158,15 @@ public class AndersenState implements AbstractState, Cloneable {
 
       DirectedGraph.Node n = workset.iterator().next();
       workset.remove(n);
-      if (!n.isValid()) // node is invalid, if it was merged into another one
+      if (!n.isValid()) {
+        // node is invalid, if it was merged into another one
         continue;
+      }
 
       // two lines for HCD
-      if (n.mergePts != null)
+      if (n.mergePts != null) {
         g.mergeNodes(n.mergePts, n.getPointsToNodesSet());
+      }
 
       for (DirectedGraph.Node v : n.getPointsToNodesSet()) {
 
@@ -199,8 +203,9 @@ public class AndersenState implements AbstractState, Cloneable {
             break;
           }
 
-        } else /* END LCD code */if (n.propagatePointerTargetsTo(z))
+        } else /* END LCD code */if (n.propagatePointerTargetsTo(z)) {
           workset.add(z);
+        }
       }
 
     } // while (!workset.isEmpty())
@@ -383,8 +388,9 @@ public class AndersenState implements AbstractState, Cloneable {
       if (workset.contains(succ)) {
         maxdfs = tarjan(maxdfs, succ, workset, stack, nodeStrMap, sccs);
         v.lowlink = Math.min(v.lowlink, succ.lowlink);
-      } else if (succ.dfs > 0) // <==> stack.contains(succ)
+      } else if (succ.dfs > 0) { // <==> stack.contains(succ)
         v.lowlink = Math.min(v.lowlink, succ.dfs);
+      }
     }
 
     if (v.lowlink == v.dfs) {
@@ -398,8 +404,9 @@ public class AndersenState implements AbstractState, Cloneable {
         scc.add(nodeStrMap.get(succ));
       } while (!succ.equals(v));
 
-      if (scc.size() > 1)
+      if (scc.size() > 1) {
         sccs.add(scc);
+      }
     }
 
     return maxdfs;
@@ -424,27 +431,31 @@ public class AndersenState implements AbstractState, Cloneable {
       for (String n : scc) {
 
         // translate to new node
-        if (n.charAt(0) == '*')
+        if (n.charAt(0) == '*') {
           refNodes.add(g.getNode(n.substring(1)));
-        else
+        } else {
           normNodes.add(g.getNode(n));
+        }
       }
 
       DirectedGraph.Node merged = g.mergeNodes(normNodes.poll(), normNodes);
 
-      for (DirectedGraph.Node n : refNodes)
+      for (DirectedGraph.Node n : refNodes) {
         n.mergePts = merged;
+      }
     }
   }
 
   @Override
   public boolean equals(Object other) {
 
-    if (this == other)
+    if (this == other) {
       return true;
+    }
 
-    if (other == null || !this.getClass().equals(other.getClass()))
+    if (other == null || !this.getClass().equals(other.getClass())) {
       return false;
+    }
 
     AndersenState oEl = (AndersenState) other;
 
@@ -517,11 +528,13 @@ public class AndersenState implements AbstractState, Cloneable {
       sb.append(key).append(" -> {");
       String[] vals = ptSet.get(key);
 
-      for (String val : vals)
+      for (String val : vals) {
         sb.append(val).append(',');
+      }
 
-      if (vals.length > 0)
+      if (vals.length > 0) {
         sb.setLength(sb.length() - 1);
+      }
 
       sb.append('}').append('\n');
     }

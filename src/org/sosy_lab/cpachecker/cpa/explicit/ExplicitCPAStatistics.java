@@ -48,8 +48,8 @@ public class ExplicitCPAStatistics implements Statistics {
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    if(refiner != null) {
-      if(refiner instanceof DelegatingExplicitRefiner) {
+    if (refiner != null) {
+      if (refiner instanceof DelegatingExplicitRefiner) {
         ((DelegatingExplicitRefiner)refiner).printStatistics(out, result, reached);
       }
     }

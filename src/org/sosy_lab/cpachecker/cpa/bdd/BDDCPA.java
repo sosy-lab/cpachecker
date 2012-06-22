@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   @Option(description = "either use one bit to know if a value is 0 (or not 0)" +
-  		"or use a vector to store all memory cells of a variable")
+      "or use a vector to store all memory cells of a variable")
   private boolean useBitvector = false;
 
   public static CPAFactory factory() {

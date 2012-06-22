@@ -77,7 +77,7 @@ public class CBMCExecutor extends ProcessExecutor<RuntimeException> {
 
   @Override
   protected void handleOutput(String pLine) throws RuntimeException {
-    if(pLine.contains("unwinding assertion")){
+    if (pLine.contains("unwinding assertion")){
       unwindingAssertionFailed = true;
     }
     super.handleOutput(pLine);

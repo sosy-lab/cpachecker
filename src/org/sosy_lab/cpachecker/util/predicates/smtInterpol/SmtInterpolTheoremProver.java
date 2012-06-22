@@ -94,7 +94,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   @Override
   public void reset() {
     Preconditions.checkNotNull(env);
-    while(assertedTerms.size() > 0) { // cleanup stack
+    while (assertedTerms.size() > 0) { // cleanup stack
       pop();
     }
     env = null;

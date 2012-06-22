@@ -84,8 +84,9 @@ public class Interval
 
   private boolean isSane()
   {
-    if(low > high)
+    if (low > high) {
       throw new IllegalStateException("low cannot be larger than high");
+    }
 
     return true;
   }
@@ -116,20 +117,20 @@ public class Interval
   @Override
   public boolean equals(Object other)
   {
-    if(other != null && getClass().equals(other.getClass()))
+    if (other != null && getClass().equals(other.getClass()))
     {
       Interval another = (Interval)other;
 
-      if(isEmpty() && another.isEmpty())
+      if (isEmpty() && another.isEmpty()) {
         return true;
-
-      else if(isEmpty() || another.isEmpty())
+      } else if (isEmpty() || another.isEmpty()) {
         return false;
+      }
 
       return low.equals(another.low) && high.equals(another.high);
-    }
-    else
+    } else {
       return false;
+    }
   }
 
   public boolean isSingular()
@@ -143,8 +144,9 @@ public class Interval
   @Override
   public int hashCode()
   {
-    if(isEmpty())
+    if (isEmpty()) {
       return 0;
+    }
 
     int result = 17;
 
@@ -173,11 +175,11 @@ public class Interval
    */
   public Interval union(Interval other)
   {
-      if(isEmpty() || other.isEmpty())
+      if (isEmpty() || other.isEmpty()) {
         return createEmptyInterval();
-
-      else
+      } else {
         return new Interval(Math.min(low, other.low), Math.max(high, other.high));
+      }
   }
 
   /**
@@ -192,11 +194,11 @@ public class Interval
   {
     Interval interval = null;
 
-    if(this.intersects(other))
+    if (this.intersects(other)) {
       interval = new Interval(Math.max(low, other.low), Math.min(high, other.high));
-
-    else
+    } else {
       interval = createEmptyInterval();
+    }
 
     return interval;
   }
@@ -323,11 +325,11 @@ public class Interval
   {
     Interval interval = null;
 
-    if(isEmpty() || other.isEmpty() || high < other.low)
+    if (isEmpty() || other.isEmpty() || high < other.low) {
       interval = createEmptyInterval();
-
-    else
+    } else {
       interval = new Interval(Math.max(low, other.low), high);
+    }
 
     return interval;
   }
@@ -342,11 +344,11 @@ public class Interval
   {
     Interval interval = null;
 
-    if(isEmpty() || other.isEmpty() || low > other.high)
+    if (isEmpty() || other.isEmpty() || low > other.high) {
       interval = createEmptyInterval();
-
-    else
+    } else {
       interval = new Interval(low, Math.min(high, other.high));
+    }
 
     return interval;
   }
@@ -359,8 +361,9 @@ public class Interval
    */
   public boolean intersects(Interval other)
   {
-      if(isEmpty() || other.isEmpty())
+      if (isEmpty() || other.isEmpty()) {
         return false;
+      }
 
       return (low >= other.low && low <= other.high)
         || (high >= other.low && high <= other.high)
@@ -389,8 +392,9 @@ public class Interval
    */
   public Interval plus(Interval interval)
   {
-    if(isEmpty() || interval.isEmpty())
+    if (isEmpty() || interval.isEmpty()) {
       return createEmptyInterval();
+    }
 
     return new Interval(scalarPlus(low, interval.low), scalarPlus(high, interval.high));
   }
@@ -455,10 +459,9 @@ public class Interval
   public Interval divide(Interval other)
   {
     // other interval contains "0", return unbound interval
-    if(other.contains(FALSE))
+    if (other.contains(FALSE)) {
       return createUnboundInterval();
-
-    else
+    } else
     {
       Long[] values = {
                         low / other.low,
@@ -480,10 +483,9 @@ public class Interval
   public Interval shiftLeft(Interval offset)
   {
     // create an unbound interval upon trying to shift by a possibly negative offset
-    if(offset.mayBeLessThan(FALSE))
+    if (offset.mayBeLessThan(FALSE)) {
       return createUnboundInterval();
-
-    else
+    } else
     {
       // if lower bound is negative, shift it by upper bound of offset, else by lower bound of offset
       Long newLow   = low << ((low < 0L) ? offset.high : offset.low);
@@ -491,11 +493,11 @@ public class Interval
       // if upper bound is negative, shift it by lower bound of offset, else by upper bound of offset
       Long newHigh  = high << ((high < 0L) ? offset.low : offset.high);
 
-      if((low < 0 && newLow > low) || (high > 0 && newHigh < high))
+      if ((low < 0 && newLow > low) || (high > 0 && newHigh < high)) {
         return createUnboundInterval();
-
-      else
+      } else {
         return new Interval(newLow, newHigh);
+      }
     }
   }
 
@@ -508,10 +510,9 @@ public class Interval
   public Interval shiftRight(Interval offset)
   {
     // create an unbound interval upon trying to shift by a possibly negative offset
-    if(offset.mayBeLessThan(FALSE))
+    if (offset.mayBeLessThan(FALSE)) {
       return createUnboundInterval();
-
-    else
+    } else
     {
       // if lower bound is negative, shift it by lower bound of offset, else by upper bound of offset
       Long newLow   = low >> ((low < 0L) ? offset.low : offset.high);
@@ -626,12 +627,11 @@ public class Interval
     Long result = x + y;
 
     // both operands are positive but the result is negative
-    if((Long.signum(x) + Long.signum(y) == 2) && Long.signum(result) == -1)
+    if ((Long.signum(x) + Long.signum(y) == 2) && Long.signum(result) == -1) {
       result = Long.MAX_VALUE;
-
-    // both operands are negative but the result is positive
-    else  if((Long.signum(x) + Long.signum(y) == -2) && Long.signum(result) == +1)
+    } else  if ((Long.signum(x) + Long.signum(y) == -2) && Long.signum(result) == +1) {
       result = Long.MIN_VALUE;
+    }
 
     return result;
   }
@@ -648,10 +648,10 @@ public class Interval
     Long bound = (Long.signum(x) == Long.signum(y)) ? Long.MAX_VALUE : Long.MIN_VALUE;
 
     // if overflow occurs, return the respective bound
-    if (x != 0 && (y > 0 && y > (bound / x) || y < 0 && y < (bound / x)))
+    if (x != 0 && (y > 0 && y > (bound / x) || y < 0 && y < (bound / x))) {
       return bound;
-
-    else
+    } else {
       return x * y;
+    }
   }
 }

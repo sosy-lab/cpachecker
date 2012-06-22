@@ -201,7 +201,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     boolean first = true;
     for (Map.Entry<String, Long> entry: constantsMap.entrySet())
     {
-      if(first) {
+      if (first) {
         first = false;
       } else {
         sb.append(", ");

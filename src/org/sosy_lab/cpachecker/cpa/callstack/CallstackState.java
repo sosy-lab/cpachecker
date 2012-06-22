@@ -118,10 +118,11 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
   @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     if (pProperty.compareToIgnoreCase("caller") == 0) {
-      if (callerNode != null)
+      if (callerNode != null) {
         return this.callerNode.getFunctionName();
-      else
+      } else {
         return "";
+      }
     }
 
     throw new InvalidQueryException(String.format("Evaluating %s not supported by %s", pProperty, this.getClass().getCanonicalName()));

@@ -247,7 +247,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
       //collect initialization status of the called function's parameters from the context of the calling function
       for (int i = 0; i < numOfParams; i++) {
-        if(isExpressionUninitialized(element, arguments.get(i), callEdge)) {
+        if (isExpressionUninitialized(element, arguments.get(i), callEdge)) {
           uninitParameters.add(paramNames.get(i));
         } else {
           initParameters.add(paramNames.get(i));

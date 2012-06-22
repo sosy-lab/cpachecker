@@ -165,7 +165,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
       pfmgr = predicateCpa.getPathFormulaManager();
 
       RelevantPredicatesComputer relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
-      if(relevantPredicatesComputer instanceof RefineableRelevantPredicatesComputer) {
+      if (relevantPredicatesComputer instanceof RefineableRelevantPredicatesComputer) {
         this.relevantPredicatesComputer = (RefineableRelevantPredicatesComputer)relevantPredicatesComputer;
       } else {
         this.relevantPredicatesComputer = null;
@@ -214,11 +214,11 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
 
       boolean refinedRelevantPredicatesComputer = false;
 
-      if(pRepeatedCounterexample) {
+      if (pRepeatedCounterexample) {
         //block formulas are the same as last time; check if abstractions also agree
         pRepeatedCounterexample = getRegionsForPath(pPath).equals(lastAbstractions);
 
-        if(pRepeatedCounterexample && !refinedLastRelevantPredicatesComputer && relevantPredicatesComputer != null) {
+        if (pRepeatedCounterexample && !refinedLastRelevantPredicatesComputer && relevantPredicatesComputer != null) {
           //even abstractions agree; try refining relevant predicates reducer
           refineRelevantPredicatesComputer(pPath, pReached);
           pRepeatedCounterexample = false;
@@ -241,18 +241,18 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
       openBlocks.push(partitioning.getMainBlock());
       for (Pair<ARGState, CFANode> pathElement : pPath) {
         CFANode currentNode = pathElement.getSecond();
-        if(partitioning.isCallNode(currentNode)) {
+        if (partitioning.isCallNode(currentNode)) {
           openBlocks.push(partitioning.getBlockForCallNode(currentNode));
         }
 
         Collection<AbstractionPredicate> localPreds = oldPredicatePrecision.getPredicates(currentNode);
-        for(Block block : openBlocks) {
-          for(AbstractionPredicate pred : localPreds) {
+        for (Block block : openBlocks) {
+          for (AbstractionPredicate pred : localPreds) {
             relevantPredicatesComputer.considerPredicateAsRelevant(block, pred);
           }
         }
 
-        while(openBlocks.peek().isReturnNode(currentNode)) {
+        while (openBlocks.peek().isReturnNode(currentNode)) {
           openBlocks.pop();
         }
       }

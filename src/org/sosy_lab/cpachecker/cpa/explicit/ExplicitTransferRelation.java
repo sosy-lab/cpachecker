@@ -69,8 +69,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -110,7 +110,7 @@ public class ExplicitTransferRelation implements TransferRelation
     ExplicitState successor;
 
     switch (cfaEdge.getEdgeType()) {
-    // this is an assumption, e.g. if(a == b)
+    // this is an assumption, e.g. if (a == b)
     case AssumeEdge:
       CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
       successor = handleAssumption(explicitState.clone(), assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption(), explicitPrecision);
@@ -147,7 +147,7 @@ public class ExplicitTransferRelation implements TransferRelation
     currentPrecision.setLocation(cfaEdge.getSuccessor());
 
     // check the type of the edge
-    switch(cfaEdge.getEdgeType()) {
+    switch (cfaEdge.getEdgeType()) {
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge:
       CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
@@ -189,7 +189,7 @@ public class ExplicitTransferRelation implements TransferRelation
     ExplicitState newElement = new ExplicitState(element);
 
     // copy global variables into the new state, to make them available in body of called function
-    for(String globalVar : globalVariables) {
+    for (String globalVar : globalVariables) {
       if (element.contains(globalVar)) {
         newElement.assignConstant(globalVar, element.getValueFor(globalVar));
       }
@@ -202,7 +202,7 @@ public class ExplicitTransferRelation implements TransferRelation
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
     List<CExpression> arguments = callEdge.getArguments();
 
-    if(!callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
+    if (!callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
       assert(paramNames.size() == arguments.size());
     }
 
@@ -210,12 +210,12 @@ public class ExplicitTransferRelation implements TransferRelation
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(callEdge, element, callerFunctionName);
 
     // get value of actual parameter in caller function context
-    for(int i = 0; i < paramNames.size(); i++) {
+    for (int i = 0; i < paramNames.size(); i++) {
       Long value = arguments.get(i).accept(visitor);
 
       String formalParamName = getScopedVariableName(paramNames.get(i), calledFunctionName);
 
-      if(value == null) {
+      if (value == null) {
         newElement.forget(formalParamName);
       } else {
         newElement.assignConstant(formalParamName, value);
@@ -227,7 +227,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
   private void handleExitFromFunction(ExplicitState newElement, CExpression expression, CReturnStatementEdge returnEdge)
     throws UnrecognizedCCodeException {
-    if(expression == null) {
+    if (expression == null) {
       expression = CNumericTypes.ZERO; // this is the default in C
     }
 
@@ -252,8 +252,8 @@ public class ExplicitTransferRelation implements TransferRelation
     String calledFunctionName       = functionReturnEdge.getPredecessor().getFunctionName();
 
     // copy global variables back to the new state, to make them available in body of calling function
-    for(String variableName : globalVariables) {
-      if(element.contains(variableName)) {
+    for (String variableName : globalVariables) {
+      if (element.contains(variableName)) {
         newElement.assignConstant(variableName, element.getValueFor(variableName));
       } else {
         newElement.forget(variableName);
@@ -261,17 +261,17 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     // expression is an assignment operation, e.g. a = g(b);
-    if(exprOnSummary instanceof CFunctionCallAssignmentStatement) {
+    if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement assignExp = ((CFunctionCallAssignmentStatement)exprOnSummary);
       CExpression op1 = assignExp.getLeftHandSide();
 
       // we expect left hand side of the expression to be a variable
-      if((op1 instanceof CIdExpression) || (op1 instanceof CFieldReference)) {
+      if ((op1 instanceof CIdExpression) || (op1 instanceof CFieldReference)) {
         String returnVarName = getScopedVariableName("___cpa_temp_result_var_", calledFunctionName);
 
         String assignedVarName = getScopedVariableName(op1.toASTString(), callerFunctionName);
 
-        if(currentPrecision.isTracking(assignedVarName) && element.contains(returnVarName)) {
+        if (currentPrecision.isTracking(assignedVarName) && element.contains(returnVarName)) {
           newElement.assignConstant(assignedVarName, element.getValueFor(returnVarName));
         } else {
           newElement.forget(assignedVarName);
@@ -279,12 +279,12 @@ public class ExplicitTransferRelation implements TransferRelation
       }
 
       // a* = b(); TODO: for now, nothing is done here, but cloning the current element
-      else if(op1 instanceof CUnaryExpression && ((CUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
+      else if (op1 instanceof CUnaryExpression && ((CUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
         return newElement;
       }
 
       // a[x] = b(); TODO: for now, nothing is done here, but cloning the current element
-      else if(op1 instanceof CArraySubscriptExpression) {
+      else if (op1 instanceof CArraySubscriptExpression) {
         return newElement;
       }
 
@@ -307,13 +307,13 @@ public class ExplicitTransferRelation implements TransferRelation
     Long value = getExpressionValue(element, expression, functionName, cfaEdge);
 
     // value is null, try to derive further information
-    if(value == null) {
+    if (value == null) {
       AssigningValueVisitor avv = new AssigningValueVisitor(cfaEdge, element, functionName, truthValue);
 
       expression.accept(avv);
 
       return element;
-    } else if((truthValue && value == 1L) || (!truthValue && value == 0L)) {
+    } else if ((truthValue && value == 1L) || (!truthValue && value == 0L)) {
       return element;
     } else {
       return null;
@@ -337,7 +337,7 @@ public class ExplicitTransferRelation implements TransferRelation
     Long initialValue = null;
 
     // handle global variables
-    if(decl.isGlobal()) {
+    if (decl.isGlobal()) {
       // if this is a global variable, add to the list of global variables
       globalVariables.add(varName);
 
@@ -347,7 +347,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
     // get initial value
     CInitializer init = decl.getInitializer();
-    if(init instanceof CInitializerExpression) {
+    if (init instanceof CInitializerExpression) {
       CExpression exp = ((CInitializerExpression)init).getExpression();
 
       initialValue = getExpressionValue(newElement, exp, functionName, declarationEdge);
@@ -356,7 +356,7 @@ public class ExplicitTransferRelation implements TransferRelation
     // assign initial value if necessary
     String scopedVarName = getScopedVariableName(varName, functionName);
 
-    if(initialValue != null && precision.isTracking(scopedVarName)) {
+    if (initialValue != null && precision.isTracking(scopedVarName)) {
       newElement.assignConstant(scopedVarName, initialValue);
     } else {
       newElement.forget(scopedVarName);
@@ -385,7 +385,7 @@ public class ExplicitTransferRelation implements TransferRelation
     CExpression op1    = assignExpression.getLeftHandSide();
     CRightHandSide op2 = assignExpression.getRightHandSide();
 
-    if(op1 instanceof CIdExpression) {
+    if (op1 instanceof CIdExpression) {
       // a = ...
       if (!precision.isOnBlacklist(getScopedVariableName(((CIdExpression)op1).getName(), cfaEdge.getPredecessor().getFunctionName()))) {
         String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -394,7 +394,7 @@ public class ExplicitTransferRelation implements TransferRelation
       }
     }
 
-    else if(op1 instanceof CUnaryExpression && ((CUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
+    else if (op1 instanceof CUnaryExpression && ((CUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
       // *a = ...
 
       op1 = ((CUnaryExpression)op1).getOperand();
@@ -402,11 +402,11 @@ public class ExplicitTransferRelation implements TransferRelation
       // Cil produces code like
       // *((int*)__cil_tmp5) = 1;
       // so remove cast
-      if(op1 instanceof CCastExpression) {
+      if (op1 instanceof CCastExpression) {
         op1 = ((CCastExpression)op1).getOperand();
       }
 
-      if(op1 instanceof CIdExpression) {
+      if (op1 instanceof CIdExpression) {
         missingInformationLeftPointer = ((CIdExpression)op1).getName();
         missingInformationRightExpression = op2;
       }
@@ -415,9 +415,9 @@ public class ExplicitTransferRelation implements TransferRelation
 
     }
 
-    else if(op1 instanceof CFieldReference) {
+    else if (op1 instanceof CFieldReference) {
       // a->b = ...
-      if(precision.isOnBlacklist(getScopedVariableName(op1.toASTString(),cfaEdge.getPredecessor().getFunctionName()))) {
+      if (precision.isOnBlacklist(getScopedVariableName(op1.toASTString(),cfaEdge.getPredecessor().getFunctionName()))) {
         return;
       } else {
         String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -427,7 +427,7 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     // TODO assignment to array cell
-    else if(op1 instanceof CArraySubscriptExpression) {
+    else if (op1 instanceof CArraySubscriptExpression) {
 
     } else {
       throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
@@ -438,7 +438,7 @@ public class ExplicitTransferRelation implements TransferRelation
     throws UnrecognizedCCodeException {
     Long value = exp.accept(visitor);
 
-    if(visitor.missingPointer) {
+    if (visitor.missingPointer) {
       missingInformationRightExpression = exp;
       assert value == null;
     }
@@ -446,11 +446,11 @@ public class ExplicitTransferRelation implements TransferRelation
     ExplicitState newElement = visitor.state;
     String assignedVar = getScopedVariableName(lParam, visitor.functionName);
 
-    if(value == null) {
+    if (value == null) {
       newElement.forget(assignedVar);
     }
     else {
-      if(currentPrecision.isTracking(assignedVar) || assignedVar.endsWith("___cpa_temp_result_var_")) {
+      if (currentPrecision.isTracking(assignedVar) || assignedVar.endsWith("___cpa_temp_result_var_")) {
         newElement.assignConstant(assignedVar, value);
       }
       else {
@@ -490,7 +490,7 @@ public class ExplicitTransferRelation implements TransferRelation
       CExpression lVarInBinaryExp = pE.getOperand1();
       CExpression rVarInBinaryExp = pE.getOperand2();
 
-      switch(binaryOperator) {
+      switch (binaryOperator) {
       case PLUS:
       case MINUS:
       case DIVIDE:
@@ -500,16 +500,16 @@ public class ExplicitTransferRelation implements TransferRelation
       case BINARY_OR:
       case BINARY_XOR: {
         Long lVal = lVarInBinaryExp.accept(this);
-        if(lVal == null) {
+        if (lVal == null) {
           return null;
         }
 
         Long rVal = rVarInBinaryExp.accept(this);
-        if(rVal == null) {
+        if (rVal == null) {
           return null;
         }
 
-        switch(binaryOperator) {
+        switch (binaryOperator) {
         case PLUS:
           return lVal + rVal;
 
@@ -518,7 +518,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
         case DIVIDE:
           // TODO maybe we should signal a division by zero error?
-          if(rVal == 0) {
+          if (rVal == 0) {
             return null;
           }
 
@@ -552,18 +552,20 @@ public class ExplicitTransferRelation implements TransferRelation
       case LESS_EQUAL: {
 
         Long lVal = lVarInBinaryExp.accept(this);
-        if(lVal == null)
+        if (lVal == null) {
           return null;
+        }
 
         Long rVal = rVarInBinaryExp.accept(this);
-        if(rVal == null)
+        if (rVal == null) {
           return null;
+        }
 
         long l = lVal;
         long r = rVal;
 
         boolean result;
-        switch(binaryOperator) {
+        switch (binaryOperator) {
         case EQUALS:
           result = (l == r);
           break;
@@ -631,9 +633,9 @@ public class ExplicitTransferRelation implements TransferRelation
 
     @Override
     public Long visit(CIdExpression idExp) throws UnrecognizedCCodeException {
-      if(idExp.getDeclaration() instanceof CEnumerator) {
+      if (idExp.getDeclaration() instanceof CEnumerator) {
         CEnumerator enumerator = (CEnumerator)idExp.getDeclaration();
-        if(enumerator.hasValue()) {
+        if (enumerator.hasValue()) {
           return enumerator.getValue();
         } else {
           return null;
@@ -642,7 +644,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
       String varName = getScopedVariableName(idExp.getName(), functionName);
 
-      if(state.contains(varName)) {
+      if (state.contains(varName)) {
         return state.getValueFor(varName);
       } else {
         return null;
@@ -656,7 +658,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
       Long value = null;
 
-      switch(unaryOperator) {
+      switch (unaryOperator) {
       case MINUS:
         value = unaryOperand.accept(this);
         return (value != null) ? -value : null;
@@ -664,12 +666,11 @@ public class ExplicitTransferRelation implements TransferRelation
       case NOT:
         value = unaryOperand.accept(this);
 
-        if(value == null)
+        if (value == null) {
           return null;
-
-        // if the value is 0, return 1, if it is anything other than 0, return 0
-        else
+        } else {
           return (value == 0L) ? 1L : 0L;
+        }
 
       case AMPER:
         return null; // valid expression, but it's a pointer value
@@ -690,7 +691,7 @@ public class ExplicitTransferRelation implements TransferRelation
     public Long visit(CFieldReference fieldReferenceExpression) throws UnrecognizedCCodeException {
       String varName = getScopedVariableName(fieldReferenceExpression.toASTString(), functionName);
 
-      if(state.contains(varName)) {
+      if (state.contains(varName)) {
         return state.getValueFor(varName);
       } else {
         return null;
@@ -713,9 +714,9 @@ public class ExplicitTransferRelation implements TransferRelation
 
     private CExpression unwrap(CExpression expression) {
       // is this correct for e.g. [!a != !(void*)(int)(!b)] !?!?!
-      if(expression instanceof CUnaryExpression) {
+      if (expression instanceof CUnaryExpression) {
         CUnaryExpression exp = (CUnaryExpression)expression;
-        if(exp.getOperator() == UnaryOperator.NOT) {
+        if (exp.getOperator() == UnaryOperator.NOT) {
           expression = exp.getOperand();
           truthValue = !truthValue;
 
@@ -723,7 +724,7 @@ public class ExplicitTransferRelation implements TransferRelation
         }
       }
 
-      if(expression instanceof CCastExpression) {
+      if (expression instanceof CCastExpression) {
         CCastExpression exp = (CCastExpression)expression;
         expression = exp.getOperand();
 
@@ -746,17 +747,17 @@ public class ExplicitTransferRelation implements TransferRelation
       Long leftValue                  = lVarInBinaryExp.accept(this);
       Long rightValue                 = rVarInBinaryExp.accept(this);
 
-      if((binaryOperator == BinaryOperator.EQUALS && truthValue) || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue)) {
-        if(leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
+      if ((binaryOperator == BinaryOperator.EQUALS && truthValue) || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue)) {
+        if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
           String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
-          if(currentPrecision.isTracking(leftVariableName)) {
+          if (currentPrecision.isTracking(leftVariableName)) {
             state.assignConstant(leftVariableName, rightValue);
           }
         }
 
-        else if(rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
+        else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
           String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName);
-          if(currentPrecision.isTracking(rightVariableName)) {
+          if (currentPrecision.isTracking(rightVariableName)) {
             state.assignConstant(rightVariableName, leftValue);
           }
         }
@@ -780,7 +781,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
     @Override
     public Long visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
-      if(unaryExpression.getOperator() != UnaryOperator.STAR) {
+      if (unaryExpression.getOperator() != UnaryOperator.STAR) {
         return super.visit(unaryExpression);
       }
 
@@ -788,16 +789,16 @@ public class ExplicitTransferRelation implements TransferRelation
       // __cil_tmp8 = *((int *)__cil_tmp7);
       // so remove cast
       CExpression unaryOperand = unaryExpression.getOperand();
-      if(unaryOperand instanceof CCastExpression) {
+      if (unaryOperand instanceof CCastExpression) {
         unaryOperand = ((CCastExpression)unaryOperand).getOperand();
       }
 
-      if(unaryOperand instanceof CIdExpression) {
+      if (unaryOperand instanceof CIdExpression) {
         String rightVar = derefPointerToVariable(pointerState, ((CIdExpression)unaryOperand).getName());
-        if(rightVar != null) {
+        if (rightVar != null) {
           rightVar = getScopedVariableName(rightVar, functionName);
 
-          if(state.contains(rightVar)) {
+          if (state.contains(rightVar)) {
             return state.getValueFor(rightVar);
           }
         }
@@ -815,7 +816,7 @@ public class ExplicitTransferRelation implements TransferRelation
   }
 
   public String getScopedVariableName(String variableName, String functionName) {
-    if(globalVariables.contains(variableName)) {
+    if (globalVariables.contains(variableName)) {
       return variableName;
     }
 
@@ -828,8 +829,8 @@ public class ExplicitTransferRelation implements TransferRelation
     assert element instanceof ExplicitState;
     ExplicitState explicitState = (ExplicitState)element;
 
-    for(AbstractState ae : elements) {
-      if(ae instanceof PointerState) {
+    for (AbstractState ae : elements) {
+      if (ae instanceof PointerState) {
         return strengthen(explicitState, (PointerState)ae, cfaEdge, precision);
       }
     }
@@ -840,19 +841,19 @@ public class ExplicitTransferRelation implements TransferRelation
   private Collection<? extends AbstractState> strengthen(ExplicitState explicitState, PointerState pointerElement, CFAEdge cfaEdge, Precision precision)
     throws UnrecognizedCCodeException {
     try {
-      if(missingInformationRightExpression != null) {
+      if (missingInformationRightExpression != null) {
         String functionName = cfaEdge.getPredecessor().getFunctionName();
         ExplicitState newElement = explicitState.clone();
         ExpressionValueVisitor v = new PointerExpressionValueVisitor(cfaEdge, newElement, functionName, pointerElement);
 
-        if(missingInformationLeftVariable != null) {
+        if (missingInformationLeftVariable != null) {
           handleAssignmentToVariable(missingInformationLeftVariable, missingInformationRightExpression, v);
 
           return Collections.singleton(newElement);
         }
-        else if(missingInformationLeftPointer != null) {
+        else if (missingInformationLeftPointer != null) {
           String leftVar = derefPointerToVariable(pointerElement, missingInformationLeftPointer);
-          if(leftVar != null) {
+          if (leftVar != null) {
             leftVar = getScopedVariableName(leftVar, functionName);
             handleAssignmentToVariable(leftVar, missingInformationRightExpression, v);
 
@@ -874,9 +875,9 @@ public class ExplicitTransferRelation implements TransferRelation
     Pointer p = pointerElement.lookupPointer(pointer);
     if (p != null && p.getNumberOfTargets() == 1) {
       Memory.PointerTarget target = p.getFirstTarget();
-      if(target instanceof Memory.Variable) {
+      if (target instanceof Memory.Variable) {
         return ((Memory.Variable)target).getVarName();
-      } else if(target instanceof Memory.StackArrayCell) {
+      } else if (target instanceof Memory.StackArrayCell) {
         return ((Memory.StackArrayCell)target).getVarName();
       }
     }
@@ -891,15 +892,15 @@ public class ExplicitTransferRelation implements TransferRelation
    * @return the generalized expression
    */
   private CExpression optimizeAssumeForEvaluation(CExpression expression) {
-    if(expression instanceof CBinaryExpression) {
+    if (expression instanceof CBinaryExpression) {
       CBinaryExpression binaryExpression = (CBinaryExpression)expression;
 
       BinaryOperator operator = binaryExpression.getOperator();
       CExpression leftOperand = binaryExpression.getOperand1();
       CExpression riteOperand = binaryExpression.getOperand2();
 
-      if(operator == BinaryOperator.EQUALS || operator == BinaryOperator.NOT_EQUALS) {
-        if(leftOperand instanceof CBinaryExpression && riteOperand instanceof CLiteralExpression) {
+      if (operator == BinaryOperator.EQUALS || operator == BinaryOperator.NOT_EQUALS) {
+        if (leftOperand instanceof CBinaryExpression && riteOperand instanceof CLiteralExpression) {
           CBinaryExpression expr = (CBinaryExpression)leftOperand;
 
           BinaryOperator operation = expr.getOperator();
@@ -907,7 +908,7 @@ public class ExplicitTransferRelation implements TransferRelation
           CExpression riteAddend = expr.getOperand2();
 
           // [(a + 753) != 951] => [a != 951 + 753]
-          if(riteAddend instanceof CLiteralExpression && (operation == BinaryOperator.PLUS || operation == BinaryOperator.MINUS)) {
+          if (riteAddend instanceof CLiteralExpression && (operation == BinaryOperator.PLUS || operation == BinaryOperator.MINUS)) {
             BinaryOperator newOperation = (operation == BinaryOperator.PLUS) ? BinaryOperator.MINUS : BinaryOperator.PLUS;
 
             CBinaryExpression sum = new CBinaryExpression(expr.getFileLocation(),

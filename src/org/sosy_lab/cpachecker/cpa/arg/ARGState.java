@@ -66,7 +66,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     super(pWrappedState);
     stateId = ++nextArgStateId;
     parents = new LinkedHashSet<ARGState>(1); // TODO Is HashSet enough? It would be more memory-efficient.
-    if(pParentElement != null){
+    if (pParentElement != null){
       addParent(pParentElement);
     }
     children = new LinkedHashSet<ARGState>(1);
@@ -79,7 +79,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   public void addParent(ARGState pOtherParent){
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    if(parents.add(pOtherParent)){
+    if (parents.add(pOtherParent)){
       pOtherParent.children.add(this);
     }
   }

@@ -40,7 +40,7 @@ public class FunctionAndLoopPartitioning extends LoopPartitioning {
 
   @Override
   protected boolean shouldBeCached(CFANode pNode) {
-    if(pNode.getFunctionName().startsWith("__VERIFIER_")) {
+    if (pNode.getFunctionName().startsWith("__VERIFIER_")) {
       //exception for __VERIFIER helper functions
       return false;
     }

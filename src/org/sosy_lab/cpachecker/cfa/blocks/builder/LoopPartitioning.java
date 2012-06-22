@@ -59,10 +59,10 @@ public class LoopPartitioning extends PartitioningHeuristic {
 
   private void initLoopMap() {
     loopHeaderToLoopBody = new HashMap<CFANode, Set<CFANode>>();
-    if(cfa.getLoopStructure().isPresent()) {
-      for(String functionName : cfa.getLoopStructure().get().keySet()) {
-        for(Loop loop : cfa.getLoopStructure().get().get(functionName)) {
-          if(loop.getLoopHeads().size() == 1) {
+    if (cfa.getLoopStructure().isPresent()) {
+      for (String functionName : cfa.getLoopStructure().get().keySet()) {
+        for (Loop loop : cfa.getLoopStructure().get().get(functionName)) {
+          if (loop.getLoopHeads().size() == 1) {
             //currently only loops with single loop heads supported
             loopHeaderToLoopBody.put(Iterables.getOnlyElement(loop.getLoopHeads()), loop.getLoopNodes());
           }
@@ -73,12 +73,12 @@ public class LoopPartitioning extends PartitioningHeuristic {
 
   @Override
   protected boolean shouldBeCached(CFANode pNode) {
-    if(pNode instanceof FunctionEntryNode && pNode.getNumEnteringEdges() == 0) {
+    if (pNode instanceof FunctionEntryNode && pNode.getNumEnteringEdges() == 0) {
       //main function
       return true;
     }
-    if(pNode.isLoopStart()) {
-      if(hasBlankEdgeFromLoop(pNode) || selfLoop(pNode)) {
+    if (pNode.isLoopStart()) {
+      if (hasBlankEdgeFromLoop(pNode) || selfLoop(pNode)) {
         return false;
       }
       return true;
@@ -87,9 +87,9 @@ public class LoopPartitioning extends PartitioningHeuristic {
   }
 
   private static boolean hasBlankEdgeFromLoop(CFANode pNode) {
-    for(int i = 0; i < pNode.getNumEnteringEdges(); i++) {
+    for (int i = 0; i < pNode.getNumEnteringEdges(); i++) {
       CFAEdge edge = pNode.getEnteringEdge(i);
-      if(edge instanceof BlankEdge && edge.getPredecessor().isLoopStart()) {
+      if (edge instanceof BlankEdge && edge.getPredecessor().isLoopStart()) {
         return true;
       }
     }
@@ -102,16 +102,16 @@ public class LoopPartitioning extends PartitioningHeuristic {
 
   @Override
   protected Set<CFANode> getBlockForNode(CFANode pNode) {
-    if(pNode instanceof FunctionEntryNode) {
+    if (pNode instanceof FunctionEntryNode) {
       return TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
     }
-    if(pNode.isLoopStart()) {
+    if (pNode.isLoopStart()) {
       Set<CFANode> loopBody = new HashSet<CFANode>();
-      if(loopHeaderToLoopBody == null) {
+      if (loopHeaderToLoopBody == null) {
         initLoopMap();
       }
       Set<CFANode> immutableLoopBody = loopHeaderToLoopBody.get(pNode);
-      if(immutableLoopBody == null) {
+      if (immutableLoopBody == null) {
         return null;
       }
       loopBody.addAll(immutableLoopBody);
@@ -123,9 +123,9 @@ public class LoopPartitioning extends PartitioningHeuristic {
   }
 
   private void insertLoopStartState(Set<CFANode> pLoopBody, CFANode pLoopHeader) {
-    for(int i = 0; i < pLoopHeader.getNumEnteringEdges(); i++) {
+    for (int i = 0; i < pLoopHeader.getNumEnteringEdges(); i++) {
       CFAEdge edge = pLoopHeader.getEnteringEdge(i);
-      if(edge instanceof BlankEdge && !pLoopBody.contains(edge.getPredecessor())) {
+      if (edge instanceof BlankEdge && !pLoopBody.contains(edge.getPredecessor())) {
         pLoopBody.add(edge.getPredecessor());
       }
     }
@@ -133,10 +133,10 @@ public class LoopPartitioning extends PartitioningHeuristic {
 
   private void insertLoopReturnStates(Set<CFANode> pLoopBody) {
     List<CFANode> addNodes = new ArrayList<CFANode>();
-    for(CFANode node : pLoopBody) {
-      for(int i = 0; i < node.getNumLeavingEdges(); i++) {
+    for (CFANode node : pLoopBody) {
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge edge = node.getLeavingEdge(i);
-        if(!pLoopBody.contains(edge.getSuccessor()) && !(node.getLeavingEdge(i).getEdgeType() == CFAEdgeType.FunctionCallEdge))  {
+        if (!pLoopBody.contains(edge.getSuccessor()) && !(node.getLeavingEdge(i).getEdgeType() == CFAEdgeType.FunctionCallEdge))  {
           addNodes.add(edge.getSuccessor());
         }
       }

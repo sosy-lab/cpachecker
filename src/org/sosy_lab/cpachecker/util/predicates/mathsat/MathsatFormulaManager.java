@@ -676,7 +676,7 @@ public abstract class MathsatFormulaManager implements FormulaManager {
     while (!toProcess.isEmpty()) {
       final long rightSubTerm = toProcess.pop();
 
-      if(rightSubTerm == leftTerm) {
+      if (rightSubTerm == leftTerm) {
         return true;
       }
 
@@ -684,7 +684,7 @@ public abstract class MathsatFormulaManager implements FormulaManager {
         int args = msat_term_arity(rightSubTerm);
         for (int i = 0; i < args; ++i) {
           long arg = msat_term_get_arg(rightSubTerm, i);
-          if(!seen.contains(arg)) {
+          if (!seen.contains(arg)) {
             toProcess.add(arg);
             seen.add(arg);
           }
@@ -700,7 +700,7 @@ public abstract class MathsatFormulaManager implements FormulaManager {
     final long t = getTerm(f);
     int arity = msat_term_arity(t);
     Formula[] result = new Formula[arity];
-    for(int i = 0; i < arity; ++i) {
+    for (int i = 0; i < arity; ++i) {
       result[i] = encapsulate(msat_term_get_arg(t, i));
     }
     return result;

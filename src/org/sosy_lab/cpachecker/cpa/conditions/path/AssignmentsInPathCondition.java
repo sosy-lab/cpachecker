@@ -120,15 +120,15 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   public AvoidanceReportingState getAbstractSuccessor(AbstractState element, CFAEdge edge) {
     currentState = (AssignmentsInPathConditionState)element;
 
-    if(edge.getEdgeType() == CFAEdgeType.StatementEdge) {
+    if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
       CStatementEdge statementEdge = (CStatementEdge)edge;
 
       CStatement statement = statementEdge.getStatement();
-      if(statement instanceof CAssignment) {
+      if (statement instanceof CAssignment) {
         CExpression leftHandSide = ((CAssignment)statement).getLeftHandSide();
 
         String assignedVariable = getScopedVariableName(leftHandSide, edge);
-        if(assignedVariable != null) {
+        if (assignedVariable != null) {
           currentState = currentState.getSuccessor(assignedVariable);
         }
       }
@@ -136,7 +136,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
     maxNumberOfAssignments = Math.max(maxNumberOfAssignments, currentState.maximum);
 
-    for(Map.Entry<String, Integer> assignment : currentState.getAssignmentCounts().entrySet()) {
+    for (Map.Entry<String, Integer> assignment : currentState.getAssignmentCounts().entrySet()) {
       String variableName     = assignment.getKey();
       Integer currentCounter  = maxNumberOfAssignmentsPerIdentifier.containsKey(variableName) ? maxNumberOfAssignmentsPerIdentifier.get(variableName) : 0;
 
@@ -158,10 +158,11 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   private String getScopedVariableName(CExpression expression, CFAEdge edge) {
     String scope = "";
 
-    if(!isGlobalIdentifier(expression))
+    if (!isGlobalIdentifier(expression)) {
       scope = edge.getPredecessor().getFunctionName() + "::";
+    }
 
-    if(expression instanceof CIdExpression
+    if (expression instanceof CIdExpression
         || expression instanceof CFieldReference) {
       return scope + expression.toASTString();
     }
@@ -176,11 +177,11 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
    * @return true, if the given expression references a global identifier, else false
    */
   private boolean isGlobalIdentifier(CExpression expression) {
-    if(expression instanceof CIdExpression) {
+    if (expression instanceof CIdExpression) {
       CIdExpression identifier       = (CIdExpression)expression;
       CSimpleDeclaration declaration = identifier.getDeclaration();
 
-      if(declaration instanceof CDeclaration) {
+      if (declaration instanceof CDeclaration) {
         return ((CDeclaration)declaration).isGlobal();
       }
     }
@@ -204,7 +205,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     out.println("Threshold value: " + threshold);
     out.println("max. number of assignments: " + maxNumberOfAssignments);
 
-    if(extendedStatsFile != null) {
+    if (extendedStatsFile != null) {
       writeLogFile();
     }
   }
@@ -240,7 +241,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   private static String assignmentsAsString(Map<String, Integer> assignments) {
     StringBuilder builder = new StringBuilder();
 
-    for(Map.Entry<String, Integer> assignment : assignments.entrySet()) {
+    for (Map.Entry<String, Integer> assignment : assignments.entrySet()) {
       builder.append(assignment.getKey());
       builder.append(" -> ");
       builder.append(assignment.getValue());
@@ -413,13 +414,13 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
      * @param element the ExplicitState from which to query assignment information
      */
     public void addAssignment(ExplicitState element) {
-      if(assignedVariable == null) {
+      if (assignedVariable == null) {
         return;
       }
 
-      if(element.contains(assignedVariable)) {
+      if (element.contains(assignedVariable)) {
         Long value = element.getValueFor(assignedVariable);
-        if(value != null) {
+        if (value != null) {
           mapping.put(assignedVariable, value);
 
           maximum = Math.max(maximum, getAssignmentCount(assignedVariable));
@@ -450,7 +451,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     public Map<String, Integer> getAssignmentCounts() {
       Map<String, Integer> map = new HashMap<String, Integer>();
 
-      for(String variableName : mapping.keys()) {
+      for (String variableName : mapping.keys()) {
         map.put(variableName, getAssignmentCount(variableName));
       }
 

@@ -50,7 +50,7 @@ class ABMARTUtils {
   }
 
   private static void gatherReachedSets(ABMCPA cpa, Block block, ReachedSet reachedSet, Multimap<Block, ReachedSet> blockToReachedSet) {
-    if(blockToReachedSet.containsEntry(block, reachedSet)) {
+    if (blockToReachedSet.containsEntry(block, reachedSet)) {
       return; //avoid looping in recursive block calls
     }
 
@@ -63,25 +63,25 @@ class ABMARTUtils {
 
     worklist.add(firstElement);
 
-    while(worklist.size() != 0){
+    while (worklist.size() != 0){
       ARGState currentElement = worklist.removeLast();
 
       assert reachedSet.contains(currentElement);
 
-      if(processed.contains(currentElement)){
+      if (processed.contains(currentElement)){
         continue;
       }
       processed.add(currentElement);
 
       for (ARGState child : currentElement.getChildren()) {
         CFAEdge edge = getEdgeToChild(currentElement, child);
-        if(edge == null) {
+        if (edge == null) {
           //this is a summary edge
           Pair<Block,ReachedSet> pair = cpa.getTransferRelation().getCachedReachedSet(currentElement, reachedSet.getPrecision(currentElement));
           gatherReachedSets(cpa, pair.getFirst(), pair.getSecond(), blockToReachedSet);
         }
-        if(!worklist.contains(child)){
-          if(reachedSet.contains(child)) {
+        if (!worklist.contains(child)){
+          if (reachedSet.contains(child)) {
             worklist.add(child);
           }
         }
@@ -97,9 +97,9 @@ class ABMARTUtils {
   }
 
   public static CFAEdge getEdgeTo(CFANode node1, CFANode node2) {
-    for(int i = 0; i < node1.getNumLeavingEdges(); i++) {
+    for (int i = 0; i < node1.getNumLeavingEdges(); i++) {
       CFAEdge edge = node1.getLeavingEdge(i);
-      if(edge.getSuccessor() == node2) {
+      if (edge.getSuccessor() == node2) {
         return edge;
       }
     }

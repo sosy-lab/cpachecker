@@ -465,7 +465,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (exp != astCreator.getConditionalTemporaryVariable() && astCreator.getConditionalExpression() == null) {
       prevNode = handleConditionalTail(exp, filelocStart, prevNode, tempVar);
       CStatementEdge edge;
-      if(exp instanceof CExpression) {
+      if (exp instanceof CExpression) {
         edge  = new CStatementEdge(condExp.getRawSignature(),
                                   new CExpressionAssignmentStatement(astCreator.convert(condExp.getFileLocation()),
                                                                         tempVar,
@@ -498,7 +498,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private void handleConditionalTail(CAstNode exp, int filelocStart, CFANode branchNode, CFANode lastNode, CIdExpression leftHandSide) {
     CFANode nextNode;
-    if(astCreator.getConditionalExpression() != null) {
+    if (astCreator.getConditionalExpression() != null) {
       nextNode = new CFANode(filelocStart, cfa.getFunctionName());
       cfaNodes.add(nextNode);
 
@@ -519,7 +519,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private CFANode handleConditionalTail(CAstNode exp, int filelocStart, CFANode branchNode, CIdExpression leftHandSide) {
     CFANode nextNode;
-    if(astCreator.getConditionalExpression() != null) {
+    if (astCreator.getConditionalExpression() != null) {
       nextNode = new CFANode(filelocStart, cfa.getFunctionName());
       cfaNodes.add(nextNode);
 
@@ -561,7 +561,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode lastNode = new CFANode(fileloc.getStartingLineNumber(), cfa.getFunctionName());
     cfaNodes.add(lastNode);
 
-    if(astCreator.getConditionalExpression() != null) {
+    if (astCreator.getConditionalExpression() != null) {
       IASTConditionalExpression condExp = astCreator.getConditionalExpression();
       astCreator.resetConditionalExpression();
       handleConditionalStatement(condExp, prevNode, lastNode, statement);
@@ -582,7 +582,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private CFANode handleSideassignments(CFANode prevNode, String rawSignature, int filelocStart) {
     CFANode nextNode = null;
-    while(astCreator.numberOfPreSideAssignments() > 0){
+    while (astCreator.numberOfPreSideAssignments() > 0){
       nextNode = new CFANode(filelocStart, cfa.getFunctionName());
       cfaNodes.add(nextNode);
 
@@ -601,10 +601,10 @@ class CFAFunctionBuilder extends ASTVisitor {
   private void handleSideassignments(CFANode prevNode, String rawSignature, int filelocStart, CFANode lastNode) {
     CFANode nextNode = null;
 
-    while(astCreator.numberOfPreSideAssignments() > 0){
+    while (astCreator.numberOfPreSideAssignments() > 0){
       CAstNode sideeffect = astCreator.getNextPreSideAssignment();
 
-      if(astCreator.numberOfPreSideAssignments() > 0) {
+      if (astCreator.numberOfPreSideAssignments() > 0) {
         nextNode = new CFANode(filelocStart, cfa.getFunctionName());
         cfaNodes.add(nextNode);
       } else {
@@ -623,7 +623,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   private void createSideAssignmentEdges(CFANode prevNode, CFANode nextNode, String rawSignature,
       int filelocStart, CAstNode sideeffect) {
     CFAEdge previous;
-    if(sideeffect instanceof CStatement) {
+    if (sideeffect instanceof CStatement) {
       previous = new CStatementEdge(rawSignature, (CStatement)sideeffect, filelocStart, prevNode, nextNode);
     } else if (sideeffect instanceof CAssignment) {
       previous = new CStatementEdge(rawSignature, (CStatement)sideeffect, filelocStart, prevNode, nextNode);
@@ -761,7 +761,7 @@ class CFAFunctionBuilder extends ASTVisitor {
                                   CFANode thenNodeForLastThen, CFANode elseNodeForLastElse,
                                   boolean furtherThenComputation, boolean furtherElseComputation) {
 
-    while(condition instanceof IASTUnaryExpression
+    while (condition instanceof IASTUnaryExpression
           && ((IASTUnaryExpression)condition).getOperator() == IASTUnaryExpression.op_bracketedPrimary){
       condition = ((IASTUnaryExpression)condition).getOperand();
     }
@@ -972,7 +972,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private void createLastEdgeForForLoop(final IASTExpression exp, final int filelocStart,
       CFANode loopEnd, CFANode loopStart) {
-    if(exp instanceof IASTExpressionList) {
+    if (exp instanceof IASTExpressionList) {
       IASTExpression[] expList = ((IASTExpressionList) exp).getExpressions();
       CFANode nextNode = null;
       for (int i = 0; i < expList.length - 1; i++) {

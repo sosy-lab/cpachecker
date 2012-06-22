@@ -73,7 +73,7 @@ public class Mathsat5FormulaList implements FormulaList, Serializable {
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
     out.writeInt(terms.length);
-    for(int i = 0; i < terms.length; ++i) {
+    for (int i = 0; i < terms.length; ++i) {
       out.writeObject(new Mathsat5Formula(0, terms[i]));
     }
   }
@@ -82,7 +82,7 @@ public class Mathsat5FormulaList implements FormulaList, Serializable {
     in.defaultReadObject();
     int termCount = in.readInt();
     terms = new long[termCount];
-    for(int i = 0; i < terms.length; ++i) {
+    for (int i = 0; i < terms.length; ++i) {
       terms[i] = ((Mathsat5Formula)in.readObject()).getTerm();
     }
   }

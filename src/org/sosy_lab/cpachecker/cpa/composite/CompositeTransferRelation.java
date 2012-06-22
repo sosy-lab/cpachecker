@@ -244,28 +244,28 @@ public class CompositeTransferRelation implements TransferRelation{
 
     int resultCount = 1;
     boolean result = true;
-    for(int i = 0; i < size; ++i) {
+    for (int i = 0; i < size; ++i) {
       Set<AbstractState> componentSuccessors = new HashSet<AbstractState>();
-      for(AbstractState successor : pSuccessors) {
+      for (AbstractState successor : pSuccessors) {
         CompositeState compositeSuccessor = (CompositeState)successor;
-        if(compositeSuccessor.getNumberOfStates() != size) {
+        if (compositeSuccessor.getNumberOfStates() != size) {
           return false;
         }
         componentSuccessors.add(compositeSuccessor.get(i));
       }
       resultCount *= componentSuccessors.size();
       ProofChecker componentProofChecker = (ProofChecker)cpas.get(i);
-      if(!componentProofChecker.areAbstractSuccessors(compositeState.get(i), pCfaEdge, componentSuccessors)) {
+      if (!componentProofChecker.areAbstractSuccessors(compositeState.get(i), pCfaEdge, componentSuccessors)) {
         result = false; //if there are no successors it might be still ok if one of the other components is fine with the empty set
       } else {
-        if(componentSuccessors.isEmpty()) {
+        if (componentSuccessors.isEmpty()) {
           assert pSuccessors.isEmpty();
           return true; //another component is indeed fine with the empty set as set of successors; transition is ok
         }
       }
     }
 
-    if(resultCount != pSuccessors.size()) {
+    if (resultCount != pSuccessors.size()) {
       return false;
     }
 

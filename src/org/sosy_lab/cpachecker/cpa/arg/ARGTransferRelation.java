@@ -95,14 +95,14 @@ public class ARGTransferRelation implements TransferRelation {
       wrappedSuccessors.put(element.getEdgeToChild(successorElem), successorElem.getWrappedState());
     }
 
-    if(pCfaEdge != null) {
+    if (pCfaEdge != null) {
       return wrappedProofChecker.areAbstractSuccessors(wrappedState, pCfaEdge, wrappedSuccessors.get(pCfaEdge));
     }
 
     CFANode loc = AbstractStates.extractLocation(element);
-    for(int i = 0; i < loc.getNumLeavingEdges(); ++i) {
+    for (int i = 0; i < loc.getNumLeavingEdges(); ++i) {
       CFAEdge edge = loc.getLeavingEdge(i);
-      if(!wrappedProofChecker.areAbstractSuccessors(wrappedState, edge, wrappedSuccessors.get(edge))) {
+      if (!wrappedProofChecker.areAbstractSuccessors(wrappedState, edge, wrappedSuccessors.get(edge))) {
         return false;
       }
     }

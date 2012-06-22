@@ -100,7 +100,7 @@ public class ProofGenerator {
       o = new ObjectOutputStream(zos);
       int numberOfStorages = GlobalInfo.getInstance().getNumberOfHelperStorages();
       o.writeInt(numberOfStorages);
-      for(int i = 0; i < numberOfStorages; ++i) {
+      for (int i = 0; i < numberOfStorages; ++i) {
         o.writeObject(GlobalInfo.getInstance().getHelperStorage(i));
       }
 

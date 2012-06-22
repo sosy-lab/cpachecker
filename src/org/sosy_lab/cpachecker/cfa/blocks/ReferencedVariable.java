@@ -59,7 +59,7 @@ public class ReferencedVariable {
 
   @Override
   public boolean equals(Object o) {
-    if(!(o instanceof ReferencedVariable)) {
+    if (!(o instanceof ReferencedVariable)) {
       return false;
     }
 

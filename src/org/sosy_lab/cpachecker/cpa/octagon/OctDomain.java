@@ -48,23 +48,23 @@ class OctDomain implements AbstractDomain{
     OctState octState1 = (OctState) element1;
     OctState octState2 = (OctState) element2;
 
-    if(covers.containsKey(octState2) && ((HashSet<OctState>)(covers.get(octState2))).contains(octState1)){
+    if (covers.containsKey(octState2) && ((HashSet<OctState>)(covers.get(octState2))).contains(octState1)){
       return true;
     }
 
     int result = OctagonManager.isIncludedInLazy(octState1.getOctagon(), octState2.getOctagon());
-    if(result == 1) {
+    if (result == 1) {
       totaltime = totaltime + (System.currentTimeMillis() - start);
       return true;
     }
-    else if(result == 2) {
+    else if (result == 2) {
       totaltime = totaltime + (System.currentTimeMillis() - start);
       return false;
     }
     else{
       assert(result == 3);
       boolean included = OctagonManager.isIncludedIn(octState1.getOctagon(), octState2.getOctagon());
-      if(included){
+      if (included){
         Set<OctState> s;
         if (covers.containsKey(octState2)) {
           s = covers.get(octState2);

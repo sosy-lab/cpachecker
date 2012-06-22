@@ -513,8 +513,8 @@ public class CtoFormulaConverter {
       Formula multiEdgeFormula = fmgr.makeTrue();
 
       // unroll the MultiEdge
-      for(CFAEdge singleEdge : (MultiEdge)edge) {
-        if(singleEdge instanceof BlankEdge) {
+      for (CFAEdge singleEdge : (MultiEdge)edge) {
+        if (singleEdge instanceof BlankEdge) {
           continue;
         }
         multiEdgeFormula = fmgr.makeAnd(multiEdgeFormula, createForumlaForEdge(singleEdge, function, ssa, constraints));
@@ -806,7 +806,7 @@ public class CtoFormulaConverter {
       List<String> pVars = getAllPointerVariablesFromSsaMap(ssa);
       for (String pVarName : pVars) {
         String varName = removePointerMask(pVarName);
-        if(!varName.equals(lVarName)) {
+        if (!varName.equals(lVarName)) {
 
           Formula var = makeVariable(varName, ssa);
           Formula pVar = makeVariable(pVarName, ssa);

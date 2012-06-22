@@ -86,7 +86,7 @@ public class AndersenTransferRelation implements TransferRelation {
       successor = handleDeclaration(andersenState, declarationEdge);
       break;
 
-    // this is an assumption, e.g. if(a == b)
+    // this is an assumption, e.g. if (a == b)
     case AssumeEdge:
       successor = andersenState.clone();
       break;
@@ -99,11 +99,11 @@ public class AndersenTransferRelation implements TransferRelation {
       printWarning(cfaEdge);
     }
 
-    if (successor == null)
+    if (successor == null) {
       return Collections.emptySet();
-
-    else
+    } else {
       return Collections.singleton(successor);
+    }
   }
 
   @Override
@@ -118,18 +118,15 @@ public class AndersenTransferRelation implements TransferRelation {
       throws UnrecognizedCCodeException {
 
     // e.g. a = b;
-    if (expression instanceof CAssignment)
+    if (expression instanceof CAssignment) {
       return handleAssignment(element, (CAssignment) expression, cfaEdge);
-
-    // external function call - do nothing
-    else if (expression instanceof CFunctionCallStatement)
+    } else if (expression instanceof CFunctionCallStatement) {
       return element.clone();
-
-    else if (expression instanceof CExpressionStatement)
+    } else if (expression instanceof CExpressionStatement) {
       return element.clone();
-
-    else
+    } else {
       throw new UnrecognizedCCodeException(cfaEdge, expression);
+    }
   }
 
   private AndersenState handleAssignment(AndersenState element, CAssignment assignExpression, CFAEdge cfaEdge)
@@ -157,11 +154,13 @@ public class AndersenTransferRelation implements TransferRelation {
         succ.addConstraint(new ComplexConstraint(op2.toASTString(), op1.toASTString(), false));
         return succ;
 
-      } else
+      } else {
         throw new UnrecognizedCCodeException("not supported", cfaEdge, op2);
+      }
 
-    } else
+    } else {
       throw new UnrecognizedCCodeException("not supported", cfaEdge, op1);
+    }
   }
 
   /**
@@ -183,8 +182,9 @@ public class AndersenTransferRelation implements TransferRelation {
       throws UnrecognizedCCodeException {
 
     // unpack cast if necessary
-    while (op2 instanceof CCastExpression)
+    while (op2 instanceof CCastExpression) {
       op2 = ((CCastExpression) op2).getOperand();
+    }
 
     if (op2 instanceof CIdExpression) {
 
@@ -206,8 +206,9 @@ public class AndersenTransferRelation implements TransferRelation {
         succ.addConstraint(new BaseConstraint(op2.toASTString(), op1));
         return succ;
 
-      } else
+      } else {
         throw new UnrecognizedCCodeException("not supported", cfaEdge, op2);
+      }
 
     } else if (op2 instanceof CUnaryExpression && ((CUnaryExpression) op2).getOperator() == UnaryOperator.STAR) {
 
@@ -221,8 +222,9 @@ public class AndersenTransferRelation implements TransferRelation {
         succ.addConstraint(new ComplexConstraint(op2.toASTString(), op1, true));
         return succ;
 
-      } else
+      } else {
         throw new UnrecognizedCCodeException("not supported", cfaEdge, op2);
+      }
 
     } else if (op2 instanceof CFunctionCallExpression
         && "malloc".equals(((CFunctionCallExpression) op2).getFunctionNameExpression().toASTString())) {

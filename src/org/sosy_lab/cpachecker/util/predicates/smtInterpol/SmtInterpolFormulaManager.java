@@ -624,7 +624,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
     while (!toProcess.isEmpty()) {
       final Term rightSubTerm = toProcess.pop();
 
-      if(rightSubTerm == leftTerm) { // TODO equal? compare Strings?
+      if (rightSubTerm == leftTerm) { // TODO equal? compare Strings?
         return true;
       }
 
@@ -632,7 +632,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
         int args = getArity(rightSubTerm);
         for (int i = 0; i < args; ++i) {
           Term arg = getArg(rightSubTerm, i);
-          if(!seen.contains(arg)) {
+          if (!seen.contains(arg)) {
             toProcess.add(arg);
             seen.add(arg);
           }

@@ -70,10 +70,10 @@ public class PointerCPA implements ConfigurableProgramAnalysis {
     PointerDomain domain = new PointerDomain();
 
     MergeOperator mergeOp = null;
-    if(mergeType.equals("sep")) {
+    if (mergeType.equals("sep")) {
       mergeOp = MergeSepOperator.getInstance();
     }
-    if(mergeType.equals("join")) {
+    if (mergeType.equals("join")) {
       mergeOp = new MergeJoinOperator(domain);
     }
 

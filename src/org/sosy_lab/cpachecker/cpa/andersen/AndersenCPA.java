@@ -86,11 +86,11 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithABM {
   }
 
   private MergeOperator initializeMergeOperator() {
-    if(mergeType.equals("SEP")) {
+    if (mergeType.equals("SEP")) {
       return MergeSepOperator.getInstance();
     }
 
-    else if(mergeType.equals("JOIN")) {
+    else if (mergeType.equals("JOIN")) {
       return new MergeJoinOperator(abstractDomain);
     }
 
@@ -98,15 +98,15 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithABM {
   }
 
   private StopOperator initializeStopOperator() {
-    if(stopType.equals("SEP")) {
+    if (stopType.equals("SEP")) {
       return new StopSepOperator(abstractDomain);
     }
 
-    else if(stopType.equals("JOIN")) {
+    else if (stopType.equals("JOIN")) {
       return new StopJoinOperator(abstractDomain);
     }
 
-    else if(stopType.equals("NEVER")) {
+    else if (stopType.equals("NEVER")) {
       return new StopNeverOperator();
     }
 

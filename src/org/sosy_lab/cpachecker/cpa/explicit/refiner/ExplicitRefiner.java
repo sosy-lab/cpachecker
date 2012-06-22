@@ -85,7 +85,7 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
   public final List<Pair<ARGState, CFANode>> transformPath(Path errorPath) {
     List<Pair<ARGState, CFANode>> result = Lists.newArrayList();
 
-    for(ARGState ae : transform(errorPath, Pair.<ARGState>getProjectionToFirst())) {
+    for (ARGState ae : transform(errorPath, Pair.<ARGState>getProjectionToFirst())) {
         result.add(Pair.of(ae, AbstractStates.extractLocation(ae)));
     }
 
@@ -131,7 +131,7 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
 
     ARGState interpolationPoint = determineInterpolationPoint(errorPath, precisionIncrement);
 
-    if(interpolationPoint == null) {
+    if (interpolationPoint == null) {
         throw new RefinementFailedException(Reason.InterpolationFailed, null);
     }
 
@@ -154,14 +154,14 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
       Multimap<CFANode, String> precisionIncrement) {
 
     // just use initial node of error path if the respective option is set
-    if(useInitialNodeAsRestartingPoint) {
+    if (useInitialNodeAsRestartingPoint) {
       return errorPath.get(1).getFirst();
     }
 
     // otherwise, use the first node where new information is present
     else {
-      for(Pair<ARGState, CFANode> element : errorPath) {
-        if(precisionIncrement.containsKey(element.getSecond())) {
+      for (Pair<ARGState, CFANode> element : errorPath) {
+        if (precisionIncrement.containsKey(element.getSecond())) {
           return element.getFirst();
         }
       }
@@ -196,7 +196,7 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
    */
   protected ExplicitPrecision extractExplicitPrecision(Precision precision) {
     ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
-    if(explicitPrecision == null) {
+    if (explicitPrecision == null) {
       throw new IllegalStateException("Could not find the ExplicitPrecision for the error element");
     }
     return explicitPrecision;

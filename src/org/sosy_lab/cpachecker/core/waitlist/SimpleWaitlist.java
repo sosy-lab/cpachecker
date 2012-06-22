@@ -46,7 +46,7 @@ public class SimpleWaitlist extends AbstractWaitlist<Deque<AbstractState>> {
 
   @Override
   public AbstractState pop() {
-    switch(traversal) {
+    switch (traversal) {
     case BFS:
       return waitlist.removeFirst();
 

@@ -150,19 +150,18 @@ public class IntervalAnalysisState implements AbstractState
   public IntervalAnalysisState addInterval(String variableName, Interval interval, int pThreshold)
   {
     // only add the interval if it is not already present
-    if(!intervals.containsKey(variableName) || !intervals.get(variableName).equals(interval))
+    if (!intervals.containsKey(variableName) || !intervals.get(variableName).equals(interval))
     {
       int referenceCount = getReferenceCount(variableName);
 
-      if(referenceCount < pThreshold)
+      if (referenceCount < pThreshold)
       {
         referenceCounts.put(variableName, referenceCount + 1);
 
         intervals.put(variableName, interval);
-      }
-
-      else
+      } else {
         removeInterval(variableName);
+      }
     }
 
     return this;
@@ -177,8 +176,9 @@ public class IntervalAnalysisState implements AbstractState
   // see ExplicitState::forget
   public IntervalAnalysisState removeInterval(String variableName)
   {
-    if(intervals.containsKey(variableName))
+    if (intervals.containsKey(variableName)) {
       intervals.remove(variableName);
+    }
 
     return this;
   }
@@ -196,20 +196,18 @@ public class IntervalAnalysisState implements AbstractState
 
     newReferences.putAll(referenceCounts);
 
-    for(String variableName : reachedState.intervals.keySet())
+    for (String variableName : reachedState.intervals.keySet())
     {
-      if(intervals.containsKey(variableName))
+      if (intervals.containsKey(variableName))
       {
         // update the interval
         newIntervals.put(variableName, getInterval(variableName).union(reachedState.getInterval(variableName)));
 
         // update the references
         newReferences.put(variableName, Math.max(getReferenceCount(variableName), reachedState.getReferenceCount(variableName)));
-      }
-
-      // if the first map does not contain the variable, update the references
-      else
+      } else {
         newReferences.put(variableName, reachedState.getReferenceCount(variableName));
+      }
     }
 
     return new IntervalAnalysisState(newIntervals, newReferences, previousState);
@@ -224,15 +222,17 @@ public class IntervalAnalysisState implements AbstractState
   public boolean isLessOrEqual(IntervalAnalysisState reachedState)
   {
     // this element is not less or equal than the reached state, if it contains less intervals
-    if(intervals.size() < reachedState.intervals.size())
+    if (intervals.size() < reachedState.intervals.size()) {
       return false;
+    }
 
     // also, this element is not less or equal than the reached state, if any one interval of the reached state is not contained in this element,
     // or if the interval of the reached state is not wider than the respective interval of this element
-    for(String variableName : reachedState.intervals.keySet())
+    for (String variableName : reachedState.intervals.keySet())
     {
-      if(!intervals.containsKey(variableName) || !reachedState.getInterval(variableName).contains(getInterval(variableName)))
+      if (!intervals.containsKey(variableName) || !reachedState.getInterval(variableName).contains(getInterval(variableName))) {
         return false;
+      }
     }
 
     // else, this element < reached state on the lattice
@@ -248,12 +248,14 @@ public class IntervalAnalysisState implements AbstractState
     IntervalAnalysisState newElement = new IntervalAnalysisState(previousState);
 
     // clone the intervals ...
-    for(String variableName : intervals.keySet())
+    for (String variableName : intervals.keySet()) {
       newElement.intervals.put(variableName, getInterval(variableName).clone());
+    }
 
     // ... and clone the reference count
-    for(String variableName : referenceCounts.keySet())
+    for (String variableName : referenceCounts.keySet()) {
       newElement.referenceCounts.put(variableName, getReferenceCount(variableName));
+    }
 
     return newElement;
   }
@@ -264,24 +266,29 @@ public class IntervalAnalysisState implements AbstractState
   @Override
   public boolean equals(Object other)
   {
-    if(this == other)
+    if (this == other) {
       return true;
+    }
 
-    if(other == null || !getClass().equals(other.getClass()))
+    if (other == null || !getClass().equals(other.getClass())) {
       return false;
+    }
 
     IntervalAnalysisState otherElement = (IntervalAnalysisState)other;
 
-    if(intervals.size() != otherElement.intervals.size())
+    if (intervals.size() != otherElement.intervals.size()) {
       return false;
+    }
 
-    if(previousState != otherElement.previousState)
+    if (previousState != otherElement.previousState) {
       return false;
+    }
 
-    for(String variableName : intervals.keySet())
+    for (String variableName : intervals.keySet())
     {
-      if(!otherElement.intervals.containsKey(variableName) || !otherElement.intervals.get(variableName).equals(intervals.get(variableName)))
+      if (!otherElement.intervals.containsKey(variableName) || !otherElement.intervals.get(variableName).equals(intervals.get(variableName))) {
         return false;
+      }
     }
 
     return true;

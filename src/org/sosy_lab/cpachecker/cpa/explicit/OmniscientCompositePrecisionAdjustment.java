@@ -101,7 +101,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
     assert (composite.getWrappedStates().size() == precision.getPrecisions().size());
 
     int indexOfExplicitState = getIndexOfExplicitState(composite);
-    if(indexOfExplicitState == -1) {
+    if (indexOfExplicitState == -1) {
       throw new CPAException("The OmniscientCompositePrecisionAdjustment needs an ExplicitState");
     }
 
@@ -117,7 +117,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
       Precision oldPrecision = precision.get(i);
 
       // enforce thresholds for explicit element, by incorporating information from reached set and path condition element
-      if(i == indexOfExplicitState) {
+      if (i == indexOfExplicitState) {
         ExplicitState explicit                  = (ExplicitState)oldElement;
         ExplicitPrecision explicitPrecision       = (ExplicitPrecision)oldPrecision;
 
@@ -167,13 +167,13 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
 
   private ExplicitState enforceReachedSetThreshold(ExplicitState element, ExplicitPrecision precision, Collection<AbstractState> reachedSetAtLocation) {
     // if an actual meaningful threshold is set
-    if(precision.getReachedSetThresholds().defaultThreshold != -1) {
+    if (precision.getReachedSetThresholds().defaultThreshold != -1) {
       // create the mapping from variable name to the number of different values this variable has
       HashMultimap<String, Long> valueMapping = createMappingFromReachedSet(reachedSetAtLocation);
 
       // forget the value for all variables that exceed their threshold
-      for(String variable : valueMapping.keySet()) {
-        if(precision.getReachedSetThresholds().exceeds(variable, valueMapping.get(variable).size())) {
+      for (String variable : valueMapping.keySet()) {
+        if (precision.getReachedSetThresholds().exceeds(variable, valueMapping.get(variable).size())) {
           precision.getReachedSetThresholds().setExceeded(variable);
           element.forget(variable);
         }
@@ -184,20 +184,20 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
   }
 
   private Pair<ExplicitState, ExplicitPrecision> enforcePathThreshold(ExplicitState element, ExplicitPrecision precision, AssignmentsInPathConditionState assigns) {
-    if(assigns != null) {
-      if(assigns instanceof UniqueAssignmentsInPathConditionState) {
+    if (assigns != null) {
+      if (assigns instanceof UniqueAssignmentsInPathConditionState) {
         UniqueAssignmentsInPathConditionState unique = (UniqueAssignmentsInPathConditionState)assigns;
         unique.addAssignment(element);
       }
 
       // forget the value for all variables that exceed their threshold
-      for(Map.Entry<String, Integer> entry : assigns.getAssignmentCounts().entrySet()) {
-        if(precision.getPathThresholds().exceeds(entry.getKey(), entry.getValue())) {
+      for (Map.Entry<String, Integer> entry : assigns.getAssignmentCounts().entrySet()) {
+        if (precision.getPathThresholds().exceeds(entry.getKey(), entry.getValue())) {
           //System.out.println((assigns instanceof AllAssignmentsInPathConditionState) ? "non-" : "" +
               //"unique path: forgetting var " + entry.getKey());
 
           // the path threshold precision is path sensitive, therefore, mutating a clone is mandatory
-          if(modified == false) {
+          if (modified == false) {
             precision = new ExplicitPrecision(precision);
             modified = true;
           }
@@ -213,7 +213,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
 
   private int getIndexOfExplicitState(CompositeState composite) {
     for (int i = 0; i < composite.getWrappedStates().size(); ++i) {
-      if(composite.get(i) instanceof ExplicitState) {
+      if (composite.get(i) instanceof ExplicitState) {
         return i;
       }
     }
@@ -229,8 +229,8 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
   private HashMultimap<String, Long> createMappingFromReachedSet(Collection<AbstractState> reachedSetAtLocation) {
     HashMultimap<String, Long> valueMapping = HashMultimap.create();
 
-    for(AbstractState element : reachedSetAtLocation) {
-      for(Map.Entry<String, Long> entry : ((ExplicitState)element).getConstantsMap().entrySet()) {
+    for (AbstractState element : reachedSetAtLocation) {
+      for (Map.Entry<String, Long> entry : ((ExplicitState)element).getConstantsMap().entrySet()) {
         valueMapping.put(entry.getKey(), entry.getValue());
       }
     }

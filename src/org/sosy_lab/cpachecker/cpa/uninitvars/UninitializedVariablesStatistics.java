@@ -73,7 +73,7 @@ public class UninitializedVariablesStatistics implements Statistics {
         Collection<Triple<Integer, String, String>> warnings = uninitElement.getWarnings();
         //warnings are identified by line number and variable name
         Pair<Integer, String> warningIndex;
-        for(Triple<Integer, String, String> warning : warnings) {
+        for (Triple<Integer, String, String> warning : warnings) {
           //check if a warning has already been displayed
           warningIndex = Pair.of(warning.getFirst(), warning.getSecond());
           if (!warningsDisplayed.contains(warningIndex)) {

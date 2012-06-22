@@ -336,7 +336,7 @@ public class PivotRowHandler {
           if (code == 2 || code == 10 || code == 31) {
             RationalFunction f = entries[r][j];
             AssumptionType atype = null;
-            switch(code) {
+            switch (code) {
             case 2:
               atype = AssumptionType.NONPOSITIVE;
               break;
@@ -439,7 +439,7 @@ public class PivotRowHandler {
                 // Otherwise there is a way.
                 RationalFunction f = E.entries[i][c];
                 AssumptionType atype = null;
-                switch(code) {
+                switch (code) {
                 case 10:
                   atype = AssumptionType.ZERO;
                   break;

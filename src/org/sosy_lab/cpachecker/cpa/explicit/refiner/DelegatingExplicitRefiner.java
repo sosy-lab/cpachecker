@@ -120,7 +120,7 @@ public class DelegatingExplicitRefiner
     PredicateCPA predicateCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class);
 
     boolean predicateCpaAvailable = predicateCpa != null;
-    if(predicateCpaAvailable) {
+    if (predicateCpaAvailable) {
       factory                     = predicateCpa.getFormulaManagerFactory();
       formulaManager              = predicateCpa.getFormulaManager();
       pathFormulaManager          = predicateCpa.getPathFormulaManager();
@@ -168,7 +168,7 @@ public class DelegatingExplicitRefiner
 
     config.inject(this, DelegatingExplicitRefiner.class);
 
-    if(useExplicitInterpolation) {
+    if (useExplicitInterpolation) {
       explicitRefiner = new ExplicitInterpolationBasedExplicitRefiner(config, pathFormulaManager);
     }
     else{
@@ -190,18 +190,18 @@ public class DelegatingExplicitRefiner
    */
   private IExplicitRefiner chooseCurrentRefiner(final Path errorPath, Precision precision) {
     // if explicit refiner made progress, continue with that
-    if(explicitRefiner.hasMadeProgress(errorPath, precision)) {
+    if (explicitRefiner.hasMadeProgress(errorPath, precision)) {
       return explicitRefiner;
     }
 
     // ... otherwise, try to fall back to predicate refiner, if available
     else {
-      if(predicateCpaAvailable) {
-        if(predicateRefiner == null) {
+      if (predicateCpaAvailable) {
+        if (predicateRefiner == null) {
           predicateRefiner = new PredicatingExplicitRefiner();
         }
 
-        if(predicateRefiner.hasMadeProgress(errorPath, precision)) {
+        if (predicateRefiner.hasMadeProgress(errorPath, precision)) {
           return predicateRefiner;
         }
       }
@@ -222,7 +222,7 @@ public class DelegatingExplicitRefiner
     currentRefiner = chooseCurrentRefiner(errorPath, precision);
 
     // no refiner is able to to disprove the current path, so stop the analysis
-    if(currentRefiner == null) {
+    if (currentRefiner == null) {
       stopRefinement(errorPath);
     }
 
@@ -288,7 +288,7 @@ public class DelegatingExplicitRefiner
    */
   private void stopRefinement(Path errorPath) throws CPAException {
     List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
-    for(Pair<ARGState, CFAEdge> pathElement : errorPath){
+    for (Pair<ARGState, CFAEdge> pathElement : errorPath){
       cfaTrace.add(pathElement.getSecond());
     }
 
@@ -305,13 +305,13 @@ public class DelegatingExplicitRefiner
     out.println("total time for refining precision:       " + precisionUpdate);
     out.println("total time used for updating ART:        " + artUpdate);
 
-    if(fullPrecisionCheckIsFeasable != null) {
+    if (fullPrecisionCheckIsFeasable != null) {
       out.println("full-precision-check is feasable:        " + (fullPrecisionCheckIsFeasable ? "yes" : "no"));
     }
 
     explicitRefiner.printStatistics(out, result, reached);
 
-    if(predicateRefiner != null) {
+    if (predicateRefiner != null) {
       predicateRefiner.printStatistics(out, result, reached);
     }
   }

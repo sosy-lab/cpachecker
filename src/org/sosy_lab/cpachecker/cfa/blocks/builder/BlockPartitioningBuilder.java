@@ -63,13 +63,13 @@ public class BlockPartitioningBuilder {
   public BlockPartitioning build(CFANode mainFunction) {
     //fixpoint iteration to take inner function calls into account for referencedVariables and callNodesMap
     boolean changed = true;
-    outer: while(changed) {
+    outer: while (changed) {
       changed = false;
-      for(CFANode node : referencedVariablesMap.keySet()) {
-        for(CFANode calledFun : innerFunctionCallsMap.get(node)) {
+      for (CFANode node : referencedVariablesMap.keySet()) {
+        for (CFANode calledFun : innerFunctionCallsMap.get(node)) {
           Set<ReferencedVariable> functionVars = referencedVariablesMap.get(calledFun);
           Set<CFANode> functionBody = blockNodesMap.get(calledFun);
-          if(functionVars == null || functionBody == null) {
+          if (functionVars == null || functionBody == null) {
             assert functionVars == null && functionBody == null;
             //compute it only the fly
             functionBody = TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(calledFun);
@@ -82,10 +82,10 @@ public class BlockPartitioningBuilder {
             continue outer;
           }
 
-          if(referencedVariablesMap.get(node).addAll(functionVars)) {
+          if (referencedVariablesMap.get(node).addAll(functionVars)) {
             changed = true;
           }
-          if(blockNodesMap.get(node).addAll(functionBody)) {
+          if (blockNodesMap.get(node).addAll(functionBody)) {
             changed = true;
           }
         }
@@ -94,7 +94,7 @@ public class BlockPartitioningBuilder {
 
     //now we can create the Blocks   for the BlockPartitioning
     Collection<Block> blocks = new ArrayList<Block>(returnNodesMap.keySet().size());
-    for(CFANode key : returnNodesMap.keySet()) {
+    for (CFANode key : returnNodesMap.keySet()) {
       blocks.add(new Block(referencedVariablesMap.get(key), callNodesMap.get(key), returnNodesMap.get(key), blockNodesMap.get(key)));
     }
     return new BlockPartitioning(blocks, mainFunction);
@@ -111,9 +111,9 @@ public class BlockPartitioningBuilder {
     Set<FunctionEntryNode> innerFunctionCalls = collectInnerFunctionCalls(nodes);
 
     CFANode registerNode = null;
-    for(CFANode node : callNodes) {
+    for (CFANode node : callNodes) {
       registerNode = node;
-      if(node instanceof FunctionEntryNode) {
+      if (node instanceof FunctionEntryNode) {
         break;
       }
     }
@@ -127,8 +127,8 @@ public class BlockPartitioningBuilder {
 
   private Set<FunctionEntryNode> collectInnerFunctionCalls(Set<CFANode> pNodes) {
     Set<FunctionEntryNode> result = new HashSet<FunctionEntryNode>();
-    for(CFANode node : pNodes) {
-      for(int i = 0; i < node.getNumLeavingEdges(); i++) {
+    for (CFANode node : pNodes) {
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge e = node.getLeavingEdge(i);
         if (e instanceof CFunctionCallEdge) {
           result.add(((CFunctionCallEdge)e).getSuccessor());
@@ -140,24 +140,24 @@ public class BlockPartitioningBuilder {
 
   private Set<CFANode> collectCallNodes(Set<CFANode> pNodes, CFANode mainFunction) {
     Set<CFANode> result = new HashSet<CFANode>();
-    for(CFANode node : pNodes) {
-      if(node instanceof FunctionEntryNode &&
+    for (CFANode node : pNodes) {
+      if (node instanceof FunctionEntryNode &&
          node.getFunctionName().equalsIgnoreCase(mainFunction.getFunctionName())) {
         //main definition is always a call edge
         result.add(node);
         continue;
       }
-      if(node.getEnteringSummaryEdge() != null) {
+      if (node.getEnteringSummaryEdge() != null) {
         CFANode pred = node.getEnteringSummaryEdge().getPredecessor();
-        if(!pNodes.contains(pred)) {
+        if (!pNodes.contains(pred)) {
           result.add(node);
         }
         //ignore inner function calls
         continue;
       }
-      for(int i = 0; i < node.getNumEnteringEdges(); i++) {
+      for (int i = 0; i < node.getNumEnteringEdges(); i++) {
         CFANode pred = node.getEnteringEdge(i).getPredecessor();
-        if(!pNodes.contains(pred)) {
+        if (!pNodes.contains(pred)) {
           //entering edge from "outside" of the given set of nodes
           //-> this is a call-node
           result.add(node);
@@ -169,29 +169,29 @@ public class BlockPartitioningBuilder {
 
   private Set<CFANode> collectReturnNodes(Set<CFANode> pNodes, CFANode mainFunction) {
     Set<CFANode> result = new HashSet<CFANode>();
-    for(CFANode node : pNodes) {
-      if(node instanceof FunctionExitNode &&
+    for (CFANode node : pNodes) {
+      if (node instanceof FunctionExitNode &&
          node.getFunctionName().equalsIgnoreCase(mainFunction.getFunctionName())) {
         //main exit nodes are always return nodes
         result.add(node);
         continue;
       }
 
-      for(int i = 0; i < node.getNumLeavingEdges(); i++) {
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFANode succ = node.getLeavingEdge(i).getSuccessor();
-        if(!pNodes.contains(succ)) {
+        if (!pNodes.contains(succ)) {
           //leaving edge from inside of the given set of nodes to outside
           //-> this is a either return-node or a function call
-          if(!(node.getLeavingEdge(i) instanceof CFunctionCallEdge)) {
+          if (!(node.getLeavingEdge(i) instanceof CFunctionCallEdge)) {
             //-> only add if its not a function call
             result.add(node);
           } else {
             //otherwise check if the summary edge is inside of the block
             CFANode sumSucc = ((CFunctionCallEdge)node.getLeavingEdge(i)).getSummaryEdge().getSuccessor();
-            if(!pNodes.contains(sumSucc)) {
+            if (!pNodes.contains(sumSucc)) {
               //summary edge successor not in nodes set; this is a leaving edge
               //add entering nodes
-              for(int j = 0; j < sumSucc.getNumEnteringEdges(); j++) {
+              for (int j = 0; j < sumSucc.getNumEnteringEdges(); j++) {
                 result.add(sumSucc.getEnteringEdge(j).getPredecessor());
               }
             }

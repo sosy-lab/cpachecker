@@ -40,16 +40,17 @@ public class Mathsat5Model {
   private static TermType toMathsatType(long e, long mType) {
 
 
-    if (msat_is_bool_type(e, mType))
+    if (msat_is_bool_type(e, mType)) {
       return TermType.Boolean;
-    else if (msat_is_integer_type(e, mType))
+    } else if (msat_is_integer_type(e, mType)) {
       return TermType.Integer;
-    else if (msat_is_rational_type(e, mType))
+    } else if (msat_is_rational_type(e, mType)) {
       return TermType.Real;
-    else if (msat_is_bv_type(e, mType))
+    } else if (msat_is_bv_type(e, mType)) {
       return TermType.Bitvector; // all other values are bitvectors of different sizes
-    else
+    } else {
       throw new IllegalArgumentException("Given parameter is not a mathsat type!");
+    }
   }
 
   private static Variable toVariable(long env, long pVariableId) {
@@ -134,10 +135,11 @@ public class Mathsat5Model {
 
       long equivalence;
 
-      if (msat_is_bool_type(lMathsatEnvironmentID, msat_term_get_type(lKeyTerm)) && msat_is_bool_type(lMathsatEnvironmentID, msat_term_get_type(lValueTerm)))
+      if (msat_is_bool_type(lMathsatEnvironmentID, msat_term_get_type(lKeyTerm)) && msat_is_bool_type(lMathsatEnvironmentID, msat_term_get_type(lValueTerm))) {
         equivalence = msat_make_iff(lMathsatEnvironmentID, lKeyTerm, lValueTerm);
-      else
+      } else {
         equivalence = msat_make_equal(lMathsatEnvironmentID, lKeyTerm, lValueTerm);
+      }
 
       modelFormula = msat_make_and(lMathsatEnvironmentID, modelFormula, equivalence);
 

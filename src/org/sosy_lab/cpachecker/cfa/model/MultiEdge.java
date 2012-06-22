@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.model;
 import java.util.Iterator;
 import java.util.List;
 
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;

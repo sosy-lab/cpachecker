@@ -49,7 +49,9 @@ public class SmtInterpolUtil {
   /** A Term is an Atom, iff its function is no element of {"And", "Or", "Not"}.*/
   public static boolean isAtom(Term t) {
     boolean is = !isAnd(t) && !isOr(t) && !isNot(t);
-    if (log) System.out.println("   isAtom (" + t +"): " + is);
+    if (log) {
+      System.out.println("   isAtom (" + t +"): " + is);
+    }
     return is;
   }
 
@@ -57,7 +59,9 @@ public class SmtInterpolUtil {
     boolean is = !isTrue(t) && !isFalse(t)
         && (t instanceof ApplicationTerm)
         && ((ApplicationTerm) t).getParameters().length == 0;
-    if (log) System.out.println("   isVariable (" + t +"): " + is);
+    if (log) {
+      System.out.println("   isVariable (" + t +"): " + is);
+    }
     return is;
   }
 
@@ -91,8 +95,9 @@ public class SmtInterpolUtil {
     }
 
     // TODO hex or binary data, string?
-    if (log)
+    if (log) {
       System.out.println("   isNumber (" + t +"): " + is);
+    }
     return is;
   }
 
@@ -129,7 +134,9 @@ public class SmtInterpolUtil {
   public static boolean isBoolean(Term t) {
     boolean is = (t instanceof ApplicationTerm)
           && t.getTheory().getBooleanSort() == ((ApplicationTerm) t).getSort();
-    if (log) System.out.println("   isBoolean (" + t +"): " + is);
+    if (log) {
+      System.out.println("   isBoolean (" + t +"): " + is);
+    }
     return is;
   }
 
@@ -138,7 +145,9 @@ public class SmtInterpolUtil {
   public static boolean isAnd(Term t) {
     boolean is = (t instanceof ApplicationTerm)
         && t.getTheory().m_And == ((ApplicationTerm) t).getFunction();
-    if (log) System.out.println("   isAnd (" + t +"): " + is);
+    if (log) {
+      System.out.println("   isAnd (" + t +"): " + is);
+    }
     return is;
   }
 
@@ -146,7 +155,9 @@ public class SmtInterpolUtil {
   public static boolean isOr(Term t) {
     boolean is = (t instanceof ApplicationTerm)
         && t.getTheory().m_Or == ((ApplicationTerm) t).getFunction();
-    if (log) System.out.println("   isOr (" + t +"): " + is);
+    if (log) {
+      System.out.println("   isOr (" + t +"): " + is);
+    }
     return is;
   }
 
@@ -154,7 +165,9 @@ public class SmtInterpolUtil {
   public static boolean isNot(Term t) {
     boolean is = (t instanceof ApplicationTerm)
         && t.getTheory().m_Not == ((ApplicationTerm) t).getFunction();
-    if (log) System.out.println("   isNot (" + t +"): " + is);
+    if (log) {
+      System.out.println("   isNot (" + t +"): " + is);
+    }
     return is;
   }
 
@@ -162,33 +175,41 @@ public class SmtInterpolUtil {
   public static boolean isEqual(Term t) {
     boolean is = (t instanceof ApplicationTerm)
         && "=".equals(((ApplicationTerm) t).getFunction().getName());
-    if (log) System.out.println("   isEqual (" + t +"): " + is);
+    if (log) {
+      System.out.println("   isEqual (" + t +"): " + is);
+    }
     return is;
   }
 
   public static int getArity(Term t) {
     if (t instanceof ApplicationTerm) {
       return ((ApplicationTerm) t).getParameters().length;
-    } else
+    } else {
       return 0;
+    }
   }
 
   public static Term getArg(Term t, int i) {
     if (t instanceof ApplicationTerm) {
       return ((ApplicationTerm) t).getParameters()[i];
-    } else
+    } else {
       return null;
+    }
   }
 
   public static boolean isTrue(Term t) {
     boolean isTrue = t.getTheory().TRUE == t;
-    if (log) System.out.println("   isTrue (" + t +"): " + isTrue);
+    if (log) {
+      System.out.println("   isTrue (" + t +"): " + isTrue);
+    }
     return isTrue;
   }
 
   public static boolean isFalse(Term t) {
     boolean isFalse = t.getTheory().FALSE == t;
-    if (log) System.out.println("   isFalse (" + t +"): " + isFalse);
+    if (log) {
+      System.out.println("   isFalse (" + t +"): " + isFalse);
+    }
     return isFalse;
   }
 
@@ -356,7 +377,9 @@ public class SmtInterpolUtil {
   }
 
   private static void prettyPrint(Term t, StringBuilder str, int n) {
-    for (int i=0; i<n; i++) str.append("  ");
+    for (int i=0; i<n; i++) {
+      str.append("  ");
+    }
     if (t instanceof ApplicationTerm) {
       ApplicationTerm at = (ApplicationTerm) t;
       String function = at.getFunction().getName();
@@ -365,7 +388,9 @@ public class SmtInterpolUtil {
         for (Term child : at.getParameters()) {
           prettyPrint(child, str, n+1);
         }
-        for (int i=0; i<n; i++) str.append("  ");
+        for (int i=0; i<n; i++) {
+          str.append("  ");
+        }
         str.append(")\n");
       } else {
         str.append(t.toStringDirect()).append("\n");

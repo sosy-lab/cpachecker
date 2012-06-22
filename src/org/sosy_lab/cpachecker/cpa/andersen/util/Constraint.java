@@ -69,11 +69,13 @@ public abstract class Constraint {
   @Override
   public boolean equals(Object other) {
 
-    if (this == other)
+    if (this == other) {
       return true;
+    }
 
-    if (other == null || !this.getClass().equals(other.getClass()))
+    if (other == null || !this.getClass().equals(other.getClass())) {
       return false;
+    }
 
     Constraint o = (Constraint) other;
 

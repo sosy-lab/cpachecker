@@ -336,7 +336,7 @@ class ASTConverter {
                                                name,
                                                null);
 
-    if(!nameWasInUse) {
+    if (!nameWasInUse) {
     scope.registerDeclaration(decl);
     preSideAssignments.add(decl);
     }
@@ -371,7 +371,7 @@ class ASTConverter {
           // a = f()
           return new CFunctionCallAssignmentStatement(fileLoc, leftHandSide, (CFunctionCallExpression)rightHandSide);
 
-        } else if(rightHandSide instanceof CAssignment) {
+        } else if (rightHandSide instanceof CAssignment) {
           preSideAssignments.add(rightHandSide);
           return new CExpressionAssignmentStatement(fileLoc, leftHandSide, ((CAssignment) rightHandSide).getLeftHandSide());
         } else {
@@ -1399,7 +1399,7 @@ class ASTConverter {
 
   private CInitializerExpression convert(IASTInitializerExpression i) {
     CAstNode initializer = convertExpressionWithSideEffects(i.getExpression());
-    if(initializer != null && initializer instanceof CAssignment){
+    if (initializer != null && initializer instanceof CAssignment){
       preSideAssignments.add(initializer);
       return new CInitializerExpression(convert(i.getFileLocation()), ((CAssignment)initializer).getLeftHandSide());
     }
@@ -1429,7 +1429,7 @@ class ASTConverter {
 
       CAstNode initializer = convertExpressionWithSideEffects(e);
 
-      if(initializer != null && initializer instanceof CAssignment){
+      if (initializer != null && initializer instanceof CAssignment){
         preSideAssignments.add(initializer);
         return new CInitializerExpression(convert(e.getFileLocation()), ((CAssignment)initializer).getLeftHandSide());
       } else if (initializer != null && initializer instanceof CFunctionCallExpression && i.getParent() instanceof IASTDeclarator) {

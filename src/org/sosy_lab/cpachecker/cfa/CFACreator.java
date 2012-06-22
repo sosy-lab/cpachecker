@@ -167,7 +167,7 @@ public class CFACreator {
       processingTime.start();
 
       // annotate CFA nodes with reverse postorder information for later use
-      for(FunctionEntryNode function : cfa.getAllFunctionHeads()){
+      for (FunctionEntryNode function : cfa.getAllFunctionHeads()){
         CFAReversePostorder sorter = new CFAReversePostorder();
         sorter.assignSorting(function);
       }

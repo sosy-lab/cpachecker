@@ -85,7 +85,7 @@ public class SmtBasedExplicitRefiner extends ExplicitRefiner {
       Multimap<CFANode, String> precisionIncrement) {
 
     List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
-    for(int i = 0; i < currentEdgePath.size(); i++) {
+    for (int i = 0; i < currentEdgePath.size(); i++) {
       cfaTrace.add(currentEdgePath.get(i).getSecond());
     }
 

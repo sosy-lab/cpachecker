@@ -45,9 +45,9 @@ public class BlockPartitioning {
     Map<CFANode, Block> callNodeToSubtree = new HashMap<CFANode, Block>();
     Map<CFANode, Block> returnNodeToBlock = new HashMap<CFANode, Block>();
 
-    for(Block subtree : subtrees) {
-      for(CFANode callNode : subtree.getCallNodes()) {
-        if(callNode instanceof FunctionEntryNode &&
+    for (Block subtree : subtrees) {
+      for (CFANode callNode : subtree.getCallNodes()) {
+        if (callNode instanceof FunctionEntryNode &&
            callNode.getFunctionName().equalsIgnoreCase(mainFunction.getFunctionName())) {
           assert mainBlock == null;
           mainBlock = subtree;
@@ -55,7 +55,7 @@ public class BlockPartitioning {
         callNodeToSubtree.put(callNode, subtree);
       }
 
-      for(CFANode returnNode : subtree.getReturnNodes()) {
+      for (CFANode returnNode : subtree.getReturnNodes()) {
         returnNodeToBlock.put(returnNode, subtree);
       }
     }

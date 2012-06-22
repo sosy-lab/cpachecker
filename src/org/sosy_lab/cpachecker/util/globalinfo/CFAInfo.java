@@ -37,7 +37,7 @@ public class CFAInfo {
 
   CFAInfo(CFA cfa) {
     HashMap<Integer, CFANode> nodeNumberToNode = new HashMap<Integer, CFANode>();
-    for(CFANode node : cfa.getAllNodes()) {
+    for (CFANode node : cfa.getAllNodes()) {
       nodeNumberToNode.put(node.getNodeNumber(), node);
     }
     this.nodeNumberToNode = nodeNumberToNode;

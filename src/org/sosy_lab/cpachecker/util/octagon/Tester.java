@@ -85,7 +85,7 @@ public class Tester {
 
 //    double[] dArr = {0.0, -18.0, 18.0, 0.0, 7.0, -11.0, 0.0, -4.0, 11.0, -7.0, 4.0, 0.0 };
 //    Num[] matrix = new Num[dArr.length];
-//    for(int i=0; i<dArr.length; i++){
+//    for (int i=0; i<dArr.length; i++){
 //    Num n = new Num(dArr[i]);
 //    matrix[i]=n;
 //    }
@@ -156,7 +156,7 @@ public class Tester {
 //
 //    Num[] array = new Num[octelem.getNumberOfVars()+1];
 //
-//    for(int i=0; i<array.length-1; i++){
+//    for (int i=0; i<array.length-1; i++){
 //      array[i] = new Num(0);
 //    }
 //
@@ -168,7 +168,7 @@ public class Tester {
 //    octelem.update(LibraryAccess.assignVar(octelem, lvar, array));
 //    System.out.println("==== 1 ==== \n" + octelem);
 //
-//    for(int i=0; i<array.length-1; i++){
+//    for (int i=0; i<array.length-1; i++){
 //      array[i] = new Num(0);
 //    }
 //    array[array.length-1] = new Num(124);

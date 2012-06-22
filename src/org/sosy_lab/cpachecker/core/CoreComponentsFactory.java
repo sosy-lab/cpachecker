@@ -111,7 +111,7 @@ class CoreComponentsFactory {
 
     Algorithm algorithm;
 
-    if(useProofCheckAlgorithm) {
+    if (useProofCheckAlgorithm) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm = new ProofCheckAlgorithm(cpa, config, logger);
     } else if (useRestartingAlgorithm) {

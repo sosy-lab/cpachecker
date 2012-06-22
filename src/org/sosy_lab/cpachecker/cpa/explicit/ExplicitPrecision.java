@@ -155,8 +155,9 @@ public class ExplicitPrecision implements Precision {
 
     private Ignore(Ignore original) {
 
-      if(original.mapping != null)
+      if (original.mapping != null) {
         mapping = HashMultimap.create(original.mapping);
+      }
     }
 
     public boolean allowsTrackingOf(String variable) {
@@ -186,7 +187,7 @@ public class ExplicitPrecision implements Precision {
     private CegarPrecision(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
 
-      if(useRefinement) {
+      if (useRefinement) {
         mapping = HashMultimap.create();
       }
     }
@@ -197,8 +198,9 @@ public class ExplicitPrecision implements Precision {
      * @param original the CegarPrecison to copy
      */
     private CegarPrecision(CegarPrecision original) {
-      if(original.mapping != null)
+      if (original.mapping != null) {
         mapping = HashMultimap.create(original.mapping);
+      }
     }
 
     /**
@@ -236,11 +238,11 @@ public class ExplicitPrecision implements Precision {
 
     @Override
     public boolean equals(Object other) {
-      if(this == other) {
+      if (this == other) {
         return true;
       }
 
-      else if(other == null) {
+      else if (other == null) {
         return false;
       }
 
@@ -312,11 +314,11 @@ public class ExplicitPrecision implements Precision {
      * @return true, if the variable with the given count exceeds the threshold, else false
      */
     boolean exceeds(String variable, Integer count) {
-      if(defaultThreshold == -1) {
+      if (defaultThreshold == -1) {
         return false;
       }
 
-      else if((thresholds.containsKey(variable) && thresholds.get(variable) == null)
+      else if ((thresholds.containsKey(variable) && thresholds.get(variable) == null)
           || (thresholds.containsKey(variable) && thresholds.get(variable) < count)
           || (!thresholds.containsKey(variable) && defaultThreshold < count)) {
         return true;
@@ -357,11 +359,11 @@ public class ExplicitPrecision implements Precision {
      * @return true, if the variable with the given count exceeds the threshold, else false
      */
     boolean exceeds(String variable, Integer count) {
-      if(defaultThreshold == -1) {
+      if (defaultThreshold == -1) {
         return false;
       }
 
-      else if((thresholds.containsKey(variable) && thresholds.get(variable) == null)
+      else if ((thresholds.containsKey(variable) && thresholds.get(variable) == null)
           || (thresholds.containsKey(variable) && thresholds.get(variable) < count)
           || (!thresholds.containsKey(variable) && defaultThreshold < count)) {
         return true;

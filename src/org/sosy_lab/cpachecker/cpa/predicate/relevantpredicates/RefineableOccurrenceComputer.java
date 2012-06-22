@@ -46,7 +46,7 @@ public class RefineableOccurrenceComputer extends OccurrenceComputer implements 
   @Override
   protected boolean isRelevant(Block context, AbstractionPredicate predicate) {
     Set<AbstractionPredicate> relevantPredicates = definitelyRelevantPredicates.get(context);
-    if(relevantPredicates != null && relevantPredicates.contains(predicate)) {
+    if (relevantPredicates != null && relevantPredicates.contains(predicate)) {
       return true;
     }
 

@@ -238,7 +238,7 @@ public class LinearInequality {
     s += "Variables:\n";
     Iterator<GeneralVariable> vars = vmgr.iterator();
     GeneralVariable V;
-    while(vars.hasNext()) {
+    while (vars.hasNext()) {
       V = vars.next();
       s += " "+V.toString();
     }

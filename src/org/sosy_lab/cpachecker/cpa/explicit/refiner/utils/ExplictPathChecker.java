@@ -68,13 +68,13 @@ public class ExplictPathChecker {
 
       precision.getIgnore().setMapping(variablesToBeIgnored);
 
-      for(CFAEdge edge : path) {
+      for (CFAEdge edge : path) {
         Collection<? extends AbstractState> successors = transfer.getAbstractSuccessors(next, precision, edge);
 
         next = extractNextState(successors);
 
         // path is not feasible
-        if(next == null && edge != path.get(path.size() - 1)) {
+        if (next == null && edge != path.get(path.size() - 1)) {
           return false;
         }
       }
@@ -93,7 +93,7 @@ public class ExplictPathChecker {
    * @return the successor, or null if none exists
    */
   private AbstractState extractNextState(Collection<? extends AbstractState> successors) {
-    if(successors.isEmpty()) {
+    if (successors.isEmpty()) {
       return null;
     }
     else {

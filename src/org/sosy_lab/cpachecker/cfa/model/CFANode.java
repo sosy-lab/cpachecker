@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.*;
 import java.util.ArrayList;
 import java.util.List;
 
-
 import com.google.common.primitives.Ints;
 
 public class CFANode implements Comparable<CFANode> {

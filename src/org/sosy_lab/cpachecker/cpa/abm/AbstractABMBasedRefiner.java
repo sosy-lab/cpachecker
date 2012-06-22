@@ -116,7 +116,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
   private Path computeCounterexample(ARGState root) {
     Path path = new Path();
     ARGState currentElement = root;
-    while(currentElement.getChildren().size() > 0) {
+    while (currentElement.getChildren().size() > 0) {
       ARGState child = currentElement.getChildren().iterator().next();
 
       CFAEdge edge = currentElement.getEdgeToChild(child);
