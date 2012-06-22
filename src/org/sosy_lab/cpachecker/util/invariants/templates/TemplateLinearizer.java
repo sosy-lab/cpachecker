@@ -56,8 +56,8 @@ public class TemplateLinearizer {
    * the constraints will be extracted simply by calling the template's
    * 'getConstraints' method.
    *
-   * @param t: The Template to be linearized.
-   * @param vmgr: A VariableManager containing the list of all variables
+   * @param t The Template to be linearized.
+   * @param vmgr A VariableManager containing the list of all variables
    *              that may appear in any of the templates to be put
    *              together into a single inequality representation.
    */

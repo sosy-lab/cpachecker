@@ -175,7 +175,7 @@ public class CtoFormulaConverter {
 
   /**
    * The prefix used for memory locations derived from malloc calls.
-   * (Must start with {@link MEMORY_ADDRESS_VARIABLE_PREFIX}.)
+   * (Must start with {@link #MEMORY_ADDRESS_VARIABLE_PREFIX}.)
    */
   private static final String MALLOC_VARIABLE_PREFIX =
       MEMORY_ADDRESS_VARIABLE_PREFIX + "#";
@@ -987,7 +987,7 @@ public class CtoFormulaConverter {
    * the SSAMap. These memory locations are those previously used.
    *
    * Stored memory locations are prefixed with
-   * {@link MEMORY_ADDRESS_VARIABLE_PREFIX}.
+   * {@link #MEMORY_ADDRESS_VARIABLE_PREFIX}.
    */
   private static List<String> getAllMemoryLocationsFromSsaMap(SSAMapBuilder ssa) {
     List<String> memoryLocations = new LinkedList<String>();

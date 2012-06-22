@@ -130,7 +130,7 @@ public class Automaton {
   /**
    * Assert this automaton fulfills the requirements of an ObserverAutomaton.
    * This means the Automaton does not modify other CPAs (Keyword MODIFY) and does not use the BOTTOM element (Keyword STOP).
-   * @throws InvalidAutomatonException if the requirements are not fulfilled
+   * @throws InvalidConfigurationException if the requirements are not fulfilled
    */
   public void assertObserverAutomaton() throws InvalidConfigurationException {
     for (AutomatonInternalState s : this.states) {

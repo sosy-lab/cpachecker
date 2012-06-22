@@ -34,7 +34,7 @@ import com.google.common.base.Strings;
  * a type an an (optional) name.
  *
  * It is part of the declaration of types and variables (see {@link CDeclaration})
- * and functions (see {@link CFunctionDefinition}).
+ * and functions (see {@link CFunctionDeclaration}).
  * It is also used stand-alone for the declaration of members of composite types
  * (e.g. structs) and for the declaration of function parameters.
  */

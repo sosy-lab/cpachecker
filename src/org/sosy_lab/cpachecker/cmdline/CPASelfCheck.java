@@ -222,7 +222,6 @@ public class CPASelfCheck {
    *
    * @param packageName The base package
    * @return The classes
-   * @throws ClassNotFoundException
    * @throws IOException
    *
    * taken from http://www.sourcesnippets.com/java-get-all-classes-within-a-package.html
@@ -247,7 +246,6 @@ public class CPASelfCheck {
    * @param directory   The base directory
    * @param packageName The package name for classes found inside the base directory
    * @param classes     List where the classes are added.
-   * @throws ClassNotFoundException
    *
    * taken from http://www.sourcesnippets.com/java-get-all-classes-within-a-package.html
    */

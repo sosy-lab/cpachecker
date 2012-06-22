@@ -42,11 +42,11 @@ public class TemplateFormula implements Formula, Template {
 
   /**
    * Rename all variables in the formula.
-   * @param prefix: the letter you want to use in all the new names
-   * @param vars: list of all variables occurring in the formula prior to aliasing,
+   * @param prefix the letter you want to use in all the new names
+   * @param vars list of all variables occurring in the formula prior to aliasing,
    *              written in the PLAIN style.
    *              Probably best to get this using the getAllVariables method.
-   * @return: says whether every variable in the formula was replaced or not
+   * @return says whether every variable in the formula was replaced or not
    */
   public void alias(AliasingMap amap) {}
 
@@ -55,9 +55,9 @@ public class TemplateFormula implements Formula, Template {
   /**
    * Evaluate all the parameters occurring in this formula, according
    * to the given HashMap.
-   * @param map: map from parameter names, in the REDLOG
+   * @param map map from parameter names, in the REDLOG
    * style, to the rational values you want them replaced by.
-   * @return: true if every parameter in this formula was assigned a
+   * @return true if every parameter in this formula was assigned a
    * value by the passed map; false otherwise.
    */
   public boolean evaluate(Map<String,Rational> map) { return true; }
@@ -98,7 +98,7 @@ public class TemplateFormula implements Formula, Template {
   /**
    * Introduce fresh variables for the UIFs in the formula. Record
    * definitions of these in pur.
-   * @param pur: Pass a new Purification object when starting a new
+   * @param pur Pass a new Purification object when starting a new
    * purification.
    * @return
    */

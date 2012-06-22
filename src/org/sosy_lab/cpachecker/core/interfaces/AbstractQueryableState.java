@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.osgi.framework.InvalidSyntaxException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
@@ -39,7 +38,7 @@ public interface AbstractQueryableState extends AbstractState {
    * Each CPA defines which properties can be evaluated.
    * @param property
    * @return if the property is satisfied
-   * @throws InvalidSyntaxException if the property is not given in the (CPA-specific) syntax
+   * @throws InvalidQueryException if the property is not given in the (CPA-specific) syntax
    */
   public boolean checkProperty(String property) throws InvalidQueryException;
 

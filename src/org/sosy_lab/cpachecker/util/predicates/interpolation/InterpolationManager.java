@@ -771,7 +771,6 @@ public abstract class InterpolationManager<I> {
    *
    * @param interpolants the interpolants
    * @return Information about the counterexample, including the predicates.
-   * @throws RefinementFailedException If there were no predicates.
    */
   private <T> CounterexampleTraceInfo<I> extractPredicates(
       List<Formula> interpolants) {

@@ -58,9 +58,9 @@ public class Farkas {
    * for the final entry the same relation as is needed for each k (see
    * code below).
    *
-   * @param prem: The premises for Farkas's lemma.
-   * @param concl: The conclusions for Farkas's lemma.
-   * @return: the formula to be passed to Redlog
+   * @param prem The premises for Farkas's lemma.
+   * @param concl The conclusions for Farkas's lemma.
+   * @return the formula to be passed to Redlog
    */
   public static String makeRedlogFormula(LinearInequality prem,
       LinearInequality concl) {
@@ -220,9 +220,9 @@ public class Farkas {
    * conjunct, it results in a simpler formula to use:
    *   (sum ci ai) <= b
    *
-   * @param prem: The premises for Farkas's lemma.
-   * @param concl: The conclusions for Farkas's lemma.
-   * @return: the formula to be passed to Redlog
+   * @param prem The premises for Farkas's lemma.
+   * @param concl The conclusions for Farkas's lemma.
+   * @return the formula to be passed to Redlog
    */
   public static String makeRedlogFormulaUsingPremiseStrength(LinearInequality prem,
       LinearInequality concl) {
@@ -402,7 +402,7 @@ public class Farkas {
    * are responsible for choosing those "thirdIndices" (which
    * actually will be used as the first of three) wisely.
    *
-   * @param exqx: "existentially quantify the x's"
+   * @param exqx "existentially quantify the x's"
    * Don't use this if you plan to wrap the formula in "rlex()".
    * If set to true, it will prefix the formula with existential
    * quantification of all and only the x variables (i.e. those in
