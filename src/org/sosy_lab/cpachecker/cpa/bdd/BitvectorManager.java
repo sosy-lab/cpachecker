@@ -235,11 +235,4 @@ public class BitvectorManager {
     newRegions[bitsize - 1] = last;
     return newRegions;
   }
-
-  private void print(Region[] rs) {
-    for (Region r : rs) {
-      System.out.println(rmgr.dumpRegion(r));
-    }
-    System.out.println();
-  }
 }

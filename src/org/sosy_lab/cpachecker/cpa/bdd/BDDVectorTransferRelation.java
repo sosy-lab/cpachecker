@@ -422,10 +422,8 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
       implements CExpressionVisitor<Region[], UnrecognizedCCodeException> {
 
     private String functionName;
-    private BDDState state;
 
     BDDCExpressionVisitor(BDDState state) {
-      this.state = state;
       this.functionName = state.getFunctionName();
     }
 
