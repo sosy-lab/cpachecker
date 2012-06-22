@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionTyp
 
 public class AssumptionSet implements Iterable<Assumption> {
 
-  private final Vector<Assumption> aset;;
+  private final Vector<Assumption> aset;
 
   public AssumptionSet() {
     aset = new Vector<Assumption>();

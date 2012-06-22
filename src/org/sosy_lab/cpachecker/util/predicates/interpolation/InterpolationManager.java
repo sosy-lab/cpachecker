@@ -690,7 +690,7 @@ public abstract class InterpolationManager<I> {
     stats.interpolantVerificationTimer.start();
     try {
 
-      final int n = interpolants.size();;
+      final int n = interpolants.size();
       assert n == (formulas.size() - 1);
 
       // The following three properties need to be checked:

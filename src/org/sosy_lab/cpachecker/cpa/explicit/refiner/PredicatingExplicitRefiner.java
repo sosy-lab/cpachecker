@@ -119,7 +119,7 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
                     public Formula apply(PredicateAbstractState e) {
                       assert e.isAbstractionState();
                       return e.getAbstractionFormula().getBlockFormula();
-                    };
+                    }
                   };
 
   /**

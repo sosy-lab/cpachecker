@@ -635,7 +635,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     addToCFA(previous);
   }
 
-  private static enum CONDITION { NORMAL, ALWAYS_FALSE, ALWAYS_TRUE };
+  private static enum CONDITION { NORMAL, ALWAYS_FALSE, ALWAYS_TRUE }
 
   private CONDITION getConditionKind(final IASTExpression cond) {
       if (cond instanceof IASTLiteralExpression) {

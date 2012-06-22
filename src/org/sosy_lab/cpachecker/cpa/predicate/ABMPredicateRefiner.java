@@ -190,7 +190,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
         public Region apply(PredicateAbstractState e) {
           assert e.isAbstractionState();
           return e.getAbstractionFormula().asRegion();
-        };
+        }
       };
 
     private List<Region> getRegionsForPath(List<Pair<ARGState, CFANode>> path) throws CPATransferException {

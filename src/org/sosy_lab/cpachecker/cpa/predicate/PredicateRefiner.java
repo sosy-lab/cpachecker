@@ -147,7 +147,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
                     public Formula apply(PredicateAbstractState e) {
                       assert e.isAbstractionState();
                       return e.getAbstractionFormula().getBlockFormula();
-                    };
+                    }
                   };
 
   @Override

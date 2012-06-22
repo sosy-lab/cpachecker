@@ -52,7 +52,7 @@ import com.google.common.collect.ImmutableSet;
 @Options(prefix="blockreducer")
 public class BlockedCFAReducer implements BlockComputer {
 
-  public enum AbstractionMode {REDUCTION_REMAINDER_TS, FUNCTIONENTRY_ON_TS};
+  public enum AbstractionMode {REDUCTION_REMAINDER_TS, FUNCTIONENTRY_ON_TS}
 
   @Option(description="Do at most n summarizations on a node.")
   private int reductionThreshold = 100;
