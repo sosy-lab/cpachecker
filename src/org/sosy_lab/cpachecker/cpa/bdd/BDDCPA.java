@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -67,6 +66,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   private final NamedRegionManager manager;
   private final BDDDomain abstractDomain;
+  private final BDDPrecision precision;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final BDDTransferRelation transferRelation;
@@ -76,6 +76,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
     manager = new NamedRegionManager(BDDRegionManager.getInstance());
     abstractDomain = new BDDDomain();
+    precision = new BDDPrecision(config);
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopSepOperator(abstractDomain);
     if (!useBitvector) {
@@ -113,7 +114,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   @Override
   public Precision getInitialPrecision(CFANode pNode) {
-    return SingletonPrecision.getInstance();
+    return precision;
   }
 
   @Override

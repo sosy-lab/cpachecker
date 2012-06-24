@@ -104,4 +104,9 @@ public class BDDState implements AbstractState {
     }
     return false;
   }
+
+  @Override
+  public int hashCode() {
+    return currentState.hashCode();
+  }
 }
