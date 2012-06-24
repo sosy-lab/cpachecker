@@ -80,9 +80,6 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
 
   private final BitvectorManager bvmgr;
 
-  /** name for return-variables, it is used for function-returns. */
-  private static final String TMP_VARIABLE = "__cpachecker_tmp_var";
-
   @Option(description = "initialize all variables to 0 when they are declared")
   private boolean initAllVars = false;
 
@@ -180,7 +177,7 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
 
         // make tmp for assignment
         // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
-        Region[] tmp = bvmgr.createPredicate(buildVarName(
+        Region[] tmp = createPredicate(buildVarName(
             TMP_VARIABLE, false, state.getFunctionName()));
         Region newRegion = state.getRegion();
 
@@ -203,7 +200,7 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
         }
 
         // delete var, make tmp equal to (new) var, then delete tmp
-        Region[] var = bvmgr.createPredicate(varName);
+        Region[] var = createPredicate(varName);
         newRegion = removePredicate(newRegion, var);
         newRegion = addEquality(var, tmp, newRegion);
         newRegion = removePredicate(newRegion, tmp);
@@ -238,7 +235,7 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
       // delete variable, if it was initialized before i.e. in another block, with an existential operator
       String varName = buildVarName(vdecl.getName(), vdecl.isGlobal(), state.getFunctionName());
       if (precision.isTracking(varName)) {
-        Region[] var = bvmgr.createPredicate(varName);
+        Region[] var = createPredicate(varName);
         Region newRegion = removePredicate(state.getRegion(), var);
 
         // track vars, so we can delete them after returning from a function,
@@ -276,14 +273,14 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
 
     for (int i = 0; i < args.size(); i++) {
 
-      // make variable (predicate) for param
+      // make variable (predicate) for param, this variable is not global (->false)
       String varName = buildVarName(params.get(i).getName(), false, innerFunctionName);
       assert !newVars.contains(varName) : "variable used twice as param";
-      // make region for arg and build equality of var and arg
 
+      // make region for arg and build equality of var and arg
       if (precision.isTracking(varName)) {
         newVars.add(varName);
-        Region[] var = bvmgr.createPredicate(varName);
+        Region[] var = createPredicate(varName);
         BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
         Region[] arg = args.get(i).accept(ev);
         newRegion = addEquality(var, arg, newRegion);
@@ -300,7 +297,7 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
     // delete variables from returning function,
     // this results in a smaller BDD and allows to call a function twice.
     for (String varName : state.getVars()) {
-      newRegion = removePredicate(newRegion, bvmgr.createPredicate(varName));
+      newRegion = removePredicate(newRegion, createPredicate(varName));
     }
 
     // set result of function equal to variable on left side
@@ -308,7 +305,7 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
     CStatement call = fnkCall.getExpression().asStatement();
 
     // make region (predicate) for RIGHT SIDE
-    Region[] retVar = bvmgr.createPredicate(buildVarName(FUNCTION_RETURN_VARIABLE, false, state.getFunctionName()));
+    Region[] retVar = createPredicate(buildVarName(FUNCTION_RETURN_VARIABLE, false, state.getFunctionName()));
 
     // handle assignments like "y = f(x);"
     if (call instanceof CFunctionCallAssignmentStatement) {
@@ -320,7 +317,7 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
       BDDState functionCall = state.getFunctionCallState();
       String varName = buildVarName(lhs.toASTString(), isGlobal(lhs), functionCall.getFunctionName());
       if (precision.isTracking(varName)) {
-        Region[] var = bvmgr.createPredicate(varName);
+        Region[] var = createPredicate(varName);
         newRegion = removePredicate(newRegion, var);
         newRegion = addEquality(var, retVar, newRegion);
       }
@@ -339,7 +336,7 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
 
     // make variable (predicate) for returnStatement,
     // delete variable, if it was used before, this is done with an existential operator
-    Region[] retvar = bvmgr.createPredicate(buildVarName(FUNCTION_RETURN_VARIABLE, false, state.getFunctionName()));
+    Region[] retvar = createPredicate(buildVarName(FUNCTION_RETURN_VARIABLE, false, state.getFunctionName()));
 
     assert state.getRegion().equals(removePredicate(state.getRegion(), retvar)) : FUNCTION_RETURN_VARIABLE
         + " was used twice in one trace??";
@@ -385,33 +382,6 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
     }
   }
 
-  /** This function returns regions containing bits of a variable.
-   * The name of the variable is build from functionName and varName.
-   * If the precision does not allow to track this variable, NULL is returned. */
-  private Region[] makePredicate(CExpression exp, String functionName, BDDPrecision precision) {
-    String scopedVarName = buildVarName(exp.toASTString(), isGlobal(exp), functionName);
-    if (precision.isTracking(scopedVarName)) {
-      createdPredicates++;
-      return bvmgr.createPredicate(scopedVarName);
-    } else {
-      return null;
-    }
-  }
-
-  /** This function returns a region without a variable. */
-  private Region removePredicate(Region region, Region[] existing) {
-    deletedPredicates++;
-    return bvmgr.makeExists(region, existing);
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(
-      AbstractState state, List<AbstractState> states, CFAEdge cfaEdge,
-      Precision precision) {
-    // do nothing
-    return null;
-  }
-
   /** This function builds the equality of left and right side and adds it to the environment.
    * If left or right side is null, the environment is returned unchanged. */
   private Region addEquality(Region[] leftSide, Region[] rightSide, Region environment) {
@@ -426,6 +396,12 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
     }
   }
 
+  /** This function returns regions containing bits of a variable. */
+  private Region[] createPredicate(String varName) {
+    createdPredicates++;
+    return bvmgr.createPredicate(varName);
+  }
+
   /** This Visitor evaluates the visited expression and creates a region for it. */
   private class BDDCExpressionVisitor
       implements CExpressionVisitor<Region[], UnrecognizedCCodeException> {
@@ -436,6 +412,18 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
     BDDCExpressionVisitor(BDDState state, BDDPrecision prec) {
       this.functionName = state.getFunctionName();
       this.precision = prec;
+    }
+
+    /** This function returns regions containing bits of a variable.
+     * The name of the variable is build from functionName and varName.
+     * If the precision does not allow to track this variable, NULL is returned. */
+    private Region[] makePredicate(CExpression exp, String functionName, BDDPrecision precision) {
+      String scopedVarName = buildVarName(exp.toASTString(), isGlobal(exp), functionName);
+      if (precision.isTracking(scopedVarName)) {
+        return createPredicate(scopedVarName);
+      } else {
+        return null;
+      }
     }
 
     @Override
