@@ -110,21 +110,19 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
 
     switch (cfaEdge.getEdgeType()) {
 
-    case AssumeEdge: {
+    case AssumeEdge:
       successor = handleAssumption(state, (CAssumeEdge) cfaEdge, precision);
       break;
-    }
 
-    case StatementEdge: {
+    case StatementEdge:
       successor = handleStatementEdge(state, (CStatementEdge) cfaEdge, precision);
       break;
-    }
 
     case DeclarationEdge:
       successor = handleDeclarationEdge(state, (CDeclarationEdge) cfaEdge, precision);
       break;
 
-    case MultiEdge: {
+    case MultiEdge:
       successor = state;
       Collection<BDDState> c = null;
       for (CFAEdge innerEdge : (MultiEdge) cfaEdge) {
@@ -138,7 +136,6 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
         }
       }
       break;
-    }
 
     case FunctionCallEdge:
       successor = handleFunctionCallEdge(state, (CFunctionCallEdge) cfaEdge, precision);
@@ -158,13 +155,9 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
       successor = state;
     }
 
-    System.out.println("\n" + cfaEdge);
     if (successor == null) {
-      //System.out.println("NULL");
       return Collections.emptySet();
     } else {
-      //System.out.println(rmgr.dumpRegion(successor.getRegion()));
-      //System.out.println(rmgr.regionToDot(successor.getRegion()));
       assert !successor.getRegion().isFalse();
       return Collections.singleton(successor);
     }
@@ -336,8 +329,8 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
     // LAST ACTION: delete varname of right side
     newRegion = removePredicate(newRegion, retVar);
 
-    return new BDDState(rmgr, state.getFunctionCallState().getFunctionCallState(), newRegion,
-        state.getFunctionCallState().getVars(),
+    return new BDDState(rmgr, state.getFunctionCallState().getFunctionCallState(),
+        newRegion, state.getFunctionCallState().getVars(),
         cfaEdge.getSuccessor().getFunctionName());
   }
 
@@ -383,7 +376,6 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
 
       // get information from region into evaluated region
       Region newRegion = rmgr.makeAnd(state.getRegion(), evaluated);
-
       if (newRegion.isFalse()) { // assumption is not fulfilled / not possible
         return null;
       } else {
@@ -410,14 +402,6 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
   private Region removePredicate(Region region, Region[] existing) {
     deletedPredicates++;
     return bvmgr.makeExists(region, existing);
-  }
-
-  private String buildVarName(String variableName, boolean isGlobal, String function) {
-    if (isGlobal) {
-      return variableName;
-    } else {
-      return function + "::" + variableName;
-    }
   }
 
   @Override

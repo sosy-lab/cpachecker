@@ -121,11 +121,9 @@ public class BDDTransferRelation implements TransferRelation {
       successor = handleAssumption(state, (CAssumeEdge) cfaEdge, precision);
       break;
 
-
     case StatementEdge:
       successor = handleStatementEdge(state, (CStatementEdge) cfaEdge, precision);
       break;
-
 
     case DeclarationEdge:
       successor = handleDeclarationEdge(state, (CDeclarationEdge) cfaEdge, precision);
@@ -145,7 +143,6 @@ public class BDDTransferRelation implements TransferRelation {
         }
       }
       break;
-
 
     case FunctionCallEdge:
       successor = handleFunctionCallEdge(state, (CFunctionCallEdge) cfaEdge, precision);
@@ -378,6 +375,8 @@ public class BDDTransferRelation implements TransferRelation {
       if (!cfaEdge.getTruthAssumption()) { // if false-branch
         operand = rmgr.makeNot(operand);
       }
+
+      // get information from region into evaluated region
       Region newRegion = rmgr.makeAnd(state.getRegion(), operand);
       if (newRegion.isFalse()) { // assumption is not fulfilled / not possible
         return null;
@@ -415,7 +414,7 @@ public class BDDTransferRelation implements TransferRelation {
     return false;
   }
 
-  private String buildVarName(String variableName, boolean isGlobal, String function) {
+  protected String buildVarName(String variableName, boolean isGlobal, String function) {
     if (isGlobal) {
       return variableName;
     } else {
