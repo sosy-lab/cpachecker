@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import java.util.regex.Pattern;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -35,12 +37,18 @@ public class BDDPrecision implements Precision {
   @Option(description = "track all variables or none")
   private boolean trackAll = true;
 
+  @Option(description = "which vars should be tracked, default: track all")
+  private String whiteListRegex = ".*";
+
+  private final Pattern whiteListPattern;
+
   public BDDPrecision(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
+    whiteListPattern = Pattern.compile(whiteListRegex);
   }
 
   boolean isDisabled() {
-    return !trackAll;
+    return !trackAll && whiteListPattern.pattern().isEmpty();
   }
 
   /**
@@ -50,7 +58,7 @@ public class BDDPrecision implements Precision {
    * @return true, if the variable has to be tracked, else false
    */
   boolean isTracking(String variable) {
-    return trackAll;
+    return trackAll || whiteListPattern.matcher(variable).matches();
   }
 
 }

@@ -84,8 +84,8 @@ public class BDDTransferRelation implements TransferRelation {
   protected final NamedRegionManager rmgr;
 
   /** name for return-variables, it is used for function-returns. */
-  protected static final String FUNCTION_RETURN_VARIABLE = "__cpachecker_return_var";
-  protected static final String TMP_VARIABLE = "__cpachecker_tmp_var";
+  protected static final String FUNCTION_RETURN_VARIABLE = "__CPAchecker_return_var";
+  protected static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
 
   @Option(description = "initialize all variables to 0 when they are declared")
   private boolean initAllVars = false;
