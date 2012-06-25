@@ -554,9 +554,24 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     CFANode prevNode = locStack.pop ();
-
-    CStatement statement = astCreator.convert(exprStatement);
+    CFANode lastNode = null;
     String rawSignature = exprStatement.getRawSignature();
+
+    if(exprStatement.getExpression() instanceof IASTExpressionList) {
+      for(IASTExpression exp : ((IASTExpressionList) exprStatement.getExpression()).getExpressions()) {
+        CStatement statement = (CStatement) astCreator.convertExpressionWithSideEffects(exp);
+        lastNode = createIASTExpressionStatementEdges(rawSignature, fileloc, prevNode, statement);
+        prevNode = lastNode;
+      }
+    } else {
+      CStatement statement = astCreator.convert(exprStatement);
+      lastNode = createIASTExpressionStatementEdges(rawSignature, fileloc, prevNode, statement);
+    }
+    locStack.push(lastNode);
+  }
+
+  private CFANode createIASTExpressionStatementEdges(String rawSignature, IASTFileLocation fileloc,
+      CFANode prevNode, CStatement statement) {
 
     CFANode lastNode = new CFANode(fileloc.getStartingLineNumber(), cfa.getFunctionName());
     cfaNodes.add(lastNode);
@@ -566,13 +581,13 @@ class CFAFunctionBuilder extends ASTVisitor {
       astCreator.resetConditionalExpression();
       handleConditionalStatement(condExp, prevNode, lastNode, statement);
     } else {
-      CFANode nextNode = handleSideassignments(prevNode, rawSignature, fileloc.getStartingLineNumber());
+      prevNode = handleSideassignments(prevNode, rawSignature, fileloc.getStartingLineNumber());
 
       CStatementEdge edge = new CStatementEdge(rawSignature, statement,
-          fileloc.getStartingLineNumber(), nextNode, lastNode);
+          fileloc.getStartingLineNumber(), prevNode, lastNode);
       addToCFA(edge);
     }
-    locStack.push(lastNode);
+    return lastNode;
   }
 
   /**
