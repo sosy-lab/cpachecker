@@ -41,7 +41,6 @@ import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTConditionalExpression;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
@@ -767,7 +766,7 @@ class ASTConverter {
       default: throw new AssertionError();
       }
 
-      if (!(e.getParent() instanceof IASTCompoundStatement)
+      if (!(e.getParent() instanceof IASTExpressionStatement)
           && !(e.getParent() instanceof IASTExpressionList)) {
         return addSideAssignmentsForUnaryExpressions(e, operand, fileLoc, type, postOp);
       } else {
