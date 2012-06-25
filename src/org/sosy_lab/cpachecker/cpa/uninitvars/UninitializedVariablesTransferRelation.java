@@ -121,9 +121,9 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       //this is the return-statement of a function
       //set a local variable tracking the return statement's initialization status
       if (isExpressionUninitialized(successor, ((CReturnStatementEdge)cfaEdge).getExpression(), cfaEdge)) {
-        setUninitialized(successor, "CPAChecker_UninitVars_FunctionReturn");
+        setUninitialized(successor, "CPAchecker_UninitVars_FunctionReturn");
       } else {
-        setInitialized(successor, "CPAChecker_UninitVars_FunctionReturn");
+        setInitialized(successor, "CPAchecker_UninitVars_FunctionReturn");
       }
       break;
 
@@ -434,7 +434,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       } else {
         //for an internal function call, we can check the return value - for an external call
         //(with enabled call to return edges), the return value is always assumed to be initialized
-        boolean returnUninit = element.isUninitialized("CPAChecker_UninitVars_FunctionReturn");
+        boolean returnUninit = element.isUninitialized("CPAchecker_UninitVars_FunctionReturn");
         if (printWarnings && returnUninit) {
           addWarning(cfaEdge, funcExpression.toASTString(), expression, element);
         }
