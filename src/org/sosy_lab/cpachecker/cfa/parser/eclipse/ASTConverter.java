@@ -767,8 +767,9 @@ class ASTConverter {
       default: throw new AssertionError();
       }
 
-      if (!((e.getParent() instanceof IASTCompoundStatement) && (e.getParent() instanceof IASTExpressionStatement))
+      if (!(e.getParent() instanceof IASTCompoundStatement) && !(e.getParent() instanceof IASTExpressionStatement)
           && !(e.getParent() instanceof IASTExpressionList)) {
+
         return addSideAssignmentsForUnaryExpressions(e, operand, fileLoc, type, postOp);
       } else {
         CExpression postOne = new CIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
