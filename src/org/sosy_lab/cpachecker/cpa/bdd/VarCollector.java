@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -79,9 +80,19 @@ public class VarCollector {
 
   private final CFA cfa;
   private Collection<String> allVars = new HashSet<String>();
+
   private Collection<String> nonBooleanVars = new HashSet<String>();
-  private Map<String, String> dependencies = new HashMap<String, String>();
+  private Map<String, String> boolDependencies = new HashMap<String, String>();
+
+  private Collection<String> nonSimpleNumberVars = new HashSet<String>();
+  private Map<String, String> simpleNumberDependencies = new HashMap<String, String>();
+
+  private Collection<String> nonIncVars = new HashSet<String>();
+  private Map<String, String> incDependencies = new HashMap<String, String>();
+
   private Collection<String> booleanVars = new HashSet<String>();
+  private Collection<String> simpleNumberVars = new HashSet<String>();
+  private Collection<String> incVars = new HashSet<String>();
 
   public VarCollector(CFA cfa) {
     this.cfa = cfa;
@@ -92,51 +103,54 @@ public class VarCollector {
     for (CFANode node : nodes) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge edge = node.getLeavingEdge(i);
-        handleEdge(edge, allVars, nonBooleanVars, dependencies);
+        handleEdge(edge);
       }
     }
 
-    // if a value is nonbool, all dependent vars are nonbool
-    for (Entry<String, String> entry : dependencies.entrySet()) {
-      if (nonBooleanVars.contains(entry.getKey())) {
-        nonBooleanVars.add(entry.getValue());
-      }
-      if (nonBooleanVars.contains(entry.getValue())) {
-        nonBooleanVars.add(entry.getKey());
-      }
-    }
+    // if a value is nonbool, all dependent vars are nonbool and viceversa
+    addDependVars(nonBooleanVars, boolDependencies);
+
+    // if a value is no simple number, all dependent vars are no simple numbers and viceversa
+    addDependVars(nonSimpleNumberVars, simpleNumberDependencies);
+
+    // if a value is not incremented, all dependent vars are not incremented and viceversa
+    addDependVars(nonIncVars, incDependencies);
+
 
     for (String s : allVars) {
       if (!nonBooleanVars.contains(s)) {
         booleanVars.add(s);
       }
     }
-  }
 
-  @Override
-  public String toString() {
-    StringBuilder str = new StringBuilder();
-    str.append("\nDEPENDENCIES");
-    // if a value is nonbool, all dependent vars are nonbool
-    for (Entry<String, String> entry : dependencies.entrySet()) {
-      str.append(entry.getKey() + " --> " + entry.getValue());
+    for (String s : allVars) {
+      if (!nonSimpleNumberVars.contains(s) && nonBooleanVars.contains(s)) {
+        simpleNumberVars.add(s);
+      }
     }
 
-    str.append("\nALL\n    " + Arrays.toString(allVars.toArray()).replace(", ", ",\n    "));
-    str.append("\nNONBOOL\n    " + Arrays.toString(nonBooleanVars.toArray()).replace(", ", ",\n    "));
-    str.append("\nBOOL\n    " + Arrays.toString(booleanVars.toArray()).replace(", ", ",\n    "));
-    return str.toString();
+    for (String s : allVars) {
+      if (!nonIncVars.contains(s) && nonBooleanVars.contains(s)) {
+        incVars.add(s);
+      }
+    }
   }
 
-  private void handleEdge(CFAEdge edge, Collection<String> allVars,
-      Collection<String> nonBooleanVars, Map<String, String> dependencies)
+  private void handleEdge(CFAEdge edge)
       throws UnrecognizedCCodeException {
     switch (edge.getEdgeType()) {
 
     case AssumeEdge: {
       CExpression exp = ((CAssumeEdge) edge).getExpression();
-      BoolCollectingVisitor bcv = new BoolCollectingVisitor(edge.getPredecessor(), allVars, nonBooleanVars);
-      Collection<String> possibleBoolean = exp.accept(bcv); // can be null!
+      BoolCollectingVisitor bcv = new BoolCollectingVisitor(edge.getPredecessor());
+      exp.accept(bcv);
+
+      NumberCollectingVisitor ncv = new NumberCollectingVisitor(edge.getPredecessor());
+      exp.accept(ncv);
+
+      IncCollectingVisitor icv = new IncCollectingVisitor(edge.getPredecessor());
+      exp.accept(icv);
+
       break;
     }
 
@@ -145,7 +159,8 @@ public class VarCollector {
       if (!(declaration instanceof CVariableDeclaration)) { return; }
 
       CVariableDeclaration vdecl = (CVariableDeclaration) declaration;
-      String varName = buildVarName(vdecl.getName(), vdecl.isGlobal(), edge.getPredecessor().getFunctionName());
+      String varName = buildVarName(vdecl.getName(), vdecl.isGlobal(),
+          edge.getPredecessor().getFunctionName());
       allVars.add(varName);
 
       CInitializer initializer = vdecl.getInitializer();
@@ -154,17 +169,8 @@ public class VarCollector {
       CExpression exp = ((CInitializerExpression) initializer).getExpression();
       if (exp == null) { return; }
 
+      handleExpression(edge, exp, varName);
 
-      BoolCollectingVisitor bcv = new BoolCollectingVisitor(edge.getPredecessor(), allVars, nonBooleanVars);
-      Collection<String> possibleBoolean = exp.accept(bcv);
-
-      if (possibleBoolean == null) { // non boolean
-        nonBooleanVars.add(varName);
-      } else {
-        for (String s : possibleBoolean) {
-          dependencies.put(varName, s);
-        }
-      }
       break;
     }
 
@@ -177,20 +183,12 @@ public class VarCollector {
       if (!(rhs instanceof CExpression)) { return; }
 
       CExpression lhs = assignment.getLeftHandSide();
-      String varName = buildVarName(lhs.toASTString(), isGlobal(lhs), edge.getPredecessor().getFunctionName());
+      String varName = buildVarName(lhs.toASTString(), isGlobal(lhs),
+          edge.getPredecessor().getFunctionName());
       allVars.add(varName);
 
-      CExpression rhsExp = (CExpression) rhs;
-      BoolCollectingVisitor bcv = new BoolCollectingVisitor(edge.getPredecessor(), allVars, nonBooleanVars);
-      Collection<String> possibleBoolean = rhsExp.accept(bcv);
+      handleExpression(edge, ((CExpression) rhs), varName);
 
-      if (possibleBoolean == null) { // non boolean
-        nonBooleanVars.add(varName);
-      } else {
-        for (String s : possibleBoolean) {
-          dependencies.put(varName, s);
-        }
-      }
       break;
     }
 
@@ -208,18 +206,7 @@ public class VarCollector {
 
         // build name for param, this variable is not global (->false)
         String varName = buildVarName(params.get(i).getName(), false, innerFunctionName);
-
-        // make dependency for var and arg
-        BoolCollectingVisitor bcv = new BoolCollectingVisitor(edge.getPredecessor(), allVars, nonBooleanVars);
-        Collection<String> possibleBoolean = args.get(i).accept(bcv);
-
-        if (possibleBoolean == null) { // non boolean
-          nonBooleanVars.add(varName);
-        } else {
-          for (String s : possibleBoolean) {
-            dependencies.put(varName, s);
-          }
-        }
+        handleExpression(edge, args.get(i), varName);
       }
       break;
 
@@ -241,7 +228,9 @@ public class VarCollector {
         // build name for LEFT SIDE of assignment,
         String varName = buildVarName(lhs.toASTString(), isGlobal(lhs),
             functionReturn.getSuccessor().getFunctionName());
-        dependencies.put(varName, retVar);
+        boolDependencies.put(varName, retVar);
+        simpleNumberDependencies.put(varName, retVar);
+        incDependencies.put(varName, retVar);
       }
       break;
     }
@@ -255,18 +244,7 @@ public class VarCollector {
       // make region for RIGHT SIDE, this is the 'x' from 'return (x);
       CRightHandSide rhs = returnStatement.getExpression();
       if (rhs instanceof CExpression) {
-
-        // make dependency for var and arg
-        BoolCollectingVisitor bcv = new BoolCollectingVisitor(edge.getPredecessor(), allVars, nonBooleanVars);
-        Collection<String> possibleBoolean = ((CExpression) rhs).accept(bcv);
-
-        if (possibleBoolean == null) { // non boolean
-          nonBooleanVars.add(varName);
-        } else {
-          for (String s : possibleBoolean) {
-            dependencies.put(varName, s);
-          }
-        }
+        handleExpression(edge, ((CExpression) rhs), varName);
       }
       break;
     }
@@ -275,6 +253,45 @@ public class VarCollector {
     case CallToReturnEdge:
     default:
       // other cases are not interesting
+    }
+  }
+
+  /** evaluates an expression and adds containing vars to the sets. */
+  private void handleExpression(CFAEdge edge, CExpression exp, String varName)
+      throws UnrecognizedCCodeException {
+    BoolCollectingVisitor bcv = new BoolCollectingVisitor(edge.getPredecessor());
+    Collection<String> possibleBoolean = exp.accept(bcv);
+    handleResult(varName, possibleBoolean, nonBooleanVars, boolDependencies);
+
+    NumberCollectingVisitor ncv = new NumberCollectingVisitor(edge.getPredecessor());
+    Collection<String> possibleNumbers = exp.accept(ncv);
+    handleResult(varName, possibleNumbers, nonSimpleNumberVars, simpleNumberDependencies);
+
+    IncCollectingVisitor icv = new IncCollectingVisitor(edge.getPredecessor());
+    Collection<String> possibleIncs = exp.accept(icv);
+    handleResult(varName, possibleIncs, nonIncVars, incDependencies);
+
+  }
+
+  private void addDependVars(Collection<String> vars, Map<String, String> dependencies) {
+    for (Entry<String, String> entry : dependencies.entrySet()) {
+      if (vars.contains(entry.getKey())) {
+        vars.add(entry.getValue());
+      }
+      if (vars.contains(entry.getValue())) {
+        vars.add(entry.getKey());
+      }
+    }
+  }
+
+  private void handleResult(String varName, Collection<String> result,
+      Collection<String> vars, Map<String, String> dependencies) {
+    if (result == null) { // no increment
+      vars.add(varName);
+    } else {
+      for (String s : result) {
+        dependencies.put(varName, s);
+      }
     }
   }
 
@@ -294,29 +311,124 @@ public class VarCollector {
     }
   }
 
+  @Override
+  public String toString() {
+    StringBuilder str = new StringBuilder();
 
+    str.append("\nALL  " + allVars.size() + "\n    "
+        + Arrays.toString(allVars.toArray()).replace(", ", ",\n    "));
 
+    //    str.append("\nBOOL DEPENDENCIES\n    ");
+    //    for (Entry<String, String> entry : boolDependencies.entrySet()) {
+    //      str.append(entry.getKey() + " --> " + entry.getValue() + "\n    ");
+    //    }
+    //    str.append("\nNONBOOL\n    " + Arrays.toString(nonBooleanVars.toArray()).replace(", ", ",\n    "));
+    str.append("\nBOOL  " + booleanVars.size() + "\n    "
+        + Arrays.toString(booleanVars.toArray()).replace(", ", ",\n    "));
 
-  /** This Visitor evaluates an Expression.
-   * Each visit-function returns
-   * - null, if the expression is not boolean
-   * - a collection, if the expression is boolean.
-   * The collection contains all boolean vars. */
-  private class BoolCollectingVisitor implements CExpressionVisitor<Collection<String>, UnrecognizedCCodeException> {
+    //    str.append("\nSIMPLE NUMBER DEPENDENCIES\n    ");
+    //    for (Entry<String, String> entry : simpleNumberDependencies.entrySet()) {
+    //      str.append(entry.getKey() + " --> " + entry.getValue() + "\n    ");
+    //    }
+    //    str.append("\nNO SIMPLE NUMBER\n    " + Arrays.toString(nonSimpleNumberVars.toArray()).replace(", ", ",\n    "));
+    str.append("\nSIMPLE NUMBER  " + simpleNumberVars.size() + "\n    "
+        + Arrays.toString(simpleNumberVars.toArray()).replace(", ", ",\n    "));
 
-    CFANode predecessor;
-    Collection<String> nonBooleanVars;
-    Collection<String> allVars;
+    //    str.append("\nINCREMENT DEPENDENCIES\n    ");
+    //    for (Entry<String, String> entry : incDependencies.entrySet()) {
+    //      str.append(entry.getKey() + " --> " + entry.getValue() + "\n    ");
+    //    }
+    //    str.append("\nNON INCREMENT\n    " + Arrays.toString(nonIncVars.toArray()).replace(", ", ",\n    "));
+    str.append("\nINCREMENT  " + incVars.size() + "\n    "
+        + Arrays.toString(incVars.toArray()).replace(", ", ",\n    "));
 
-    public BoolCollectingVisitor(CFANode pre, Collection<String> allVars, Collection<String> nonBoolean) {
+    return str.toString();
+  }
+
+  /** This Visitor evaluates an Expression. It collects all variables.
+   * a visit of IdExpression or CFieldReference returns a collection containing the varName,
+   * a visit of CastExpression return the containing visit,
+   * other visits return null. */
+  private class VarCollectingVisitor implements CExpressionVisitor<Collection<String>, UnrecognizedCCodeException> {
+
+    private CFANode predecessor;
+
+    public VarCollectingVisitor(CFANode pre) {
       this.predecessor = pre;
-      this.nonBooleanVars = nonBoolean;
-      this.allVars = allVars;
     }
 
     @Override
     public Collection<String> visit(CArraySubscriptExpression exp) {
       return null;
+    }
+
+    @Override
+    public Collection<String> visit(CBinaryExpression exp) throws UnrecognizedCCodeException {
+      exp.getOperand1().accept(this);
+      exp.getOperand2().accept(this);
+      return null;
+    }
+
+    @Override
+    public Collection<String> visit(CCastExpression exp) throws UnrecognizedCCodeException {
+      return exp.getOperand().accept(this);
+    }
+
+    @Override
+    public Collection<String> visit(CFieldReference exp) {
+      String varName = buildVarName(exp.getFieldName(), isGlobal(exp), predecessor.getFunctionName());
+      allVars.add(varName);
+      return Collections.singleton(varName);
+    }
+
+    @Override
+    public Collection<String> visit(CIdExpression exp) {
+      String varName = buildVarName(exp.getName(), isGlobal(exp), predecessor.getFunctionName());
+      allVars.add(varName);
+      return Collections.singleton(varName);
+    }
+
+    @Override
+    public Collection<String> visit(CCharLiteralExpression exp) {
+      return null;
+    }
+
+    @Override
+    public Collection<String> visit(CFloatLiteralExpression exp) {
+      return null;
+    }
+
+    @Override
+    public Collection<String> visit(CIntegerLiteralExpression exp) {
+      return null;
+    }
+
+    @Override
+    public Collection<String> visit(CStringLiteralExpression exp) {
+      return null;
+    }
+
+    @Override
+    public Collection<String> visit(CTypeIdExpression exp) {
+      return null;
+    }
+
+    @Override
+    public Collection<String> visit(CUnaryExpression exp) throws UnrecognizedCCodeException {
+      return null;
+    }
+  }
+
+
+  /** This Visitor evaluates an Expression. It also collects all variables.
+   * Each visit-function returns
+   * - null, if the expression is not boolean
+   * - a collection, if the expression is boolean.
+   * The collection contains all boolean vars. */
+  private class BoolCollectingVisitor extends VarCollectingVisitor {
+
+    public BoolCollectingVisitor(CFANode pre) {
+      super(pre);
     }
 
     @Override
@@ -353,35 +465,6 @@ public class VarCollector {
     }
 
     @Override
-    public Collection<String> visit(CCastExpression exp) throws UnrecognizedCCodeException {
-      return exp.getOperand().accept(this);
-    }
-
-    @Override
-    public Collection<String> visit(CFieldReference exp) {
-      String varName = buildVarName(exp.getFieldName(), isGlobal(exp), predecessor.getFunctionName());
-      allVars.add(varName);
-      return Collections.singleton(varName);
-    }
-
-    @Override
-    public Collection<String> visit(CIdExpression exp) {
-      String varName = buildVarName(exp.getName(), isGlobal(exp), predecessor.getFunctionName());
-      allVars.add(varName);
-      return Collections.singleton(varName);
-    }
-
-    @Override
-    public Collection<String> visit(CCharLiteralExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Collection<String> visit(CFloatLiteralExpression exp) {
-      return null;
-    }
-
-    @Override
     public Collection<String> visit(CIntegerLiteralExpression exp) {
       BigInteger value = exp.getValue();
       if (BigInteger.ZERO.equals(value) || BigInteger.ONE.equals(value)) {
@@ -392,16 +475,6 @@ public class VarCollector {
     }
 
     @Override
-    public Collection<String> visit(CStringLiteralExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Collection<String> visit(CTypeIdExpression exp) {
-      return null;
-    }
-
-    @Override
     public Collection<String> visit(CUnaryExpression exp) throws UnrecognizedCCodeException {
       Collection<String> inner = exp.getOperand().accept(this);
 
@@ -409,8 +482,123 @@ public class VarCollector {
         // boolean operation, return inner vars
         return inner;
       } else { // PLUS, MINUS, etc --> not boolean
+        nonBooleanVars.addAll(inner); // -X --> X is not boolean
         return null;
       }
+    }
+  }
+
+
+  /** This Visitor evaluates an Expression.
+   * Each visit-function returns
+   * - null, if the expression contains calculations
+   * - a collection, if the expression is a number, unaryExp, == or != */
+  private class NumberCollectingVisitor extends VarCollectingVisitor {
+
+    public NumberCollectingVisitor(CFANode pre) {
+      super(pre);
+    }
+
+    @Override
+    public Collection<String> visit(CBinaryExpression exp) throws UnrecognizedCCodeException {
+      Collection<String> operand1 = exp.getOperand1().accept(this);
+      Collection<String> operand2 = exp.getOperand2().accept(this);
+
+      if (operand1 == null || operand2 == null) { // a+123 --> a is not boolean
+        if (operand1 != null) {
+          nonSimpleNumberVars.addAll(operand1);
+        }
+        if (operand2 != null) {
+          nonSimpleNumberVars.addAll(operand2);
+        }
+        return null;
+      }
+
+      switch (exp.getOperator()) {
+
+      case EQUALS:
+      case NOT_EQUALS: // ==, != work with numbers
+        Collection<String> result = new HashSet<String>();
+        result.addAll(operand1);
+        result.addAll(operand2);
+        return result;
+
+      default: // +-*/ --> no boolean operators
+        nonSimpleNumberVars.addAll(operand1); // a+b --> a and b are not boolean
+        nonSimpleNumberVars.addAll(operand2);
+        return null;
+      }
+    }
+
+    @Override
+    public Collection<String> visit(CIntegerLiteralExpression exp) {
+      return Collections.emptySet();
+    }
+
+    @Override
+    public Collection<String> visit(CUnaryExpression exp) throws UnrecognizedCCodeException {
+      Collection<String> inner = exp.getOperand().accept(this);
+
+      switch (exp.getOperator()) {
+      case PLUS: // simple calculations, no usage of another param
+      case MINUS:
+        return inner;
+      default: // *, ~, etc --> not numeral
+        nonSimpleNumberVars.addAll(inner);
+        return null;
+      }
+    }
+  }
+
+
+  /** This Visitor evaluates an Expression.
+   * Each visit-function returns
+   * - null, if the expression contains calculations
+   * - a collection, if the expression is a var or 1 */
+  private class IncCollectingVisitor extends VarCollectingVisitor {
+
+    public IncCollectingVisitor(CFANode pre) {
+      super(pre);
+    }
+
+    @Override
+    public Collection<String> visit(CBinaryExpression exp) throws UnrecognizedCCodeException {
+      Collection<String> operand1 = exp.getOperand1().accept(this);
+      Collection<String> operand2 = exp.getOperand2().accept(this);
+
+      // operand1 contains exactly one var
+      // operand2 is empty (numeral ONE)
+      // operator is PLUS
+      if (operand1 != null && operand2 != null
+          && operand1.size() == 1 && operand2.isEmpty()
+          && BinaryOperator.PLUS.equals(exp.getOperator())) {
+        return operand1;
+
+      } else {
+        if (operand1 != null) {
+          nonIncVars.addAll(operand1);
+        }
+        if (operand2 != null) {
+          nonIncVars.addAll(operand2);
+        }
+        return null;
+      }
+    }
+
+    @Override
+    public Collection<String> visit(CIntegerLiteralExpression exp) {
+      if (BigInteger.ONE.equals(exp.getValue())) {
+        return Collections.emptySet();
+      } else {
+        return null;
+      }
+    }
+
+    @Override
+    public Collection<String> visit(CUnaryExpression exp) throws UnrecognizedCCodeException {
+      Collection<String> inner = exp.getOperand().accept(this);
+      nonIncVars.addAll(inner); // increment is no unary operation
+      return null;
     }
   }
 }
