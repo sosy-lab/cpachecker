@@ -31,6 +31,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -84,6 +85,12 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 @Options(prefix="cpa.explicit")
 public class ExplicitTransferRelation implements TransferRelation
 {
+
+  @Option(description = "if there is an assumption like (x!=0), "
+      + "this option sets unknown (uninitialized) variables to 1L, "
+      + "when the true-branch is handled.")
+  private boolean initAssumptionVars = false;
+
   private final Set<String> globalVariables = new HashSet<String>();
 
   private String missingInformationLeftVariable = null;
@@ -763,6 +770,26 @@ public class ExplicitTransferRelation implements TransferRelation
         }
       }
 
+      if (initAssumptionVars) {
+        // x is unknown, a binaryOperation (x!=0), true-branch: set x=1L
+        // x is unknown, a binaryOperation (x==0), false-branch: set x=1L
+        if ((binaryOperator == BinaryOperator.NOT_EQUALS && truthValue)
+            || (binaryOperator == BinaryOperator.EQUALS && !truthValue)) {
+          if (leftValue == null && rightValue == 0L && isAssignable(lVarInBinaryExp)) {
+            String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
+            if (currentPrecision.isTracking(leftVariableName)) {
+              state.assignConstant(leftVariableName, 1L);
+            }
+          }
+
+          else if (rightValue == null && leftValue == 0L && isAssignable(rVarInBinaryExp)) {
+            String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName);
+            if (currentPrecision.isTracking(rightVariableName)) {
+              state.assignConstant(rightVariableName, 1L);
+            }
+          }
+        }
+      }
       return super.visit(pE);
     }
 
