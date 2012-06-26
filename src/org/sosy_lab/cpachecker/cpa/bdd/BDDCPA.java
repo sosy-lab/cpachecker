@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -50,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 
@@ -71,8 +73,13 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   private final StopOperator stopOperator;
   private final BDDTransferRelation transferRelation;
 
-  private BDDCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private BDDCPA(CFA cfa, Configuration config, LogManager logger) throws InvalidConfigurationException,
+      UnrecognizedCCodeException {
     config.inject(this);
+
+    VarCollector vc = new VarCollector(cfa);
+    vc.collectBooleanVars();
+    System.out.println(vc);
 
     manager = new NamedRegionManager(BDDRegionManager.getInstance());
     abstractDomain = new BDDDomain();

@@ -58,6 +58,7 @@ public class BDDPrecision implements Precision {
    * @return true, if the variable has to be tracked, else false
    */
   boolean isTracking(String variable) {
+  //  System.out.println("ISTRACKING  " + variable + "  " + (trackAll || whiteListPattern.matcher(variable).matches()));
     return trackAll || whiteListPattern.matcher(variable).matches();
   }
 

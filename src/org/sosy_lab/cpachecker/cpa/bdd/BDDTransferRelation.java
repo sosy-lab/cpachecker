@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import static org.sosy_lab.cpachecker.cpa.bdd.VarCollector.*;
+
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
@@ -52,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -82,10 +83,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 public class BDDTransferRelation implements TransferRelation {
 
   protected final NamedRegionManager rmgr;
-
-  /** name for return-variables, it is used for function-returns. */
-  protected static final String FUNCTION_RETURN_VARIABLE = "__CPAchecker_return_var";
-  protected static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
 
   @Option(description = "initialize all variables to 0 when they are declared")
   private boolean initAllVars = false;
@@ -398,23 +395,6 @@ public class BDDTransferRelation implements TransferRelation {
     }
     return region;
   }
-
-  protected boolean isGlobal(CExpression exp) {
-    if (exp instanceof CIdExpression) {
-      CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
-      if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
-    }
-    return false;
-  }
-
-  protected String buildVarName(String variableName, boolean isGlobal, String function) {
-    if (isGlobal) {
-      return variableName;
-    } else {
-      return function + "::" + variableName;
-    }
-  }
-
 
   /** This function returns a region for a variable. */
   private Region createPredicate(String varName) {
