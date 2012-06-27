@@ -74,9 +74,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 public class VarCollector {
 
   /** name for return-variables, it is used for function-returns. */
-  protected static final String FUNCTION_RETURN_VARIABLE = "__CPAchecker_return_var";
-  protected static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
-
+  private static final String FUNCTION_RETURN_VARIABLE = "__CPAchecker_return_var";
 
   private final CFA cfa;
   private Collection<String> allVars = new HashSet<String>();
@@ -286,7 +284,7 @@ public class VarCollector {
 
   private void handleResult(String varName, Collection<String> result,
       Collection<String> vars, Map<String, String> dependencies) {
-    if (result == null) { // no increment
+    if (result == null) {
       vars.add(varName);
     } else {
       for (String s : result) {

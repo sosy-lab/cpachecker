@@ -82,6 +82,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 @Options(prefix = "cpa.bdd")
 public class BDDTransferRelation implements TransferRelation {
 
+  protected static final String FUNCTION_RETURN_VARIABLE = "__CPAchecker_return_var";
+  protected static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
+
   protected final NamedRegionManager rmgr;
 
   @Option(description = "initialize all variables to 0 when they are declared")
@@ -91,6 +94,9 @@ public class BDDTransferRelation implements TransferRelation {
   protected int createdPredicates;
   protected int deletedPredicates;
 
+  /** The Constructor of BDDTransferRelation sets the NamedRegionManager,
+   * that is used to build and manipulate BDDs, that represent the regions.
+   * The NamedRegionManager allows to create BDD-Nodes with names. */
   public BDDTransferRelation(NamedRegionManager manager, Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);
@@ -168,7 +174,10 @@ public class BDDTransferRelation implements TransferRelation {
     }
   }
 
-  /** handles statements like "a = 0;" and "b = !a;" */
+  /** This function handles statements like "a = 0;" and "b = !a;".
+   * A region is build for the right side of the statement.
+   * Then this region is assigned to the variable at the left side.
+   * This equality is added to the BDDstate to get the next state. */
   private BDDState handleStatementEdge(BDDState state, CStatementEdge cfaEdge, BDDPrecision precision)
       throws UnrecognizedCCodeException {
     CStatement statement = cfaEdge.getStatement();
@@ -222,7 +231,10 @@ public class BDDTransferRelation implements TransferRelation {
     return result;
   }
 
-  /** handles declarations like "int a = 0;" and "int b = !a;" */
+  /** This function handles declarations like "int a = 0;" and "int b = !a;".
+   * A region is build for the right side of the declaration, if it is not null.
+   * Then this region is assigned to the variable at the left side.
+   * This equality is added to the BDDstate to get the next state. */
   private BDDState handleDeclarationEdge(BDDState state, CDeclarationEdge cfaEdge,
       BDDPrecision precision) throws UnrecognizedCCodeException {
 
@@ -266,6 +278,10 @@ public class BDDTransferRelation implements TransferRelation {
     return state; // if we know nothing, we return the old state
   }
 
+  /** This function handles functioncalls like "f(x)", that calls "f(int a)".
+   * Therefore each arg ("x") is transformed into a region and assigned
+   * to a param ("int a") of the function. The equalities of
+   * all arg-param-pairs are added to the BDDstate to get the next state. */
   private BDDState handleFunctionCallEdge(BDDState state, CFunctionCallEdge cfaEdge,
       BDDPrecision precision) throws UnrecognizedCCodeException {
 
@@ -298,6 +314,10 @@ public class BDDTransferRelation implements TransferRelation {
     return new BDDState(rmgr, state, newRegion, newVars, innerFunctionName);
   }
 
+  /** This function handles functionReturns like "y=f(x)".
+   * The equality of the returnValue (FUNCTION_RETURN_VARIABLE) and the
+   * left side ("y") is added to the new state.
+   * Each variable from inside the function is removed from the BDDstate. */
   private BDDState handleFunctionReturnEdge(BDDState state, CFunctionReturnEdge cfaEdge,
       BDDPrecision precision) {
     Region newRegion = state.getRegion();
@@ -339,6 +359,9 @@ public class BDDTransferRelation implements TransferRelation {
         cfaEdge.getSuccessor().getFunctionName());
   }
 
+  /** This function handles functionStatements like "return (x)".
+   * The equality of the returnValue (FUNCTION_RETURN_VARIABLE) and the
+   * evaluated right side ("x") is added to the new state. */
   private BDDState handleReturnStatementEdge(BDDState state, CReturnStatementEdge cfaEdge,
       BDDPrecision precision) throws UnrecognizedCCodeException {
 
@@ -361,6 +384,11 @@ public class BDDTransferRelation implements TransferRelation {
     return state;
   }
 
+  /** This function handles assumptions like "if(a==b)" and "if(a!=0)".
+   * A region is build for the assumption.
+   * This region is added to the BDDstate to get the next state.
+   * If the next state is False, the assumption is not fulfilled.
+   * In this case NULL is returned. */
   private BDDState handleAssumption(BDDState state, CAssumeEdge cfaEdge,
       BDDPrecision precision) throws UnrecognizedCCodeException {
 
