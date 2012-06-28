@@ -37,6 +37,7 @@ import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
@@ -160,6 +161,11 @@ class CFABuilder extends ASTVisitor {
 
   private int handleSimpleDeclaration(final IASTSimpleDeclaration sd,
       final IASTFileLocation fileloc) {
+
+    //these are unneccesary semicolons which would cause an abort of CPAchecker
+    if(sd.getDeclarators().length == 0  && sd.getDeclSpecifier() instanceof IASTSimpleDeclSpecifier) {
+      return PROCESS_SKIP;
+    }
 
     final List<CDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
