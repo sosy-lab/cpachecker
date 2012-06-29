@@ -1716,9 +1716,11 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
 
     for line in output.splitlines():
         if 'java.lang.OutOfMemoryError' in line:
-            status = 'OUT OF MEMORY'
+            status = 'OUT OF JAVA MEMORY'
         elif isOutOfNativeMemory(line):
             status = 'OUT OF NATIVE MEMORY'
+        elif 'There is insufficient memory for the Java Runtime Environment to continue.' in line:
+            status = 'OUT OF MEMORY'
         elif 'SIGSEGV' in line:
             status = 'SEGMENTATION FAULT'
         elif ((returncode == 0 or returncode == 1)
@@ -1727,15 +1729,18 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
             status = 'ASSERTION' if 'java.lang.AssertionError' in line else 'EXCEPTION'
         elif 'Could not reserve enough space for object heap' in line:
             status = 'JAVA HEAP ERROR'
-        elif (status is None) and line.startswith('Verification result: '):
+        
+        elif line.startswith('Verification result: '):
             line = line[21:].strip()
             if line.startswith('SAFE'):
-                status = 'SAFE'
+                newStatus = 'SAFE'
             elif line.startswith('UNSAFE'):
-                status = 'UNSAFE'
+                newStatus = 'UNSAFE'
             else:
-                status = 'UNKNOWN'
-        if (status is None) and line.startswith('#Test cases computed:'):
+                newStatus = 'UNKNOWN'
+            status = newStatus if status is None else "%s (%s)".format(status, newStatus) 
+            
+        elif (status is None) and line.startswith('#Test cases computed:'):
             status = 'OK'
     if status is None:
         status = "UNKNOWN"
