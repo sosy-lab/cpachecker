@@ -24,6 +24,9 @@ CPAchecker web page:
   http://cpachecker.sosy-lab.org
 """
 
+# prepare for Python 3
+from __future__ import absolute_import, print_function, unicode_literals
+
 # import our own modules
 TableGenerator = __import__('table-generator') # for '-' in module-name
 Util = TableGenerator.Util # only for different names in programm
