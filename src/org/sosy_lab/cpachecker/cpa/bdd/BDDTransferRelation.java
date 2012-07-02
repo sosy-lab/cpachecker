@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import static org.sosy_lab.cpachecker.cpa.bdd.VarCollector.*;
-
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
@@ -54,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -189,13 +188,14 @@ public class BDDTransferRelation implements TransferRelation {
     if (lhs instanceof CIdExpression || lhs instanceof CFieldReference
         || lhs instanceof CArraySubscriptExpression) {
 
-      String varName = buildVarName(lhs.toASTString(), isGlobal(lhs), state.getFunctionName());
-      if (precision.isTracking(varName)) {
+      String function = isGlobal(lhs) ? null : state.getFunctionName();
+      String varName = lhs.toASTString();
+
+      if (precision.isTracking(function, varName)) {
 
         // make tmp for assignment
         // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
-        Region tmp = createPredicate(buildVarName(
-            TMP_VARIABLE, false, state.getFunctionName()));
+        Region tmp = createPredicate(buildVarName(state.getFunctionName(), TMP_VARIABLE));
         Region newRegion = state.getRegion();
 
         CRightHandSide rhs = assignment.getRightHandSide();
@@ -217,7 +217,7 @@ public class BDDTransferRelation implements TransferRelation {
         }
 
         // delete var, make tmp equal to (new) var, then delete tmp
-        Region var = createPredicate(varName);
+        Region var = createPredicate(buildVarName(function, varName));
         newRegion = removePredicate(newRegion, var);
         newRegion = addEquality(var, tmp, newRegion);
         newRegion = removePredicate(newRegion, tmp);
@@ -253,15 +253,18 @@ public class BDDTransferRelation implements TransferRelation {
 
       // make variable (predicate) for LEFT SIDE of declaration,
       // delete variable, if it was initialized before i.e. in another block, with an existential operator
-      String varName = buildVarName(vdecl.getName(), vdecl.isGlobal(), state.getFunctionName());
-      if (precision.isTracking(varName)) {
-        Region var = createPredicate(varName);
+      String function = vdecl.isGlobal() ? null : state.getFunctionName();
+      String varName = vdecl.getName();
+      String scopedVarName = buildVarName(function, varName);
+
+      if (precision.isTracking(function, varName)) {
+        Region var = createPredicate(scopedVarName);
         Region newRegion = removePredicate(state.getRegion(), var);
 
         // track vars, so we can delete them after returning from a function,
         // see handleFunctionReturnEdge(...) for detail.
         if (!vdecl.isGlobal()) {
-          state.getVars().add(varName);
+          state.getVars().add(scopedVarName);
         }
 
         // initializer on RIGHT SIDE available, make region for it
@@ -298,13 +301,14 @@ public class BDDTransferRelation implements TransferRelation {
     for (int i = 0; i < args.size(); i++) {
 
       // make variable (predicate) for param, this variable is not global (->false)
-      String varName = buildVarName(params.get(i).getName(), false, innerFunctionName);
-      assert !newVars.contains(varName) : "variable used twice as param";
+      String varName = params.get(i).getName();
+      String scopedVarName = buildVarName(innerFunctionName, varName);
+      assert !newVars.contains(scopedVarName) : "variable used twice as param: " + scopedVarName;
 
       // make region for arg and build equality of var and arg
-      if (precision.isTracking(varName)) {
-        newVars.add(varName);
-        Region var = createPredicate(varName);
+      if (precision.isTracking(innerFunctionName, varName)) {
+        newVars.add(scopedVarName);
+        Region var = createPredicate(scopedVarName);
         BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
         Region arg = args.get(i).accept(ev);
         newRegion = addEquality(var, arg, newRegion);
@@ -333,7 +337,7 @@ public class BDDTransferRelation implements TransferRelation {
     CStatement call = fnkCall.getExpression().asStatement();
 
     // make region (predicate) for RIGHT SIDE
-    Region retVar = createPredicate(buildVarName(FUNCTION_RETURN_VARIABLE, false, state.getFunctionName()));
+    Region retVar = createPredicate(buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE));
 
     // handle assignments like "y = f(x);"
     if (call instanceof CFunctionCallAssignmentStatement) {
@@ -343,9 +347,10 @@ public class BDDTransferRelation implements TransferRelation {
       // make variable (predicate) for LEFT SIDE of assignment,
       // delete variable, if it was used before, this is done with an existential operator
       BDDState functionCall = state.getFunctionCallState();
-      String varName = buildVarName(lhs.toASTString(), isGlobal(lhs), functionCall.getFunctionName());
-      if (precision.isTracking(varName)) {
-        Region var = createPredicate(varName);
+      String functionName = isGlobal(lhs) ? null : functionCall.getFunctionName();
+      String varName = lhs.toASTString();
+      if (precision.isTracking(functionName, varName)) {
+        Region var = createPredicate(buildVarName(functionName, varName));
         newRegion = removePredicate(newRegion, var);
         newRegion = addEquality(var, retVar, newRegion);
       }
@@ -367,9 +372,10 @@ public class BDDTransferRelation implements TransferRelation {
 
     // make variable (predicate) for returnStatement,
     // delete variable, if it was used before, this is done with an existential operator
-    Region retvar = createPredicate(buildVarName(FUNCTION_RETURN_VARIABLE, false, state.getFunctionName()));
+    String scopedFuncName = buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE);
+    Region retvar = createPredicate(scopedFuncName);
 
-    assert state.getRegion().equals(removePredicate(state.getRegion(), retvar)) : FUNCTION_RETURN_VARIABLE
+    assert state.getRegion().equals(removePredicate(state.getRegion(), retvar)) : scopedFuncName
         + " was used twice in one trace??";
 
     // make region for RIGHT SIDE, this is the 'x' from 'return (x);
@@ -449,6 +455,22 @@ public class BDDTransferRelation implements TransferRelation {
     }
   }
 
+  protected static String buildVarName(String function, String var) {
+    if (function == null) {
+      return var;
+    } else {
+      return function + "::" + var;
+    }
+  }
+
+  protected static boolean isGlobal(CExpression exp) {
+    if (exp instanceof CIdExpression) {
+      CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
+      if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
+    }
+    return false;
+  }
+
   /** This Visitor evaluates the visited expression and creates a region for it. */
   private class BDDCExpressionVisitor
       implements CExpressionVisitor<Region, UnrecognizedCCodeException> {
@@ -467,9 +489,11 @@ public class BDDTransferRelation implements TransferRelation {
      * The name of the variable is build from functionName and varName.
      * If the precision does not allow to track this variable, NULL is returned. */
     private Region makePredicate(CExpression exp, String functionName, BDDPrecision precision) {
-      String scopedVarName = buildVarName(exp.toASTString(), isGlobal(exp), functionName);
-      if (precision.isTracking(scopedVarName)) {
-        return createPredicate(scopedVarName);
+      String var = exp.toASTString();
+      String function = isGlobal(exp) ? null : functionName;
+
+      if (precision.isTracking(function, var)) {
+        return createPredicate(buildVarName(functionName, var));
       } else {
         return null;
       }
@@ -487,12 +511,6 @@ public class BDDTransferRelation implements TransferRelation {
 
       if (operand1 == null || operand2 == null) { return null; }
 
-      // does the environment imply the left/right side of binaryExp?
-      Region leftSideSat = rmgr.makeAnd(state.getRegion(), operand1);
-      Region rightSideSat = rmgr.makeAnd(state.getRegion(), operand2);
-      boolean isLeftSideZero = leftSideSat.isFalse();
-      boolean isRightSideZero = rightSideSat.isFalse();
-
       Region returnValue = null;
       // binary expression
       switch (exp.getOperator()) {
@@ -508,20 +526,14 @@ public class BDDTransferRelation implements TransferRelation {
         break;
 
       case EQUALS:
-        // bdds cannot handle "2==3", only "==0" is possible
-        if (isLeftSideZero || isRightSideZero) {
-          returnValue = rmgr.makeEqual(operand1, operand2);
-        }
+        returnValue = rmgr.makeEqual(operand1, operand2);
         break;
 
       case NOT_EQUALS:
       case LESS_THAN:
       case GREATER_THAN:
       case BINARY_XOR:
-        // bdds cannot handle "2!=3" or "a=2; b=3; a!=b"
-        if (isLeftSideZero || isRightSideZero) {
-          returnValue = rmgr.makeUnequal(operand1, operand2);
-        }
+        returnValue = rmgr.makeUnequal(operand1, operand2);
         break;
 
       case MULTIPLY:
@@ -570,8 +582,10 @@ public class BDDTransferRelation implements TransferRelation {
       Region region;
       if (exp.getValue().equals(BigInteger.ZERO)) {
         region = rmgr.makeFalse();
-      } else {
+      } else if (exp.getValue().equals(BigInteger.ONE)) {
         region = rmgr.makeTrue();
+      } else {
+        region = null;
       }
       return region;
     }

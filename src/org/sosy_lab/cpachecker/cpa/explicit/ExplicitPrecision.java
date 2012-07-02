@@ -34,8 +34,10 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -69,10 +71,19 @@ public class ExplicitPrecision implements Precision {
 
   private Ignore ignore = null;
 
-  public ExplicitPrecision(String variableBlacklist, Configuration config) throws InvalidConfigurationException {
+  @Option(description = "ignore boolean variables. if this option is used, "
+      + "booleans from the cfa should tracked with another CPA, "
+      + "i.e. with BDDCPA.")
+  private boolean ignoreBooleans = false;
+
+  private Optional<VariableClassification> varClass;
+
+  public ExplicitPrecision(String variableBlacklist, Configuration config,
+      Optional<VariableClassification> vc) throws InvalidConfigurationException {
     config.inject(this);
 
     blackListPattern = Pattern.compile(variableBlacklist);
+    this.varClass = vc;
 
     cegarPrecision        = new CegarPrecision(config);
     reachedSetThresholds  = new ReachedSetThresholds(config);
@@ -122,7 +133,8 @@ public class ExplicitPrecision implements Precision {
   /**
    * This method tells if the precision demands the given variable to be tracked.
    *
-   * A variable is demanded to be tracked if it does not exceed a threshold (when given), it is on the white-list (when not null), and is not on the black-list.
+   * A variable is demanded to be tracked if it does not exceed a threshold (when given),
+   * it is on the white-list (when not null), and is not on the black-list.
    *
    * @param variable the scoped name of the variable to check
    * @return true, if the variable has to be tracked, else false
@@ -132,15 +144,24 @@ public class ExplicitPrecision implements Precision {
         && pathThresholds.allowsTrackingOf(variable)
         && cegarPrecision.allowsTrackingOf(variable)
         && ignore.allowsTrackingOf(variable)
-        && !blackListPattern.matcher(variable).matches();
+        && !isOnBlacklist(variable)
+        && !(ignoreBooleans && isBoolean(variable));
   }
 
-  public boolean isNotTracking(String variable) {
-    return !isTracking(variable);
-  }
-
-  public String getBlackListPattern() {
-    return blackListPattern.pattern();
+  private boolean isBoolean(String variable) {
+    // split var into function and varName
+    int i = variable.indexOf("::");
+    String function;
+    String varName;
+    if (i == -1) { // global variable, no splitting
+      function = null;
+      varName = variable;
+    } else { // split function::varName
+      function = variable.substring(0, i);
+      varName = variable.substring(i + 2);
+    }
+    return varClass.isPresent()
+        && varClass.get().getBooleanVars().containsEntry(function, varName);
   }
 
   @Options(prefix="cpa.explicit.precision.ignore")

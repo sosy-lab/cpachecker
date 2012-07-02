@@ -37,7 +37,9 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
@@ -64,7 +66,7 @@ public class ExplictPathChecker {
 
       TransferRelation transfer   = new ExplicitTransferRelation(config);
       AbstractState next        = new ExplicitState();
-      ExplicitPrecision precision = new ExplicitPrecision("", config);
+      ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
 
       precision.getIgnore().setMapping(variablesToBeIgnored);
 

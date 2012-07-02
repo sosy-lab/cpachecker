@@ -77,13 +77,9 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
       UnrecognizedCCodeException {
     config.inject(this);
 
-    VarCollector vc = new VarCollector(cfa);
-    vc.collectBooleanVars();
-    System.out.println(vc);
-
     manager = new NamedRegionManager(BDDRegionManager.getInstance());
     abstractDomain = new BDDDomain();
-    precision = new BDDPrecision(config);
+    precision = new BDDPrecision(config, cfa.getVarClassification());
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopSepOperator(abstractDomain);
     if (!useBitvector) {

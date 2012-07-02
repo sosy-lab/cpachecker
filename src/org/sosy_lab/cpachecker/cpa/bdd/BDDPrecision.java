@@ -30,25 +30,33 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.util.VariableClassification;
+
+import com.google.common.base.Optional;
 
 @Options(prefix = "cpa.bdd")
 public class BDDPrecision implements Precision {
 
-  @Option(description = "track all variables or none")
-  private boolean trackAll = true;
-
-  @Option(description = "which vars should be tracked, default: track all")
+  @Option(description = "which vars should be tracked, default: track all. "
+      + "the regex is not used for functionname, only for the variablename itself.")
   private String whiteListRegex = ".*";
 
   private final Pattern whiteListPattern;
 
-  public BDDPrecision(Configuration config) throws InvalidConfigurationException {
+  @Option(description = "track boolean variables from cfa only")
+  private boolean trackBooleanFromCFA = true;
+
+  private final Optional<VariableClassification> varClass;
+
+  public BDDPrecision(Configuration config, Optional<VariableClassification> vc)
+      throws InvalidConfigurationException {
     config.inject(this);
+    this.varClass = vc;
     whiteListPattern = Pattern.compile(whiteListRegex);
   }
 
   boolean isDisabled() {
-    return !trackAll && whiteListPattern.pattern().isEmpty();
+    return whiteListPattern.pattern().isEmpty();
   }
 
   /**
@@ -57,9 +65,13 @@ public class BDDPrecision implements Precision {
    * @param variable the scoped name of the variable to check
    * @return true, if the variable has to be tracked, else false
    */
-  boolean isTracking(String variable) {
-  //  System.out.println("ISTRACKING  " + variable + "  " + (trackAll || whiteListPattern.matcher(variable).matches()));
-    return trackAll || whiteListPattern.matcher(variable).matches();
+  boolean isTracking(String function, String var) {
+    boolean isTracking = whiteListPattern.matcher(var).matches()
+        && (!trackBooleanFromCFA || (varClass.isPresent()
+        && varClass.get().getBooleanVars().containsEntry(function, var)));
+
+    //System.out.println("ISTRACKING  " + (function == null ? "<global>" : function + "::") + var + "  " + isTracking);
+    return isTracking;
   }
 
 }
