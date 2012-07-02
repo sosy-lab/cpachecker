@@ -45,7 +45,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -64,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
@@ -234,6 +237,7 @@ public class VariableClassification {
         String functionName = func.getFunctionNameExpression().toASTString(); // TODO correct?
 
         if (cfa.getAllFunctionNames().contains(functionName)) {
+          // TODO is this case really appearing or is it always handled as "functionCallEdge"?
           dependencies.add(functionName, FUNCTION_RETURN_VARIABLE, function, varName);
 
         } else {
@@ -262,6 +266,20 @@ public class VariableClassification {
         // build name for param and evaluate it
         // this variable is not global (->false)
         handleExpression(edge, args.get(i), params.get(i).getName(), innerFunctionName);
+      }
+
+      // create dependency for functionreturn
+      CFunctionSummaryEdge func = functionCall.getSummaryEdge();
+      CStatement statement = func.getExpression().asStatement();
+      if (statement instanceof CFunctionCallAssignmentStatement) {
+        CFunctionCallAssignmentStatement call = (CFunctionCallAssignmentStatement) statement;
+        CExpression lhs = call.getLeftHandSide();
+        String varName = lhs.toASTString();
+        String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
+        dependencies.add(innerFunctionName, FUNCTION_RETURN_VARIABLE, function, varName);
+
+      } else if (statement instanceof CFunctionCallStatement) {
+        // f(x); we can ignore it, there is no dependency
       }
       break;
 
