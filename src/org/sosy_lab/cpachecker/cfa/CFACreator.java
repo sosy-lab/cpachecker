@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMultimap;
@@ -175,6 +176,9 @@ public class CFACreator {
       // get loop information
       Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
 
+      // get information about variables
+      Optional<VariableClassification> varClassification = Optional.of(new VariableClassification(cfa));
+
       // Insert call and return edges and build the supergraph
       if (interprocedural) {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
@@ -209,7 +213,7 @@ public class CFACreator {
         MultiEdgeCreator.createMultiEdges(cfa);
       }
 
-      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure);
+      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
 
       // check the super CFA starting at the main function
       checkTime.start();

@@ -30,6 +30,7 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableCollection;
@@ -49,16 +50,19 @@ class ImmutableCFA implements CFA {
   private final ImmutableSortedSet<CFANode> allNodes;
   private final FunctionEntryNode mainFunction;
   private final Optional<ImmutableMultimap<String, Loop>> loopStructure;
+  private final Optional<VariableClassification> varClassification;
 
   ImmutableCFA(Map<String, FunctionEntryNode> pFunctions,
       SetMultimap<String, CFANode> pAllNodes,
       FunctionEntryNode pMainFunction,
-      Optional<ImmutableMultimap<String, Loop>> pLoopStructure) {
+      Optional<ImmutableMultimap<String, Loop>> pLoopStructure,
+      Optional<VariableClassification> pVarClassification) {
 
     functions = ImmutableMap.copyOf(pFunctions);
     allNodes = ImmutableSortedSet.copyOf(pAllNodes.values());
     mainFunction = checkNotNull(pMainFunction);
     loopStructure = pLoopStructure;
+    varClassification = pVarClassification;
 
     checkArgument(functions.get(mainFunction.getFunctionName()) == mainFunction);
   }
@@ -68,6 +72,7 @@ class ImmutableCFA implements CFA {
     allNodes = ImmutableSortedSet.of();
     mainFunction = null;
     loopStructure = Optional.absent();
+    varClassification = Optional.absent();
   }
 
   static ImmutableCFA empty() {
@@ -117,5 +122,10 @@ class ImmutableCFA implements CFA {
   @Override
   public Optional<ImmutableMultimap<String, Loop>> getLoopStructure() {
     return loopStructure;
+  }
+
+  @Override
+  public Optional<VariableClassification> getVarClassification() {
+    return varClassification;
   }
 }
