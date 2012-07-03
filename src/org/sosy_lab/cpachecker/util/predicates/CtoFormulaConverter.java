@@ -1660,7 +1660,7 @@ public class CtoFormulaConverter {
       return assignments;
     }
 
-    private void updateAllMemoryLocations(Formula lVar, Formula rPVar, Formula rightVariable, boolean deepUpdate) {
+    private void updateAllMemoryLocations(Formula lVar, Formula rPtrVar, Formula rightVariable, boolean deepUpdate) {
       // for all memory addresses also update the aliasing
       // if the left variable is an alias for an address,
       // then the left side is (deep) equal to the right side
@@ -1684,7 +1684,7 @@ public class CtoFormulaConverter {
           removeOldPointerVariablesFromSsaMap(newPtrVarName, ssa);
 
           Formula varEquality = fmgr.makeAssignment(newVar, rightVariable);
-          Formula ptrVarEquality = fmgr.makeAssignment(newPtrVar, rPVar);
+          Formula ptrVarEquality = fmgr.makeAssignment(newPtrVar, rPtrVar);
           Formula varUpdate = fmgr.makeAssignment(newVar, oldVar);
           Formula ptrVarUpdate = fmgr.makeAssignment(newPtrVar, oldPtrVar);
 
