@@ -302,14 +302,15 @@ cpa.bdd.bitsize = 8
 # initialize all variables to 0 when they are declared
 cpa.bdd.initAllVars = false
 
-# track all variables or none
-cpa.bdd.trackAll = true
+# track boolean variables from cfa only
+cpa.bdd.trackBooleanFromCFA = true
 
 # either use one bit to know if a value is 0 (or not 0)or use a vector to
 # store all memory cells of a variable
 cpa.bdd.useBitvector = false
 
-# which vars should be tracked, default: track all
+# which vars should be tracked, default: track all. the regex is not used for
+# functionname, only for the variablename itself.
 cpa.bdd.whiteListRegex = ".*"
 
 # which composite merge operator to use (plain or agree)
@@ -377,9 +378,17 @@ cpa.conditions.path.repetitions.limit = -1
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
 
+# if there is an assumption like (x!=0), this option sets unknown
+# (uninitialized) variables to 1L, when the true-branch is handled.
+cpa.explicit.initAssumptionVars = false
+
 # which merge operator to use for ExplicitCPA
 cpa.explicit.merge = "SEP"
   allowed values: [SEP, JOIN]
+
+# ignore boolean variables. if this option is used, booleans from the cfa
+# should tracked with another CPA, i.e. with BDDCPA.
+cpa.explicit.precision.ignoreBooleans = false
 
 # threshold for amount of different values that are tracked for one variable
 # per path (-1 means infinitely)
