@@ -118,16 +118,37 @@ public class VariableClassification {
     }
   }
 
-  /** This function returns a collection of (functionName, varNames). */
+  /** This function returns a collection of (functionName, varNames).
+   * This collection contains all vars, that are boolean,
+   * i.e. the value is 0 or 1. */
   public Multimap<String, String> getBooleanVars() {
     build();
     return booleanVars;
   }
 
-  /** This function returns a collection of (functionName, varNames). */
+  /** This function returns a collection of (functionName, varNames).
+   * This collection contains all vars, that are not boolean.
+   * There are calculations (addition, etc) with these vars or
+   * there is a value distinct from 0 and 1. */
   public Multimap<String, String> getNonBooleanVars() {
     build();
     return nonBooleanVars;
+  }
+
+  /** This function returns a collection of (functionName, varNames).
+   * This collection contains all vars, that have only the values of simple numbers.
+   * There are NO calculations (addition, etc) with these vars. */
+  public Multimap<String, String> getSimpleNumberVars() {
+    build();
+    return simpleNumberVars;
+  }
+
+  /** This function returns a collection of (functionName, varNames).
+   * This collection contains all vars, that are not simple numbers.
+   * There are calculations (addition, etc) with these vars. */
+  public Multimap<String, String> getNonSimpleNumberVars() {
+    build();
+    return nonSimpleNumberVars;
   }
 
   /** This function iterates over all edges of the cfa, collects all variables
@@ -161,8 +182,7 @@ public class VariableClassification {
       }
 
       for (String s : vars) {
-        if (!nonSimpleNumberVars.containsEntry(function, s)
-            && nonBooleanVars.containsEntry(function, s)) {
+        if (!nonSimpleNumberVars.containsEntry(function, s)) {
           simpleNumberVars.put(function, s);
         }
       }
@@ -347,36 +367,13 @@ public class VariableClassification {
 
   @Override
   public String toString() {
+    if (allVars == null) { return "VariableClassification is not build."; }
+
     StringBuilder str = new StringBuilder();
-
-    if (allVars == null) {
-      str.append("VariableClassification is not build.");
-      return str.toString();
-    }
-
     str.append("\nALL  " + allVars.size() + "\n    " + allVars);
-
-    //    str.append("\nBOOL DEPENDENCIES\n    ");
-    //    for (Entry<String, String> entry : boolDependencies.entrySet()) {
-    //      str.append(entry.getKey() + " --> " + entry.getValue() + "\n    ");
-    //    }
-    //    str.append("\nNONBOOL\n    " + Arrays.toString(nonBooleanVars.toArray()).replace(", ", ",\n    "));
     str.append("\nBOOL  " + booleanVars.size() + "\n    " + booleanVars);
-
-    //    str.append("\nSIMPLE NUMBER DEPENDENCIES\n    ");
-    //    for (Entry<String, String> entry : simpleNumberDependencies.entrySet()) {
-    //      str.append(entry.getKey() + " --> " + entry.getValue() + "\n    ");
-    //    }
-    //    str.append("\nNO SIMPLE NUMBER\n    " + Arrays.toString(nonSimpleNumberVars.toArray()).replace(", ", ",\n    "));
     str.append("\nSIMPLE NUMBER  " + simpleNumberVars.size() + "\n    " + simpleNumberVars);
-
-    //    str.append("\nINCREMENT DEPENDENCIES\n    ");
-    //    for (Entry<String, String> entry : incDependencies.entrySet()) {
-    //      str.append(entry.getKey() + " --> " + entry.getValue() + "\n    ");
-    //    }
-    //    str.append("\nNON INCREMENT\n    " + Arrays.toString(nonIncVars.toArray()).replace(", ", ",\n    "));
     str.append("\nINCREMENT  " + incVars.size() + "\n    " + incVars);
-
     return str.toString();
   }
 
