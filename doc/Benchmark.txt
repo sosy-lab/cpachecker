@@ -24,3 +24,5 @@ There are several CPAchecker options that are especially useful for benchmarks:
 
 It is also recommended to disable assertion checking for benchmarks.
 This can be done by removing "-ea" from the last line of scripts/cpa.sh
+
+For further help on the benchmark script use 'scripts/benchmark.py -h'.
