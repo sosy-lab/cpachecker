@@ -242,7 +242,7 @@ public class CtoFormulaConverter {
   }
 
   /** Looks up the variable name in the current namespace. */
-  private String scopedIfNecessary(CIdExpression var, String function) {
+  private static String scopedIfNecessary(CIdExpression var, String function) {
     CSimpleDeclaration decl = var.getDeclaration();
     boolean isGlobal = false;
     if (decl instanceof CDeclaration) {
@@ -971,7 +971,7 @@ public class CtoFormulaConverter {
     return false;
   }
 
-  private boolean maybePointer(CType type, String varName, SSAMapBuilder ssa) {
+  private static boolean maybePointer(CType type, String varName, SSAMapBuilder ssa) {
     if (type != null && isStaticallyDeclaredPointer(type)) {
       return true;
     }
