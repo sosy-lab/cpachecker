@@ -346,6 +346,8 @@ public class CtoFormulaConverter {
   /**
    * Create a formula for a given variable.
    * This method does not handle scoping and the NON_DET_VARIABLE!
+   *
+   * This method does not update the index of the variable.
    */
   private Formula makeVariable(String varName, SSAMapBuilder ssa) {
     int idx = getIndex(varName, ssa);
@@ -1655,12 +1657,15 @@ public class CtoFormulaConverter {
       updateAllPointers(lVarName, lVar, rVarName, rightVariable);
 
       boolean doDeepUpdate = (r instanceof CIdExpression);
-      updateAllMemoryLocations(lVar, rPtrVar, rightVariable, doDeepUpdate);
+      updateAllMemoryLocations(lVarName, rPtrVar, rightVariable, doDeepUpdate);
 
       return assignments;
     }
 
-    private void updateAllMemoryLocations(Formula lVar, Formula rPtrVar, Formula rightVariable, boolean deepUpdate) {
+    private void updateAllMemoryLocations(String lVarName, Formula rPtrVar, Formula rVar, boolean deepUpdate) {
+
+      Formula lVar = makeVariable(lVarName, ssa);
+
       // for all memory addresses also update the aliasing
       // if the left variable is an alias for an address,
       // then the left side is (deep) equal to the right side
@@ -1670,30 +1675,37 @@ public class CtoFormulaConverter {
         for (String memAddress : memAddresses) {
           String varName = getVariableNameFromMemoryAddress(memAddress);
 
-          Formula memAddressVar = makeVariable(memAddress, ssa);
+          if (!varName.equals(lVarName)) {
+            // we assume that cases like the following are illegal and do not occur
+            // (gcc 4.6 gives an error):
+            // p = &p;
+            // *p = &a;
 
-          Formula oldVar = makeVariable(varName, ssa);
-          String oldPtrVarName = makePointerMask(varName, ssa);
-          Formula oldPtrVar = makeVariable(oldPtrVarName, ssa);
+            Formula memAddressVar = makeVariable(memAddress, ssa);
 
-          makeFreshIndex(varName, ssa);
+            Formula oldVar = makeVariable(varName, ssa);
+            String oldPtrVarName = makePointerMask(varName, ssa);
+            Formula oldPtrVar = makeVariable(oldPtrVarName, ssa);
 
-          Formula newVar = makeVariable(varName, ssa);
-          String newPtrVarName = makePointerMask(varName, ssa);
-          Formula newPtrVar = makeVariable(varName, ssa);
-          removeOldPointerVariablesFromSsaMap(newPtrVarName, ssa);
+            makeFreshIndex(varName, ssa);
 
-          Formula varEquality = fmgr.makeAssignment(newVar, rightVariable);
-          Formula ptrVarEquality = fmgr.makeAssignment(newPtrVar, rPtrVar);
-          Formula varUpdate = fmgr.makeAssignment(newVar, oldVar);
-          Formula ptrVarUpdate = fmgr.makeAssignment(newPtrVar, oldPtrVar);
+            Formula newVar = makeVariable(varName, ssa);
+            String newPtrVarName = makePointerMask(varName, ssa);
+            Formula newPtrVar = makeVariable(varName, ssa);
+            removeOldPointerVariablesFromSsaMap(newPtrVarName, ssa);
 
-          Formula condition = fmgr.makeEqual(lVar, memAddressVar);
-          Formula equality = fmgr.makeAnd(varEquality, ptrVarEquality);
-          Formula update = fmgr.makeAnd(varUpdate, ptrVarUpdate);
+            Formula varEquality = fmgr.makeAssignment(newVar, rVar);
+            Formula ptrVarEquality = fmgr.makeAssignment(newPtrVar, rPtrVar);
+            Formula varUpdate = fmgr.makeAssignment(newVar, oldVar);
+            Formula ptrVarUpdate = fmgr.makeAssignment(newPtrVar, oldPtrVar);
 
-          Formula variableUpdate = fmgr.makeIfThenElse(condition, equality, update);
-          constraints.addConstraint(variableUpdate);
+            Formula condition = fmgr.makeEqual(lVar, memAddressVar);
+            Formula equality = fmgr.makeAnd(varEquality, ptrVarEquality);
+            Formula update = fmgr.makeAnd(varUpdate, ptrVarUpdate);
+
+            Formula variableUpdate = fmgr.makeIfThenElse(condition, equality, update);
+            constraints.addConstraint(variableUpdate);
+          }
         }
 
       } else {
@@ -1702,22 +1714,25 @@ public class CtoFormulaConverter {
         for (String memAddress : memAddresses) {
           String varName = getVariableNameFromMemoryAddress(memAddress);
 
-          Formula oldVar = makeVariable(varName, ssa);
+          if (!varName.equals(lVarName)) {
 
-          makeFreshIndex(varName, ssa);
+            Formula oldVar = makeVariable(varName, ssa);
 
-          Formula newVar = makeVariable(varName, ssa);
-          String newPtrVarName = makePointerMask(varName, ssa);
-          removeOldPointerVariablesFromSsaMap(newPtrVarName, ssa);
+            makeFreshIndex(varName, ssa);
 
-          Formula memAddressVar = makeVariable(memAddress, ssa);
+            Formula newVar = makeVariable(varName, ssa);
+            String newPtrVarName = makePointerMask(varName, ssa);
+            removeOldPointerVariablesFromSsaMap(newPtrVarName, ssa);
 
-          Formula condition = fmgr.makeEqual(lVar, memAddressVar);
-          Formula equality = fmgr.makeAssignment(newVar, rightVariable);
-          Formula update = fmgr.makeAssignment(newVar, oldVar);
+            Formula memAddressVar = makeVariable(memAddress, ssa);
 
-          Formula variableUpdate = fmgr.makeIfThenElse(condition, equality, update);
-          constraints.addConstraint(variableUpdate);
+            Formula condition = fmgr.makeEqual(lVar, memAddressVar);
+            Formula equality = fmgr.makeAssignment(newVar, rVar);
+            Formula update = fmgr.makeAssignment(newVar, oldVar);
+
+            Formula variableUpdate = fmgr.makeIfThenElse(condition, equality, update);
+            constraints.addConstraint(variableUpdate);
+          }
         }
       }
     }
