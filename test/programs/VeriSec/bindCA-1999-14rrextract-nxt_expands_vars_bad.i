@@ -64,7 +64,7 @@ int dn_expand(const u_char *msg, const u_char *eomorig,
               const u_char *comp_dn, char *exp_dn, int length);
 
 
-extern int nondet_int();
+extern int __VERIFIER_nondet_int();
 # 2 "../versisec/bind/progs1/bindCA-1999-14rrextract-nxt_expands_vars_bad.c" 2
 # 1 "/usr/include/assert.h" 1 3 4
 # 37 "/usr/include/assert.h" 3 4
@@ -138,18 +138,18 @@ rrextract(u_char *msg, int msglen, u_char *rrp, u_char *dname, int namelen)
 
   cp += n;
   do {if ((cp) + (2*2 + 4 + 2) > eom) return -1;} while(0);
-  do {(type) = nondet_short(); (cp) += 2;} while(0);
-  do {(class) = nondet_short(); (cp) += 2;} while(0);
+  do {(type) = __VERIFIER_nondet_short(); (cp) += 2;} while(0);
+  do {(class) = __VERIFIER_nondet_short(); (cp) += 2;} while(0);
 
   if (class > 100) {
     return (-1);
   }
-  do {(ttl) = nondet_long(); (cp) += 4;} while(0);
+  do {(ttl) = __VERIFIER_nondet_long(); (cp) += 4;} while(0);
 
   if (ttl > 101) {
     ttl = 0;
   }
-  do {(dlen) = nondet_short(); (cp) += 2;} while(0);
+  do {(dlen) = __VERIFIER_nondet_short(); (cp) += 2;} while(0);
   do {if ((cp) + (dlen) > eom) return -1;} while(0);
 
   rdatap = cp;
