@@ -31,6 +31,10 @@ import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
 
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
@@ -42,22 +46,45 @@ import com.google.common.collect.Maps;
  * This class is not thread-safe, but it could be easily made so by synchronizing
  * the {@link #createNewVar()} method.
  */
+@Options(prefix = "bddregionmanager")
 public class BDDRegionManager implements RegionManager {
 
-  // static because init() may be called only once!
-  private static final String BDD_PACKAGE = "cudd";
-  private static final BDDFactory factory = BDDFactory.init(BDD_PACKAGE, 10000, 1000);
+  @Option(name = "package", description = "which bdd-package should be used? "
+      + "\n- cudd:  CUDD-library, reordering not supported"
+      + "\n- java:  JFactory, fallback for all other packages"
+      + "\n- micro: MicroFactory, maximum number of BDD variables is 1024,"
+      + "\n         slow, but less memory-comsumption.",
+      values = { "cudd", "java", "micro" })
+  // documentation of the packages can be found at source of BDDFactory.init()
+  private String BDD_PACKAGE = "cudd";
 
-  private static final Region trueFormula = new BDDRegion(factory.one());
-  private static final Region falseFormula = new BDDRegion(factory.zero());
+  private final BDDFactory factory;
+  private final Region trueFormula;
+  private final Region falseFormula;
 
   private static int nextvar = 0;
   private static int varcount = 100;
-  {
+
+  private static BDDRegionManager instance;
+
+  private BDDRegionManager(Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
+    factory = BDDFactory.init(BDD_PACKAGE, 10000, 1000);
     factory.setVarNum(varcount);
+    trueFormula = new BDDRegion(factory.one());
+    falseFormula = new BDDRegion(factory.zero());
   }
 
-  private static BDD createNewVar() {
+  /** this method will return the same object at any call. the very first given
+   *  configuration will be used, each other configuration will be ignored. */
+  public static RegionManager getInstance(Configuration config) throws InvalidConfigurationException {
+    if (instance == null) {
+      instance = new BDDRegionManager(config);
+    }
+    return instance;
+  }
+
+  private BDD createNewVar() {
     if (nextvar >= varcount) {
       varcount *= 1.5;
       factory.setVarNum(varcount);
@@ -66,11 +93,6 @@ public class BDDRegionManager implements RegionManager {
 
     return ret;
   }
-
-  private static RegionManager instance = new BDDRegionManager();
-
-  public static RegionManager getInstance() { return instance; }
-
 
   // Code for connecting the Java GC and the BDD library GC
   // When a Java object is freed, we need to tell the library.
