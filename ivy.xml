@@ -32,7 +32,7 @@
 
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
-        <dependency org="net.sf.javabdd" name="javabdd" rev="1.0b2" conf="runtime->default"/>
+        <dependency org="net.sf.javabdd" name="javabdd" rev="1.0b2-sosy0" conf="runtime->default; contrib->sources"/>
 
         <!-- JGraphT
              Used for generating automaton and FQL parsers. -->
