@@ -34,10 +34,6 @@
              Java BDD library for predicate abstraction (uses CUDD). -->
         <dependency org="net.sf.javabdd" name="javabdd" rev="1.0b2-sosy0" conf="runtime->runtime; contrib->sources"/>
 
-        <!-- JGraphT
-             Used for generating automaton and FQL parsers. -->
-        <dependency org="org.jgrapht" name="jgrapht-jdk1.6" rev="0.8.2" conf="runtime->default"/>
-
         <!-- International Components for Unicode
              Needed by Eclipse CDT parser for error messages. -->
         <dependency org="com.ibm.icu" name="icu4j" rev="4.8.1.1" conf="runtime->default"/>
