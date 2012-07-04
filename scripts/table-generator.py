@@ -397,7 +397,7 @@ def ensureEqualSourceFiles(listOfTests):
         if fileNames == result.getSourceFileNames(): return True
         else: print ('    {0} contains different files, skipping resultfile'.format(result.filename))
 
-    listOfTests = filter(equalFiles, listOfTests)
+    listOfTests = list(filter(equalFiles, listOfTests))
     return fileNames, listOfTests
 
 
