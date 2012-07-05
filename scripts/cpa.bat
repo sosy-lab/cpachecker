@@ -1,4 +1,5 @@
 @echo off
+set params=""
 
 set OLDPATH=%PATH%
 set PATH=%PATH%;lib\native\x86-win32
