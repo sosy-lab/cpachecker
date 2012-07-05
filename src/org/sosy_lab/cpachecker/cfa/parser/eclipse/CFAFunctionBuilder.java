@@ -1001,16 +1001,34 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // "counter = 0;"
     } else if (statement instanceof IASTExpressionStatement) {
-      final CFANode nextNode = new CFANode(filelocStart, cfa.getFunctionName());
-      cfaNodes.add(nextNode);
 
-      final CStatementEdge initEdge = new CStatementEdge(statement.getRawSignature(),
-              astCreator.convert((IASTExpressionStatement) statement),
-              filelocStart, loopInit, nextNode);
-      addToCFA(initEdge);
-      return nextNode;
+      IASTExpressionStatement expStatement = (IASTExpressionStatement) statement;
 
-    //";"
+      if (expStatement.getExpression() instanceof IASTExpressionList) {
+        IASTExpression[] expressions = ((IASTExpressionList) expStatement.getExpression()).getExpressions();
+        CFANode nextNode = null;
+        CFANode previousNode = loopInit;
+
+        for (int i = 0; i < expressions.length; i++) {
+          nextNode = new CFANode(filelocStart, cfa.getFunctionName());
+          createForLoopEndStartEdges(expressions[i], filelocStart, previousNode, nextNode);
+          cfaNodes.add(nextNode);
+          previousNode = nextNode;
+        }
+
+        return nextNode;
+      } else {
+
+        final CFANode nextNode = new CFANode(filelocStart, cfa.getFunctionName());
+        cfaNodes.add(nextNode);
+
+        final CStatementEdge initEdge = new CStatementEdge(statement.getRawSignature(),
+            astCreator.convert((IASTExpressionStatement) statement),
+            filelocStart, loopInit, nextNode);
+        addToCFA(initEdge);
+        return nextNode;
+      }
+      //";"
     } else if (statement instanceof IASTNullStatement) {
       // no edge inserted
       return loopInit;
