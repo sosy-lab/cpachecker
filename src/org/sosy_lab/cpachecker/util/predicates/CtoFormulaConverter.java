@@ -183,6 +183,10 @@ public class CtoFormulaConverter {
   /** The variable name that's used to store the malloc counter in the SSAMap. */
   private static final String MALLOC_COUNTER_VARIABLE_NAME = "#malloc";
 
+  private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
+      "printf", "printk"
+      );
+
   private final Set<String> printedWarnings = new HashSet<String>();
 
   private final Map<String, Formula> stringLitToFormula = new HashMap<String, Formula>();
@@ -661,8 +665,10 @@ public class CtoFormulaConverter {
             "not match function definition", edge);
       }
 
-      logger.log(Level.WARNING, "Ignoring parameters passed as varargs to function", calledFunction,
-                                "in line", edge.getLineNumber());
+      if (!SAFE_VAR_ARG_FUNCTIONS.contains(calledFunction)) {
+        log(Level.WARNING, "Ignoring parameters passed as varargs to function "
+                           + calledFunction + " in line " + edge.getLineNumber());
+      }
 
     } else {
       if (formalParams.size() != actualParams.size()) {
