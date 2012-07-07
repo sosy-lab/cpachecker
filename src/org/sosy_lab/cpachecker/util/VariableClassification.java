@@ -27,6 +27,7 @@ import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -78,6 +79,12 @@ public class VariableClassification {
   /** name for return-variables, it is used for function-returns. */
   private static final String FUNCTION_RETURN_VARIABLE = "__CPAchecker_return_var";
 
+  /** normally a boolean value would be 0 or 1,
+   * however there are cases, where the values are only 0 and 1,
+   * but the variable is not boolean at all: "int x; if(x!=0 && x!= 1){}".
+   * so we allow only 0 as boolean value, and not 1. */
+  private boolean allowOneAsBooleanValue = false;
+
   private Multimap<String, String> allVars = null;
 
   private Multimap<String, String> nonBooleanVars;
@@ -115,6 +122,11 @@ public class VariableClassification {
 
       // fill maps
       collectVars();
+
+      // we have collected the nonBooleanVars, lets build the needed booleanVars.
+      buildOpposites();
+
+      // TODO is there a need to change the Maps later? make Maps immutable?
     }
   }
 
@@ -152,7 +164,7 @@ public class VariableClassification {
   }
 
   /** This function iterates over all edges of the cfa, collects all variables
-   * and orders them into different sets, i.e. booleanVars and nonBooleanVars. */
+   * and orders them into different sets, i.e. nonBoolean and nonSimpleNumber. */
   private void collectVars() {
     Collection<CFANode> nodes = cfa.getAllNodes();
     for (CFANode node : nodes) {
@@ -170,8 +182,10 @@ public class VariableClassification {
 
     // if a value is not incremented, all dependent vars are not incremented and viceversa
     dependencies.solve(nonIncVars);
+  }
 
-    // we know all non-X-Vars, now build the opposite X-Vars.
+  /** This function builds the opposites of each non-x-vars-collection. */
+  private void buildOpposites() {
     for (String function : allVars.keySet()) {
       Collection<String> vars = allVars.get(function);
 
@@ -201,14 +215,14 @@ public class VariableClassification {
 
     case AssumeEdge: {
       CExpression exp = ((CAssumeEdge) edge).getExpression();
-      BoolCollectingVisitor bcv = new BoolCollectingVisitor(edge.getPredecessor());
-      exp.accept(bcv);
+      CFANode pre = edge.getPredecessor();
 
-      NumberCollectingVisitor ncv = new NumberCollectingVisitor(edge.getPredecessor());
-      exp.accept(ncv);
+      Multimap<String, String> dep = exp.accept(new DependencyCollectingVisitor(pre));
+      dependencies.addAll(dep);
 
-      IncCollectingVisitor icv = new IncCollectingVisitor(edge.getPredecessor());
-      exp.accept(icv);
+      exp.accept(new BoolCollectingVisitor(pre));
+      exp.accept(new NumberCollectingVisitor(pre));
+      exp.accept(new IncCollectingVisitor(pre));
 
       break;
     }
@@ -246,9 +260,6 @@ public class VariableClassification {
       String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
 
       if (rhs instanceof CExpression) {
-
-
-        allVars.put(function, varName);
         handleExpression(edge, ((CExpression) rhs), varName, function);
 
       } else if (rhs instanceof CFunctionCallExpression) {
@@ -261,11 +272,8 @@ public class VariableClassification {
           dependencies.add(functionName, FUNCTION_RETURN_VARIABLE, function, varName);
 
         } else {
-          // external function --> we assume, that var is not boolean
-          // System.out.println("found external function: " + functionName);
-          nonBooleanVars.put(function, varName);
-          nonSimpleNumberVars.put(function, varName);
-          nonIncVars.put(function, varName);
+          // external function --> we can ignore this case completely
+          // if var is used anywhere else, it should be handled.
         }
       }
       break;
@@ -332,16 +340,24 @@ public class VariableClassification {
    * @param function */
   private void handleExpression(CFAEdge edge, CExpression exp, String varName,
       String function) {
+    CFANode pre = edge.getPredecessor();
 
-    BoolCollectingVisitor bcv = new BoolCollectingVisitor(edge.getPredecessor());
+    DependencyCollectingVisitor dcv = new DependencyCollectingVisitor(pre);
+    Multimap<String, String> dep = exp.accept(dcv);
+    if (dep != null) {
+      dep.put(function, varName);
+      dependencies.addAll(dep);
+    }
+
+    BoolCollectingVisitor bcv = new BoolCollectingVisitor(pre);
     Multimap<String, String> possibleBoolean = exp.accept(bcv);
     handleResult(varName, function, possibleBoolean, nonBooleanVars);
 
-    NumberCollectingVisitor ncv = new NumberCollectingVisitor(edge.getPredecessor());
+    NumberCollectingVisitor ncv = new NumberCollectingVisitor(pre);
     Multimap<String, String> possibleNumbers = exp.accept(ncv);
     handleResult(varName, function, possibleNumbers, nonSimpleNumberVars);
 
-    IncCollectingVisitor icv = new IncCollectingVisitor(edge.getPredecessor());
+    IncCollectingVisitor icv = new IncCollectingVisitor(pre);
     Multimap<String, String> possibleIncs = exp.accept(icv);
     handleResult(varName, function, possibleIncs, nonIncVars);
   }
@@ -350,10 +366,6 @@ public class VariableClassification {
       Multimap<String, String> possibleVars, Multimap<String, String> notPossibleVars) {
     if (possibleVars == null) {
       notPossibleVars.put(function, varName);
-    } else {
-      for (Entry<String, String> entry : possibleVars.entries()) {
-        dependencies.add(function, varName, entry.getKey(), entry.getValue());
-      }
     }
   }
 
@@ -381,12 +393,12 @@ public class VariableClassification {
    * a visit of IdExpression or CFieldReference returns a collection containing the varName,
    * a visit of CastExpression return the containing visit,
    * other visits return null. */
-  private class VarCollectingVisitor implements
+  private class DependencyCollectingVisitor implements
       CExpressionVisitor<Multimap<String, String>, NullPointerException> {
 
     private CFANode predecessor;
 
-    public VarCollectingVisitor(CFANode pre) {
+    public DependencyCollectingVisitor(CFANode pre) {
       this.predecessor = pre;
     }
 
@@ -397,9 +409,16 @@ public class VariableClassification {
 
     @Override
     public Multimap<String, String> visit(CBinaryExpression exp) throws NullPointerException {
-      exp.getOperand1().accept(this);
-      exp.getOperand2().accept(this);
-      return null;
+      Multimap<String, String> operand1 = exp.getOperand1().accept(this);
+      Multimap<String, String> operand2 = exp.getOperand2().accept(this);
+      if (operand1 == null) {
+        return operand2;
+      } else if (operand2 == null) {
+        return operand1;
+      } else {
+        operand1.putAll(operand2);
+        return operand1;
+      }
     }
 
     @Override
@@ -411,7 +430,6 @@ public class VariableClassification {
     public Multimap<String, String> visit(CFieldReference exp) {
       String varName = exp.getFieldName();
       String function = isGlobal(exp) ? null : predecessor.getFunctionName();
-      allVars.put(function, varName);
       HashMultimap<String, String> ret = HashMultimap.create(1, 1);
       ret.put(function, varName);
       return ret;
@@ -421,7 +439,6 @@ public class VariableClassification {
     public Multimap<String, String> visit(CIdExpression exp) {
       String varName = exp.getName();
       String function = isGlobal(exp) ? null : predecessor.getFunctionName();
-      allVars.put(function, varName);
       HashMultimap<String, String> ret = HashMultimap.create(1, 1);
       ret.put(function, varName);
       return ret;
@@ -453,8 +470,8 @@ public class VariableClassification {
     }
 
     @Override
-    public Multimap<String, String> visit(CUnaryExpression exp) throws NullPointerException {
-      return null;
+    public Multimap<String, String> visit(CUnaryExpression exp) {
+      return exp.getOperand().accept(this);
     }
   }
 
@@ -464,7 +481,7 @@ public class VariableClassification {
    * - null, if the expression is not boolean
    * - a collection, if the expression is boolean.
    * The collection contains all boolean vars. */
-  private class BoolCollectingVisitor extends VarCollectingVisitor {
+  private class BoolCollectingVisitor extends DependencyCollectingVisitor {
 
     public BoolCollectingVisitor(CFANode pre) {
       super(pre);
@@ -504,7 +521,8 @@ public class VariableClassification {
     @Override
     public Multimap<String, String> visit(CIntegerLiteralExpression exp) {
       BigInteger value = exp.getValue();
-      if (BigInteger.ZERO.equals(value) || BigInteger.ONE.equals(value)) {
+      if (BigInteger.ZERO.equals(value)
+          || (allowOneAsBooleanValue && BigInteger.ONE.equals(value))) {
         return HashMultimap.create(0, 0);
       } else {
         return null;
@@ -532,7 +550,7 @@ public class VariableClassification {
    * Each visit-function returns
    * - null, if the expression contains calculations
    * - a collection, if the expression is a number, unaryExp, == or != */
-  private class NumberCollectingVisitor extends VarCollectingVisitor {
+  private class NumberCollectingVisitor extends DependencyCollectingVisitor {
 
     public NumberCollectingVisitor(CFANode pre) {
       super(pre);
@@ -594,7 +612,7 @@ public class VariableClassification {
    * Each visit-function returns
    * - null, if the expression contains calculations
    * - a collection, if the expression is a var or 1 */
-  private class IncCollectingVisitor extends VarCollectingVisitor {
+  private class IncCollectingVisitor extends DependencyCollectingVisitor {
 
     public IncCollectingVisitor(CFANode pre) {
       super(pre);
@@ -695,6 +713,22 @@ public class VariableClassification {
         partition.add(second);
         varToPartition.put(first, partition);
         varToPartition.put(second, partition);
+      }
+    }
+
+    /** This function adds a group of vars to exactly one partition. */
+    public void addAll(Multimap<String, String> vars) {
+      if (vars == null || vars.isEmpty()) { return; }
+      Iterator<Entry<String, String>> iter = vars.entries().iterator();
+
+      // we use same function and varName for all other vars --> dependency
+      Entry<String, String> entry = iter.next();
+      String function = entry.getKey();
+      String varName = entry.getValue();
+
+      while (iter.hasNext()) {
+        entry = iter.next();
+        add(function, varName, entry.getKey(), entry.getValue());
       }
     }
 
