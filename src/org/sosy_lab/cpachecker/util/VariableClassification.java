@@ -287,9 +287,11 @@ public class VariableClassification {
       List<CExpression> args = functionCall.getArguments();
       List<CParameterDeclaration> params = functionCall.getSuccessor().getFunctionParameters();
       String innerFunctionName = functionCall.getSuccessor().getFunctionName();
-      assert args.size() == params.size();
 
-      for (int i = 0; i < args.size(); i++) {
+      // functions can have more args than params used in the call
+      assert args.size() >= params.size();
+
+      for (int i = 0; i < params.size(); i++) {
 
         // build name for param and evaluate it
         // this variable is not global (->false)
