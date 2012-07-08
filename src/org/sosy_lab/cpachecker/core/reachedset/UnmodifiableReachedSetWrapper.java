@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -50,11 +49,6 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   @Override
   public Iterator<AbstractState> iterator() {
     return Iterators.unmodifiableIterator(delegate.iterator());
-  }
-
-  @Override
-  public Collection<Pair<AbstractState, Precision>> getReachedWithPrecision() {
-    return Collections.unmodifiableCollection(delegate.getReachedWithPrecision());
   }
 
   @Override

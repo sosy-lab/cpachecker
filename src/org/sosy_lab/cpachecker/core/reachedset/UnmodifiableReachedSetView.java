@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.reachedset;
 import java.util.Collection;
 import java.util.Iterator;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -45,7 +44,6 @@ public class UnmodifiableReachedSetView
   private final UnmodifiableReachedSet underlying;
   private final Function<? super AbstractState, AbstractState> mapStateFunction;
   private final Function<? super Precision, Precision> mapPrecisionFunction;
-  private final Function<Pair<AbstractState, Precision>, Pair<AbstractState, Precision>> mapStateAndPrecisionFunction;
 
   public UnmodifiableReachedSetView(
       UnmodifiableReachedSet pUnderlyingSet,
@@ -58,15 +56,6 @@ public class UnmodifiableReachedSetView
     underlying = pUnderlyingSet;
     mapStateFunction = pMapStateFunction;
     mapPrecisionFunction = pMapPrecisionFunction;
-    mapStateAndPrecisionFunction =
-      new Function<Pair<AbstractState,Precision>, Pair<AbstractState,Precision>>() {
-        @Override
-        public Pair<AbstractState, Precision> apply(Pair<AbstractState, Precision> from) {
-          return Pair.of(
-              mapStateFunction.apply(from.getFirst()),
-              mapPrecisionFunction.apply(from.getSecond()));
-        }
-      };
   }
 
   @Override
@@ -97,11 +86,6 @@ public class UnmodifiableReachedSetView
   @Override
   public Collection<AbstractState> getReached(CFANode pLocation) {
     return Collections2.transform(underlying.getReached(pLocation), mapStateFunction);
-  }
-
-  @Override
-  public Collection<Pair<AbstractState, Precision>> getReachedWithPrecision() {
-    return Collections2.transform(underlying.getReachedWithPrecision(), mapStateAndPrecisionFunction);
   }
 
   @Override

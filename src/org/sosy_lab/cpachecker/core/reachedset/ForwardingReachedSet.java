@@ -64,11 +64,6 @@ public class ForwardingReachedSet implements ReachedSet {
   }
 
   @Override
-  public Collection<Pair<AbstractState, Precision>> getReachedWithPrecision() {
-    return delegate.getReachedWithPrecision();
-  }
-
-  @Override
   public Collection<Precision> getPrecisions() {
     return delegate.getPrecisions();
   }
