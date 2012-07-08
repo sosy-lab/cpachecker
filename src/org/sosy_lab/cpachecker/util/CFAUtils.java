@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
+import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
@@ -171,6 +172,52 @@ public class CFAUtils {
     };
   }
 
+  private static final Function<CFAEdge,  CFANode> TO_PREDECESSOR = new Function<CFAEdge,  CFANode>() {
+      @Override
+      public CFANode apply(CFAEdge pInput) {
+        return pInput.getPredecessor();
+      }
+    };
+
+
+  private static final Function<CFAEdge,  CFANode> TO_SUCCESSOR = new Function<CFAEdge,  CFANode>() {
+    @Override
+    public CFANode apply(CFAEdge pInput) {
+      return pInput.getSuccessor();
+    }
+  };
+
+  /**
+   * Return an {@link Iterable} that contains the predecessor nodes of a given CFANode,
+   * excluding the one reachable via the summary edge (if there is one).
+   */
+  public static FluentIterable<CFANode> predecessorsOf(final CFANode node) {
+    return enteringEdges(node).transform(TO_PREDECESSOR);
+  }
+
+  /**
+   * Return an {@link Iterable} that contains all the predecessor nodes of a given CFANode,
+   * including the one reachable via the summary edge (if there is one).
+   */
+  public static FluentIterable<CFANode> allPredecessorsOf(final CFANode node) {
+    return allEnteringEdges(node).transform(TO_PREDECESSOR);
+  }
+
+  /**
+   * Return an {@link Iterable} that contains the successor nodes of a given CFANode,
+   * excluding the one reachable via the summary edge (if there is one).
+   */
+  public static FluentIterable<CFANode> successorsOf(final CFANode node) {
+    return leavingEdges(node).transform(TO_SUCCESSOR);
+  }
+
+  /**
+   * Return an {@link Iterable} that contains all the successor nodes of a given CFANode,
+   * including the one reachable via the summary edge (if there is one).
+   */
+  public static FluentIterable<CFANode> allSuccessorsOf(final CFANode node) {
+    return allLeavingEdges(node).transform(TO_SUCCESSOR);
+  }
 
   // wrapper class for Set<CFANode> because Java arrays don't like generics
   private static class Edge {

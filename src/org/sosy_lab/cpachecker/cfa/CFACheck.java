@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -58,9 +59,7 @@ public class CFACheck {
       CFANode node = waitingNodeList.poll();
 
       if (visitedNodes.add(node)) {
-        for (CFAEdge edge : leavingEdges(node)) {
-          waitingNodeList.add(edge.getSuccessor());
-        }
+        Iterables.addAll(waitingNodeList, CFAUtils.successorsOf(node));
 
         // The actual checks
         isConsistent(node);

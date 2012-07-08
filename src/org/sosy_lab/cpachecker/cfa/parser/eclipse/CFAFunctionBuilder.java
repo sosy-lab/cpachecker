@@ -103,7 +103,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 
 /**
@@ -1309,9 +1308,9 @@ class CFAFunctionBuilder extends ASTVisitor {
         return true;
       }
 
-      for (CFAEdge child : CFAUtils.leavingEdges(currentForwards)) {
-        if (visitedForwards.add(child.getSuccessor())) {
-          toProcessForwards.addLast(child.getSuccessor());
+      for (CFANode successor : CFAUtils.successorsOf(currentForwards)) {
+        if (visitedForwards.add(successor)) {
+          toProcessForwards.addLast(successor);
         }
       }
 
@@ -1324,9 +1323,9 @@ class CFAFunctionBuilder extends ASTVisitor {
         return true;
       }
 
-      for (CFAEdge child : CFAUtils.enteringEdges(currentBackwards)) {
-        if (visitedBackwards.add(child.getPredecessor())) {
-          toProcessBackwards.addLast(child.getPredecessor());
+      for (CFANode predecessor : CFAUtils.predecessorsOf(currentBackwards)) {
+        if (visitedBackwards.add(predecessor)) {
+          toProcessBackwards.addLast(predecessor);
         }
       }
     }
@@ -1506,7 +1505,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       if (isReachableNode(prevNode)) {
 
-        for (CFAEdge prevEdge : ImmutableList.copyOf(CFAUtils.allEnteringEdges(prevNode))) {
+        for (CFAEdge prevEdge : CFAUtils.allEnteringEdges(prevNode).toImmutableList()) {
           if ((prevEdge instanceof BlankEdge)
               && prevEdge.getDescription().equals("")) {
 
