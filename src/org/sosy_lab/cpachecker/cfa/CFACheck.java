@@ -141,7 +141,7 @@ public class CFACheck {
         assert false : "Duplicate successor " + successor + " for node " + DEBUG_FORMAT.apply(pNode);
       }
 
-      boolean hasEdge = Iterables.contains(enteringEdges(successor), edge);
+      boolean hasEdge = enteringEdges(successor).contains(edge);
       assert hasEdge : "Node " + DEBUG_FORMAT.apply(pNode) + " has leaving edge " + edge
           + ", but pNode " + DEBUG_FORMAT.apply(pNode) + " does not have this edge as entering edge!";
     }
@@ -159,7 +159,7 @@ public class CFACheck {
         assert false : "Duplicate predecessor " + predecessor + " for node " + DEBUG_FORMAT.apply(pNode);
       }
 
-      boolean hasEdge = Iterables.contains(leavingEdges(predecessor), edge);
+      boolean hasEdge = leavingEdges(predecessor).contains(edge);
       assert hasEdge : "Node " + DEBUG_FORMAT.apply(pNode) + " has entering edge " + edge
           + ", but pNode " + DEBUG_FORMAT.apply(pNode) + " does not have this edge as leaving edge!";
     }

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.util.Collection;
@@ -48,7 +49,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 
 
 /**
@@ -140,7 +140,10 @@ public class CFAReduction {
 
       lAlgorithm.run(lReached);
 
-      return ImmutableSet.copyOf(extractLocations(filterTargetStates(lReached)));
+      return from(lReached)
+               .filter(IS_TARGET_STATE)
+               .transform(EXTRACT_LOCATION)
+               .toImmutableSet();
 
     } catch (CPAException e) {
       logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");

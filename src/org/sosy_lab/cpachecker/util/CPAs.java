@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
 import com.google.common.base.Function;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterators;
 
 /**
@@ -60,7 +61,7 @@ public class CPAs {
    * a single CPA, including the root CPA itself.
    * The tree of elements is traversed in pre-order.
    */
-  public static Iterable<ConfigurableProgramAnalysis> asIterable(final ConfigurableProgramAnalysis pCpa) {
+  public static FluentIterable<ConfigurableProgramAnalysis> asIterable(final ConfigurableProgramAnalysis pCpa) {
 
     return new TreeIterable<ConfigurableProgramAnalysis>(pCpa, CPA_CHILDREN_FUNCTION);
   }

@@ -471,10 +471,8 @@ public class ABMTransferRelation implements TransferRelation {
         return Collections.singletonList(Pair.of(reducedInitialState, reducedInitialPrecision)); //dummy element
       }
       else {
-        returnElements = new ArrayList<AbstractState>();
-        for (CFANode returnNode : currentBlock.getReturnNodes()) {
-          Iterables.addAll(returnElements, AbstractStates.filterLocation(reached, returnNode));
-        }
+        returnElements = AbstractStates.filterLocations(reached, currentBlock.getReturnNodes())
+                                       .toImmutableList();
       }
 
       argCache.put(reducedInitialState, reached.getPrecision(reached.getFirstState()), currentBlock, returnElements);

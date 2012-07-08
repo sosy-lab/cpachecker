@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
@@ -50,9 +51,9 @@ public class CFAUtils {
    * Return an {@link Iterable} that contains all entering edges of a given CFANode,
    * including the summary edge if the node as one.
    */
-  public static Iterable<CFAEdge> allEnteringEdges(final CFANode node) {
+  public static FluentIterable<CFAEdge> allEnteringEdges(final CFANode node) {
     checkNotNull(node);
-    return new Iterable<CFAEdge>() {
+    return new FluentIterable<CFAEdge>() {
 
       @Override
       public Iterator<CFAEdge> iterator() {
@@ -83,9 +84,9 @@ public class CFAUtils {
    * Return an {@link Iterable} that contains the entering edges of a given CFANode,
    * excluding the summary edge.
    */
-  public static Iterable<CFAEdge> enteringEdges(final CFANode node) {
+  public static FluentIterable<CFAEdge> enteringEdges(final CFANode node) {
     checkNotNull(node);
-    return new Iterable<CFAEdge>() {
+    return new FluentIterable<CFAEdge>() {
 
       @Override
       public Iterator<CFAEdge> iterator() {
@@ -112,9 +113,9 @@ public class CFAUtils {
    * Return an {@link Iterable} that contains all leaving edges of a given CFANode,
    * including the summary edge if the node as one.
    */
-  public static Iterable<CFAEdge> allLeavingEdges(final CFANode node) {
+  public static FluentIterable<CFAEdge> allLeavingEdges(final CFANode node) {
     checkNotNull(node);
-    return new Iterable<CFAEdge>() {
+    return new FluentIterable<CFAEdge>() {
 
       @Override
       public Iterator<CFAEdge> iterator() {
@@ -145,9 +146,9 @@ public class CFAUtils {
    * Return an {@link Iterable} that contains the leaving edges of a given CFANode,
    * excluding the summary edge.
    */
-  public static Iterable<CFAEdge> leavingEdges(final CFANode node) {
+  public static FluentIterable<CFAEdge> leavingEdges(final CFANode node) {
     checkNotNull(node);
-    return new Iterable<CFAEdge>() {
+    return new FluentIterable<CFAEdge>() {
 
       @Override
       public Iterator<CFAEdge> iterator() {

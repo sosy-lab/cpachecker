@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -273,8 +273,7 @@ public class ARGUtils {
       builder.append(loc.toString());
     }
 
-    Iterable<AutomatonState> states = AbstractStates.extractAllStatesOfType(currentElement, AutomatonState.class);
-    for (AutomatonState state : states) {
+    for (AutomatonState state : asIterable(currentElement).filter(AutomatonState.class)) {
       if (!state.getInternalStateName().equals("Init")) {
         builder.append("\\n");
         builder.append(state.getCPAName().replaceFirst("AutomatonAnalysis_", ""));

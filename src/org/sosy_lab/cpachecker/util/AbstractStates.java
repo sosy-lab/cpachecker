@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.collect.Iterables.*;
+import static com.google.common.base.Predicates.*;
+import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Iterator;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
@@ -41,6 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
@@ -50,6 +53,10 @@ import com.google.common.collect.Iterators;
 public final class AbstractStates {
 
   private AbstractStates() { }
+
+  private static <T1, T2> FluentIterable<T2> transformAndConcat(Iterable<T1> input, Function<T1, ? extends Iterable<T2>> transform) {
+    return from(Iterables.concat(Iterables.transform(input, transform)));
+  }
 
   /**
    * Retrieve one of the wrapped abstract states by type. If the hierarchy of
@@ -89,22 +96,9 @@ public final class AbstractStates {
    * of an Iterable.
    * The returned Iterable does not contain nulls.
    */
-  public static <T extends AbstractState> Iterable<T> projectToType(Iterable<AbstractState> states, Class<T> pType) {
-    return Iterables.filter(
-              Iterables.transform(states, extractStateByTypeFunction(pType)),
-              Predicates.notNull());
-  }
-
-  /**
-   * Retrieve all wrapped states of a certain type, if there are any of them.
-   *
-   * The type does not need to match exactly, the returned states have just to
-   * be of sub-types of the type passed as argument.
-   *
-   * The returned Iterable contains the states in pre-order.
-   */
-  public static <T extends AbstractState> Iterable<T> extractAllStatesOfType(AbstractState pState, Class<T> pType) {
-    return Iterables.filter(asIterable(pState), pType);
+  public static <T extends AbstractState> FluentIterable<T> projectToType(Iterable<AbstractState> states, Class<T> pType) {
+    return from(states).transform(toState(pType))
+                        .filter(notNull());
   }
 
   public static CFANode extractLocation(AbstractState pState) {
@@ -119,15 +113,6 @@ public final class AbstractStates {
     }
   };
 
-  public static Iterable<CFANode> extractLocations(Iterable<? extends AbstractState> pStates) {
-    if (pStates instanceof LocationMappedReachedSet) {
-      return ((LocationMappedReachedSet)pStates).getLocations();
-    }
-
-    return filter(transform(pStates, EXTRACT_LOCATION),
-                  Predicates.notNull());
-  }
-
   public static Iterable<AbstractState> filterLocation(Iterable<AbstractState> pStates, CFANode pLoc) {
     if (pStates instanceof LocationMappedReachedSet) {
       // only do this for LocationMappedReachedSet, not for all ReachedSet,
@@ -135,12 +120,29 @@ public final class AbstractStates {
       return ((LocationMappedReachedSet)pStates).getReached(pLoc);
     }
 
-    return filter(pStates, Predicates.compose(Predicates.equalTo(pLoc),
-                                                EXTRACT_LOCATION));
+    Predicate<AbstractState> statesWithRightLocation = Predicates.compose(equalTo(pLoc), EXTRACT_LOCATION);
+    return FluentIterable.from(pStates).filter(statesWithRightLocation);
   }
 
-  public static boolean isTargetState(AbstractState e) {
-    return (e instanceof Targetable) && ((Targetable)e).isTarget();
+  public static FluentIterable<AbstractState> filterLocations(Iterable<AbstractState> pStates, Set<CFANode> pLocs) {
+    if (pStates instanceof LocationMappedReachedSet) {
+      // only do this for LocationMappedReachedSet, not for all ReachedSet,
+      // because this method is imprecise for the rest
+      final LocationMappedReachedSet states = (LocationMappedReachedSet)pStates;
+      return transformAndConcat(pLocs, new Function<CFANode, Iterable<AbstractState>>() {
+        @Override
+        public Iterable<AbstractState> apply(CFANode location) {
+          return states.getReached(location);
+        }
+      });
+    }
+
+    Predicate<AbstractState> statesWithRightLocation = Predicates.compose(in(pLocs), EXTRACT_LOCATION);
+    return from(pStates).filter(statesWithRightLocation);
+  }
+
+  public static boolean isTargetState(AbstractState as) {
+    return (as instanceof Targetable) && ((Targetable)as).isTarget();
   }
 
   public static final Predicate<AbstractState> IS_TARGET_STATE = new Predicate<AbstractState>() {
@@ -150,20 +152,16 @@ public final class AbstractStates {
     }
   };
 
-  public static <T extends AbstractState> Iterable<T> filterTargetStates(Iterable<T> pStats) {
-    return filter(pStats, IS_TARGET_STATE);
-  }
-
   /**
    * Function object for {@link #extractStateByType(AbstractState, Class)}.
    */
   public static <T extends AbstractState>
-                Function<AbstractState, T> extractStateByTypeFunction(final Class<T> pType) {
+                Function<AbstractState, T> toState(final Class<T> pType) {
 
     return new Function<AbstractState, T>() {
       @Override
-      public T apply(AbstractState ae) {
-        return extractStateByType(ae, pType);
+      public T apply(AbstractState as) {
+        return extractStateByType(as, pType);
       }
     };
   }
@@ -173,9 +171,9 @@ public final class AbstractStates {
    * a single state, including the root state itself.
    * The tree of states is traversed in pre-order.
    */
-  public static Iterable<AbstractState> asIterable(final AbstractState ae) {
+  public static FluentIterable<AbstractState> asIterable(final AbstractState as) {
 
-    return new TreeIterable<AbstractState>(ae, ABSTRACT_STATE_CHILDREN_FUNCTION);
+    return new TreeIterable<AbstractState>(as, ABSTRACT_STATE_CHILDREN_FUNCTION);
   }
 
   private static final Function<AbstractState, Iterator<? extends AbstractState>> ABSTRACT_STATE_CHILDREN_FUNCTION
@@ -202,8 +200,8 @@ public final class AbstractStates {
       }
     };
 
-  public static Iterable<AbstractState> asIterable(final Iterable<AbstractState> pStates) {
-    return Iterables.concat(transform(pStates, AS_ITERABLE));
+  public static FluentIterable<AbstractState> asIterable(final Iterable<AbstractState> pStates) {
+    return transformAndConcat(pStates, AS_ITERABLE);
   }
 
   /**
@@ -215,9 +213,9 @@ public final class AbstractStates {
     Formula result = manager.makeTrue();
 
     // traverse through all the sub-states contained in this state
-    for (FormulaReportingState e :  extractAllStatesOfType(state, FormulaReportingState.class)) {
+    for (FormulaReportingState s : asIterable(state).filter(FormulaReportingState.class)) {
 
-      result = manager.makeAnd(result, e.getFormulaApproximation(manager));
+      result = manager.makeAnd(result, s.getFormulaApproximation(manager));
     }
 
     return result;

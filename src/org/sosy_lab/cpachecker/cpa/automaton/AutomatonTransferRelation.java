@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static com.google.common.base.Predicates.instanceOf;
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -46,7 +49,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 
 /** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState}
  * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
@@ -230,7 +232,7 @@ class AutomatonTransferRelation implements TransferRelation {
       AutomatonUnknownState lUnknownState = (AutomatonUnknownState)pElement;
       Collection<? extends AbstractState> lSuccessors = getFollowStates(lUnknownState.getPreviousState(), pOtherElements, pCfaEdge, true);
       totalStrengthenTime.stop();
-      assert Iterables.isEmpty(Iterables.filter(lSuccessors, AutomatonUnknownState.class));
+      assert !from(lSuccessors).anyMatch(instanceOf(AutomatonUnknownState.class));
       return lSuccessors;
     }
   }

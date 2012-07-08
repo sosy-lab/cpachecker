@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.filterTargetStates;
+import static com.google.common.base.Predicates.notNull;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -62,13 +64,11 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multiset;
 
 @Options
@@ -319,6 +319,7 @@ class MainCPAStatistics implements Statistics {
         printMemoryStatistics(out);
     }
 
+
     private void printReachedSetStatistics(ReachedSet reached, PrintStream out) {
       if (reached instanceof ForwardingReachedSet) {
         reached = ((ForwardingReachedSet)reached).getDelegate();
@@ -338,7 +339,10 @@ class MainCPAStatistics implements Statistics {
         }
 
       } else {
-        HashMultiset<CFANode> allLocations = HashMultiset.create(AbstractStates.extractLocations(reached));
+        HashMultiset<CFANode> allLocations = HashMultiset.create(from(reached)
+                                                                      .transform(EXTRACT_LOCATION)
+                                                                      .filter(notNull()));
+
         int locs = allLocations.entrySet().size();
         if (locs > 0) {
           out.println("  Number of locations:        " + locs);
@@ -370,7 +374,7 @@ class MainCPAStatistics implements Statistics {
           out.println();
         }
       }
-      out.println("  Number of target states:    " + Iterables.size(filterTargetStates(reached)));
+      out.println("  Number of target states:    " + from(reached).filter(IS_TARGET_STATE).size());
     }
 
     private void printTimeStatistics(PrintStream out) {

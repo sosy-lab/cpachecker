@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core;
 
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
+
 import java.io.IOException;
 import java.net.URL;
 import java.util.Set;
@@ -47,12 +50,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
-import com.google.common.collect.Iterables;
 import com.google.common.io.Resources;
 
 @Options(prefix="analysis")
@@ -279,7 +280,7 @@ public class CPAchecker {
   }
 
   private Result analyzeResult(final ReachedSet reached, boolean sound) {
-    if (Iterables.any(reached, AbstractStates.IS_TARGET_STATE)) {
+    if (from(reached).anyMatch(IS_TARGET_STATE)) {
       return Result.UNSAFE;
     }
 

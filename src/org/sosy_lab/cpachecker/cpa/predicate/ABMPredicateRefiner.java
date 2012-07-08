@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.getOnlyElement;
-import static com.google.common.collect.Lists.transform;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableReleva
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -70,7 +69,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
 
 
@@ -194,12 +192,11 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
       };
 
     private List<Region> getRegionsForPath(List<Pair<ARGState, CFANode>> path) throws CPATransferException {
-      return transform(path,
-          Functions.compose(
-              GET_REGION,
-          Functions.compose(
-              AbstractStates.extractStateByTypeFunction(PredicateAbstractState.class),
-              Pair.<ARGState>getProjectionToFirst())));
+      return from(path)
+              .transform(Pair.<ARGState>getProjectionToFirst())
+              .transform(toState(PredicateAbstractState.class))
+              .transform(GET_REGION)
+              .toImmutableList();
     }
 
     @Override
