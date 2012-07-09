@@ -71,6 +71,11 @@ public class NamedRegionManager implements RegionManager {
     return result;
   }
 
+  /** returns the number of named regions, this excludes anonymous regions */
+  public int getNumberOfNamedRegions() {
+    return regionMap.size() - anonymousPredicateCounter;
+  }
+
   @Override
   public Region createPredicate() {
     return createPredicate(ANONYMOUS_PREDICATE + anonymousPredicateCounter++);
@@ -80,14 +85,22 @@ public class NamedRegionManager implements RegionManager {
    * Returns a String representation of a region.
    */
   public String dumpRegion(Region r) {
+    Map<Region, String> cache = new HashMap<Region, String>(); // map for same regions
+    return dumpRegion(r, cache);
+  }
+
+  private String dumpRegion(Region r, Map<Region, String> cache) {
+    if (cache.containsKey(r)) { return cache.get(r); } // use same region again
+
+    String result;
     if (regionMap.containsValue(r)) {
-      return regionMap.inverse().get(r);
+      result = regionMap.inverse().get(r);
 
     } else if (r.isFalse()) {
-      return "FALSE";
+      result = "FALSE";
 
     } else if (r.isTrue()) {
-      return "TRUE";
+      result = "TRUE";
 
     } else {
       Triple<Region, Region, Region> triple = delegate.getIfThenElse(r);
@@ -100,7 +113,7 @@ public class NamedRegionManager implements RegionManager {
       } else if (trueBranch.isTrue()) {
         ifTrue = predName;
       } else {
-        ifTrue = predName + " & " + dumpRegion(trueBranch);
+        ifTrue = predName + " & " + dumpRegion(trueBranch, cache);
       }
 
       Region falseBranch = triple.getThird();
@@ -110,20 +123,22 @@ public class NamedRegionManager implements RegionManager {
       } else if (falseBranch.isTrue()) {
         ifFalse = "!" + predName;
       } else {
-        ifFalse = "!" + predName + " & " + dumpRegion(falseBranch);
+        ifFalse = "!" + predName + " & " + dumpRegion(falseBranch, cache);
       }
 
       if (!ifTrue.isEmpty() && !ifFalse.isEmpty()) {
-        return "((" + ifTrue + ") | (" + ifFalse + "))";
+        result = "((" + ifTrue + ") | (" + ifFalse + "))";
       } else if (ifTrue.isEmpty()) {
-        return ifFalse;
+        result = ifFalse;
       } else if (ifFalse.isEmpty()) {
-        return ifTrue;
+        result = ifTrue;
 
       } else {
         throw new AssertionError("Both BDD Branches are empty!?");
       }
     }
+    cache.put(r, result);
+    return result;
   }
 
   /** Returns a representation of a region in dot-format (graphviz). */
