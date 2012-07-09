@@ -23,11 +23,10 @@ if [ ! -f "$GMP_LIB_DIR/libgmp.a" ]; then
 	exit 1
 fi
 
-echo $GMP_HEADER_DIR
-echo "Compiling the C wrapper code and creating the \"mathsatj\" library"
+echo "Compiling the C wrapper code and creating the \"mathsat5j\" library"
 
 # This will compile the JNI wrapper part, given the JNI and the Mathsat header files
-gcc -g $JNI_HEADERS -I$MSAT_SRC_DIR org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi.c -fPIC -c
+gcc -g $JNI_HEADERS -I$MSAT_SRC_DIR -I$GMP_HEADER_DIR org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi.c -fPIC -c
 
 # This will link together the file produced above, the Mathsat library, the GMP library and the standard libraries.
 # Everything except the standard libraries is included statically.
