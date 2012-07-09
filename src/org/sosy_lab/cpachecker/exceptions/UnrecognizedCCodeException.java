@@ -35,6 +35,8 @@ import com.google.common.base.CharMatcher;
  */
 public class UnrecognizedCCodeException extends CPATransferException {
 
+  private static final CharMatcher SEMICOLON = CharMatcher.is(';');
+
   private static final String MESSAGE = "Unrecognized C code";
 
   private static final long serialVersionUID = -8319167530363457020L;
@@ -77,8 +79,12 @@ public class UnrecognizedCCodeException extends CPATransferException {
     sb.append(": ");
     sb.append(code);
 
-    String codeWithoutWhitespace = CharMatcher.WHITESPACE.removeFrom(code);
+    // remove all whitespaces and trailing semicolons for comparison
+    String codeWithoutWhitespace    = CharMatcher.WHITESPACE.removeFrom(code);
     String rawCodeWithoutWhitespace = CharMatcher.WHITESPACE.removeFrom(rawCode);
+
+    codeWithoutWhitespace    = SEMICOLON.trimFrom(codeWithoutWhitespace);
+    rawCodeWithoutWhitespace = SEMICOLON.trimFrom(rawCodeWithoutWhitespace);
 
     if (!codeWithoutWhitespace.equals(rawCodeWithoutWhitespace)) {
       sb.append(" (line was originally ");

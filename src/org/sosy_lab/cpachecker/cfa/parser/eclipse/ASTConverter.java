@@ -317,7 +317,7 @@ class ASTConverter {
       return convert((IASTConditionalExpression)e);
 
     } else {
-      throw new CFAGenerationRuntimeException("", e);
+      throw new CFAGenerationRuntimeException("Unknown expression type " + e.getClass().getSimpleName(), e);
     }
   }
 

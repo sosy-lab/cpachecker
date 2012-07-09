@@ -39,6 +39,8 @@ public class CFAGenerationRuntimeException extends RuntimeException {
 
   private static final long serialVersionUID = 6850681425709171716L;
 
+  private static final CharMatcher SEMICOLON = CharMatcher.is(';');
+
   public CFAGenerationRuntimeException(String msg) {
     super(msg);
   }
@@ -85,8 +87,13 @@ public class CFAGenerationRuntimeException extends RuntimeException {
 
     if (fullLine != null && fullLine != node) {
       String lineRawSignature = fullLine.getRawSignature();
+
       String codeWithoutWhitespace = CharMatcher.WHITESPACE.removeFrom(rawSignature);
       String lineWithoutWhitespace = CharMatcher.WHITESPACE.removeFrom(lineRawSignature);
+
+      // remove all whitespaces and trailing semicolons for comparison
+      codeWithoutWhitespace = SEMICOLON.trimFrom(codeWithoutWhitespace);
+      lineWithoutWhitespace = SEMICOLON.trimFrom(lineWithoutWhitespace);
 
       if (!codeWithoutWhitespace.equals(lineWithoutWhitespace)) {
         sb.append(" (full line is ");
