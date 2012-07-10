@@ -1394,8 +1394,16 @@ def run_cbmc(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
                 def isErrorMessage(msg):
                     return msg.get('type', None) == 'ERROR'
 
-                if any(map(isErrorMessage, tree.getiterator('message'))):
-                    status = 'ERROR'
+                messages = list(filter(isErrorMessage, tree.getiterator('message')))
+                if messages:
+                    # for now, use only the first error message if there are several
+                    msg = messages[0].findtext('text')
+                    if msg == 'Out of memory':
+                        status = 'OUT OF MEMORY'
+                    elif msg:
+                        status = 'ERROR (%s)'.format(msg)
+                    else:
+                        status = 'ERROR'
                 else:
                     status = 'INVALID OUTPUT'
                     
