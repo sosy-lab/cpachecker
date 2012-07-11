@@ -81,17 +81,17 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 @Options(prefix = "cpa.bdd")
 public class BDDTransferRelation implements TransferRelation {
 
-  protected static final String FUNCTION_RETURN_VARIABLE = "__CPAchecker_return_var";
-  protected static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
+  public static final String FUNCTION_RETURN_VARIABLE = "__CPAchecker_return_var";
+  public static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
 
-  protected final NamedRegionManager rmgr;
+  private final NamedRegionManager rmgr;
 
   @Option(description = "initialize all variables to 0 when they are declared")
   private boolean initAllVars = false;
 
   /** for statistics */
-  protected int createdPredicates;
-  protected int deletedPredicates;
+  private int createdPredicates;
+  private int deletedPredicates;
 
   /** The Constructor of BDDTransferRelation sets the NamedRegionManager,
    * that is used to build and manipulate BDDs, that represent the regions.
@@ -422,7 +422,7 @@ public class BDDTransferRelation implements TransferRelation {
   }
 
   /** This function returns a region without a variable. */
-  protected Region removePredicate(Region region, Region... existing) {
+  private Region removePredicate(Region region, Region... existing) {
     for (Region r : existing) {
       deletedPredicates++;
       region = rmgr.makeExists(region, r);
@@ -476,11 +476,9 @@ public class BDDTransferRelation implements TransferRelation {
       implements CExpressionVisitor<Region, UnrecognizedCCodeException> {
 
     private String functionName;
-    private BDDState state;
     private BDDPrecision precision;
 
     BDDCExpressionVisitor(BDDState state, BDDPrecision prec) {
-      this.state = state;
       this.functionName = state.getFunctionName();
       this.precision = prec;
     }
@@ -620,5 +618,11 @@ public class BDDTransferRelation implements TransferRelation {
       }
       return returnValue;
     }
+  }
+
+  @Override
+  public String toString() {
+    return "Number of created predicates: " + createdPredicates +
+        "\nNumber of deleted predicates: " + deletedPredicates + "\n";
   }
 }

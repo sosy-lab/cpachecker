@@ -71,7 +71,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   private final BDDPrecision precision;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
-  private final BDDTransferRelation transferRelation;
+  private final TransferRelation transferRelation;
 
   private BDDCPA(CFA cfa, Configuration config, LogManager logger) throws InvalidConfigurationException,
       UnrecognizedCCodeException {
@@ -85,7 +85,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
     if (!useBitvector) {
       transferRelation = new BDDTransferRelation(manager, config);
     } else {
-      transferRelation = new BDDVectorTransferRelation(manager, config);
+      transferRelation = new BDDVectorTransferRelation(manager, config, cfa, precision);
     }
   }
 
@@ -131,8 +131,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
       @Override
       public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-        out.append("Number of created predicates: " + transferRelation.createdPredicates + "\n");
-        out.append("Number of deleted predicates: " + transferRelation.deletedPredicates + "\n");
+        out.append(transferRelation.toString());
       }
 
       @Override

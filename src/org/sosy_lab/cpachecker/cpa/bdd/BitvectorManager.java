@@ -47,6 +47,10 @@ public class BitvectorManager {
     this.rmgr = rmgr;
   }
 
+  public int getBitSize(){
+    return bitsize;
+  }
+
   // checks whether one of the regions is true
   public boolean isTrue(Region[] regions) {
     for (Region r : regions) {

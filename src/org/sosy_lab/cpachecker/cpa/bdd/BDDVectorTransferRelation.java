@@ -23,16 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import static org.sosy_lab.cpachecker.cpa.bdd.BDDTransferRelation.*;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -68,25 +72,90 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+
+import com.google.common.collect.Multimap;
 
 /** This Transfer Relation tracks variables and handles them as boolean,
  * so only the cases ==0 and !=0 are tracked. */
 @Options(prefix = "cpa.bdd")
-public class BDDVectorTransferRelation extends BDDTransferRelation {
-
-  private final BitvectorManager bvmgr;
+public class BDDVectorTransferRelation implements TransferRelation {
 
   @Option(description = "initialize all variables to 0 when they are declared")
   private boolean initAllVars = false;
 
-  public BDDVectorTransferRelation(NamedRegionManager manager, Configuration config)
+  @Option(description = "declare first bit of all vars, then second bit,...")
+  private boolean initBitwise = true;
+
+  @Option(description = "declare vars ordered in partitions")
+  private boolean initPartition = true;
+
+  private final BitvectorManager bvmgr;
+  private final NamedRegionManager rmgr;
+
+  /** for statistics */
+  private int createdPredicates;
+  private int deletedPredicates;
+
+  public BDDVectorTransferRelation(NamedRegionManager manager, Configuration config, CFA cfa, BDDPrecision precision)
       throws InvalidConfigurationException {
-    super(manager, config);
+    config.inject(this);
+
     this.bvmgr = new BitvectorManager(manager, config);
+    this.rmgr = manager;
+
+    initVars(cfa, precision);
+  }
+
+  /** The BDDRegionManager orders the variables as they are declared
+   *  (later vars are deeper in the BDD).
+   *  This function declares those vars in the beginning of the analysis,
+   *  so that we can choose between some orders. */
+  private void initVars(CFA cfa, BDDPrecision precision) {
+    assert cfa.getVarClassification().isPresent();
+    VariableClassification varClass = cfa.getVarClassification().get();
+    int size = bvmgr.getBitSize();
+
+    if (initPartition) {
+      Multimap<String, String> vars = varClass.getAllVars();
+      createPredicates(size, vars, precision);
+
+    } else {
+      for (Multimap<String, String> vars : varClass.getPartitions()) {
+        createPredicates(size, vars, precision);
+      }
+    }
+  }
+
+  /** This function declares variables for a given collection of vars.
+   * The flag 'bitwise' chooses between initialing each var after each other
+   * or bitwise overlapped (bit1 of all vars, then bit2 of all vars, etc). */
+  private void createPredicates(int size, Multimap<String, String> vars, BDDPrecision precision) {
+    if (initBitwise) {
+      // [a2, b2, c2, a1, b1, c1, a0, b0, c0]
+      for (int i = 0; i < size; i++) {
+        for (Entry<String, String> entry : vars.entries()) {
+          if (precision.isTracking(entry.getKey(), entry.getValue())) {
+            rmgr.createPredicate(buildVarName(entry.getKey(), entry.getValue()) + "@" + (size - i - 1));
+          }
+        }
+      }
+
+    } else {
+      // [a2, a1, a0, b2, b1, b0, c2, c1, c0]
+      for (Entry<String, String> entry : vars.entries()) { // different loop order!
+        for (int i = 0; i < size; i++) {
+          if (precision.isTracking(entry.getKey(), entry.getValue())) {
+            rmgr.createPredicate(buildVarName(entry.getKey(), entry.getValue()) + "@" + (size - i - 1));
+          }
+        }
+      }
+    }
   }
 
   @Override
@@ -403,8 +472,22 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
 
   /** This function returns regions containing bits of a variable. */
   private Region[] createPredicate(String varName) {
-    createdPredicates++;
-    return bvmgr.createPredicate(varName);
+    int size = bvmgr.getBitSize();
+    Region[] newRegions = new Region[size];
+    for (int i = 0; i < size; i++) {
+      createdPredicates++;
+      newRegions[i] = rmgr.createPredicate(varName + "@" + (size - i - 1));
+    }
+    return newRegions;
+  }
+
+  /** This function returns a region without a variable. */
+  private Region removePredicate(Region region, Region... existing) {
+    for (Region r : existing) {
+      deletedPredicates++;
+      region = rmgr.makeExists(region, r);
+    }
+    return region;
   }
 
   /** This Visitor evaluates the visited expression and creates a region for it. */
@@ -578,5 +661,19 @@ public class BDDVectorTransferRelation extends BDDTransferRelation {
       }
       return returnValue;
     }
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState state, List<AbstractState> states, CFAEdge cfaEdge,
+      Precision precision) {
+    // do nothing
+    return null;
+  }
+
+  @Override
+  public String toString() {
+    return "Number of created predicates: " + createdPredicates +
+        "\nNumber of deleted predicates: " + deletedPredicates + "\n";
   }
 }

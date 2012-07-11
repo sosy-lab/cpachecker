@@ -126,8 +126,22 @@ public class VariableClassification {
       // we have collected the nonBooleanVars, lets build the needed booleanVars.
       buildOpposites();
 
+      // add last vars to dependencies,
+      // this allows to get partitions for all vars,
+      // otherwies only dependent vars are in the partitions
+      for (Entry<String, String> var : allVars.entries()) {
+        dependencies.addVar(var.getKey(), var.getValue());
+      }
+
       // TODO is there a need to change the Maps later? make Maps immutable?
     }
+  }
+
+  /** This function returns a collection of (functionName, varNames).
+   * This collection contains all vars. */
+  public Multimap<String, String> getAllVars() {
+    build();
+    return allVars;
   }
 
   /** This function returns a collection of (functionName, varNames).
@@ -161,6 +175,14 @@ public class VariableClassification {
   public Multimap<String, String> getNonSimpleNumberVars() {
     build();
     return nonSimpleNumberVars;
+  }
+
+  /** This function returns a collection of (functionName, varNames).
+   * This collection contains all vars, that are not simple numbers.
+   * There are calculations (addition, etc) with these vars. */
+  public Collection<Multimap<String, String>> getPartitions() {
+    build();
+    return dependencies.getPartitions();
   }
 
   /** This function iterates over all edges of the cfa, collects all variables
@@ -668,9 +690,16 @@ public class VariableClassification {
    * Dependent vars are in the same partition. Partitions are independent. */
   private class Dependencies {
 
-    private Set<Collection<Pair<String, String>>> partitions = new HashSet<Collection<Pair<String, String>>>();
-    private Map<Pair<String, String>, Collection<Pair<String, String>>> varToPartition =
-        new HashMap<Pair<String, String>, Collection<Pair<String, String>>>();
+    /** partitions, each of them contains vars */
+    private Set<Multimap<String, String>> partitions = new HashSet<Multimap<String, String>>();
+
+    /** map to get partition of a var */
+    private Map<Pair<String, String>, Multimap<String, String>> varToPartition =
+        new HashMap<Pair<String, String>, Multimap<String, String>>();
+
+    public Collection<Multimap<String, String>> getPartitions() {
+      return partitions;
+    }
 
     /** This function creates a dependency between function1::var1 and function2::var2. */
     public void add(String function1, String var1, String function2, String var2) {
@@ -680,16 +709,16 @@ public class VariableClassification {
       // if both vars exists in some dependencies,
       // either ignore them or merge their partitions
       if (varToPartition.containsKey(first) && varToPartition.containsKey(second)) {
-        Collection<Pair<String, String>> partition1 = varToPartition.get(first);
-        Collection<Pair<String, String>> partition2 = varToPartition.get(first);
+        Multimap<String, String> partition1 = varToPartition.get(first);
+        Multimap<String, String> partition2 = varToPartition.get(second);
 
         if (!partition1.equals(partition2)) {
           // merge partition1 and partition2
-          partition1.addAll(partition2);
+          partition1.putAll(partition2);
 
           // update vars from partition2 and delete partition2
-          for (Pair<String, String> var : partition2) {
-            varToPartition.remove(var);
+          for (Entry<String, String> e : partition2.entries()) {
+            Pair<String, String> var = Pair.of(e.getKey(), e.getValue());
             varToPartition.put(var, partition1);
           }
           partitions.remove(partition2);
@@ -697,22 +726,22 @@ public class VariableClassification {
 
         // if only left side of dependency exists, add right side into same partition
       } else if (varToPartition.containsKey(first)) {
-        Collection<Pair<String, String>> partition = varToPartition.get(first);
-        partition.add(second);
+        Multimap<String, String> partition = varToPartition.get(first);
+        partition.put(function2, var2);
         varToPartition.put(second, partition);
 
         // if only right side of dependency exists, add left side into same partition
       } else if (varToPartition.containsKey(second)) {
-        Collection<Pair<String, String>> partition = varToPartition.get(second);
-        partition.add(first);
+        Multimap<String, String> partition = varToPartition.get(second);
+        partition.put(function1, var1);
         varToPartition.put(first, partition);
 
         // if none side is in any existing partition, create new partition
       } else {
-        Collection<Pair<String, String>> partition = new HashSet<Pair<String, String>>();
+        Multimap<String, String> partition = HashMultimap.create();
         partitions.add(partition);
-        partition.add(first);
-        partition.add(second);
+        partition.put(function1, var1);
+        partition.put(function2, var2);
         varToPartition.put(first, partition);
         varToPartition.put(second, partition);
       }
@@ -734,16 +763,30 @@ public class VariableClassification {
       }
     }
 
+    /** This function adds one single variable to the partitions.
+     * This is the only method to create a partition with only one element. */
+    public void addVar(String function, String varName) {
+      Pair<String, String> var = Pair.of(function, varName);
+
+      // if var exists, we can ignore it, otherwise create new partition for var
+      if (!varToPartition.containsKey(var)) {
+        Multimap<String, String> partition = HashMultimap.create();
+        partition.put(function, varName);
+        partitions.add(partition);
+        varToPartition.put(var, partition);
+      }
+    }
+
     /** This function adds all depending vars to the set, if necessary.
      * If A depends on B and A is part of the set, B is added to the set, and vice versa.
     * Example: If A is not boolean, B is not boolean. */
     public void solve(final Multimap<String, String> vars) {
-      for (Collection<Pair<String, String>> partition : partitions) {
+      for (Multimap<String, String> partition : partitions) {
 
         // is at least one var from the partition part of vars
         boolean isDependency = false;
-        for (Pair<String, String> var : partition) {
-          if (vars.containsEntry(var.getFirst(), var.getSecond())) {
+        for (Entry<String, String> var : partition.entries()) {
+          if (vars.containsEntry(var.getKey(), var.getValue())) {
             isDependency = true;
             break;
           }
@@ -751,24 +794,18 @@ public class VariableClassification {
 
         // add all dependend vars to vars
         if (isDependency) {
-          for (Pair<String, String> var : partition) {
-            vars.put(var.getFirst(), var.getSecond());
-          }
+          vars.putAll(partition);
         }
       }
     }
 
     @Override
     public String toString() {
-      StringBuilder str = new StringBuilder("{");
-      for (Collection<Pair<String, String>> partition : partitions) {
-        str.append("[");
-        for (Pair<String, String> var : partition) {
-          str.append(var.getFirst() + "::" + var.getSecond() + ", ");
-        }
-        str.append("], \n");
+      StringBuilder str = new StringBuilder("[");
+      for (Multimap<String, String> partition : partitions) {
+        str.append(partition.toString() + ",\n");
       }
-      str.append("}");
+      str.append("]");
       return str.toString();
     }
   }
