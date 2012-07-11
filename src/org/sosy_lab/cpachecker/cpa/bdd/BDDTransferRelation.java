@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -190,38 +189,44 @@ public class BDDTransferRelation implements TransferRelation {
 
       String function = isGlobal(lhs) ? null : state.getFunctionName();
       String varName = lhs.toASTString();
-
       if (precision.isTracking(function, varName)) {
 
-        // make tmp for assignment
-        // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
-        Region tmp = createPredicate(buildVarName(state.getFunctionName(), TMP_VARIABLE));
         Region newRegion = state.getRegion();
-
+        Region var = createPredicate(buildVarName(function, varName));
         CRightHandSide rhs = assignment.getRightHandSide();
-        if (rhs instanceof CExpression) {
+
+        if (isUsedLeftAndRight(function, varName, rhs)) {
+          // make tmp for assignment,
+          // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
+          Region tmp = createPredicate(buildVarName(state.getFunctionName(), TMP_VARIABLE));
 
           // make region for RIGHT SIDE and build equality of var and region
-          BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
-          Region regRHS = ((CExpression) rhs).accept(ev);
-          newRegion = addEquality(tmp, regRHS, newRegion);
+          if (rhs instanceof CExpression) {
+            BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
+            Region regRHS = ((CExpression) rhs).accept(ev);
+            newRegion = addEquality(tmp, regRHS, newRegion);
+          }
 
-        } else if (rhs instanceof CFunctionCallExpression) {
-          // call of external function: we know nothing, so we do nothing
-
-          // TODO can we assume, that malloc returns something !=0?
-          // are there some "save functions"?
+          // delete var, make tmp equal to (new) var, then delete tmp
+          newRegion = removePredicate(newRegion, var);
+          newRegion = addEquality(var, tmp, newRegion);
+          newRegion = removePredicate(newRegion, tmp);
 
         } else {
-          throw new UnrecognizedCCodeException(cfaEdge, rhs);
+          newRegion = removePredicate(newRegion, var);
+
+          // make region for RIGHT SIDE and build equality of var and region
+          if (rhs instanceof CExpression) {
+            BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
+            Region regRHS = ((CExpression) rhs).accept(ev);
+            newRegion = addEquality(var, regRHS, newRegion);
+          }
+          // else if (rhs instanceof CFunctionCallExpression) {
+          // call of external function: we know nothing, so we do nothing
+          // TODO can we assume, that malloc returns something !=0?
+          // are there some "save functions"?
+          // }
         }
-
-        // delete var, make tmp equal to (new) var, then delete tmp
-        Region var = createPredicate(buildVarName(function, varName));
-        newRegion = removePredicate(newRegion, var);
-        newRegion = addEquality(var, tmp, newRegion);
-        newRegion = removePredicate(newRegion, tmp);
-
         result = new BDDState(rmgr, state.getFunctionCallState(), newRegion,
             state.getVars(), cfaEdge.getPredecessor().getFunctionName());
       }
@@ -229,6 +234,15 @@ public class BDDTransferRelation implements TransferRelation {
 
     assert !result.getRegion().isFalse();
     return result;
+  }
+
+  protected static boolean isUsedLeftAndRight(String function, String varName, CRightHandSide rhs)
+      throws UnrecognizedCCodeException {
+    if (rhs instanceof CExpression) {
+      return ((CExpression) rhs).accept(new VarCExpressionVisitor(function, varName));
+    } else {
+      return true;
+    }
   }
 
   /** This function handles declarations like "int a = 0;" and "int b = !a;".
@@ -617,6 +631,89 @@ public class BDDTransferRelation implements TransferRelation {
         // *exp --> don't know anything
       }
       return returnValue;
+    }
+  }
+
+
+  /** This Visitor evaluates the visited expression and
+   * returns iff the given variable is used in it. */
+  public static class VarCExpressionVisitor implements CExpressionVisitor<Boolean, UnrecognizedCCodeException> {
+
+    private String functionName;
+    private String varName;
+
+    VarCExpressionVisitor(String function, String var) {
+      this.functionName = function;
+      this.varName = var;
+    }
+
+    private boolean find(String function, String var) {
+      if (functionName == null) {
+        return function == null && varName.equals(var);
+      } else {
+        return functionName.equals(function) && varName.equals(var);
+      }
+    }
+
+    private Boolean handle(CExpression exp, String functionName) {
+      String var = exp.toASTString();
+      String function = isGlobal(exp) ? null : functionName;
+      return find(function, var);
+    }
+
+    @Override
+    public Boolean visit(CArraySubscriptExpression exp) {
+      return handle(exp, functionName);
+    }
+
+    @Override
+    public Boolean visit(CBinaryExpression exp) throws UnrecognizedCCodeException {
+      return exp.getOperand1().accept(this) || exp.getOperand2().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CCastExpression exp) throws UnrecognizedCCodeException {
+      return exp.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CFieldReference exp) {
+      return handle(exp, functionName);
+    }
+
+    @Override
+    public Boolean visit(CIdExpression exp) {
+      return handle(exp, functionName);
+    }
+
+    @Override
+    public Boolean visit(CCharLiteralExpression exp) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CFloatLiteralExpression exp) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CIntegerLiteralExpression exp) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CStringLiteralExpression exp) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CTypeIdExpression exp) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CUnaryExpression exp) throws UnrecognizedCCodeException {
+      return exp.getOperand().accept(this);
     }
   }
 

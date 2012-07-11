@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -229,7 +228,10 @@ public class BDDVectorTransferRelation implements TransferRelation {
     }
   }
 
-  /** handles statements like "a = 0;" and "b = !a;" */
+  /** This function handles statements like "a = 0;" and "b = !a;".
+   * A region is build for the right side of the statement.
+   * Then this region is assigned to the variable at the left side.
+   * This equality is added to the BDDstate to get the next state. */
   private BDDState handleStatementEdge(BDDState state, CStatementEdge cfaEdge, BDDPrecision precision)
       throws UnrecognizedCCodeException {
     CStatement statement = cfaEdge.getStatement();
@@ -245,35 +247,42 @@ public class BDDVectorTransferRelation implements TransferRelation {
       String varName = lhs.toASTString();
       if (precision.isTracking(function, varName)) {
 
-        // make tmp for assignment
-        // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
-        Region[] tmp = createPredicate(buildVarName(state.getFunctionName(), TMP_VARIABLE));
         Region newRegion = state.getRegion();
-
+        Region[] var = createPredicate(buildVarName(function, varName));
         CRightHandSide rhs = assignment.getRightHandSide();
-        if (rhs instanceof CExpression) {
+
+        if (isUsedLeftAndRight(function, varName, rhs)) {
+          // make tmp for assignment,
+          // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
+          Region[] tmp = createPredicate(buildVarName(state.getFunctionName(), TMP_VARIABLE));
 
           // make region for RIGHT SIDE and build equality of var and region
-          BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
-          Region[] regRHS = ((CExpression) rhs).accept(ev);
-          newRegion = addEquality(tmp, regRHS, newRegion);
+          if (rhs instanceof CExpression) {
+            BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
+            Region[] regRHS = ((CExpression) rhs).accept(ev);
+            newRegion = addEquality(tmp, regRHS, newRegion);
+          }
 
-        } else if (rhs instanceof CFunctionCallExpression) {
-          // call of external function: we know nothing, so we do nothing
-
-          // TODO can we assume, that malloc returns something !=0?
-          // are there some "save functions"?
+          // delete var, make tmp equal to (new) var, then delete tmp
+          newRegion = removePredicate(newRegion, var);
+          newRegion = addEquality(var, tmp, newRegion);
+          newRegion = removePredicate(newRegion, tmp);
 
         } else {
-          throw new UnrecognizedCCodeException(cfaEdge, rhs);
+          newRegion = removePredicate(newRegion, var);
+
+          // make region for RIGHT SIDE and build equality of var and region
+          if (rhs instanceof CExpression) {
+            BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
+            Region[] regRHS = ((CExpression) rhs).accept(ev);
+            newRegion = addEquality(var, regRHS, newRegion);
+          }
+          // else if (rhs instanceof CFunctionCallExpression) {
+          // call of external function: we know nothing, so we do nothing
+          // TODO can we assume, that malloc returns something !=0?
+          // are there some "save functions"?
+          // }
         }
-
-        // delete var, make tmp equal to (new) var, then delete tmp
-        Region[] var = createPredicate(buildVarName(function, varName));
-        newRegion = removePredicate(newRegion, var);
-        newRegion = addEquality(var, tmp, newRegion);
-        newRegion = removePredicate(newRegion, tmp);
-
         result = new BDDState(rmgr, state.getFunctionCallState(), newRegion,
             state.getVars(), cfaEdge.getPredecessor().getFunctionName());
       }
