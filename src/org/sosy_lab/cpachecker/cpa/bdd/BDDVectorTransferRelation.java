@@ -92,7 +92,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
   private boolean initBitwise = true;
 
   @Option(description = "declare vars ordered in partitions")
-  private boolean initPartition = true;
+  private boolean initPartitions = true;
 
   private final BitvectorManager bvmgr;
   private final NamedRegionManager rmgr;
@@ -120,14 +120,14 @@ public class BDDVectorTransferRelation implements TransferRelation {
     VariableClassification varClass = cfa.getVarClassification().get();
     int size = bvmgr.getBitSize();
 
-    if (initPartition) {
-      Multimap<String, String> vars = varClass.getAllVars();
-      createPredicates(size, vars, precision);
-
-    } else {
+    if (initPartitions) {
       for (Multimap<String, String> vars : varClass.getPartitions()) {
         createPredicates(size, vars, precision);
       }
+
+    } else {
+      Multimap<String, String> vars = varClass.getAllVars();
+      createPredicates(size, vars, precision);
     }
   }
 

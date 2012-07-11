@@ -83,7 +83,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopSepOperator(abstractDomain);
     if (!useBitvector) {
-      transferRelation = new BDDTransferRelation(manager, config);
+      transferRelation = new BDDTransferRelation(manager, config, cfa, precision);
     } else {
       transferRelation = new BDDVectorTransferRelation(manager, config, cfa, precision);
     }

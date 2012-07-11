@@ -92,7 +92,8 @@ public class BDDState implements AbstractState {
 
   @Override
   public String toString() {
-    return manager.dumpRegion(currentState);
+    return manager.dumpRegion(currentState) + "\n"
+        + manager.regionToDot(currentState);
   }
 
   @Override

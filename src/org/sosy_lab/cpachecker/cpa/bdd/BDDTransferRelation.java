@@ -28,12 +28,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -72,8 +74,11 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+
+import com.google.common.collect.Multimap;
 
 /** This Transfer Relation tracks variables and handles them as boolean,
  * so only the cases ==0 and !=0 are tracked. */
@@ -88,6 +93,10 @@ public class BDDTransferRelation implements TransferRelation {
   @Option(description = "initialize all variables to 0 when they are declared")
   private boolean initAllVars = false;
 
+  @Option(description = "declare vars ordered in partitions. "
+      + "otherwise vars are declared when they are needed.")
+  private boolean initPartitions = false;
+
   /** for statistics */
   private int createdPredicates;
   private int deletedPredicates;
@@ -95,10 +104,30 @@ public class BDDTransferRelation implements TransferRelation {
   /** The Constructor of BDDTransferRelation sets the NamedRegionManager,
    * that is used to build and manipulate BDDs, that represent the regions.
    * The NamedRegionManager allows to create BDD-Nodes with names. */
-  public BDDTransferRelation(NamedRegionManager manager, Configuration config)
+  public BDDTransferRelation(NamedRegionManager manager, Configuration config, CFA cfa, BDDPrecision precision)
       throws InvalidConfigurationException {
     config.inject(this);
     this.rmgr = manager;
+
+    initVars(cfa, precision);
+  }
+
+  /** The BDDRegionManager orders the variables as they are declared
+   *  (later vars are deeper in the BDD).
+   *  This function declares those vars in the beginning of the analysis,
+   *  so that we can choose between some orders. */
+  private void initVars(CFA cfa, BDDPrecision precision) {
+    assert cfa.getVarClassification().isPresent();
+    VariableClassification varClass = cfa.getVarClassification().get();
+
+    if (initPartitions) {
+      Multimap<String, String> vars = varClass.getAllVars();
+      for (Entry<String, String> entry : vars.entries()) {
+        if (precision.isTracking(entry.getKey(), entry.getValue())) {
+          rmgr.createPredicate(buildVarName(entry.getKey(), entry.getValue()));
+        }
+      }
+    }
   }
 
   @Override
