@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -100,6 +100,9 @@ import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -168,10 +171,17 @@ public class CtoFormulaConverter {
   public static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
 
   private static final String POINTER_VARIABLE = "__content_of__";
-  private static final Pattern POINTER_VARIABLE_PATTERN = Pattern.compile("\\Q__content_of__\\E.*\\Q__end\\E");
+  private static final Predicate<CharSequence> IS_POINTER_VARIABLE = Predicates.containsPattern("\\Q__content_of__\\E.*\\Q__end\\E");
+
 
   /** The prefix used for variables representing memory locations. */
   private static final String MEMORY_ADDRESS_VARIABLE_PREFIX = "__address_of__";
+  private static final Predicate<String> IS_MEMORY_ADDRESS_VARIABLE = new Predicate<String>() {
+      @Override
+      public boolean apply(String pVariable) {
+        return pVariable.startsWith(MEMORY_ADDRESS_VARIABLE_PREFIX);
+      }
+    };
 
   /**
    * The prefix used for memory locations derived from malloc calls.
@@ -385,7 +395,7 @@ public class CtoFormulaConverter {
    * variable.
    */
   private static String removePointerMask(String pointerVariable) {
-    assert (isPointerVariable(pointerVariable));
+    assert (IS_POINTER_VARIABLE.apply(pointerVariable));
 
     return pointerVariable.substring(POINTER_VARIABLE.length(), pointerVariable.indexOf("__at__"));
   }
@@ -937,13 +947,6 @@ public class CtoFormulaConverter {
     return expr instanceof CPointerType;
   }
 
-  /**
-   * Returns whether the given variable name is a pointer variable name.
-   */
-  private static boolean isPointerVariable(String variableName) {
-    return POINTER_VARIABLE_PATTERN.matcher(variableName).matches();
-  }
-
   private boolean isMemoryLocation(CAstNode exp) {
 
     // memory allocating function?
@@ -997,35 +1000,19 @@ public class CtoFormulaConverter {
    * Stored memory locations are prefixed with
    * {@link #MEMORY_ADDRESS_VARIABLE_PREFIX}.
    */
-  private static List<String> getAllMemoryLocationsFromSsaMap(SSAMapBuilder ssa) {
-    List<String> memoryLocations = new LinkedList<String>();
-    Set<String> ssaVariables = ssa.build().allVariables();
-
-    Pattern memoryAdressPattern = Pattern.compile("^" + MEMORY_ADDRESS_VARIABLE_PREFIX + ".*");
-
-    for (String variable : ssaVariables) {
-      if (memoryAdressPattern.matcher(variable).matches()) {
-        memoryLocations.add(variable);
-      }
-    }
-
-    return memoryLocations;
+  private static ImmutableList<String> getAllMemoryLocationsFromSsaMap(SSAMapBuilder ssa) {
+    return from(ssa.allVariables())
+              .filter(IS_MEMORY_ADDRESS_VARIABLE)
+              .toImmutableList();
   }
 
   /**
    * Returns a list of all pointer variables stored in the SSAMap.
    */
   private static List<String> getAllPointerVariablesFromSsaMap(SSAMapBuilder ssa) {
-    List<String> pointerVariables = new LinkedList<String>();
-    Set<String> ssaVariables = ssa.build().allVariables();
-
-    for (String variable : ssaVariables) {
-      if (isPointerVariable(variable)) {
-        pointerVariables.add(variable);
-      }
-    }
-
-    return pointerVariables;
+    return from(ssa.allVariables())
+              .filter(IS_POINTER_VARIABLE)
+              .toImmutableList();
   }
 
   /**
