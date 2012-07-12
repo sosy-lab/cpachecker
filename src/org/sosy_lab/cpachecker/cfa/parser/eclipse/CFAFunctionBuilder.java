@@ -140,8 +140,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private boolean printedAsmWarning = false;
 
-  public CFAFunctionBuilder(LogManager pLogger, boolean pIgnoreCasts,
-      Scope pScope, ASTConverter pAstCreator) {
+  public CFAFunctionBuilder(LogManager pLogger, Scope pScope, ASTConverter pAstCreator) {
 
     logger = pLogger;
     scope = pScope;

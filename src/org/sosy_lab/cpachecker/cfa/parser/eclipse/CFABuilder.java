@@ -72,16 +72,10 @@ class CFABuilder extends ASTVisitor {
   private final ASTConverter astCreator;
 
   private final LogManager logger;
-  private final boolean ignoreCasts;
 
-  public CFABuilder(LogManager pLogger, boolean pIgnoreCasts) {
+  public CFABuilder(LogManager pLogger) {
     logger = pLogger;
-    ignoreCasts = pIgnoreCasts;
-    astCreator = new ASTConverter(scope, pIgnoreCasts, logger);
-
-    if (pIgnoreCasts) {
-      logger.log(Level.WARNING, "Ignoring all casts in the program because of user request!");
-    }
+    astCreator = new ASTConverter(scope, logger);
 
     shouldVisitDeclarations = true;
     shouldVisitEnumerators = true;
@@ -201,7 +195,7 @@ class CFABuilder extends ASTVisitor {
   @Override
   public int leave(IASTTranslationUnit translationUnit) {
     for (IASTFunctionDefinition declaration : functionDeclarations) {
-      CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, ignoreCasts,
+      CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger,
           scope, astCreator);
 
       declaration.accept(functionBuilder);

@@ -145,8 +145,6 @@ class ASTConverter {
 
   private final LogManager logger;
 
-  private final boolean ignoreCasts;
-
   private Scope scope;
 
   private LinkedList<CAstNode> preSideAssignments = new LinkedList<CAstNode>();
@@ -155,9 +153,8 @@ class ASTConverter {
   private CIdExpression conditionalTemporaryVariable = null;
 
 
-  public ASTConverter(Scope pScope, boolean pIgnoreCasts, LogManager pLogger) {
+  public ASTConverter(Scope pScope, LogManager pLogger) {
     scope = pScope;
-    ignoreCasts = pIgnoreCasts;
     logger = pLogger;
   }
 
@@ -525,11 +522,7 @@ class ASTConverter {
   }
 
   private CAstNode convert(IASTCastExpression e) {
-    if (ignoreCasts) {
-      return convertExpressionWithSideEffects(e.getOperand());
-    } else {
-      return new CCastExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getOperand()), convert(e.getTypeId()));
-    }
+    return new CCastExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getOperand()), convert(e.getTypeId()));
   }
 
   private CFieldReference convert(IASTFieldReference e) {
