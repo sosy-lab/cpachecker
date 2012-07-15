@@ -69,7 +69,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
    * (2) getRelation
    */
   // FIXME: For methods that do not depend on an infix relation, we should save
-  // time by not trying them repeatedly, once for each possible infix relation.
+  // time by not trying them repeatedly, once for each possible infix relation!
   private class TemplateChooserStrategy {
 
     private TemplateChooserMethod[] methods = {

@@ -52,10 +52,10 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.invariants.Farkas;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Balancer;
-import org.sosy_lab.cpachecker.util.invariants.balancer.MatrixBalancer;
 import org.sosy_lab.cpachecker.util.invariants.balancer.NetworkBuilder;
 import org.sosy_lab.cpachecker.util.invariants.balancer.SingleLoopNetworkBuilder;
 import org.sosy_lab.cpachecker.util.invariants.balancer.TemplateNetwork;
+import org.sosy_lab.cpachecker.util.invariants.balancer.WeispfenningBalancer;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateConstraint;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormulaManager;
@@ -154,8 +154,13 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     }
 
     TemplateNetwork tnet = nbuilder.nextNetwork();
+
+    // Initialize the Balancer:
     //Balancer balancer = new BasicBalancer(logger);
-    Balancer balancer = new MatrixBalancer(logger);
+    //Balancer balancer = new MatrixBalancer(logger);
+    //Balancer balancer = new AcyclicColumnRelianceBalancer(logger);
+    Balancer balancer = new WeispfenningBalancer(logger);
+
     // Try template networks until one succeeds, or we run out of ideas.
     while (tnet != null) {
 

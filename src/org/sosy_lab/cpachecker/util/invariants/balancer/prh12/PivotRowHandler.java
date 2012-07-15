@@ -32,16 +32,16 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
+import org.sosy_lab.cpachecker.util.invariants.balancer.AbstractBalancer;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption;
-import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionManager;
 import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionSet;
 import org.sosy_lab.cpachecker.util.invariants.balancer.BadAssumptionsException;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Matrix;
-import org.sosy_lab.cpachecker.util.invariants.balancer.MatrixBalancer;
 import org.sosy_lab.cpachecker.util.invariants.balancer.MatrixSolvingFailedException;
-import org.sosy_lab.cpachecker.util.invariants.balancer.MatrixSolvingFailedException.Reason;
 import org.sosy_lab.cpachecker.util.invariants.balancer.RationalFunction;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
+import org.sosy_lab.cpachecker.util.invariants.balancer.MatrixSolvingFailedException.Reason;
 
 
 public class PivotRowHandler {
@@ -431,7 +431,7 @@ public class PivotRowHandler {
     }
   }
 
-  public void thirdPass(AssumptionManager amgr, MatrixBalancer balancer) throws BadAssumptionsException {
+  public void thirdPass(AssumptionManager amgr, AbstractBalancer balancer) throws BadAssumptionsException {
     if (opman == null || opman.numRemainingRows() == 0) {
       return;
     }

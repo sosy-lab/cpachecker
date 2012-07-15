@@ -137,8 +137,10 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
 
   }
 
+  /*
+   * Form a sorted set of all the CFANodes in the counterexample path.
+   */
   private Loop getSingleLoopOrDie() throws RefinementFailedException {
-    // Form a sorted set of all the CFANodes in the counterexample path.
     // If we are going to use the CFAUtils.findLoops method, we have to essentially "cut" the counterexample path
     // out of the CFA it belongs to; i.e. for each node in the path delete all those of its edges that point to
     // nodes not in the path. Otherwise CFAUtils.findLoops will have an error.
@@ -338,6 +340,8 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
   @Override
   public TemplateNetwork nextNetwork() {
     Template invTemp = chooser.chooseNextTemplate();
+    // If we have run out of templates, then return the null network.
+    if (invTemp == null) { return null; }
 
     logger.log(Level.ALL, "\nChosen invariant template for loop head:\n", invTemp);
     //diag:
