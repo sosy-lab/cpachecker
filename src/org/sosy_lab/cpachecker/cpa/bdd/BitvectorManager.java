@@ -47,7 +47,7 @@ public class BitvectorManager {
     this.rmgr = rmgr;
   }
 
-  public int getBitSize(){
+  public int getBitSize() {
     return bitsize;
   }
 
@@ -90,21 +90,11 @@ public class BitvectorManager {
   public Region[] makeNumber(BigInteger n) {
     Region[] newRegions = new Region[bitsize];
     for (int i = 0; i < bitsize; i++) {
-      // TODO simplify?
-      if (BigInteger.ZERO.equals(n.and(BigInteger.valueOf(1 << (bitsize - i - 1))))) {
-        newRegions[i] = rmgr.makeFalse();
-      } else {
+      if (n.testBit(i)) {
         newRegions[i] = rmgr.makeTrue();
+      } else {
+        newRegions[i] = rmgr.makeFalse();
       }
-    }
-    return newRegions;
-  }
-
-  /** returns regions for positions of a variable, s --> [s@1, s@2, s@3, ...] */
-  public Region[] createPredicate(String s) {
-    Region[] newRegions = new Region[bitsize];
-    for (int i = 0; i < bitsize; i++) {
-      newRegions[i] = rmgr.createPredicate(s + "@" + (bitsize - i - 1));
     }
     return newRegions;
   }
@@ -210,7 +200,7 @@ public class BitvectorManager {
 
   private Region[] fullAdder(Region[] r1, Region[] r2, Region carrier) {
     Region[] newRegions = new Region[bitsize];
-    for (int i = bitsize - 1; i >= 0; i--) {// reverse iteration order!
+    for (int i = 0; i < bitsize; i++) {
 
       // first half-adder
       Region xor = rmgr.makeUnequal(r1[i], r2[i]);
@@ -232,11 +222,11 @@ public class BitvectorManager {
     return wrapLast(rmgr.makeFalse(), diff[0]);
   }
 
-  /** returns an Array filled with (n-1)*first and 1*last */
+  /** returns an Array filled with (n-1)*first at positions 1 to bitsize-1 and 1*last at position 0. */
   private Region[] wrapLast(Region first, Region last) {
     Region[] newRegions = new Region[bitsize];
-    Arrays.fill(newRegions, 0, bitsize - 1, first);
-    newRegions[bitsize - 1] = last;
+    Arrays.fill(newRegions, 1, bitsize, first);
+    newRegions[0] = last;
     return newRegions;
   }
 }

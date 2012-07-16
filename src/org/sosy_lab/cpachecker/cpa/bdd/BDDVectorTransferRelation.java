@@ -479,16 +479,18 @@ public class BDDVectorTransferRelation implements TransferRelation {
     }
   }
 
-  /** This function returns regions containing bits of a variable. */
-  private Region[] createPredicate(String varName) {
+  /** This function returns regions containing bits of a variable.
+   * returns regions for positions of a variable, s --> [s@0, s@1, s@2] */
+  private Region[] createPredicate(String s) {
     int size = bvmgr.getBitSize();
     Region[] newRegions = new Region[size];
-    for (int i = 0; i < size; i++) {
-      createdPredicates++;
-      newRegions[i] = rmgr.createPredicate(varName + "@" + (size - i - 1));
+    for (int i = size - 1; i >= 0; i--) { // inverse order
+      newRegions[i] = rmgr.createPredicate(s + "@" + i);
     }
+    createdPredicates += size;
     return newRegions;
   }
+
 
   /** This function returns a region without a variable. */
   private Region removePredicate(Region region, Region... existing) {
