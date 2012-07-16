@@ -65,7 +65,7 @@ public class ExplictPathChecker {
       Configuration config = Configuration.builder().build();
 
       TransferRelation transfer   = new ExplicitTransferRelation(config);
-      AbstractState next        = new ExplicitState();
+      AbstractState next          = new ExplicitState();
       ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
 
       precision.getIgnore().setMapping(variablesToBeIgnored);

@@ -58,14 +58,13 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-public class PredicatingExplicitRefiner implements IExplicitRefiner {
+public class PredicatingExplicitRefiner {
 
   protected List<Pair<ARGState, CFAEdge>> currentErrorPath  = null;
 
   private int numberOfPredicateRefinements                    = 0;
   private int numberOfPredicateRefinementsDone                = 0;
 
-  @Override
   public final List<Pair<ARGState, CFANode>> transformPath(Path errorPath) {
     numberOfPredicateRefinements++;
 
@@ -83,7 +82,6 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
     return result;
   }
 
-  @Override
   public List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> errorPath, ARGState initialElement) throws CPATransferException {
     return from(errorPath)
             .transform(Pair.<ARGState>getProjectionToFirst())
@@ -92,7 +90,6 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
             .toImmutableList();
   }
 
-  @Override
   public Pair<ARGState, Precision> performRefinement(
       UnmodifiableReachedSet reachedSet,
       Precision oldPrecision,
@@ -156,17 +153,6 @@ public class PredicatingExplicitRefiner implements IExplicitRefiner {
     return new PredicatePrecision(pmapBuilder.build(), globalPredicates);
   }
 
-  @Override
-  public boolean hasMadeProgress(List<Pair<ARGState, CFAEdge>> currentErrorPath, Precision currentPrecision) {
-    return true;
-  }
-
-  @Override
-  public void setCurrentErrorPath(List<Pair<ARGState, CFAEdge>> currentErrorPath) {
-    this.currentErrorPath = currentErrorPath;
-  }
-
-  @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     out.println(this.getClass().getSimpleName() + ":");
     out.println("  number of predicate refinements:           " + numberOfPredicateRefinements);
