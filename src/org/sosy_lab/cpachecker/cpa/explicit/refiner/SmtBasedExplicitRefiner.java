@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -106,31 +105,26 @@ public class SmtBasedExplicitRefiner extends ExplicitRefiner {
     firstInterpolationPoint = null;
 
     Multimap<CFANode, String> precisionIncrement = HashMultimap.create();
-    // in case the path is spurious
-    if(isPathFeasable(errorPath, HashMultimap.<CFANode, String>create())) {
-      return precisionIncrement;
+
+    // only do a refinement if a full-precision check shows that the path is infeasible
+    if(!isPathFeasable(errorPath, HashMultimap.<CFANode, String>create())) {
+      // determine the actual the precision increment
+      CounterexampleTraceInfo<Collection<AbstractionPredicate>> cti = buildCounterexampleTrace(errorPath);
+      PredicateMap predicateMap = new PredicateMap(cti.getPredicatesForRefinement(), transformPath(errorPath));
+      precisionIncrement = predicateMap.determinePrecisionIncrement(formulaManager);
+
+      // also add variables occurring on the error path and referenced by variables in precision increment
+      ExplicitPrecision currentPrecision = extractExplicitPrecision(reachedSet.getPrecision(reachedSet.getLastState()));
+      precisionIncrement.putAll(determineReferencedVariablesInPath(currentPrecision, precisionIncrement, errorPath));
+
+      firstInterpolationPoint = determineInterpolationPoint(errorPath, precisionIncrement);
+
+      // remove redundant entries from the increment
+      precisionIncrement = determineSingularIncrement(
+          precisionIncrement,
+          extractExplicitPrecision(reachedSet.getPrecision(firstInterpolationPoint)));
     }
 
-    CounterexampleTraceInfo<Collection<AbstractionPredicate>> cti = buildCounterexampleTrace(errorPath);
-
-    ExplicitPrecision currentPrecision = Precisions.extractPrecisionByType(reachedSet.getPrecision(reachedSet.getLastState()), ExplicitPrecision.class);
-
-    // create the mapping of CFA nodes to predicates, based on the counter example trace info
-    PredicateMap predicateMap = new PredicateMap(cti.getPredicatesForRefinement(), transformPath(errorPath));
-
-    // determine the precision increment
-    precisionIncrement = predicateMap.determinePrecisionIncrement(formulaManager);
-    System.out.println("1: " + precisionIncrement);
-    // also add variables occurring on the error path and referenced by variables in precision increment
-    precisionIncrement.putAll(determineReferencedVariablesInPath(currentPrecision, precisionIncrement, errorPath));
-    System.out.println("2: " + precisionIncrement);
-    firstInterpolationPoint = determineInterpolationPoint(errorPath, precisionIncrement);
-
-    precisionIncrement = determineSingularIncrement(
-        precisionIncrement,
-        extractExplicitPrecision(reachedSet.getPrecision(firstInterpolationPoint)));
-    System.out.println("3: " + precisionIncrement);
-    // create the new precision
     return precisionIncrement;
   }
 
