@@ -578,6 +578,13 @@ def filterRowsWithDifferences(rows):
     """
     Find all rows with differences in the status column.
     """
+    if not rows:
+        # empty table
+        return []
+    if len(rows[0].results) == 1:
+        # table with single column
+        return []
+    
     def allEqualResult(listOfResults):
         for result in listOfResults:
             if listOfResults[0].status != result.status:
@@ -866,6 +873,10 @@ def main(args=None):
         help="If resultfiles with distinct sourcefiles are found, " \
             + "use only the sourcefiles common to all resultfiles."
     )
+    parser.add_option("--no-diff",
+        action="store_false", dest="writeDiffTable", default=True,
+        help="Do not output a table with differences between resultfiles."
+    )
     parser.add_option("--correct-only",
         action="store_true", dest="correctOnly",
         help="Clear all results in cases where the result was not correct."
@@ -928,7 +939,7 @@ def main(args=None):
 
     # collect data and find out rows with differences
     rows     = getRows(listOfTests, fileNames, options.correctOnly)
-    rowsDiff = filterRowsWithDifferences(rows)
+    rowsDiff = filterRowsWithDifferences(rows) if options.writeDiffTable else []
 
     print ('generating table ...')
     createTables(name, listOfTests, fileNames, rows, rowsDiff, options.outputPath)
