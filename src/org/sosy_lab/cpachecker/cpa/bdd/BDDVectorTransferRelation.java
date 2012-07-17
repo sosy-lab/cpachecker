@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 
 import static org.sosy_lab.cpachecker.cpa.bdd.BDDTransferRelation.*;
 
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -684,7 +685,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
         break;
 
       case MINUS: // -X == (0-X)
-        returnValue = bvmgr.makeSub(bvmgr.makeFalse(), operand);
+        returnValue = bvmgr.makeSub(bvmgr.makeNumber(BigInteger.ZERO), operand);
         break;
 
       default:

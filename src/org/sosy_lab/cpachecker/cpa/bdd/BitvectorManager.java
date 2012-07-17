@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.bdd;
 
 import java.math.BigInteger;
-import java.util.Arrays;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -60,16 +59,6 @@ public class BitvectorManager {
     return tmp;
   }
 
-  /** returns 0001 */
-  public Region[] makeTrue() {
-    return wrapLast(rmgr.makeFalse(), rmgr.makeTrue());
-  }
-
-  /** returns 0000 */
-  public Region[] makeFalse() {
-    return wrapLast(rmgr.makeFalse(), rmgr.makeFalse());
-  }
-
   /** returns bitRepresentation of number, 5 --> 00101 --> [0,0,1,0,1] */
   public Region[] makeNumber(BigInteger n) {
     Region[] newRegions = new Region[bitsize];
@@ -89,7 +78,7 @@ public class BitvectorManager {
     for (int i = 0; i < bitsize; i++) {
       tmp = rmgr.makeOr(tmp, r[i]);
     }
-    return wrapLast(rmgr.makeFalse(), rmgr.makeNot(tmp));
+    return wrapLast(rmgr.makeNot(tmp));
   }
 
   /** 1100 & 1010 --> 1000 */
@@ -109,7 +98,7 @@ public class BitvectorManager {
       tmp1 = rmgr.makeOr(tmp1, r1[i]);
       tmp2 = rmgr.makeOr(tmp2, r2[i]);
     }
-    return wrapLast(rmgr.makeFalse(), rmgr.makeAnd(tmp1, tmp2));
+    return wrapLast(rmgr.makeAnd(tmp1, tmp2));
   }
 
   /** 1100 | 1010 --> 1110 */
@@ -129,7 +118,7 @@ public class BitvectorManager {
       tmp1 = rmgr.makeOr(tmp1, r1[i]);
       tmp2 = rmgr.makeOr(tmp2, r2[i]);
     }
-    return wrapLast(rmgr.makeFalse(), rmgr.makeOr(tmp1, tmp2));
+    return wrapLast(rmgr.makeOr(tmp1, tmp2));
   }
 
   /** 1100 <==> 1010 --> 1001 */
@@ -148,7 +137,7 @@ public class BitvectorManager {
       Region equalPos = rmgr.makeEqual(r1[i], r2[i]);
       equality = rmgr.makeAnd(equality, equalPos);
     }
-    return wrapLast(rmgr.makeFalse(), equality);
+    return wrapLast(equality);
 
   }
 
@@ -169,7 +158,7 @@ public class BitvectorManager {
 
   /** 0111 - 0011 --> 0100 */
   public Region[] makeSub(Region[] r1, Region[] r2) {
-    Region[] r2tmp = makeBinaryEqual(r2, makeFalse());
+    Region[] r2tmp = makeBinaryEqual(r2, makeNumber(BigInteger.ZERO));
     Region carrier = rmgr.makeTrue();
     return fullAdder(r1, r2tmp, carrier);
   }
@@ -195,14 +184,17 @@ public class BitvectorManager {
   /** A<B,  */
   public Region[] makeLess(Region[] A, Region[] B) {
     Region[] diff = makeSub(A, B);
-    return wrapLast(rmgr.makeFalse(), diff[0]);
+    return wrapLast(diff[0]);
   }
 
-  /** returns an Array filled with (n-1)*first at positions 1 to bitsize-1 and 1*last at position 0. */
-  private Region[] wrapLast(Region first, Region last) {
+  /** returns an Array filled with FALSE at positions 1 to bitsize-1
+   * and LAST at position 0. */
+  private Region[] wrapLast(Region last) {
     Region[] newRegions = new Region[bitsize];
-    Arrays.fill(newRegions, 1, bitsize, first);
     newRegions[0] = last;
+    for (int i = 1; i < bitsize; i++) {
+      newRegions[i] = rmgr.makeFalse();
+    }
     return newRegions;
   }
 }
