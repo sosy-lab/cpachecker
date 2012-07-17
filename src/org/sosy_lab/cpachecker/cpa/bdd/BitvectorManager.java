@@ -33,7 +33,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
-@Options(prefix = "cpa.bdd")
+@Options(prefix = "cpa.bdd.vector")
 public class BitvectorManager {
 
   private NamedRegionManager rmgr;
@@ -49,22 +49,6 @@ public class BitvectorManager {
 
   public int getBitSize() {
     return bitsize;
-  }
-
-  // checks whether one of the regions is true
-  public boolean isTrue(Region[] regions) {
-    for (Region r : regions) {
-      if (r.isTrue()) { return true; }
-    }
-    return false;
-  }
-
-  // checks whether all regions are false
-  public boolean isFalse(Region[] regions) {
-    for (Region r : regions) {
-      if (!r.isFalse()) { return false; }
-    }
-    return true;
   }
 
   /** returns OR of regions */
@@ -97,14 +81,6 @@ public class BitvectorManager {
       }
     }
     return newRegions;
-  }
-
-  /** removes predicate from region */
-  public Region makeExists(Region region, Region[] existing) {
-    for (int i = 0; i < bitsize; i++) {
-      region = rmgr.makeExists(region, existing[i]);
-    }
-    return region;
   }
 
   /** 1100 --> 0000, 0000 --> 0001 */

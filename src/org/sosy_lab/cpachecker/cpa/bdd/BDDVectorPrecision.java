@@ -70,7 +70,7 @@ public class BDDVectorPrecision implements Precision {
         varClass.isPresent() && varClass.get().getBooleanVars().containsEntry(function, var);
     boolean isTrackedSimpleNumber = trackSimpleNumbersFromCFA &&
         varClass.isPresent() && varClass.get().getSimpleNumberVars().containsEntry(function, var);
-    System.out.println(function + var + isTrackedBoolean + isTrackedSimpleNumber);
+    // System.out.println(function + var + isTrackedBoolean + isTrackedSimpleNumber);
     return isTrackedBoolean || isTrackedSimpleNumber;
   }
 }
