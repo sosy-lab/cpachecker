@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -101,6 +102,21 @@ public class ReferencedVariablesCollector {
     this.dependingVariables.addAll(initalVariables);
   }
 
+  private List<CFAEdge> unrollPath(List<CFAEdge> path) {
+    List<CFAEdge> unrolledPath = new LinkedList<CFAEdge>();
+
+    for(CFAEdge currentEdge : path) {
+      if(currentEdge instanceof MultiEdge) {
+        unrolledPath.addAll(((MultiEdge)currentEdge).getEdges());
+      }
+      else {
+        unrolledPath.add(currentEdge);
+      }
+    }
+
+    return unrolledPath;
+  }
+
   /**
    * This method collects the respective referenced variables in the given path.
    *
@@ -108,6 +124,8 @@ public class ReferencedVariablesCollector {
    * @return the mapping of location to referenced variables in the given path
    */
   public Multimap<CFANode, String> collectVariables(List<CFAEdge> path) {
+
+    path = unrollPath(path);
 
     determineGlobalVariables(path);
 

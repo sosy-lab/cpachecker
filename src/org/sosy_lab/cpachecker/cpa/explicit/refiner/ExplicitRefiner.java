@@ -89,7 +89,7 @@ abstract class ExplicitRefiner {
    * @return true, if the path is feasible, else false
    * @throws CPAException if the path check gets interrupted
    */
-  protected boolean isPathFeasable(List<CFAEdge> path, Multimap<CFANode, String> variablesToBeIgnored) throws CPAException {
+  protected boolean isPathFeasable(Path path, Multimap<CFANode, String> variablesToBeIgnored) throws CPAException {
     try {
       // create a new ExplicitPathChecker, which does not track any of the given variables
       ExplictPathChecker checker = new ExplictPathChecker();
@@ -101,7 +101,7 @@ abstract class ExplicitRefiner {
     }
   }
 
-  protected List<CFAEdge> extractCFAEdgeTrace(List<Pair<ARGState, CFAEdge>> path) {
+  protected List<CFAEdge> extractCFAEdgeTrace(Path path) {
     edgeToState = new HashMap<CFAEdge, ARGState>();
     List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
     for(Pair<ARGState, CFAEdge> pathElement : path){

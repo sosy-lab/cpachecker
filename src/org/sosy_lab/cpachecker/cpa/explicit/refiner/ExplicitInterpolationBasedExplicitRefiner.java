@@ -79,7 +79,7 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
     Multimap<CFANode, String> increment = HashMultimap.create();
 
     // only do a refinement if a full-precision check shows that the path is infeasible
-    if(!isPathFeasable(extractCFAEdgeTrace(errorPath), HashMultimap.<CFANode, String>create())) {
+    if(!isPathFeasable(errorPath, HashMultimap.<CFANode, String>create())) {
       List<CFAEdge> cfaTrace = extractCFAEdgeTrace(errorPath);
 
       Multimap<CFANode, String> variablesToBeIgnored      = HashMultimap.create();
@@ -116,7 +116,7 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
 
           // if path becomes feasible, remove it from the set of variables to be ignored,
           // and add the variable to the precision increment, also setting the interpolation point
-          if(isPathFeasable(cfaTrace, variablesToBeIgnored)) {
+          if(isPathFeasable(errorPath, variablesToBeIgnored)) {
             variablesToBeIgnored.remove(currentEdge.getSuccessor(), importantVariable);
             increment.put(currentEdge.getSuccessor(), importantVariable);
 

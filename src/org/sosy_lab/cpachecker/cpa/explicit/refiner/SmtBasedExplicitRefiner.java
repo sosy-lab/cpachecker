@@ -107,7 +107,7 @@ public class SmtBasedExplicitRefiner extends ExplicitRefiner {
 
     Multimap<CFANode, String> precisionIncrement = HashMultimap.create();
     // in case the path is spurious
-    if(isPathFeasable(extractCFAEdgeTrace(errorPath), HashMultimap.<CFANode, String>create())) {
+    if(isPathFeasable(errorPath, HashMultimap.<CFANode, String>create())) {
       return precisionIncrement;
     }
 
@@ -120,16 +120,16 @@ public class SmtBasedExplicitRefiner extends ExplicitRefiner {
 
     // determine the precision increment
     precisionIncrement = predicateMap.determinePrecisionIncrement(formulaManager);
-
+    System.out.println("1: " + precisionIncrement);
     // also add variables occurring on the error path and referenced by variables in precision increment
     precisionIncrement.putAll(determineReferencedVariablesInPath(currentPrecision, precisionIncrement, errorPath));
-
+    System.out.println("2: " + precisionIncrement);
     firstInterpolationPoint = determineInterpolationPoint(errorPath, precisionIncrement);
 
     precisionIncrement = determineSingularIncrement(
         precisionIncrement,
         extractExplicitPrecision(reachedSet.getPrecision(firstInterpolationPoint)));
-
+    System.out.println("3: " + precisionIncrement);
     // create the new precision
     return precisionIncrement;
   }
