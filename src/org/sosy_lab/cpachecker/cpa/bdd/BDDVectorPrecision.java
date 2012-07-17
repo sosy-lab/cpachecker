@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import java.util.regex.Pattern;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -34,30 +32,31 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 
-@Options(prefix = "cpa.bdd")
-public class BDDPrecision implements Precision {
+@Options(prefix = "cpa.bdd.vector")
+public class BDDVectorPrecision implements Precision {
 
-  @Option(description = "which vars should be tracked, default: track all. "
-      + "the regex is not used for functionname, only for the variablename itself.")
-  private String whiteListRegex = ".*";
-
-  private final Pattern whiteListPattern;
-
-  @Option(description = "track boolean variables from cfa only,"
+  @Option(description = "track boolean variables from cfa as bitvectors,"
       + " this option limits the whitelist")
-  private boolean trackBooleanFromCFA = true;
+  private boolean trackBooleanFromCFA = false;
+
+  @Option(description = "track simple numeral variables from cfa as bitvectors,"
+      + " this option limits the whitelist")
+  private boolean trackSimpleNumbersFromCFA = true;
 
   private final Optional<VariableClassification> varClass;
 
-  public BDDPrecision(Configuration config, Optional<VariableClassification> vc)
+  public BDDVectorPrecision(Configuration config, Optional<VariableClassification> vc)
       throws InvalidConfigurationException {
     config.inject(this);
     this.varClass = vc;
-    whiteListPattern = Pattern.compile(whiteListRegex);
   }
 
-  boolean isDisabled() {
-    return whiteListPattern.pattern().isEmpty();
+  public boolean isDisabled() {
+    boolean trackSomeBoolean = trackBooleanFromCFA &&
+        varClass.isPresent() && !varClass.get().getBooleanVars().isEmpty();
+    boolean trackSomeSimpleNumber = trackSimpleNumbersFromCFA &&
+        varClass.isPresent() && !varClass.get().getSimpleNumberVars().isEmpty();
+    return !(trackSomeBoolean || trackSomeSimpleNumber);
   }
 
   /**
@@ -66,11 +65,12 @@ public class BDDPrecision implements Precision {
    * @param variable the scoped name of the variable to check
    * @return true, if the variable has to be tracked, else false
    */
-  boolean isTracking(String function, String var) {
-    boolean isTracking = whiteListPattern.matcher(var).matches();
-    boolean isTrackedBoolean = !trackBooleanFromCFA ||
-        (varClass.isPresent() && varClass.get().getBooleanVars().containsEntry(function, var));
-    return isTracking && isTrackedBoolean;
+  public boolean isTracking(String function, String var) {
+    boolean isTrackedBoolean = trackBooleanFromCFA &&
+        varClass.isPresent() && varClass.get().getBooleanVars().containsEntry(function, var);
+    boolean isTrackedSimpleNumber = trackSimpleNumbersFromCFA &&
+        varClass.isPresent() && varClass.get().getSimpleNumberVars().containsEntry(function, var);
+    System.out.println(function + var + isTrackedBoolean + isTrackedSimpleNumber);
+    return isTrackedBoolean || isTrackedSimpleNumber;
   }
-
 }

@@ -52,27 +52,27 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 
-public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class BDDVectorCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(BDDCPA.class);
+    return AutomaticCPAFactory.forType(BDDVectorCPA.class);
   }
 
   private final NamedRegionManager manager;
   private final BDDDomain abstractDomain;
-  private final BDDPrecision precision;
+  private final BDDVectorPrecision precision;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
 
-  private BDDCPA(CFA cfa, Configuration config, LogManager logger)
+  private BDDVectorCPA(CFA cfa, Configuration config, LogManager logger)
       throws InvalidConfigurationException {
     manager = new NamedRegionManager(BDDRegionManager.getInstance(config));
     abstractDomain = new BDDDomain();
+    precision = new BDDVectorPrecision(config, cfa.getVarClassification());
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopSepOperator(abstractDomain);
-    precision = new BDDPrecision(config, cfa.getVarClassification());
-    transferRelation = new BDDTransferRelation(manager, config, cfa, precision);
+    transferRelation = new BDDVectorTransferRelation(manager, config, cfa, precision);
   }
 
   @Override
@@ -122,7 +122,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
       @Override
       public String getName() {
-        return "BDDCPA";
+        return "BDDVectorCPA";
       }
     });
   }

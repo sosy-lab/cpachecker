@@ -80,9 +80,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import com.google.common.collect.Multimap;
 
-/** This Transfer Relation tracks variables and handles them as boolean,
- * so only the cases ==0 and !=0 are tracked. */
-@Options(prefix = "cpa.bdd")
+/** This Transfer Relation tracks variables and handles them as bitvectors. */
+@Options(prefix = "cpa.bdd.vector")
 public class BDDVectorTransferRelation implements TransferRelation {
 
   @Option(description = "initialize all variables to 0 when they are declared")
@@ -101,7 +100,11 @@ public class BDDVectorTransferRelation implements TransferRelation {
   private int createdPredicates;
   private int deletedPredicates;
 
-  public BDDVectorTransferRelation(NamedRegionManager manager, Configuration config, CFA cfa, BDDPrecision precision)
+  /** The Constructor of BDDVectorTransferRelation sets the NamedRegionManager
+   * and the BitVectorManager. Both are used to build and manipulate BDDs,
+   * that represent the regions. */
+  public BDDVectorTransferRelation(NamedRegionManager manager,
+      Configuration config, CFA cfa, BDDVectorPrecision precision)
       throws InvalidConfigurationException {
     config.inject(this);
 
@@ -115,7 +118,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
    *  (later vars are deeper in the BDD).
    *  This function declares those vars in the beginning of the analysis,
    *  so that we can choose between some orders. */
-  private void initVars(CFA cfa, BDDPrecision precision) {
+  private void initVars(CFA cfa, BDDVectorPrecision precision) {
     assert cfa.getVarClassification().isPresent();
     VariableClassification varClass = cfa.getVarClassification().get();
     int size = bvmgr.getBitSize();
@@ -134,7 +137,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
   /** This function declares variables for a given collection of vars.
    * The flag 'bitwise' chooses between initialing each var after each other
    * or bitwise overlapped (bit1 of all vars, then bit2 of all vars, etc). */
-  private void createPredicates(int size, Multimap<String, String> vars, BDDPrecision precision) {
+  private void createPredicates(int size, Multimap<String, String> vars, BDDVectorPrecision precision) {
     if (initBitwise) {
       // [a2, b2, c2, a1, b1, c1, a0, b0, c0]
       for (int i = 0; i < size; i++) {
@@ -162,7 +165,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
       AbstractState abstractState, Precision prec, CFAEdge cfaEdge)
       throws CPATransferException {
     BDDState state = (BDDState) abstractState;
-    BDDPrecision precision = (BDDPrecision) prec;
+    BDDVectorPrecision precision = (BDDVectorPrecision) prec;
 
     if (precision.isDisabled()) {
       // this means that no variables should be tracked
@@ -232,8 +235,8 @@ public class BDDVectorTransferRelation implements TransferRelation {
    * A region is build for the right side of the statement.
    * Then this region is assigned to the variable at the left side.
    * This equality is added to the BDDstate to get the next state. */
-  private BDDState handleStatementEdge(BDDState state, CStatementEdge cfaEdge, BDDPrecision precision)
-      throws UnrecognizedCCodeException {
+  private BDDState handleStatementEdge(BDDState state, CStatementEdge cfaEdge,
+      BDDVectorPrecision precision) throws UnrecognizedCCodeException {
     CStatement statement = cfaEdge.getStatement();
     if (!(statement instanceof CAssignment)) { return state; }
     CAssignment assignment = (CAssignment) statement;
@@ -292,9 +295,13 @@ public class BDDVectorTransferRelation implements TransferRelation {
     return result;
   }
 
-  /** handles declarations like "int a = 0;" and "int b = !a;" */
+  /** This function handles declarations like "int a = 0;" and "int b = !a;".
+   * Regions are build for all Bits of the right side of the declaration,
+   * if it is not null. Then these regions are assigned to the regions of
+   * variable (bitvector) at the left side.
+   * These equalities are added to the BDDstate to get the next state. */
   private BDDState handleDeclarationEdge(BDDState state, CDeclarationEdge cfaEdge,
-      BDDPrecision precision) throws UnrecognizedCCodeException {
+      BDDVectorPrecision precision) throws UnrecognizedCCodeException {
 
     CDeclaration decl = cfaEdge.getDeclaration();
 
@@ -338,8 +345,12 @@ public class BDDVectorTransferRelation implements TransferRelation {
     return state; // if we know nothing, we return the old state
   }
 
+  /** This function handles functioncalls like "f(x)", that calls "f(int a)".
+   * Therefore each arg ("x") is transformed into a region and assigned
+   * to a param ("int a") of the function. The equalities of
+   * all arg-param-pairs are added to the BDDstate to get the next state. */
   private BDDState handleFunctionCallEdge(BDDState state, CFunctionCallEdge cfaEdge,
-      BDDPrecision precision) throws UnrecognizedCCodeException {
+      BDDVectorPrecision precision) throws UnrecognizedCCodeException {
 
     Region newRegion = state.getRegion();
     Set<String> newVars = new LinkedHashSet<String>();
@@ -356,7 +367,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
       // make variable (predicate) for param, this variable is not global (->false)
       String varName = params.get(i).getName();
       String scopedVarName = buildVarName(innerFunctionName, varName);
-      assert !newVars.contains(scopedVarName) : "variable used twice as param";
+      assert !newVars.contains(scopedVarName) : "variable used twice as param: " + scopedVarName;
 
       // make region for arg and build equality of var and arg
       if (precision.isTracking(innerFunctionName, varName)) {
@@ -371,8 +382,12 @@ public class BDDVectorTransferRelation implements TransferRelation {
     return new BDDState(rmgr, state, newRegion, newVars, innerFunctionName);
   }
 
+  /** This function handles functionReturns like "y=f(x)".
+   * The equality of the returnValue (FUNCTION_RETURN_VARIABLE) and the
+   * left side ("y") is added to the new state.
+   * Each variable from inside the function is removed from the BDDstate. */
   private BDDState handleFunctionReturnEdge(BDDState state, CFunctionReturnEdge cfaEdge,
-      BDDPrecision precision) {
+      BDDVectorPrecision precision) {
     Region newRegion = state.getRegion();
 
     // delete variables from returning function,
@@ -413,15 +428,18 @@ public class BDDVectorTransferRelation implements TransferRelation {
         cfaEdge.getSuccessor().getFunctionName());
   }
 
+  /** This function handles functionStatements like "return (x)".
+   * The equality of the returnValue (FUNCTION_RETURN_VARIABLE) and the
+   * evaluated right side ("x") is added to the new state. */
   private BDDState handleReturnStatementEdge(BDDState state, CReturnStatementEdge cfaEdge,
-      BDDPrecision precision) throws UnrecognizedCCodeException {
+      BDDVectorPrecision precision) throws UnrecognizedCCodeException {
 
     // make variable (predicate) for returnStatement,
     // delete variable, if it was used before, this is done with an existential operator
-    Region[] retvar = createPredicate(
-        buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE));
+    String scopedFuncName = buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE);
+    Region[] retvar = createPredicate(scopedFuncName);
 
-    assert state.getRegion().equals(removePredicate(state.getRegion(), retvar)) : FUNCTION_RETURN_VARIABLE
+    assert state.getRegion().equals(removePredicate(state.getRegion(), retvar)) : scopedFuncName
         + " was used twice in one trace??";
 
     // make region for RIGHT SIDE, this is the 'x' from 'return (x);
@@ -436,8 +454,13 @@ public class BDDVectorTransferRelation implements TransferRelation {
     return state;
   }
 
+  /** This function handles assumptions like "if(a==b)" and "if(a!=0)".
+   * A region is build for the assumption.
+   * This region is added to the BDDstate to get the next state.
+   * If the next state is False, the assumption is not fulfilled.
+   * In this case NULL is returned. */
   private BDDState handleAssumption(BDDState state, CAssumeEdge cfaEdge,
-      BDDPrecision precision) throws UnrecognizedCCodeException {
+      BDDVectorPrecision precision) throws UnrecognizedCCodeException {
 
     CExpression expression = cfaEdge.getExpression();
     BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
@@ -491,7 +514,6 @@ public class BDDVectorTransferRelation implements TransferRelation {
     return newRegions;
   }
 
-
   /** This function returns a region without a variable. */
   private Region removePredicate(Region region, Region... existing) {
     for (Region r : existing) {
@@ -506,9 +528,9 @@ public class BDDVectorTransferRelation implements TransferRelation {
       implements CExpressionVisitor<Region[], UnrecognizedCCodeException> {
 
     private String functionName;
-    private BDDPrecision precision;
+    private BDDVectorPrecision precision;
 
-    BDDCExpressionVisitor(BDDState state, BDDPrecision prec) {
+    BDDCExpressionVisitor(BDDState state, BDDVectorPrecision prec) {
       this.functionName = state.getFunctionName();
       this.precision = prec;
     }
@@ -516,13 +538,12 @@ public class BDDVectorTransferRelation implements TransferRelation {
     /** This function returns regions containing bits of a variable.
      * The name of the variable is build from functionName and varName.
      * If the precision does not allow to track this variable, NULL is returned. */
-    private Region[] makePredicate(CExpression exp, String functionName, BDDPrecision precision) {
+    private Region[] makePredicate(CExpression exp, String functionName, BDDVectorPrecision precision) {
       String var = exp.toASTString();
       String function = isGlobal(exp) ? null : functionName;
-      String scopedVarName = buildVarName(functionName, var);
 
       if (precision.isTracking(function, var)) {
-        return createPredicate(scopedVarName);
+        return createPredicate(buildVarName(functionName, var));
       } else {
         return null;
       }
@@ -530,8 +551,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
 
     @Override
     public Region[] visit(CArraySubscriptExpression exp) throws UnrecognizedCCodeException {
-      Region[] var = makePredicate(exp, functionName, precision);
-      return var;
+      return makePredicate(exp, functionName, precision);
     }
 
     @Override

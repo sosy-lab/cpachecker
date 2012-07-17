@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.regex.Pattern;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -75,6 +76,11 @@ public class ExplicitPrecision implements Precision {
       + "booleans from the cfa should tracked with another CPA, "
       + "i.e. with BDDCPA.")
   private boolean ignoreBooleans = false;
+
+  @Option(description = "ignore variables with only simple numbers. "
+      + "if this option is used, these variables from the cfa should "
+      + "tracked with another CPA, i.e. with BDDCPA.")
+  private boolean ignoreSimpleNumbers = false;
 
   private Optional<VariableClassification> varClass;
 
@@ -145,11 +151,24 @@ public class ExplicitPrecision implements Precision {
         && cegarPrecision.allowsTrackingOf(variable)
         && ignore.allowsTrackingOf(variable)
         && !isOnBlacklist(variable)
-        && !(ignoreBooleans && isBoolean(variable));
+        && !(ignoreBooleans && isBoolean(variable))
+        && !(ignoreSimpleNumbers && isSimpleNumber(variable));
   }
 
   private boolean isBoolean(String variable) {
-    // split var into function and varName
+    Pair<String,String> var = splitVar(variable);
+    return varClass.isPresent()
+        && varClass.get().getBooleanVars().containsEntry(var.getFirst(), var.getSecond());
+  }
+
+  private boolean isSimpleNumber(String variable) {
+    Pair<String,String> var = splitVar(variable);
+    return varClass.isPresent()
+        && varClass.get().getSimpleNumberVars().containsEntry(var.getFirst(), var.getSecond());
+  }
+
+  /** split var into function and varName */
+  private Pair<String, String> splitVar(String variable) {
     int i = variable.indexOf("::");
     String function;
     String varName;
@@ -160,8 +179,7 @@ public class ExplicitPrecision implements Precision {
       function = variable.substring(0, i);
       varName = variable.substring(i + 2);
     }
-    return varClass.isPresent()
-        && varClass.get().getBooleanVars().containsEntry(function, varName);
+    return Pair.of(function, varName);
   }
 
   @Options(prefix="cpa.explicit.precision.ignore")

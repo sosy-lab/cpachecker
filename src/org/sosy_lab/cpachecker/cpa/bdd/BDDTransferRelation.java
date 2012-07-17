@@ -107,6 +107,7 @@ public class BDDTransferRelation implements TransferRelation {
   public BDDTransferRelation(NamedRegionManager manager, Configuration config, CFA cfa, BDDPrecision precision)
       throws InvalidConfigurationException {
     config.inject(this);
+
     this.rmgr = manager;
 
     initVars(cfa, precision);
@@ -390,10 +391,10 @@ public class BDDTransferRelation implements TransferRelation {
       // make variable (predicate) for LEFT SIDE of assignment,
       // delete variable, if it was used before, this is done with an existential operator
       BDDState functionCall = state.getFunctionCallState();
-      String functionName = isGlobal(lhs) ? null : functionCall.getFunctionName();
+      String function = isGlobal(lhs) ? null : functionCall.getFunctionName();
       String varName = lhs.toASTString();
-      if (precision.isTracking(functionName, varName)) {
-        Region var = createPredicate(buildVarName(functionName, varName));
+      if (precision.isTracking(function, varName)) {
+        Region var = createPredicate(buildVarName(function, varName));
         newRegion = removePredicate(newRegion, var);
         newRegion = addEquality(var, retVar, newRegion);
       }
@@ -553,7 +554,6 @@ public class BDDTransferRelation implements TransferRelation {
       if (operand1 == null || operand2 == null) { return null; }
 
       Region returnValue = null;
-      // binary expression
       switch (exp.getOperator()) {
 
       case BINARY_AND:
@@ -666,7 +666,7 @@ public class BDDTransferRelation implements TransferRelation {
 
   /** This Visitor evaluates the visited expression and
    * returns iff the given variable is used in it. */
-  public static class VarCExpressionVisitor implements CExpressionVisitor<Boolean, UnrecognizedCCodeException> {
+  private static class VarCExpressionVisitor implements CExpressionVisitor<Boolean, UnrecognizedCCodeException> {
 
     private String functionName;
     private String varName;

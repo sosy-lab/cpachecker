@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.util;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
 public class VariableClassification {
@@ -109,16 +110,16 @@ public class VariableClassification {
     if (allVars == null) {
 
       // init maps
-      allVars = HashMultimap.create();
-      nonBooleanVars = HashMultimap.create();
-      nonSimpleNumberVars = HashMultimap.create();
-      nonIncVars = HashMultimap.create();
+      allVars = LinkedHashMultimap.create();
+      nonBooleanVars = LinkedHashMultimap.create();
+      nonSimpleNumberVars = LinkedHashMultimap.create();
+      nonIncVars = LinkedHashMultimap.create();
 
       dependencies = new Dependencies();
 
-      booleanVars = HashMultimap.create();
-      simpleNumberVars = HashMultimap.create();
-      incVars = HashMultimap.create();
+      booleanVars = LinkedHashMultimap.create();
+      simpleNumberVars = LinkedHashMultimap.create();
+      incVars = LinkedHashMultimap.create();
 
       // fill maps
       collectVars();
@@ -691,7 +692,7 @@ public class VariableClassification {
   private class Dependencies {
 
     /** partitions, each of them contains vars */
-    private Set<Multimap<String, String>> partitions = new HashSet<Multimap<String, String>>();
+    private Set<Multimap<String, String>> partitions = new LinkedHashSet<Multimap<String, String>>();
 
     /** map to get partition of a var */
     private Map<Pair<String, String>, Multimap<String, String>> varToPartition =
@@ -738,7 +739,7 @@ public class VariableClassification {
 
         // if none side is in any existing partition, create new partition
       } else {
-        Multimap<String, String> partition = HashMultimap.create();
+        Multimap<String, String> partition = LinkedHashMultimap.create();
         partitions.add(partition);
         partition.put(function1, var1);
         partition.put(function2, var2);
@@ -770,7 +771,7 @@ public class VariableClassification {
 
       // if var exists, we can ignore it, otherwise create new partition for var
       if (!varToPartition.containsKey(var)) {
-        Multimap<String, String> partition = HashMultimap.create();
+        Multimap<String, String> partition = LinkedHashMultimap.create(1,1);
         partition.put(function, varName);
         partitions.add(partition);
         varToPartition.put(var, partition);
