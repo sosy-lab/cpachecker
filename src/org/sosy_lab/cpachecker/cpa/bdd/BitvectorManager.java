@@ -30,21 +30,21 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 @Options(prefix = "cpa.bdd.vector")
 public class BitvectorManager {
 
-  private NamedRegionManager rmgr;
+  private BDDRegionManager rmgr;
 
   @Option(description = "bitsize for values")
   private int bitsize = 8;
 
-  public BitvectorManager(NamedRegionManager rmgr, Configuration config)
+  public BitvectorManager(Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);
-    this.rmgr = rmgr;
+    this.rmgr = (BDDRegionManager) BDDRegionManager.getInstance(config);
   }
 
   public int getBitSize() {

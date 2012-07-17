@@ -108,7 +108,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
       throws InvalidConfigurationException {
     config.inject(this);
 
-    this.bvmgr = new BitvectorManager(manager, config);
+    this.bvmgr = new BitvectorManager(config);
     this.rmgr = manager;
 
     initVars(cfa, precision);
