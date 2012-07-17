@@ -82,10 +82,9 @@ analysis.restartAfterUnknown = false
 # stop after the first error has been found
 analysis.stopAfterError = true
 
-# which strategy to adopt for visiting states? RPO is deprecated, use the
-# option analysis.traversal.useReversePostorder instead
+# which strategy to adopt for visiting states?
 analysis.traversal.order = DFS
-  enum:     [DFS, BFS, RPO, RAND]
+  enum:     [DFS, BFS, RAND]
 
 # handle states with a deeper callstack first?
 # This needs the CallstackCPA to have any effect.
@@ -98,11 +97,11 @@ analysis.traversal.useExplicitInformation = false
 # Use an implementation of reverse postorder strategy that allows to select a
 # secondary strategy that is used if there are two states with the same
 # reverse postorder id. The secondary strategy is selected with
-# 'analysis.traversal.order'. The secondary strategy may not be RPO.
+# 'analysis.traversal.order'.
 analysis.traversal.useReversePostorder = false
 
-# DEPRECATED: This option was renamed to analysis.traversal.useTopsort and
-# will soon get removed.
+# DEPRECATED: This option was renamed to
+# analysis.traversal.useReversePostorder and will soon get removed.
 analysis.traversal.useTopsort = false
 
 # use adjustable conditions algorithm

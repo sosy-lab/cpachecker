@@ -26,14 +26,11 @@ package org.sosy_lab.cpachecker.core.waitlist;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import com.google.common.base.Preconditions;
-
 public class ReversePostorderSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 
   @SuppressWarnings("deprecation")
   protected ReversePostorderSortedWaitlist(WaitlistFactory pSecondaryStrategy) {
     super(pSecondaryStrategy);
-    Preconditions.checkArgument(pSecondaryStrategy != TraversalMethod.RPO);
   }
 
   @Override
