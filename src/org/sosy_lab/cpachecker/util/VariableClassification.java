@@ -292,6 +292,7 @@ public class VariableClassification {
 
         if (cfa.getAllFunctionNames().contains(functionName)) {
           // TODO is this case really appearing or is it always handled as "functionCallEdge"?
+          allVars.put(functionName, FUNCTION_RETURN_VARIABLE);
           dependencies.add(functionName, FUNCTION_RETURN_VARIABLE, function, varName);
 
         } else {
@@ -329,6 +330,7 @@ public class VariableClassification {
         CExpression lhs = call.getLeftHandSide();
         String varName = lhs.toASTString();
         String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
+        allVars.put(innerFunctionName, FUNCTION_RETURN_VARIABLE);
         dependencies.add(innerFunctionName, FUNCTION_RETURN_VARIABLE, function, varName);
 
       } else if (statement instanceof CFunctionCallStatement) {
@@ -348,6 +350,7 @@ public class VariableClassification {
       CRightHandSide rhs = returnStatement.getExpression();
       if (rhs instanceof CExpression) {
         String function = edge.getPredecessor().getFunctionName();
+        allVars.put(function, FUNCTION_RETURN_VARIABLE);
         handleExpression(edge, ((CExpression) rhs), FUNCTION_RETURN_VARIABLE,
             function);
       }
@@ -771,7 +774,7 @@ public class VariableClassification {
 
       // if var exists, we can ignore it, otherwise create new partition for var
       if (!varToPartition.containsKey(var)) {
-        Multimap<String, String> partition = LinkedHashMultimap.create(1,1);
+        Multimap<String, String> partition = LinkedHashMultimap.create(1, 1);
         partition.put(function, varName);
         partitions.add(partition);
         varToPartition.put(var, partition);
