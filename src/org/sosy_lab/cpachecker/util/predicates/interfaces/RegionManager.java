@@ -113,4 +113,9 @@ public interface RegionManager {
    */
   public Triple<Region, Region, Region>
       getIfThenElse(Region f);
+
+  /**
+   * Returns some information about the RegionManager.
+   */
+  public String getStatistics();
 }

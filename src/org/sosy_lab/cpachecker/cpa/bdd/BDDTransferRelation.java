@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import static org.sosy_lab.cpachecker.util.VariableClassification.FUNCTION_RETURN_VARIABLE;
+
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
@@ -85,7 +87,6 @@ import com.google.common.collect.Multimap;
 @Options(prefix = "cpa.bdd")
 public class BDDTransferRelation implements TransferRelation {
 
-  public static final String FUNCTION_RETURN_VARIABLE = "__CPAchecker_return_var";
   public static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
 
   private final NamedRegionManager rmgr;
@@ -749,6 +750,7 @@ public class BDDTransferRelation implements TransferRelation {
   @Override
   public String toString() {
     return "Number of created predicates: " + createdPredicates +
-        "\nNumber of deleted predicates: " + deletedPredicates + "\n";
+        "\nNumber of deleted predicates: " + deletedPredicates +
+        "\n" + rmgr.getStatistics();
   }
 }

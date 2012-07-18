@@ -240,4 +240,10 @@ public class NamedRegionManager implements RegionManager {
   public Triple<Region, Region, Region> getIfThenElse(Region pF) {
     return delegate.getIfThenElse(pF);
   }
+
+  @Override
+  public String getStatistics() {
+    return "Number of named predicates:   " + getNumberOfNamedRegions() + "\n" +
+        delegate.getStatistics();
+  }
 }

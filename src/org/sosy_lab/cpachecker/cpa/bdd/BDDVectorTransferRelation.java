@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.bdd;
 
 import static org.sosy_lab.cpachecker.cpa.bdd.BDDTransferRelation.*;
+import static org.sosy_lab.cpachecker.util.VariableClassification.FUNCTION_RETURN_VARIABLE;
 
 import java.math.BigInteger;
 import java.util.Collection;
@@ -113,7 +114,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
 
     this.bvmgr = new BitvectorManager(config);
     this.rmgr = manager;
-    this.bddrmgr = (BDDRegionManager) BDDRegionManager.getInstance(config);
+    this.bddrmgr = BDDRegionManager.getInstance(config);
     initVars(cfa, precision);
   }
 
@@ -517,7 +518,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
       //      Region result1 = rmgr.makeAnd(environment, tmp[0]);
 
       Region result = assignRegions[0];
-      for (int i = 0; i < assignRegions.length; i++) {
+      for (int i = 1; i < assignRegions.length; i++) {
         result = rmgr.makeAnd(result, assignRegions[i]);
       }
       result = rmgr.makeAnd(environment, result);
@@ -730,7 +731,6 @@ public class BDDVectorTransferRelation implements TransferRelation {
   public String toString() {
     return "Number of created predicates: " + createdPredicates +
         "\nNumber of deleted predicates: " + deletedPredicates +
-        "\nNumber of named predicates:   " + rmgr.getNumberOfNamedRegions() +
-        "\nNumber of nodes:              " + bddrmgr.getNumberOfNodes() + "\n";
+        "\n" + rmgr.getStatistics();
   }
 }

@@ -78,7 +78,7 @@ import com.google.common.collect.Multimap;
 public class VariableClassification {
 
   /** name for return-variables, it is used for function-returns. */
-  private static final String FUNCTION_RETURN_VARIABLE = "__CPAchecker_return_var";
+  public static final String FUNCTION_RETURN_VARIABLE = "__CPAchecker_return_var";
 
   /** normally a boolean value would be 0 or 1,
    * however there are cases, where the values are only 0 and 1,

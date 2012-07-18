@@ -143,4 +143,9 @@ public class SymbolicRegionManager implements RegionManager {
     throw new UnsupportedOperationException();
   }
 
+  @Override
+  public String getStatistics() {
+    throw new UnsupportedOperationException();
+  }
+
 }

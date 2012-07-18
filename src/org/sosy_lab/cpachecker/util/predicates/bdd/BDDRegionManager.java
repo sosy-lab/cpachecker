@@ -77,7 +77,7 @@ public class BDDRegionManager implements RegionManager {
 
   /** this method will return the same object at any call. the very first given
    *  configuration will be used, each other configuration will be ignored. */
-  public static RegionManager getInstance(Configuration config) throws InvalidConfigurationException {
+  public static BDDRegionManager getInstance(Configuration config) throws InvalidConfigurationException {
     if (instance == null) {
       instance = new BDDRegionManager(config);
     }
@@ -98,13 +98,6 @@ public class BDDRegionManager implements RegionManager {
   public BDDRegion createPredicate() {
     cleanupReferences();
     return wrap(createNewVar());
-  }
-
-  /** returns a previously created predicate. */
-  public BDDRegion createPredicate(int index) {
-    cleanupReferences();
-    assert index < nextvar;
-    return wrap(factory.ithVar(index));
   }
 
   // Code for connecting the Java GC and the BDD library GC
@@ -245,5 +238,11 @@ public class BDDRegionManager implements RegionManager {
 
   public String getVersion() {
     return factory.getVersion();
+  }
+
+  @Override
+  public String getStatistics() {
+    return "Number of nodes:              " + getNumberOfNodes() +
+         "\nTablesize:                    " + factory.getNodeTableSize() + "\n";
   }
 }
