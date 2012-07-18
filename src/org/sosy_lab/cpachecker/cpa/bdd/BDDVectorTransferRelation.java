@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import com.google.common.collect.Multimap;
@@ -96,6 +97,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
 
   private final BitvectorManager bvmgr;
   private final NamedRegionManager rmgr;
+  private final BDDRegionManager bddrmgr;
 
   /** for statistics */
   private int createdPredicates;
@@ -111,7 +113,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
 
     this.bvmgr = new BitvectorManager(config);
     this.rmgr = manager;
-
+    this.bddrmgr = (BDDRegionManager) BDDRegionManager.getInstance(config);
     initVars(cfa, precision);
   }
 
@@ -496,10 +498,31 @@ public class BDDVectorTransferRelation implements TransferRelation {
       return environment;
     } else {
       final Region[] assignRegions = bvmgr.makeBinaryEqual(leftSide, rightSide);
+
+      //      // TODO maybe faster??
+      //      Region[] tmp = assignRegions;
+      //      while (tmp.length > 1) {
+      //        Region[] tmp2 = new Region[tmp.length / 2];
+      //        for (int i = 0; i < tmp2.length; i++) {
+      //          tmp2[i] = rmgr.makeAnd(tmp[2 * i], tmp[2 * i + 1]);
+      //        }
+      //        if (tmp.length != tmp2.length * 2) {
+      //          assert tmp.length == tmp2.length * 2 + 1;
+      //          tmp2[tmp2.length - 1] = rmgr.makeAnd(tmp2[tmp2.length - 1], tmp[tmp.length - 1]);
+      //        }
+      //        tmp = tmp2;
+      //      }
+      //
+      //      assert tmp.length == 1;
+      //      Region result1 = rmgr.makeAnd(environment, tmp[0]);
+
+      Region result = assignRegions[0];
       for (int i = 0; i < assignRegions.length; i++) {
-        environment = rmgr.makeAnd(environment, assignRegions[i]);
+        result = rmgr.makeAnd(result, assignRegions[i]);
       }
-      return environment;
+      result = rmgr.makeAnd(environment, result);
+
+      return result;
     }
   }
 
@@ -706,6 +729,8 @@ public class BDDVectorTransferRelation implements TransferRelation {
   @Override
   public String toString() {
     return "Number of created predicates: " + createdPredicates +
-        "\nNumber of deleted predicates: " + deletedPredicates + "\n";
+        "\nNumber of deleted predicates: " + deletedPredicates +
+        "\nNumber of named predicates:   " + rmgr.getNumberOfNamedRegions() +
+        "\nNumber of nodes:              " + bddrmgr.getNumberOfNodes() + "\n";
   }
 }

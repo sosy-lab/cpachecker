@@ -94,6 +94,19 @@ public class BDDRegionManager implements RegionManager {
     return ret;
   }
 
+  @Override
+  public BDDRegion createPredicate() {
+    cleanupReferences();
+    return wrap(createNewVar());
+  }
+
+  /** returns a previously created predicate. */
+  public BDDRegion createPredicate(int index) {
+    cleanupReferences();
+    assert index < nextvar;
+    return wrap(factory.ithVar(index));
+  }
+
   // Code for connecting the Java GC and the BDD library GC
   // When a Java object is freed, we need to tell the library.
   // The method with PhantomReferences is a better way then using finalize().
@@ -140,20 +153,21 @@ public class BDDRegionManager implements RegionManager {
     return region;
   }
 
+  private BDD unwrap(Region region) {
+    return ((BDDRegion) region).getBDD();
+  }
 
   @Override
   public boolean entails(Region pF1, Region pF2) {
-      cleanupReferences();
+    cleanupReferences();
 
-      // check entailment using BDDs: create the BDD representing
-      // the implication, and check that it is the TRUE formula
-      BDDRegion f1 = (BDDRegion)pF1;
-      BDDRegion f2 = (BDDRegion)pF2;
-      BDD imp = f1.getBDD().imp(f2.getBDD());
+    // check entailment using BDDs: create the BDD representing
+    // the implication, and check that it is the TRUE formula
+    BDD imp = unwrap(pF1).imp(unwrap(pF2));
 
-      boolean result = imp.isOne();
-      imp.free();
-      return result;
+    boolean result = imp.isOne();
+    imp.free();
+    return result;
   }
 
   @Override
@@ -174,65 +188,42 @@ public class BDDRegionManager implements RegionManager {
   public Region makeAnd(Region pF1, Region pF2) {
     cleanupReferences();
 
-    BDDRegion f1 = (BDDRegion)pF1;
-    BDDRegion f2 = (BDDRegion)pF2;
-
-    return wrap(f1.getBDD().and(f2.getBDD()));
+    return wrap(unwrap(pF1).and(unwrap(pF2)));
   }
 
   @Override
   public Region makeNot(Region pF) {
     cleanupReferences();
 
-    BDDRegion f = (BDDRegion)pF;
-
-    return wrap(f.getBDD().not());
+    return wrap(unwrap(pF).not());
   }
 
   @Override
   public Region makeOr(Region pF1, Region pF2) {
     cleanupReferences();
 
-    BDDRegion f1 = (BDDRegion)pF1;
-    BDDRegion f2 = (BDDRegion)pF2;
-
-    return wrap(f1.getBDD().or(f2.getBDD()));
+    return wrap(unwrap(pF1).or(unwrap(pF2)));
   }
 
   @Override
   public Region makeEqual(Region pF1, Region pF2) {
     cleanupReferences();
 
-    BDDRegion f1 = (BDDRegion)pF1;
-    BDDRegion f2 = (BDDRegion)pF2;
-
-    return wrap(f1.getBDD().biimp(f2.getBDD()));
+    return wrap(unwrap(pF1).biimp(unwrap(pF2)));
   }
 
   @Override
   public Region makeUnequal(Region pF1, Region pF2) {
     cleanupReferences();
 
-    BDDRegion f1 = (BDDRegion)pF1;
-    BDDRegion f2 = (BDDRegion)pF2;
-
-    return wrap(f1.getBDD().xor(f2.getBDD()));
-  }
-
-  @Override
-  public Region createPredicate() {
-    cleanupReferences();
-
-    BDD bddVar = createNewVar();
-
-    return wrap(bddVar);
+    return wrap(unwrap(pF1).xor(unwrap(pF2)));
   }
 
   @Override
   public Triple<Region, Region, Region> getIfThenElse(Region pF) {
     cleanupReferences();
 
-    BDD f = ((BDDRegion)pF).getBDD();
+    BDD f = unwrap(pF);
 
     Region predicate = wrap(factory.ithVar(f.var()));
     Region fThen = wrap(f.high());
@@ -245,10 +236,11 @@ public class BDDRegionManager implements RegionManager {
   public Region makeExists(Region pF1, Region pF2) {
     cleanupReferences();
 
-    BDD f1 = ((BDDRegion)pF1).getBDD();
-    BDD f2 = ((BDDRegion)pF2).getBDD();
+    return wrap(unwrap(pF1).exist(unwrap(pF2)));
+  }
 
-    return wrap(f1.exist(f2));
+  public int getNumberOfNodes() {
+    return factory.getNodeNum();
   }
 
   public String getVersion() {
