@@ -78,7 +78,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import com.google.common.collect.Multimap;
@@ -98,7 +97,6 @@ public class BDDVectorTransferRelation implements TransferRelation {
 
   private final BitvectorManager bvmgr;
   private final NamedRegionManager rmgr;
-  private final BDDRegionManager bddrmgr;
 
   /** for statistics */
   private int createdPredicates;
@@ -114,7 +112,6 @@ public class BDDVectorTransferRelation implements TransferRelation {
 
     this.bvmgr = new BitvectorManager(config);
     this.rmgr = manager;
-    this.bddrmgr = BDDRegionManager.getInstance(config);
     initVars(cfa, precision);
   }
 
@@ -258,38 +255,40 @@ public class BDDVectorTransferRelation implements TransferRelation {
         Region[] var = createPredicate(buildVarName(function, varName));
         CRightHandSide rhs = assignment.getRightHandSide();
 
-        if (isUsedLeftAndRight(function, varName, rhs)) {
-          // make tmp for assignment,
-          // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
-          Region[] tmp = createPredicate(buildVarName(state.getFunctionName(), TMP_VARIABLE));
+        if (rhs instanceof CExpression) {
+          CExpression exp = (CExpression) rhs;
+          if (isUsedInExpression(function, varName, exp)) {
+            // make tmp for assignment,
+            // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
+            Region[] tmp = createPredicate(buildVarName(state.getFunctionName(), TMP_VARIABLE));
 
-          // make region for RIGHT SIDE and build equality of var and region
-          if (rhs instanceof CExpression) {
+            // make region for RIGHT SIDE and build equality of var and region
             BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
-            Region[] regRHS = ((CExpression) rhs).accept(ev);
+            Region[] regRHS = exp.accept(ev);
             newRegion = addEquality(tmp, regRHS, newRegion);
-          }
 
-          // delete var, make tmp equal to (new) var, then delete tmp
-          newRegion = removePredicate(newRegion, var);
-          newRegion = addEquality(var, tmp, newRegion);
-          newRegion = removePredicate(newRegion, tmp);
+            // delete var, make tmp equal to (new) var, then delete tmp
+            newRegion = removePredicate(newRegion, var);
+            newRegion = addEquality(var, tmp, newRegion);
+            newRegion = removePredicate(newRegion, tmp);
 
-        } else {
-          newRegion = removePredicate(newRegion, var);
+          } else {
+            newRegion = removePredicate(newRegion, var);
 
-          // make region for RIGHT SIDE and build equality of var and region
-          if (rhs instanceof CExpression) {
+            // make region for RIGHT SIDE and build equality of var and region
             BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
             Region[] regRHS = ((CExpression) rhs).accept(ev);
             newRegion = addEquality(var, regRHS, newRegion);
           }
+
+        } else {
           // else if (rhs instanceof CFunctionCallExpression) {
           // call of external function: we know nothing, so we do nothing
           // TODO can we assume, that malloc returns something !=0?
           // are there some "save functions"?
-          // }
+          newRegion = removePredicate(newRegion, var);
         }
+
         result = new BDDState(rmgr, state.getFunctionCallState(), newRegion,
             state.getVars(), cfaEdge.getPredecessor().getFunctionName());
       }

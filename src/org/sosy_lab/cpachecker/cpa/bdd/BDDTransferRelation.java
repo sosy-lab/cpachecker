@@ -207,8 +207,8 @@ public class BDDTransferRelation implements TransferRelation {
    * A region is build for the right side of the statement.
    * Then this region is assigned to the variable at the left side.
    * This equality is added to the BDDstate to get the next state. */
-  private BDDState handleStatementEdge(BDDState state, CStatementEdge cfaEdge, BDDPrecision precision)
-      throws UnrecognizedCCodeException {
+  private BDDState handleStatementEdge(BDDState state, CStatementEdge cfaEdge,
+      BDDPrecision precision) throws UnrecognizedCCodeException {
     CStatement statement = cfaEdge.getStatement();
     if (!(statement instanceof CAssignment)) { return state; }
     CAssignment assignment = (CAssignment) statement;
@@ -226,38 +226,40 @@ public class BDDTransferRelation implements TransferRelation {
         Region var = createPredicate(buildVarName(function, varName));
         CRightHandSide rhs = assignment.getRightHandSide();
 
-        if (isUsedLeftAndRight(function, varName, rhs)) {
-          // make tmp for assignment,
-          // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
-          Region tmp = createPredicate(buildVarName(state.getFunctionName(), TMP_VARIABLE));
+        if (rhs instanceof CExpression) {
+          CExpression exp = (CExpression) rhs;
+          if (isUsedInExpression(function, varName, exp)) {
+            // make tmp for assignment,
+            // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
+            Region tmp = createPredicate(buildVarName(state.getFunctionName(), TMP_VARIABLE));
 
-          // make region for RIGHT SIDE and build equality of var and region
-          if (rhs instanceof CExpression) {
+            // make region for RIGHT SIDE and build equality of var and region
             BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
-            Region regRHS = ((CExpression) rhs).accept(ev);
+            Region regRHS = exp.accept(ev);
             newRegion = addEquality(tmp, regRHS, newRegion);
-          }
 
-          // delete var, make tmp equal to (new) var, then delete tmp
-          newRegion = removePredicate(newRegion, var);
-          newRegion = addEquality(var, tmp, newRegion);
-          newRegion = removePredicate(newRegion, tmp);
+            // delete var, make tmp equal to (new) var, then delete tmp
+            newRegion = removePredicate(newRegion, var);
+            newRegion = addEquality(var, tmp, newRegion);
+            newRegion = removePredicate(newRegion, tmp);
 
-        } else {
-          newRegion = removePredicate(newRegion, var);
+          } else {
+            newRegion = removePredicate(newRegion, var);
 
-          // make region for RIGHT SIDE and build equality of var and region
-          if (rhs instanceof CExpression) {
+            // make region for RIGHT SIDE and build equality of var and region
             BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
-            Region regRHS = ((CExpression) rhs).accept(ev);
+            Region regRHS = exp.accept(ev);
             newRegion = addEquality(var, regRHS, newRegion);
           }
+
+        } else {
           // else if (rhs instanceof CFunctionCallExpression) {
           // call of external function: we know nothing, so we do nothing
           // TODO can we assume, that malloc returns something !=0?
           // are there some "save functions"?
-          // }
+          newRegion = removePredicate(newRegion, var);
         }
+
         result = new BDDState(rmgr, state.getFunctionCallState(), newRegion,
             state.getVars(), cfaEdge.getPredecessor().getFunctionName());
       }
@@ -267,13 +269,10 @@ public class BDDTransferRelation implements TransferRelation {
     return result;
   }
 
-  protected static boolean isUsedLeftAndRight(String function, String varName, CRightHandSide rhs)
+  /** This function returns, if the variable is used in the Expression. */
+  protected static boolean isUsedInExpression(String function, String varName, CExpression exp)
       throws UnrecognizedCCodeException {
-    if (rhs instanceof CExpression) {
-      return ((CExpression) rhs).accept(new VarCExpressionVisitor(function, varName));
-    } else {
-      return true;
-    }
+    return exp.accept(new VarCExpressionVisitor(function, varName));
   }
 
   /** This function handles declarations like "int a = 0;" and "int b = !a;".
