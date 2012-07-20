@@ -29,8 +29,10 @@ import static org.sosy_lab.cpachecker.util.VariableClassification.FUNCTION_RETUR
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -95,6 +97,9 @@ public class BDDVectorTransferRelation implements TransferRelation {
   @Option(description = "declare vars ordered in partitions")
   private boolean initPartitions = true;
 
+  private final VariableClassification varClass;
+  private final Map<Multimap<String, String>, String> partitionToTmpVar = new HashMap<Multimap<String, String>, String>();
+
   private final BitvectorManager bvmgr;
   private final NamedRegionManager rmgr;
 
@@ -112,16 +117,17 @@ public class BDDVectorTransferRelation implements TransferRelation {
 
     this.bvmgr = new BitvectorManager(config);
     this.rmgr = manager;
-    initVars(cfa, precision);
+
+    assert cfa.getVarClassification().isPresent();
+    this.varClass = cfa.getVarClassification().get();
+    initVars(precision);
   }
 
   /** The BDDRegionManager orders the variables as they are declared
    *  (later vars are deeper in the BDD).
    *  This function declares those vars in the beginning of the analysis,
    *  so that we can choose between some orders. */
-  private void initVars(CFA cfa, BDDVectorPrecision precision) {
-    assert cfa.getVarClassification().isPresent();
-    VariableClassification varClass = cfa.getVarClassification().get();
+  private void initVars(BDDVectorPrecision precision) {
     int size = bvmgr.getBitSize();
 
     if (initPartitions) {
@@ -139,6 +145,12 @@ public class BDDVectorTransferRelation implements TransferRelation {
    * The flag 'bitwise' chooses between initialing each var after each other
    * or bitwise overlapped (bit1 of all vars, then bit2 of all vars, etc). */
   private void createPredicates(int size, Multimap<String, String> vars, BDDVectorPrecision precision) {
+
+    // add a temporary variable for each partition
+    // (or for allVars, then this action is senseless, but simplifies code)
+    String tmpVar = TMP_VARIABLE + "_" + partitionToTmpVar.size();
+    partitionToTmpVar.put(vars, tmpVar);
+
     if (initBitwise) {
       // [a2, b2, c2, a1, b1, c1, a0, b0, c0]
       for (int i = 0; i < size; i++) {
@@ -147,6 +159,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
             rmgr.createPredicate(buildVarName(entry.getKey(), entry.getValue()) + "@" + (size - i - 1));
           }
         }
+        rmgr.createPredicate(tmpVar + "@" + (size - i - 1));
       }
 
     } else {
@@ -156,6 +169,9 @@ public class BDDVectorTransferRelation implements TransferRelation {
           if (precision.isTracking(entry.getKey(), entry.getValue())) {
             rmgr.createPredicate(buildVarName(entry.getKey(), entry.getValue()) + "@" + (size - i - 1));
           }
+        }
+        for (int i = 0; i < size; i++) {
+          rmgr.createPredicate(tmpVar + "@" + (size - i - 1));
         }
       }
     }
@@ -260,7 +276,13 @@ public class BDDVectorTransferRelation implements TransferRelation {
           if (isUsedInExpression(function, varName, exp)) {
             // make tmp for assignment,
             // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
-            Region[] tmp = createPredicate(buildVarName(state.getFunctionName(), TMP_VARIABLE));
+            String tmpVarName;
+            if (initPartitions) {
+              tmpVarName = partitionToTmpVar.get(varClass.getPartitionForVar(function, varName));
+            } else {
+              tmpVarName = TMP_VARIABLE;
+            }
+            Region[] tmp = createPredicate(tmpVarName);
 
             // make region for RIGHT SIDE and build equality of var and region
             BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);

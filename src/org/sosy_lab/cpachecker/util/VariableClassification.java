@@ -178,12 +178,18 @@ public class VariableClassification {
     return nonSimpleNumberVars;
   }
 
-  /** This function returns a collection of (functionName, varNames).
-   * This collection contains all vars, that are not simple numbers.
-   * There are calculations (addition, etc) with these vars. */
+  /** This function returns a collection of partitions.
+   * A partition contains all vars, that are dependent from each other. */
   public Collection<Multimap<String, String>> getPartitions() {
     build();
     return dependencies.getPartitions();
+  }
+
+  /** This function returns a collection of (functionName, varName).
+   * This collection contains all vars, that are dependent with the given variable. */
+  public Multimap<String, String> getPartitionForVar(String function, String var) {
+    build();
+    return dependencies.getPartitionForVar(function, var);
   }
 
   /** This function iterates over all edges of the cfa, collects all variables
@@ -703,6 +709,10 @@ public class VariableClassification {
 
     public Collection<Multimap<String, String>> getPartitions() {
       return partitions;
+    }
+
+    public Multimap<String, String> getPartitionForVar(String function, String var) {
+      return varToPartition.get(Pair.of(function, var));
     }
 
     /** This function creates a dependency between function1::var1 and function2::var2. */
