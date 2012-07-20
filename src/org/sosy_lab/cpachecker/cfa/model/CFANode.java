@@ -152,7 +152,7 @@ public class CFANode implements Comparable<CFANode> {
   }
 
   public void addEnteringSummaryEdge(FunctionSummaryEdge pEdge) {
-    checkState(leavingSummaryEdge == null,
+    checkState(enteringSummaryEdge == null,
         "Cannot add two entering summary edges to node %s", this);
     enteringSummaryEdge = pEdge;
   }
