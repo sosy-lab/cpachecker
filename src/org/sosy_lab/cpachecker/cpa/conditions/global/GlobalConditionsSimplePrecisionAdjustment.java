@@ -64,7 +64,7 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
     memory = ManagementFactory.getMemoryMXBean();
 
     try {
-      osMbean = new ObjectName("java.lang", "type", "OperatingSystem");
+      osMbean = new ObjectName(ManagementFactory.OPERATING_SYSTEM_MXBEAN_NAME);
     } catch (MalformedObjectNameException e) {
       // the name is hard-coded, so this exception should never occur
       throw new AssertionError(e);

@@ -148,7 +148,7 @@ class MainCPAStatistics implements Statistics {
 
       mbeanServer = ManagementFactory.getPlatformMBeanServer();
       try {
-        osMbean = new ObjectName("java.lang", "type", "OperatingSystem");
+        osMbean = new ObjectName(ManagementFactory.OPERATING_SYSTEM_MXBEAN_NAME);
       } catch (MalformedObjectNameException e) {
         logger.logDebugException(e, "Accessing OperatingSystemMXBean failed");
         osMbean = null;
