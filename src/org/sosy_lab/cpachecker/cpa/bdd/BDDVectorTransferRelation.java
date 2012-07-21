@@ -94,11 +94,18 @@ public class BDDVectorTransferRelation implements TransferRelation {
   @Option(description = "declare first bit of all vars, then second bit,...")
   private boolean initBitwise = true;
 
+  @Option(description = "declare the bits of a var from 0 to N or from N to 0")
+  private boolean initBitsIncreasing = true;
+
+  @Option(description = "adding a new value to the state can be done from 0 to N or from N to 0")
+  private boolean addIncreasing = false;
+
   @Option(description = "declare vars ordered in partitions")
   private boolean initPartitions = true;
 
   private final VariableClassification varClass;
-  private final Map<Multimap<String, String>, String> partitionToTmpVar = new HashMap<Multimap<String, String>, String>();
+  private final Map<Multimap<String, String>, String> partitionToTmpVar =
+      new HashMap<Multimap<String, String>, String>();
 
   private final BitvectorManager bvmgr;
   private final NamedRegionManager rmgr;
@@ -154,12 +161,13 @@ public class BDDVectorTransferRelation implements TransferRelation {
     if (initBitwise) {
       // [a2, b2, c2, a1, b1, c1, a0, b0, c0]
       for (int i = 0; i < size; i++) {
+        int index = initBitsIncreasing ? i : (size - i - 1);
         for (Entry<String, String> entry : vars.entries()) {
           if (precision.isTracking(entry.getKey(), entry.getValue())) {
-            rmgr.createPredicate(buildVarName(entry.getKey(), entry.getValue()) + "@" + (size - i - 1));
+            rmgr.createPredicate(buildVarName(entry.getKey(), entry.getValue()) + "@" + index);
           }
         }
-        rmgr.createPredicate(tmpVar + "@" + (size - i - 1));
+        rmgr.createPredicate(tmpVar + "@" + index);
       }
 
     } else {
@@ -167,11 +175,13 @@ public class BDDVectorTransferRelation implements TransferRelation {
       for (Entry<String, String> entry : vars.entries()) { // different loop order!
         for (int i = 0; i < size; i++) {
           if (precision.isTracking(entry.getKey(), entry.getValue())) {
-            rmgr.createPredicate(buildVarName(entry.getKey(), entry.getValue()) + "@" + (size - i - 1));
+            int index = initBitsIncreasing ? i : (size - i - 1);
+            rmgr.createPredicate(buildVarName(entry.getKey(), entry.getValue()) + "@" + index);
           }
         }
         for (int i = 0; i < size; i++) {
-          rmgr.createPredicate(tmpVar + "@" + (size - i - 1));
+          int index = initBitsIncreasing ? i : (size - i - 1);
+          rmgr.createPredicate(tmpVar + "@" + index);
         }
       }
     }
@@ -538,10 +548,20 @@ public class BDDVectorTransferRelation implements TransferRelation {
       //      assert tmp.length == 1;
       //      Region result1 = rmgr.makeAnd(environment, tmp[0]);
 
-      Region result = assignRegions[0];
-      for (int i = 1; i < assignRegions.length; i++) {
-        result = rmgr.makeAnd(result, assignRegions[i]);
+      Region result;
+
+      if (addIncreasing) {
+        result = assignRegions[0];
+        for (int i = 1; i < assignRegions.length; i++) {
+          result = rmgr.makeAnd(result, assignRegions[i]);
+        }
+      } else {
+        result = assignRegions[assignRegions.length - 1];
+        for (int i = assignRegions.length - 2; i >= 0; i--) {
+          result = rmgr.makeAnd(result, assignRegions[i]);
+        }
       }
+
       result = rmgr.makeAnd(environment, result);
 
       return result;
