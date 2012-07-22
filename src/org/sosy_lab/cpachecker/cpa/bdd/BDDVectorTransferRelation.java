@@ -582,10 +582,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
 
   /** This function returns a region without a variable. */
   private Region removePredicate(Region region, Region... existing) {
-    for (Region r : existing) {
-      deletedPredicates++;
-      region = rmgr.makeExists(region, r);
-    }
+    region = rmgr.makeExists(region, existing);
     return region;
   }
 

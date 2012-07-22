@@ -232,7 +232,7 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public Region makeExists(Region pF1, Region pF2) {
+  public Region makeExists(Region pF1, Region... pF2) {
     return delegate.makeExists(pF1, pF2);
   }
 

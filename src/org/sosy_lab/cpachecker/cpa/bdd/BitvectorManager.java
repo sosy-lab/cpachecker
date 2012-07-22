@@ -43,7 +43,7 @@ public class BitvectorManager {
   public BitvectorManager(Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);
-    this.rmgr = (BDDRegionManager) BDDRegionManager.getInstance(config);
+    this.rmgr = BDDRegionManager.getInstance(config);
   }
 
   public int getBitSize() {

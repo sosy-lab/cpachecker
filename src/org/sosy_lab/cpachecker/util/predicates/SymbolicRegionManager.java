@@ -129,7 +129,7 @@ public class SymbolicRegionManager implements RegionManager {
   }
 
   @Override
-  public Region makeExists(Region pF1, Region pF2) {
+  public Region makeExists(Region pF1, Region... pF2) {
     throw new UnsupportedOperationException();
   }
 

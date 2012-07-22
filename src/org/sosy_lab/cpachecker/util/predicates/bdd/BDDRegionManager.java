@@ -226,10 +226,18 @@ public class BDDRegionManager implements RegionManager {
   }
 
   @Override
-  public Region makeExists(Region pF1, Region pF2) {
+  public Region makeExists(Region pF1, Region... pF2) {
     cleanupReferences();
 
-    return wrap(unwrap(pF1).exist(unwrap(pF2)));
+    // we use id() to get copies of the BDDs, otherwise we would delete them
+    BDD f = unwrap(pF2[0]).id();
+    for (int i = 1; i < pF2.length; i++) {
+      f.andWith(unwrap(pF2[i]).id());
+    }
+    Region result = wrap(unwrap(pF1).exist(f));
+    f.free();
+
+    return result;
   }
 
   public int getNumberOfNodes() {
