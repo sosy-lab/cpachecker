@@ -288,6 +288,8 @@ public class VariableClassification {
       String varName = lhs.toASTString();
       String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
 
+      allVars.put(function, varName);
+
       if (rhs instanceof CExpression) {
         handleExpression(edge, ((CExpression) rhs), varName, function);
 
