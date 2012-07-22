@@ -24,14 +24,13 @@
 package org.sosy_lab.cpachecker.util;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -703,7 +702,7 @@ public class VariableClassification {
   private class Dependencies {
 
     /** partitions, each of them contains vars */
-    private Set<Multimap<String, String>> partitions = new LinkedHashSet<Multimap<String, String>>();
+    private Collection<Multimap<String, String>> partitions = new ArrayList<Multimap<String, String>>();
 
     /** map to get partition of a var */
     private Map<Pair<String, String>, Multimap<String, String>> varToPartition =
