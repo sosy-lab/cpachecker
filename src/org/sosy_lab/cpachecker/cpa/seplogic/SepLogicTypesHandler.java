@@ -27,7 +27,7 @@ import java.util.HashMap;
 
 import org.sosy_lab.cpachecker.cpa.types.Type;
 import org.sosy_lab.cpachecker.cpa.types.Type.FunctionType;
-import org.sosy_lab.cpachecker.cpa.types.Type.StructType;
+import org.sosy_lab.cpachecker.cpa.types.Type.Primitive;
 import org.sosy_lab.cpachecker.cpa.types.Type.TypeClass;
 import org.sosy_lab.cpachecker.cpa.types.TypesElement;
 
@@ -35,41 +35,11 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * Used by {@link SeplogicTransferRelation} to
- * determine what has changed in a given TypesElement
- * and get various information.
+ * get informationen based on Types
  *
  *@author Philipp Korth
  */
 public class SepLogicTypesHandler {
-
-
-  /**
-   * Returns the size of the given type
-   * by converting it into {@link Type}.
-   * TODO Write something about lists
-   * @param expression String representation of the type
-   * @return Integer Value
-   */
-  public int getSizeOfType(String expression) {
-    // Create Type from representation
-    Type type = parseToType(expression);
-
-    // Pointer?
-    if (type.getTypeClass().equals(TypeClass.POINTER)) {
-
-      // what type does it point to?
-      String pointsToTypeName = type.getDefinition().replace('*', ' ');
-
-      // Determine its type
-      Type pointsToType = parseToType(pointsToTypeName);
-
-      return pointsToType.sizeOf();
-    }
-
-    // No Pointer so far
-    return type.sizeOf();
-
-  }
 
   /**
    * Try to convert the given string representation to a
@@ -81,41 +51,35 @@ public class SepLogicTypesHandler {
     Type type = null;
     String expr = expression.trim();
 
-    // Is it a self defined type?
-    if (currentTypedefs.containsKey(expr)) { return currentTypedefs.get(expr); }
-    // Maybe a struct?
-    if (currentTypedefs.containsKey(structName(expr))) { return parseToType(structName(expr)); }
-
-    // Something else
-
-    // TODO Do something about the primitives
-
+    // Self defined type?
+    if (currentTypedefs.containsKey(expr)) {
+      type = currentTypedefs.get(expr);
+      // If its a pointer , look what it points to
+      if (type.getTypeClass().equals(TypeClass.POINTER)) {
+        type = parseToType(type.getDefinition().replace('*', ' ').trim());
+      }
+      // Struct ?
+    } else if (currentTypedefs.containsKey(structName(expr))) { return parseToType(structName(expr)); }
     return type;
   }
 
   /**
-   * Assuming the given struct-type is a linked list,
-   * this method calculates the offset between the list nodes
-   * @return offset
+   * Determines if the given expression is a primitive type
+   * @param expression String expression from the code
+   * @return Primitive?
    */
-  public int getListOffset(StructType list) {
+  public boolean isPrimitiveType(String expression) {
 
-    int offset = 0;
+    // Primitives can be signed or unsigned, remove those parts for now
+    String expr = expression.replaceAll("unsigned", "");
+    expr = expr.replaceAll("signed", "");
+    expr = expr.trim();
 
-    // Look at each field, ignore the pointer to the next list node
-    for (String field : list.getMembers()) {
-      Type fieldType = list.getMemberType(field);
-      if (fieldType.getTypeClass().equals(TypeClass.POINTER)) {
-        // Ok this is the pointer, ignore
-        // TODO more detail on points to?
-      } else {
-        offset += fieldType.sizeOf();
-      }
-
+    for (Primitive primitive : Primitive.values()) {
+      if (primitive.toString().equals(expr))
+        return true;
     }
-
-    return offset;
-
+    return false;
   }
 
   /**
