@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.ForwardReceivingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.seplogic.SeplogicElement.SeplogicQueryUnsuccessful;
@@ -75,18 +76,21 @@ import org.sosy_lab.cpachecker.cpa.seplogic.nodes.StringArgument;
 import org.sosy_lab.cpachecker.cpa.seplogic.nodes.VarArgument;
 import org.sosy_lab.cpachecker.cpa.seplogic.nodes.Variable;
 import org.sosy_lab.cpachecker.cpa.types.Type;
+import org.sosy_lab.cpachecker.cpa.types.Type.StructType;
 import org.sosy_lab.cpachecker.cpa.types.TypesElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
 
-public class SeplogicTransferRelation implements TransferRelation {
+public class SeplogicTransferRelation implements TransferRelation, ForwardReceivingTransferRelation {
 
   boolean entryFunctionProcessed = false;
   long existentialVarIndex = 0;
   private long namespaceCounter = 0;
   private static final String RETVAR = "$RET";
+  // Handle types from TypesTransferrelation
+  private SepLogicTypesHandler seplogicTypesHandler = new SepLogicTypesHandler();
 
   private VarArgument makeFreshExistential() {
     return new VarArgument(new Variable("_v" + existentialVarIndex++));
@@ -116,6 +120,7 @@ public class SeplogicTransferRelation implements TransferRelation {
         break;
 
       case ReturnStatementEdge:
+
         IASTExpression expression = ((ReturnStatementEdge) cfaEdge).getExpression();
         if (expression != null) {
           // non-void function
@@ -159,8 +164,9 @@ public class SeplogicTransferRelation implements TransferRelation {
         //return Collections.singleton(currentElement.makeExceptionState(e));
       } else {
         e.printStackTrace();
-        System.err.println("Must be a null-dereference in CFA Edge: N" + cfaEdge.getPredecessor().getNodeNumber() + " -> N"
-          + cfaEdge.getSuccessor().getNodeNumber());
+        System.err.println("Must be a null-dereference in CFA Edge: N" + cfaEdge.getPredecessor().getNodeNumber()
+            + " -> N"
+            + cfaEdge.getSuccessor().getNodeNumber());
         return Collections.singleton(currentElement.makeExceptionState(e));
       }
       //throw e;
@@ -670,6 +676,7 @@ public class SeplogicTransferRelation implements TransferRelation {
       isPureGuard = true;
     } else if (expression instanceof IASTLiteralExpression) {
       // a = INT
+
       if (!(expression instanceof IASTIntegerLiteralExpression)) { throw new UnrecognizedCCodeException(
           "unsupported literal", cfaEdge, expression); }
       long value = ((IASTIntegerLiteralExpression) expression).getValue().longValue();
@@ -686,16 +693,38 @@ public class SeplogicTransferRelation implements TransferRelation {
       }
     } else if (expression instanceof IASTCastExpression) {
       // a = (int*)b
-      Argument rhsArg = makeVarArg(((IASTCastExpression) expression).getOperand().toASTString(), element);
-      if (leftDereference) {
-        fPre = makePointsTo(makeVarArg(leftVarName, leftNamespace), makeFreshExistential());
-        fPost = makePointsTo(makeVarArg(leftVarName, leftNamespace), rhsArg);
+      IASTCastExpression castExpr = (IASTCastExpression) expression;
+
+      // Get whats right of the cast
+      String rightVarname = castExpr.getOperand().toASTString();
+
+      // Primitive types are not on the heap, so don't care
+      if (seplogicTypesHandler.isPrimitiveType(castExpr.getType().toASTString(""))) {
+        Argument rhsArg = makeVarArg(castExpr.getOperand().toASTString(), element);
+
+        if (leftDereference) {
+          fPre = makePointsTo(makeVarArg(leftVarName, leftNamespace), makeFreshExistential());
+          fPost = makePointsTo(makeVarArg(leftVarName, leftNamespace), rhsArg);
+        } else {
+          fPre = new Empty();
+          fPost = new Equality(new VarArgument(new Variable(Formula.RETVAR)), rhsArg);
+          sVarName = leftVarName;
+          isPureGuard = true;
+        }
+        // Something none primitive
       } else {
-        fPre = new Empty();
-        fPost = new Equality(new VarArgument(new Variable(Formula.RETVAR)), rhsArg);
-        sVarName = leftVarName;
-        isPureGuard = true;
+        // get the type that its cast to, "" to not get an usless variable in the string
+        Type type = seplogicTypesHandler.parseToType(castExpr.getType().toASTString(""));
+
+        if (castExpr.getOperand() instanceof IASTLiteralExpression) { return handleAssignment(element, leftVarName,
+            leftDereference, castExpr.getOperand(), cfaEdge); }
+        return materializeFields(element, leftVarName, rightVarname, type);
+
+
+
+
       }
+
 
     } else if (expression instanceof IASTFunctionCallExpression) {
       // a = func()
@@ -905,22 +934,75 @@ public class SeplogicTransferRelation implements TransferRelation {
           parameter);
     }
 
-    // XXX freshen correct?
-    SeplogicElement curElem =
-        element.freshenVariable(quoteVar(pLeftVarName, element)).performSpecificationAssignment(new Empty(),
-            makePointsTo(makeVarArg(pLeftVarName, element), makeFreshExistential()), null);
-    // XXX completely nuts but enough for list2.cil.c on amd64
-    int i = 8;
-    while (i < size) {
-      curElem =
-          curElem.performSpecificationAssignment(
-              new Empty(),
-              makePointsTo(new OpArgument("builtin_plus", makeVarArg(pLeftVarName, element), makeIntegerConstant(i)),
-                  makeFreshExistential()), null);
-      i += 8;
-    }
+    Formula fPre = new Empty();
+    Formula fPost = createAllocPredicate(element, pLeftVarName, size);
+    SeplogicElement curElem = element.performSpecificationAssignment(fPre, fPost, null);
     return curElem;
 
+  }
+
+  /**
+   * Creates an Alloc-Predicate with the given data
+   * @param element
+   *        current Seplogic element
+   * @param varname
+   *        Variable that malloc is assigned to
+   *         <code>varname=malloc(4);</code>
+   * @param size
+   *         size of the malloc
+   *         <code>int tmp = malloc(size);</code>
+   * @return The alloc predicate
+   */
+  private Formula createAllocPredicate(SeplogicElement element, String varname, long mallocSize) {
+    List<Argument> args = new ArrayList<Argument>();
+    args.add(new VarArgument(new Variable(varname)));
+    args.add(new StringArgument(String.valueOf(mallocSize)));
+    Formula formula = new SpatialPredicate("ALLOC", args);
+    return formula;
+  }
+
+  /**
+   * TODO Write something usefull
+   *
+   * @param element
+   *        The current seplogic element
+   * @param leftVarName
+   *        the var the casted var is assigned to
+   * @param rightVarname
+   *        The var that is casted
+   * @param type
+   *        The type casted to
+   * @return a new seplogic element
+   *
+   */
+  private SeplogicElement materializeFields(SeplogicElement element, String leftVarName, String rightVarname, Type type) {
+
+    Formula allocPredicate = createAllocPredicate(element, rightVarname, type.sizeOf());
+
+    SeplogicElement curElem = null;
+    curElem = element.freshenVariable(quoteVar(leftVarName, element)).performSpecificationAssignment(allocPredicate,
+        makePointsTo(makeVarArg(leftVarName, element), makeFreshExistential()), null);
+
+
+    // XXX completely nuts but enough for list2.cil.c
+    StructType struct = (StructType) type;
+
+    int offset = 0;
+    for (String field : struct.getMembers()) {
+      // Determine offset
+      offset += struct.getMemberType(field).sizeOf();
+
+      if (offset < struct.sizeOf()) {
+        curElem =
+            curElem.performSpecificationAssignment(
+                new Empty(),
+                makePointsTo(new OpArgument("builtin_plus", makeVarArg(leftVarName, element),
+                    makeIntegerConstant(offset)),
+                    makeFreshExistential()), null);
+      }
+    }
+
+    return curElem;
   }
 
   private OpArgument makeIntegerConstant(long pL) {
@@ -999,5 +1081,39 @@ public class SeplogicTransferRelation implements TransferRelation {
     }
     return t;
   }
+
+
+  @Override
+  /**
+   * Handles abstract elements from prior CPAs.
+   *
+   * @param pElement
+   *         The SeplogicElement
+   * @param pOtherElements
+   *         List of collections of other abstract elements
+   * @param pCfaEdge
+   */
+  public void propagate(AbstractElement pElement, List<Collection<? extends AbstractElement>> pOtherElements,
+      CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+
+    for (Collection<? extends AbstractElement> collection : pOtherElements) {
+
+      // Determine exact type of AbstractElement
+      if (!collection.isEmpty()) {
+        AbstractElement abstractElement = collection.iterator().next();
+
+        // handle TypesElement
+        if (abstractElement instanceof TypesElement) {
+          // Update TypesElement in SeplogicTypesHandler
+          seplogicTypesHandler.update((TypesElement) abstractElement);
+          return;
+        }
+
+      }// ignore others for now
+
+    }
+
+  }
+
 
 }
