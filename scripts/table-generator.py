@@ -27,6 +27,9 @@ CPAchecker web page:
 # prepare for Python 3
 from __future__ import absolute_import, print_function, unicode_literals
 
+import sys
+sys.dont_write_bytecode = True # prevent creation of .pyc files
+
 import xml.etree.ElementTree as ET
 import collections
 import os.path
@@ -34,7 +37,6 @@ import glob
 import shutil
 import optparse
 import time
-import sys
 
 from datetime import date
 from decimal import *

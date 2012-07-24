@@ -27,6 +27,9 @@ CPAchecker web page:
 # prepare for Python 3
 from __future__ import absolute_import, print_function, unicode_literals
 
+import sys
+sys.dont_write_bytecode = True # prevent creation of .pyc files
+
 from datetime import date
 
 try:
@@ -44,7 +47,6 @@ import re
 import resource
 import signal
 import subprocess
-import sys
 import threading
 import xml.etree.ElementTree as ET
 
