@@ -606,7 +606,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
       String function = isGlobal(exp) ? null : functionName;
 
       if (precision.isTracking(function, var)) {
-        return createPredicate(buildVarName(functionName, var));
+        return createPredicate(buildVarName(function, var));
       } else {
         return null;
       }
