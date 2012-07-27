@@ -46,6 +46,9 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
  */
 public  class EclipseJavaParser implements CParser {
 
+  private static final int START_OF_STRING = 0;
+
+
   private boolean ignoreCasts;
 
 
@@ -81,24 +84,33 @@ public  class EclipseJavaParser implements CParser {
 
 
 
-  private CompilationUnit parse(String pFileName) throws ParserException {
+  private CompilationUnit parse(final String pFileName) throws ParserException {
     parseTimer.start();
     try {
 
       File file = new File(pFileName);
       String source = FileUtils.readFileToString(file);
 
+      //TODO Check if Windows use \
+
+
+
+      final String[] sourceFilePath = {pFileName.substring( START_OF_STRING , pFileName.lastIndexOf("/")) };
+
+
+
+      final String[] encoding = {"utf8"};
+
+
       ASTParser parser = ASTParser.newParser(AST.JLS4);
 
-
       parser.setSource(source.toCharArray());
-      parser.setEnvironment(null, null, null, true);
+      parser.setEnvironment( null, sourceFilePath, encoding, true);
       parser.setResolveBindings(true);
       parser.setStatementsRecovery(true);
       parser.setBindingsRecovery(true);
 
-      //TODO Get Unit Name of Java File
-      parser.setUnitName("Readable.java");
+      parser.setUnitName(pFileName.substring(pFileName.lastIndexOf("/") + 1));
       CompilationUnit unit = (CompilationUnit)parser.createAST(null);
       return unit;
 
@@ -125,6 +137,7 @@ public  class EclipseJavaParser implements CParser {
       }
 
       return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations());
+
     } finally {
       cfaTimer.stop();
     }

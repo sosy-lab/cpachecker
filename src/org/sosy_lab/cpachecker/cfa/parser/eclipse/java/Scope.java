@@ -30,10 +30,10 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
@@ -46,10 +46,10 @@ import com.google.common.collect.Lists;
  */
 class Scope {
 
-  private final LinkedList<Map<String, CSimpleDeclaration>> varsStack = Lists.newLinkedList();
-  private final LinkedList<Map<String, CSimpleDeclaration>> varsList = Lists.newLinkedList();
+  private final LinkedList<Map<String, IASimpleDeclaration>> varsStack = Lists.newLinkedList();
+  private final LinkedList<Map<String, IASimpleDeclaration>> varsList = Lists.newLinkedList();
 
-  private final Map<String, CSimpleDeclaration> functions = new HashMap<String, CSimpleDeclaration>();
+  private final Map<String, IASimpleDeclaration> functions = new HashMap<String, IASimpleDeclaration>();
   private String currentFunctionName = null;
 
   public Scope() {
@@ -60,7 +60,7 @@ class Scope {
     return varsStack.size() == 1;
   }
 
-  public void enterFunction(CFunctionDeclaration pFuncDef) {
+  public void enterFunction(AFunctionDeclaration pFuncDef) {
     currentFunctionName = pFuncDef.getOrigName();
     registerFunctionDeclaration(pFuncDef);
 
@@ -77,7 +77,7 @@ class Scope {
   }
 
   public void enterBlock() {
-    varsStack.addLast(new HashMap<String, CSimpleDeclaration>());
+    varsStack.addLast(new HashMap<String, IASimpleDeclaration>());
     varsList.addLast(varsStack.getLast());
   }
 
@@ -90,11 +90,11 @@ class Scope {
       checkNotNull(name);
       checkNotNull(origName);
 
-      Iterator<Map<String, CSimpleDeclaration>> it = varsList.descendingIterator();
+      Iterator<Map<String, IASimpleDeclaration>> it = varsList.descendingIterator();
       while (it.hasNext()) {
-        Map<String, CSimpleDeclaration> vars = it.next();
+        Map<String, IASimpleDeclaration> vars = it.next();
 
-        CSimpleDeclaration binding = vars.get(origName);
+        IASimpleDeclaration binding = vars.get(origName);
         if (binding != null && binding.getName().equals(name)) {
           return true;
         }
@@ -106,14 +106,14 @@ class Scope {
       return false;
     }
 
-  public CSimpleDeclaration lookupVariable(String name) {
+  public IASimpleDeclaration lookupVariable(String name) {
     checkNotNull(name);
 
-    Iterator<Map<String, CSimpleDeclaration>> it = varsStack.descendingIterator();
+    Iterator<Map<String, IASimpleDeclaration>> it = varsStack.descendingIterator();
     while (it.hasNext()) {
-      Map<String, CSimpleDeclaration> vars = it.next();
+      Map<String, IASimpleDeclaration> vars = it.next();
 
-      CSimpleDeclaration binding = vars.get(name);
+      IASimpleDeclaration binding = vars.get(name);
       if (binding != null) {
         return binding;
       }
@@ -121,21 +121,21 @@ class Scope {
     return null;
   }
 
-  public CSimpleDeclaration lookupFunction(String name) {
+  public IASimpleDeclaration lookupFunction(String name) {
     return functions.get(checkNotNull(name));
   }
 
-  public void registerDeclaration(CSimpleDeclaration declaration) {
-    assert declaration instanceof CVariableDeclaration
+  public void registerDeclaration(IASimpleDeclaration declaration) {
+    assert declaration instanceof AVariableDeclaration
         || declaration instanceof CEnumerator
-        || declaration instanceof CParameterDeclaration
+        || declaration instanceof AParameterDeclaration
         : "Tried to register a declaration which does not define a name in the standard namespace: " + declaration;
     assert  !(declaration.getType() instanceof CFunctionType);
 
     String name = declaration.getOrigName();
     assert name != null;
 
-    Map<String, CSimpleDeclaration> vars = varsStack.getLast();
+    Map<String, IASimpleDeclaration> vars = varsStack.getLast();
 
     // multiple declarations of the same variable are disallowed, unless when being in global scope
     if (vars.containsKey(name) && !isGlobalScope()) {
@@ -145,7 +145,7 @@ class Scope {
     vars.put(name, declaration);
   }
 
-  public void registerFunctionDeclaration(CFunctionDeclaration declaration) {
+  public void registerFunctionDeclaration(AFunctionDeclaration declaration) {
     checkState(isGlobalScope(), "nested functions not allowed");
 
     String name = declaration.getName();

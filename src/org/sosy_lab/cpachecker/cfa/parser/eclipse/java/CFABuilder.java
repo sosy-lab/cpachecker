@@ -32,9 +32,13 @@ import java.util.logging.Level;
 
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
@@ -50,13 +54,14 @@ import com.google.common.collect.TreeMultimap;
  */
 class CFABuilder extends ASTVisitor {
 
+  private static final boolean SKIP_CHILDREN = false;
   // Data structures for handling function declarations
   private Queue<MethodDeclaration> functionDeclarations = new LinkedList<MethodDeclaration>();
   private final Map<String, FunctionEntryNode> cfas = new HashMap<String, FunctionEntryNode>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
   // Data structure for storing global declarations
-  private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration, String>> globalDeclarations = Lists.newArrayList();
+  private final List<Pair<IADeclaration, String>> globalDeclarations = Lists.newArrayList();
 
   private final Scope scope = new Scope();
   private final ASTConverter astCreator;
@@ -95,32 +100,59 @@ class CFABuilder extends ASTVisitor {
    * Retrieves list of all global declarations
    * @return global declarations
    */
-  public List<Pair<org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration, String>> getGlobalDeclarations() {
+  public List<Pair<IADeclaration, String>> getGlobalDeclarations() {
     return globalDeclarations;
   }
 
   /* (non-Javadoc)
-   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.CDeclaration)
+   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IADeclaration)
    */
   @Override
   public boolean visit(MethodDeclaration fd) {
 
 
-
       functionDeclarations.add(fd);
 
       // add forward declaration to list of global declarations
-      org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration functionDefinition = astCreator.convert(fd);
+      IADeclaration functionDefinition = astCreator.convert(fd);
       if (astCreator.numberOfSideAssignments() > 0) {
         throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
       }
 
       globalDeclarations.add(Pair.of(functionDefinition, "What is that" + " " + "What is that"));
 
-      return false;
-
+      return SKIP_CHILDREN;
 
   }
+
+  @Override
+  public boolean visit(FieldDeclaration fd) {
+
+
+
+
+    final List<IADeclaration> newDs = astCreator.convert(fd);
+    assert !newDs.isEmpty();
+
+    if (astCreator.numberOfPreSideAssignments() > 0) {
+      throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", fd);
+    }
+
+    String rawSignature = fd.toString();
+
+    for (IADeclaration newD : newDs) {
+      if (newD instanceof AVariableDeclaration) {
+        scope.registerDeclaration(newD);
+      } else if (newD instanceof AFunctionDeclaration) {
+        scope.registerFunctionDeclaration((AFunctionDeclaration) newD);
+      }
+
+      globalDeclarations.add(Pair.of(newD, rawSignature));
+    }
+
+    return SKIP_CHILDREN;
+
+}
 
   @Override
   public void endVisit(CompilationUnit translationUnit) {
