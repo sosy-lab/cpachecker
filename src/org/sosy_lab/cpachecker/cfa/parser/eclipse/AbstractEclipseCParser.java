@@ -155,7 +155,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
         throw new ParserException(e);
       }
 
-      return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations());
+      return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations2());
     } finally {
       cfaTimer.stop();
     }

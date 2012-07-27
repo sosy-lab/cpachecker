@@ -41,6 +41,7 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -66,6 +67,9 @@ class CFABuilder extends ASTVisitor {
 
   // Data structure for storing global declarations
   private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration, String>> globalDeclarations = Lists.newArrayList();
+
+  private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.IADeclaration, String>> globalDeclarations2 = Lists.newArrayList();
+
 
   private final Scope scope = new Scope();
   private final ASTConverter astCreator;
@@ -112,6 +116,10 @@ class CFABuilder extends ASTVisitor {
     return globalDeclarations;
   }
 
+  public List<Pair<IADeclaration, String>> getGlobalDeclarations2() {
+    return globalDeclarations2;
+  }
+
   /* (non-Javadoc)
    * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTDeclaration)
    */
@@ -133,6 +141,9 @@ class CFABuilder extends ASTVisitor {
       }
 
       globalDeclarations.add(Pair.of(functionDefinition, fd.getDeclSpecifier().getRawSignature() + " " + fd.getDeclarator().getRawSignature()));
+
+      globalDeclarations2.add(Pair.of((IADeclaration)functionDefinition, fd.getDeclSpecifier().getRawSignature() + " " + fd.getDeclarator().getRawSignature()));
+
 
       return PROCESS_SKIP;
 
@@ -178,6 +189,8 @@ class CFABuilder extends ASTVisitor {
       }
 
       globalDeclarations.add(Pair.of(newD, rawSignature));
+
+      globalDeclarations2.add(Pair.of((IADeclaration)newD, rawSignature));
     }
 
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
