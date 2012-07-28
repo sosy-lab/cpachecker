@@ -163,6 +163,8 @@ public class ARGStatistics implements Statistics {
             // to avoid this problem.
             ARGState lastElement = (ARGState)pReached.getLastState();
             pathElements = ARGUtils.getAllStatesOnPathsTo(lastElement);
+
+
             pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
           }
 
