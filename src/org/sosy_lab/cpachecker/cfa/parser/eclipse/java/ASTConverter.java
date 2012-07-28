@@ -40,9 +40,12 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.ConditionalExpression;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
+import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
+import org.eclipse.jdt.core.dom.IBinding;
 import org.eclipse.jdt.core.dom.IExtendedModifier;
 import org.eclipse.jdt.core.dom.ITypeBinding;
+import org.eclipse.jdt.core.dom.IVariableBinding;
 import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
@@ -55,6 +58,7 @@ import org.eclipse.jdt.core.dom.PostfixExpression;
 import org.eclipse.jdt.core.dom.PrefixExpression;
 import org.eclipse.jdt.core.dom.PrefixExpression.Operator;
 import org.eclipse.jdt.core.dom.PrimitiveType;
+import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
@@ -326,7 +330,8 @@ public class ASTConverter {
 
 
       result.add( new JVariableDeclaration(fileLoc, GLOBAL,
-          convert(type) ,    nameAndInitializer.getFirst() ,nameAndInitializer.getSecond()   , nameAndInitializer.getThird() ,  mB.isFinal , mB.isStatic , mB.isTransient , mB.isVolatile));
+          convert(type) ,    nameAndInitializer.getFirst() ,nameAndInitializer.getSecond(),
+             nameAndInitializer.getThird(),  mB.isFinal, mB.isStatic, mB.isTransient, mB.isVolatile));
 
     }
     return result;
@@ -499,7 +504,22 @@ public class ASTConverter {
     }
 
 
-    return new Triple<String , String ,AInitializerExpression>(d.getName().getFullyQualifiedName(), d.getName().getFullyQualifiedName(), initializerExpression);
+    String name = getFullyQualifiedName(d.resolveBinding());
+
+    return new Triple<String , String ,AInitializerExpression>( name, name, initializerExpression);
+  }
+
+
+  private String getFullyQualifiedName(IVariableBinding vb){
+    StringBuilder name = new StringBuilder();
+
+    // Field Variable are declared with Declaring class before Identifier
+    // Classname.var
+    name.append( vb.getDeclaringClass() != null ? vb.getDeclaringClass().getName() + "." : "");
+    name.append(vb.getName());
+
+    return name.toString();
+
   }
 
 
@@ -507,9 +527,7 @@ public class ASTConverter {
   public List<IADeclaration> convert(VariableDeclarationStatement vds){
 
 
-
     List<IADeclaration> variableDeclarations = new ArrayList<IADeclaration>();
-
 
     @SuppressWarnings("cast")
     List<VariableDeclarationFragment> variableDeclarationFragments =
@@ -523,7 +541,7 @@ public class ASTConverter {
 
    assert(!mB.isAbstract) : "Local Variable has abstract modifier?";
    assert(!mB.isNative) : "Local Variable has native modifier?";
-   //assert(mB.visibility != null) : "Local Variable has Visibility modifier?";
+   assert(mB.visibility == null) : "Local Variable has Visibility modifier?";
    assert(!mB.isStatic) : "Local Variable has static modifier?";
    assert(!mB.isStrictFp) : "Local Variable has strictFp modifier?";
    assert(!mB.isSynchronized) : "Local Variable has synchronized modifier?";
@@ -540,6 +558,7 @@ public class ASTConverter {
 
     return variableDeclarations;
   }
+
 
   public JVariableDeclaration convert(SingleVariableDeclaration d) {
 
@@ -657,7 +676,7 @@ public class ASTConverter {
     }
   }
 
-  //TODO Refactor to reduce Visibility
+
   public IAstNode convertExpressionWithSideEffects(Expression e) {
 
     //TODO  All Expression Implementation
@@ -683,8 +702,12 @@ public class ASTConverter {
          return convert((PrefixExpression) e);
        case ASTNode.POSTFIX_EXPRESSION:
          return convert((PostfixExpression) e);
+       case ASTNode.QUALIFIED_NAME:
+         return convert((QualifiedName )e);
        case ASTNode.BOOLEAN_LITERAL:
          return convert((BooleanLiteral) e);
+       case ASTNode.FIELD_ACCESS:
+         return convertExpressionWithoutSideEffects(((FieldAccess) e).getExpression());
        case ASTNode.SIMPLE_NAME:
          return convert((SimpleName) e);
        case ASTNode.PARENTHESIZED_EXPRESSION:
@@ -694,12 +717,21 @@ public class ASTConverter {
     }
 
        logger.log(Level.SEVERE, "Expression of typ "+ e.getNodeType() + " not implemented");
-
        return null;
   }
 
 
 
+
+  private IAstNode convert(QualifiedName e) {
+    String name = e.getFullyQualifiedName();
+
+    IASimpleDeclaration declaration = scope.lookupVariable(name);
+    if (declaration != null) {
+      name = declaration.getName();
+    }
+    return new AIdExpression(getFileLocation(e), convert(e.resolveTypeBinding()), name, declaration);
+  }
 
   @SuppressWarnings({ "unchecked", "cast" })
   private IAstNode convert(MethodInvocation mi) {
@@ -745,11 +777,22 @@ public class ASTConverter {
   }
 
   private AIdExpression convert(SimpleName e) {
-    String name = e.getIdentifier();
-    IASimpleDeclaration declaration = scope.lookupVariable(name);
-    if (declaration != null) {
-      name = declaration.getName();
+
+
+    //TODO Complete declaration by finding all Bindings
+
+    IBinding binding = e.resolveBinding();
+
+    String name;
+    IASimpleDeclaration declaration = null;
+
+    if(binding instanceof IVariableBinding){
+    name = getFullyQualifiedName((IVariableBinding) binding);
+    declaration = scope.lookupVariable(name);
+    }else {
+      name = e.getIdentifier();
     }
+
     return new AIdExpression(getFileLocation(e), convert(e.resolveTypeBinding()), name, declaration);
   }
 
@@ -762,8 +805,6 @@ public class ASTConverter {
     IAExpression leftHandSide = convertExpressionWithoutSideEffects(e.getLeftHandSide());
 
     BinaryOperator op = convert(e.getOperator());
-
-
 
     if (op == null) {
       // a = b
@@ -989,11 +1030,11 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
       return BinaryOperator.LESS_EQUAL;
     } else if (op.equals(InfixExpression.Operator.LEFT_SHIFT)) {
       return BinaryOperator.SHIFT_LEFT;
-    }else if (op.equals(InfixExpression.Operator.RIGHT_SHIFT_SIGNED)) {
+    } else if (op.equals(InfixExpression.Operator.RIGHT_SHIFT_SIGNED)) {
       return BinaryOperator.SHIFT_RIGHT;
-    }else if(op.equals(InfixExpression.Operator.NOT_EQUALS)){
+    } else if(op.equals(InfixExpression.Operator.NOT_EQUALS)){
      return BinaryOperator.NOT_EQUALS;
-    }else {
+    } else {
       logger.log(Level.SEVERE, "Did not find Operator");
       return null;
     }

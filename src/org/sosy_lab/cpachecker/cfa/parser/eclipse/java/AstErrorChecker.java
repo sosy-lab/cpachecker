@@ -45,10 +45,13 @@ class AstErrorChecker extends ASTVisitor {
   @Override
   public void preVisit(ASTNode problem) {
 
+    //System.out.println(problem.getNodeType());
+    //System.out.println(problem);
+    //System.out.println();
+
     // flags return the bitwise or of value Recovered = 8 , Malformed = 1
     if(ASTNode.RECOVERED == (problem.getFlags() & ASTNode.RECOVERED) || ASTNode.MALFORMED == (problem.getFlags() & ASTNode.MALFORMED )){
       logger.log(Level.SEVERE, "Syntax Error");
-    //throw new CFAGenerationRuntimeException("Parse Error", problem);
 
     }
   }
