@@ -28,6 +28,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -43,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
@@ -1339,7 +1340,7 @@ class OctTransferRelation implements TransferRelation{
 
   private Long parseLiteral(CLiteralExpression expression, CFAEdge edge) throws UnrecognizedCCodeException {
     if (expression instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression)expression).asLong();
+      return ((AIntegerLiteralExpression)expression).asLong();
 
     } else if (expression instanceof CFloatLiteralExpression) {
       return null;

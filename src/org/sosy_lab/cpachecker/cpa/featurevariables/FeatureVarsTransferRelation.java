@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -346,7 +347,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
               binExp.getOperand1(), binExp.getOperand2(), functionName,
               precision, edge);
     } else if (op2 instanceof CIntegerLiteralExpression) {
-      CIntegerLiteralExpression number = (CIntegerLiteralExpression)op2;
+      AIntegerLiteralExpression number = (AIntegerLiteralExpression)op2;
       if (number.getValue().equals(BigInteger.ZERO)) {
         operand2 = rmgr.makeFalse();
       } else {

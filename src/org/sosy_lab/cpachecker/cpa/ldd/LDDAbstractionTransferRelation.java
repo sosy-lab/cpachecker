@@ -33,6 +33,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -41,9 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -401,7 +402,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
     expression.toASTString();
     Map<String, Pair<Integer, Integer>> variableCoeffs = new HashMap<String, Pair<Integer, Integer>>();
     if (expression instanceof CIntegerLiteralExpression) {
-      CIntegerLiteralExpression literal = (CIntegerLiteralExpression) expression;
+      AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
       return Collections.singletonMap("const", Pair.of(literal.getValue().intValue(), 1));
     }
     if (expression instanceof CIdExpression) {
@@ -569,7 +570,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
   private Integer reduceToConstant(CExpression expression) {
     // If the expression is an integer literal, return its value
     if (expression instanceof CIntegerLiteralExpression) {
-      CIntegerLiteralExpression literal = (CIntegerLiteralExpression) expression;
+      AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
       return literal.getValue().intValue();
     }
     // If the expression is a binary expression and its operands are reducible

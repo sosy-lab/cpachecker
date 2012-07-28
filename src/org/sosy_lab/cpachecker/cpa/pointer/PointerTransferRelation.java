@@ -34,10 +34,11 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -684,7 +685,7 @@ public class PointerTransferRelation implements TransferRelation {
     if (!(expression instanceof CIntegerLiteralExpression)) {
       throw new UnrecognizedCCodeException("integer expression expected", edge, expression);
     }
-    return ((CIntegerLiteralExpression)expression).asLong();
+    return ((AIntegerLiteralExpression)expression).asLong();
   }
 
   private void handleReturnFromFunction(PointerState element,
