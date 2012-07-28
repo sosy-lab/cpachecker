@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-public abstract class CStatement extends CAstNode {
+import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 
-  public CStatement(final CFileLocation pFileLocation) {
-    super(pFileLocation);
-  }
 
-  public abstract <R, X extends Exception> R accept(CStatementVisitor<R, X> v) throws X;
+public  interface CStatement extends CAstNode , IAStatement{
+
+
+
+  public  <R, X extends Exception> R accept(CStatementVisitor<R, X> v) throws X;
+
 }

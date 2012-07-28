@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.base.Preconditions.*;
 
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -35,22 +38,26 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * int x = 0;
  * struct s { ... } st;
  */
-public final class CVariableDeclaration extends CDeclaration {
+public final class CVariableDeclaration extends AVariableDeclaration implements CDeclaration {
 
   private final CStorageClass    cStorageClass;
-  private final CInitializer initializer;
+
 
   public CVariableDeclaration(CFileLocation pFileLocation, boolean pIsGlobal,
       CStorageClass pCStorageClass, CType pType, String pName, String pOrigName,
       CInitializer pInitializer) {
 
-    super(pFileLocation, pIsGlobal, pType, checkNotNull(pName), pOrigName);
+    super(pFileLocation, pIsGlobal, pType, checkNotNull(pName), pOrigName,pInitializer);
     cStorageClass = pCStorageClass;
-    initializer = pInitializer;
 
     checkArgument(!(cStorageClass == CStorageClass.EXTERN && initializer != null), "Extern declarations cannot have an initializer");
     checkArgument(cStorageClass == CStorageClass.EXTERN || cStorageClass == CStorageClass.AUTO, "CStorageClass is " + cStorageClass);
     checkArgument(pIsGlobal || cStorageClass == CStorageClass.AUTO);
+  }
+
+  @Override
+  public CType getType(){
+    return (CType)type;
   }
 
   /**
@@ -60,13 +67,7 @@ public final class CVariableDeclaration extends CDeclaration {
     return cStorageClass;
   }
 
-  /**
-   * The initial value of the variable
-   * (only if present, null otherwise).
-   */
-  public CInitializer getInitializer() {
-    return initializer;
-  }
+
 
   @Override
   public String toASTString() {
@@ -84,4 +85,6 @@ public final class CVariableDeclaration extends CDeclaration {
 
     return lASTString.toString();
   }
+
+
 }

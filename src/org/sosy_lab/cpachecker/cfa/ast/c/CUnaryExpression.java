@@ -23,27 +23,34 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CUnaryExpression extends CExpression {
+public class CUnaryExpression extends AUnaryExpression implements CExpression {
 
-  private final CExpression operand;
-  private final UnaryOperator  operator;
+
 
   public CUnaryExpression(final CFileLocation pFileLocation,
                              final CType pType, final CExpression pOperand,
                              final UnaryOperator pOperator) {
-    super(pFileLocation, pType);
-    operand = pOperand;
-    operator = pOperator;
+    super(pFileLocation, pType, pOperand, pOperator);
+
   }
 
+  @Override
   public CExpression getOperand() {
-    return operand;
+    return (CExpression) operand;
   }
 
+  @Override
   public UnaryOperator getOperator() {
     return operator;
+  }
+
+  @Override
+  public CType getExpressionType() {
+    return (CType) type;
   }
 
   @Override
@@ -77,15 +84,6 @@ public class CUnaryExpression extends CExpression {
      */
     public String getOperator() {
       return mOp;
-    }
-  }
-
-  @Override
-  public String toASTString() {
-    if (operator == UnaryOperator.SIZEOF) {
-      return operator.getOperator() + "(" + operand.toASTString() + ")";
-    } else {
-      return operator.getOperator() + operand.toParenthesizedASTString();
     }
   }
 }
