@@ -23,48 +23,35 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.c;
 
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
-import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 import com.google.common.base.Optional;
 
-public class CReturnStatementEdge extends AbstractCFAEdge {
+public class CReturnStatementEdge extends AReturnStatementEdge {
 
-  private final CReturnStatement rawAST;
 
   public CReturnStatementEdge(String pRawStatement, CReturnStatement pRawAST,
       int pLineNumber, CFANode pPredecessor, FunctionExitNode pSuccessor) {
 
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
-    rawAST = pRawAST;
+    super(pRawStatement, pRawAST ,pLineNumber, pPredecessor, pSuccessor);
+
   }
+
+
 
   @Override
-  public CFAEdgeType getEdgeType() {
-    return CFAEdgeType.ReturnStatementEdge;
-  }
-
   public CExpression getExpression() {
-    return rawAST.getReturnValue();
+    return (CExpression)rawAST.getReturnValue();
   }
 
   @Override
   public Optional<CReturnStatement> getRawAST() {
-    return Optional.of(rawAST);
+    return Optional.of((CReturnStatement)rawAST);
   }
 
-  @Override
-  public String getCode() {
-    return rawAST.toASTString();
-  }
-
-  @Override
-  public FunctionExitNode getSuccessor() {
-    // the constructor enforces that the successor is always a FunctionExitNode
-    return (FunctionExitNode)super.getSuccessor();
-  }
 }

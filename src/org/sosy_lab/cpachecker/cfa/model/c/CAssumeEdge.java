@@ -24,23 +24,20 @@
 package org.sosy_lab.cpachecker.cfa.model.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 import com.google.common.base.Optional;
 
-public class CAssumeEdge extends AbstractCFAEdge {
+public class CAssumeEdge extends AssumeEdge {
 
-  private final boolean truthAssumption;
-  private final CExpression expression;
+
 
   public CAssumeEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
       CFANode pSuccessor, CExpression pExpression, boolean pTruthAssumption) {
 
-    super("[" + pRawStatement + "]", pLineNumber, pPredecessor, pSuccessor);
-    truthAssumption = pTruthAssumption;
-    expression = pExpression;
+    super( pRawStatement, pLineNumber, pPredecessor, pSuccessor, pExpression, pTruthAssumption);
   }
 
   @Override
@@ -48,26 +45,11 @@ public class CAssumeEdge extends AbstractCFAEdge {
     return CFAEdgeType.AssumeEdge;
   }
 
-  public boolean getTruthAssumption() {
-    return truthAssumption;
-  }
-
+  @Override
   public CExpression getExpression() {
-    return expression;
+    return (CExpression) expression;
   }
 
-  @Override
-  public String getCode() {
-    if (truthAssumption) {
-      return expression.toASTString();
-    }
-    return "!(" + expression.toASTString() + ")";
-  }
-
-  @Override
-  public String getDescription() {
-    return "[" + getCode() + "]";
-  }
 
   /**
    * TODO
@@ -77,6 +59,6 @@ public class CAssumeEdge extends AbstractCFAEdge {
    */
   @Override
   public Optional<CExpression> getRawAST() {
-    return Optional.of(expression);
+    return Optional.of((CExpression)expression);
   }
 }
