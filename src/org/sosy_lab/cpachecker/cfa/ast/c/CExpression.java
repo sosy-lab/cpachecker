@@ -23,17 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+
 
 /**
  * Super class for side-effect free expressions.
  */
-public abstract class CExpression extends CRightHandSide {
+public interface  CExpression  extends CRightHandSide , IAExpression {
 
-  public CExpression(final CFileLocation pFileLocation,
-                        final CType pType) {
-    super(pFileLocation, pType);
-  }
+  public  <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X;
 
-  public abstract <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X;
 }

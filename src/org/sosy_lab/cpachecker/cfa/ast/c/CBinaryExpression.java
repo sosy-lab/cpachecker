@@ -23,35 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CBinaryExpression extends CExpression {
-
-  private final CExpression operand1;
-  private final CExpression operand2;
-  private final BinaryOperator operator;
+public class CBinaryExpression extends ABinaryExpression implements CExpression {
 
   public CBinaryExpression(final CFileLocation pFileLocation,
                               final CType pType,
                               final CExpression pOperand1,
                               final CExpression pOperand2,
                               final BinaryOperator pOperator) {
-    super(pFileLocation, pType);
-    operand1 = pOperand1;
-    operand2 = pOperand2;
-    operator = pOperator;
-  }
+    super(pFileLocation, pType , pOperand1 , pOperand2, pOperator);
 
-  public CExpression getOperand1() {
-    return operand1;
-  }
-
-  public CExpression getOperand2() {
-    return operand2;
-  }
-
-  public BinaryOperator getOperator() {
-    return operator;
   }
 
   @Override
@@ -65,9 +49,23 @@ public class CBinaryExpression extends CExpression {
   }
 
   @Override
-  public String toASTString() {
-    return operand1.toParenthesizedASTString() + " "
-        + operator.getOperator() + " " + operand2.toParenthesizedASTString();
+  public CType getExpressionType() {
+    return (CType) type;
+  }
+
+  @Override
+  public CExpression getOperand1() {
+    return (CExpression) operand1;
+  }
+
+  @Override
+  public CExpression getOperand2() {
+    return (CExpression)operand2;
+  }
+
+  @Override
+  public BinaryOperator getOperator() {
+    return operator;
   }
 
   public static enum BinaryOperator {

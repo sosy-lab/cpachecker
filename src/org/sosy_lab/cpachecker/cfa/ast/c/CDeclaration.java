@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+
 
 
 
@@ -33,22 +34,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * This excludes for examples function parameter declarations and struct members.
  * It includes local and global variables and types, as well as functions.
  */
-public abstract class CDeclaration extends CSimpleDeclaration {
+public interface CDeclaration extends  CSimpleDeclaration , IADeclaration {
 
-  private final boolean               isGlobal;
-
-  public CDeclaration(CFileLocation pFileLocation,
-                         boolean pIsGlobal,
-                         CType pType, String pName,
-                         String pOrigName) {
-    super(pFileLocation, pType, pName, pOrigName);
-    isGlobal = pIsGlobal;
-  }
-
-  /**
-   * Whether this declaration is a global one (i.e., not inside a function).
-   */
-  public boolean isGlobal() {
-    return isGlobal;
-  }
 }

@@ -23,25 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+
+
+import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
+
 import com.google.common.base.Function;
 
-public abstract class CAstNode {
 
-  private final CFileLocation fileLocation;
-
-  public CAstNode(final CFileLocation pFileLocation) {
-    fileLocation = pFileLocation;
-  }
-
-  public CFileLocation getFileLocation() {
-    return fileLocation;
-  }
-
-  public abstract String toASTString();
-
-  protected String toParenthesizedASTString() {
-    return "(" + toASTString() + ")";
-  }
+public interface CAstNode extends IAstNode{
 
   public static final Function<CAstNode, String> TO_AST_STRING
       = new Function<CAstNode, String>() {
@@ -50,4 +39,5 @@ public abstract class CAstNode {
           return pInput.toASTString();
         }
       };
+
 }

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
@@ -37,11 +39,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * TODO: As these declarations have no name, they should not be in the hierarchy
  * below {@link CSimpleDeclaration}.
  */
-public final class CComplexTypeDeclaration extends CDeclaration {
+public final class CComplexTypeDeclaration extends ADeclaration implements CDeclaration {
 
   public CComplexTypeDeclaration(CFileLocation pFileLocation,
       boolean pIsGlobal, CType pType) {
     super(pFileLocation, pIsGlobal, pType, null, null);
+  }
+
+  @Override
+  public CType getType(){
+    return (CType)type;
   }
 
 }

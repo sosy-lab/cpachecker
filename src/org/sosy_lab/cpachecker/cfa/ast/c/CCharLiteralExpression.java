@@ -23,26 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CCharLiteralExpression extends CLiteralExpression {
-
-  private final char character;
+public class CCharLiteralExpression extends ACharLiteralExpression implements CLiteralExpression {
 
   public CCharLiteralExpression(CFileLocation pFileLocation,
                                    CType pType,
                                    char pCharacter) {
-    super(pFileLocation, pType);
-    character = pCharacter;
-  }
-
-  public char getCharacter() {
-    return character;
+    super(pFileLocation, pType, pCharacter);
   }
 
   @Override
-  public Character getValue() {
-    return getCharacter();
+  public CType getExpressionType() {
+    return (CType) type;
   }
 
   @Override
@@ -55,12 +50,5 @@ public class CCharLiteralExpression extends CLiteralExpression {
     return v.visit(this);
   }
 
-  @Override
-  public String toASTString() {
-    if (character >= ' ' && character < 128) {
-      return "'" + character + "'";
-    } else {
-      return "'\\x" + Integer.toHexString(character) + "'";
-    }
-  }
+
 }
