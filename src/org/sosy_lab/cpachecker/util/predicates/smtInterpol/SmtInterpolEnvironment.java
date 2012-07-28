@@ -47,7 +47,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Assignments;
 import de.uni_freiburg.informatik.ultimate.logic.LoggingScript;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
 import de.uni_freiburg.informatik.ultimate.logic.Model;
-import de.uni_freiburg.informatik.ultimate.logic.QuotedString;
+import de.uni_freiburg.informatik.ultimate.logic.QuotedObject;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Script;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
@@ -499,8 +499,8 @@ public class SmtInterpolEnvironment implements Script {
 
   /** This function returns the version of SmtInterpol, for logging. */
   public String getVersion() {
-    QuotedString program = (QuotedString)script.getInfo(":name");
-    QuotedString version = (QuotedString)script.getInfo(":version");
+    QuotedObject program = (QuotedObject)script.getInfo(":name");
+    QuotedObject version = (QuotedObject)script.getInfo(":version");
     return program.getValue() + " " + version.getValue();
   }
 }

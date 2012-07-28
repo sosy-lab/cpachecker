@@ -305,9 +305,9 @@ public class PredicateTransferRelation implements TransferRelation {
       PathFormula pFormula = convertEdgeToPathFormula(pathFormula, pCfaEdge);
       Collection<? extends AbstractState> foundSuccessors = handleNonAbstractionFormulaLocation(pFormula, predicateElement.getAbstractionFormula());
       //if we found successors, they all have to be unsat
-      for(AbstractState e : foundSuccessors) {
+      for (AbstractState e : foundSuccessors) {
         PredicateAbstractState successor = (PredicateAbstractState)e;
-        if(!formulaManager.unsat(successor.getAbstractionFormula(), successor.getPathFormula())) {
+        if (!formulaManager.unsat(successor.getAbstractionFormula(), successor.getPathFormula())) {
           result = false;
         }
       }
@@ -315,13 +315,13 @@ public class PredicateTransferRelation implements TransferRelation {
       return result;
     }
 
-    for(AbstractState e : pSuccessors) {
+    for (AbstractState e : pSuccessors) {
       PredicateAbstractState successor = (PredicateAbstractState)e;
 
-      if(successor.isAbstractionState()) {
+      if (successor.isAbstractionState()) {
         // check abstraction
         abstractionCheckTimer.start();
-        if(!formulaManager.checkCoverage(predicateElement.getAbstractionFormula(), pathFormula, successor.getAbstractionFormula())) {
+        if (!formulaManager.checkCoverage(predicateElement.getAbstractionFormula(), pathFormula, successor.getAbstractionFormula())) {
           result = false;
           System.out.println(predicateElement.getAbstractionFormula() + "\n----\n" + pathFormula + "\n----\n" + successor.getAbstractionFormula());
         }
@@ -330,7 +330,7 @@ public class PredicateTransferRelation implements TransferRelation {
       else {
         // check abstraction
         abstractionCheckTimer.start();
-        if(!successor.getAbstractionFormula().equals(predicateElement.getAbstractionFormula())) {
+        if (!successor.getAbstractionFormula().equals(predicateElement.getAbstractionFormula())) {
           result = false;
         }
         abstractionCheckTimer.stop();

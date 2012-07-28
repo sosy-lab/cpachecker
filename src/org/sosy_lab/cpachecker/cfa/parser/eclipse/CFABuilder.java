@@ -37,6 +37,7 @@ import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
@@ -75,16 +76,10 @@ class CFABuilder extends ASTVisitor {
   private final ASTConverter astCreator;
 
   private final LogManager logger;
-  private final boolean ignoreCasts;
 
-  public CFABuilder(LogManager pLogger, boolean pIgnoreCasts) {
+  public CFABuilder(LogManager pLogger) {
     logger = pLogger;
-    ignoreCasts = pIgnoreCasts;
-    astCreator = new ASTConverter(scope, pIgnoreCasts, logger);
-
-    if (pIgnoreCasts) {
-      logger.log(Level.WARNING, "Ignoring all casts in the program because of user request!");
-    }
+    astCreator = new ASTConverter(scope, logger);
 
     shouldVisitDeclarations = true;
     shouldVisitEnumerators = true;
@@ -172,6 +167,11 @@ class CFABuilder extends ASTVisitor {
   private int handleSimpleDeclaration(final IASTSimpleDeclaration sd,
       final IASTFileLocation fileloc) {
 
+    //these are unneccesary semicolons which would cause an abort of CPAchecker
+    if(sd.getDeclarators().length == 0  && sd.getDeclSpecifier() instanceof IASTSimpleDeclSpecifier) {
+      return PROCESS_SKIP;
+    }
+
     final List<CDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
 
@@ -208,7 +208,7 @@ class CFABuilder extends ASTVisitor {
   @Override
   public int leave(IASTTranslationUnit translationUnit) {
     for (IASTFunctionDefinition declaration : functionDeclarations) {
-      CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, ignoreCasts,
+      CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger,
           scope, astCreator);
 
       declaration.accept(functionBuilder);

@@ -29,6 +29,7 @@ import java.util.Iterator;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterators;
 
 /**
@@ -37,7 +38,7 @@ import com.google.common.collect.Iterators;
  * The tree is traversed in pre-order.
  * @param <T> The type of the nodes of the tree.
  */
-public class TreeIterable<T> implements Iterable<T> {
+public class TreeIterable<T> extends FluentIterable<T> implements Iterable<T> {
 
   private final Function<T, Iterator<? extends T>> childrenFunction;
 

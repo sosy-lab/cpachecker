@@ -168,8 +168,9 @@ public class FeatureVarsRestrictionAlgorithm implements Algorithm, StatisticsPro
             ARGState xart = (ARGState)x;
             FeatureVarsState fvstate = null;
             for (AbstractState y : ((CompositeState)xart.getWrappedState()).getWrappedStates()) {
-              if (y instanceof FeatureVarsState)
+              if (y instanceof FeatureVarsState) {
                 fvstate = (FeatureVarsState)y;
+              }
             }
             fvstate.restrictWith(manager.makeNot(errorBDD));
           }

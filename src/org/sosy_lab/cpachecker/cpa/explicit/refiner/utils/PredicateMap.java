@@ -68,8 +68,9 @@ public class PredicateMap {
           builder.put(currentLocation, predicate);
         }
 
-        if(firstInterpolationPoint == null)
+        if (firstInterpolationPoint == null) {
           firstInterpolationPoint = Pair.of(pPath.get(i).getFirst(), pPath.get(i).getSecond());
+        }
       }
 
       i++;
@@ -109,7 +110,7 @@ public class PredicateMap {
       Collection<String> atoms = fmgr.extractVariables(currentPredicate.getSymbolicAtom());
 
       // ... and add them to variables-at-location-mapping
-      if(!atoms.isEmpty()) {
+      if (!atoms.isEmpty()) {
         increment.putAll(currentLocation, atoms);
       }
     }

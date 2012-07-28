@@ -42,7 +42,7 @@ public class TemplateFalse extends TemplateConstraint {
   public boolean isFalse() {
     return true;
   }
-  
+
   public static boolean isInstance(Object obj) {
     TemplateFalse F = new TemplateFalse();
     return F.getClass().isInstance(obj);
@@ -57,12 +57,12 @@ public class TemplateFalse extends TemplateConstraint {
   public Formula translate(FormulaManager fmgr) {
   	return fmgr.makeFalse();
   }
-  
+
   @Override
   public List<TemplateFormula> extractAtoms(boolean sAE, boolean cO) {
     List<TemplateFormula> atoms = new Vector<TemplateFormula>();
   	atoms.add(this);
   	return atoms;
   }
-  
+
 }

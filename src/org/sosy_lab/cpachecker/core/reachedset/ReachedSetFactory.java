@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
-import java.util.logging.Level;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -34,7 +32,6 @@ import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 @Options(prefix="analysis")
@@ -45,8 +42,7 @@ public class ReachedSetFactory {
   }
 
   @Option(name="traversal.order",
-      description="which strategy to adopt for visiting states? "
-                + "RPO is deprecated, use the option analysis.traversal.useReversePostorder instead")
+      description="which strategy to adopt for visiting states?")
   Waitlist.TraversalMethod traversalMethod = Waitlist.TraversalMethod.DFS;
 
   @Option(name = "traversal.useCallstack",
@@ -57,12 +53,11 @@ public class ReachedSetFactory {
   @Option(name = "traversal.useReversePostorder",
       description = "Use an implementation of reverse postorder strategy that allows to select "
       + "a secondary strategy that is used if there are two states with the same reverse postorder id. "
-      + "The secondary strategy is selected with 'analysis.traversal.order'. "
-      + "The secondary strategy may not be RPO.")
+      + "The secondary strategy is selected with 'analysis.traversal.order'.")
   boolean useReversePostorder = false;
 
   @Option(name = "traversal.useTopsort",
-      description="This option was renamed to analysis.traversal.useTopsort and will soon get removed.")
+      description="This option was renamed to analysis.traversal.useReversePostorder and will soon get removed.")
   @Deprecated
   boolean useTopsort = false;
 
@@ -81,14 +76,6 @@ public class ReachedSetFactory {
   @SuppressWarnings("deprecation")
   public ReachedSetFactory(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
-
-    if (traversalMethod == TraversalMethod.RPO) {
-      logger.log(Level.WARNING, "Using the option 'analysis.traversal.order = RPO' is deprecated, please switch to 'analysis.traversal.useReversePostorder = true'");
-
-      if (useReversePostorder) {
-        throw new InvalidConfigurationException("Cannot use both 'analysis.traversal.order = RPO' and 'analysis.traversal.useReversePostorder = true'");
-      }
-    }
   }
 
   public ReachedSet create() {

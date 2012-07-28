@@ -806,7 +806,7 @@ public class Matrix implements MatrixI {
     List<PointedAssumption> noncontra = new Vector<PointedAssumption>();
     for (PointedAssumption a : nz) {
       AssumptionRelation rel = amgr.matchAgainst(a.getAssumption());
-      switch(rel) {
+      switch (rel) {
       // If a is the same as something in the current set, or is implied by anything in there,
       // then we add a to 'implied'.
       case ISSAMEAS:

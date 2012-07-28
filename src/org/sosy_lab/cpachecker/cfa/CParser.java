@@ -113,9 +113,6 @@ public interface CParser {
     @Option(description="C dialect for parser")
     private Dialect dialect = Dialect.GNUC;
 
-    @Option(description="Ignore all casts that appear in the source code.")
-    private boolean ignoreCasts = false;
-
     private ParserOptions() { }
   }
 
@@ -144,7 +141,6 @@ public interface CParser {
       } else {
         result = new EclipseCDT6Parser(logger, options.dialect);
       }
-      result.setIgnoreCasts(options.ignoreCasts);
       return result;
     }
 

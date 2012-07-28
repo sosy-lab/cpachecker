@@ -45,7 +45,7 @@ public class GlobalInfo {
   }
 
   public static GlobalInfo getInstance() {
-    if(instance == null) {
+    if (instance == null) {
       instance = new GlobalInfo();
     }
     return instance;

@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
  * Implementations do not need to guarantee the semantics of a set
  * (i.e., preventing duplicate states).
  * This needs to be guaranteed by the caller (see
- * {@link org.sosy_lab.cpachecker.core.reachedset.ReachedSet#add(AbstractState, org.sosy_lab.cpachecker.core.interfaces.Precision))}).
+ * {@link org.sosy_lab.cpachecker.core.reachedset.ReachedSet#add(AbstractState, org.sosy_lab.cpachecker.core.interfaces.Precision)}).
  *
  * All methods of this interface should be fast (O(1) or O(log n) preferably),
  * except contains() and remove().
@@ -104,8 +104,6 @@ public interface Waitlist extends Iterable<AbstractState> {
   public enum TraversalMethod implements WaitlistFactory {
     DFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
     BFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
-    @Deprecated
-    RPO { @Override public Waitlist createWaitlistInstance() { return new ReversePostorderWaitlist();    } },
     RAND    { @Override public Waitlist createWaitlistInstance() { return new RandomWaitlist();     } },
     ;
   }

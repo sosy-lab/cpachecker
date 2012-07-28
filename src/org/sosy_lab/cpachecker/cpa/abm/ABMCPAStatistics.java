@@ -62,7 +62,7 @@ class ABMCPAStatistics implements Statistics {
       int sumCalls = transferRelation.cacheMisses + transferRelation.partialCacheHits + transferRelation.fullCacheHits;
 
       int sumARTElemets = 0;
-      for(ReachedSet subreached : ABMARTUtils.gatherReachedSets(cpa, reached).values()) {
+      for (ReachedSet subreached : ABMARTUtils.gatherReachedSets(cpa, reached).values()) {
         sumARTElemets += subreached.size();
       }
 
@@ -72,7 +72,7 @@ class ABMCPAStatistics implements Statistics {
       out.println("  Number of cache misses:                                       " + transferRelation.cacheMisses + " (" + toPercent(transferRelation.cacheMisses, sumCalls) + " of all calls)");
       out.println("  Number of partial cache hits:                                 " + transferRelation.partialCacheHits + " (" + toPercent(transferRelation.partialCacheHits, sumCalls) + " of all calls)");
       out.println("  Number of full cache hits:                                    " + transferRelation.fullCacheHits + " (" + toPercent(transferRelation.fullCacheHits, sumCalls) + " of all calls)");
-      if(transferRelation.gatherCacheMissStatistics) {
+      if (transferRelation.gatherCacheMissStatistics) {
         out.println("Cause for cache misses:                                         ");
         out.println("  Number of abstraction caused misses:                          " + transferRelation.abstractionCausedMisses + " (" + toPercent(transferRelation.abstractionCausedMisses, transferRelation.cacheMisses) + " of all misses)");
         out.println("  Number of precision caused misses:                            " + transferRelation.precisionCausedMisses + " (" + toPercent(transferRelation.precisionCausedMisses, transferRelation.cacheMisses) + " of all misses)");

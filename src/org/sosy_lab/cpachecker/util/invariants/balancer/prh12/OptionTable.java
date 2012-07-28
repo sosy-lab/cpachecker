@@ -121,7 +121,7 @@ public class OptionTable {
         // The code there must be one of 2, 3, 4, or 6.
         int code = table[i0][j0];
         AssumptionSet as;
-        switch(code) {
+        switch (code) {
         case 2:
           as = change2to7(i0,j0);
           aset.addAll(as);

@@ -114,7 +114,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     IntervalAnalysisState intervalElement           = (IntervalAnalysisState)element;
 
     // check the type of the edge
-    switch(cfaEdge.getEdgeType())
+    switch (cfaEdge.getEdgeType())
     {
       // if edge is a statement edge, e.g. a = b + c
       case StatementEdge:
@@ -133,7 +133,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         successor = handleDeclaration(intervalElement, (CDeclarationEdge)cfaEdge);
         break;
 
-      // this is an assumption, e.g. if(a == b)
+      // this is an assumption, e.g. if (a == b)
       case AssumeEdge:
         CAssumeEdge assumeEdge = (CAssumeEdge)cfaEdge;
         successors = handleAssumption(intervalElement, assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption());
@@ -158,14 +158,13 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
 
-    if(successors != null)
+    if (successors != null) {
       return successors;
-
-    else if(successor == null)
+    } else if (successor == null) {
       return noSuccessors();
-
-    else
+    } else {
       return soleSuccessor(successor);
+    }
   }
 
   /**
@@ -188,23 +187,23 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
 
     // expression is an assignment operation, e.g. a = g(b);
-    if(expression instanceof CFunctionCallAssignmentStatement)
+    if (expression instanceof CFunctionCallAssignmentStatement)
     {
       CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement)expression;
 
       CExpression operand1 = funcExp.getLeftHandSide();
 
       // left hand side of the expression has to be a variable
-      if((operand1 instanceof CIdExpression) || (operand1 instanceof CFieldReference))
+      if ((operand1 instanceof CIdExpression) || (operand1 instanceof CFieldReference))
       {
         String assignedVariableName = operand1.toASTString();
 
         String returnedVariableName = calledFunctionName + "::" + RETURN_VARIABLE_BASE_NAME;
 
-        for(String globalVar : globalVars)
+        for (String globalVar : globalVars)
         {
           // if the assigned variable represents global variable, set the global variable to the value of the returning variable or unknown
-          if(globalVar.equals(assignedVariableName))
+          if (globalVar.equals(assignedVariableName))
           {
             Interval interval = element.contains(returnedVariableName) ? element.getInterval(returnedVariableName) : Interval.createUnboundInterval();
 
@@ -221,7 +220,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         }
 
         // set the value of the assigned variable to the value of the returned variable
-        if(!globalVars.contains(assignedVariableName))
+        if (!globalVars.contains(assignedVariableName))
         {
           Interval interval = element.contains(returnedVariableName) ? element.getInterval(returnedVariableName) : Interval.createUnboundInterval();
 
@@ -230,26 +229,25 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       }
 
       // a* = b(); TODO: for now, nothing is done here, but cloning the current element
-      else if(operand1 instanceof CUnaryExpression && ((CUnaryExpression)operand1).getOperator() == UnaryOperator.STAR)
-          return element.clone();
-
-      else
+      else if (operand1 instanceof CUnaryExpression && ((CUnaryExpression)operand1).getOperator() == UnaryOperator.STAR) {
+        return element.clone();
+      } else {
         throw new UnrecognizedCCodeException("on function return", summaryEdge, operand1);
+      }
     }
 
     // import the global variables back into the scope of the calling function
-    else if(expression instanceof CFunctionCallStatement)
+    else if (expression instanceof CFunctionCallStatement)
     {
-      for(String globalVar : globalVars)
+      for (String globalVar : globalVars)
       {
           Interval interval = element.contains(globalVar) ? element.getInterval(globalVar) : Interval.createUnboundInterval();
 
           newElement.addInterval(globalVar, interval, this.threshold);
       }
-    }
-
-    else
+    } else {
       throw new UnrecognizedCCodeException("on function return", summaryEdge, expression.asStatement());
+    }
 
     return newElement;
   }
@@ -278,16 +276,17 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     IntervalAnalysisState newElement = new IntervalAnalysisState(previousElement);
 
     // import global variables into the current scope first
-    for(String globalVar : globalVars)
+    for (String globalVar : globalVars)
     {
-      if(previousElement.contains(globalVar))
+      if (previousElement.contains(globalVar)) {
         newElement.addInterval(globalVar, previousElement.getInterval(globalVar), threshold);
+      }
     }
 
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(previousElement, callerFunctionName, edge);
 
     // set the interval of each formal parameter to the interval of its respective actual parameter
-    for(int i = 0; i < arguments.size(); i++)
+    for (int i = 0; i < arguments.size(); i++)
     {
       //Interval interval = evaluateInterval(previousElement, arguments.get(i), callerFunctionName, callEdge);
       // get value of actual parameter in caller function context
@@ -313,7 +312,9 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     throws UnrecognizedCCodeException
   {
     if (expression == null)
+     {
       expression = CNumericTypes.ZERO; // this is the default in C
+    }
 
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(element, returnEdge.getPredecessor().getFunctionName(), edge);
 
@@ -334,11 +335,11 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     throws UnrecognizedCCodeException
   {
     // first, unpack the expression to deal with a raw assumption
-    if(expression instanceof CUnaryExpression)
+    if (expression instanceof CUnaryExpression)
     {
       CUnaryExpression unaryExp = ((CUnaryExpression)expression);
 
-      switch(unaryExp.getOperator())
+      switch (unaryExp.getOperator())
       {
         // remove negation
         case NOT:
@@ -353,12 +354,10 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       }
     }
 
-    // a plain (boolean) identifier, e.g. if(a)
-    else if(expression instanceof CIdExpression)
-        return handleAssumption(element, convertToBinaryAssume((CIdExpression)expression), cfaEdge, truthValue);
-
-    // a binary expression, e.g. if(exp1 op exp2)
-    else if(expression instanceof CBinaryExpression)
+    // a plain (boolean) identifier, e.g. if (a)
+    else if (expression instanceof CIdExpression) {
+      return handleAssumption(element, convertToBinaryAssume((CIdExpression)expression), cfaEdge, truthValue);
+    } else if (expression instanceof CBinaryExpression)
     {
       IntervalAnalysisState newElement = element.clone();
 
@@ -371,24 +370,24 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       Interval interval1 = operand1.accept(visitor);
       Interval interval2 = operand2.accept(visitor);
 
-      switch(operator)
+      switch (operator)
       {
         case MINUS:
         case PLUS:
           Interval result = null;
 
-          if(operator == BinaryOperator.MINUS)
+          if (operator == BinaryOperator.MINUS) {
             result = interval1.minus(interval2);
-
-          else if(operator == BinaryOperator.PLUS)
+          } else if (operator == BinaryOperator.PLUS) {
             result = interval1.plus(interval2);
+          }
 
           // in then-branch and interval maybe true, or in else-branch and interval maybe false, add a successor
-          if((truthValue && !result.isFalse()) || (!truthValue && !result.isTrue()))
+          if ((truthValue && !result.isFalse()) || (!truthValue && !result.isTrue())) {
             return soleSuccessor(newElement);
-
-          else
+          } else {
             return noSuccessors();
+          }
 
         case EQUALS:
         case NOT_EQUALS:
@@ -413,8 +412,9 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
   private Collection<? extends AbstractState> processAssumption(IntervalAnalysisState element, BinaryOperator operator, CExpression operand1, CExpression operand2, boolean truthValue, CFAEdge cfaEdge) throws UnrecognizedCCodeException
   {
-    if(!truthValue)
+    if (!truthValue) {
       return processAssumption(element, negateOperator(operator), operand1, operand2, !truthValue, cfaEdge);
+    }
 
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(element, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
 
@@ -435,89 +435,100 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     boolean isIdOp2 = operand2 instanceof CIdExpression;
 
     // a < b, a < 1
-    if(operator == BinaryOperator.LESS_THAN)
+    if (operator == BinaryOperator.LESS_THAN)
     {
       // a may be less than b, so there can be a successor
-      if(tmpInterval1.mayBeLessThan(tmpInterval2))
+      if (tmpInterval1.mayBeLessThan(tmpInterval2))
       {
-        if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitUpperBoundBy(tmpInterval2.minus(1L)), threshold);
-        if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitLowerBoundBy(tmpInterval1.plus(1L)), threshold);
-      }
-
-      // a is always greater than b, so a can't be less than b, so there can't be a successor
-      else
+        if (isIdOp1) {
+          element.addInterval(variableName1, orgInterval1.limitUpperBoundBy(tmpInterval2.minus(1L)), threshold);
+        }
+        if (isIdOp2) {
+          element.addInterval(variableName2, orgInterval2.limitLowerBoundBy(tmpInterval1.plus(1L)), threshold);
+        }
+      } else {
         return noSuccessors();
+      }
     }
 
     // a <= b, a <= 1
-    else if(operator == BinaryOperator.LESS_EQUAL)
+    else if (operator == BinaryOperator.LESS_EQUAL)
     {
       // a may be less or equal than b, so there can be a successor
-      if(tmpInterval1.mayBeLessOrEqualThan(tmpInterval2))
+      if (tmpInterval1.mayBeLessOrEqualThan(tmpInterval2))
       {
-        if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitUpperBoundBy(tmpInterval2), threshold);
-        if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitLowerBoundBy(tmpInterval1), threshold);
-      }
-
-      // a is always greater than b, so a can't be less than b, so there can't be a successor
-      else
+        if (isIdOp1) {
+          element.addInterval(variableName1, orgInterval1.limitUpperBoundBy(tmpInterval2), threshold);
+        }
+        if (isIdOp2) {
+          element.addInterval(variableName2, orgInterval2.limitLowerBoundBy(tmpInterval1), threshold);
+        }
+      } else {
         return noSuccessors();
+      }
     }
 
     // a > b, a > 1
-    else if(operator == BinaryOperator.GREATER_THAN)
+    else if (operator == BinaryOperator.GREATER_THAN)
     {
       // a may be greater than b, so there can be a successor
-      if(tmpInterval1.mayBeGreaterThan(tmpInterval2))
+      if (tmpInterval1.mayBeGreaterThan(tmpInterval2))
       {
-        if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitLowerBoundBy(tmpInterval2.plus(1L)), threshold);
-        if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitUpperBoundBy(tmpInterval1.minus(1L)), threshold);
-      }
-
-      // a is always less than b, so a can't be greater than b, so there can't be a successor
-      else
+        if (isIdOp1) {
+          element.addInterval(variableName1, orgInterval1.limitLowerBoundBy(tmpInterval2.plus(1L)), threshold);
+        }
+        if (isIdOp2) {
+          element.addInterval(variableName2, orgInterval2.limitUpperBoundBy(tmpInterval1.minus(1L)), threshold);
+        }
+      } else {
         return noSuccessors();
+      }
     }
 
     // a >= b, a >= 1
-    else if(operator == BinaryOperator.GREATER_EQUAL)
+    else if (operator == BinaryOperator.GREATER_EQUAL)
     {
       // a may be greater or equal than b, so there can be a successor
-      if(tmpInterval1.mayBeGreaterOrEqualThan(tmpInterval2))
+      if (tmpInterval1.mayBeGreaterOrEqualThan(tmpInterval2))
       {
-        if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitLowerBoundBy(tmpInterval2), threshold);
-        if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitUpperBoundBy(tmpInterval1), threshold);
-      }
-
-      // a is always less than b, so a can't be greater than b, so there can't be a successor
-      else
+        if (isIdOp1) {
+          element.addInterval(variableName1, orgInterval1.limitLowerBoundBy(tmpInterval2), threshold);
+        }
+        if (isIdOp2) {
+          element.addInterval(variableName2, orgInterval2.limitUpperBoundBy(tmpInterval1), threshold);
+        }
+      } else {
         return noSuccessors();
+      }
     }
 
     // a == b, a == 1
-    else if(operator == BinaryOperator.EQUALS)
+    else if (operator == BinaryOperator.EQUALS)
     {
       // a and b intersect, so they may have the same value, so they may be equal
-      if(tmpInterval1.intersects(tmpInterval2))
+      if (tmpInterval1.intersects(tmpInterval2))
       {
-        if(isIdOp1) element.addInterval(variableName1, orgInterval1.intersect(tmpInterval2), threshold);
-        if(isIdOp2) element.addInterval(variableName2, orgInterval2.intersect(tmpInterval1), threshold);
-      }
-
-      // a and b do not intersect, so they can't be equal, so there can't be a successor
-      else
+        if (isIdOp1) {
+          element.addInterval(variableName1, orgInterval1.intersect(tmpInterval2), threshold);
+        }
+        if (isIdOp2) {
+          element.addInterval(variableName2, orgInterval2.intersect(tmpInterval1), threshold);
+        }
+      } else {
         return noSuccessors();
+      }
     }
 
     // a != b, a != 1
-    else if(operator == BinaryOperator.NOT_EQUALS)
+    else if (operator == BinaryOperator.NOT_EQUALS)
     {
       // a = [x, x] = b => a and b are always equal, so there can't be a successor
-      if(tmpInterval1.isSingular() && tmpInterval1.equals(tmpInterval2))
+      if (tmpInterval1.isSingular() && tmpInterval1.equals(tmpInterval2)) {
         return noSuccessors();
+      }
 
       // TODO: currently depends on the fact that operand1 is a identifier, while operand2 is a literal
-      if(splitIntervals && isIdOp1 && !isIdOp2)
+      if (splitIntervals && isIdOp1 && !isIdOp2)
       {
         IntervalAnalysisState newElement = null;
 
@@ -525,7 +536,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
         Interval result = null;
 
-        if(!(result = orgInterval1.intersect(Interval.createUpperBoundedInterval(orgInterval2.getLow() - 1L))).isEmpty())
+        if (!(result = orgInterval1.intersect(Interval.createUpperBoundedInterval(orgInterval2.getLow() - 1L))).isEmpty())
         {
           newElement = element.clone();
 
@@ -534,7 +545,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
           successors.add(newElement);
         }
 
-        if(!(result = orgInterval1.intersect(Interval.createLowerBoundedInterval(orgInterval2.getLow() + 1L))).isEmpty())
+        if (!(result = orgInterval1.intersect(Interval.createLowerBoundedInterval(orgInterval2.getLow() + 1L))).isEmpty())
         {
           newElement = element.clone();
 
@@ -545,9 +556,9 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
         return successors;
       }
-    }
-    else
+    } else {
       throw new UnrecognizedCCodeException("unknown operator", cfaEdge);
+    }
 
     return soleSuccessor(element);
   }
@@ -560,7 +571,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    */
   private BinaryOperator negateOperator(BinaryOperator operator)
   {
-    switch(operator) {
+    switch (operator) {
       case EQUALS:
         return BinaryOperator.NOT_EQUALS;
 
@@ -601,11 +612,12 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         CVariableDeclaration decl = (CVariableDeclaration)declarationEdge.getDeclaration();
 
         // ignore pointer variables
-        if (decl.getType() instanceof CPointerType)
+        if (decl.getType() instanceof CPointerType) {
           return newElement;
+        }
 
         // if this is a global variable, add it to the list of global variables
-        if(decl.isGlobal())
+        if (decl.isGlobal())
         {
           globalVars.add(decl.getName().toString());
 
@@ -614,16 +626,14 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
           CInitializer init = decl.getInitializer();
 
           // global variables may be initialized explicitly on the spot ...
-          if(init instanceof CInitializerExpression)
+          if (init instanceof CInitializerExpression)
           {
             CExpression exp = ((CInitializerExpression)init).getExpression();
 
             interval = evaluateInterval(element, exp, "", declarationEdge);
-          }
-
-          // ... or implicitly initialized to 0
-          else
+          } else {
             interval = new Interval(0L);
+          }
 
           String varName = constructVariableName(decl.getName().toString(), "");
 
@@ -656,19 +666,15 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     throws UnrecognizedCCodeException
   {
     // expression is an assignment operation, e.g. a = b;
-    if(expression instanceof CAssignment)
+    if (expression instanceof CAssignment) {
       return handleAssignment(element, (CAssignment)expression, cfaEdge);
-
-    // ext(); => do nothing
-    else if(expression instanceof CFunctionCallStatement)
+    } else if (expression instanceof CFunctionCallStatement) {
       return element.clone();
-
-    // a; nothing to do
-    else if(expression instanceof CExpressionStatement)
+    } else if (expression instanceof CExpressionStatement) {
       return element.clone();
-
-    else
+    } else {
       throw new UnrecognizedCCodeException(cfaEdge, expression);
+    }
   }
 
    /**
@@ -687,7 +693,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     CRightHandSide op2 = assignExpression.getRightHandSide();
 
     // a = ?
-    if(op1 instanceof CIdExpression)
+    if (op1 instanceof CIdExpression)
     {
       ExpressionValueVisitor visitor = new ExpressionValueVisitor(element, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
 
@@ -695,19 +701,15 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     }
 
     // TODO: assignment to pointer, *a = ?
-    else if(op1 instanceof CUnaryExpression && ((CUnaryExpression)op1).getOperator() == UnaryOperator.STAR)
+    else if (op1 instanceof CUnaryExpression && ((CUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
       return element.clone();
-
-    // TODO assignment to field, a->b = ?
-    else if (op1 instanceof CFieldReference)
+    } else if (op1 instanceof CFieldReference) {
       return element.clone();
-
-    // TODO assignment to array cell, a[b] = ?
-    else if (op1 instanceof CArraySubscriptExpression)
+    } else if (op1 instanceof CArraySubscriptExpression) {
       return element.clone();
-
-    else
+    } else {
       throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
+    }
   }
 
   /**
@@ -744,31 +746,30 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   private Interval evaluateInterval(IntervalAnalysisState element, CRightHandSide expression, String functionName, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException
   {
-    if(expression instanceof CLiteralExpression)
+    if (expression instanceof CLiteralExpression)
     {
       Long value = parseLiteral((CLiteralExpression)expression, cfaEdge);
 
       return (value == null) ? Interval.createUnboundInterval() : new Interval(value, value);
     }
 
-    else if(expression instanceof CIdExpression)
+    else if (expression instanceof CIdExpression)
     {
       String varName = constructVariableName(((CIdExpression)expression).getName(), functionName);
 
       return (element.contains(varName)) ? element.getInterval(varName) : Interval.createUnboundInterval();
     }
 
-    else if(expression instanceof CCastExpression)
+    else if (expression instanceof CCastExpression) {
       return evaluateInterval(element, ((CCastExpression)expression).getOperand(), functionName, cfaEdge);
-
-    else if(expression instanceof CUnaryExpression)
+    } else if (expression instanceof CUnaryExpression)
     {
       CUnaryExpression unaryExpression = (CUnaryExpression)expression;
 
       UnaryOperator unaryOperator = unaryExpression.getOperator();
       CExpression unaryOperand = unaryExpression.getOperand();
 
-      switch(unaryOperator)
+      switch (unaryOperator)
       {
         case MINUS:
           Interval interval = evaluateInterval(element, unaryOperand, functionName, cfaEdge);
@@ -781,14 +782,14 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     }
 
     // added for expression "if (! (req_a___0 + 50 == rsp_d___0))" in "systemc/mem_slave_tlm.1.cil.c"
-    else if(expression instanceof CBinaryExpression)
+    else if (expression instanceof CBinaryExpression)
     {
       CBinaryExpression binaryExpression = (CBinaryExpression)expression;
 
       Interval interval1 = evaluateInterval(element, binaryExpression.getOperand1(), functionName, cfaEdge);
       Interval interval2 = evaluateInterval(element, binaryExpression.getOperand2(), functionName, cfaEdge);
 
-      switch(binaryExpression.getOperator())
+      switch (binaryExpression.getOperator())
       {
         case PLUS:
           return interval1.plus(interval2);
@@ -796,12 +797,10 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         default:
           throw new UnrecognizedCCodeException("unknown binary operator", cfaEdge, binaryExpression);
       }
-    }
-
-    // TODO fields, arrays
-    else
+    } else {
       //throw new UnrecognizedCCodeException(cfaEdge, expression);
       return Interval.createUnboundInterval();
+    }
   }
 
   /**
@@ -839,8 +838,9 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    */
   public String constructVariableName(String variableName, String functionName)
   {
-    if(globalVars.contains(variableName))
+    if (globalVars.contains(variableName)) {
       return variableName;
+    }
 
     return functionName + "::" + variableName;
   }
@@ -852,10 +852,11 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     assert element instanceof IntervalAnalysisState;
     IntervalAnalysisState intervalElement = (IntervalAnalysisState)element;
 
-    for(AbstractState elem : elements)
+    for (AbstractState elem : elements)
     {
-      if(elem instanceof PointerState)
+      if (elem instanceof PointerState) {
         return strengthen(intervalElement, (PointerState)elem, cfaEdge, precision);
+      }
     }
 
     return null;
@@ -922,8 +923,9 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       Interval interval1 = binaryExpression.getOperand1().accept(this);
       Interval interval2 = binaryExpression.getOperand2().accept(this);
 
-      if(interval1 == null || interval2 == null)
+      if (interval1 == null || interval2 == null) {
         return Interval.createUnboundInterval();
+      }
 
       switch (binaryExpression.getOperator())
       {
@@ -1009,15 +1011,16 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     @Override
     public Interval visit(CIdExpression identifier) throws UnrecognizedCCodeException
     {
-      if(identifier.getDeclaration() instanceof CEnumerator)
+      if (identifier.getDeclaration() instanceof CEnumerator) {
         return new Interval(((CEnumerator)identifier.getDeclaration()).getValue());
+      }
 
       String variableName = constructVariableName(identifier.getName(), functionName);
-      if (state.contains(variableName))
+      if (state.contains(variableName)) {
         return state.getInterval(variableName);
-
-      else
+      } else {
         return Interval.createUnboundInterval();
+      }
     }
 
     @Override
@@ -1033,14 +1036,13 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         return (interval != null) ? interval.negate() : Interval.createUnboundInterval();
 
       case NOT:
-        if(interval.isFalse())
+        if (interval.isFalse()) {
           return Interval.createTrueInterval();
-
-        else if(interval.isTrue())
+        } else if (interval.isTrue()) {
           return Interval.createFalseInterval();
-
-        else
+        } else {
           return new Interval(0L, 1L);
+        }
 
       case AMPER:
         return Interval.createUnboundInterval(); // valid expression, but it's a pointer value

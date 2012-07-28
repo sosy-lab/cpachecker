@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.*;
 import java.util.ArrayList;
 import java.util.List;
 
-
 import com.google.common.primitives.Ints;
 
 public class CFANode implements Comparable<CFANode> {
@@ -153,7 +152,7 @@ public class CFANode implements Comparable<CFANode> {
   }
 
   public void addEnteringSummaryEdge(FunctionSummaryEdge pEdge) {
-    checkState(leavingSummaryEdge == null,
+    checkState(enteringSummaryEdge == null,
         "Cannot add two entering summary edges to node %s", this);
     enteringSummaryEdge = pEdge;
   }

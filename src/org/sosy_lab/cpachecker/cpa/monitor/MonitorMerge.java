@@ -53,7 +53,7 @@ public class MonitorMerge implements MergeOperator{
     AbstractState wrappedState1 = monitorState1.getWrappedState();
     AbstractState wrappedState2 = monitorState2.getWrappedState();
     AbstractState retElement = mergeOperator.merge(wrappedState1, wrappedState2, pPrecision);
-    if(retElement.equals(wrappedState2)){
+    if (retElement.equals(wrappedState2)){
       return pElement2;
     }
 

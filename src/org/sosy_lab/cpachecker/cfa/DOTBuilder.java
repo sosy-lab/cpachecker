@@ -103,7 +103,7 @@ public final class DOTBuilder {
     @Override
     public TraversalProcess visitNode(CFANode node) {
 
-      if(node.isLoopStart()){
+      if (node.isLoopStart()){
         nodes.add(formatNode(node, "doublecircle"));
       }
 

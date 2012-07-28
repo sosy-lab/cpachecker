@@ -182,7 +182,7 @@ public class ABMPredicateReducer implements Reducer {
     PredicatePrecision precision = (PredicatePrecision)pPrecision;
     Pair<Integer, Block> key = Pair.of(precision.getId(), pContext);
     Precision result = reduceCache.get(key);
-    if(result != null) {
+    if (result != null) {
       return result;
     }
 
@@ -195,13 +195,13 @@ public class ABMPredicateReducer implements Reducer {
   public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext, Precision pReducedPrecision) {
     PredicatePrecision rootPrecision = (PredicatePrecision)pRootPrecision;
     PredicatePrecision toplevelPrecision = rootPrecision;
-    if(rootPrecision instanceof ReducedPredicatePrecision) {
+    if (rootPrecision instanceof ReducedPredicatePrecision) {
       toplevelPrecision = ((ReducedPredicatePrecision)rootPrecision).getRootPredicatePrecision();
     }
 
     PredicatePrecision derivedToplevelPrecision = ((ReducedPredicatePrecision)pReducedPrecision).getRootPredicatePrecision();
 
-    if(derivedToplevelPrecision == toplevelPrecision) {
+    if (derivedToplevelPrecision == toplevelPrecision) {
       return pRootPrecision;
     }
 
@@ -239,7 +239,7 @@ public class ABMPredicateReducer implements Reducer {
       this.expandedPredicatePrecision = expandedPredicatePrecision;
       this.context = context;
 
-      if(expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
+      if (expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
         this.rootPredicatePrecision = ((ReducedPredicatePrecision) expandedPredicatePrecision).getRootPredicatePrecision();
       }
       else {
@@ -256,9 +256,9 @@ public class ABMPredicateReducer implements Reducer {
     }
 
     private void computeView() {
-      if(evaluatedPredicateMap == null) {
+      if (evaluatedPredicateMap == null) {
         ReducedPredicatePrecision lExpandedPredicatePrecision = null;
-        if(expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
+        if (expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
           lExpandedPredicatePrecision = (ReducedPredicatePrecision)expandedPredicatePrecision;
         }
 
@@ -266,8 +266,8 @@ public class ABMPredicateReducer implements Reducer {
 
         ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
         Set<CFANode> keySet = lExpandedPredicatePrecision==null?rootPredicatePrecision.getPredicateMap().keySet():lExpandedPredicatePrecision.approximatePredicateMap().keySet();
-        for(CFANode node : keySet) {
-          if(context.getNodes().contains(node)) {
+        for (CFANode node : keySet) {
+          if (context.getNodes().contains(node)) {
             Collection<AbstractionPredicate> set = relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getPredicates(node));
             pmapBuilder.putAll(node, set);
           }
@@ -278,7 +278,7 @@ public class ABMPredicateReducer implements Reducer {
     }
 
     private SetMultimap<CFANode, AbstractionPredicate> approximatePredicateMap() {
-      if(evaluatedPredicateMap == null) {
+      if (evaluatedPredicateMap == null) {
         return rootPredicatePrecision.getPredicateMap();
       } else {
         return evaluatedPredicateMap;
@@ -293,7 +293,7 @@ public class ABMPredicateReducer implements Reducer {
 
     @Override
     public Set<AbstractionPredicate> getGlobalPredicates() {
-      if(evaluatedGlobalPredicates != null) {
+      if (evaluatedGlobalPredicates != null) {
         return evaluatedGlobalPredicates;
       } else {
         return relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getGlobalPredicates());
@@ -302,11 +302,11 @@ public class ABMPredicateReducer implements Reducer {
 
     @Override
     public Set<AbstractionPredicate> getPredicates(CFANode loc) {
-      if(!context.getNodes().contains(loc)) {
+      if (!context.getNodes().contains(loc)) {
         logger.log(Level.WARNING, context, "was left in an unexpected way. Analysis might be unsound.");
       }
 
-      if(evaluatedPredicateMap != null) {
+      if (evaluatedPredicateMap != null) {
         Set<AbstractionPredicate> result = evaluatedPredicateMap.get(loc);
         if (result.isEmpty()) {
           result = evaluatedGlobalPredicates;
@@ -342,7 +342,7 @@ public class ABMPredicateReducer implements Reducer {
 
     @Override
     public String toString() {
-      if(evaluatedPredicateMap != null) {
+      if (evaluatedPredicateMap != null) {
         return evaluatedPredicateMap.toString();
       } else {
         return "ReducedPredicatePrecision (view not computed yet)";
@@ -358,15 +358,15 @@ public class ABMPredicateReducer implements Reducer {
 
     int distance = 0;
 
-    for(AbstractionPredicate p : precision.getGlobalPredicates()) {
-      if(!otherPrecision.getGlobalPredicates().contains(p)) {
+    for (AbstractionPredicate p : precision.getGlobalPredicates()) {
+      if (!otherPrecision.getGlobalPredicates().contains(p)) {
         distance++;
       }
     }
 
-    for(CFANode node : precision.getPredicateMap().keySet()) {
-      for(AbstractionPredicate p : precision.getPredicateMap().get(node)) {
-        if(!otherPrecision.getPredicateMap().get(node).contains(p)) {
+    for (CFANode node : precision.getPredicateMap().keySet()) {
+      for (AbstractionPredicate p : precision.getPredicateMap().get(node)) {
+        if (!otherPrecision.getPredicateMap().get(node).contains(p)) {
           distance++;
         }
       }

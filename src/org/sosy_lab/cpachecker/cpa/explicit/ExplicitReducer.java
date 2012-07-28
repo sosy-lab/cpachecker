@@ -36,8 +36,8 @@ public class ExplicitReducer implements Reducer {
 
   private boolean occursInBlock(Block pBlock, String pVar) {
     // TODO could be more efficient (avoid linear runtime)
-    for(ReferencedVariable referencedVar : pBlock.getReferencedVariables()) {
-      if(referencedVar.getName().equals(pVar)) {
+    for (ReferencedVariable referencedVar : pBlock.getReferencedVariables()) {
+      if (referencedVar.getName().equals(pVar)) {
         return true;
       }
     }
@@ -49,8 +49,8 @@ public class ExplicitReducer implements Reducer {
     ExplicitState expandedState = (ExplicitState)pExpandedState;
 
     ExplicitState clonedElement = expandedState.clone();
-    for(String trackedVar : expandedState.getTrackedVariableNames()) {
-      if(!occursInBlock(pContext, trackedVar)) {
+    for (String trackedVar : expandedState.getTrackedVariableNames()) {
+      if (!occursInBlock(pContext, trackedVar)) {
         clonedElement.deleteValue(trackedVar);
       }
     }
@@ -65,18 +65,18 @@ public class ExplicitReducer implements Reducer {
     ExplicitState reducedState = (ExplicitState)pReducedState;
 
     ExplicitState diffElement = rootState.clone();
-    for(String trackedVar : reducedState.getTrackedVariableNames()) {
+    for (String trackedVar : reducedState.getTrackedVariableNames()) {
       diffElement.deleteValue(trackedVar);
     }
     //TODO: following is needed with threshold != inf
-  /*  for(String trackedVar : diffElement.getTrackedVariableNames()) {
-      if(occursInBlock(pReducedContext, trackedVar)) {
+  /*  for (String trackedVar : diffElement.getTrackedVariableNames()) {
+      if (occursInBlock(pReducedContext, trackedVar)) {
         diffElement.deleteValue(trackedVar);
       }
     }*/
-    for(String trackedVar : reducedState.getTrackedVariableNames()) {
+    for (String trackedVar : reducedState.getTrackedVariableNames()) {
       Long value = reducedState.getValueFor(trackedVar);
-      if(value != null) {
+      if (value != null) {
         diffElement.assignConstant(trackedVar, reducedState.getValueFor(trackedVar));
       } else {
         diffElement.forget(trackedVar);

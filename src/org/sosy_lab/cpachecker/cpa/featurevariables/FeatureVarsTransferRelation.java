@@ -95,7 +95,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     // check the type of the edge
     switch (cfaEdge.getEdgeType()) {
 
-    // this is an assumption, e.g. if(a == b)
+    // this is an assumption, e.g. if (a == b)
     case AssumeEdge: {
       CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
       successor =
@@ -109,6 +109,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       for (CFAEdge innerEdge : (MultiEdge)cfaEdge) {
         successor = getAbstractSuccessor(successor, precision, innerEdge);
       }
+      break;
     }
 
     default:
@@ -386,7 +387,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
   }
 /*
   public String getvarName(String variableName, String functionName) {
-    if(globalVars.contains(variableName)){
+    if (globalVars.contains(variableName)){
       return "$global::" + variableName;
     }
     return functionName + "::" + variableName;

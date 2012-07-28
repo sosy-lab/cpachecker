@@ -31,6 +31,10 @@ import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
 
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
@@ -42,22 +46,45 @@ import com.google.common.collect.Maps;
  * This class is not thread-safe, but it could be easily made so by synchronizing
  * the {@link #createNewVar()} method.
  */
+@Options(prefix = "bddregionmanager")
 public class BDDRegionManager implements RegionManager {
 
-  // static because init() may be called only once!
-  private static final String BDD_PACKAGE = "cudd";
-  private static final BDDFactory factory = BDDFactory.init(BDD_PACKAGE, 10000, 1000);
+  @Option(name = "package", description = "which bdd-package should be used? "
+      + "\n- cudd:  CUDD-library, reordering not supported"
+      + "\n- java:  JFactory, fallback for all other packages"
+      + "\n- micro: MicroFactory, maximum number of BDD variables is 1024,"
+      + "\n         slow, but less memory-comsumption.",
+      values = { "cudd", "java", "micro" })
+  // documentation of the packages can be found at source of BDDFactory.init()
+  private String BDD_PACKAGE = "cudd";
 
-  private static final Region trueFormula = new BDDRegion(factory.one());
-  private static final Region falseFormula = new BDDRegion(factory.zero());
+  private final BDDFactory factory;
+  private final Region trueFormula;
+  private final Region falseFormula;
 
   private static int nextvar = 0;
   private static int varcount = 100;
-  {
+
+  private static BDDRegionManager instance;
+
+  private BDDRegionManager(Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
+    factory = BDDFactory.init(BDD_PACKAGE, 10000, 1000);
     factory.setVarNum(varcount);
+    trueFormula = new BDDRegion(factory.one());
+    falseFormula = new BDDRegion(factory.zero());
   }
 
-  private static BDD createNewVar() {
+  /** this method will return the same object at any call. the very first given
+   *  configuration will be used, each other configuration will be ignored. */
+  public static BDDRegionManager getInstance(Configuration config) throws InvalidConfigurationException {
+    if (instance == null) {
+      instance = new BDDRegionManager(config);
+    }
+    return instance;
+  }
+
+  private BDD createNewVar() {
     if (nextvar >= varcount) {
       varcount *= 1.5;
       factory.setVarNum(varcount);
@@ -67,10 +94,11 @@ public class BDDRegionManager implements RegionManager {
     return ret;
   }
 
-  private static RegionManager instance = new BDDRegionManager();
-
-  public static RegionManager getInstance() { return instance; }
-
+  @Override
+  public BDDRegion createPredicate() {
+    cleanupReferences();
+    return wrap(createNewVar());
+  }
 
   // Code for connecting the Java GC and the BDD library GC
   // When a Java object is freed, we need to tell the library.
@@ -118,20 +146,21 @@ public class BDDRegionManager implements RegionManager {
     return region;
   }
 
+  private BDD unwrap(Region region) {
+    return ((BDDRegion) region).getBDD();
+  }
 
   @Override
   public boolean entails(Region pF1, Region pF2) {
-      cleanupReferences();
+    cleanupReferences();
 
-      // check entailment using BDDs: create the BDD representing
-      // the implication, and check that it is the TRUE formula
-      BDDRegion f1 = (BDDRegion)pF1;
-      BDDRegion f2 = (BDDRegion)pF2;
-      BDD imp = f1.getBDD().imp(f2.getBDD());
+    // check entailment using BDDs: create the BDD representing
+    // the implication, and check that it is the TRUE formula
+    BDD imp = unwrap(pF1).imp(unwrap(pF2));
 
-      boolean result = imp.isOne();
-      imp.free();
-      return result;
+    boolean result = imp.isOne();
+    imp.free();
+    return result;
   }
 
   @Override
@@ -152,65 +181,42 @@ public class BDDRegionManager implements RegionManager {
   public Region makeAnd(Region pF1, Region pF2) {
     cleanupReferences();
 
-    BDDRegion f1 = (BDDRegion)pF1;
-    BDDRegion f2 = (BDDRegion)pF2;
-
-    return wrap(f1.getBDD().and(f2.getBDD()));
+    return wrap(unwrap(pF1).and(unwrap(pF2)));
   }
 
   @Override
   public Region makeNot(Region pF) {
     cleanupReferences();
 
-    BDDRegion f = (BDDRegion)pF;
-
-    return wrap(f.getBDD().not());
+    return wrap(unwrap(pF).not());
   }
 
   @Override
   public Region makeOr(Region pF1, Region pF2) {
     cleanupReferences();
 
-    BDDRegion f1 = (BDDRegion)pF1;
-    BDDRegion f2 = (BDDRegion)pF2;
-
-    return wrap(f1.getBDD().or(f2.getBDD()));
+    return wrap(unwrap(pF1).or(unwrap(pF2)));
   }
 
   @Override
   public Region makeEqual(Region pF1, Region pF2) {
     cleanupReferences();
 
-    BDDRegion f1 = (BDDRegion)pF1;
-    BDDRegion f2 = (BDDRegion)pF2;
-
-    return wrap(f1.getBDD().biimp(f2.getBDD()));
+    return wrap(unwrap(pF1).biimp(unwrap(pF2)));
   }
 
   @Override
   public Region makeUnequal(Region pF1, Region pF2) {
     cleanupReferences();
 
-    BDDRegion f1 = (BDDRegion)pF1;
-    BDDRegion f2 = (BDDRegion)pF2;
-
-    return wrap(f1.getBDD().xor(f2.getBDD()));
-  }
-
-  @Override
-  public Region createPredicate() {
-    cleanupReferences();
-
-    BDD bddVar = createNewVar();
-
-    return wrap(bddVar);
+    return wrap(unwrap(pF1).xor(unwrap(pF2)));
   }
 
   @Override
   public Triple<Region, Region, Region> getIfThenElse(Region pF) {
     cleanupReferences();
 
-    BDD f = ((BDDRegion)pF).getBDD();
+    BDD f = unwrap(pF);
 
     Region predicate = wrap(factory.ithVar(f.var()));
     Region fThen = wrap(f.high());
@@ -220,16 +226,31 @@ public class BDDRegionManager implements RegionManager {
   }
 
   @Override
-  public Region makeExists(Region pF1, Region pF2) {
+  public Region makeExists(Region pF1, Region... pF2) {
     cleanupReferences();
 
-    BDD f1 = ((BDDRegion)pF1).getBDD();
-    BDD f2 = ((BDDRegion)pF2).getBDD();
+    // we use id() to get copies of the BDDs, otherwise we would delete them
+    BDD f = unwrap(pF2[0]).id();
+    for (int i = 1; i < pF2.length; i++) {
+      f.andWith(unwrap(pF2[i]).id());
+    }
+    Region result = wrap(unwrap(pF1).exist(f));
+    f.free();
 
-    return wrap(f1.exist(f2));
+    return result;
+  }
+
+  public int getNumberOfNodes() {
+    return factory.getNodeNum();
   }
 
   public String getVersion() {
     return factory.getVersion();
+  }
+
+  @Override
+  public String getStatistics() {
+    return "Number of nodes:              " + getNumberOfNodes() +
+         "\nTablesize:                    " + factory.getNodeTableSize() + "\n";
   }
 }

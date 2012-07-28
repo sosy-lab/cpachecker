@@ -44,7 +44,7 @@ public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantP
 
     T precomputeResult = precompute(context, predicates);
 
-    for(AbstractionPredicate predicate : predicates) {
+    for (AbstractionPredicate predicate : predicates) {
       if (isRelevant0(precomputeResult, predicate)) {
         result.add(predicate);
       }

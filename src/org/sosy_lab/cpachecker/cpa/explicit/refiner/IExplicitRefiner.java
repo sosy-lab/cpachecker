@@ -23,43 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.List;
-
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 
 public interface IExplicitRefiner {
-  List<Pair<ARGState, CFANode>> transformPath(Path errorPath);
-
-  List<Formula> getFormulasForPath(
-      List<Pair<ARGState,
-      CFANode>> errorPath,
-      ARGState initialElement) throws CPATransferException;
-
-  Pair<ARGState, Precision> performRefinement(
-      UnmodifiableReachedSet reachedSet,
-      Precision oldPrecision,
-      List<Pair<ARGState, CFANode>> errorPath,
-      CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException;
-
-  boolean hasMadeProgress(List<Pair<ARGState, CFAEdge>> currentErrorPath, Precision currentPrecision);
-
-  void setCurrentErrorPath(List<Pair<ARGState, CFAEdge>> currentErrorPath);
-
-  void printStatistics(PrintStream out, Result result, ReachedSet reached);
 }

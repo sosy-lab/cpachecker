@@ -139,7 +139,7 @@ implements GenericAssumptionBuilder
   }
 
     private static CExpression visit(CExpression pExpression, CExpression result) {
-      if(pExpression instanceof CIdExpression){
+      if (pExpression instanceof CIdExpression){
         result = conjunctPredicateForArithmeticExpression(pExpression, result);
       }
       else if (pExpression instanceof CBinaryExpression)
@@ -147,7 +147,7 @@ implements GenericAssumptionBuilder
         CBinaryExpression binexp = (CBinaryExpression)pExpression;
         CExpression op1 = binexp.getOperand1();
         // Only variables for now, ignoring * & operators
-        if(op1 instanceof CIdExpression){
+        if (op1 instanceof CIdExpression){
           result = conjunctPredicateForArithmeticExpression(op1, result);
         }
       }
@@ -156,7 +156,7 @@ implements GenericAssumptionBuilder
         CUnaryExpression unexp = (CUnaryExpression)pExpression;
         CExpression op1 = unexp.getOperand();
         // Only variables. Ignoring * & operators for now
-        if(op1 instanceof CIdExpression){
+        if (op1 instanceof CIdExpression){
           result = conjunctPredicateForArithmeticExpression(op1, result);
         }
       }
@@ -203,7 +203,7 @@ implements GenericAssumptionBuilder
     case ReturnStatementEdge:
       CReturnStatementEdge returnEdge = (CReturnStatementEdge) pEdge;
 
-      if(returnEdge.getExpression() != null){
+      if (returnEdge.getExpression() != null){
         result = visit(returnEdge.getExpression(), result);
       }
       break;

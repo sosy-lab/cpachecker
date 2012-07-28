@@ -518,8 +518,9 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
             long tDecl = msat_term_get_decl(t);
             if (newargs.length > 0) {
               newt = msat_make_term(msatEnv, tDecl, newargs);
-            } else
+            } else {
               newt = msat_make_constant(msatEnv, tDecl);
+            }
           }
 
           cache.put(tt, encapsulate(newt));

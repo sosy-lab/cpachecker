@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.filterTargetStates;
+import static com.google.common.base.Predicates.notNull;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -62,13 +64,11 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multiset;
 
 @Options
@@ -148,7 +148,7 @@ class MainCPAStatistics implements Statistics {
 
       mbeanServer = ManagementFactory.getPlatformMBeanServer();
       try {
-        osMbean = new ObjectName("java.lang", "type", "OperatingSystem");
+        osMbean = new ObjectName(ManagementFactory.OPERATING_SYSTEM_MXBEAN_NAME);
       } catch (MalformedObjectNameException e) {
         logger.logDebugException(e, "Accessing OperatingSystemMXBean failed");
         osMbean = null;
@@ -301,110 +301,131 @@ class MainCPAStatistics implements Statistics {
             out.println();
           }
         }
-        // In theory, we could catch OOM in the following code, too.
-        // However, usually the statistics are not the problematic part,
-        // only the output files. Thus we don't bother here.
-
-        if (reached instanceof ForwardingReachedSet) {
-          reached = ((ForwardingReachedSet)reached).getDelegate();
-        }
-        int reachedSize = reached.size();
 
         out.println("CPAchecker general statistics");
         out.println("-----------------------------");
-        out.println("Size of reached set:          " + reachedSize);
 
-        if (reached instanceof LocationMappedReachedSet) {
-          LocationMappedReachedSet l = (LocationMappedReachedSet)reached;
-          int locs = l.getNumberOfPartitions();
-          if (locs > 0) {
-            out.println("  Number of locations:        " + locs);
-            out.println("    Avg states per loc.:      " + reachedSize / locs);
-            Map.Entry<Object, Collection<AbstractState>> maxPartition = l.getMaxPartition();
-            out.println("    Max states per loc.:      " + maxPartition.getValue().size() + " (at node " + maxPartition.getKey() + ")");
-          }
-
-        } else {
-          HashMultiset<CFANode> allLocations = HashMultiset.create(AbstractStates.extractLocations(reached));
-          int locs = allLocations.entrySet().size();
-          if (locs > 0) {
-            out.println("  Number of locations:        " + locs);
-            out.println("    Avg states per loc.:      " + reachedSize / locs);
-
-            int max = 0;
-            CFANode maxLoc = null;
-            for (Multiset.Entry<CFANode> location : allLocations.entrySet()) {
-              int size = location.getCount();
-              if (size > max) {
-                max = size;
-                maxLoc = location.getElement();
-              }
-            }
-            out.println("    Max states per loc.:      " + max + " (at node " + maxLoc + ")");
-          }
+        try {
+          printReachedSetStatistics(reached, out);
+        } catch (OutOfMemoryError e) {
+          logger.logUserException(Level.WARNING, e,
+              "Out of memory while generating statistics about final reached set");
         }
 
-        if (reached instanceof PartitionedReachedSet) {
-          PartitionedReachedSet p = (PartitionedReachedSet)reached;
-          int partitions = p.getNumberOfPartitions();
-          out.println("  Number of partitions:       " + partitions);
-          out.println("    Avg size of partitions:   " + reachedSize / partitions);
-          Map.Entry<Object, Collection<AbstractState>> maxPartition = p.getMaxPartition();
-          out.print  ("    Max size of partitions:   " + maxPartition.getValue().size());
-          if (maxPartition.getValue().size() > 1) {
-            out.println(" (with key " + maxPartition.getKey() + ")");
-          } else {
-            out.println();
-          }
-        }
-        out.println("  Number of target states:    " + Iterables.size(filterTargetStates(reached)));
-        out.println("Time for analysis setup:      " + creationTime);
-        out.println("  Time for loading CPAs:      " + cpaCreationTime);
-        if (cfaCreator != null) {
-          out.println("  Time for loading C parser:  " + cfaCreator.parserInstantiationTime);
-          out.println("  Time for CFA construction:  " + cfaCreator.totalTime);
-          out.println("    Time for parsing C file:  " + cfaCreator.parsingTime);
-          out.println("    Time for AST to CFA:      " + cfaCreator.conversionTime);
-          out.println("    Time for CFA sanity check:" + cfaCreator.checkTime);
-          out.println("    Time for post-processing: " + cfaCreator.processingTime);
-          if (cfaCreator.pruningTime.getNumberOfIntervals() > 0) {
-            out.println("    Time for CFA pruning:     " + cfaCreator.pruningTime);
-          }
-          if (cfaCreator.exportTime.getNumberOfIntervals() > 0) {
-            out.println("    Time for CFA export:      " + cfaCreator.exportTime);
-          }
-        }
-        out.println("Time for Analysis:            " + analysisTime);
-        out.println("Total time for CPAchecker:    " + programTime);
+        printTimeStatistics(out);
 
         out.println("");
-        List<GarbageCollectorMXBean> gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
-        Set<String> gcNames = new HashSet<String>();
-        long gcTime = 0;
-        int gcCount = 0;
-        for (GarbageCollectorMXBean gcBean : gcBeans) {
-          gcTime += gcBean.getCollectionTime();
-          gcCount += gcBean.getCollectionCount();
-          gcNames.add(gcBean.getName());
-        }
-        out.println("Time for Garbage Collector:   " + Timer.formatTime(gcTime) + " (in " + gcCount + " runs)");
-        out.println("Garbage Collector(s) used:    " + Joiner.on(", ").join(gcNames));
 
-        if (memStats != null) {
-          try {
-            memStats.join(); // thread should have terminated already,
-                             // but wait for it to ensure memory visibility
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-          }
-          out.println("Used heap memory:             " + formatMem(memStats.maxHeap) + " max (" + formatMem(memStats.sumHeap/memStats.count) + " avg)");
-          out.println("Used non-heap memory:         " + formatMem(memStats.maxNonHeap) + " max (" + formatMem(memStats.sumNonHeap/memStats.count) + " avg)");
-          out.println("Allocated heap memory:        " + formatMem(memStats.maxHeapAllocated) + " max (" + formatMem(memStats.sumHeapAllocated/memStats.count) + " avg)");
-          out.println("Allocated non-heap memory:    " + formatMem(memStats.maxNonHeapAllocated) + " max (" + formatMem(memStats.sumNonHeapAllocated/memStats.count) + " avg)");
-          if (memStats.osMbean != null) {
-            out.println("Total process virtual memory: " + formatMem(memStats.maxProcess) + " max (" + formatMem(memStats.sumProcess/memStats.count) + " avg)");
-          }
+        printMemoryStatistics(out);
+    }
+
+
+    private void printReachedSetStatistics(ReachedSet reached, PrintStream out) {
+      if (reached instanceof ForwardingReachedSet) {
+        reached = ((ForwardingReachedSet)reached).getDelegate();
+      }
+      int reachedSize = reached.size();
+
+      out.println("Size of reached set:          " + reachedSize);
+
+      if (reached instanceof LocationMappedReachedSet) {
+        LocationMappedReachedSet l = (LocationMappedReachedSet)reached;
+        int locs = l.getNumberOfPartitions();
+        if (locs > 0) {
+          out.println("  Number of locations:        " + locs);
+          out.println("    Avg states per loc.:      " + reachedSize / locs);
+          Map.Entry<Object, Collection<AbstractState>> maxPartition = l.getMaxPartition();
+          out.println("    Max states per loc.:      " + maxPartition.getValue().size() + " (at node " + maxPartition.getKey() + ")");
         }
+
+      } else {
+        HashMultiset<CFANode> allLocations = HashMultiset.create(from(reached)
+                                                                      .transform(EXTRACT_LOCATION)
+                                                                      .filter(notNull()));
+
+        int locs = allLocations.entrySet().size();
+        if (locs > 0) {
+          out.println("  Number of locations:        " + locs);
+          out.println("    Avg states per loc.:      " + reachedSize / locs);
+
+          int max = 0;
+          CFANode maxLoc = null;
+          for (Multiset.Entry<CFANode> location : allLocations.entrySet()) {
+            int size = location.getCount();
+            if (size > max) {
+              max = size;
+              maxLoc = location.getElement();
+            }
+          }
+          out.println("    Max states per loc.:      " + max + " (at node " + maxLoc + ")");
+        }
+      }
+
+      if (reached instanceof PartitionedReachedSet) {
+        PartitionedReachedSet p = (PartitionedReachedSet)reached;
+        int partitions = p.getNumberOfPartitions();
+        out.println("  Number of partitions:       " + partitions);
+        out.println("    Avg size of partitions:   " + reachedSize / partitions);
+        Map.Entry<Object, Collection<AbstractState>> maxPartition = p.getMaxPartition();
+        out.print  ("    Max size of partitions:   " + maxPartition.getValue().size());
+        if (maxPartition.getValue().size() > 1) {
+          out.println(" (with key " + maxPartition.getKey() + ")");
+        } else {
+          out.println();
+        }
+      }
+      out.println("  Number of target states:    " + from(reached).filter(IS_TARGET_STATE).size());
+    }
+
+    private void printTimeStatistics(PrintStream out) {
+      out.println("Time for analysis setup:      " + creationTime);
+      out.println("  Time for loading CPAs:      " + cpaCreationTime);
+      if (cfaCreator != null) {
+        out.println("  Time for loading C parser:  " + cfaCreator.parserInstantiationTime);
+        out.println("  Time for CFA construction:  " + cfaCreator.totalTime);
+        out.println("    Time for parsing C file:  " + cfaCreator.parsingTime);
+        out.println("    Time for AST to CFA:      " + cfaCreator.conversionTime);
+        out.println("    Time for CFA sanity check:" + cfaCreator.checkTime);
+        out.println("    Time for post-processing: " + cfaCreator.processingTime);
+        if (cfaCreator.pruningTime.getNumberOfIntervals() > 0) {
+          out.println("    Time for CFA pruning:     " + cfaCreator.pruningTime);
+        }
+        if (cfaCreator.exportTime.getNumberOfIntervals() > 0) {
+          out.println("    Time for CFA export:      " + cfaCreator.exportTime);
+        }
+      }
+      out.println("Time for Analysis:            " + analysisTime);
+      out.println("Total time for CPAchecker:    " + programTime);
+    }
+
+    private void printMemoryStatistics(PrintStream out) {
+      List<GarbageCollectorMXBean> gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
+      Set<String> gcNames = new HashSet<String>();
+      long gcTime = 0;
+      int gcCount = 0;
+      for (GarbageCollectorMXBean gcBean : gcBeans) {
+        gcTime += gcBean.getCollectionTime();
+        gcCount += gcBean.getCollectionCount();
+        gcNames.add(gcBean.getName());
+      }
+      out.println("Time for Garbage Collector:   " + Timer.formatTime(gcTime) + " (in " + gcCount + " runs)");
+      out.println("Garbage Collector(s) used:    " + Joiner.on(", ").join(gcNames));
+
+      if (memStats != null) {
+        try {
+          memStats.join(); // thread should have terminated already,
+                           // but wait for it to ensure memory visibility
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+        out.println("Used heap memory:             " + formatMem(memStats.maxHeap) + " max (" + formatMem(memStats.sumHeap/memStats.count) + " avg)");
+        out.println("Used non-heap memory:         " + formatMem(memStats.maxNonHeap) + " max (" + formatMem(memStats.sumNonHeap/memStats.count) + " avg)");
+        out.println("Allocated heap memory:        " + formatMem(memStats.maxHeapAllocated) + " max (" + formatMem(memStats.sumHeapAllocated/memStats.count) + " avg)");
+        out.println("Allocated non-heap memory:    " + formatMem(memStats.maxNonHeapAllocated) + " max (" + formatMem(memStats.sumNonHeapAllocated/memStats.count) + " avg)");
+        if (memStats.osMbean != null) {
+          out.println("Total process virtual memory: " + formatMem(memStats.maxProcess) + " max (" + formatMem(memStats.sumProcess/memStats.count) + " avg)");
+        }
+      }
     }
 
     private static String formatMem(long mem) {

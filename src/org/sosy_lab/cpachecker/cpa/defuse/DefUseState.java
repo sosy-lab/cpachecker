@@ -43,7 +43,7 @@ public class DefUseState implements AbstractState, Iterable<DefUseDefinition>
     public DefUseState(DefUseState definitions, DefUseDefinition newDefinition) {
       ImmutableSet.Builder<DefUseDefinition> builder = ImmutableSet.builder();
       builder.add(newDefinition);
-      for(DefUseDefinition def : definitions.definitions) {
+      for (DefUseDefinition def : definitions.definitions) {
         if (!def.getVariableName().equals(newDefinition.getVariableName())) {
           builder.add(def);
         }

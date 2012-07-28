@@ -41,8 +41,6 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
  * Base implementation that should work with all CDT versions we support.
- *
- * @param <T> The type that the CDT version uses to encapsulate the source code access.
  */
 public  class EclipseJavaParser implements CParser {
 

@@ -36,11 +36,11 @@ public class TemplateFormulaList implements FormulaList {
   private Formula[] formulas;
 
   public TemplateFormulaList() {}
-  
+
   public TemplateFormulaList(Formula[] fs) {
     formulas = fs;
   }
-  
+
   public TemplateFormulaList(List<Formula> fs) {
     formulas = fs.toArray(new Formula[0]);
   }

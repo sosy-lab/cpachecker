@@ -91,7 +91,7 @@ import com.google.common.collect.Multimap;
     determineGlobalVariables(path);
 
     Multimap<CFANode, String> collectedVariables = HashMultimap.create();
-    for(int i = path.size() - 1; i >= 0; i--) {
+    for (int i = path.size() - 1; i >= 0; i--) {
       CFAEdge edge = path.get(i);
       CFAEdge succ = (i == path.size() - 1) ? null : path.get(i + 1);
       collectVariables(edge, collectedVariables, succ);
@@ -106,10 +106,10 @@ import com.google.common.collect.Multimap;
    * @param path the path to analyze
    */
   private void determineGlobalVariables(List<CFAEdge> path) {
-    for(CFAEdge edge : path) {
-      if(edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+    for (CFAEdge edge : path) {
+      if (edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
         CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
-        if(isGlobalVariableDeclaration(declaration)) {
+        if (isGlobalVariableDeclaration(declaration)) {
           globalVariables.add(declaration.getName());
         }
       }
@@ -135,7 +135,7 @@ import com.google.common.collect.Multimap;
   private void collectVariables(CFAEdge edge, Multimap<CFANode, String> collectedVariables, CFAEdge succ) {
     String currentFunction = edge.getPredecessor().getFunctionName();
 
-    switch(edge.getEdgeType()) {
+    switch (edge.getEdgeType()) {
     case BlankEdge:
     case CallToReturnEdge:
       //nothing to do
@@ -148,11 +148,11 @@ import com.google.common.collect.Multimap;
 
       CFunctionCall functionCall = cFunctionSummaryEdge.getExpression();
 
-      if(functionCall instanceof CFunctionCallAssignmentStatement) {
+      if (functionCall instanceof CFunctionCallAssignmentStatement) {
         CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCall;
         String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), returnEdge.getSuccessor().getFunctionName());
 
-        if(dependingVariables.contains(assignedVariable)) {
+        if (dependingVariables.contains(assignedVariable)) {
           collectedVariables.put(cFunctionSummaryEdge.getSuccessor(), assignedVariable);
 
 
@@ -160,8 +160,8 @@ import com.google.common.collect.Multimap;
           CFAEdge currentEdge = null;
           CFAEdge enteringEdge = returnEdge.getPredecessor().getEnteringEdge(0);
 
-          if(enteringEdge instanceof MultiEdge) {
-            for(CFAEdge singleEdge : (MultiEdge)enteringEdge) {
+          if (enteringEdge instanceof MultiEdge) {
+            for (CFAEdge singleEdge : (MultiEdge)enteringEdge) {
               currentEdge = singleEdge;
             }
 
@@ -178,8 +178,9 @@ import com.google.common.collect.Multimap;
       break;
 
     case ReturnStatementEdge:
-      if(succ == null)
+      if (succ == null) {
         break;
+      }
       CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge)edge;
 
       CFunctionReturnEdge returnEdge2 = (CFunctionReturnEdge)succ;
@@ -188,11 +189,11 @@ import com.google.common.collect.Multimap;
 
       CFunctionCall functionCall2 = cFunctionSummaryEdge2.getExpression();
 
-      if(functionCall2 instanceof CFunctionCallAssignmentStatement) {
+      if (functionCall2 instanceof CFunctionCallAssignmentStatement) {
         CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCall2;
         String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), succ.getSuccessor().getFunctionName());
 
-        if(dependingVariables.contains(assignedVariable)) {
+        if (dependingVariables.contains(assignedVariable)) {
           collectedVariables.put(cFunctionSummaryEdge2.getSuccessor(), assignedVariable);
           collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables, true);
         }
@@ -203,11 +204,12 @@ import com.google.common.collect.Multimap;
     case DeclarationEdge:
       //System.out.println("inspecting edge " + edge.getRawStatement());
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
-      if(declaration.getName() != null && declaration.isGlobal()) {
+      if (declaration.getName() != null && declaration.isGlobal()) {
         globalVariables.add(declaration.getName());
 
-        if(dependingVariables.contains(declaration.getName()))
+        if (dependingVariables.contains(declaration.getName())) {
           collectedVariables.put(edge.getSuccessor(), declaration.getName());
+        }
       }
       break;
 
@@ -217,11 +219,11 @@ import com.google.common.collect.Multimap;
 
       CFunctionCall func = functionCallEdge.getSummaryEdge().getExpression();
 
-      if(func instanceof CFunctionCallAssignmentStatement) {
+      if (func instanceof CFunctionCallAssignmentStatement) {
         CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)func;
         String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), currentFunction);
 
-        if(dependingVariables.contains(assignedVariable)) {
+        if (dependingVariables.contains(assignedVariable)) {
           collectedVariables.put(functionCallEdge.getSummaryEdge().getSuccessor(), assignedVariable);
           collectVariables(functionCallEdge, funcAssign.getRightHandSide(), collectedVariables, true);
         }
@@ -230,11 +232,11 @@ import com.google.common.collect.Multimap;
       String functionName = functionCallEdge.getSuccessor().getFunctionDefinition().getName();
 
       int i = 0;
-      for(CParameterDeclaration parameter : functionCallEdge.getSuccessor().getFunctionDefinition().getType().getParameters()) {
+      for (CParameterDeclaration parameter : functionCallEdge.getSuccessor().getFunctionDefinition().getType().getParameters()) {
         String parameterName = functionName + "::" + parameter.getName();
 
         // collect the formal parameter, and make the argument a depending variable
-        if(dependingVariables.contains(parameterName)) {
+        if (dependingVariables.contains(parameterName)) {
           collectedVariables.put(functionCallEdge.getSuccessor(), parameterName);
           dependingVariables.add(scoped(functionCallEdge.getArguments().get(i).toASTString(), functionCallEdge.getPredecessor().getFunctionName()));
         }
@@ -256,7 +258,7 @@ import com.google.common.collect.Multimap;
         CAssignment assignment = (CAssignment)statementEdge.getStatement();
         String assignedVariable = scoped(assignment.getLeftHandSide().toASTString(), currentFunction);
 
-        if(dependingVariables.contains(assignedVariable)) {
+        if (dependingVariables.contains(assignedVariable)) {
           collectedVariables.put(edge.getSuccessor(), assignedVariable);
           collectVariables(statementEdge, assignment.getRightHandSide(), collectedVariables, false);
         }
@@ -327,7 +329,7 @@ import com.google.common.collect.Multimap;
 
       dependingVariables.add(scoped(variableName, currentEdge.getPredecessor().getFunctionName()));
 
-      if(doCollect) {
+      if (doCollect) {
         collectedVariables.put(currentEdge.getSuccessor(), scoped(variableName, currentEdge.getPredecessor().getFunctionName()));
       }
     }
@@ -378,10 +380,11 @@ import com.google.common.collect.Multimap;
     public Void visit(CUnaryExpression pE) {
       UnaryOperator op = pE.getOperator();
 
-      switch(op) {
+      switch (op) {
       case AMPER:
       case STAR:
         collectVariables(pE.toASTString());
+        //$FALL-THROUGH$
       default:
         pE.getOperand().accept(this);
       }

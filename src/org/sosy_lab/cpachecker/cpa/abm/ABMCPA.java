@@ -111,7 +111,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       transfer.setBlockPartitioning(blockPartitioning);
 
       ABMPredicateCPA predicateCpa = ((WrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class);
-      if(predicateCpa != null) {
+      if (predicateCpa != null) {
         predicateCpa.setPartitioning(blockPartitioning);
       }
 

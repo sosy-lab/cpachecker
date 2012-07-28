@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.collect.Iterables.skip;
-import static com.google.common.collect.Lists.transform;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -63,7 +62,6 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolati
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -129,7 +127,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
   protected final List<Pair<ARGState, CFANode>> transformPath(Path pPath) {
     List<Pair<ARGState, CFANode>> result = Lists.newArrayList();
 
-    for (ARGState ae : skip(transform(pPath, Pair.<ARGState>getProjectionToFirst()), 1)) {
+    for (ARGState ae : from(pPath).skip(1).transform(Pair.<ARGState>getProjectionToFirst())) {
       PredicateAbstractState pe = extractStateByType(ae, PredicateAbstractState.class);
       if (pe.isAbstractionState()) {
         CFANode loc = AbstractStates.extractLocation(ae);
@@ -147,20 +145,16 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
                     public Formula apply(PredicateAbstractState e) {
                       assert e.isAbstractionState();
                       return e.getAbstractionFormula().getBlockFormula();
-                    };
+                    }
                   };
 
   @Override
   protected List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> path, ARGState initialState) throws CPATransferException {
-
-    List<Formula> formulas = transform(path,
-        Functions.compose(
-            GET_BLOCK_FORMULA,
-        Functions.compose(
-            AbstractStates.extractStateByTypeFunction(PredicateAbstractState.class),
-            Pair.<ARGState>getProjectionToFirst())));
-
-    return formulas;
+    return from(path)
+        .transform(Pair.<ARGState>getProjectionToFirst())
+        .transform(toState(PredicateAbstractState.class))
+        .transform(GET_BLOCK_FORMULA)
+        .toImmutableList();
   }
 
   @Override

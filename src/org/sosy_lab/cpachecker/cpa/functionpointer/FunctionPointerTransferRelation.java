@@ -277,7 +277,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
   private FunctionPointerState.Builder handleEdge(FunctionPointerState.Builder newState, CFAEdge pCfaEdge) throws CPATransferException {
 
-    switch(pCfaEdge.getEdgeType()) {
+    switch (pCfaEdge.getEdgeType()) {
 
       // declaration of a function pointer.
       case DeclarationEdge: {

@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMultimap;
@@ -178,13 +179,16 @@ public class CFACreator {
       processingTime.start();
 
       // annotate CFA nodes with reverse postorder information for later use
-      for(FunctionEntryNode function : cfa.getAllFunctionHeads()){
+      for (FunctionEntryNode function : cfa.getAllFunctionHeads()){
         CFAReversePostorder sorter = new CFAReversePostorder();
         sorter.assignSorting(function);
       }
 
       // get loop information
       Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
+
+      // get information about variables
+      Optional<VariableClassification> varClassification = Optional.of(new VariableClassification(cfa));
 
       // Insert call and return edges and build the supergraph
       if (interprocedural) {
@@ -220,7 +224,7 @@ public class CFACreator {
         MultiEdgeCreator.createMultiEdges(cfa);
       }
 
-      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure);
+      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
 
       // check the super CFA starting at the main function
       checkTime.start();

@@ -137,7 +137,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
 
       PrecisionAdjustment compositePrecisionAdjustment;
-      if(options.precAdjust.equals("IGNORANT")) {
+      if (options.precAdjust.equals("IGNORANT")) {
         if (simplePrec) {
           compositePrecisionAdjustment = new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
         } else {
@@ -272,8 +272,9 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       }
     }
 
-    if(precisionAdjustment instanceof StatisticsProvider)
+    if (precisionAdjustment instanceof StatisticsProvider) {
       ((StatisticsProvider)precisionAdjustment).collectStatistics(pStatsCollection);
+    }
   }
 
   @Override

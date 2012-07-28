@@ -43,7 +43,7 @@ public class NumArray {
 
   @Override
   public boolean equals(Object pObj) {
-    if(!(pObj instanceof NumArray)) {
+    if (!(pObj instanceof NumArray)) {
       return false;
     }
     NumArray otherArr = (NumArray) pObj;

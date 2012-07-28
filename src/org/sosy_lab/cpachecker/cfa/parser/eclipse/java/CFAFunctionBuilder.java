@@ -616,7 +616,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
 
 
-  private static enum CONDITION { NORMAL, ALWAYS_FALSE, ALWAYS_TRUE };
+  private static enum CONDITION { NORMAL, ALWAYS_FALSE, ALWAYS_TRUE }
 
   private void createConditionEdges(final Expression condition,
       final int filelocStart, CFANode rootNode, CFANode thenNode,

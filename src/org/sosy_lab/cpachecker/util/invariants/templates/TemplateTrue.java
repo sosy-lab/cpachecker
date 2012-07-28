@@ -42,7 +42,7 @@ public class TemplateTrue extends TemplateConstraint {
   public boolean isFalse() {
     return false;
   }
-  
+
   public static boolean isInstance(Object obj) {
     TemplateTrue T = new TemplateTrue();
     return T.getClass().isInstance(obj);
@@ -52,12 +52,12 @@ public class TemplateTrue extends TemplateConstraint {
   public String toString(VariableWriteMode vwm) {
     return "true";
   }
-  
+
   @Override
   public Formula translate(FormulaManager fmgr) {
   	return fmgr.makeTrue();
   }
-  
+
   @Override
   public List<TemplateFormula> extractAtoms(boolean sAE, boolean cO) {
     List<TemplateFormula> atoms = new Vector<TemplateFormula>();

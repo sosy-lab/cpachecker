@@ -62,7 +62,7 @@ public class ColumnChoiceFrame {
     if (r.size() > 0) {
       PivotRow2 pr = r.get(0);
       ChallengeType ct = c.get(0);
-      switch(ct) {
+      switch (ct) {
       case AUGCOLUMN:
         limit = pr.getTotalOptionCount();
         break;

@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
 
 /**
@@ -180,13 +179,6 @@ class DefaultReachedSet implements ReachedSet {
   @Override
   public Iterator<AbstractState> iterator() {
     return unmodifiableReached.iterator();
-  }
-
-  @Override
-  public Collection<Pair<AbstractState, Precision>> getReachedWithPrecision() {
-    return Collections.unmodifiableCollection(
-        Collections2.transform(reached.entrySet(),
-                               Pair.<AbstractState, Precision>getPairFomMapEntry()));
   }
 
   @Override

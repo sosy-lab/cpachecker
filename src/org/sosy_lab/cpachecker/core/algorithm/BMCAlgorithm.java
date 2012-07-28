@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Predicates.instanceOf;
-import static com.google.common.collect.Iterables.*;
+import static com.google.common.base.Predicates.*;
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.FILTER_ABSTRACTION_STATES;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
@@ -87,20 +87,16 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
 @Options(prefix="bmc")
 public class BMCAlgorithm implements Algorithm, StatisticsProvider {
-
-  private static final Function<AbstractState, PredicateAbstractState> EXTRACT_PREDICATE_STATE
-      = AbstractStates.extractStateByTypeFunction(PredicateAbstractState.class);
 
   private static final Predicate<AbstractState> IS_STOP_STATE =
     Predicates.compose(new Predicate<AssumptionStorageState>() {
@@ -109,7 +105,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
                                return (pArg0 != null) && pArg0.isStop();
                              }
                            },
-                       AbstractStates.extractStateByTypeFunction(AssumptionStorageState.class));
+                       AbstractStates.toState(AssumptionStorageState.class));
 
   private static final Predicate<AbstractState> IS_IN_LOOP = new Predicate<AbstractState>() {
     @Override
@@ -118,10 +114,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       return loopState.getLoop() != null;
     }
   };
-
-  private static <T> boolean none(Iterable<T> iterable, Predicate<? super T> predicate) {
-    return !any(iterable, predicate);
-  }
 
   private class BMCStatistics implements Statistics {
 
@@ -222,8 +214,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.INFO, "Creating formula for program");
       final boolean soundInner = algorithm.run(pReachedSet);
 
-      if (any(transform(skip(pReachedSet, 1), EXTRACT_PREDICATE_STATE), FILTER_ABSTRACTION_STATES)) {
-        // first state of reached is always an abstraction state, so skip it
+      if (from(pReachedSet)
+          .skip(1) // first state of reached is always an abstraction state, so skip it
+          .transform(toState(PredicateAbstractState.class))
+          .anyMatch(FILTER_ABSTRACTION_STATES)) {
+
         logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
         return soundInner;
       }
@@ -281,7 +276,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     try {
       logger.log(Level.INFO, "Error found, creating error path");
 
-      Iterable<ARGState> arg = Iterables.filter(pReachedSet.getReached(), ARGState.class);
+      Iterable<ARGState> arg = from(pReachedSet.getReached()).filter(ARGState.class);
 
       // get the branchingFormula
       // this formula contains predicates for all branches we took
@@ -349,9 +344,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private boolean checkTargetStates(final ReachedSet pReachedSet) {
-    if (checkTargetStates) {
+    List<AbstractState> targetStates = from(pReachedSet)
+                                            .filter(IS_TARGET_STATE)
+                                            .toImmutableList();
 
-      List<AbstractState> targetStates = Lists.newArrayList(AbstractStates.filterTargetStates(pReachedSet));
+    if (checkTargetStates) {
       logger.log(Level.FINER, "Found", targetStates.size(), "potential target states");
 
       // create formula
@@ -371,14 +368,16 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     } else {
       // fast check for trivial cases
-      return none(pReachedSet, IS_TARGET_STATE);
+      return targetStates.isEmpty();
     }
   }
 
   private boolean checkBoundingAssertions(final ReachedSet pReachedSet) {
+    FluentIterable<AbstractState> stopStates = from(pReachedSet)
+                                                    .filter(IS_STOP_STATE);
+
     if (boundingAssertions) {
       // create formula for unwinding assertions
-      Iterable<AbstractState> stopStates = filter(pReachedSet, IS_STOP_STATE);
       Formula assertions = createFormulaFor(stopStates);
 
       logger.log(Level.INFO, "Starting assertions check...");
@@ -394,7 +393,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     } else {
       // fast check for trivial cases
-      return none(pReachedSet, IS_STOP_STATE);
+      return stopStates.isEmpty();
     }
   }
 
@@ -436,12 +435,12 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     Loop loop = Iterables.getOnlyElement(loops.values());
 
     // function edges do not count as incoming/outgoing edges
-    Iterable<CFAEdge> incomingEdges = Iterables.filter(loop.getIncomingEdges(),
-                                                       Predicates.not(instanceOf(CFunctionReturnEdge.class)));
-    Iterable<CFAEdge> outgoingEdges = Iterables.filter(loop.getOutgoingEdges(),
-                                                       Predicates.not(instanceOf(CFunctionCallEdge.class)));
+    FluentIterable<CFAEdge> incomingEdges = from(loop.getIncomingEdges())
+                                                 .filter(not(instanceOf(CFunctionReturnEdge.class)));
+    FluentIterable<CFAEdge> outgoingEdges = from(loop.getOutgoingEdges())
+                                                 .filter(not(instanceOf(CFunctionCallEdge.class)));
 
-    if (Iterables.size(incomingEdges) > 1) {
+    if (incomingEdges.size() > 1) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many incoming edges", incomingEdges);
       return false;
     }
@@ -507,13 +506,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     logger.log(Level.INFO, "Running algorithm to create induction hypothesis");
     algorithm.run(reached);
 
-    Multimap<CFANode, AbstractState> reachedPerLocation = Multimaps.index(reached, AbstractStates.EXTRACT_LOCATION);
+    Multimap<CFANode, AbstractState> reachedPerLocation = Multimaps.index(reached, EXTRACT_LOCATION);
 
     // live view of reached set with only the states in the loop
-    Iterable<AbstractState> loopStates = Iterables.filter(reached, IS_IN_LOOP);
+    FluentIterable<AbstractState> loopStates = from(reached).filter(IS_IN_LOOP);
 
-    assert !Iterables.isEmpty(loopStates);
-    if (Iterables.any(loopStates, IS_TARGET_STATE)) {
+    assert !loopStates.isEmpty();
+    if (loopStates.anyMatch(IS_TARGET_STATE)) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, target state is contained in the loop");
       return false;
     }
@@ -534,7 +533,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
         // the states reachable from the exit edge
         Set<ARGState> outOfLoopStates = lastExitState.getSubgraph();
-        if (Iterables.isEmpty(filterTargetStates(outOfLoopStates))) {
+        if (!from(outOfLoopStates).anyMatch(IS_TARGET_STATE)) {
           // no target state reachable
           continue;
         }

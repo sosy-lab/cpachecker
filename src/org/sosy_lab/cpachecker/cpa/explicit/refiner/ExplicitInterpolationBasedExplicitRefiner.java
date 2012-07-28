@@ -24,11 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -36,17 +34,15 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision.CegarPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssignedVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssumptionVariablesCollector;
-import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictPathChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
@@ -59,86 +55,74 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
   @Option(description="whether or not to use assumption-closure for explicit refinement")
   boolean useAssumptionClosure = true;
 
-  /**
-   * the ART element, from where to cut-off the subtree, and restart the analysis
-   */
-  private ARGState firstInterpolationPoint = null;
-
   // statistics
-  private int numberOfCounterExampleChecks                  = 0;
-  private int numberOfErrorPathElements                     = 0;
-  private Timer timerCounterExampleChecks                   = new Timer();
+  private int numberOfRefinements           = 0;
+  private int numberOfCounterExampleChecks  = 0;
+  private int numberOfErrorPathElements     = 0;
+  private Timer timerCounterExampleChecks   = new Timer();
 
   protected ExplicitInterpolationBasedExplicitRefiner(
       Configuration config, PathFormulaManager
       pathFormulaManager) throws InvalidConfigurationException {
-    super(config, pathFormulaManager);
     config.inject(this);
   }
 
   @Override
-  protected Multimap<CFANode, String> determinePrecisionIncrement(
-      UnmodifiableReachedSet reachedSet,
-      ExplicitPrecision oldPrecision) throws CPAException {
+  protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet,
+      Path errorPath) throws CPAException {
     timerCounterExampleChecks.start();
-
-    Multimap<CFANode, String> increment = HashMultimap.create();
-
-    List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
-    for(Pair<ARGState, CFAEdge> pathElement : currentEdgePath){
-      // expand any multi-edge
-      if(pathElement.getSecond() instanceof MultiEdge) {
-        for(CFAEdge singleEdge : (MultiEdge)pathElement.getSecond()) {
-          cfaTrace.add(singleEdge);
-        }
-      }
-      else {
-        cfaTrace.add(pathElement.getSecond());
-      }
-    }
 
     firstInterpolationPoint = null;
 
-    Multimap<CFANode, String> variablesToBeIgnored      = HashMultimap.create();
-    Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(cfaTrace);
+    numberOfRefinements++;
 
-    for(int i = 0; i < cfaTrace.size(); i++){
-      CFAEdge currentEdge = cfaTrace.get(i);
+    Multimap<CFANode, String> increment = HashMultimap.create();
 
-      numberOfErrorPathElements++;
+    // only do a refinement if a full-precision check shows that the path is infeasible
+    if(!isPathFeasable(errorPath, HashMultimap.<CFANode, String>create())) {
+      List<CFAEdge> cfaTrace = extractCFAEdgeTrace(errorPath);
 
-      if(currentEdge instanceof CFunctionReturnEdge) {
-        currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
-      }
+      Multimap<CFANode, String> variablesToBeIgnored      = HashMultimap.create();
+      Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(cfaTrace);
 
-      Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge.getSuccessor());
+      for(int i = 0; i < cfaTrace.size(); i++){
+        CFAEdge currentEdge = cfaTrace.get(i);
 
-      // no potentially interesting variables referenced - skip
-      if(referencedVariablesAtEdge.isEmpty()) {
-        continue;
-      }
+        numberOfErrorPathElements++;
 
-      // check for each variable, if ignoring it makes the error path feasible
-      for(String importantVariable : referencedVariablesAtEdge) {
-        // do a redundancy check against current node of the ART (and not against the error node in the ART)
-        ExplicitPrecision currentPrecision = extractExplicitPrecision(reachedSet.getPrecision(currentEdgePath.get(i).getFirst()));
-        if(isRedundant(currentPrecision.getCegarPrecision(), currentEdge, importantVariable)) {
+        if(currentEdge instanceof CFunctionReturnEdge) {
+          currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
+        }
+
+        Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge.getSuccessor());
+
+        // no potentially interesting variables referenced - skip
+        if(referencedVariablesAtEdge.isEmpty()) {
           continue;
         }
 
-        numberOfCounterExampleChecks++;
+        // check for each variable, if ignoring it makes the error path feasible
+        for(String importantVariable : referencedVariablesAtEdge) {
+          // do a redundancy check against current node of the ART (and not against the error node in the ART)
+          ExplicitPrecision currentPrecision = extractExplicitPrecision(reachedSet.getPrecision(edgeToState.get(cfaTrace.get(i))));
+          if(isRedundant(currentPrecision.getCegarPrecision(), currentEdge, importantVariable)) {
+            continue;
+          }
 
-        // variables to ignore in the current run
-        variablesToBeIgnored.put(currentEdge.getSuccessor(), importantVariable);
+          numberOfCounterExampleChecks++;
 
-        // if path becomes feasible, remove it from the set of variables to be ignored,
-        // and add the variable to the precision increment, also setting the interpolation point
-        if(isPathFeasable(cfaTrace, variablesToBeIgnored)) {
-          variablesToBeIgnored.remove(currentEdge.getSuccessor(), importantVariable);
-          increment.put(currentEdge.getSuccessor(), importantVariable);
+          // variables to ignore in the current run
+          variablesToBeIgnored.put(currentEdge.getSuccessor(), importantVariable);
 
-          if(firstInterpolationPoint == null) {
-            firstInterpolationPoint = currentEdgePath.get(i + 1).getFirst();
+          // if path becomes feasible, remove it from the set of variables to be ignored,
+          // and add the variable to the precision increment, also setting the interpolation point
+          if(isPathFeasable(errorPath, variablesToBeIgnored)) {
+            variablesToBeIgnored.remove(currentEdge.getSuccessor(), importantVariable);
+            increment.put(currentEdge.getSuccessor(), importantVariable);
+
+            if(firstInterpolationPoint == null) {
+              firstInterpolationPoint = edgeToState.get(cfaTrace.get(i + 1));
+            }
           }
         }
       }
@@ -146,20 +130,6 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
 
     timerCounterExampleChecks.stop();
     return increment;
-  }
-
-  @Override
-  protected ARGState determineInterpolationPoint(
-      List<Pair<ARGState, CFANode>> errorPath,
-      Multimap<CFANode, String> precisionIncrement) {
-
-    // just use initial node of error path if the respective option is set
-    if(useInitialNodeAsRestartingPoint/* || firstInterpolationPoint == null*/) {
-      return errorPath.get(1).getFirst();
-    }
-    else {
-      return firstInterpolationPoint;
-    }
   }
 
   /**
@@ -192,34 +162,14 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
     return precision.allowsTrackingAt(currentEdge.getSuccessor(), referencedVariableAtEdge);
   }
 
-  /**
-   * This method checks if the given path is feasible, when not tracking the given set of variables.
-   *
-   * @param path the path to check
-   * @param variablesToBeIgnored the variables to ignore
-   * @return true, if the path is feasible, else false
-   * @throws CPAException
-   */
-  private boolean isPathFeasable(List<CFAEdge> path, Multimap<CFANode, String> variablesToBeIgnored) throws CPAException {
-    try {
-      // create a new ExplicitPathChecker, which does not track any of the given variables
-      ExplictPathChecker checker = new ExplictPathChecker();
-
-      return checker.checkPath(path, variablesToBeIgnored);
-    }
-    catch (InterruptedException e) {
-      throw new CPAException("counterexample-check failed: ", e);
-    }
-  }
-
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     out.println(this.getClass().getSimpleName() + ":");
-    out.println("  number of explicit refinements:           " + numberOfExplicitRefinements);
-    out.println("  number of counter-example checks:         " + numberOfCounterExampleChecks);
-    out.println("  total number of elements in error paths:  " + numberOfErrorPathElements);
-    out.println("  percentage of elements checked:           " + (Math.round(((double)numberOfCounterExampleChecks / (double)numberOfErrorPathElements) * 10000) / 100.00) + "%");
-    out.println("  max. time for singe check:                " + timerCounterExampleChecks.printMaxTime());
-    out.println("  total time for checks:                    " + timerCounterExampleChecks);
+    out.println("  number of explicit-interpolation-based refinements:  " + numberOfRefinements);
+    out.println("  number of counter-example checks:                    " + numberOfCounterExampleChecks);
+    out.println("  total number of elements in error paths:             " + numberOfErrorPathElements);
+    out.println("  percentage of elements checked:                      " + (Math.round(((double)numberOfCounterExampleChecks / (double)numberOfErrorPathElements) * 10000) / 100.00) + "%");
+    out.println("  max. time for singe check:                           " + timerCounterExampleChecks.printMaxTime());
+    out.println("  total time for checks:                               " + timerCounterExampleChecks);
   }
 }

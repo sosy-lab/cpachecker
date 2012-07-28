@@ -99,7 +99,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
       reducer = null;
     }
 
-    if(cpa instanceof ProofChecker) {
+    if (cpa instanceof ProofChecker) {
       this.wrappedProofChecker = (ProofChecker)cpa;
     } else {
       this.wrappedProofChecker = null;

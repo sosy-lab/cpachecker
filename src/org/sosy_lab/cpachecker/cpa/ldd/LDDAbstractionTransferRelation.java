@@ -508,6 +508,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
           }
         }
         term = variableCoeffs;
+        //$FALL-THROUGH$
       case PLUS:
         variableCoeffs = term;
         Pair<Integer, Integer> previousConstVar = removeRationalCoefficient(variableCoeffs, "const");
@@ -516,6 +517,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
         int num = prevNum + constant * prevDenom;
         int denom = prevDenom;
         variableCoeffs.put("const", normalizeRational(num, denom));
+        break;
       default:
         return null;
       }

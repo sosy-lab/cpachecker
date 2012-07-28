@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +51,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Maps;
 
 /**
@@ -265,14 +267,14 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
           return fmgr.makeTrue();
         }
 
-        Iterable<CFAEdge> outgoingEdges = Iterables.transform(pathElement.getChildren(),
+        FluentIterable<CFAEdge> outgoingEdges = from(pathElement.getChildren()).transform(
             new Function<ARGState, CFAEdge>() {
               @Override
               public CFAEdge apply(ARGState child) {
                 return pathElement.getEdgeToChild(child);
               }
         });
-        if (!Iterables.all(outgoingEdges, Predicates.instanceOf(CAssumeEdge.class))) {
+        if (!outgoingEdges.allMatch(Predicates.instanceOf(CAssumeEdge.class))) {
           logger.log(Level.WARNING, "ARG branching without CAssumeEdge");
           return fmgr.makeTrue();
         }

@@ -36,7 +36,7 @@ public class Condition {
   public void setFormula(String f) {
     formula = f;
   }
-  
+
   public String getFormula() {
 	return formula;
   }

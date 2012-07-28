@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -186,9 +186,9 @@ public class ARGUtils {
 
     worklist.add(rootState);
 
-    while(worklist.size() != 0){
+    while (worklist.size() != 0){
       ARGState currentElement = worklist.removeLast();
-      if(processed.contains(currentElement)){
+      if (processed.contains(currentElement)){
         continue;
       }
       if (displayedElements != null && !displayedElements.contains(currentElement)) {
@@ -197,7 +197,7 @@ public class ARGUtils {
 
       processed.add(currentElement);
 
-      if(!nodesList.contains(currentElement.getStateId())){
+      if (!nodesList.contains(currentElement.getStateId())){
 
         String label = determineLabel(currentElement);
 
@@ -230,12 +230,12 @@ public class ARGUtils {
 
         boolean colored = highlightedEdges.contains(Pair.of(currentElement, child));
         CFAEdge edge = currentElement.getEdgeToChild(child);
-        if(colored) {
+        if (colored) {
           edges.append("color=\"red\"");
         }
 
-        if(edge != null) {
-          if(colored) {
+        if (edge != null) {
+          if (colored) {
             edges.append(" ");
           }
           edges.append("label=\"");
@@ -252,7 +252,7 @@ public class ARGUtils {
         }
 
         edges.append("]\n");
-        if(!worklist.contains(child)){
+        if (!worklist.contains(child)){
           worklist.add(child);
         }
       }
@@ -268,13 +268,12 @@ public class ARGUtils {
     builder.append(currentElement.getStateId());
 
     CFANode loc = AbstractStates.extractLocation(currentElement);
-    if(loc != null) {
+    if (loc != null) {
       builder.append(" @ ");
       builder.append(loc.toString());
     }
 
-    Iterable<AutomatonState> states = AbstractStates.extractAllStatesOfType(currentElement, AutomatonState.class);
-    for (AutomatonState state : states) {
+    for (AutomatonState state : asIterable(currentElement).filter(AutomatonState.class)) {
       if (!state.getInternalStateName().equals("Init")) {
         builder.append("\\n");
         builder.append(state.getCPAName().replaceFirst("AutomatonAnalysis_", ""));
@@ -284,13 +283,13 @@ public class ARGUtils {
     }
 
     PredicateAbstractState abstraction = AbstractStates.extractStateByType(currentElement, PredicateAbstractState.class);
-    if(abstraction != null && abstraction.isAbstractionState()) {
+    if (abstraction != null && abstraction.isAbstractionState()) {
       builder.append("\\n");
       builder.append(abstraction.getAbstractionFormula());
     }
 
     ExplicitState explicit = AbstractStates.extractStateByType(currentElement, ExplicitState.class);
-    if(explicit != null) {
+    if (explicit != null) {
       builder.append("\\n");
       builder.append(explicit.toCompactString());
     }

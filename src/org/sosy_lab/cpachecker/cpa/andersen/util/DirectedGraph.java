@@ -167,8 +167,9 @@ public class DirectedGraph {
 
       HashSet<DirectedGraph.Node> ptNSet = new HashSet<DirectedGraph.Node>();
 
-      for (String n : getPointsToSet())
+      for (String n : getPointsToSet()) {
         ptNSet.add(getNode(n));
+      }
 
       return ptNSet;
     }
@@ -203,11 +204,13 @@ public class DirectedGraph {
     @Override
     public boolean equals(Object other) {
 
-      if (other == this)
+      if (other == this) {
         return true;
+      }
 
-      if (!other.getClass().equals(this.getClass()))
+      if (!other.getClass().equals(this.getClass())) {
         return false;
+      }
 
       DirectedGraph.Edge o = (DirectedGraph.Edge) other;
 
@@ -313,9 +316,11 @@ public class DirectedGraph {
    */
   public DirectedGraph.Node mergeNodes(DirectedGraph.Node merged, Collection<DirectedGraph.Node> nodes) {
 
-    if (nodes != null)
-      for (DirectedGraph.Node n : nodes)
+    if (nodes != null) {
+      for (DirectedGraph.Node n : nodes) {
         mergeNodes(merged, n);
+      }
+    }
 
     return merged;
   }
@@ -362,14 +367,13 @@ public class DirectedGraph {
   public DirectedGraph.Node getNode(String var) {
 
     Node n = nameMapping.get(var);
-    if (n == null)
+    if (n == null) {
       nameMapping.put(var, n = new Node());
+    } else if (!n.isValid()) {
 
-    else if (!n.isValid()) {
-
-      do
+      do {
         n = n.getReplacement();
-      while (!n.isValid());
+      } while (!n.isValid());
       nameMapping.put(var, n);
     }
 
@@ -388,8 +392,9 @@ public class DirectedGraph {
 
     for (Map.Entry<String, Node> entry : entrySet) {
       DirectedGraph.Node val = entry.getValue();
-      while (!val.isValid())
+      while (!val.isValid()) {
         entry.setValue(val = val.getReplacement());
+      }
     }
 
     return nameMapping.entrySet();
@@ -405,8 +410,9 @@ public class DirectedGraph {
    */
   public void addEdge(DirectedGraph.Node src, DirectedGraph.Node dest) {
 
-    if (src == dest)
+    if (src == dest) {
       return;
+    }
 
     src.successors.add(dest);
     dest.predecessors.add(src);

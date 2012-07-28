@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import java.util.logging.Level;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -91,10 +89,18 @@ public class FormulaManagerFactory {
       throw new InvalidConfigurationException("Can use either integers or bitvecors, not both!");
     }
 
-    FormulaManager lFmgr = null;
-    TheoremProver lProver = null;
+    FormulaManager lFmgr;
+    TheoremProver lProver;
 
-    if (!solver.equals(SMTINTERPOL)) {
+    if (solver.equals(SMTINTERPOL)) {
+      if (useBitvectors) {
+        throw new InvalidConfigurationException("Using bitvectors for program variables is not supported when SMTInterpol is used.");
+      }
+
+      lFmgr = new ArithmeticSmtInterpolFormulaManager(config, logger, useIntegers);
+      lProver = new SmtInterpolTheoremProver((SmtInterpolFormulaManager) lFmgr);
+
+    } else {
       try {
 
         if (solver.equals(MATHSAT5)) {
@@ -126,22 +132,11 @@ public class FormulaManagerFactory {
           }
         }
       } catch (UnsatisfiedLinkError e) {
-        logger.logUserException(Level.WARNING, e, "The SMT solver " + solver + " is not available on this machine, using SMTInterpol as a fallback");
-        solver = SMTINTERPOL;
+        throw new InvalidConfigurationException("The SMT solver " + solver
+            + " is not available on this machine."
+            + " You may experiment with SMTInterpol by setting cpa.predicate.solver=SMTInterpol.", e);
       }
     }
-
-    if (solver.equals(SMTINTERPOL)) {
-      if (useBitvectors) {
-        throw new InvalidConfigurationException("Using bitvectors for program variables is not supported when SMTInterpol is used.");
-      }
-
-      lFmgr = new ArithmeticSmtInterpolFormulaManager(config, logger, useIntegers);
-      lProver = new SmtInterpolTheoremProver((SmtInterpolFormulaManager) lFmgr);
-    }
-
-    assert lFmgr != null;
-    assert lProver != null;
 
     fmgr = lFmgr;
     prover = lProver;

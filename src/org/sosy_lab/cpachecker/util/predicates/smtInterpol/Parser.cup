@@ -15,72 +15,74 @@ import java_cup.runtime.Symbol;
 import org.sosy_lab.common.Pair;
 
 parser code {:
-	SmtInterpolEnvironment env;
-	List<Term> termList = new ArrayList<Term>();
+  SmtInterpolEnvironment env;
+  List<Term> termList = new ArrayList<Term>();
 
-	public Parser(SmtInterpolEnvironment env, Reader reader) {
-        ComplexSymbolFactory sf = new ComplexSymbolFactory();
-        Lexer lexer = new Lexer(reader);
-        lexer.setSymbolFactory(sf);
-        this.setScanner(lexer);
-        this.symbolFactory = sf;
-        this.env = env;	
-    }
+  public Parser(SmtInterpolEnvironment env, Reader reader) {
+    ComplexSymbolFactory sf = new ComplexSymbolFactory();
+    Lexer lexer = new Lexer(reader);
+    lexer.setSymbolFactory(sf);
+    this.setScanner(lexer);
+    this.symbolFactory = sf;
+    this.env = env;  
+  }
 
-	public Term[] getTerms() {
-	    return termList.toArray(new Term[0]);
-	}
+  public Term[] getTerms() {
+    return termList.toArray(new Term[0]);
+  }
 :}
 
 action code {:
-	Map<String,TermVariable> localVars = new HashMap<String, TermVariable>(); 
-	List<Object> varScopes = new ArrayList<Object>();
+  Map<String,TermVariable> localVars = new HashMap<String, TermVariable>(); 
+  List<Object> varScopes = new ArrayList<Object>();
 
-	public Sort lookupSort(String name, Sort[] args) {
-		if (args != null) {
-		    for (Sort s: args) {
-		        if (s == null) return null;
-		    }
-		}
-	    return parser.env.sort(name, args);
-	}
-	
-	public Term createTerm(String fun, Term[] params) {
-	    return parser.env.term(fun, params);
-	}
+  public Sort lookupSort(String name, Sort[] args) {
+    if (args != null) {
+      for (Sort s: args) {
+        if (s == null) return null;
+      }
+    }
+    return parser.env.sort(name, args);
+  }
+  
+  public Term createTerm(String fun, Term[] params) {
+    return parser.env.term(fun, params);
+  }
 
-	public TermVariable createTermVariable(String name, Sort sort) {
-  	    if (sort == null)
-  	        return null;
-  	    try {
-	    	TermVariable tv = parser.env.variable(name, sort);
-	    	Object old = localVars.get(name);
-	    	if (old == null)
-	    		old = name;
-	    	varScopes.add(old);
-	    	localVars.put(tv.getName(), tv);
-	    	return tv;
-	    } catch (SMTLIBException cannotHappen) {}
-	    // Actually unreachable
-	    throw new AssertionError();
-	}
-	
-	public void popTermVariable() {
-		Object old = varScopes.remove(varScopes.size()-1);
-		if (old instanceof String) {
-			localVars.remove((String) old);
-		} else {
-			TermVariable oldVar = (TermVariable) old;
-			localVars.put(oldVar.getName(), oldVar);
-		}
-	}
+  public TermVariable createTermVariable(String name, Sort sort) {
+    if (sort == null) {
+       return null;
+    }
+    try {
+      TermVariable tv = parser.env.variable(name, sort);
+      Object old = localVars.get(name);
+      if (old == null) {
+        old = name;
+      }
+      varScopes.add(old);
+      localVars.put(tv.getName(), tv);
+      return tv;
+    } catch (SMTLIBException cannotHappen) {}
+    // Actually unreachable
+    throw new AssertionError();
+  }
+  
+  public void popTermVariable() {
+    Object old = varScopes.remove(varScopes.size()-1);
+    if (old instanceof String) {
+      localVars.remove((String) old);
+    } else {
+      TermVariable oldVar = (TermVariable) old;
+      localVars.put(oldVar.getName(), oldVar);
+    }
+  }
 :}
 
 /*init with {: getScanner().init(); :} */
 scan with {: return getScanner().next_token(); :}
 
 /* Predefined Symbols */
-terminal String BANG, AS, DECLAREFUN, EXISTS, FORALL, LET;
+terminal String BANG, DECLAREFUN, EXISTS, FORALL, LET;
 
 /* Predefined Keywords */
 terminal String NAMED, HEXADECIMAL, BINARY, NUMERAL, DECIMAL, STRING;
@@ -155,33 +157,33 @@ term ::= constantTerm:ct
             Term[] terms = new Term[bindings.size()];
             int i = 0;
             for (Pair<TermVariable, Term> binding : bindings) {
-            	if (binding != null) {
-               		vars[i] = binding.getFirst();
-               		terms[i] = binding.getSecond();
-               		popTermVariable();
-               	}
-               	i++;
+              if (binding != null) {
+                vars[i] = binding.getFirst();
+                terms[i] = binding.getSecond();
+                popTermVariable();
+              }
+              i++;
             }
             RESULT = parser.env.let(vars, terms, t); :}
 
        | LPAR FORALL LPAR sortedVars:vars RPAR term:t RPAR
          {: for (int i = 0; i < vars.size(); i++)
-         		if (vars.get(i) != null)
-                	popTermVariable();
+              if (vars.get(i) != null)
+                popTermVariable();
             RESULT = parser.env.quantifier(Script.FORALL, vars.toArray(new TermVariable[0]), t); :}
 
        | LPAR EXISTS LPAR sortedVars:vars RPAR term:t RPAR
          {: for (int i = 0; i < vars.size(); i++)
-         		if (vars.get(i) != null)
-                	popTermVariable();
+              if (vars.get(i) != null)
+                popTermVariable();
             RESULT = parser.env.quantifier(Script.EXISTS, vars.toArray(new TermVariable[0]), t); :}
 
        | LPAR BANG term:t annotations:annots RPAR
          {: if (t == null) { // TODO do we need this check?
-  	            RESULT = null;
-  	        } else {
-  	            RESULT = parser.env.annotate(t, annots.toArray(new Annotation[0]));
-  	        }
+              RESULT = null;
+            } else {
+              RESULT = parser.env.annotate(t, annots.toArray(new Annotation[0]));
+            }
          :};
 
 declaration ::= DECLAREFUN STRING:fun LPAR sorts_0:params RPAR sort:result

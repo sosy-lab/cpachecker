@@ -30,12 +30,12 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class LocationTransferRelation implements TransferRelation {
 
@@ -51,17 +51,8 @@ public class LocationTransferRelation implements TransferRelation {
     LocationState inputElement = (LocationState) element;
     CFANode node = inputElement.getLocationNode();
 
-    int numLeavingEdges = node.getNumLeavingEdges();
-    for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++) {
-      CFAEdge testEdge = node.getLeavingEdge(edgeIdx);
-      if (testEdge == cfaEdge) {
-        return Collections.singleton(factory.getState(testEdge.getSuccessor()));
-      }
-    }
-
-    if (node.getLeavingSummaryEdge() != null) {
-      FunctionSummaryEdge summaryEdge = node.getLeavingSummaryEdge();
-      return Collections.singleton(factory.getState(summaryEdge.getSuccessor()));
+    if (CFAUtils.allLeavingEdges(node).contains(cfaEdge)) {
+      return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
     }
 
     return Collections.emptySet();
@@ -77,12 +68,10 @@ public class LocationTransferRelation implements TransferRelation {
 
     CFANode node = ((LocationState)element).getLocationNode();
 
-    int numLeavingEdges = node.getNumLeavingEdges();
-    List<LocationState> allSuccessors = new ArrayList<LocationState>(numLeavingEdges);
+    List<LocationState> allSuccessors = new ArrayList<LocationState>(node.getNumLeavingEdges());
 
-    for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++) {
-      CFAEdge tempEdge = node.getLeavingEdge(edgeIdx);
-      allSuccessors.add(factory.getState(tempEdge.getSuccessor()));
+    for (CFANode successor : CFAUtils.successorsOf(node)) {
+      allSuccessors.add(factory.getState(successor));
     }
 
     return allSuccessors;

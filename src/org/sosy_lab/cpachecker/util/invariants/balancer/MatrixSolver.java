@@ -65,7 +65,7 @@ public class MatrixSolver {
     // Inequalities assumed on the pivot rows:
     Set<AssumptionSet> pivotAssumptionSets = null;
 
-    while(true) {
+    while (true) {
       // Make a copy of the matrix.
       Matrix mat = matrix.copy();
       logger.log(Level.ALL,"Basic matrix is:","\n"+mat.toString());

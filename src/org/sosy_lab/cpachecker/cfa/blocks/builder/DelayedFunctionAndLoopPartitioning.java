@@ -48,7 +48,7 @@ public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartition
 
   @Override
   protected Set<CFANode> getBlockForNode(CFANode pNode) {
-    if(pNode instanceof FunctionEntryNode) {
+    if (pNode instanceof FunctionEntryNode) {
       Set<CFANode> blockNodes = TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
       return removeInitialDeclarations(pNode, blockNodes);
     }
@@ -70,10 +70,10 @@ public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartition
 
     int skippedDeclarations = 0;
 
-    while(currentNode.getNumLeavingEdges() == 1 && currentNode.getLeavingEdge(0).getSuccessor().getNumLeavingEdges() == 1) {
+    while (currentNode.getNumLeavingEdges() == 1 && currentNode.getLeavingEdge(0).getSuccessor().getNumLeavingEdges() == 1) {
       assert currentNode.getNumEnteringEdges() == 1;
       CFAEdge edge = currentNode.getLeavingEdge(0);
-      if(edge.getEdgeType() != CFAEdgeType.DeclarationEdge) {
+      if (edge.getEdgeType() != CFAEdgeType.DeclarationEdge) {
         break;
       }
       //it is a declaration -> skip it
@@ -82,10 +82,10 @@ public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartition
       currentNode = edge.getSuccessor();
     }
 
-    while(currentNode.getNumLeavingEdges() == 1 && skippedDeclarations > 0  && currentNode.getLeavingEdge(0).getSuccessor().getNumLeavingEdges() == 1) {
+    while (currentNode.getNumLeavingEdges() == 1 && skippedDeclarations > 0  && currentNode.getLeavingEdge(0).getSuccessor().getNumLeavingEdges() == 1) {
       assert currentNode.getNumEnteringEdges() == 1;
       CFAEdge edge = currentNode.getLeavingEdge(0);
-      if(edge.getEdgeType() != CFAEdgeType.StatementEdge) {
+      if (edge.getEdgeType() != CFAEdgeType.StatementEdge) {
         break;
       }
       //skip as many (hopefully) definitions

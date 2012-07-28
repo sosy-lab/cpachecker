@@ -39,7 +39,7 @@ public class AutomatonInfo {
   }
 
   void register(Automaton automaton) {
-    for(AutomatonInternalState state : automaton.getStates()) {
+    for (AutomatonInternalState state : automaton.getStates()) {
       idToState.put(state.getStateId(), state);
     }
   }

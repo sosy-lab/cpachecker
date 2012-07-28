@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -58,9 +59,7 @@ public class CFACheck {
       CFANode node = waitingNodeList.poll();
 
       if (visitedNodes.add(node)) {
-        for (CFAEdge edge : leavingEdges(node)) {
-          waitingNodeList.add(edge.getSuccessor());
-        }
+        Iterables.addAll(waitingNodeList, CFAUtils.successorsOf(node));
 
         // The actual checks
         isConsistent(node);
@@ -141,7 +140,7 @@ public class CFACheck {
         assert false : "Duplicate successor " + successor + " for node " + DEBUG_FORMAT.apply(pNode);
       }
 
-      boolean hasEdge = Iterables.contains(enteringEdges(successor), edge);
+      boolean hasEdge = enteringEdges(successor).contains(edge);
       assert hasEdge : "Node " + DEBUG_FORMAT.apply(pNode) + " has leaving edge " + edge
           + ", but pNode " + DEBUG_FORMAT.apply(pNode) + " does not have this edge as entering edge!";
     }
@@ -159,7 +158,7 @@ public class CFACheck {
         assert false : "Duplicate predecessor " + predecessor + " for node " + DEBUG_FORMAT.apply(pNode);
       }
 
-      boolean hasEdge = Iterables.contains(leavingEdges(predecessor), edge);
+      boolean hasEdge = leavingEdges(predecessor).contains(edge);
       assert hasEdge : "Node " + DEBUG_FORMAT.apply(pNode) + " has entering edge " + edge
           + ", but pNode " + DEBUG_FORMAT.apply(pNode) + " does not have this edge as leaving edge!";
     }

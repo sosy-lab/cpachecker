@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMultimap;
@@ -128,7 +129,8 @@ public class CPASelfCheck {
     CParser parser = CParser.Factory.getParser(logManager, CParser.Factory.getDefaultOptions());
     ParseResult cfas = parser.parseString(code);
     MutableCFA cfa = new MutableCFA(cfas.getFunctions(), cfas.getCFANodes(), cfas.getFunctions().get("main"));
-    return cfa.makeImmutableCFA(Optional.<ImmutableMultimap<String,Loop>>absent());
+    return cfa.makeImmutableCFA(Optional.<ImmutableMultimap<String,Loop>>absent(),
+        Optional.<VariableClassification>absent());
   }
 
   private static ConfigurableProgramAnalysis tryToInstantiate(Class<ConfigurableProgramAnalysis> pCpa,
@@ -222,7 +224,6 @@ public class CPASelfCheck {
    *
    * @param packageName The base package
    * @return The classes
-   * @throws ClassNotFoundException
    * @throws IOException
    *
    * taken from http://www.sourcesnippets.com/java-get-all-classes-within-a-package.html
@@ -247,7 +248,6 @@ public class CPASelfCheck {
    * @param directory   The base directory
    * @param packageName The package name for classes found inside the base directory
    * @param classes     List where the classes are added.
-   * @throws ClassNotFoundException
    *
    * taken from http://www.sourcesnippets.com/java-get-all-classes-within-a-package.html
    */

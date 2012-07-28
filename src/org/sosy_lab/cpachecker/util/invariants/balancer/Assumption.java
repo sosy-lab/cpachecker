@@ -299,7 +299,7 @@ public class Assumption {
 
     public AssumptionType flip() {
       AssumptionType a;
-      switch(this) {
+      switch (this) {
       case POSITIVE:
         a = AssumptionType.NEGATIVE;
         break;

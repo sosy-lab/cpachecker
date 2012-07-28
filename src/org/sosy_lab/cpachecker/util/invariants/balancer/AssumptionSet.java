@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionTyp
 
 public class AssumptionSet implements Iterable<Assumption> {
 
-  private final Vector<Assumption> aset;;
+  private Vector<Assumption> aset;
 
   public AssumptionSet() {
     aset = new Vector<Assumption>();
@@ -52,6 +52,16 @@ public class AssumptionSet implements Iterable<Assumption> {
       // We can use the vector method, since 'as' should already contain no obvious logical redundancies.
       aset.add(a);
     }
+  }
+
+  public AssumptionSet copy() {
+    Vector<Assumption> v = new Vector<Assumption>(aset.size());
+    for (Assumption a : aset) {
+      v.add(a);
+    }
+    AssumptionSet as = new AssumptionSet();
+    as.aset = v;
+    return as;
   }
 
   @Override
@@ -103,11 +113,11 @@ public class AssumptionSet implements Iterable<Assumption> {
    *
    * Returns false if the assumption "false" got added; returns true otherwise.
    * In other words, the boolean return value of this method can be thought of as roughly the
-   * truth value of the statement, P = "The set is still consistent." In fact, a return value of
-   * false definitely means that P is false, whereas a return value of true does not guarantee
-   * that P be true, since algebraic relations are not investigated. For example, true will be
-   * returned even on the set { p2 + -p1 > 0, p1 > 0, p2 < 0 }. Thus, the return value is only meant
-   * to serve as an "early warning" that the set contains a contradiction.
+   * truth value of the statement P = "The set is not obviously self-contradictory."
+   * In fact, a return value of false definitely means that P is false, whereas a return
+   * value of true does not guarantee that P be true, since algebraic relations are not investigated.
+   * For example, true will be returned even on the set { p2 + -p1 > 0, p1 > 0, p2 < 0 }. Thus, the
+   * return value is only meant to serve as an "early warning" that the set contains a contradiction.
    */
   public boolean add(Assumption a) {
     Assumption b,c;
@@ -160,6 +170,16 @@ public class AssumptionSet implements Iterable<Assumption> {
 
   public boolean addAll(AssumptionSet a) {
     return addAll(a.aset);
+  }
+
+  /*
+   * Return the union of this set with the passed one, but do not modify
+   * either this set or the passed one.
+   */
+  public AssumptionSet union(AssumptionSet a) {
+    AssumptionSet b = this.copy();
+    b.addAll(a);
+    return b;
   }
 
   public boolean contains(Assumption a) {

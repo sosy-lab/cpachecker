@@ -114,7 +114,6 @@ public class BlockedCFAReducerTest {
 
      ReducerUnderTest reducer = new ReducerUnderTest(null);
      while (reducer.applySequenceRule(funct)) {
-       ;
      }
 
      assertEquals(3, funct.getNumOfActiveNodes());

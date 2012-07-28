@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * The Action can be executed multiple times.
  */
 abstract class AutomatonAction {
-  private AutomatonAction() {};
+  private AutomatonAction() {}
   private static ResultValue<String> defaultResultValue = new ResultValue<String>("");
 
   // in this method the Value inside the resultValueObject is not important (most ActionClasses will return "" as inner value)

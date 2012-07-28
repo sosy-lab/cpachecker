@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,7 +62,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Iterables;
 
 @Options(prefix="restartAlgorithm")
 public class RestartAlgorithm implements Algorithm, StatisticsProvider {
@@ -198,7 +199,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         try {
           boolean sound = currentAlgorithm.run(currentReached);
 
-          if (Iterables.any(currentReached, AbstractStates.IS_TARGET_STATE)) {
+          if (from(currentReached).anyMatch(IS_TARGET_STATE)) {
             return sound;
           }
 
@@ -282,7 +283,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     Configuration singleConfig = singleConfigBuilder.build();
     singleConfig.inject(singleOptions);
 
-    if(singleOptions.runCBMCasExternalTool){
+    if (singleOptions.runCBMCasExternalTool){
       algorithm = new ExternalCBMCAlgorithm(filename, singleConfig, logger);
       reached = new ReachedSetFactory(singleConfig, logger).create();
     }
@@ -354,7 +355,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if(currentAlgorithm instanceof StatisticsProvider) {
+    if (currentAlgorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)currentAlgorithm).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);

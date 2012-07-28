@@ -366,7 +366,7 @@ public final class ErrorPathShrinker {
           handleDeclaration();
           break;
 
-        // this is an assumption, e.g. if(a == b)
+        // this is an assumption, e.g. if (a == b)
         case AssumeEdge:
           handleAssumption();
           break;

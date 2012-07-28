@@ -23,13 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
-
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class CFAReversePostorder {
 
@@ -42,8 +40,8 @@ public class CFAReversePostorder {
       return;
     }
 
-    for (CFAEdge edge : leavingEdges(node)) {
-      assignSorting(edge.getSuccessor());
+    for (CFANode successor : CFAUtils.successorsOf(node)) {
+      assignSorting(successor);
     }
 
     node.setReversePostorderId(reversePostorderId++);

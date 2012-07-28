@@ -67,7 +67,7 @@ public class AssignedVariablesCollector {
   public Multimap<CFANode, String> collectVars(Collection<CFAEdge> edges) {
     Multimap<CFANode, String> collectedVariables = HashMultimap.create();
 
-    for(CFAEdge edge : edges) {
+    for (CFAEdge edge : edges) {
       collectVariables(edge, collectedVariables);
     }
 
@@ -77,7 +77,7 @@ public class AssignedVariablesCollector {
   private void collectVariables(CFAEdge edge, Multimap<CFANode, String> collectedVariables) {
     String currentFunction = edge.getPredecessor().getFunctionName();
 
-    switch(edge.getEdgeType()) {
+    switch (edge.getEdgeType()) {
     case BlankEdge:
     case CallToReturnEdge:
     case ReturnStatementEdge:
@@ -86,7 +86,7 @@ public class AssignedVariablesCollector {
 
     case DeclarationEdge:
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
-      if(declaration.getName() != null && declaration.isGlobal()) {
+      if (declaration.getName() != null && declaration.isGlobal()) {
         globalVariables.add(declaration.getName());
         collectedVariables.put(edge.getSuccessor(), declaration.getName());
       }
@@ -99,7 +99,7 @@ public class AssignedVariablesCollector {
 
     case StatementEdge:
       CStatementEdge statementEdge = (CStatementEdge)edge;
-      if(statementEdge.getStatement() instanceof CAssignment) {
+      if (statementEdge.getStatement() instanceof CAssignment) {
         CAssignment assignment = (CAssignment)statementEdge.getStatement();
         String assignedVariable = assignment.getLeftHandSide().toASTString();
         collectedVariables.put(edge.getSuccessor(), scoped(assignedVariable, currentFunction));
@@ -110,7 +110,7 @@ public class AssignedVariablesCollector {
       CFunctionCallEdge functionCallEdge = (CFunctionCallEdge)edge;
       CFunctionCall functionCall     = functionCallEdge.getSummaryEdge().getExpression();
 
-      if(functionCall instanceof CFunctionCallAssignmentStatement) {
+      if (functionCall instanceof CFunctionCallAssignmentStatement) {
         CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCall;
         String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), currentFunction);
 
@@ -207,10 +207,11 @@ public class AssignedVariablesCollector {
     public Void visit(CUnaryExpression pE) {
       UnaryOperator op = pE.getOperator();
 
-      switch(op) {
+      switch (op) {
       case AMPER:
       case STAR:
         collectVariable(pE.toASTString());
+        //$FALL-THROUGH$
       default:
         pE.getOperand().accept(this);
       }

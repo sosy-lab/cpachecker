@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
-import static com.google.common.collect.Iterables.filter;
-
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
@@ -36,8 +34,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-
-import com.google.common.base.Predicates;
 
 /**
  * Statistics for UninitializedVariablesCPA.
@@ -68,12 +64,12 @@ public class UninitializedVariablesStatistics implements Statistics {
       Iterable<UninitializedVariablesState> projectedReached = AbstractStates.projectToType(pReached, UninitializedVariablesState.class);
 
       //find all UninitializedVariablesElements and get their warnings
-      for (UninitializedVariablesState uninitElement : filter(projectedReached, Predicates.notNull())) {
+      for (UninitializedVariablesState uninitElement : projectedReached) {
 
         Collection<Triple<Integer, String, String>> warnings = uninitElement.getWarnings();
         //warnings are identified by line number and variable name
         Pair<Integer, String> warningIndex;
-        for(Triple<Integer, String, String> warning : warnings) {
+        for (Triple<Integer, String, String> warning : warnings) {
           //check if a warning has already been displayed
           warningIndex = Pair.of(warning.getFirst(), warning.getSecond());
           if (!warningsDisplayed.contains(warningIndex)) {

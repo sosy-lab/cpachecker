@@ -63,7 +63,7 @@ public class AssumptionManager {
 
   void addPossiblyUnnecessaryAssumption(Assumption a) throws BadAssumptionsException {
     AssumptionRelation rel = matchAgainst(a);
-    switch(rel) {
+    switch (rel) {
     case CONTRADICTS:
       logger.log(Level.ALL,"Tried to add contradictory assumption!",a);
       throw new BadAssumptionsException();

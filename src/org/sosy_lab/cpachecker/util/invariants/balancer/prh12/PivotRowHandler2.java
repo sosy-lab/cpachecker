@@ -33,20 +33,20 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
+import org.sosy_lab.cpachecker.util.invariants.balancer.AbstractBalancer;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption;
-import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionManager;
 import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionSet;
 import org.sosy_lab.cpachecker.util.invariants.balancer.BadAssumptionsException;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Matrix;
-import org.sosy_lab.cpachecker.util.invariants.balancer.MatrixBalancer;
 import org.sosy_lab.cpachecker.util.invariants.balancer.RationalFunction;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 import org.sosy_lab.cpachecker.util.invariants.balancer.prh12.ColumnChoiceFrame.ChallengeType;
 
 
 public class PivotRowHandler2 {
 
-  private final MatrixBalancer mBalancer;
+  private final AbstractBalancer mBalancer;
   private final AssumptionManager amgr;
   private final LogManager logger;
   private final Matrix mat;
@@ -63,7 +63,7 @@ public class PivotRowHandler2 {
   //-----------------------------------------------------------------
   // Constructing
 
-  public PivotRowHandler2(Matrix mx, AssumptionManager am, MatrixBalancer mb, LogManager lm) {
+  public PivotRowHandler2(Matrix mx, AssumptionManager am, AbstractBalancer mb, LogManager lm) {
     mBalancer = mb;
     amgr = am;
     logger = lm;

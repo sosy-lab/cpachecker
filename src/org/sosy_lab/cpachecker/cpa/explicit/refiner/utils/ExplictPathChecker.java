@@ -24,20 +24,24 @@
 package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 
 import java.util.Collection;
-import java.util.List;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
@@ -57,24 +61,27 @@ public class ExplictPathChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean checkPath(List<CFAEdge> path, Multimap<CFANode, String> variablesToBeIgnored)
+  public boolean checkPath(Path path, Multimap<CFANode, String> variablesToBeIgnored)
       throws CPAException, InterruptedException {
     try {
       Configuration config = Configuration.builder().build();
 
       TransferRelation transfer   = new ExplicitTransferRelation(config);
-      AbstractState next        = new ExplicitState();
-      ExplicitPrecision precision = new ExplicitPrecision("", config);
+      AbstractState next          = new ExplicitState();
+      ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
 
       precision.getIgnore().setMapping(variablesToBeIgnored);
 
-      for(CFAEdge edge : path) {
-        Collection<? extends AbstractState> successors = transfer.getAbstractSuccessors(next, precision, edge);
+      for (Pair<ARGState, CFAEdge> pathElement : path) {
+        Collection<? extends AbstractState> successors = transfer.getAbstractSuccessors(
+            next,
+            precision,
+            pathElement.getSecond());
 
         next = extractNextState(successors);
 
         // path is not feasible
-        if(next == null && edge != path.get(path.size() - 1)) {
+        if (next == null && pathElement.getSecond() != path.get(path.size() - 1)) {
           return false;
         }
       }
@@ -93,7 +100,7 @@ public class ExplictPathChecker {
    * @return the successor, or null if none exists
    */
   private AbstractState extractNextState(Collection<? extends AbstractState> successors) {
-    if(successors.isEmpty()) {
+    if (successors.isEmpty()) {
       return null;
     }
     else {

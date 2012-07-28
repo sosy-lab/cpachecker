@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.collect.Iterables.skip;
-import static com.google.common.collect.Lists.transform;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -64,8 +63,6 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.UninstantiatingInte
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 
 public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, ARGState> implements StatisticsProvider {
 
@@ -140,20 +137,18 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
 
   @Override
   protected List<ARGState> transformPath(Path pPath) {
-    // filter abstraction elements
+    // filter abstraction states
 
-    List<ARGState> result = ImmutableList.copyOf(
-        Iterables.filter(
-            Iterables.transform(
-                skip(pPath, 1),
-                Pair.<ARGState>getProjectionToFirst()),
-
-            new Predicate<ARGState>() {
-                @Override
-                public boolean apply(ARGState pInput) {
-                  return extractStateByType(pInput, PredicateAbstractState.class).isAbstractionState();
-                }
-            }));
+    List<ARGState> result = from(pPath)
+                               .skip(1)
+                               .transform(Pair.<ARGState>getProjectionToFirst())
+                               .filter(new Predicate<ARGState>() {
+                                   @Override
+                                   public boolean apply(ARGState pInput) {
+                                     return extractStateByType(pInput, PredicateAbstractState.class).isAbstractionState();
+                                   }
+                                 })
+                               .toImmutableList();
 
     assert pPath.getLast().getFirst() == result.get(result.size()-1);
     return result;
@@ -161,14 +156,15 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
 
   @Override
   protected List<Formula> getFormulasForPath(List<ARGState> pPath, ARGState pInitialState) {
-
-    return transform(pPath,
-        new Function<ARGState, Formula>() {
-          @Override
-          public Formula apply(ARGState e) {
-            return extractStateByType(e, PredicateAbstractState.class).getAbstractionFormula().getBlockFormula();
-          }
-        });
+    return from(pPath)
+            .transform(toState(PredicateAbstractState.class))
+            .transform(new Function<PredicateAbstractState, Formula>() {
+                @Override
+                public Formula apply(PredicateAbstractState s) {
+                  return s.getAbstractionFormula().getBlockFormula();
+                }
+              })
+            .toImmutableList();
   }
 
   @Override

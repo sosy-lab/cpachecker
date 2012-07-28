@@ -32,6 +32,7 @@ import java.util.SortedSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMultimap;
@@ -125,7 +126,13 @@ public class MutableCFA implements CFA {
     return Optional.absent();
   }
 
-  public ImmutableCFA makeImmutableCFA(Optional<ImmutableMultimap<String, Loop>> pLoopStructure) {
-    return new ImmutableCFA(functions, allNodes, mainFunction, pLoopStructure);
+  public ImmutableCFA makeImmutableCFA(Optional<ImmutableMultimap<String,
+      Loop>> pLoopStructure, Optional<VariableClassification> pVarClassification) {
+    return new ImmutableCFA(functions, allNodes, mainFunction, pLoopStructure, pVarClassification);
+  }
+
+  @Override
+  public Optional<VariableClassification> getVarClassification() {
+    return Optional.absent();
   }
 }

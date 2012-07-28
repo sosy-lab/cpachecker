@@ -130,13 +130,13 @@ public class AutomatonInternalTest {
   public void testJokerReplacementInPattern() {
     // tests the replacement of Joker expressions in the AST comparison
     String result = AutomatonASTComparator.replaceJokersInPattern("$20 = $?");
-    Assert.assertTrue(result.contains("CPAChecker_AutomatonAnalysis_JokerExpression_Num20  =  CPAChecker_AutomatonAnalysis_JokerExpression"));
+    Assert.assertTrue(result.contains("CPAchecker_AutomatonAnalysis_JokerExpression_Num20  =  CPAchecker_AutomatonAnalysis_JokerExpression"));
     result = AutomatonASTComparator.replaceJokersInPattern("$1 = $?");
-    Assert.assertTrue(result.contains("CPAChecker_AutomatonAnalysis_JokerExpression_Num1  =  CPAChecker_AutomatonAnalysis_JokerExpression"));
+    Assert.assertTrue(result.contains("CPAchecker_AutomatonAnalysis_JokerExpression_Num1  =  CPAchecker_AutomatonAnalysis_JokerExpression"));
     result = AutomatonASTComparator.replaceJokersInPattern("$? = $?");
-    Assert.assertTrue(result.contains("CPAChecker_AutomatonAnalysis_JokerExpression  =  CPAChecker_AutomatonAnalysis_JokerExpression"));
+    Assert.assertTrue(result.contains("CPAchecker_AutomatonAnalysis_JokerExpression  =  CPAchecker_AutomatonAnalysis_JokerExpression"));
     result = AutomatonASTComparator.replaceJokersInPattern("$1 = $5");
-    Assert.assertTrue(result.contains("CPAChecker_AutomatonAnalysis_JokerExpression_Num1  =  CPAChecker_AutomatonAnalysis_JokerExpression_Num5 "));
+    Assert.assertTrue(result.contains("CPAchecker_AutomatonAnalysis_JokerExpression_Num1  =  CPAchecker_AutomatonAnalysis_JokerExpression_Num5 "));
   }
 
   @Test

@@ -31,27 +31,27 @@ import java.util.Vector;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.util.invariants.balancer.AbstractBalancer;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption;
-import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionRelation;
-import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionManager;
 import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionSet;
 import org.sosy_lab.cpachecker.util.invariants.balancer.BadAssumptionsException;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Matrix;
-import org.sosy_lab.cpachecker.util.invariants.balancer.MatrixBalancer;
 import org.sosy_lab.cpachecker.util.invariants.balancer.RationalFunction;
 import org.sosy_lab.cpachecker.util.invariants.balancer.SubstitutionManager;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionRelation;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 
 
 public class PivotRowHandler {
 
-  private final MatrixBalancer mBalancer;
+  private final AbstractBalancer mBalancer;
   private final AssumptionManager amgr;
   private final LogManager logger;
   private final Matrix matx;
   private int rowNum, colNum, augStart;
 
-  public PivotRowHandler(Matrix m, AssumptionManager am, MatrixBalancer mb, LogManager lm) {
+  public PivotRowHandler(Matrix m, AssumptionManager am, AbstractBalancer mb, LogManager lm) {
     mBalancer = mb;
     amgr = am;
     logger = lm;
@@ -336,7 +336,7 @@ public class PivotRowHandler {
           if (code == 2 || code == 10 || code == 31) {
             RationalFunction f = entries[r][j];
             AssumptionType atype = null;
-            switch(code) {
+            switch (code) {
             case 2:
               atype = AssumptionType.NONPOSITIVE;
               break;
@@ -439,7 +439,7 @@ public class PivotRowHandler {
                 // Otherwise there is a way.
                 RationalFunction f = E.entries[i][c];
                 AssumptionType atype = null;
-                switch(code) {
+                switch (code) {
                 case 10:
                   atype = AssumptionType.ZERO;
                   break;

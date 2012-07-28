@@ -420,7 +420,7 @@ public class PredicateAbstractionManager {
     stats.numPathFormulaCoverageChecks++;
 
     //handle common special case more efficiently
-    if(a1.equals(a2)) {
+    if (a1.equals(a2)) {
       stats.numEqualPathFormulae++;
       return true;
     }
@@ -428,8 +428,8 @@ public class PredicateAbstractionManager {
     //check ssa maps
     SSAMap map1 = a1.getSsa();
     SSAMap map2 = a2.getSsa();
-    for(String var : map1.allVariables()) {
-     if(map2.getIndex(var) < map1.getIndex(var)) {
+    for (String var : map1.allVariables()) {
+     if (map2.getIndex(var) < map1.getIndex(var)) {
        return false;
      }
     }
@@ -440,14 +440,14 @@ public class PredicateAbstractionManager {
     //quick syntactic check
     Formula leftFormula = fmgr.getArguments(mergedPathFormulae.getFormula())[0];
     Formula rightFormula = a2.getFormula();
-    if(fmgr.checkSyntacticEntails(leftFormula, rightFormula)) {
+    if (fmgr.checkSyntacticEntails(leftFormula, rightFormula)) {
       stats.numSyntacticEntailedPathFormulae++;
       return true;
     }
 
 
     //check formulae
-    if(!solver.implies(mergedPathFormulae.getFormula(), a2.getFormula())) {
+    if (!solver.implies(mergedPathFormulae.getFormula(), a2.getFormula())) {
       return false;
     }
     stats.numSemanticEntailedPathFormulae++;

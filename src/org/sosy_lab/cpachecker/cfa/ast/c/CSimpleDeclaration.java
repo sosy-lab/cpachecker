@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * a type and an (optional) name.
  *
  * It is part of the declaration of types and variables (see {@link CDeclaration})
- * and functions (see {@link CFunctionDefinition}).
+ * and functions (see {@link CFunctionDeclaration}).
  * It is also used stand-alone for the declaration of members of composite types
  * (e.g. structs) and for the declaration of function parameters.
  */

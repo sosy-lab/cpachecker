@@ -54,19 +54,19 @@ public abstract class PartitioningHeuristic {
     seen.add(mainFunction);
     stack.push(mainFunction);
 
-    while(!stack.isEmpty()) {
+    while (!stack.isEmpty()) {
       CFANode node = stack.pop();
 
-      if(shouldBeCached(node)) {
+      if (shouldBeCached(node)) {
         Set<CFANode> subtree = getBlockForNode(node);
-        if(subtree != null) {
+        if (subtree != null) {
           builder.addBlock(subtree, mainFunction);
         }
       }
 
-      for(int i = 0; i < node.getNumLeavingEdges(); i++) {
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFANode nextNode = node.getLeavingEdge(i).getSuccessor();
-        if(!seen.contains(nextNode)) {
+        if (!seen.contains(nextNode)) {
           stack.push(nextNode);
           seen.add(nextNode);
         }

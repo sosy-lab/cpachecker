@@ -75,7 +75,7 @@ public class MathsatFormulaList implements FormulaList, Serializable {
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
     out.writeInt(terms.length);
-    for(int i = 0; i < terms.length; ++i) {
+    for (int i = 0; i < terms.length; ++i) {
       out.writeObject(new MathsatFormula(terms[i]));
     }
   }
@@ -84,7 +84,7 @@ public class MathsatFormulaList implements FormulaList, Serializable {
     in.defaultReadObject();
     int termCount = in.readInt();
     terms = new long[termCount];
-    for(int i = 0; i < terms.length; ++i) {
+    for (int i = 0; i < terms.length; ++i) {
       terms[i] = ((MathsatFormula)in.readObject()).getTerm();
     }
   }

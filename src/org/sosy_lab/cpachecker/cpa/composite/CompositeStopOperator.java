@@ -86,7 +86,7 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
     List<AbstractState> componentElements = compositeState.getWrappedStates();
     List<AbstractState> componentOtherElements = compositeOtherElement.getWrappedStates();
 
-    if(componentElements.size() != cpas.size()) {
+    if (componentElements.size() != cpas.size()) {
       return false;
     }
 

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -68,7 +69,7 @@ import com.google.common.collect.Multimap;
  *  x = 1; // <- this location will not have any associated predicates
  *  y = x;
  *  z = x;
- *  if(y != z)
+ *  if (y != z)
  *    goto ERROR;
  * </code>
  *
@@ -77,7 +78,7 @@ import com.google.common.collect.Multimap;
  *  x = 1;
  *  y = getX();
  *  z = getX();
- *  if(y != z)
+ *  if (y != z)
  *    goto ERROR;
  * </code>
  */
@@ -101,6 +102,21 @@ public class ReferencedVariablesCollector {
     this.dependingVariables.addAll(initalVariables);
   }
 
+  private List<CFAEdge> unrollPath(List<CFAEdge> path) {
+    List<CFAEdge> unrolledPath = new LinkedList<CFAEdge>();
+
+    for(CFAEdge currentEdge : path) {
+      if(currentEdge instanceof MultiEdge) {
+        unrolledPath.addAll(((MultiEdge)currentEdge).getEdges());
+      }
+      else {
+        unrolledPath.add(currentEdge);
+      }
+    }
+
+    return unrolledPath;
+  }
+
   /**
    * This method collects the respective referenced variables in the given path.
    *
@@ -109,10 +125,12 @@ public class ReferencedVariablesCollector {
    */
   public Multimap<CFANode, String> collectVariables(List<CFAEdge> path) {
 
+    path = unrollPath(path);
+
     determineGlobalVariables(path);
 
     Multimap<CFANode, String> collectedVariables = HashMultimap.create();
-    for(int i = path.size() - 1; i >= 0; i--) {
+    for (int i = path.size() - 1; i >= 0; i--) {
       CFAEdge succ = (i == path.size() - 1) ? null : path.get(i + 1);
       collectVariables(path.get(i), collectedVariables, succ);
     }
@@ -126,10 +144,10 @@ public class ReferencedVariablesCollector {
    * @param path the path to analyze
    */
   private void determineGlobalVariables(List<CFAEdge> path) {
-    for(CFAEdge edge : path) {
-      if(edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+    for (CFAEdge edge : path) {
+      if (edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
         CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
-        if(isGlobalVariableDeclaration(declaration)) {
+        if (isGlobalVariableDeclaration(declaration)) {
           globalVariables.add(declaration.getName());
         }
       }
@@ -155,7 +173,7 @@ public class ReferencedVariablesCollector {
   private void collectVariables(CFAEdge edge, Multimap<CFANode, String> collectedVariables, CFAEdge succ) {
     String currentFunction = edge.getPredecessor().getFunctionName();
 
-    switch(edge.getEdgeType()) {
+    switch (edge.getEdgeType()) {
     case StatementEdge:
       CStatementEdge statementEdge = (CStatementEdge)edge;
       if (statementEdge.getStatement() instanceof CAssignment) {
@@ -163,7 +181,7 @@ public class ReferencedVariablesCollector {
         String assignedVariable = scoped(assignment.getLeftHandSide().toASTString(), currentFunction);
 
         // assigned variable is tracked, then also track assigning variables
-        if(dependingVariables.contains(assignedVariable)) {
+        if (dependingVariables.contains(assignedVariable)) {
           collectedVariables.put(edge.getSuccessor(), assignedVariable);
           collectVariables(statementEdge, assignment.getRightHandSide(), collectedVariables);
         }
@@ -174,12 +192,12 @@ public class ReferencedVariablesCollector {
       CFunctionCallEdge functionCallEdge = (CFunctionCallEdge)edge;
       CFunctionCall functionCall     = functionCallEdge.getSummaryEdge().getExpression();
 
-      if(functionCall instanceof CFunctionCallAssignmentStatement) {
+      if (functionCall instanceof CFunctionCallAssignmentStatement) {
         CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCall;
         String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), currentFunction);
 
         // assigned variable is tracked, then also track variables of function call
-        if(dependingVariables.contains(assignedVariable)) {
+        if (dependingVariables.contains(assignedVariable)) {
           collectedVariables.put(functionCallEdge.getSummaryEdge().getSuccessor(), assignedVariable);
           collectVariables(functionCallEdge, funcAssign.getRightHandSide(), collectedVariables);
         }
@@ -202,11 +220,11 @@ public class ReferencedVariablesCollector {
 
       CFunctionCall functionCall2 = cFunctionSummaryEdge.getExpression();
 
-      if(functionCall2 instanceof CFunctionCallAssignmentStatement) {
+      if (functionCall2 instanceof CFunctionCallAssignmentStatement) {
         CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCall2;
         String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), returnEdge.getSuccessor().getFunctionName());
 
-        if(dependingVariables.contains(assignedVariable)) {
+        if (dependingVariables.contains(assignedVariable)) {
           // is this needed here?
           // for test/programs/benchmarks/ldv-regression/rule60_list2.c-unsafe_1.cil.c this is not needed
           // for tracking my_malloc::tmp
@@ -217,8 +235,8 @@ public class ReferencedVariablesCollector {
           CFAEdge currentEdge = null;
           CFAEdge enteringEdge = returnEdge.getPredecessor().getEnteringEdge(0);
 
-          if(enteringEdge instanceof MultiEdge) {
-            for(CFAEdge singleEdge : (MultiEdge)enteringEdge) {
+          if (enteringEdge instanceof MultiEdge) {
+            for (CFAEdge singleEdge : (MultiEdge)enteringEdge) {
               currentEdge = singleEdge;
             }
 
@@ -237,16 +255,18 @@ public class ReferencedVariablesCollector {
     case DeclarationEdge:
       //System.out.println("inspecting edge " + edge.getRawStatement());
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
-      if(declaration.getName() != null && declaration.isGlobal()) {
+      if (declaration.getName() != null && declaration.isGlobal()) {
         globalVariables.add(declaration.getName());
 
-        if(dependingVariables.contains(declaration.getName()))
+        if (dependingVariables.contains(declaration.getName())) {
           collectedVariables.put(edge.getSuccessor(), declaration.getName());
+        }
       }
       break;
     case ReturnStatementEdge:
-      if(succ == null)
+      if (succ == null) {
         break;
+      }
       CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge)edge;
 
       CFunctionReturnEdge returnEdge2 = (CFunctionReturnEdge)succ;
@@ -255,11 +275,11 @@ public class ReferencedVariablesCollector {
 
       CFunctionCall functionCall3 = cFunctionSummaryEdge2.getExpression();
 
-      if(functionCall3 instanceof CFunctionCallAssignmentStatement) {
+      if (functionCall3 instanceof CFunctionCallAssignmentStatement) {
         CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCall3;
         String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), succ.getSuccessor().getFunctionName());
 
-        if(dependingVariables.contains(assignedVariable)) {
+        if (dependingVariables.contains(assignedVariable)) {
           collectedVariables.put(cFunctionSummaryEdge2.getSuccessor(), assignedVariable);
           collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables);
         }
@@ -328,10 +348,10 @@ public class ReferencedVariablesCollector {
       String scopedVariableName = scoped(variableName, currentEdge.getPredecessor().getFunctionName());
 
       // only collect variables of assume edges if they are depended on
-      if(currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+      if (currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
         // @TODO: maybe try tracking "all" of these - or at least, when one variable is tracked, also track the other ones in an assume edge (if any)
         // or track only those that are conjuncted (&&), but not those that are disjuncted (||)
-        if(dependingVariables.contains(scopedVariableName)) {
+        if (dependingVariables.contains(scopedVariableName)) {
           collectedVariables.put(currentEdge.getSuccessor(), scopedVariableName);
         }
       }
@@ -389,13 +409,14 @@ public class ReferencedVariablesCollector {
     public Void visit(CUnaryExpression pE) {
       UnaryOperator op = pE.getOperator();
 
-      switch(op) {
+      switch (op) {
       case AMPER:
       case STAR:
         // we want to know the name of the identifier, if any
         // whether or not it is a pointer (dereference) is not important here
         //collectVariables(pE.getOperand().toASTString());
         pE.getOperand().accept(this);
+        break;
       default:
         pE.getOperand().accept(this);
       }

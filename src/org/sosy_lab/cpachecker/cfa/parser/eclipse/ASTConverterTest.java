@@ -37,7 +37,7 @@ public class ASTConverterTest {
 
   @Before
   public final void setup() throws InvalidConfigurationException {
-    converter = new ASTConverter(new Scope(), false, new LogManager(Configuration.defaultConfiguration()));
+    converter = new ASTConverter(new Scope(), new LogManager(Configuration.defaultConfiguration()));
   }
 
   @Test

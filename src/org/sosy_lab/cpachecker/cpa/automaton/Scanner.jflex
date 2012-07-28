@@ -109,12 +109,12 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 
 /* keywords */
 <YYINITIAL>
-	"#include" {InputCharacter}+ 
-	{ File file = getFile(yytext()); 
-	  if (file != null) {
-	    yypushStream(new FileReader(file));
-	  }
-	}
+        "#include" {InputCharacter}+ 
+        { File file = getFile(yytext()); 
+          if (file != null) {
+            yypushStream(new FileReader(file));
+          }
+        }
 <YYINITIAL> ";"                 { return symbol(";", AutomatonSym.SEMICOLON); }
 <YYINITIAL> ":"                 { return symbol(":", AutomatonSym.COLON); }
 <YYINITIAL> "("                 { return symbol("(", AutomatonSym.OPEN_BRACKETS); }
@@ -144,10 +144,10 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "TRUE"              { return symbol("TRUE", AutomatonSym.TRUE); }
 <YYINITIAL> "FALSE"             { return symbol("FALSE", AutomatonSym.FALSE); }
 <YYINITIAL> "PRINT"             { return symbol("PRINT", AutomatonSym.PRINT); }
-<YYINITIAL> "USEFIRST"			{ return symbol("USEFIRST", AutomatonSym.USEFIRST); }
-<YYINITIAL> "USEALL"			{ return symbol("USEALL", AutomatonSym.USEALL); }
-<YYINITIAL> "TARGET"			{ return symbol("TARGET", AutomatonSym.TARGET); }
-<YYINITIAL> ","			        { return symbol("COMMA", AutomatonSym.COMMA); }
+<YYINITIAL> "USEFIRST"          { return symbol("USEFIRST", AutomatonSym.USEFIRST); }
+<YYINITIAL> "USEALL"            { return symbol("USEALL", AutomatonSym.USEALL); }
+<YYINITIAL> "TARGET"            { return symbol("TARGET", AutomatonSym.TARGET); }
+<YYINITIAL> ","                 { return symbol("COMMA", AutomatonSym.COMMA); }
 
 <YYINITIAL> {
   /* identifiers */ 

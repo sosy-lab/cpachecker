@@ -90,12 +90,13 @@ public interface RegionManager {
   public Region makeUnequal(Region f1, Region f2);
 
   /**
-   * Creates a region representing an existential quantification of the two argument
+   * Creates a region representing an existential quantification of the second
+   * argument. If there are more arguments, each of them is quantified.
    * @param f1 an AbstractFormula
-   * @param f2 an AbstractFormula
-   * @return (\exists f2: f1)
+   * @param f2 one or more AbstractFormulas
+   * @return (exists f2... : f1)
    */
-  public Region makeExists(Region f1, Region f2);
+  public Region makeExists(Region f1, Region... f2);
 
   /**
    * Creates a new variable and returns the predicate representing it.
@@ -113,4 +114,9 @@ public interface RegionManager {
    */
   public Triple<Region, Region, Region>
       getIfThenElse(Region f);
+
+  /**
+   * Returns some information about the RegionManager.
+   */
+  public String getStatistics();
 }

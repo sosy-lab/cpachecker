@@ -129,7 +129,7 @@ public class SymbolicRegionManager implements RegionManager {
   }
 
   @Override
-  public Region makeExists(Region pF1, Region pF2) {
+  public Region makeExists(Region pF1, Region... pF2) {
     throw new UnsupportedOperationException();
   }
 
@@ -140,6 +140,11 @@ public class SymbolicRegionManager implements RegionManager {
 
   @Override
   public Triple<Region, Region, Region> getIfThenElse(Region pF) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public String getStatistics() {
     throw new UnsupportedOperationException();
   }
 

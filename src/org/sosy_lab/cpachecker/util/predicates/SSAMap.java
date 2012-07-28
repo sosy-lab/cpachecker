@@ -108,6 +108,16 @@ public class SSAMap implements Serializable {
       }
     }
 
+    public Set<Pair<String, FormulaList>> allFunctions() {
+      return Collections.unmodifiableSet(
+          Objects.firstNonNull(funcsBuilder, ssa.funcs).elementSet());
+    }
+
+    public Set<String> allVariables() {
+      return Collections.unmodifiableSet(
+          Objects.firstNonNull(varsBuilder, ssa.vars).elementSet());
+    }
+
     /**
      * Returns an immutable SSAMap with all the changes made to the builder.
      */

@@ -23,136 +23,53 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
-import static com.google.common.collect.Lists.transform;
-
+import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
+import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictPathChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.explict.refiner")
-abstract public class ExplicitRefiner implements IExplicitRefiner {
-
-  protected final PathFormulaManager pathFormulaManager;
-
-  protected List<Pair<ARGState, CFAEdge>> currentEdgePath = null;
-  protected List<Pair<ARGState, CFANode>> currentNodePath = null;
-
-  protected CounterexampleTraceInfo<Collection<AbstractionPredicate>> currentTraceInfo = null;
-
-  private Set<String> pathHashes = new HashSet<String>();
-
-  // statistics
-  protected int numberOfExplicitRefinements                   = 0;
-
-  @Option(description="whether or not to always use the inital node as starting point for the next iteration")
+abstract class ExplicitRefiner {
+  @Option(description="whether or not to always use the inital node as starting point for the next re-exploration of the ARG")
   boolean useInitialNodeAsRestartingPoint = true;
 
-  protected ExplicitRefiner(Configuration config, PathFormulaManager pathFormulaManager) throws InvalidConfigurationException {
-    config.inject(this, ExplicitRefiner.class);
-    this.pathFormulaManager = pathFormulaManager;
-  }
+  /**
+   * the ART element, from where to cut-off the subtree, and restart the analysis
+   */
+  protected ARGState firstInterpolationPoint = null;
 
-  @Override
-  public final List<Pair<ARGState, CFANode>> transformPath(Path errorPath) {
-    List<Pair<ARGState, CFANode>> result = Lists.newArrayList();
+  protected HashMap<CFAEdge, ARGState> edgeToState = new HashMap<CFAEdge, ARGState>();
 
-    for(ARGState ae : transform(errorPath, Pair.<ARGState>getProjectionToFirst())) {
-        result.add(Pair.of(ae, AbstractStates.extractLocation(ae)));
-    }
-
-    assert errorPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
-    return result;
-  }
-
-  @Override
-  public List<Formula> getFormulasForPath(List<Pair<ARGState,
-      CFANode>> errorPath,
-      ARGState initialElement) throws CPATransferException {
-    PathFormula currentPathFormula = pathFormulaManager.makeEmptyPathFormula();
-
-    List<Formula> formulas = new ArrayList<Formula>(errorPath.size());
-
-    // iterate over edges (not nodes)
-    for (Pair<ARGState, CFAEdge> pathElement : this.currentEdgePath) {
-      currentPathFormula = pathFormulaManager.makeAnd(currentPathFormula, pathElement.getSecond());
-
-      formulas.add(currentPathFormula.getFormula());
-
-      // reset the formula
-      currentPathFormula = pathFormulaManager.makeEmptyPathFormula(currentPathFormula);
-    }
-
-    return formulas;
-  }
-
-  @Override
-  public Pair<ARGState, Precision> performRefinement(
-      UnmodifiableReachedSet reachedSet,
-      Precision oldPrecision,
-      List<Pair<ARGState, CFANode>> errorPath,
-      CounterexampleTraceInfo<Collection<AbstractionPredicate>> traceInfo) throws CPAException {
-    numberOfExplicitRefinements++;
-
-    currentNodePath   = errorPath;
-    currentTraceInfo  = traceInfo;
-
-    Multimap<CFANode, String> precisionIncrement = determinePrecisionIncrement(
-        reachedSet,
-        extractExplicitPrecision(oldPrecision));
-
-    ARGState interpolationPoint = determineInterpolationPoint(errorPath, precisionIncrement);
-
-    if(interpolationPoint == null) {
-        throw new RefinementFailedException(Reason.InterpolationFailed, null);
-    }
-
-    Precision precision = createExplicitPrecision(extractExplicitPrecision(oldPrecision), precisionIncrement);
-
-    return Pair.of(interpolationPoint, precision);
-  }
-
-  abstract protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet, ExplicitPrecision oldPrecision) throws CPAException;
+  abstract protected Multimap<CFANode, String> determinePrecisionIncrement(
+      final UnmodifiableReachedSet reachedSet,
+      final Path errorPath) throws CPAException, InterruptedException;
 
   /**
    * This method determines the new interpolation point.
    *
    * @param errorPath the error path from where to determine the interpolation point
-   * @param precisionIncrement the current precision increment
    * @return the new interpolation point
    */
-  protected ARGState determineInterpolationPoint(
-      List<Pair<ARGState, CFANode>> errorPath,
-      Multimap<CFANode, String> precisionIncrement) {
-
+  protected ARGState determineInterpolationPoint(Path errorPath) {
     // just use initial node of error path if the respective option is set
     if(useInitialNodeAsRestartingPoint) {
       return errorPath.get(1).getFirst();
@@ -160,40 +77,50 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
 
     // otherwise, use the first node where new information is present
     else {
-      for(Pair<ARGState, CFANode> element : errorPath) {
-        if(precisionIncrement.containsKey(element.getSecond())) {
-          return element.getFirst();
+      return firstInterpolationPoint;
+    }
+  }
+
+  /**
+   * This method checks if the given path is feasible, when not tracking the given set of variables.
+   *
+   * @param path the path to check
+   * @param variablesToBeIgnored the variables to ignore
+   * @return true, if the path is feasible, else false
+   * @throws CPAException if the path check gets interrupted
+   */
+  protected boolean isPathFeasable(Path path, Multimap<CFANode, String> variablesToBeIgnored) throws CPAException {
+    try {
+      // create a new ExplicitPathChecker, which does not track any of the given variables
+      ExplictPathChecker checker = new ExplictPathChecker();
+
+      return checker.checkPath(path, variablesToBeIgnored);
+    }
+    catch (InterruptedException e) {
+      throw new CPAException("counterexample-check failed: ", e);
+    }
+  }
+
+  protected List<CFAEdge> extractCFAEdgeTrace(Path path) {
+    edgeToState = new HashMap<CFAEdge, ARGState>();
+    List<CFAEdge> cfaTrace = new ArrayList<CFAEdge>();
+    for(Pair<ARGState, CFAEdge> pathElement : path){
+      // expand any multi-edge
+      if(pathElement.getSecond() instanceof MultiEdge) {
+        for(CFAEdge singleEdge : (MultiEdge)pathElement.getSecond()) {
+          cfaTrace.add(singleEdge);
+          edgeToState.put(singleEdge, pathElement.getFirst());
         }
+      }
+      else {
+        cfaTrace.add(pathElement.getSecond());
+        edgeToState.put(pathElement.getSecond(), pathElement.getFirst());
       }
     }
 
-    return null;
+    return cfaTrace;
   }
 
-  /**
-   * This method creates an explicit precision out of an old precision and an increment.
-   *
-   * @param oldPrecision the old precision to use as base
-   * @param precisionIncrement the increment to add
-   * @return the new explicit precision
-   */
-  protected ExplicitPrecision createExplicitPrecision(
-      ExplicitPrecision oldPrecision,
-      Multimap<CFANode, String> precisionIncrement) {
-
-    ExplicitPrecision explicitPrecision = new ExplicitPrecision(oldPrecision);
-
-    explicitPrecision.getCegarPrecision().addToMapping(precisionIncrement);
-
-    return explicitPrecision;
-  }
-
-  /**
-   * This method extracts the explicit precision.
-   *
-   * @param precision the current precision
-   * @return the explicit precision
-   */
   protected ExplicitPrecision extractExplicitPrecision(Precision precision) {
     ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
     if(explicitPrecision == null) {
@@ -202,17 +129,5 @@ abstract public class ExplicitRefiner implements IExplicitRefiner {
     return explicitPrecision;
   }
 
-  @Override
-  public boolean hasMadeProgress(List<Pair<ARGState, CFAEdge>> currentErrorPath, Precision currentPrecision) {
-    ExplicitPrecision currentExplicitPrecision = extractExplicitPrecision(currentPrecision);
-
-    return pathHashes.add(currentExplicitPrecision.getCegarPrecision().toString().hashCode() +
-        "_" +
-        currentEdgePath.toString().hashCode());
-  }
-
-  @Override
-  public void setCurrentErrorPath(List<Pair<ARGState, CFAEdge>> currentErrorPath) {
-    this.currentEdgePath = currentErrorPath;
-  }
+  abstract public void printStatistics(PrintStream out, Result result, ReachedSet reached);
 }

@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -46,9 +49,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 
 @Options(prefix="adjustableconditions")
 public class RestartWithConditionsAlgorithm implements Algorithm {
@@ -77,7 +78,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
       throw new InvalidConfigurationException("AssumptionStorageCPA needed for RestartWithConditionsAlgorithm");
     }
 
-    conditionCPAs = ImmutableList.copyOf(Iterables.filter(CPAs.asIterable(cpa), AdjustableConditionCPA.class));
+    conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toImmutableList();
   }
 
   @Override
@@ -90,7 +91,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
       // run the inner algorithm to fill the reached set
       sound &= innerAlgorithm.run(pReached);
 
-      if (Iterables.any(pReached, AbstractStates.IS_TARGET_STATE)) {
+      if (from(pReached).anyMatch(IS_TARGET_STATE)) {
         return sound;
       }
 

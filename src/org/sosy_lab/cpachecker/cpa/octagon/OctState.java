@@ -65,7 +65,7 @@ class OctState implements AbstractState{
 
   @Override
   public boolean equals(Object pObj) {
-    if(!(pObj instanceof OctState)) {
+    if (!(pObj instanceof OctState)) {
       return false;
     }
     OctState otherOct = (OctState) pObj;
@@ -109,7 +109,7 @@ class OctState implements AbstractState{
   public void addVariable(String pVarName, boolean pIsGlobal,
       String pFunctionName) {
 
-    if(sizeOfVariables() == 0){
+    if (sizeOfVariables() == 0){
 
     }
   }
@@ -119,7 +119,7 @@ class OctState implements AbstractState{
     Octagon newOct = OctagonManager.full_copy(octagon);
     BiMap<String, Integer> newMap = HashBiMap.create();
 
-    for(Entry<String, Integer> e: variableToIndexMap.entrySet()){
+    for (Entry<String, Integer> e: variableToIndexMap.entrySet()){
       newMap.put(e.getKey(), e.getValue());
     }
 
@@ -131,7 +131,7 @@ class OctState implements AbstractState{
     String varName = pIsGlobal? pVarName : pFunctionName + "::" + pVarName;
 
     // normally it should not contain
-    if(!variableToIndexMap.containsKey(pVarName)){
+    if (!variableToIndexMap.containsKey(pVarName)){
       int sizeOfMap = variableToIndexMap.size();
       variableToIndexMap.put(varName, sizeOfMap);
     }
@@ -145,7 +145,7 @@ class OctState implements AbstractState{
 
   public void assignConstant(String pVariableName, long pLongValue) {
 
-    if(pVariableName.contains("NONDET") || pVariableName.contains("NONDET")){
+    if (pVariableName.contains("NONDET") || pVariableName.contains("NONDET")){
       forget(pVariableName);
     }
 
@@ -168,7 +168,7 @@ class OctState implements AbstractState{
 
   private NumArray getArrayForLiteral(long pLongValue){
     NumArray arr = OctagonManager.init_num_t(size() + 1);
-    for(int i = 0; i<variableToIndexMap.size(); i++){
+    for (int i = 0; i<variableToIndexMap.size(); i++){
       OctagonManager.num_set_int(arr, i, 0);
     }
     OctagonManager.num_set_int(arr, size(), (int)pLongValue);
@@ -191,7 +191,7 @@ class OctState implements AbstractState{
 
   public void assignVariable(String pLeftVarName, String pRightVarName, int coef) {
 
-    if(pLeftVarName.contains("NONDET") || pRightVarName.contains("NONDET")){
+    if (pLeftVarName.contains("NONDET") || pRightVarName.contains("NONDET")){
       forget(pLeftVarName);
     }
 
@@ -204,8 +204,8 @@ class OctState implements AbstractState{
 
   private NumArray getArrayForVariable(int pVariableIndexFor, int coef) {
     NumArray arr = OctagonManager.init_num_t(size() + 1);
-    for(int i = 0; i<variableToIndexMap.size(); i++){
-      if(i == pVariableIndexFor){
+    for (int i = 0; i<variableToIndexMap.size(); i++){
+      if (i == pVariableIndexFor){
         OctagonManager.num_set_int(arr, i, coef);
       }
       else{
@@ -223,13 +223,13 @@ class OctState implements AbstractState{
     int leftVarCoef;
     int rightVarCoef;
 
-    if(pAssignedVar.contains("NONDET") ||
+    if (pAssignedVar.contains("NONDET") ||
         (pLeftVarName != null && pLeftVarName.contains("NONDET")) ||
         (pRightVarName != null && pRightVarName.contains("NONDET"))){
       forget(pAssignedVar);
     }
     else{
-      if(pLeftVarName == null){
+      if (pLeftVarName == null){
         leftVarIdx = -1;
         leftVarCoef = 0;
       }
@@ -238,7 +238,7 @@ class OctState implements AbstractState{
         leftVarCoef = pLeftVarCoef;
       }
 
-      if(pRightVarName == null){
+      if (pRightVarName == null){
         rightVarIdx = -1;
         rightVarCoef = 0;
       }
@@ -259,11 +259,11 @@ class OctState implements AbstractState{
 
   private NumArray getArrayForVariableAndConstant(int pLeftVarIdx, int pLeftVarCoef, int pRightVarIdx, int pRightVarCoef, int pConstVal) {
     NumArray arr = OctagonManager.init_num_t(size() + 1);
-    for(int i = 0; i<variableToIndexMap.size(); i++){
-      if(i == pLeftVarIdx){
+    for (int i = 0; i<variableToIndexMap.size(); i++){
+      if (i == pLeftVarIdx){
         OctagonManager.num_set_int(arr, i, pLeftVarCoef);
       }
-      else if(i == pRightVarIdx){
+      else if (i == pRightVarIdx){
         OctagonManager.num_set_int(arr, i, pRightVarCoef);
       }
       else{
@@ -282,7 +282,7 @@ class OctState implements AbstractState{
   public void removeLocalVariables(OctState pPreviousElem, int noOfGlobalVars) {
     int noOfLocalVars = (size()- pPreviousElem.size());
 
-    for(int i = size(); i>pPreviousElem.size(); i--){
+    for (int i = size(); i>pPreviousElem.size(); i--){
       String s = variableToIndexMap.inverse().get(i-1);
       variableToIndexMap.remove(s);
     }

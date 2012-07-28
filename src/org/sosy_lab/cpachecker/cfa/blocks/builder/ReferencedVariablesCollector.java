@@ -63,10 +63,10 @@ public class ReferencedVariablesCollector {
   public Set<ReferencedVariable> collectVars(Collection<CFANode> nodes) {
     Set<ReferencedVariable> collectedVars = new HashSet<ReferencedVariable>();
 
-    for(CFANode node : nodes) {
-      for(int i = 0; i < node.getNumLeavingEdges(); i++) {
+    for (CFANode node : nodes) {
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge leavingEdge = node.getLeavingEdge(i);
-        if(nodes.contains(leavingEdge.getSuccessor()) || (leavingEdge instanceof CFunctionCallEdge)) {
+        if (nodes.contains(leavingEdge.getSuccessor()) || (leavingEdge instanceof CFunctionCallEdge)) {
           collectVars(leavingEdge, collectedVars);
         }
       }
@@ -78,7 +78,7 @@ public class ReferencedVariablesCollector {
   private void collectVars(CFAEdge edge, Set<ReferencedVariable> pCollectedVars) {
     String currentFunction = edge.getPredecessor().getFunctionName();
 
-    switch(edge.getEdgeType()) {
+    switch (edge.getEdgeType()) {
     case AssumeEdge:
       CAssumeEdge assumeEdge = (CAssumeEdge)edge;
       collectVars(currentFunction, assumeEdge.getExpression(), null, pCollectedVars);
@@ -93,14 +93,14 @@ public class ReferencedVariablesCollector {
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
       boolean isGlobal = declaration.isGlobal();
       String varName = declaration.getName();
-      if(isGlobal) {
+      if (isGlobal) {
         globalVars.add(varName);
       }
       //putVariable(currentFunction, varName, pCollectedVars);
       break;
     case FunctionCallEdge:
       CFunctionCallEdge functionCallEdge = (CFunctionCallEdge)edge;
-      for(CExpression argument : functionCallEdge.getArguments()) {
+      for (CExpression argument : functionCallEdge.getArguments()) {
         collectVars(currentFunction, argument, null, pCollectedVars);
       }
       break;
@@ -141,7 +141,7 @@ public class ReferencedVariablesCollector {
     }
 
     private void collectVar(String var) {
-      if(lhsVar == null) {
+      if (lhsVar == null) {
         collectedVars.add(scoped(new ReferencedVariable(var, true, false, null), currentFunction));
       }
       else {
@@ -196,10 +196,11 @@ public class ReferencedVariablesCollector {
     public Void visit(CUnaryExpression pE) {
       UnaryOperator op = pE.getOperator();
 
-      switch(op) {
+      switch (op) {
       case AMPER:
       case STAR:
         collectVar(pE.toASTString());
+        //$FALL-THROUGH$
       default:
         pE.getOperand().accept(this);
       }

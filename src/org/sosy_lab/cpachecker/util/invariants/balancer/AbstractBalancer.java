@@ -34,7 +34,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
-import org.sosy_lab.cpachecker.util.invariants.balancer.prh3.PivotRowHandler;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.VariableManager;
 import org.sosy_lab.cpachecker.util.invariants.redlog.EliminationAnswer;
 import org.sosy_lab.cpachecker.util.invariants.redlog.EliminationHandler;
@@ -49,149 +48,37 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplateVariableManager
 import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
 
 
-public class MatrixBalancer implements Balancer {
+public abstract class AbstractBalancer implements Balancer {
 
   // Options:
   private boolean ignorePathFormulaDisjunctions = false;
   //
 
-  private final LogManager logger;
-  private final RedlogInterface RLI;
-  private final FormulaMatriciser formMat = new BasicFormulaMatriciser();
+  LogManager logger;
+  RedlogInterface RLI;
+  FormulaMatriciser formMat = new BasicFormulaMatriciser();
 
-  private TemplateNetwork tnet;
-  private Map<String,Variable> paramVars = null;
-  private List<Matrix> matrices;
+  TemplateNetwork tnet;
+  Map<String,Variable> paramVars = null;
+  List<Matrix> matrices;
 
   final Timer redlog = new Timer();
-  private boolean redlogReturnedTrue = false;
-
-  public MatrixBalancer(LogManager lm) {
-    logger = lm;
-    RLI = new RedlogInterface(logger);
-  }
+  boolean redlogReturnedTrue = false;
 
   public boolean redlogSaidTrue() {
     return redlogReturnedTrue;
   }
 
   @Override
-  public boolean balance(TemplateNetwork tn) throws RefinementFailedException {
-    logger.log(Level.FINEST, "Attempting to balance template network with RREF heuristic.");
-    boolean succeed = false;
-    tnet = tn;
-    // Create Variables, and a map from parameter Strings to Variables.
-    paramVars = makeParamVars();
+  public abstract boolean balance(TemplateNetwork tn) throws RefinementFailedException;
 
-    // Build all the matrices
-    List<Matrix> mats = new Vector<Matrix>();
-    for (Transition t : tnet.getTransitions()) {
-      mats.addAll( getMatricesForTransition(t) );
-    }
-    matrices = mats;
-    logger.log(Level.ALL,"Transformed network transitions into matrices.");
-    logMatrices();
-    // Put them in RREF as far as possible without pivoting on any entries with variable numerator.
-    innocuousRREF();
-    logger.log(Level.ALL,"Put matrices in partial RREF, stopping when all potential pivots had variable numerator.");
-    logMatrices();
-
-    // Try to find a solution.
-    Map<String,Rational> solution = solve();
-
-    // Examine the results.
-    if (solution == null) {
-      logger.log(Level.FINEST, "MatrixBalancer could not find any solution.");
-      succeed = false;
-    } else {
-      // Set parameters to zero for which Redlog specified no value.
-      fillInZeros(solution, paramVars.keySet());
-      // Now evaluate the tnet.
-      succeed = tnet.evaluate(solution);
-      if (!succeed) {
-        logger.log(Level.FINEST, "Redlog appears to have completed, although not all parameters received values. Check for 'infinity' values.");
-        logger.log(Level.ALL, "Templates after attempted evaluation:\n", tnet.dumpTemplates());
-      }
-    }
-
-    return succeed;
-  }
-
-  private Map<String,Rational> solve() {
-    // Declare the return value.
-    Map<String,Rational> values = null;
-
-    // Initialize an AssumptionManager.
-    AssumptionManager amgr = new AssumptionManager(matrices, logger);
-
-    boolean tryAgain = true;
-    while (tryAgain) {
-
-      // We try to get through all the matrices, without raising a bad assumptions exception.
-      // If we make it all the way through, then we managed to find a sufficient set of assumptions
-      // on the parameters, for all the matrices to have solutions in nonnegative numbers.
-      // Finally, we check whether Redlog can find values for the parameters that satisfy these
-      // assumptions.
-
-      try {
-        Matrix m = amgr.nextMatrix();
-        while (m != null) {
-          logger.log(Level.ALL, "Working on matrix:","\n"+m.toString());
-          m.putInRREF(amgr, logger);
-          /*
-           * First method:
-          PivotRowHandler prh = new PivotRowHandler(m, logger);
-          prh.firstPass(amgr);
-          prh.secondPass(amgr);
-          prh.thirdPass(amgr, this);
-          */
-          /*
-           * Second method:
-          PivotRowHandler2 prh = new PivotRowHandler2(m, amgr, this, logger);
-          prh.firstPass();
-          prh.secondPass();
-          */
-          PivotRowHandler prh = new PivotRowHandler(m, amgr, this, logger);
-          prh.solve();
-          m = amgr.nextMatrix();
-        }
-
-        // If we made it this far, then we managed to compute a sufficient set of conditions on
-        // the parameters. So we retrieve it, and then ask Redlog to compute values for the parameters.
-
-        // Retrieve the assumption set:
-        AssumptionSet aset = amgr.getCurrentAssumptionSet();
-        // Pass it to Redlog:
-        values = tryAssumptionSet(aset);
-        // Review the results:
-        if (values == null) {
-          // Redlog didn't find values for the parameters, so we will go back and try again.
-          throw new BadAssumptionsException();
-        } else {
-          // We found an assumption set that works! We return it.
-          break;
-        }
-      } catch (BadAssumptionsException e) {
-        // We wind up here if anything went wrong, anywhere in the process.
-        // It is now time to backtrack, i.e. to ask the assumption manager to take us back in time
-        // to the last point at which we made a "possibly unnecessary" assumption. We'll carry on
-        // from there. Or, if there are no options left, then 'tryAgain' will be false, and we will
-        // exit the while loop. 'values' will still be null, indicating that we failed to find
-        // values for the parameters.
-        tryAgain = amgr.nextBranch();
-      }
-
-    }
-
-    return values;
-  }
 
   /*
    * We put each of the matrices into RREF, up to the point where we would have to choose a
    * pivot with variable numerator. This process cannot generate any assumptions whatsoever,
    * so we do not return any.
    */
-  private void innocuousRREF() {
+  void innocuousRREF() {
     for (Matrix m : matrices) {
       m.setHaltOnVarNumPivot(true);
       m.putInRREF(logger);
@@ -200,16 +87,16 @@ public class MatrixBalancer implements Balancer {
   }
 
   /*
-   * Diagnostic method, purely for output.
+   * Diagnostic method, purely for logging.
    */
-  private void logMatrices() {
+  void logMatrices() {
     logger.log(Level.ALL,"Matrices:");
     for (Matrix m : matrices) {
       logger.log(Level.ALL,"\n"+m.toString());
     }
   }
 
-  private Map<String,Variable> makeParamVars() {
+  Map<String,Variable> makeParamVars() {
     Set<String> params = tnet.writeAllParameters(VariableWriteMode.REDLOG);
     Map<String,Variable> paramVars = new HashMap<String,Variable>();
     for (String p : params) {
@@ -219,7 +106,7 @@ public class MatrixBalancer implements Balancer {
     return paramVars;
   }
 
-  private void fillInZeros(Map<String,Rational> map, Set<String> params) {
+  void fillInZeros(Map<String,Rational> map, Set<String> params) {
     Set<String> dom = map.keySet();
     Rational r = Rational.makeZero();
     for (String p : params) {
@@ -293,7 +180,7 @@ public class MatrixBalancer implements Balancer {
     return map;
   }
 
-  private List<Matrix> getMatricesForTransition(Transition t) {
+  List<Matrix> getMatricesForTransition(Transition t) {
 
     // Get the template map.
     TemplateMap tmap = tnet.getTemplateMap();

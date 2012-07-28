@@ -119,7 +119,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
           throw new UnrecognizedCFAEdgeException(pArgs.getCfaEdge());
         }
         // some edges do not have an AST node attached to them, e.g. BlankEdges
-        if(patternAST.matches((CAstNode)ast.get(), pArgs)) {
+        if (patternAST.matches((CAstNode)ast.get(), pArgs)) {
           return CONST_TRUE;
         } else {
           return CONST_FALSE;
