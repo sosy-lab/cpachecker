@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CArraySubscriptExpression extends CExpression {
+public final class CArraySubscriptExpression extends AExpression implements CExpression {
 
   private final CExpression arrayExpression;
   private final CExpression subscriptExpression;
@@ -37,6 +39,11 @@ public final class CArraySubscriptExpression extends CExpression {
     super(pFileLocation, pType);
     arrayExpression = pArrayExpression;
     subscriptExpression = pSubscriptExpression;
+  }
+
+  @Override
+  public CType getExpressionType() {
+    return (CType) type;
   }
 
   public CExpression getArrayExpression() {
@@ -62,4 +69,5 @@ public final class CArraySubscriptExpression extends CExpression {
     String left = (arrayExpression instanceof CArraySubscriptExpression) ? arrayExpression.toASTString() : arrayExpression.toParenthesizedASTString();
     return left + "[" + subscriptExpression.toASTString() + "]";
   }
+
 }
