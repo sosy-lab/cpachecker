@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -294,8 +293,8 @@ public class ExplicitTransferRelation implements TransferRelation
     // expression is an assignment operation, e.g. a = g(b);
 
     if(exprOnSummary instanceof AFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement assignExp = ((CFunctionCallAssignmentStatement)exprOnSummary);
-      CExpression op1 = assignExp.getLeftHandSide();
+      AFunctionCallAssignmentStatement assignExp = ((AFunctionCallAssignmentStatement)exprOnSummary);
+      IAExpression op1 = assignExp.getLeftHandSide();
 
       // we expect left hand side of the expression to be a variable
 

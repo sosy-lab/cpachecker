@@ -91,7 +91,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
@@ -168,15 +170,18 @@ public class ASTConverter {
 
   @SuppressWarnings({ "cast", "unchecked" })
   public AFunctionDeclaration convert(final MethodDeclaration md) {
-  //TODO Protoyp implementation for Method Declaration Converting,
-  //     Finish when method calls are to be implemented.
 
     AFunctionType declSpec = new AFunctionType(convert(md.getReturnType2()) , convertParameterList((List<SingleVariableDeclaration>)md.parameters()) , false );
     String name = md.getName().getFullyQualifiedName();
 
+    ModifierBean mb = ModifierBean.getModifiers(md.modifiers());
+
+
+
     CFileLocation fileLoc = getFileLocation(md);
 
-    return new AFunctionDeclaration(fileLoc, declSpec, name);
+    return new JMethodDeclaration(fileLoc, declSpec, name, mb.getVisibility(), mb.isFinal(),
+        mb.isAbstract(), mb.isStatic(), mb.isNative(), mb.isSynchronized(), mb.isStrictFp());
   }
 
   private org.sosy_lab.cpachecker.cfa.types.Type convert(Type t) {
@@ -340,30 +345,23 @@ public class ASTConverter {
      private final boolean isStatic;
      private final boolean isVolatile;
      private final boolean isTransient;
-     private final boolean isPublic;
-     private final boolean isPrivate;
-     private final boolean isProtected;
-     private final boolean isNone;
      private final boolean isNative;
      private final boolean isAbstract;
      private final boolean isStrictFp;
      private final boolean isSynchronized;
+     private final VisibilityModifier visibility;
 
 
 
     public ModifierBean(boolean pIsFinal, boolean pIsStatic, boolean pIsVolatile, boolean pIsTransient,
-        boolean pIsPublic, boolean pIsPrivate,
-        boolean pIsProtected, boolean pIsNone, boolean pIsNative, boolean pIsAbstract, boolean pIsStrictFp,
+        VisibilityModifier pVisibility , boolean pIsNative, boolean pIsAbstract, boolean pIsStrictFp,
         boolean pIsSynchronized) {
 
+      visibility = pVisibility;
       isFinal = pIsFinal;
       isStatic = pIsStatic;
       isVolatile = pIsVolatile;
       isTransient = pIsTransient;
-      isPublic = pIsPublic;
-      isPrivate = pIsPrivate;
-      isProtected = pIsProtected;
-      isNone = pIsNone;
       isNative = pIsNative;
       isAbstract = pIsAbstract;
       isStrictFp = pIsStrictFp;
@@ -372,14 +370,11 @@ public class ASTConverter {
 
     private static ModifierBean getModifiers(List<IExtendedModifier> modifiers) {
 
+      VisibilityModifier visibility = null;
       boolean isFinal = false;
       boolean isStatic = false;
       boolean isVolatile = false;
       boolean isTransient = false;
-      boolean isPublic = false;
-      boolean isPrivate = false;
-      boolean isProtected = false;
-      boolean isNone = false;
       boolean isNative = false;
       boolean isAbstract = false;
       boolean isStrictFp = false;
@@ -405,16 +400,20 @@ public class ASTConverter {
             isTransient = true;
             break;
           case Modifier.PUBLIC:
-            isPublic = true;
+            assert visibility == null :  "Can only declare one Visibility Modifier";
+            visibility = VisibilityModifier.PUBLIC;
             break;
           case Modifier.PROTECTED:
-            isProtected = true;
+            assert visibility == null : "Can only declare one Visibility Modifier";
+            visibility = VisibilityModifier.PROTECTED;
             break;
           case Modifier.NONE:
-            isNone = true;
+            assert visibility == null : "Can only declare one Visibility Modifier";
+            visibility = VisibilityModifier.NONE;
             break;
           case Modifier.PRIVATE:
-            isPrivate = true;
+            assert visibility == null : "Can only declare one Visibility Modifier";
+            visibility = VisibilityModifier.PRIVATE;
             break;
           case Modifier.NATIVE:
             isNative = true;
@@ -435,11 +434,14 @@ public class ASTConverter {
 
         }
       }
-      return new ModifierBean(isFinal, isStatic, isVolatile, isTransient, isPublic, isPrivate, isProtected, isNone,
+      return new ModifierBean(isFinal, isStatic, isVolatile, isTransient, visibility,
           isNative, isAbstract, isStrictFp, isSynchronized);
 
     }
 
+    public VisibilityModifier getVisibility(){
+      return visibility;
+    }
 
     public boolean isFinal() {
       return isFinal;
@@ -462,32 +464,6 @@ public class ASTConverter {
     public boolean isTransient() {
       return isTransient;
     }
-
-
-
-    public boolean isPublic() {
-      return isPublic;
-    }
-
-
-
-    public boolean isPrivate() {
-      return isPrivate;
-    }
-
-
-
-    public boolean isProtected() {
-      return isProtected;
-    }
-
-
-
-    public boolean isNone() {
-      return isNone;
-    }
-
-
 
     public boolean isNative() {
       return isNative;
@@ -545,15 +521,12 @@ public class ASTConverter {
 
     ModifierBean mB = ModifierBean.getModifiers(vds.modifiers());
 
-   assert(!mB.isAbstract) : "Local Variable has this modifier?";
-   assert(!mB.isNative) : "Local Variable has this modifier?";
-   assert(!mB.isNone) : "Local Variable has this modifier?";
-   assert(!mB.isPrivate) : "Local Variable has this modifier?";
-   assert(!mB.isProtected) : "Local Variable has this modifier?";
-   assert(!mB.isPublic) : "Local Variable has this modifier?";
-   assert(!mB.isStatic) : "Local Variable has this modifier?";
-   assert(!mB.isStrictFp) : "Local Variable has this modifier?";
-   assert(!mB.isSynchronized) : "Local Variable has this modifier?";
+   assert(!mB.isAbstract) : "Local Variable has abstract modifier?";
+   assert(!mB.isNative) : "Local Variable has native modifier?";
+   //assert(mB.visibility != null) : "Local Variable has Visibility modifier?";
+   assert(!mB.isStatic) : "Local Variable has static modifier?";
+   assert(!mB.isStrictFp) : "Local Variable has strictFp modifier?";
+   assert(!mB.isSynchronized) : "Local Variable has synchronized modifier?";
 
 
 
@@ -576,15 +549,12 @@ public class ASTConverter {
     @SuppressWarnings("unchecked")
     ModifierBean mB = ModifierBean.getModifiers(d.modifiers());
 
-    assert (!mB.isAbstract) : " Variable has this modifier?";
-    assert (!mB.isNative) : " Variable has this modifier?";
-    assert (!mB.isNone) : " Variable has this modifier?";
-    assert (!mB.isPrivate) : " Variable has this modifier?";
-    assert (!mB.isProtected) : " Variable has this modifier?";
-    assert (!mB.isPublic) : " Variable has this modifier?";
-    assert (!mB.isStatic) : " Variable has this modifier?";
-    assert (!mB.isStrictFp) : " Variable has this modifier?";
-    assert (!mB.isSynchronized) : " Variable has this modifier?";
+    assert(!mB.isAbstract) : "Local Variable has abstract modifier?";
+    assert(!mB.isNative) : "Local Variable has native modifier?";
+    assert(mB.visibility != null) : "Local Variable has Visibility modifier?";
+    assert(!mB.isStatic) : "Local Variable has static modifier?";
+    assert(!mB.isStrictFp) : "Local Variable has strictFp modifier?";
+    assert(!mB.isSynchronized) : "Local Variable has synchronized modifier?";
 
     AInitializerExpression initializerExpression = null;
 
