@@ -1,10 +1,10 @@
 Supplied scripts:
 
 - benchmark.py: for benchmarking model checking tools like CPAchecker or CBMC
-                (see HowToBenchmark.txt)
+                (see doc/Benchmark.txt)
 - cpa.bat: to start CPAchecker on Windows
 - cpa.sh: to start CPAchecker on Linux and similar platforms
-          (see HowTo.txt)
+          (see README.txt)
 - report-generator.py: for building an interactive HTML report of a CPAchecker run
                        (see doc/BuildReport.txt)
 - table-generator.py: for creating tables that contain the output of several benchmark.py runs.

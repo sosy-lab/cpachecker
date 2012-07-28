@@ -24,6 +24,12 @@ CPAchecker web page:
   http://cpachecker.sosy-lab.org
 """
 
+# prepare for Python 3
+from __future__ import absolute_import, print_function, unicode_literals
+
+import sys
+sys.dont_write_bytecode = True # prevent creation of .pyc files
+
 import xml.etree.ElementTree as ET
 import collections
 import os.path
@@ -31,7 +37,6 @@ import glob
 import shutil
 import optparse
 import time
-import sys
 
 from datetime import date
 from decimal import *
@@ -394,7 +399,7 @@ def ensureEqualSourceFiles(listOfTests):
         if fileNames == result.getSourceFileNames(): return True
         else: print ('    {0} contains different files, skipping resultfile'.format(result.filename))
 
-    listOfTests = filter(equalFiles, listOfTests)
+    listOfTests = list(filter(equalFiles, listOfTests))
     return fileNames, listOfTests
 
 
@@ -575,6 +580,13 @@ def filterRowsWithDifferences(rows):
     """
     Find all rows with differences in the status column.
     """
+    if not rows:
+        # empty table
+        return []
+    if len(rows[0].results) == 1:
+        # table with single column
+        return []
+    
     def allEqualResult(listOfResults):
         for result in listOfResults:
             if listOfResults[0].status != result.status:
@@ -863,6 +875,10 @@ def main(args=None):
         help="If resultfiles with distinct sourcefiles are found, " \
             + "use only the sourcefiles common to all resultfiles."
     )
+    parser.add_option("--no-diff",
+        action="store_false", dest="writeDiffTable", default=True,
+        help="Do not output a table with differences between resultfiles."
+    )
     parser.add_option("--correct-only",
         action="store_true", dest="correctOnly",
         help="Clear all results in cases where the result was not correct."
@@ -925,7 +941,7 @@ def main(args=None):
 
     # collect data and find out rows with differences
     rows     = getRows(listOfTests, fileNames, options.correctOnly)
-    rowsDiff = filterRowsWithDifferences(rows)
+    rowsDiff = filterRowsWithDifferences(rows) if options.writeDiffTable else []
 
     print ('generating table ...')
     createTables(name, listOfTests, fileNames, rows, rowsDiff, options.outputPath)

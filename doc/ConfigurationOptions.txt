@@ -82,10 +82,9 @@ analysis.restartAfterUnknown = false
 # stop after the first error has been found
 analysis.stopAfterError = true
 
-# which strategy to adopt for visiting states? RPO is deprecated, use the
-# option analysis.traversal.useReversePostorder instead
+# which strategy to adopt for visiting states?
 analysis.traversal.order = DFS
-  enum:     [DFS, BFS, RPO, RAND]
+  enum:     [DFS, BFS, RAND]
 
 # handle states with a deeper callstack first?
 # This needs the CallstackCPA to have any effect.
@@ -98,11 +97,11 @@ analysis.traversal.useExplicitInformation = false
 # Use an implementation of reverse postorder strategy that allows to select a
 # secondary strategy that is used if there are two states with the same
 # reverse postorder id. The secondary strategy is selected with
-# 'analysis.traversal.order'. The secondary strategy may not be RPO.
+# 'analysis.traversal.order'.
 analysis.traversal.useReversePostorder = false
 
-# DEPRECATED: This option was renamed to analysis.traversal.useTopsort and
-# will soon get removed.
+# DEPRECATED: This option was renamed to
+# analysis.traversal.useReversePostorder and will soon get removed.
 analysis.traversal.useTopsort = false
 
 # use adjustable conditions algorithm
@@ -146,6 +145,14 @@ assumptions.automatonFile = "AssumptionAutomaton.txt"
 # write collected assumptions to file
 assumptions.export = true
 assumptions.file = "assumptions.txt"
+
+# which bdd-package should be used? 
+# - cudd:  CUDD-library, reordering not supported
+# - java:  JFactory, fallback for all other packages
+# - micro: MicroFactory, maximum number of BDD variables is 1024,
+#          slow, but less memory-comsumption.
+bddregionmanager.package = "cudd"
+  allowed values: [cudd, java, micro]
 
 # Allow reduction of function entries; calculate abstractions alwasy at
 # function entries?
@@ -302,10 +309,33 @@ cpa.bdd.bitsize = 8
 # initialize all variables to 0 when they are declared
 cpa.bdd.initAllVars = false
 
+<<<<<<< .working
 # either use one bit to know if a value is 0 (or not 0)or use a vector to
 # store all memory cells of a variable
 cpa.bdd.useBitvector = false
 
+=======
+# declare first bit of all vars, then second bit,...
+cpa.bdd.initBitwise = true
+
+# declare vars ordered in partitions
+# declare vars ordered in partitions. otherwise vars are declared when they
+# are needed.
+cpa.bdd.initPartitions = true
+cpa.bdd.initPartitions = false
+
+# track boolean variables from cfa only
+cpa.bdd.trackBooleanFromCFA = true
+
+# either use one bit to know if a value is 0 (or not 0)or use a vector to
+# store all memory cells of a variable
+cpa.bdd.useBitvector = false
+
+# which vars should be tracked, default: track all. the regex is not used for
+# functionname, only for the variablename itself.
+cpa.bdd.whiteListRegex = ".*"
+
+>>>>>>> .merge-rechts.r6364
 # which composite merge operator to use (plain or agree)
 # Both delegate to the component cpas, but agree only allows merging if all
 # cpas agree on this. This is probably what you want.
@@ -371,9 +401,17 @@ cpa.conditions.path.repetitions.limit = -1
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
 
+# if there is an assumption like (x!=0), this option sets unknown
+# (uninitialized) variables to 1L, when the true-branch is handled.
+cpa.explicit.initAssumptionVars = false
+
 # which merge operator to use for ExplicitCPA
 cpa.explicit.merge = "SEP"
   allowed values: [SEP, JOIN]
+
+# ignore boolean variables. if this option is used, booleans from the cfa
+# should tracked with another CPA, i.e. with BDDCPA.
+cpa.explicit.precision.ignoreBooleans = false
 
 # threshold for amount of different values that are tracked for one variable
 # per path (-1 means infinitely)
@@ -679,9 +717,6 @@ impact.useForcedCovering = true
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
-
-# Ignore all casts that appear in the source code.
-parser.ignoreCasts = false
 
 # file in which ARG representation needed for proof checking is stored
 pcc.proofFile = "arg.obj"
