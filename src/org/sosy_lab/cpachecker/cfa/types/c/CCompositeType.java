@@ -25,7 +25,8 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclarations;
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 
 import com.google.common.collect.ImmutableList;
@@ -97,12 +98,18 @@ public final class CCompositeType extends CType {
    * This is the declaration of a member of a composite type.
    * It contains a type and an optional name.
    */
-  public static final class CCompositeTypeMemberDeclaration extends CSimpleDeclaration {
+  public static final class CCompositeTypeMemberDeclaration extends ASimpleDeclarations implements CSimpleDeclaration {
 
     public CCompositeTypeMemberDeclaration(CFileLocation pFileLocation,
                                               CType pType,
                                               String pName) {
       super(pFileLocation, pType, pName);
     }
+
+    @Override
+    public CType getType(){
+      return (CType ) type;
+    }
+
   }
 }

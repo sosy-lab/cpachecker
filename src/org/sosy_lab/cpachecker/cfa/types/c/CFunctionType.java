@@ -30,11 +30,12 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CAstNode.TO_AST_STRING;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public class CFunctionType extends CType {
+public class CFunctionType extends CType implements IAFunctionType {
 
   private final CType returnType;
   private String name = null;
@@ -53,23 +54,28 @@ public class CFunctionType extends CType {
     takesVarArgs = pTakesVarArgs;
   }
 
+  @Override
   public CType getReturnType() {
     return returnType;
   }
 
+  @Override
   public String getName() {
     return name;
   }
 
+  @Override
   public void setName(String pName) {
     checkState(name == null);
     name = pName;
   }
 
+  @Override
   public List<CParameterDeclaration> getParameters() {
     return parameters;
   }
 
+  @Override
   public boolean takesVarArgs() {
     return takesVarArgs;
   }
