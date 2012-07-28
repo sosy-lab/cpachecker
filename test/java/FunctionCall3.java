@@ -12,7 +12,9 @@ public class FunctionCall3 {
          n1 = 1;
          n2 = 2;
          n3 = 2;
+      
         
+         
         des();
         
         if(n1 != n2){
@@ -53,10 +55,10 @@ public class FunctionCall3 {
 		
 	    public static void des() {
 	    
-	    int na1 = 1;
-	    int na2 = 1;
+	    int n1 = 1;
+	    int n2 = 1;
         
-        if(na1 == na2){
+        if(n1 == n2){
         
         
         
