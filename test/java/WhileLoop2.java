@@ -1,5 +1,5 @@
 
-public class Readable {
+public class WhileLoop2 {
 	
 
 	
@@ -13,12 +13,11 @@ public class Readable {
         n1 = 10;
 	
       
-        do{
+        while(  n1 < 2 ){
+         assert (false);
         
-        assert (false);
-        
-        } while( false  );
+        }
       
-      	}
+ }     	
 		
 }

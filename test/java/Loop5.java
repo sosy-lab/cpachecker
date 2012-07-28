@@ -1,5 +1,5 @@
 
-public class Readable {
+public class Loop5 {
 	
 
 	
@@ -11,18 +11,20 @@ public class Readable {
         int n1;
         
         n1 = 0;
-	    
-	    
+	
       
-        while( n1 < 10  ){
-        
+        do {
         
         n1 = n1 + 1;
+        continue;
+        n1 = 40;
         
-        if(n1 > 10)
-            assert (false);
-        }
+        }while( n1 > 0 && n1 < 10  );
+      
+      
+      assert(n1 == 10);
       
       	}
+		
 		
 }

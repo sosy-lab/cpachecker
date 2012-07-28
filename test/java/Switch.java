@@ -1,5 +1,5 @@
 
-public class Readable {
+public class Switch {
 	
 
 	
@@ -13,7 +13,7 @@ public class Readable {
         n1 = 10;
 	
       
-        switch( n1){
+        switch(n1){
         case 1: assert (false);
                     break;
         case 5: assert (false);

@@ -1,5 +1,5 @@
 
-public class Readable {
+public class SyntaxError {
 	
 
 	
@@ -10,8 +10,8 @@ public class Readable {
 
         int n1;
         
-        n1 = 10;		
-}
-
-
+        sdasdasdsa;
+      
+      	
+		
 }

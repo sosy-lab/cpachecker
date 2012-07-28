@@ -1,5 +1,5 @@
 
-public class Readable {
+public class Loop3 {
 	
 
 	
@@ -43,7 +43,9 @@ public class Readable {
         
         n1 = n1 + 1;
         }
-        assert(n1 == 9);
+        assert(n1 == 10);
         assert(n2 == 4);
         assert(n3 == 6);		
+}
+
 }

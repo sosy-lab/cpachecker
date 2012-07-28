@@ -1,5 +1,5 @@
 
-public class Readable {
+public class Loop4 {
 	
 
 	
@@ -13,11 +13,12 @@ public class Readable {
         n1 = 10;
 	
       
-        while(  n1 < 2 ){
-         assert (false);
+        do{
         
-        }
+        assert (false);
+        
+        } while( false  );
       
- }     	
+      	}
 		
 }

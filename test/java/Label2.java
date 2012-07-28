@@ -1,5 +1,5 @@
 
-public class Readable {
+public class Label2 {
 	
 
 	

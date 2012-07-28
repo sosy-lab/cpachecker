@@ -1,5 +1,5 @@
 
-public class Readable {
+public class Assert1 {
 	
 
 	
@@ -8,10 +8,8 @@ public class Readable {
 			String[] args) {
 		
 
-        int n1;
-        
-        sdasdasdsa;
+        assert(false);
       
       	
-		
+    }
 }

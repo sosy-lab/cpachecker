@@ -1,5 +1,5 @@
 
-public class Readable {
+public class IfStatement {
 	
 
 	
@@ -8,15 +8,15 @@ public class Readable {
 			String[] args) {
 		
 
-            int n1 = 1;
-            int n2 = 2;
+            boolean d = true;
             
-            if(n1 == n2){
+        
+            if(d){
             
-            
+           
             }else {
             
-            assert(false);
+            assert(false); 
             }
 	
 	
