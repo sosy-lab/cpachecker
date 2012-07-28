@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.exceptions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
@@ -56,7 +57,15 @@ public class UnrecognizedCCodeException extends CPATransferException {
   }
 
 
-  protected static String createMessage(String msg1, String msg2, CFAEdge edge, CAstNode astNode) {
+  public UnrecognizedCCodeException(String msg2, CFAEdge edge, IAstNode astNode) {
+    super(createMessage(MESSAGE, msg2, edge, astNode));
+  }
+
+  public UnrecognizedCCodeException(CFAEdge edge, IAstNode astNode) {
+    super(createMessage(MESSAGE, null, edge, astNode));
+  }
+
+  protected static String createMessage(String msg1, String msg2, CFAEdge edge, IAstNode astNode) {
     checkNotNull(msg1);
     if (astNode == null) {
       astNode = (CAstNode)edge.getRawAST().get();
