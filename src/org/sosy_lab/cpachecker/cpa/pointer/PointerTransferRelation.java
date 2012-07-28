@@ -1304,7 +1304,6 @@ public class PointerTransferRelation implements TransferRelation {
    * @param element the abstract state
    * @param pointer the pointer for the result (may be null)
    * @param expression the parameter to the malloc call in the AST
-   * @throws InvalidPointerException if malloc fails
    * @throws NumberFormatException if argument is a number, not a valid integer
    * @throws UnrecognizedCCodeException if parameter contains something unexpected
    */

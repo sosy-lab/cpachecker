@@ -94,7 +94,7 @@ public interface Memory {
      * Set the length of this memory region in bytes, if it was unknown before.
      * As objects of this type are considered constant, this method should be
      * called as soon as possible after the constructor.
-     * @throws InvalidPointerException If length is negative.
+     * @throws IllegalArgumentException If length is negative.
      */
     public void setLength(long length) {
       // allow setting this value only once
