@@ -23,24 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+
+
+import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
+
 
 /**
  * Super class for all possible right-hand sides of an assignment.
  */
-public abstract class CRightHandSide extends CAstNode {
+public interface CRightHandSide extends CAstNode , IARightHandSide {
 
-  private final CType type;
 
-  public CRightHandSide(final CFileLocation pFileLocation,
-                           final CType pType) {
-    super(pFileLocation);
-    type = pType;
-  }
+  public <R, X extends Exception> R accept(CRightHandSideVisitor<R, X> pV) throws X;
 
-  public CType getExpressionType() {
-    return type;
-  }
+  @Override
+  public CType getExpressionType();
 
-  public abstract <R, X extends Exception> R accept(CRightHandSideVisitor<R, X> pV) throws X;
+
 }

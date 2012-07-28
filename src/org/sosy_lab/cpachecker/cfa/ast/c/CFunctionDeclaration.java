@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 /**
@@ -33,11 +35,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
  *
  * int foo(int x);
  */
-public final class CFunctionDeclaration extends CDeclaration {
+public final class CFunctionDeclaration extends AFunctionDeclaration implements CDeclaration {
 
   public CFunctionDeclaration(CFileLocation pFileLocation,
       CFunctionType pType, String pName) {
-    super(pFileLocation, true, pType, checkNotNull(pName), pName);
+    super(pFileLocation, pType, checkNotNull(pName));
   }
 
   @Override

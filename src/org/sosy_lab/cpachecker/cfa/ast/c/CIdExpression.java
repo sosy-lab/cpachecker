@@ -23,31 +23,33 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CIdExpression extends CExpression {
+public final class CIdExpression extends AIdExpression implements CExpression {
 
-  private final String name;
-  private final CSimpleDeclaration declaration;
 
   public CIdExpression(final CFileLocation pFileLocation,
                           final CType pType, final String pName,
                           final CSimpleDeclaration pDeclaration) {
-    super(pFileLocation, pType);
-    name = pName.intern();
-    declaration = pDeclaration;
+    super(pFileLocation, pType, pName , pDeclaration );
   }
 
-  public String getName() {
-    return name;
+
+
+  @Override
+  public CType getExpressionType(){
+    return (CType)type;
   }
 
   /**
    * Get the declaration of the variable.
    * The result may be null if the variable was not declared.
    */
+  @Override
   public CSimpleDeclaration getDeclaration() {
-    return declaration;
+    return  (CSimpleDeclaration) declaration;
   }
 
   @Override
@@ -58,16 +60,5 @@ public final class CIdExpression extends CExpression {
   @Override
   public <R, X extends Exception> R accept(CRightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  @Override
-  public String toASTString() {
-    return name;
-  }
-
-  @Override
-  protected String toParenthesizedASTString() {
-    // id expression never need parentheses
-    return toASTString();
   }
 }

@@ -23,19 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-public final class CFunctionCallStatement extends CStatement implements CFunctionCall {
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 
-  private final CFunctionCallExpression functionCall;
+public final class CFunctionCallStatement extends AFunctionCallStatement implements CStatement , CFunctionCall {
+
+
 
   public CFunctionCallStatement(CFileLocation pFileLocation,
                                    CFunctionCallExpression pFunctionCall) {
-    super(pFileLocation);
-    functionCall = pFunctionCall;
+    super(pFileLocation, pFunctionCall);
+
   }
 
   @Override
   public CFunctionCallExpression getFunctionCallExpression() {
-    return functionCall;
+    return (CFunctionCallExpression) functionCall;
   }
 
   @Override
@@ -48,8 +51,4 @@ public final class CFunctionCallStatement extends CStatement implements CFunctio
     return v.visit(this);
   }
 
-  @Override
-  public String toASTString() {
-    return functionCall.toASTString() + ";";
-  }
 }

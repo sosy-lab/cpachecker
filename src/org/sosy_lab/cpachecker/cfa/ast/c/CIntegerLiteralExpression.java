@@ -25,31 +25,26 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CIntegerLiteralExpression extends CLiteralExpression {
+public class CIntegerLiteralExpression extends AIntegerLiteralExpression implements CLiteralExpression {
 
-  // use BigInteger here because a C unsigned long long constant doesn't fit in
-  // a Java long
-  private final BigInteger value;
 
   public CIntegerLiteralExpression(CFileLocation pFileLocation,
                                       CType pType,
                                       BigInteger pValue) {
-    super(pFileLocation, pType);
-    value = pValue;
+    super(pFileLocation, pType, pValue);
   }
+
 
   @Override
-  public BigInteger getValue() {
-    return value;
+  public CType getExpressionType() {
+    return (CType) type;
   }
 
-  public long asLong() {
-    // TODO handle values that are bigger than MAX_LONG
-    return value.longValue();
-  }
 
   @Override
   public <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X {

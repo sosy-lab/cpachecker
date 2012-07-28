@@ -23,24 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-public class CReturnStatement extends CAstNode {
+import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 
-  private final CExpression expression;
+public class CReturnStatement extends AReturnStatement implements CAstNode{
+
+
 
   public CReturnStatement(final CFileLocation pFileLocation,
                              final CExpression pExpression) {
-    super(pFileLocation);
-    expression = pExpression;
-  }
-
-  public CExpression getReturnValue() {
-    return expression;
+    super(pFileLocation, pExpression);
   }
 
   @Override
-  public String toASTString() {
-    return "return"
-        + (expression != null ? " " + expression.toASTString() : "")
-        + ";";
+  public CExpression getReturnValue() {
+    return (CExpression)expression;
   }
+
 }
