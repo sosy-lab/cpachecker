@@ -309,12 +309,6 @@ cpa.bdd.bitsize = 8
 # initialize all variables to 0 when they are declared
 cpa.bdd.initAllVars = false
 
-<<<<<<< .working
-# either use one bit to know if a value is 0 (or not 0)or use a vector to
-# store all memory cells of a variable
-cpa.bdd.useBitvector = false
-
-=======
 # declare first bit of all vars, then second bit,...
 cpa.bdd.initBitwise = true
 
@@ -335,7 +329,6 @@ cpa.bdd.useBitvector = false
 # functionname, only for the variablename itself.
 cpa.bdd.whiteListRegex = ".*"
 
->>>>>>> .merge-rechts.r6364
 # which composite merge operator to use (plain or agree)
 # Both delegate to the component cpas, but agree only allows merging if all
 # cpas agree on this. This is probably what you want.

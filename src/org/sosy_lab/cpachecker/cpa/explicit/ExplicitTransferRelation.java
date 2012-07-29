@@ -86,6 +86,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -1060,19 +1061,39 @@ public class ExplicitTransferRelation implements TransferRelation
       if((binaryOperator == BinaryOperator.EQUALS && truthValue) || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue)) {
         if(leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
           String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
-          if(currentPrecision.isTracking(leftVariableName)) {
+          if (currentPrecision.isTracking(leftVariableName)) {
             state.assignConstant(leftVariableName, rightValue);
           }
         }
 
-        else if(rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
+        else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
           String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName);
-          if(currentPrecision.isTracking(rightVariableName)) {
+          if (currentPrecision.isTracking(rightVariableName)) {
             state.assignConstant(rightVariableName, leftValue);
           }
         }
       }
 
+      if (initAssumptionVars) {
+        // x is unknown, a binaryOperation (x!=0), true-branch: set x=1L
+        // x is unknown, a binaryOperation (x==0), false-branch: set x=1L
+        if ((binaryOperator == BinaryOperator.NOT_EQUALS && truthValue)
+            || (binaryOperator == BinaryOperator.EQUALS && !truthValue)) {
+          if (leftValue == null && rightValue == 0L && isAssignable(lVarInBinaryExp)) {
+            String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
+            if (currentPrecision.isTracking(leftVariableName)) {
+              state.assignConstant(leftVariableName, 1L);
+            }
+          }
+
+          else if (rightValue == null && leftValue == 0L && isAssignable(rVarInBinaryExp)) {
+            String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName);
+            if (currentPrecision.isTracking(rightVariableName)) {
+              state.assignConstant(rightVariableName, 1L);
+            }
+          }
+        }
+      }
       return super.visit(pE);
     }
 
@@ -1130,16 +1151,16 @@ public class ExplicitTransferRelation implements TransferRelation
       // __cil_tmp8 = *((int *)__cil_tmp7);
       // so remove cast
       IAExpression unaryOperand = unaryExpression.getOperand();
-      if(unaryOperand instanceof CCastExpression) {
+      if (unaryOperand instanceof CCastExpression) {
         unaryOperand = ((CCastExpression)unaryOperand).getOperand();
       }
 
       if(unaryOperand instanceof AIdExpression) {
         String rightVar = derefPointerToVariable(pointerState, ((AIdExpression)unaryOperand).getName());
-        if(rightVar != null) {
+        if (rightVar != null) {
           rightVar = getScopedVariableName(rightVar, functionName);
 
-          if(state.contains(rightVar)) {
+          if (state.contains(rightVar)) {
             return state.getValueFor(rightVar);
           }
         }

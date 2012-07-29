@@ -6,9 +6,8 @@
 	<classpathentry exported="true" kind="lib" path="lib/java/runtime/guava.jar" sourcepath="lib/java-contrib/guava-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/java/runtime/smtinterpol.jar" sourcepath="lib/java-contrib/smtinterpol-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/jsr305.jar"/>
-	<classpathentry kind="lib" path="lib/java/runtime/javabdd.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/javabdd.jar" sourcepath="lib/java-contrib/javabdd-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/java-cup-runtime.jar"/>
-	<classpathentry kind="lib" path="lib/java/runtime/jgrapht-jdk1.6.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/json-simple.jar" sourcepath="lib/java-contrib/json-simple-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/icu4j.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.cdt.core.jar" sourcepath="lib/java-contrib/org.eclipse.cdt.core-sources.jar"/>

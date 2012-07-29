@@ -2,7 +2,7 @@ Getting Started with CPAchecker
 ===============================
 
 Installation Instructions:  INSTALL.txt
-Develop and Contribute:     CONTRIB.txt
+Develop and Contribute:     doc/Developing.txt
 
 More details can be found in doc/*.txt
 
