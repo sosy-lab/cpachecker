@@ -25,10 +25,12 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Hashtable;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.eclipse.cdt.core.parser.IScannerInfo;
+import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
@@ -82,6 +84,7 @@ public  class EclipseJavaParser implements CParser {
 
 
 
+  @SuppressWarnings("unchecked")
   private CompilationUnit parse(final String pFileName) throws ParserException {
     parseTimer.start();
     try {
@@ -89,9 +92,14 @@ public  class EclipseJavaParser implements CParser {
       File file = new File(pFileName);
       String source = FileUtils.readFileToString(file);
 
+
+
+
+
+
+
+
       //TODO Check if Windows use \
-
-
 
       final String[] sourceFilePath = {pFileName.substring( START_OF_STRING , pFileName.lastIndexOf("/")) };
 
@@ -102,11 +110,21 @@ public  class EclipseJavaParser implements CParser {
 
       ASTParser parser = ASTParser.newParser(AST.JLS4);
 
+
+
+
+
+
       parser.setSource(source.toCharArray());
       parser.setEnvironment( null, sourceFilePath, encoding, true);
       parser.setResolveBindings(true);
       parser.setStatementsRecovery(true);
       parser.setBindingsRecovery(true);
+
+      // Set Compliance Options to support JDK 1.7
+      Hashtable<String , String> options = JavaCore.getOptions();
+      JavaCore.setComplianceOptions(JavaCore.VERSION_1_7, options);
+      parser.setCompilerOptions(options);
 
       parser.setUnitName(pFileName.substring(pFileName.lastIndexOf("/") + 1));
       CompilationUnit unit = (CompilationUnit)parser.createAST(null);

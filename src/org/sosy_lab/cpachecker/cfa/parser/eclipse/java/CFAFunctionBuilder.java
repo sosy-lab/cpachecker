@@ -38,6 +38,7 @@ import java.util.Set;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.AssertStatement;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BooleanLiteral;
 import org.eclipse.jdt.core.dom.BreakStatement;
@@ -50,7 +51,6 @@ import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.LabeledStatement;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
-import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.ParenthesizedExpression;
 import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
@@ -416,13 +416,10 @@ class CFAFunctionBuilder extends ASTVisitor {
   }
 
 
-  private boolean  handleAsserts(MethodInvocation assertStatement) {
+  @Override
+  public boolean  visit(AssertStatement assertStatement) {
 
-
-
-    CFileLocation fileloc = astCreator.getFileLocation(assertStatement);
-
-
+     CFileLocation fileloc = astCreator.getFileLocation(assertStatement);
      CFANode prevNode = locStack.pop();
 
      //Create CFA Node for end of assert Location and push to local Stack
@@ -443,24 +440,17 @@ class CFAFunctionBuilder extends ASTVisitor {
      CLabelNode  errorLabelNode = new CLabelNode(fileloc.getStartingLineNumber(),cfa.getFunctionName(), "ERROR");
        cfaNodes.add(errorLabelNode);
 
-
-     createConditionEdges((Expression)assertStatement.arguments().get(ASSERT_CONDITION),
+     createConditionEdges( assertStatement.getExpression() ,
          fileloc.getStartingLineNumber(), prevNode, successfulNode, unsuccessfulNode);
 
-
        //Blank Edge from successful assert to  postAssert location
-
-       BlankEdge blankEdge = new BlankEdge("", postAssertNode.getLineNumber(),
-                                                 successfulNode, postAssertNode, "");
+       BlankEdge blankEdge = new BlankEdge(assertStatement.toString(), postAssertNode.getLineNumber(), successfulNode, postAssertNode, "assert success");
        addToCFA(blankEdge);
-
 
       // Blank Edge from unsuccessful assert to Error  location
-
-       blankEdge = new BlankEdge("", errorLabelNode.getLineNumber(),
-           unsuccessfulNode, errorLabelNode, "");
+       blankEdge = new BlankEdge(assertStatement.toString(), errorLabelNode.getLineNumber(),
+           unsuccessfulNode, errorLabelNode, "asssert fail:" + assertStatement.getMessage().toString());
        addToCFA(blankEdge);
-
 
     return SKIP_CHILDS;
   }
@@ -498,14 +488,6 @@ class CFAFunctionBuilder extends ASTVisitor {
 
  @Override
  public boolean visit(ExpressionStatement expressionStatement) {
-
-    // The parser seems to be unable to parse Assertion Statements
-    // correctly, it is represented as Method_Invocation
-    if (expressionStatement.getExpression().getNodeType() == ASTNode.METHOD_INVOCATION
-        && ((MethodInvocation)expressionStatement.getExpression()).getName().getIdentifier().equals("assert") ) {
-      handleAsserts((MethodInvocation)expressionStatement.getExpression());
-     return SKIP_CHILDS;
-   }
 
    // When else is not in blocks (else Statement)
    handleElseCondition(expressionStatement);

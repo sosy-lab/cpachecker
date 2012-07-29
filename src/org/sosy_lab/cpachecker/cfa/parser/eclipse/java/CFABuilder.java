@@ -128,9 +128,6 @@ class CFABuilder extends ASTVisitor {
   @Override
   public boolean visit(FieldDeclaration fd) {
 
-
-
-
     final List<IADeclaration> newDs = astCreator.convert(fd);
     assert !newDs.isEmpty();
 
