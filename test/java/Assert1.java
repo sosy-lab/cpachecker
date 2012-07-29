@@ -8,7 +8,7 @@ public class Assert1 {
 			String[] args) {
 		
 
-        assert(false);
+        assert false : "Wrong";
       
       	
     }
