@@ -331,7 +331,7 @@ public class ASTConverter {
 
       result.add( new JVariableDeclaration(fileLoc, GLOBAL,
           convert(type) ,    nameAndInitializer.getFirst() ,nameAndInitializer.getSecond(),
-             nameAndInitializer.getThird(),  mB.isFinal, mB.isStatic, mB.isTransient, mB.isVolatile));
+             nameAndInitializer.getThird(),  mB.isFinal, mB.isStatic, mB.isTransient, mB.isVolatile , mB.getVisibility()));
 
     }
     return result;

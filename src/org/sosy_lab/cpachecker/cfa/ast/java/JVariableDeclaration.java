@@ -31,24 +31,48 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public class JVariableDeclaration extends AVariableDeclaration {
 
+  private final VisibilityModifier visibility;
   private final boolean isFinal;
   private final boolean isStatic;
   private final boolean isTransient;
   private final boolean isVolatile;
 
+
+
   public JVariableDeclaration(CFileLocation pFileLocation, boolean pIsGlobal, Type pType, String pName,
-      String pOrigName, CInitializer pInitializer, boolean pIsFinal ,boolean pIsStatic , boolean pisTransient , boolean pisVolatile ) {
+      String pOrigName, CInitializer pInitializer, boolean pIsFinal,
+      boolean pIsStatic , boolean pisTransient , boolean pisVolatile) {
     super(pFileLocation, pIsGlobal, pType, pName, pOrigName, pInitializer);
 
     isTransient = pisTransient;
     isVolatile =  pisVolatile;
     isFinal = pIsFinal;
     isStatic = pIsStatic;
+    visibility = null;
+  }
+
+
+
+  public JVariableDeclaration(CFileLocation pFileLocation, boolean pIsGlobal, Type pType, String pName,
+      String pOrigName, CInitializer pInitializer, boolean pIsFinal,
+      boolean pIsStatic , boolean pisTransient , boolean pisVolatile,
+      VisibilityModifier pVisibility) {
+    super(pFileLocation, pIsGlobal, pType, pName, pOrigName, pInitializer);
+
+    isTransient = pisTransient;
+    isVolatile =  pisVolatile;
+    isFinal = pIsFinal;
+    isStatic = pIsStatic;
+    visibility = pVisibility;
   }
 
   @Override
   public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
+
+    if(visibility != null){
+    lASTString.append(visibility.getModifierString() + " ");
+    }
 
     if(isFinal){
     lASTString.append("final ");
@@ -83,5 +107,9 @@ public class JVariableDeclaration extends AVariableDeclaration {
 
   public boolean isVolatile() {
     return isVolatile;
+  }
+
+  public VisibilityModifier getVisibility(){
+    return visibility;
   }
 }
