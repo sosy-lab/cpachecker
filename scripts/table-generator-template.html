@@ -747,15 +747,52 @@ $(document).ready(function(){
 
 <table id="dataTable">
 <thead>
-{{head}}
+{{py:
+def formatOptions(str):
+    '''Helper function for formatting the content of the options line'''
+    return html(html_quote(str)
+                    .replace(' -', '<br/>-')
+                    .replace('=', '=<wbr/>')
+               )
+}}
+{{for lineName in ['tool', 'limit', 'host', 'os', 'system', 'date', 'test', 'branch', 'options', 'title']}}
+  {{if lineName in head and head[lineName]}}
+  {{py:line = head[lineName]}}
+  <tr id="{{line.id}}">
+    <td>{{line.name}}</td>
+    {{for cell, width in line.content}}
+    <td colspan="{{width}}">{{formatOptions(cell) if line.id == 'options' else cell}}</td>
+    {{endfor}}
+  </tr>
+  {{endif}}
+{{endfor}}
 </thead>
 
 <tbody>
-{{body}}
+{{for line in body}}
+<tr><td><a href="{{line.filePath|url}}">{{line.shortFileName}}</a></td>
+  {{for test in line.results}}
+  {{for column, value in zip(test.columns, test.values)}}
+  {{if column.title == 'status'}}
+  <td class="{{test.category}}"><a href="{{test.logFile|url}}">{{value.lower()}}</a></td>
+  {{else}}
+  <td class="{{test.category}}Value">{{value or '-'}}</td>
+  {{endif}}
+  {{endfor}}
+  {{endfor}}
+</tr>
+{{endfor}}
 </tbody>
 
 <tfoot>
-{{foot}}
+{{for line in foot}}
+  <tr>
+    <td {{attr(title=line.description)}}>{{line.title}}</td>
+    {{for cell in line.content}}
+    <td {{attr(class_=line.id)}}>{{cell}}</td>
+    {{endfor}}
+  </tr>
+{{endfor}}
 </tfoot>
 </table>
 
