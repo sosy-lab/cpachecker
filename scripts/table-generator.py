@@ -718,7 +718,8 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, libUr
             # read template
             Template = tempita.HTMLTemplate if format == 'html' else tempita.Template
             template = Template.from_filename(TEMPLATE_FILE_NAME.format(format=format),
-                                              namespace={'flatten': Util.flatten})
+                                              namespace={'flatten': Util.flatten},
+                                              encoding='UTF-8')
 
             # write file
             with open(outfile + "." + format, 'w') as file:

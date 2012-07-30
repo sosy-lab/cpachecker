@@ -32,10 +32,16 @@ If there are syntax errors ``TemplateError`` will be raised.
 import re
 import sys
 import cgi
-from urllib import quote as url_quote
 import os
 import tokenize
-from cStringIO import StringIO
+
+try:
+  from urllib import quote as url_quote
+  from cStringIO import StringIO
+except ImportError: # 'quote' was moved into 'parse' in Python 3
+  from urllib.parse import quote as url_quote
+  from io import StringIO
+
 from tempita._looper import looper
 from tempita.compat3 import bytes, basestring_, next, is_unicode, coerce_text
 
@@ -196,7 +202,7 @@ class Template(object):
                 position=None, name=self.name)
         templ = self.get_template(inherit_template, self)
         self_ = TemplateObject(self.name)
-        for name, value in defs.iteritems():
+        for name, value in defs.items():
             setattr(self_, name, value)
         self_.body = body
         ns = ns.copy()
@@ -292,7 +298,7 @@ class Template(object):
         try:
             try:
                 value = eval(code, self.default_namespace, ns)
-            except SyntaxError, e:
+            except SyntaxError as e:
                 raise SyntaxError(
                     'invalid syntax in expression: %s' % code)
             return value
@@ -304,12 +310,12 @@ class Template(object):
             else:
                 arg0 = coerce_text(e)
             e.args = (self._add_line_info(arg0, pos),)
-            raise exc_info[0], e, exc_info[2]
+            raise exc_info[0](e, exc_info[2])
 
     def _exec(self, code, ns, pos):
         __traceback_hide__ = True
         try:
-            exec code in self.default_namespace, ns
+            exec(code, self.default_namespace, ns)
         except:
             exc_info = sys.exc_info()
             e = exc_info[1]
@@ -317,7 +323,7 @@ class Template(object):
                 e.args = (self._add_line_info(e.args[0], pos),)
             else:
                 e.args = (self._add_line_info(None, pos),)
-            raise exc_info[0], e, exc_info[2]
+            raise exc_info[0]( e, exc_info[2])
 
     def _repr(self, value, pos):
         __traceback_hide__ = True
@@ -326,7 +332,7 @@ class Template(object):
                 return ''
             if self._unicode:
                 try:
-                    value = unicode(value)
+                    value = str(value)
                 except UnicodeDecodeError:
                     value = bytes(value)
             else:
@@ -339,7 +345,7 @@ class Template(object):
             exc_info = sys.exc_info()
             e = exc_info[1]
             e.args = (self._add_line_info(e.args[0], pos),)
-            raise exc_info[0], e, exc_info[2]
+            raise exc_info[0](e, exc_info[2])
         else:
             if self._unicode and isinstance(value, bytes):
                 if not self.default_encoding:
@@ -348,7 +354,7 @@ class Template(object):
                         '(no default_encoding provided)' % value)
                 try:
                     value = value.decode(self.default_encoding)
-                except UnicodeDecodeError, e:
+                except UnicodeDecodeError as e:
                     raise UnicodeDecodeError(
                         e.encoding,
                         e.object,
@@ -385,7 +391,7 @@ def paste_script_template_renderer(content, vars, filename=None):
 class bunch(dict):
 
     def __init__(self, **kw):
-        for name, value in kw.iteritems():
+        for name, value in kw.items():
             setattr(self, name, value)
 
     def __setattr__(self, name, value):
@@ -408,7 +414,7 @@ class bunch(dict):
 
     def __repr__(self):
         items = [
-            (k, v) for k, v in self.iteritems()]
+            (k, v) for k, v in self.items()]
         items.sort()
         return '<%s %s>' % (
             self.__class__.__name__,
@@ -461,7 +467,7 @@ def url(v):
 
 
 def attr(**kw):
-    kw = list(kw.iteritems())
+    kw = list(kw.items())
     kw.sort()
     parts = []
     for name, value in kw:
@@ -543,7 +549,7 @@ class TemplateDef(object):
         values = {}
         sig_args, var_args, var_kw, defaults = self._func_signature
         extra_kw = {}
-        for name, value in kw.iteritems():
+        for name, value in kw.items():
             if not var_kw and name not in sig_args:
                 raise TypeError(
                     'Unexpected argument %s' % name)
@@ -566,7 +572,7 @@ class TemplateDef(object):
                 raise TypeError(
                     'Extra position arguments: %s'
                     % ', '.join(repr(v) for v in args))
-        for name, value_expr in defaults.iteritems():
+        for name, value_expr in defaults.items():
             if name not in values:
                 values[name] = self._template._eval(
                     value_expr, self._ns, self._pos)
@@ -612,7 +618,7 @@ class _Empty(object):
         return 'Empty'
 
     def __unicode__(self):
-        return u''
+        return unicode('')
 
     def __iter__(self):
         return iter(())
