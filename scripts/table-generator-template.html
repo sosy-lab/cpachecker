@@ -137,7 +137,7 @@ function findRowIndex(rowName) {
 
 function getNameOfTest(column) {
     return tableHead.rows[TOOL_ROW].cells[headerArray[TOOL_ROW][column]].textContent + " " +
-           tableHead.rows[DATE_ROW].cells[headerArray[DATE_ROW][column]].textContent + " " +
+           (DATE_ROW >= 0 ? tableHead.rows[DATE_ROW].cells[headerArray[DATE_ROW][column]].textContent + ' ' : '') +
            tableHead.rows[TEST_ROW].cells[headerArray[TEST_ROW][column]].textContent;
 }
 
