@@ -105,15 +105,15 @@ function fKeyPressed(event) {
 	return (event.keyCode == 70 && event.ctrlKey == false);
 }
 
+var tableHead;
 var headerArray = [];
-var TOOL_ROW = 0; // row-indices for some rows
-var DATE_ROW = 5;
-var TEST_ROW = 6;
+var TOOL_ROW; // row-indices for some rows
+var DATE_ROW;
+var TEST_ROW;
 
 function createHeaderArray() {
     if (headerArray.length != 0) { return; } // headerArray already filled
 
-    var tableHead = $("#dataTable > thead")[0];
     for (var i=0; i<tableHead.rows.length; i++) {
         var rowIndices = expandColSpanToNums(tableHead.rows[i]);
         headerArray.push(rowIndices);
@@ -130,8 +130,24 @@ function expandColSpanToNums(row) {
     return list;
 }
 
+function findRowIndex(rowName) {
+    var row = $('tr#'+rowName)
+    return row.parent().children().index(row);
+}
+
+function getNameOfTest(column) {
+    return tableHead.rows[TOOL_ROW].cells[headerArray[TOOL_ROW][column]].textContent + " " +
+           tableHead.rows[DATE_ROW].cells[headerArray[DATE_ROW][column]].textContent + " " +
+           tableHead.rows[TEST_ROW].cells[headerArray[TEST_ROW][column]].textContent;
+}
+
 $(document).ready(function(){
+    tableHead = $('#dataTable > thead')[0];
+    TOOL_ROW = findRowIndex('tool');
+    DATE_ROW = findRowIndex('date');
+    TEST_ROW = findRowIndex('test');
     createHeaderArray();
+    testLabels = getLabels();
 });
 </script>
 
@@ -196,6 +212,7 @@ $(document).ready(function(){
 </style>
 
 
+
 <script type="text/javascript">
 // this section contains functions for toggling columns in the table.
 
@@ -234,20 +251,17 @@ var buttonListCache = null;
 function createColumnToggleButtons() {
     if (buttonListCache == null) { // if not cached, for details see 5 lines above
 
-        var tableHead = $("#dataTable > thead")[0];
         var columnTitles = $("#columnTitles > td");
         var testNums = headerArray[TEST_ROW];
         var testNum = testNums[1];
-        var testName = tableHead.children[DATE_ROW].cells[headerArray[DATE_ROW][1]].textContent + " " + 
-                       tableHead.children[TEST_ROW].cells[testNum].textContent;
-    
+        var testName = getNameOfTest(1);
+
         // TODO can we make next block more OO-like?
         buttonList = '<ul onclick="toggleCompleteColumn(event, this)">' + testName;
         for (var i=1; i<columnTitles.length; i++) { // do not use first column (i!=0)
             if (testNum != testNums[i]) {
                 testNum = testNums[i];
-                testName = tableHead.children[DATE_ROW].cells[headerArray[DATE_ROW][i]].textContent + " " + 
-                           tableHead.children[TEST_ROW].cells[testNum].textContent;
+                testName = getNameOfTest(i);
                 buttonList += '</ul><ul onclick="toggleCompleteColumn(event, this)">' + testName;
             }
     
@@ -288,20 +302,17 @@ function toggleCompleteColumn(event, listOfCheckboxes) {
 }
 
 function createRowFilterButtons() {
-    var tableHead = $("#dataTable > thead")[0];
     var columnTitles = $("#columnTitles > td");
     var testNums = headerArray[TEST_ROW];
     var testNum = testNums[1];
-    var testName = tableHead.children[DATE_ROW].cells[headerArray[DATE_ROW][1]].textContent + " " + 
-		    tableHead.children[TEST_ROW].cells[testNum].textContent;
+    var testName = getNameOfTest(1)
 
     // TODO can we make next block more OO-like?
     buttonList = '<ul>' + testName;
     for (var i=1; i<columnTitles.length; i++) { // do not use first column (i!=0)
 	if (testNum != testNums[i]) {
 	    testNum = testNums[i];
-	    testName = tableHead.children[DATE_ROW].cells[headerArray[DATE_ROW][i]].textContent + " " + 
-			tableHead.children[TEST_ROW].cells[testNum].textContent;
+	    testName = getNameOfTest(1);
 	    buttonList += '</ul><ul>' + testName;
 	}
 
@@ -553,12 +564,9 @@ function getLabels(header) {
     var labels = [];
 
     var indices = getColumnIndicesForHeader(header);
-    var tableHead = $('#dataTable > thead')[0];
     for (i = 0; i < indices.length; i++) {
         var index = indices[i];
-        labels.push(tableHead.rows[TOOL_ROW].cells[headerArray[TOOL_ROW][index]].textContent + " " +
-                    tableHead.rows[DATE_ROW].cells[headerArray[DATE_ROW][index]].textContent + " " +
-                    tableHead.rows[TEST_ROW].cells[headerArray[TEST_ROW][index]].textContent);
+        labels.push(getNameOfTest(index));
     }
     return labels;
 };
