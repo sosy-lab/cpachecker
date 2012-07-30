@@ -626,19 +626,24 @@ def getStatsOfTest(tests):
 
     for column, values in zip(columns, listsOfValues):
         if column.title == 'status':
-            sum, correctSafe, correctUnsafe, wrongSafe, wrongUnsafe = getStatsOfStatusColumn(statusList)
+            countCorrectSafe, countCorrectUnsafe, countWrongSafe, countWrongUnsafe = getCategoryCount(statusList)
 
-            correct = correctSafe + correctUnsafe
-            score   = SCORE_CORRECT_SAFE   * correctSafe + \
-                      SCORE_CORRECT_UNSAFE * correctUnsafe + \
-                      SCORE_WRONG_SAFE     * wrongSafe + \
-                      SCORE_WRONG_UNSAFE   * wrongUnsafe
+            sum     = StatValue(len(statusList))
+            correct = StatValue(countCorrectSafe + countCorrectUnsafe)
+            score   = StatValue(
+                                SCORE_CORRECT_SAFE   * countCorrectSafe + \
+                                SCORE_CORRECT_UNSAFE * countCorrectUnsafe + \
+                                SCORE_WRONG_SAFE     * countWrongSafe + \
+                                SCORE_WRONG_UNSAFE   * countWrongUnsafe,
+                                )
+            wrongSafe   = StatValue(countWrongSafe)
+            wrongUnsafe = StatValue(countWrongUnsafe)
 
         else:
             sum, correct, wrongSafe, wrongUnsafe = getStatsOfNumberColumn(values, statusList)
             score = ''
 
-        if (sum, correct, wrongSafe, wrongUnsafe) == (0,0,0,0):
+        if (sum.sum, correct.sum, wrongSafe.sum, wrongUnsafe.sum) == (0,0,0,0):
             (sum, correct, wrongSafe, wrongUnsafe) = (None, None, None, None)
 
         sumRow.append(sum)
@@ -650,13 +655,37 @@ def getStatsOfTest(tests):
     return (sumRow, correctRow, wrongSafeRow, wrongUnsafeRow, scoreRow)
 
 
-def getStatsOfStatusColumn(categoryList):
+class StatValue:
+    def __init__(self, sum, min=None, max=None, avg=None, median=None):
+        self.sum = sum
+        self.min = min
+        self.max = max
+        self.avg = avg
+        self.median = median
+
+    def __str__(self):
+        return str(self.sum)
+
+    @classmethod
+    def fromList(cls, values):
+        if not values:
+            return StatValue(0)
+
+        return StatValue(sum(values),
+                         min    = min(values),
+                         max    = max(values),
+                         avg    = sum(values) / len(values),
+                         median = sorted(values)[len(values)/2],
+                         )
+
+
+def getCategoryCount(categoryList):
     # count different elems in statusList
     counts = collections.defaultdict(int)
     for category in categoryList:
         counts[category] += 1
 
-    return (len(categoryList), counts['correctSafe'], counts['correctUnsafe'],
+    return (counts['correctSafe'], counts['correctUnsafe'],
             counts['wrongSafe'], counts['wrongUnsafe'])
 
 
@@ -666,16 +695,19 @@ def getStatsOfNumberColumn(values, categoryList):
         valueList = [Util.toDecimal(v) for v in values]
     except InvalidOperation:
         print ("Warning: NumberParseException. Statistics may be wrong.")
-        return (0, 0, 0, 0)
+        return (StatValue(0), StatValue(0), StatValue(0), StatValue(0))
 
-    valuesPerCategory = collections.defaultdict(int)
+    valuesPerCategory = collections.defaultdict(list)
     for value, category in zip(valueList, categoryList):
-        valuesPerCategory[category] += value
+        if category.startswith('correct'):
+            category = 'correct'
+        valuesPerCategory[category] += [value]
 
-    return (sum(valueList),
-            valuesPerCategory['correctSafe'] + valuesPerCategory['correctUnsafe'],
-            valuesPerCategory['wrongSafe'], valuesPerCategory['wrongUnsafe'])
-
+    return (StatValue.fromList(valueList),
+            StatValue.fromList(valuesPerCategory['correct']),
+            StatValue.fromList(valuesPerCategory['wrongSafe']),
+            StatValue.fromList(valuesPerCategory['wrongUnsafe']),
+            )
 
 
 def getCounts(rows): # for options.dumpCounts
