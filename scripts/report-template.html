@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
     <head>
-        <title>CPAchecker Report - {{{sourcefile}}}</title>
+        <title>CPAchecker Report - {{sourcefilename}}</title>
         <style>
 .edge {
     cursor: pointer;
@@ -254,8 +254,8 @@ a.action:hover {
     <body onload="prettyPrint()">
         <div class="toolbar" id="header">
             <h1>CPAchecker Report</h1>
-            <small>Generated: {{{time_generated}}}</small>
-            <h2>{{{sourcefile}}}</h2>
+            <small>Generated: {{time_generated}}</small>
+            <h2>{{sourcefilename}}</h2>
             <h3 id="cfalabel" style="display:none;">main</h3>
         </div>
 
@@ -313,17 +313,25 @@ a.action:hover {
 						<iframe name="tab_art" src="ARG.svg"></iframe>
 					</div>
                 </div>
-                <div id="tab_cil">
-                    {{{formatted_cil}}}
+		<div id="tab_cil">
+                    {{if sourcefilecontent}}
+                    <table id="cil_holder">
+{{for loop, line in looper(sourcefilecontent.splitlines())}}
+<tr id="cil_line_{{loop.index}}"><td><pre>{{loop.index}}</pre></td><td><pre class="prettyprint lang-c">{{line}}</pre></td></tr>
+{{endfor}}
+                    </table>
+                    {{else}}
+                    <h3>Source code not available.</h3>
+                    {{endif}}
                 </div>
                 <div id="tab_log">
-                    <pre>{{{logfile}}}</pre>
+                    <pre>{{logfile or 'Logfile not available.'}}</pre>
                 </div>
                 <div id="tab_stats">
-                    <pre>{{{statistics}}}</pre>
+                    <pre>{{statistics or 'Statistics not available.'}}</pre>
                 </div>
                 <div id="tab_conf">
-                    <pre>{{{conffile}}}</pre>
+                    <pre>{{conffile or 'CPAchecker configuration not available.'}}</pre>
                 </div>
             </div>
         </div>
@@ -1009,20 +1017,20 @@ a.action:hover {
 
         <script>
             //the errorpath data
-            viewer.data.errorpath = {{{errorpath}}};
+            viewer.data.errorpath = {{errorpath | html}};
 
             //list of functions in the CFA
-            viewer.data.functionlist = {{{functionlist}}};
+            viewer.data.functionlist = {{functionlist | html}};
 
             //nodes that wrap multiple edges
-            viewer.data.combinednodes = {{{combinednodes}}};
+            viewer.data.combinednodes = {{combinednodes | html}};
 
             //info about all nodes and edges in the cfa ... this is not yet fully available via GUI
-            viewer.data.cfainfo = {{{cfainfo}}};
+            viewer.data.cfainfo = {{cfainfo | html}};
 
             //the virtual edges that had to be inserted in the CFA where other functions are called
             //(edges to and from the nodes representing function calls)
-            viewer.data.fcalledges = {{{fcalledges}}};
+            viewer.data.fcalledges = {{fcalledges | html}};
 
 
             function draw_error_path_cfa() {
