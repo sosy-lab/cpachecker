@@ -24,9 +24,7 @@
 package org.sosy_lab.cpachecker.util;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -72,6 +69,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 public class VariableClassification {
@@ -153,33 +152,26 @@ public class VariableClassification {
   }
 
   /** This function returns a collection of (functionName, varNames).
-   * This collection contains all vars, that are not boolean.
-   * There are calculations (addition, etc) with these vars or
-   * there is a value distinct from 0 and 1. */
-  public Multimap<String, String> getNonBooleanVars() {
-    build();
-    return nonBooleanVars;
-  }
-
-  /** This function returns a collection of (functionName, varNames).
    * This collection contains all vars, that have only the values of simple numbers.
-   * There are NO calculations (addition, etc) with these vars. */
+   * The collection also includes boolean vars, because they are simple numbers, too.
+   * There are NO mathematical calculations (add, sub, mult) with these vars. */
   public Multimap<String, String> getSimpleNumberVars() {
     build();
     return simpleNumberVars;
   }
 
   /** This function returns a collection of (functionName, varNames).
-   * This collection contains all vars, that are not simple numbers.
-   * There are calculations (addition, etc) with these vars. */
-  public Multimap<String, String> getNonSimpleNumberVars() {
+   * This collection contains all vars, that can be incremented.
+   * The collection includes all boolean vars and simple numbers, too.
+   * The only allowed mathematical calculation with these vars is increment (add 1). */
+  public Multimap<String, String> getIncNumberVars() {
     build();
-    return nonSimpleNumberVars;
+    return incVars;
   }
 
   /** This function returns a collection of partitions.
    * A partition contains all vars, that are dependent from each other. */
-  public Collection<Multimap<String, String>> getPartitions() {
+  public List<Multimap<String, String>> getPartitions() {
     build();
     return dependencies.getPartitions();
   }
@@ -214,24 +206,18 @@ public class VariableClassification {
 
   /** This function builds the opposites of each non-x-vars-collection. */
   private void buildOpposites() {
-    for (String function : allVars.keySet()) {
-      Collection<String> vars = allVars.get(function);
+    for (final String function : allVars.keySet()) {
+      for (final String s : allVars.get(function)) {
 
-      for (String s : vars) {
         if (!nonBooleanVars.containsEntry(function, s)) {
           booleanVars.put(function, s);
         }
-      }
 
-      for (String s : vars) {
         if (!nonSimpleNumberVars.containsEntry(function, s)) {
           simpleNumberVars.put(function, s);
         }
-      }
 
-      for (String s : vars) {
-        if (!nonIncVars.containsEntry(function, s)
-            && nonBooleanVars.containsEntry(function, s)) {
+        if (!nonIncVars.containsEntry(function, s)) {
           incVars.put(function, s);
         }
       }
@@ -371,8 +357,7 @@ public class VariableClassification {
     }
   }
 
-  /** evaluates an expression and adds containing vars to the sets.
-   * @param function */
+  /** evaluates an expression and adds containing vars to the sets. */
   private void handleExpression(CFAEdge edge, CExpression exp, String varName,
       String function) {
     CFANode pre = edge.getPredecessor();
@@ -394,9 +379,14 @@ public class VariableClassification {
 
     IncCollectingVisitor icv = new IncCollectingVisitor(pre);
     Multimap<String, String> possibleIncs = exp.accept(icv);
-    handleResult(varName, function, possibleIncs, nonIncVars);
+
+    // assignment of number is allowed for incVars
+    if (!(exp instanceof CIntegerLiteralExpression)) {
+      handleResult(varName, function, possibleIncs, nonIncVars);
+    }
   }
 
+  /** adds the variable to notPossibleVars, if possibleVars is null.  */
   private void handleResult(String varName, String function,
       Multimap<String, String> possibleVars, Multimap<String, String> notPossibleVars) {
     if (possibleVars == null) {
@@ -596,7 +586,7 @@ public class VariableClassification {
       Multimap<String, String> operand1 = exp.getOperand1().accept(this);
       Multimap<String, String> operand2 = exp.getOperand2().accept(this);
 
-      if (operand1 == null || operand2 == null) { // a+123 --> a is not boolean
+      if (operand1 == null || operand2 == null) { // a+0.2 --> no simple number
         if (operand1 != null) {
           nonSimpleNumberVars.putAll(operand1);
         }
@@ -658,15 +648,7 @@ public class VariableClassification {
       Multimap<String, String> operand1 = exp.getOperand1().accept(this);
       Multimap<String, String> operand2 = exp.getOperand2().accept(this);
 
-      // operand1 contains exactly one var
-      // operand2 is empty (numeral ONE)
-      // operator is PLUS
-      if (operand1 != null && operand2 != null
-          && operand1.size() == 1 && operand2.isEmpty()
-          && BinaryOperator.PLUS.equals(exp.getOperator())) {
-        return operand1;
-
-      } else {
+      if (operand1 == null || operand2 == null) { // a+0.2 --> no simple number
         if (operand1 != null) {
           nonIncVars.putAll(operand1);
         }
@@ -675,15 +657,46 @@ public class VariableClassification {
         }
         return null;
       }
+
+      switch (exp.getOperator()) {
+
+      case EQUALS:
+      case NOT_EQUALS: // ==, != work with all numbers
+        operand1.putAll(operand2);
+        return operand1;
+
+      case PLUS:
+        // 1+x
+        if (exp.getOperand1() instanceof CIntegerLiteralExpression
+            && BigInteger.ONE.equals(
+                ((CIntegerLiteralExpression) exp.getOperand1()).getValue())) {
+          assert operand1.isEmpty();
+          return operand2;
+
+          // x+1
+        } else if (exp.getOperand2() instanceof CIntegerLiteralExpression
+            && BigInteger.ONE.equals(
+                ((CIntegerLiteralExpression) exp.getOperand2()).getValue())) {
+          assert operand2.isEmpty();
+          return operand1;
+
+          // x+y, x+2
+        } else {
+          nonIncVars.putAll(operand1);
+          nonIncVars.putAll(operand2);
+          return null;
+        }
+
+      default: // +-*/ --> no simple operators
+        nonIncVars.putAll(operand1);
+        nonIncVars.putAll(operand2);
+        return null;
+      }
     }
 
     @Override
     public Multimap<String, String> visit(CIntegerLiteralExpression exp) {
-      if (BigInteger.ONE.equals(exp.getValue())) {
-        return HashMultimap.create(0, 0);
-      } else {
-        return null;
-      }
+      return HashMultimap.create(0, 0);
     }
 
     @Override
@@ -702,13 +715,12 @@ public class VariableClassification {
   private class Dependencies {
 
     /** partitions, each of them contains vars */
-    private Collection<Multimap<String, String>> partitions = new ArrayList<Multimap<String, String>>();
+    private List<Multimap<String, String>> partitions = Lists.newArrayList();
 
     /** map to get partition of a var */
-    private Map<Pair<String, String>, Multimap<String, String>> varToPartition =
-        new HashMap<Pair<String, String>, Multimap<String, String>>();
+    private Map<Pair<String, String>, Multimap<String, String>> varToPartition = Maps.newHashMap();
 
-    public Collection<Multimap<String, String>> getPartitions() {
+    public List<Multimap<String, String>> getPartitions() {
       return partitions;
     }
 
@@ -726,6 +738,13 @@ public class VariableClassification {
       if (varToPartition.containsKey(first) && varToPartition.containsKey(second)) {
         Multimap<String, String> partition1 = varToPartition.get(first);
         Multimap<String, String> partition2 = varToPartition.get(second);
+
+        // swap partitions, we create partitions in the order they are used
+        if (partitions.lastIndexOf(partition1) > partitions.lastIndexOf(partition2)) {
+          Multimap<String, String> tmp = partition2;
+          partition2 = partition1;
+          partition1 = tmp;
+        }
 
         if (!partition1.equals(partition2)) {
           // merge partition1 and partition2
