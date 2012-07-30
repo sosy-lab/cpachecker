@@ -37,6 +37,7 @@ import glob
 import shutil
 import optparse
 import time
+import tempita
 
 from datetime import date
 from decimal import *
@@ -82,15 +83,11 @@ class Template():
         through the value of the key.
         """
         infile = open(self.infileName, 'r')
-        template = infile.read();
+        template = tempita.Template(infile.read());
         infile.close();
 
-        for key in kws:
-             matcher = "{{{" + key + "}}}"
-             template = template.replace(matcher, kws[key])
-
         outfile = open(self.outfileName, 'w')
-        outfile.write(template)
+        outfile.write(template.substitute(kws))
         outfile.close()
 
 
