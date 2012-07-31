@@ -675,7 +675,7 @@ class StatValue:
                          min    = min(values),
                          max    = max(values),
                          avg    = sum(values) / len(values),
-                         median = sorted(values)[len(values)/2],
+                         median = sorted(values)[int(len(values)/2)],
                          )
 
 
@@ -735,7 +735,7 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, libUr
     # get common folder of sourcefiles
     commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
     commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
-    map(lambda row: Row.setRelativePath(row, commonPrefix, outputPath), rows)
+    list(map(lambda row: Row.setRelativePath(row, commonPrefix, outputPath), rows))
 
     head = getTableHead(listOfTests, commonPrefix)
 
