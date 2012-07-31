@@ -596,8 +596,9 @@ def getTableHead(listOfTests, commonFileNamePrefix):
 
 
 def getStats(rows):
-    maxScore = sum([SCORE_CORRECT_UNSAFE if row.fileIsUnsafe() else SCORE_CORRECT_SAFE
-                        for row in rows])
+    countUnsafe = len([row for row in rows if row.fileIsUnsafe()])
+    countSafe = len(rows) - countUnsafe
+    maxScore = SCORE_CORRECT_UNSAFE * countUnsafe + SCORE_CORRECT_SAFE * countSafe
 
     stats = [getStatsOfTest(tests) for tests in rowsToColumns(rows)] # column-wise
     rowsForStats = list(map(Util.flatten, zip(*stats))) # row-wise
@@ -606,7 +607,7 @@ def getStats(rows):
             tempita.bunch(default=None, title='correct results', description='(no bug exists + result is SAFE) OR (bug exists + result is UNSAFE)', content=rowsForStats[1]),
             tempita.bunch(default=None, title='false negatives', description='bug exists + result is SAFE', content=rowsForStats[2]),
             tempita.bunch(default=None, title='false positives', description='no bug exists + result is UNSAFE', content=rowsForStats[3]),
-            tempita.bunch(default=None, title='score ({0} files, max score: {1})'.format(len(rows), maxScore), id='score', content=rowsForStats[4])
+            tempita.bunch(default=None, title='score ({0} files, max score: {1})'.format(len(rows), maxScore), id='score', description='{0} safe files, {1} unsafe files'.format(countSafe, countUnsafe), content=rowsForStats[4])
             ]
 
 def getStatsOfTest(tests):
