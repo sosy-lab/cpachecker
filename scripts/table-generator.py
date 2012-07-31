@@ -34,6 +34,7 @@ import xml.etree.ElementTree as ET
 import collections
 import os.path
 import glob
+import json
 import shutil
 import optparse
 import time
@@ -169,6 +170,11 @@ class Util:
     @staticmethod
     def flatten(list):
         return [value for sublist in list for value in sublist]
+
+    @staticmethod
+    def json(obj):
+        return tempita.html(json.dumps(obj))
+
 
 def parseTableDefinitionFile(file):
     '''
@@ -726,7 +732,6 @@ def getCounts(rows): # for options.dumpCounts
     return countsList
 
 
-
 def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, libUrl):
     '''
     create tables and write them to files
@@ -738,6 +743,8 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, libUr
     list(map(lambda row: Row.setRelativePath(row, commonPrefix, outputPath), rows))
 
     head = getTableHead(listOfTests, commonPrefix)
+    testData = [test.attributes for test in listOfTests]
+    testColumns = [[column.title for column in test.columns] for test in listOfTests]
 
     def writeTable(outfile, name, rows):
         outfile = os.path.join(outputPath, outfile)
@@ -750,7 +757,7 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, libUr
             # read template
             Template = tempita.HTMLTemplate if format == 'html' else tempita.Template
             template = Template.from_filename(TEMPLATE_FILE_NAME.format(format=format),
-                                              namespace={'flatten': Util.flatten},
+                                              namespace={'flatten': Util.flatten, 'json': Util.json},
                                               encoding='UTF-8')
 
             # write file
@@ -760,6 +767,8 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, libUr
                         head=head,
                         body=rows,
                         foot=stats,
+                        tests=testData,
+                        columns=testColumns,
                         lib_url=libUrl,
                         ))
 

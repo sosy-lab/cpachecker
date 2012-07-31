@@ -45,10 +45,25 @@
 </style>
 
 
+<!-- ################## Base JS ################## -->
+
 <script type="text/javascript" src="{{lib_url}}/jquery-1.7.1.min.js"></script>
 
-
 <script type="text/javascript">
+
+// All the data from the table head in nice JS data structures.
+var tests = {{tests|json}};     // list with all tests and their attributes
+var columns = {{columns|json}}; // nested list with all the columns headings
+var columnsToTest = [];         // for each column of the table the test it belongs to (first column is 0)
+
+for (var i = 0; i < columns.length; i++) {
+  tests[i].columns = columns[i];
+}
+for (var i = 0; i < tests.length; i++) {
+  for (var j = 0; j < tests[i].columns.length; j++) {
+    columnsToTest.push(tests[i]);
+  }
+}
 
 var currentlySelectedCell = null;
 
@@ -105,56 +120,28 @@ function fKeyPressed(event) {
   return (event.keyCode == 70 && event.ctrlKey == false);
 }
 
-var tableHead;
-var headerArray = [];
-var TOOL_ROW; // row-indices for some rows
-var DATE_ROW;
-var TEST_ROW;
-
-function createHeaderArray() {
-  if (headerArray.length != 0) { return; } // headerArray already filled
-
-  for (var i=0; i<tableHead.rows.length; i++) {
-    var rowIndices = expandColSpanToNums(tableHead.rows[i]);
-    headerArray.push(rowIndices);
-  }
-}
-
-function expandColSpanToNums(row) {
-  var list = [];
-  for (var i=0; i<row.cells.length; i++) {
-    for (var j=0; j<parseInt(row.cells[i].colSpan); j++) {
-      list.push(i);
-    }
-  }
-  return list;
-}
-
-function findRowIndex(rowName) {
-  var row = $('tr#'+rowName)
-  return row.parent().children().index(row);
-}
-
 function getNameOfTest(column) {
-  return tableHead.rows[TOOL_ROW].cells[headerArray[TOOL_ROW][column]].textContent + " " +
-         (DATE_ROW >= 0 ? tableHead.rows[DATE_ROW].cells[headerArray[DATE_ROW][column]].textContent + ' ' : '') +
-         tableHead.rows[TEST_ROW].cells[headerArray[TEST_ROW][column]].textContent;
+  var test = columnsToTest[column-1];
+  return test.tool + ' '
+       + (test.date ? test.date + ' ' : '')
+       + test.name;
 }
 
-$(document).ready(function() {
-  tableHead = $('#dataTable > thead')[0];
-  TOOL_ROW = findRowIndex('tool');
-  DATE_ROW = findRowIndex('date');
-  TEST_ROW = findRowIndex('test');
-  createHeaderArray();
-  testLabels = getLabels();
-});
 </script>
 
 
+<!-- ################## Make links load via AJAX and show content in extra panel ################## -->
+
+<style type="text/css">
+  #contentPane > pre#content {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: auto;
+  }
+</style>
+
 <script type="text/javascript">
-// this section contains functions for loading urls
-// and showing the content in the contentPane.
 
 function loadContentWrapper(event) {
   var url = $(event.target).attr("href");
@@ -163,9 +150,7 @@ function loadContentWrapper(event) {
 }
 
 function loadContent(url) {
-  var contentPane = $("<pre>").appendTo("#contentPane")
-          .css("width", "100%").css("height", "100%")
-          .css("margin", "0").css("overflow", "auto");
+  var contentPane = $('<pre id="content"></pre>').appendTo("#contentPane")
 
   $.ajax({
     async: false, // wait for isError
@@ -196,7 +181,6 @@ function loadContent(url) {
 
 $(document).ready(function() {
   var cellsWithUrls = $('a');
-  //console.log(cellsWithUrls);
   cellsWithUrls.each(
     function(index, elem) {
       $(elem).click(highlightCell).click(loadContentWrapper);
@@ -205,16 +189,38 @@ $(document).ready(function() {
 </script>
 
 
+<!-- ################## Possibility to select displayed columns by clicking on left-most cell in title row ################## -->
+
 <style type="text/css">
   #toggleButtons ul { font-family:arial, sans serif; }
   #toggleButtons ul li { display: inline; }
   #toggleButtons ul li:hover { background-color:yellow; }
 </style>
 
-
-
 <script type="text/javascript">
-// this section contains functions for toggling columns in the table.
+
+// a two-dimensional array of all the cells in the table header,
+// but each cell occurs as often in a row as its colspan attribute says
+var headerArray = null;
+
+function createHeaderArray() {
+  headerArray = [];
+  var tableHead = $('#dataTable > thead')[0];
+  for (var i=0; i<tableHead.rows.length; i++) {
+    var rowIndices = expandColSpanToNums(tableHead.rows[i]);
+    headerArray.push(rowIndices);
+  }
+}
+
+function expandColSpanToNums(row) {
+  var list = [];
+  for (var i=0; i<row.cells.length; i++) {
+    for (var j=0; j<parseInt(row.cells[i].colSpan); j++) {
+      list.push($(row.cells[i]));
+    }
+  }
+  return list;
+}
 
 function incColspan(col) {
   var span = parseInt(col.attr("colspan"));
@@ -229,11 +235,11 @@ function decColspan(col) {
   if (span == 1) { col.hide(); }
 }
 
-// this function shows or hides a column and enlarges or shrinkes the header-columns
+// this function shows or hides a column and enlarges or shrinks the header-columns
 // @param index: index of a column in row "columnTitle"
 function toggleColumn (button, index) {
   for (var i=0; i<headerArray.length; i++) {
-    var cell = $("#dataTable > thead > tr:eq(" + i + ") > td:eq(" + headerArray[i][index] + ")");
+    var cell = headerArray[i][index];
     button.checked ? incColspan(cell) : decColspan(cell);
   }
   var childIndex = index+1; // first child is number 1
@@ -247,32 +253,28 @@ function toggleColumn (button, index) {
 // colspan of headerrows with some hidden columns
 var buttonListCache = null;
 
-
 function createColumnToggleButtons() {
+  if (headerArray == null) {
+    createHeaderArray();
+  }
   if (buttonListCache == null) { // if not cached, for details see 5 lines above
 
-    var columnTitles = $("#columnTitles > td");
-    var testNums = headerArray[TEST_ROW];
-    var testNum = testNums[1];
-    var testName = getNameOfTest(1);
+    var buttonList = '';
+    var columnIndex = 1; // columns start with 1
+    for (var i = 0; i < tests.length; i++) {
+      var test = tests[i];
+      buttonList += '<ul onclick="toggleCompleteColumn(event, this)">' + getNameOfTest(columnIndex);
 
-    // TODO can we make next block more OO-like?
-    buttonList = '<ul onclick="toggleCompleteColumn(event, this)">' + testName;
-    for (var i=1; i<columnTitles.length; i++) { // do not use first column (i!=0)
-      if (testNum != testNums[i]) {
-        testNum = testNums[i];
-        testName = getNameOfTest(i);
-        buttonList += '</ul><ul onclick="toggleCompleteColumn(event, this)">' + testName;
+      for (var j = 0; j < test.columns.length; j++, columnIndex++) {
+        var toggleFunction = 'onclick="toggleColumn(this,' + columnIndex + ')"';
+
+        var button = '<input type="checkbox" id="check' + columnIndex + '" ' + toggleFunction + ' checked>';
+        var label = '<label for="check' + columnIndex + '">' + test.columns[j] + '</label>';
+        buttonList += '<li>' + button + label + '</li>';
       }
-
-      var toggleFunction = 'onclick="toggleColumn(this,' + i + ')"';
-
-      var column = columnTitles[i];
-      var button = '<input type="checkbox" id="check' + i + '" ' + toggleFunction + ' checked>';
-      var label = '<label for="check' + i + '">' + column.textContent + '</label>';
-      buttonList += '<li>' + button + label + '</li>';
+      buttonList += '</ul>';
     }
-    buttonList += '</ul>';
+
     buttonListCache = $(buttonList);
   }
 
@@ -301,29 +303,36 @@ function toggleCompleteColumn(event, listOfCheckboxes) {
   }
 }
 
+$(document).ready(function() {
+  $('#columnTitles > td:first-child')
+    .addClass("clickable")
+    .click(function (event) {
+        return createColumnToggleButtons(); });
+});
+</script>
+
+
+<!-- ################## Possibility to select displayed rows by pressing f ################## -->
+
+<script type="text/javascript">
+
 function createRowFilterButtons() {
-  var columnTitles = $("#columnTitles > td");
-  var testNums = headerArray[TEST_ROW];
-  var testNum = testNums[1];
-  var testName = getNameOfTest(1)
+  var buttonList = '';
+  var columnIndex = 1; // columns start with 1
+  for (var i = 0; i < tests.length; i++) {
+    var test = tests[i];
+    buttonList += '<ul>' + getNameOfTest(columnIndex);
 
-  // TODO can we make next block more OO-like?
-  buttonList = '<ul>' + testName;
-  for (var i=1; i<columnTitles.length; i++) { // do not use first column (i!=0)
-    if (testNum != testNums[i]) {
-      testNum = testNums[i];
-      testName = getNameOfTest(1);
-      buttonList += '</ul><ul>' + testName;
+    for (var j = 0; j < test.columns.length; j++, columnIndex++) {
+      var toggleFunction = 'onclick="fillRowFilterField(this,' + columnIndex + ')"';
+
+      var button = '<input type="radio" name="filter" id="check' + columnIndex + '" ' + toggleFunction + '>';
+      var label = '<label for="check' + columnIndex + '">' + test.columns[j] + '</label>';
+      buttonList += '<li>' + button + label + '</li>';
     }
-
-    var toggleFunction = 'onclick="fillRowFilterField(this,' + i + ')"';
-
-    var column = columnTitles[i];
-    var button = '<input type="radio" name="filter" id="check' + i + '" ' + toggleFunction + '>';
-    var label = '<label for="check' + i + '">' + column.textContent + '</label>';
-    buttonList += '<li>' + button + label + '</li>';
+    buttonList += '</ul>';
   }
-  buttonList += '</ul>';
+
   buttonList += '<select id="rowfilterSelect"><option value="none">none</option></select>';
   buttonList = $(buttonList);
 
@@ -388,11 +397,6 @@ function filterRows(event) {
 }
 
 $(document).ready(function() {
-  $('#columnTitles > td:first-child')
-    .addClass("clickable")
-    .click(function (event) {
-        return createColumnToggleButtons(); });
-
   $('body').keydown(function (event) {
                       if (fKeyPressed(event))
                         return createRowFilterButtons();
@@ -400,6 +404,8 @@ $(document).ready(function() {
 });
 </script>
 
+
+<!-- ################## Everything related to showing plots of the data ################## -->
 
 <script type="text/javascript" src="{{lib_url}}/jquery.jqplot-1.0.0b2_r1012/jquery.jqplot.min.js"></script>
 <script type="text/javascript" src="{{lib_url}}/jquery.jqplot-1.0.0b2_r1012/jqplot.highlighter.min.js"></script>
@@ -743,6 +749,9 @@ $(document).ready(function() {
 });
 
 </script>
+
+
+<!-- ################## Base HTML ################## -->
 
 <title>{{title}}</title>
 
