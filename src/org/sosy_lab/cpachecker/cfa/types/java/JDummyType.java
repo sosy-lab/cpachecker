@@ -26,12 +26,22 @@ package org.sosy_lab.cpachecker.cfa.types.java;
 
 public class JDummyType implements JType {
 
+  private final String typeName;
+
+  public JDummyType(String pTypeName){
+    typeName = pTypeName;
+  }
 
 
   @Override
   public String toASTString(String pDeclarator) {
     // TODO Auto-generated method stub
-    return  "unkowndummyType " + pDeclarator;
+    return  typeName + pDeclarator;
+  }
+
+  @Override
+  public String toString() {
+    return typeName;
   }
 
 }

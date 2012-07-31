@@ -311,10 +311,10 @@ class CFAFunctionBuilder extends ASTVisitor {
   private void createSideAssignmentEdges(CFANode prevNode, CFANode nextNode, String rawSignature,
       int filelocStart, IAstNode sideeffect) {
     CFAEdge previous;
-    if(sideeffect instanceof org.sosy_lab.cpachecker.cfa.ast.c.CStatement) {
-      previous = new AStatementEdge(rawSignature, (org.sosy_lab.cpachecker.cfa.ast.c.CStatement)sideeffect, filelocStart, prevNode, nextNode);
+    if(sideeffect instanceof org.sosy_lab.cpachecker.cfa.ast.IAStatement) {
+      previous = new AStatementEdge(rawSignature, (org.sosy_lab.cpachecker.cfa.ast.IAStatement)sideeffect, filelocStart, prevNode, nextNode);
     } else if (sideeffect instanceof AAssignment) {
-      previous = new AStatementEdge(rawSignature, (org.sosy_lab.cpachecker.cfa.ast.c.CStatement)sideeffect, filelocStart, prevNode, nextNode);
+      previous = new AStatementEdge(rawSignature, (org.sosy_lab.cpachecker.cfa.ast.IAStatement)sideeffect, filelocStart, prevNode, nextNode);
     } else if (sideeffect instanceof AIdExpression) {
       previous = new AStatementEdge(rawSignature, new AExpressionStatement(sideeffect.getFileLocation(), (IAExpression) sideeffect), filelocStart, prevNode, nextNode);
     } else {

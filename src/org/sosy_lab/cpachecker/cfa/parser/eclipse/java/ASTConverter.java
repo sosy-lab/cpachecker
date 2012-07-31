@@ -218,7 +218,7 @@ public class ASTConverter {
     } else if(t.getNodeType() == ASTNode.ARRAY_TYPE){
       return convert((ArrayType)t);
     } else {
-      return new JDummyType();
+      return new JDummyType(t.resolveBinding().getName());
     }
   }
 
@@ -353,21 +353,14 @@ public class ASTConverter {
 
 
       result.add( new JVariableDeclaration(fileLoc, GLOBAL,
-          convert(type) ,    nameAndInitializer.getFirst().replace('.', '_') ,nameAndInitializer.getSecond().replace('.', '_'),
+          convert(type) ,    nameAndInitializer.getFirst().replace('.', '.') ,nameAndInitializer.getSecond().replace('.', '.'),
              nameAndInitializer.getThird(),  mB.isFinal, mB.isStatic, mB.isTransient, mB.isVolatile , mB.getVisibility()));
 
     }
     return result;
 }
 
-
-
-
-
-
-
    static class  ModifierBean {
-
 
      private final boolean isFinal;
      private final boolean isStatic;
@@ -378,8 +371,6 @@ public class ASTConverter {
      private final boolean isStrictFp;
      private final boolean isSynchronized;
      private final VisibilityModifier visibility;
-
-
 
     public ModifierBean(boolean pIsFinal, boolean pIsStatic, boolean pIsVolatile, boolean pIsTransient,
         VisibilityModifier pVisibility , boolean pIsNative, boolean pIsAbstract, boolean pIsStrictFp,

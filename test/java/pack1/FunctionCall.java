@@ -16,10 +16,13 @@ public class FunctionCall {
     n = Function.teileDurch2(n);    
     n = Function2.teileDurch2(n);
     n = Function3.teileDurch2(n);
-    assert(n == 4);
+    assert(n == Function3.getValue());
     n = teile(n ,n);
-    assert(n == 1);
+    Function3.setValue(1);
+    assert(n == Function3.getValue());
 	  
+    
+    
 	  
 	}
 	
