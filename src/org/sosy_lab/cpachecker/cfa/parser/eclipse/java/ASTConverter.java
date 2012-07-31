@@ -32,6 +32,9 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.eclipse.jdt.core.dom.ASTNode;
+import org.eclipse.jdt.core.dom.ArrayAccess;
+import org.eclipse.jdt.core.dom.ArrayCreation;
+import org.eclipse.jdt.core.dom.ArrayInitializer;
 import org.eclipse.jdt.core.dom.ArrayType;
 import org.eclipse.jdt.core.dom.Assignment;
 import org.eclipse.jdt.core.dom.BooleanLiteral;
@@ -44,6 +47,7 @@ import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.IBinding;
 import org.eclipse.jdt.core.dom.IExtendedModifier;
+import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IVariableBinding;
 import org.eclipse.jdt.core.dom.InfixExpression;
@@ -68,6 +72,7 @@ import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
@@ -92,18 +97,24 @@ import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
-import org.sosy_lab.cpachecker.cfa.types.AArrayType;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
+import org.sosy_lab.cpachecker.cfa.types.java.JDummyType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -123,7 +134,6 @@ public class ASTConverter {
   private LinkedList<IAstNode> postSideAssignments = new LinkedList<IAstNode>();
   private ConditionalExpression conditionalExpression = null;
   private AIdExpression conditionalTemporaryVariable = null;
-
 
   public ASTConverter(Scope pScope, boolean pIgnoreCasts, LogManager pLogger) {
     scope = pScope;
@@ -176,11 +186,23 @@ public class ASTConverter {
   public AFunctionDeclaration convert(final MethodDeclaration md) {
 
     AFunctionType declSpec = new AFunctionType(convert(md.getReturnType2()) , convertParameterList((List<SingleVariableDeclaration>)md.parameters()) , false );
-    String name = md.getName().getFullyQualifiedName();
+
+    String name;
+
+
+
+    if(md.getName().getIdentifier().equals("main") ){
+      name = md.getName().getIdentifier();
+
+    }else {
+
+     name = (md.resolveBinding().getDeclaringClass().getQualifiedName() + "_" + md.resolveBinding().getName()).replace('.', '_');
+    }
+
+
+
 
     ModifierBean mb = ModifierBean.getModifiers(md.modifiers());
-
-
 
     CFileLocation fileLoc = getFileLocation(md);
 
@@ -188,7 +210,7 @@ public class ASTConverter {
         mb.isAbstract(), mb.isStatic(), mb.isNative(), mb.isSynchronized(), mb.isStrictFp());
   }
 
-  private org.sosy_lab.cpachecker.cfa.types.Type convert(Type t) {
+  private JType convert(Type t) {
     // TODO Not all Types implemented
     if (t.getNodeType() == ASTNode.PRIMITIVE_TYPE) {
       return convert((PrimitiveType)t);
@@ -196,7 +218,7 @@ public class ASTConverter {
     } else if(t.getNodeType() == ASTNode.ARRAY_TYPE){
       return convert((ArrayType)t);
     } else {
-      return new CDummyType(t.toString());
+      return new JDummyType();
     }
   }
 
@@ -205,6 +227,8 @@ public class ASTConverter {
 
     if(t.isPrimitive()){
       return new JSimpleType( convertPrimitiveType(t.getName()));
+    } else if(t.isArray()){
+      return new JArrayType( (JType) convert(t.getElementType())  , t.getDimensions());
     }
 
     assert false : "Could Not Find Type";
@@ -213,10 +237,9 @@ public class ASTConverter {
   }
 
 
-  private AArrayType convert(final ArrayType t) {
-      //TODO Prototyp implementation for Array Typ
-     return new AArrayType( convert(t.getElementType()), null);
+  private JArrayType convert(final ArrayType t) {
 
+    return new JArrayType(convert((t.getElementType())), t.getDimensions() );
   }
 
   /**
@@ -287,7 +310,7 @@ public class ASTConverter {
     }
 
     return type;
-}
+  }
 
   private List<AParameterDeclaration> convertParameterList(List<SingleVariableDeclaration> ps) {
     List<AParameterDeclaration> paramsList = new ArrayList<AParameterDeclaration>(ps.size());
@@ -330,7 +353,7 @@ public class ASTConverter {
 
 
       result.add( new JVariableDeclaration(fileLoc, GLOBAL,
-          convert(type) ,    nameAndInitializer.getFirst() ,nameAndInitializer.getSecond(),
+          convert(type) ,    nameAndInitializer.getFirst().replace('.', '_') ,nameAndInitializer.getSecond().replace('.', '_'),
              nameAndInitializer.getThird(),  mB.isFinal, mB.isStatic, mB.isTransient, mB.isVolatile , mB.getVisibility()));
 
     }
@@ -491,7 +514,6 @@ public class ASTConverter {
     public boolean isSynchronized() {
       return isSynchronized;
     }
-
   }
 
   private Triple<String , String , AInitializerExpression> getNamesAndInitializer(VariableDeclarationFragment d ) {
@@ -500,7 +522,7 @@ public class ASTConverter {
 
     // If there is no Initializer, JVariableDeclaration expects null to be given.
     if(d.getInitializer() != null){
-      initializerExpression = new AInitializerExpression( getFileLocation(d) , (IAExpression) convertExpressionWithSideEffects(d.getInitializer()));
+      initializerExpression = new AInitializerExpression( getFileLocation(d) ,  convertExpressionWithoutSideEffects(d.getInitializer()));
     }
 
 
@@ -703,10 +725,11 @@ public class ASTConverter {
        case ASTNode.POSTFIX_EXPRESSION:
          return convert((PostfixExpression) e);
        case ASTNode.QUALIFIED_NAME:
-         return convert((QualifiedName )e);
+         return convert((QualifiedName )e );
        case ASTNode.BOOLEAN_LITERAL:
          return convert((BooleanLiteral) e);
        case ASTNode.FIELD_ACCESS:
+                scope.registerClasses( ((FieldAccess) e).resolveFieldBinding().getDeclaringClass());
          return convertExpressionWithoutSideEffects(((FieldAccess) e).getExpression());
        case ASTNode.SIMPLE_NAME:
          return convert((SimpleName) e);
@@ -714,19 +737,89 @@ public class ASTConverter {
          return convertExpressionWithoutSideEffects(((ParenthesizedExpression) e).getExpression());
        case ASTNode.METHOD_INVOCATION:
          return convert((MethodInvocation)e);
+       case ASTNode.ARRAY_ACCESS:
+         return convert( (ArrayAccess) e);
+       case ASTNode.ARRAY_CREATION:
+         return convert( (ArrayCreation) e);
+       case ASTNode.ARRAY_INITIALIZER :
+         return convert((ArrayInitializer)e);
     }
 
-       logger.log(Level.SEVERE, "Expression of typ "+ e.getNodeType() + " not implemented");
+       logger.log(Level.SEVERE, "Expression of typ "+  AstErrorChecker.getTypeName(e.getNodeType()) + " not implemented");
        return null;
   }
 
+  private IAstNode convert(ArrayInitializer initializer) {
+
+    if(initializer == null){
+      return null;
+    }
+
+    JArrayType type = (JArrayType) convert(initializer.resolveTypeBinding());
+    List<JExpression> initializerExpressions = new ArrayList<JExpression>();
+
+    @SuppressWarnings("unchecked")
+    List<Expression> expressions = initializer.expressions();
+
+    for( Expression  exp : expressions){
+      initializerExpressions.add( ((JExpression) convertExpressionWithoutSideEffects(exp)));
+    }
 
 
+    return new JArrayInitializer(getFileLocation(initializer), initializerExpressions, type);
+  }
+
+  private IAstNode convert(ArrayCreation Ace) {
+
+
+
+    CFileLocation fileloc = getFileLocation(Ace);
+    JArrayInitializer initializer = (JArrayInitializer) convertExpressionWithoutSideEffects(Ace.getInitializer());
+    JArrayType type = convert(Ace.getType());
+    List<JExpression> length = new ArrayList<JExpression>(type.getDimensions());
+
+
+
+    @SuppressWarnings("unchecked")
+    List<Expression> dim = Ace.dimensions();
+
+    if(initializer != null){
+      for(int dimension = 0; dimension < type.getDimensions(); dimension++){
+        //TODO find way to correctly calculate size
+        length.add(new JIntegerLiteralExpression(fileloc, new JSimpleType(JBasicType.INT), BigInteger.valueOf(100)));
+      }
+    } else {
+
+      for(Expression exp : dim){
+        length.add((JExpression) convertExpressionWithoutSideEffects(exp));
+      }
+
+    }
+
+    return new JArrayCreationExpression(fileloc ,
+                                               type, initializer , length );
+  }
+
+  private IAstNode convert(ArrayAccess e) {
+    return new AArraySubscriptExpression(getFileLocation(e), convert(e.resolveTypeBinding()), convertExpressionWithoutSideEffects(e.getArray()), convertExpressionWithoutSideEffects(e.getIndex()));
+  }
 
   private IAstNode convert(QualifiedName e) {
-    String name = e.getFullyQualifiedName();
 
-    IASimpleDeclaration declaration = scope.lookupVariable(name);
+    String name;
+    IASimpleDeclaration declaration = null;
+
+
+    if(e.resolveBinding() instanceof IMethodBinding ){
+      name = (((IMethodBinding) e.resolveBinding()).getDeclaringClass().getQualifiedName() + "_" + e.resolveBinding().getName()).replace('.', '_');
+    } else {
+      name = e.getFullyQualifiedName();
+       declaration = scope.lookupVariable(name);
+
+    }
+
+
+
     if (declaration != null) {
       name = declaration.getName();
     }
@@ -735,6 +828,11 @@ public class ASTConverter {
 
   @SuppressWarnings({ "unchecked", "cast" })
   private IAstNode convert(MethodInvocation mi) {
+
+
+
+    scope.registerClasses(mi.resolveMethodBinding().getDeclaringClass());
+
 
 
     List<Expression> p = mi.arguments();
@@ -754,6 +852,8 @@ public class ASTConverter {
       AIdExpression idExpression = (AIdExpression)functionName;
       String name = idExpression.getName();
       declaration = scope.lookupFunction(name);
+
+
 
       if (idExpression.getDeclaration() != null) {
         // clone idExpression because the declaration in it is wrong
@@ -789,7 +889,9 @@ public class ASTConverter {
     if(binding instanceof IVariableBinding){
     name = getFullyQualifiedName((IVariableBinding) binding);
     declaration = scope.lookupVariable(name);
-    }else {
+    }else if(binding instanceof IMethodBinding ){
+      name = (((IMethodBinding) binding).getDeclaringClass().getQualifiedName() + "_" + binding.getName()).replace('.', '_');
+    } else {
       name = e.getIdentifier();
     }
 

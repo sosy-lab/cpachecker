@@ -47,7 +47,10 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 public  class EclipseJavaParser implements CParser {
 
   private static final int START_OF_STRING = 0;
+  private final ASTParser  parser = ASTParser.newParser(AST.JLS4);
 
+  //TODO Prototyp, think about how root Path can be smoothly given to builder
+  private String rootPath;
 
   private boolean ignoreCasts;
 
@@ -56,14 +59,14 @@ public  class EclipseJavaParser implements CParser {
 
   private final Timer parseTimer = new Timer();
   private final Timer cfaTimer = new Timer();
+  private String qualifiedNameOfMainClass;
+  private String unitName;
+
+
 
   public EclipseJavaParser(LogManager pLogger) {
     logger = pLogger;
-
-
   }
-
-
 
   @Override
   public ParseResult parseFile(String pFilename) throws ParserException, IOException {
@@ -82,41 +85,49 @@ public  class EclipseJavaParser implements CParser {
       throw new ParserException("Not Implemented");
   }
 
-
-
   @SuppressWarnings("unchecked")
   private CompilationUnit parse(final String pFileName) throws ParserException {
     parseTimer.start();
     try {
 
+
+
       File file = new File(pFileName);
+
       String source = FileUtils.readFileToString(file);
+      String fileName = pFileName.substring(pFileName.lastIndexOf('/') + 1 , pFileName.length());
+
+
+      parser.setIgnoreMethodBodies(true);
+      parser.setSource(source.toCharArray());
+      CompilationUnit ast = (CompilationUnit) parser.createAST(null);
+
+      String packageString = "";
+      if(ast.getPackage() != null){
+        packageString = ast.getPackage().getName().getFullyQualifiedName();
+        qualifiedNameOfMainClass = packageString + "." + fileName.substring(START_OF_STRING , fileName.length() - 5);
+      } else {
+        qualifiedNameOfMainClass = fileName.substring(START_OF_STRING, fileName.length() - 5);
+      }
+
+
+
+       //TODO Check if Windows use \
+      final String[] sourceFilePath = new String[1];
+
+      rootPath = pFileName.substring( START_OF_STRING , pFileName.length() - packageString.length() - fileName.length() - 1) ;
+
+
+      sourceFilePath[0] = rootPath;
 
 
 
 
 
-
-
-
-      //TODO Check if Windows use \
-
-      final String[] sourceFilePath = {pFileName.substring( START_OF_STRING , pFileName.lastIndexOf("/")) };
-
-
-
-      final String[] encoding = {"utf8"};
-
-
-      ASTParser parser = ASTParser.newParser(AST.JLS4);
-
-
-
-
-
+      final String[] encoding = {"utf8" };
 
       parser.setSource(source.toCharArray());
-      parser.setEnvironment( null, sourceFilePath, encoding, true);
+      parser.setEnvironment(null, sourceFilePath, encoding, false);
       parser.setResolveBindings(true);
       parser.setStatementsRecovery(true);
       parser.setBindingsRecovery(true);
@@ -126,7 +137,10 @@ public  class EclipseJavaParser implements CParser {
       JavaCore.setComplianceOptions(JavaCore.VERSION_1_7, options);
       parser.setCompilerOptions(options);
 
-      parser.setUnitName(pFileName.substring(pFileName.lastIndexOf("/") + 1));
+      unitName = pFileName;
+
+      parser.setUnitName(pFileName);
+
       CompilationUnit unit = (CompilationUnit)parser.createAST(null);
       return unit;
 
@@ -142,12 +156,25 @@ public  class EclipseJavaParser implements CParser {
 
   private ParseResult buildCFA(CompilationUnit ast) throws ParserException {
     cfaTimer.start();
+
+    CompilationUnit astNext;
+
     try {
       AstErrorChecker checker = new AstErrorChecker(logger);
-      CFABuilder builder = new CFABuilder(logger, ignoreCasts);
+      CFABuilder builder = new CFABuilder(logger, ignoreCasts , qualifiedNameOfMainClass);
       try {
         ast.accept(checker);
         ast.accept(builder);
+
+        String nextClassToBeParsed = builder.getScope().getNextClassPath();
+
+        while(nextClassToBeParsed != null ){
+          astNext = parseAdditionalClasses(nextClassToBeParsed);
+          astNext.accept(checker);
+          astNext.accept(builder);
+          nextClassToBeParsed = builder.getScope().getNextClassPath();
+       }
+
       } catch (CFAGenerationRuntimeException e) {
         throw new ParserException(e);
       }
@@ -159,6 +186,51 @@ public  class EclipseJavaParser implements CParser {
     }
   }
 
+
+  private CompilationUnit parseAdditionalClasses(String pFileName) throws ParserException {
+
+     String name = rootPath + pFileName;
+
+     System.out.println(name);
+
+    parseTimer.start();
+    try {
+      File file = new File(name);
+
+      String source = FileUtils.readFileToString(file);
+
+
+
+
+     String [] sourceFilePath = {rootPath};
+     String[] encoding = {"utf8"};
+
+      parser.setSource(source.toCharArray());
+      parser.setEnvironment(null, sourceFilePath, encoding, true);
+      parser.setResolveBindings(true);
+      parser.setStatementsRecovery(true);
+      parser.setBindingsRecovery(true);
+
+      // Set Compliance Options to support JDK 1.7
+      @SuppressWarnings("unchecked")
+      Hashtable<String , String> options = JavaCore.getOptions();
+      JavaCore.setComplianceOptions(JavaCore.VERSION_1_7, options);
+      parser.setCompilerOptions(options);
+
+      parser.setUnitName(unitName);
+      CompilationUnit unit = (CompilationUnit)parser.createAST(null);
+      return unit;
+
+    } catch (CFAGenerationRuntimeException e) {
+      throw new ParserException(e);
+    } catch (IOException e) {
+      throw new ParserException(e);
+    } finally {
+      parseTimer.stop();
+    }
+
+
+  }
 
   @Override
   public Timer getParseTime() {
@@ -193,4 +265,5 @@ public  class EclipseJavaParser implements CParser {
   public void setIgnoreCasts(boolean pIgnoreCasts) {
     ignoreCasts = pIgnoreCasts;
   }
+
 }

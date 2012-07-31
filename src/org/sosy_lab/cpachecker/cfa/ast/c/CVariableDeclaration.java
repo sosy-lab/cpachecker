@@ -85,6 +85,4 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
 
     return lASTString.toString();
   }
-
-
 }

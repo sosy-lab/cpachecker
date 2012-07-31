@@ -21,37 +21,17 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.types.c;
-
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.types.AArrayType;
+package org.sosy_lab.cpachecker.cfa.types.java;
 
 
-public class CArrayType extends CType implements AArrayType {
+public class JDummyType implements JType {
 
-  private final CType type;
-  private final CExpression    length;
 
-  public CArrayType(boolean pConst, boolean pVolatile,
-      CType pType, CExpression pLength) {
-    super(pConst, pVolatile);
-    type = pType;
-    length = pLength;
-  }
-
-  public CType getType() {
-    return type;
-  }
-
-  public CExpression getLength() {
-    return length;
-  }
 
   @Override
   public String toASTString(String pDeclarator) {
-    return (isConst() ? "const " : "")
-        + (isVolatile() ? "volatile " : "")
-        +  type.toASTString(pDeclarator+ ("[" + (length != null ? length.toASTString() : "") + "]"))
-        ;
+    // TODO Auto-generated method stub
+    return  "unkowndummyType " + pDeclarator;
   }
+
 }

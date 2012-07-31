@@ -23,34 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.types;
 
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
+public interface AArrayType extends Type {
 
-
-public class AArrayType extends CType implements Type{
-
-
-  private final Type type;
-  private final IAExpression    length;
-
-  public AArrayType( Type pType, IAExpression pLength) {
-    super( false , false);
-    type = pType;
-    length = pLength;
-  }
-
-  public Type getType() {
-    return type;
-  }
-
-  public IAExpression getLength() {
-    return length;
-  }
-
-  @Override
-  public String toASTString(String pDeclarator) {
-    return type.toASTString(pDeclarator+ ("[" + (length != null ? length.toASTString() : "") + "]"));
-  }
 
 }

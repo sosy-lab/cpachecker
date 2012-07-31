@@ -103,10 +103,6 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private static final boolean SKIP_CHILDS = false;
 
-  // The first Element of a List of arguments of a
-  // Assert Method Invocation is the Assert Condition
-  private static final int ASSERT_CONDITION = 0;
-
   // Data structure for maintaining our scope stack in a function
   private final Deque<CFANode> locStack = new ArrayDeque<CFANode>();
 
@@ -419,6 +415,17 @@ class CFAFunctionBuilder extends ASTVisitor {
   @Override
   public boolean  visit(AssertStatement assertStatement) {
 
+
+     final String message;
+
+     if(assertStatement.getMessage() == null){
+       message = "";
+     } else {
+       //TODO Extract Message from String
+       message = assertStatement.getMessage().toString();
+     }
+
+
      CFileLocation fileloc = astCreator.getFileLocation(assertStatement);
      CFANode prevNode = locStack.pop();
 
@@ -449,7 +456,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       // Blank Edge from unsuccessful assert to Error  location
        blankEdge = new BlankEdge(assertStatement.toString(), errorLabelNode.getLineNumber(),
-           unsuccessfulNode, errorLabelNode, "asssert fail:" + assertStatement.getMessage().toString());
+           unsuccessfulNode, errorLabelNode, "asssert fail:" + message);
        addToCFA(blankEdge);
 
     return SKIP_CHILDS;

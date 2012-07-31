@@ -45,8 +45,25 @@ class AstErrorChecker extends ASTVisitor {
   @Override
   public void preVisit(ASTNode problem) {
 
+
+
+   // System.out.println(getTypeName(problem.getNodeType()));
+   // System.out.println(problem);
+   // System.out.println();
+
+
+    // flags return the bitwise or of value Recovered =case 8, Malformed = case 1
+    if(ASTNode.RECOVERED == (problem.getFlags() & ASTNode.RECOVERED) || ASTNode.MALFORMED == (problem.getFlags() & ASTNode.MALFORMED )){
+      logger.log(Level.SEVERE, "Error " + problem.toString());
+
+    }
+  }
+
+
+  public static String getTypeName (int type){
+
     String name = "";
-    switch(problem.getNodeType()) {
+    switch(type) {
 
 
         case 81: name="ANNOTATION_TYPE_DECLARATION"; break;
@@ -135,48 +152,8 @@ class AstErrorChecker extends ASTVisitor {
          case 76: name="WILDCARD_TYPE"; break;
     }
 
+    return name;
 
-
-
-
-
-
-
-
-
-
-
-    System.out.println(name);
-
-    System.out.println(problem);
-    System.out.println();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // flags return the bitwise or of value Recovered =case 8, Malformed = case 1
-    if(ASTNode.RECOVERED == (problem.getFlags() & ASTNode.RECOVERED) || ASTNode.MALFORMED == (problem.getFlags() & ASTNode.MALFORMED )){
-      logger.log(Level.SEVERE, "Syntax Error");
-
-    }
   }
+
 }

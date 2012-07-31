@@ -6,21 +6,13 @@ public class Function {
 
 		
 		
-	    public static void des() {
-		
+  public static int teileDurch2(int op) {   
+    return op / 2;      
+}   
 
-       int n1 = 1;
-       int n2 = 2;
-        
-    
-      
-        if(n1 == n2){
-        
-        assert(false);
-        
-        } else {
-        
-        }
-           	
-		}		
+public static int teile(int op , int op2) {
+  return op / op2;            
+}   
+
+
 }

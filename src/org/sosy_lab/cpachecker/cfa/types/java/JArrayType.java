@@ -21,37 +21,43 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.types.c;
+package org.sosy_lab.cpachecker.cfa.types.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
 
-public class CArrayType extends CType implements AArrayType {
+public class JArrayType implements AArrayType, JType {
 
-  private final CType type;
-  private final CExpression    length;
 
-  public CArrayType(boolean pConst, boolean pVolatile,
-      CType pType, CExpression pLength) {
-    super(pConst, pVolatile);
-    type = pType;
-    length = pLength;
-  }
+  private final JType elementType;
+  private final int dimension;
 
-  public CType getType() {
-    return type;
-  }
+  public JArrayType(final JType pElementType , final int pDimension) {
 
-  public CExpression getLength() {
-    return length;
+    elementType = pElementType;
+    dimension = pDimension;
   }
 
   @Override
   public String toASTString(String pDeclarator) {
-    return (isConst() ? "const " : "")
-        + (isVolatile() ? "volatile " : "")
-        +  type.toASTString(pDeclarator+ ("[" + (length != null ? length.toASTString() : "") + "]"))
-        ;
+    // TODO Auto-generated method stub
+    StringBuilder astString = new StringBuilder(elementType.toASTString(""));
+
+    for(int dim = 0; dim < dimension ; dim++){
+        astString.append("[]");
+    }
+    astString.append(" ");
+    astString.append(pDeclarator);
+
+    return  astString.toString();
   }
+
+  public JType getElementType() {
+    return elementType;
+  }
+
+  public int getDimensions(){
+    return dimension;
+  }
+
 }

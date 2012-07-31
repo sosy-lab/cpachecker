@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
@@ -68,6 +69,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
@@ -85,7 +88,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -343,7 +345,7 @@ public class ExplicitTransferRelation implements TransferRelation
     if (value == null) {
       AssigningValueVisitor avv = new AssigningValueVisitor(cfaEdge, element, functionName, truthValue);
 
-      if(expression instanceof JExpression){
+      if(expression instanceof JExpression && ! (expression instanceof CExpression)){
         ((JExpression) expression).accept(avv);
       } else {
         ((CExpression)expression).accept(avv);
@@ -469,7 +471,7 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     // TODO assignment to array cell
-    else if (op1 instanceof CArraySubscriptExpression) {
+    else if (op1 instanceof CArraySubscriptExpression || op1 instanceof AArraySubscriptExpression) {
 
     } else {
       throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
@@ -482,7 +484,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
     Long value;
 
-    if(exp instanceof JRightHandSide){
+    if(exp instanceof JRightHandSide && !(exp instanceof CRightHandSide )){
        value = ((JRightHandSide) exp).accept(visitor);
     }else {
        value = ((CRightHandSide) exp).accept(visitor);
@@ -501,6 +503,7 @@ public class ExplicitTransferRelation implements TransferRelation
     if (value == null) {
       newElement.forget(assignedVar);
     }
+
     else {
       if (currentPrecision.isTracking(assignedVar) || assignedVar.endsWith("___cpa_temp_result_var_")) {
         newElement.assignConstant(assignedVar, value);
@@ -954,6 +957,21 @@ public class ExplicitTransferRelation implements TransferRelation
     public Long visit(AFunctionCallExpression pAFunctionCallExpression) throws UnrecognizedCCodeException {
       return null;
     }
+
+    @Override
+    public Long visit(JArrayCreationExpression aCE) throws UnrecognizedCCodeException {
+      return null;
+    }
+
+    @Override
+    public Long visit(JArrayInitializer pJArrayInitializer) throws UnrecognizedCCodeException {
+      return null;
+    }
+
+    @Override
+    public Long visit(AArraySubscriptExpression pAArraySubscriptExpression) throws UnrecognizedCCodeException {
+      return ((JExpression) pAArraySubscriptExpression.getSubscriptExpression()).accept(this);
+    }
   }
 
 
@@ -1175,7 +1193,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
   private Long getExpressionValue(ExplicitState element, IAExpression expression, String functionName, CFAEdge edge)
     throws UnrecognizedCCodeException {
-    if(expression instanceof JRightHandSide){
+    if(expression instanceof JRightHandSide && !(expression instanceof CRightHandSide)){
         return ((JRightHandSide) expression).accept(new ExpressionValueVisitor(edge, element, functionName));
     } else {
       return ((CRightHandSide) expression).accept(new ExpressionValueVisitor(edge, element, functionName));

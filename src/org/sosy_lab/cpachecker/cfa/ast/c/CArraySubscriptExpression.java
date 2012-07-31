@@ -23,22 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CArraySubscriptExpression extends AExpression implements CExpression {
+public final class CArraySubscriptExpression extends AArraySubscriptExpression implements CExpression {
 
-  private final CExpression arrayExpression;
-  private final CExpression subscriptExpression;
+
 
   public CArraySubscriptExpression(final CFileLocation pFileLocation,
                                       final CType pType,
                                       final CExpression pArrayExpression,
                                       final CExpression pSubscriptExpression) {
-    super(pFileLocation, pType);
-    arrayExpression = pArrayExpression;
-    subscriptExpression = pSubscriptExpression;
+    super(pFileLocation, pType, pArrayExpression , pSubscriptExpression);
   }
 
   @Override
@@ -46,12 +43,14 @@ public final class CArraySubscriptExpression extends AExpression implements CExp
     return (CType) type;
   }
 
+  @Override
   public CExpression getArrayExpression() {
-    return arrayExpression;
+    return (CExpression) arrayExpression;
   }
 
+  @Override
   public CExpression getSubscriptExpression() {
-    return subscriptExpression;
+    return (CExpression) subscriptExpression;
   }
 
   @Override
@@ -62,12 +61,6 @@ public final class CArraySubscriptExpression extends AExpression implements CExp
   @Override
   public <R, X extends Exception> R accept(CRightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  @Override
-  public String toASTString() {
-    String left = (arrayExpression instanceof CArraySubscriptExpression) ? arrayExpression.toASTString() : arrayExpression.toParenthesizedASTString();
-    return left + "[" + subscriptExpression.toASTString() + "]";
   }
 
 }

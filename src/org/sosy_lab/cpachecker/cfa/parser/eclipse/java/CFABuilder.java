@@ -54,7 +54,14 @@ import com.google.common.collect.TreeMultimap;
  */
 class CFABuilder extends ASTVisitor {
 
+
+
   private static final boolean SKIP_CHILDREN = false;
+
+
+  private static final boolean VISIT_CHILDREEN = true;
+
+
   // Data structures for handling function declarations
   private Queue<MethodDeclaration> functionDeclarations = new LinkedList<MethodDeclaration>();
   private final Map<String, FunctionEntryNode> cfas = new HashMap<String, FunctionEntryNode>();
@@ -63,22 +70,26 @@ class CFABuilder extends ASTVisitor {
   // Data structure for storing global declarations
   private final List<Pair<IADeclaration, String>> globalDeclarations = Lists.newArrayList();
 
-  private final Scope scope = new Scope();
+
+
+  private final Scope scope ;
   private final ASTConverter astCreator;
 
   private final LogManager logger;
   private final boolean ignoreCasts;
 
-  public CFABuilder(LogManager pLogger, boolean pIgnoreCasts) {
+  public CFABuilder(LogManager pLogger, boolean pIgnoreCasts , String fullyQualifiedNameOfMainClass) {
     logger = pLogger;
     ignoreCasts = pIgnoreCasts;
-    astCreator = new ASTConverter(scope, pIgnoreCasts, logger);
 
     if (pIgnoreCasts) {
       logger.log(Level.WARNING, "Ignoring all casts in the program because of user request!");
     }
+    scope = new Scope(fullyQualifiedNameOfMainClass);
+    astCreator = new ASTConverter(scope, pIgnoreCasts, logger);
 
   }
+
 
   /**
    * Retrieves list of all functions
@@ -103,6 +114,18 @@ class CFABuilder extends ASTVisitor {
   public List<Pair<IADeclaration, String>> getGlobalDeclarations() {
     return globalDeclarations;
   }
+
+
+  @Override
+  public boolean visit(CompilationUnit cu) {
+
+    // To make the builder reusable, past declarations have to be cleared.
+    functionDeclarations.clear();
+
+    return VISIT_CHILDREEN;
+
+  }
+
 
   /* (non-Javadoc)
    * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IADeclaration)
@@ -148,7 +171,6 @@ class CFABuilder extends ASTVisitor {
     }
 
     return SKIP_CHILDREN;
-
 }
 
   @Override
@@ -169,4 +191,10 @@ class CFABuilder extends ASTVisitor {
       cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
     }
   }
+
+
+  public Scope getScope() {
+    return scope;
+  }
+
 }

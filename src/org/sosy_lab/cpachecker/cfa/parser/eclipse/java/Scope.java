@@ -26,10 +26,15 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 import static com.google.common.base.Preconditions.*;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -46,14 +51,30 @@ import com.google.common.collect.Lists;
  */
 class Scope {
 
+  private String fullyQualifiedName;
+
   private final LinkedList<Map<String, IASimpleDeclaration>> varsStack = Lists.newLinkedList();
   private final LinkedList<Map<String, IASimpleDeclaration>> varsList = Lists.newLinkedList();
+
+  //Track and deliver Classes To be Parsed
+  private final Queue<String> classesToBeParsed = new ConcurrentLinkedQueue<String>();
+  private final Set<String> registeredClasses = new HashSet<String>();
+
 
   private final Map<String, IASimpleDeclaration> functions = new HashMap<String, IASimpleDeclaration>();
   private String currentFunctionName = null;
 
+
+
   public Scope() {
     enterBlock(); // enter global scope
+  }
+
+  public Scope(String qualifiedName) {
+    fullyQualifiedName = qualifiedName;
+    registeredClasses.add(qualifiedName);
+    enterBlock(); // enter global scope
+
   }
 
   public boolean isGlobalScope() {
@@ -160,6 +181,8 @@ class Scope {
     functions.put(name, declaration);
   }
 
+
+
   public String getCurrentFunctionName() {
     return currentFunctionName;
   }
@@ -167,5 +190,28 @@ class Scope {
   @Override
   public String toString() {
     return "Functions: " + Joiner.on(' ').join(functions.keySet());
+  }
+
+
+
+  public void registerClasses(ITypeBinding classBinding){
+    String name = classBinding.getQualifiedName();
+    if(!registeredClasses.contains(classBinding.getQualifiedName())){
+      registeredClasses.add(name);
+      classesToBeParsed.add(name);
+    }
+  }
+
+  public String getNextClassPath(){
+    if(classesToBeParsed.isEmpty()){
+      return null;
+    } else {
+      //TODO Make this Work for Windows
+      return classesToBeParsed.poll().replace('.', '/') + ".java";
+    }
+  }
+
+  public String getFullyQualifiedName() {
+    return fullyQualifiedName;
   }
 }
