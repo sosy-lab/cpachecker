@@ -317,6 +317,8 @@ $(document).ready(function() {
 <script type="text/javascript">
 
 function createRowFilterButtons() {
+  $("#contentPane").empty();
+
   var buttonList = '';
   var columnIndex = 1; // columns start with 1
   for (var i = 0; i < tests.length; i++) {
