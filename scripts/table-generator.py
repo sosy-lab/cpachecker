@@ -139,7 +139,9 @@ class Util:
     def toDecimal(s):
         # remove whitespaces and trailing 's' (e.g., in '1.23s')
         s = (s or '').lstrip(' \t').rstrip('s \t')
-        return Decimal(s) if s else Decimal()
+        if not s or s == '-':
+            return Decimal()
+        return Decimal(s)
 
 
     @staticmethod
@@ -700,8 +702,8 @@ def getStatsOfNumberColumn(values, categoryList):
     assert len(values) == len(categoryList)
     try:
         valueList = [Util.toDecimal(v) for v in values]
-    except InvalidOperation:
-        print ("Warning: NumberParseException. Statistics may be wrong.")
+    except InvalidOperation as e:
+        print("Warning: {0}. Statistics may be wrong.".format(e))
         return (StatValue(0), StatValue(0), StatValue(0), StatValue(0))
 
     valuesPerCategory = collections.defaultdict(list)
