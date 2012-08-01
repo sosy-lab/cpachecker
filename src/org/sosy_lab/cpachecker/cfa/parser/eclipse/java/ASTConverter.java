@@ -63,8 +63,10 @@ import org.eclipse.jdt.core.dom.PrefixExpression;
 import org.eclipse.jdt.core.dom.PrefixExpression.Operator;
 import org.eclipse.jdt.core.dom.PrimitiveType;
 import org.eclipse.jdt.core.dom.QualifiedName;
+import org.eclipse.jdt.core.dom.QualifiedType;
 import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SimpleName;
+import org.eclipse.jdt.core.dom.SimpleType;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.Type;
@@ -112,6 +114,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JDummyType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -215,9 +218,27 @@ public class ASTConverter {
 
     } else if(t.getNodeType() == ASTNode.ARRAY_TYPE){
       return convert((ArrayType)t);
-    } else {
+    } else if(t.getNodeType() == ASTNode.QUALIFIED_TYPE ){
+      return convert((QualifiedType)t);
+    }else if(t.getNodeType() == ASTNode.SIMPLE_TYPE ){
+      return convert((SimpleType)t);
+    }else {
       return new JDummyType(t.resolveBinding().getName());
     }
+  }
+
+  private JClassType convert(QualifiedType t) {
+    ITypeBinding binding = t.resolveBinding();
+    ModifierBean mB = ModifierBean.getModifiers(binding);
+
+    return new JClassType(binding.getQualifiedName(), mB.visibility, mB.isFinal, mB.isAbstract, mB.isStrictFp);
+  }
+
+  private JClassType convert(SimpleType t) {
+    ITypeBinding binding = t.resolveBinding();
+    ModifierBean mB = ModifierBean.getModifiers(binding);
+
+    return new JClassType(binding.getQualifiedName(), mB.visibility, mB.isFinal, mB.isAbstract, mB.isStrictFp);
   }
 
   private org.sosy_lab.cpachecker.cfa.types.Type convert(ITypeBinding t) {
@@ -383,6 +404,86 @@ public class ASTConverter {
       isAbstract = pIsAbstract;
       isStrictFp = pIsStrictFp;
       isSynchronized = pIsSynchronized;
+    }
+
+    public static ModifierBean getModifiers(ITypeBinding pBinding) {
+
+
+      // This int value is the bit-wise or of Modifier constants
+      int modifiers = pBinding.getModifiers();
+
+      assert pBinding.isClass() || pBinding.isEnum()
+      || pBinding.isInterface() || pBinding.isAnnotation()
+      || pBinding.isRecovered(): "This type can't have modifiers";
+
+      VisibilityModifier visibility = null;
+      boolean isFinal = false;
+      boolean isStatic = false;
+      boolean isVolatile = false;
+      boolean isTransient = false;
+      boolean isNative = false;
+      boolean isAbstract = false;
+      boolean isStrictFp = false;
+      boolean isSynchronized = false;
+
+
+
+      // Check all possible bit constants
+      for (int bitMask = 1; bitMask < 2049; bitMask = bitMask << 1 ) {
+
+
+        // Check if n-th bit of modifiers is 1
+          switch (modifiers & bitMask) {
+
+          case Modifier.FINAL:
+            isFinal = true;
+            break;
+          case Modifier.STATIC:
+            isStatic = true;
+            break;
+          case Modifier.VOLATILE:
+            isVolatile = true;
+            break;
+          case Modifier.TRANSIENT:
+            isTransient = true;
+            break;
+          case Modifier.PUBLIC:
+            assert visibility == null :  "Can only declare one Visibility Modifier";
+            visibility = VisibilityModifier.PUBLIC;
+            break;
+          case Modifier.PROTECTED:
+            assert visibility == null : "Can only declare one Visibility Modifier";
+            visibility = VisibilityModifier.PROTECTED;
+            break;
+          case Modifier.PRIVATE:
+            assert visibility == null : "Can only declare one Visibility Modifier";
+            visibility = VisibilityModifier.PRIVATE;
+            break;
+          case Modifier.NATIVE:
+            isNative = true;
+            break;
+          case Modifier.ABSTRACT:
+            isAbstract = true;
+            break;
+          case Modifier.STRICTFP:
+            isStrictFp = true;
+            break;
+          case Modifier.SYNCHRONIZED:
+            isSynchronized = true;
+            break;
+          }
+
+        }
+
+      // If no Visibility Modifier is selected, it is None
+      if(visibility == null){
+        visibility = VisibilityModifier.NONE;
+      }
+
+
+      return new ModifierBean(isFinal, isStatic, isVolatile, isTransient, visibility,
+          isNative, isAbstract, isStrictFp, isSynchronized);
+
     }
 
     private static ModifierBean getModifiers(List<IExtendedModifier> modifiers) {
