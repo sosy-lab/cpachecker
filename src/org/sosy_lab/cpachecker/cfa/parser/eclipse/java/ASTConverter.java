@@ -189,8 +189,6 @@ public class ASTConverter {
 
     String name;
 
-
-
     if(md.getName().getIdentifier().equals("main") ){
       name = md.getName().getIdentifier();
 
@@ -650,7 +648,6 @@ public class ASTConverter {
     }
     name += i;
 
-    // TODO prototyp?
     JVariableDeclaration decl = new JVariableDeclaration(getFileLocation(e),
                                                false,
                                                convert(e.resolveTypeBinding()),
@@ -734,11 +731,25 @@ public class ASTConverter {
          return convert( (ArrayCreation) e);
        case ASTNode.ARRAY_INITIALIZER :
          return convert((ArrayInitializer)e);
+       case ASTNode.CONDITIONAL_EXPRESSION :
+         return convert( (ConditionalExpression)e);
     }
 
        logger.log(Level.SEVERE, "Expression of typ "+  AstErrorChecker.getTypeName(e.getNodeType()) + " not implemented");
        return null;
   }
+
+
+
+  private IAstNode convert(ConditionalExpression e) {
+    AIdExpression tmp = createTemporaryVariable(e);
+    conditionalTemporaryVariable = tmp;
+    conditionalExpression = e;
+    return tmp;
+  }
+
+
+
 
   private IAstNode convert(ArrayInitializer initializer) {
 
