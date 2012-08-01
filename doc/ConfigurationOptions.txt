@@ -303,27 +303,41 @@ cpa.automaton.dotExportFile = "%s.dot"
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
 
-# bitsize for values
-cpa.bdd.bitsize = 8
-
 # initialize all variables to 0 when they are declared
 cpa.bdd.initAllVars = false
 
-# declare first bit of all vars, then second bit,...
-cpa.bdd.initBitwise = true
-
-# declare vars ordered in partitions
 # declare vars ordered in partitions. otherwise vars are declared when they
 # are needed.
-cpa.bdd.initPartitions = true
 cpa.bdd.initPartitions = false
 
-# track boolean variables from cfa only
+# track boolean variables from cfa only, this option limits the whitelist
 cpa.bdd.trackBooleanFromCFA = true
 
-# either use one bit to know if a value is 0 (or not 0)or use a vector to
-# store all memory cells of a variable
-cpa.bdd.useBitvector = false
+# adding a new value to the state can be done from 0 to N or from N to 0
+cpa.bdd.vector.addIncreasing = false
+
+# bitsize for values
+cpa.bdd.vector.bitsize = 8
+
+# initialize all variables to 0 when they are declared
+cpa.bdd.vector.initAllVars = false
+
+# declare the bits of a var from 0 to N or from N to 0
+cpa.bdd.vector.initBitsIncreasing = true
+
+# declare first bit of all vars, then second bit,...
+cpa.bdd.vector.initBitwise = true
+
+# declare vars ordered in partitions
+cpa.bdd.vector.initPartitions = true
+
+# track boolean variables from cfa as bitvectors, this option limits the
+# whitelist
+cpa.bdd.vector.trackBooleanFromCFA = false
+
+# track simple numeral variables from cfa as bitvectors, this option limits
+# the whitelist
+cpa.bdd.vector.trackSimpleNumbersFromCFA = true
 
 # which vars should be tracked, default: track all. the regex is not used for
 # functionname, only for the variablename itself.
@@ -406,6 +420,10 @@ cpa.explicit.merge = "SEP"
 # should tracked with another CPA, i.e. with BDDCPA.
 cpa.explicit.precision.ignoreBooleans = false
 
+# ignore variables with only simple numbers. if this option is used, these
+# variables from the cfa should tracked with another CPA, i.e. with BDDCPA.
+cpa.explicit.precision.ignoreSimpleNumbers = false
+
 # threshold for amount of different values that are tracked for one variable
 # per path (-1 means infinitely)
 cpa.explicit.precision.path.defaultThreshold = -1
@@ -413,6 +431,14 @@ cpa.explicit.precision.path.defaultThreshold = -1
 # threshold for amount of different values that are tracked for one variable
 # within the reached set (-1 means infinitely)
 cpa.explicit.precision.reachedSet.defaultThreshold = -1
+
+# whether to use refinement based on Explicit-Interpolation - with this
+# option set to false, refinement will be done using SMT-based interpolation
+cpa.explicit.refiner.useExplicitInterpolation = true
+
+# whether or not to always use the inital node as starting point for the next
+# re-exploration of the ARG
+cpa.explicit.refiner.useInitialNodeAsRestartingPoint = true
 
 # which stop operator to use for ExplicitCPA
 cpa.explicit.stop = "SEP"
@@ -424,11 +450,8 @@ cpa.explicit.variableBlacklist = ""
 # whether or not to use assumption-closure for explicit refinement
 cpa.explict.refiner.useAssumptionClosure = true
 
-# whether or not to use explicit interpolation
-cpa.explict.refiner.useExplicitInterpolation = false
-
 # whether or not to always use the inital node as starting point for the next
-# iteration
+# re-exploration of the ARG
 cpa.explict.refiner.useInitialNodeAsRestartingPoint = true
 
 # whitelist regex for variables that will be tracked by FeatureVarsCPA
