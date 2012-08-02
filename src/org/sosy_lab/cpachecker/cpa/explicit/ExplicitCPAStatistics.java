@@ -70,10 +70,10 @@ public class ExplicitCPAStatistics implements Statistics {
     }
 
     out.println("Max. number of variables: " + maxNumberOfVariables);
-    out.println("  of which are globals: " + maxNumberOfGlobalVariables);
+    out.println("Max. number of globals variables: " + maxNumberOfGlobalVariables);
 
     out.println("Avg. number of variables: " + ((totalNumberOfVariables * 10000) / reached.size()) / 10000.0);
-    out.println("  of which are globals: " + ((totalNumberOfGlobalVariables * 10000) / reached.size()) / 10000.0);
+    out.println("Avg. number of global variables: " + ((totalNumberOfGlobalVariables * 10000) / reached.size()) / 10000.0);
 
     if (refiner != null) {
       if (refiner instanceof DelegatingExplicitRefiner) {
