@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
 public class JVariableDeclaration extends AVariableDeclaration {
@@ -39,7 +40,7 @@ public class JVariableDeclaration extends AVariableDeclaration {
 
 
 
-  public JVariableDeclaration(CFileLocation pFileLocation, boolean pIsGlobal, Type pType, String pName,
+  public JVariableDeclaration(CFileLocation pFileLocation, boolean pIsGlobal, JType pType, String pName,
       String pOrigName, CInitializer pInitializer, boolean pIsFinal,
       boolean pIsStatic , boolean pisTransient , boolean pisVolatile) {
     super(pFileLocation, pIsGlobal, pType, pName, pOrigName, pInitializer);

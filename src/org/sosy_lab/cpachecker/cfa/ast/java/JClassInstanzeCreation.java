@@ -23,32 +23,33 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.math.BigInteger;
+import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
 
 
-public class JIntegerLiteralExpression extends AIntegerLiteralExpression implements JExpression{
+public class JClassInstanzeCreation extends AFunctionCallExpression implements JRightHandSide {
 
-  public JIntegerLiteralExpression(CFileLocation pFileLocation, JType pType, BigInteger pValue) {
-    super(pFileLocation, pType, pValue);
+  public JClassInstanzeCreation(CFileLocation pFileLocation, JConstructorType pType, JExpression pFunctionName,
+      List<? extends JExpression> pParameters, JConstructorDeclaration pDeclaration) {
+    super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
+
   }
 
   @Override
-  public String toASTString() {
-    return value.toString();
+  public JConstructorDeclaration getDeclaration() {
+    return (JConstructorDeclaration) declaration;
+  }
+
+  @Override
+  public JConstructorType getExpressionType() {
+    return (JConstructorType) type;
   }
 
   @Override
   public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
   }
-
-  @Override
-  public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
-
 }

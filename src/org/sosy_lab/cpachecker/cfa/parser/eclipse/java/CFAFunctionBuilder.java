@@ -78,9 +78,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -175,8 +172,6 @@ class CFAFunctionBuilder extends ASTVisitor {
   @Override
   public boolean visit(MethodDeclaration declaration) {
 
-
-
     if (locStack.size() != 0) {
       throw new CFAGenerationRuntimeException("Nested function declarations?");
     }
@@ -255,6 +250,29 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   @Override
   public void endVisit(MethodDeclaration declaration) {
+
+    // If declaration is Constructor, add return for Object
+      if(declaration.isConstructor()){
+
+        CFileLocation fileloc = astCreator.getFileLocation(declaration);
+
+        CFANode prevNode = locStack.pop();
+        FunctionExitNode functionExitNode = cfa.getExitNode();
+
+
+        //TODO toString() not allowed
+        AReturnStatementEdge edge = new AReturnStatementEdge("",
+            astCreator.getConstructorObjectReturn(declaration), fileloc.getStartingLineNumber(), prevNode, functionExitNode);
+        addToCFA(edge);
+
+        CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(),
+            cfa.getFunctionName());
+        cfaNodes.add(nextNode);
+        locStack.push(nextNode);
+
+      }
+
+
 
       if (locStack.size() != 1) {
         throw new CFAGenerationRuntimeException("Depth wrong. Geoff needs to do more work");
@@ -650,18 +668,18 @@ class CFAFunctionBuilder extends ASTVisitor {
        edge  = new AStatementEdge(condExp.toString(),
                                  new AFunctionCallAssignmentStatement(astCreator.getFileLocation(condExp),
                                                                          tempVar,
-                                                                         (CFunctionCallExpression) exp),
+                                                                         (AFunctionCallExpression) exp),
                                  filelocStart, prevNode, lastNode);
        addToCFA(edge);
      } else {
        CFANode middle = new CFANode(filelocStart, cfa.getFunctionName());
        cfaNodes.add(middle);
-       edge  = new AStatementEdge(condExp.toString(), (CStatement) exp, filelocStart, prevNode, middle);
+       edge  = new AStatementEdge(condExp.toString(), (IAStatement) exp, filelocStart, prevNode, middle);
        addToCFA(edge);
        edge  = new AStatementEdge(condExp.toString(),
                                  new AExpressionAssignmentStatement(astCreator.getFileLocation(condExp),
                                                                        tempVar,
-                                                                       ((CAssignment) exp).getLeftHandSide()),
+                                                                       ((AAssignment) exp).getLeftHandSide()),
                                  filelocStart, middle, lastNode);
        addToCFA(edge);
      }
@@ -1434,11 +1452,6 @@ class CFAFunctionBuilder extends ASTVisitor {
 
         //TODO Investigate if we can use Expression without Side Effect here
         final IAstNode node = astCreator.convertExpressionWithSideEffects(exp);
-
-
-
-
-
 
           nextNode = new CFANode(filelocStart, cfa.getFunctionName());
           cfaNodes.add(nextNode);

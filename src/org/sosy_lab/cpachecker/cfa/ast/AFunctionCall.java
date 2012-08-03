@@ -31,7 +31,7 @@ public interface AFunctionCall {
   AFunctionCallExpression getFunctionCallExpression();
 
   /**
-   * Return "this" casted to CStatement, i.e., this methods performs an upcast.
+   * Return "this" casted to IAStatement, i.e., this methods performs an upcast.
    */
   IAStatement asStatement();
 

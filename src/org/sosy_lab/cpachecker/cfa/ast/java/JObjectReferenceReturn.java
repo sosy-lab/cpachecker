@@ -23,32 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.math.BigInteger;
-
-import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
 
-public class JIntegerLiteralExpression extends AIntegerLiteralExpression implements JExpression{
+public class JObjectReferenceReturn extends AReturnStatement {
 
-  public JIntegerLiteralExpression(CFileLocation pFileLocation, JType pType, BigInteger pValue) {
-    super(pFileLocation, pType, pValue);
+
+  private final JClassType classReference;
+
+  public JObjectReferenceReturn(CFileLocation pFileLocation, AStringLiteralExpression pAbstractObjectIdentifier, JClassType pClassReference ) {
+    super(pFileLocation, pAbstractObjectIdentifier);
+    classReference = pClassReference;
   }
 
   @Override
-  public String toASTString() {
-    return value.toString();
+  public AStringLiteralExpression getReturnValue() {
+    return (AStringLiteralExpression) super.getReturnValue();
   }
 
-  @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
-    return v.visit(this);
+  public JClassType getReturnClassType(){
+    return classReference;
   }
 
 }

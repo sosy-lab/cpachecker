@@ -23,32 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.math.BigInteger;
-
-import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
 
 
-public class JIntegerLiteralExpression extends AIntegerLiteralExpression implements JExpression{
+public class JConstructorDeclaration extends JMethodDeclaration {
 
-  public JIntegerLiteralExpression(CFileLocation pFileLocation, JType pType, BigInteger pValue) {
-    super(pFileLocation, pType, pValue);
+
+
+  public JConstructorDeclaration(CFileLocation pFileLocation, JConstructorType pType, String pName,
+      VisibilityModifier pVisibility, boolean pIsStrictfp) {
+    super(pFileLocation, pType, pName, pVisibility, false, false, false, false, false,
+        pIsStrictfp);
   }
 
   @Override
-  public String toASTString() {
-    return value.toString();
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
-    return v.visit(this);
+  public JConstructorType getType() {
+    return (JConstructorType) type;
   }
 
 }

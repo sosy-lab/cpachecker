@@ -191,8 +191,6 @@ public  class EclipseJavaParser implements CParser {
 
      String name = rootPath + pFileName;
 
-     System.out.println(name);
-
     parseTimer.start();
     try {
       File file = new File(name);

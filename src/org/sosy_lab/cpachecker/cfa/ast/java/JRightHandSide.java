@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 
 
-public interface JRightHandSide extends JAstNode{
+
+public interface JRightHandSide extends JAstNode , IARightHandSide{
 
   public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> pV) throws X;
 

@@ -47,9 +47,9 @@ class AstErrorChecker extends ASTVisitor {
 
 
 
-   // System.out.println(getTypeName(problem.getNodeType()));
-   // System.out.println(problem);
-   // System.out.println();
+    //System.out.println(getTypeName(problem.getNodeType()));
+    //System.out.println(problem);
+    //System.out.println();
 
 
     // flags return the bitwise or of value Recovered =case 8, Malformed = case 1

@@ -89,5 +89,4 @@ public class AFunctionCallExpression extends ARightHandSide implements JRightHan
   public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
   }
-
 }

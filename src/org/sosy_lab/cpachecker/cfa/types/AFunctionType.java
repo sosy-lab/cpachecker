@@ -38,7 +38,7 @@ import com.google.common.collect.ImmutableList;
 
 public class AFunctionType  extends CType implements IAFunctionType {
 
-  private final Type returnType;
+  protected final Type returnType;
   private String name = null;
   private final List<AParameterDeclaration> parameters;
   private final boolean takesVarArgs;

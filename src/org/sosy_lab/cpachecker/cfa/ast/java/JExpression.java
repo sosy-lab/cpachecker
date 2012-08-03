@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 
 
-public interface JExpression extends JRightHandSide{
+
+public interface JExpression extends JRightHandSide , IAExpression{
 
   public  <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X;
 

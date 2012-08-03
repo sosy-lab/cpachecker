@@ -40,7 +40,6 @@ public class AStringLiteralExpression extends ALiteralExpression implements JExp
 
   @Override
   public String toASTString() {
-    // TODO Auto-generated method stub
     return value;
   }
 

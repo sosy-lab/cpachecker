@@ -21,34 +21,26 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast.java;
+package org.sosy_lab.cpachecker.cfa.types.java;
 
-import java.math.BigInteger;
+import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
 
 
-public class JIntegerLiteralExpression extends AIntegerLiteralExpression implements JExpression{
+public class JConstructorType extends AFunctionType implements JType, IAFunctionType {
 
-  public JIntegerLiteralExpression(CFileLocation pFileLocation, JType pType, BigInteger pValue) {
-    super(pFileLocation, pType, pValue);
+  public JConstructorType(JClassType pReturnType, List<AParameterDeclaration> pParameters, boolean pTakesVarArgs) {
+    super(pReturnType, pParameters, pTakesVarArgs);
+
   }
 
   @Override
-  public String toASTString() {
-    return value.toString();
-  }
+  public JClassType getReturnType() {
 
-  @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
-    return v.visit(this);
+    return (JClassType) returnType;
   }
 
 }
