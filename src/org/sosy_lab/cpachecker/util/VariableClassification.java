@@ -24,11 +24,14 @@
 package org.sosy_lab.cpachecker.util;
 
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -72,6 +75,7 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 public class VariableClassification {
 
@@ -153,7 +157,8 @@ public class VariableClassification {
 
   /** This function returns a collection of (functionName, varNames).
    * This collection contains all vars, that have only the values of simple numbers.
-   * The collection also includes boolean vars, because they are simple numbers, too.
+   * The collection also includes some boolean vars,
+   * because they are simple numbers, too.
    * There are NO mathematical calculations (add, sub, mult) with these vars. */
   public Multimap<String, String> getSimpleNumberVars() {
     build();
@@ -171,16 +176,31 @@ public class VariableClassification {
 
   /** This function returns a collection of partitions.
    * A partition contains all vars, that are dependent from each other. */
-  public List<Multimap<String, String>> getPartitions() {
+  public List<Partition> getPartitions() {
     build();
     return dependencies.getPartitions();
   }
 
-  /** This function returns a collection of (functionName, varName).
-   * This collection contains all vars, that are dependent with the given variable. */
-  public Multimap<String, String> getPartitionForVar(String function, String var) {
+  /** This function returns a partition containing all vars,
+   * that are dependent with the given variable. */
+  public Partition getPartitionForVar(String function, String var) {
     build();
     return dependencies.getPartitionForVar(function, var);
+  }
+
+  /** This function returns a partition containing all vars,
+   * that are dependent from a given CFAedge. */
+  public Partition getPartitionForEdge(CFAEdge edge) {
+    return getPartitionForEdge(edge, 0);
+  }
+
+  /** This function returns a partition containing all vars,
+   * that are dependent from a given CFAedge.
+   * The index is 0 for all edges, except FunctionCallEdges,
+   * where it is the position of the param. */
+  public Partition getPartitionForEdge(CFAEdge edge, int index) {
+    build();
+    return dependencies.getPartitionForEdge(edge, index);
   }
 
   /** This function iterates over all edges of the cfa, collects all variables
@@ -231,8 +251,9 @@ public class VariableClassification {
       CExpression exp = ((CAssumeEdge) edge).getExpression();
       CFANode pre = edge.getPredecessor();
 
-      Multimap<String, String> dep = exp.accept(new DependencyCollectingVisitor(pre));
-      dependencies.addAll(dep);
+      DependencyCollectingVisitor dcv = new DependencyCollectingVisitor(pre);
+      Multimap<String, String> dep = exp.accept(dcv);
+      dependencies.addAll(dep, dcv.getValues(), edge, 0);
 
       exp.accept(new BoolCollectingVisitor(pre));
       exp.accept(new NumberCollectingVisitor(pre));
@@ -312,7 +333,7 @@ public class VariableClassification {
 
         // build name for param and evaluate it
         // this variable is not global (->false)
-        handleExpression(edge, args.get(i), params.get(i).getName(), innerFunctionName);
+        handleExpression(edge, args.get(i), params.get(i).getName(), innerFunctionName, i);
       }
 
       // create dependency for functionreturn
@@ -360,14 +381,23 @@ public class VariableClassification {
   /** evaluates an expression and adds containing vars to the sets. */
   private void handleExpression(CFAEdge edge, CExpression exp, String varName,
       String function) {
+    handleExpression(edge, exp, varName, function, 0);
+  }
+
+  /** evaluates an expression and adds containing vars to the sets.
+   * the id is the position of the expression in the edge,
+   * it is 0 for all edges except a FuntionCallEdge. */
+  private void handleExpression(CFAEdge edge, CExpression exp, String varName,
+      String function, int id) {
     CFANode pre = edge.getPredecessor();
 
     DependencyCollectingVisitor dcv = new DependencyCollectingVisitor(pre);
     Multimap<String, String> dep = exp.accept(dcv);
-    if (dep != null) {
-      dep.put(function, varName);
-      dependencies.addAll(dep);
+    if (dep == null) {
+      dep = HashMultimap.create(1, 1);
     }
+    dep.put(function, varName);
+    dependencies.addAll(dep, dcv.getValues(), edge, id);
 
     BoolCollectingVisitor bcv = new BoolCollectingVisitor(pre);
     Multimap<String, String> possibleBoolean = exp.accept(bcv);
@@ -417,14 +447,20 @@ public class VariableClassification {
   /** This Visitor evaluates an Expression. It collects all variables.
    * a visit of IdExpression or CFieldReference returns a collection containing the varName,
    * a visit of CastExpression return the containing visit,
-   * other visits return null. */
+   * other visits return null.
+  * The Visitor collects all numbers used in the expression. */
   private class DependencyCollectingVisitor implements
       CExpressionVisitor<Multimap<String, String>, NullPointerException> {
 
     private CFANode predecessor;
+    private Set<BigInteger> values = new TreeSet<BigInteger>();
 
     public DependencyCollectingVisitor(CFANode pre) {
       this.predecessor = pre;
+    }
+
+    public Set<BigInteger> getValues() {
+      return values;
     }
 
     @Override
@@ -481,6 +517,7 @@ public class VariableClassification {
 
     @Override
     public Multimap<String, String> visit(CIntegerLiteralExpression exp) {
+      values.add(exp.getValue());
       return null;
     }
 
@@ -623,8 +660,8 @@ public class VariableClassification {
 
       switch (exp.getOperator()) {
       case PLUS: // simple calculations, no usage of another param
-      case MINUS:
         return inner;
+      case MINUS: // -X is equal to 0-X, so this is a calculation
       default: // *, ~, etc --> not numeral
         nonSimpleNumberVars.putAll(inner);
         return null;
@@ -709,23 +746,114 @@ public class VariableClassification {
     }
   }
 
+  /** A Partition is a Wrapper for some vars, values and edges.
+   * After merging two Partitions, they wrap the same internals,
+   * so adding a value to the first modifies the other one, too. */
+  public class Partition {
+
+    private Multimap<String, String> vars = LinkedHashMultimap.create();
+    private Set<BigInteger> values = Sets.newTreeSet();
+    private Multimap<CFAEdge, Integer> edges = HashMultimap.create();
+
+    private Map<Pair<String, String>, Partition> varToPartition;
+    private Map<Pair<CFAEdge, Integer>, Partition> edgeToPartition;
+
+    public Partition(Map<Pair<String, String>, Partition> varToPartition,
+        Map<Pair<CFAEdge, Integer>, Partition> edgeToPartition) {
+      this.varToPartition = varToPartition;
+      this.edgeToPartition = edgeToPartition;
+    }
+
+    public Multimap<String, String> getVars() {
+      return vars;
+    }
+
+    public Set<BigInteger> getValues() {
+      return values;
+    }
+
+    public Multimap<CFAEdge, Integer> getEdges() {
+      return edges;
+    }
+
+    public void add(String function, String varName) {
+      vars.put(function, varName);
+      varToPartition.put(Pair.of(function, varName), this);
+    }
+
+    public void addValues(Set<BigInteger> newValues) {
+      values.addAll(newValues);
+    }
+
+    public void addEdge(CFAEdge edge, int index) {
+      edges.put(edge, index);
+      edgeToPartition.put(Pair.of(edge, index), this);
+    }
+
+    /** copies all data from other to current partition */
+    public void merge(Partition other) {
+      assert this.varToPartition == other.varToPartition;
+
+      this.vars.putAll(other.vars);
+      this.values.addAll(other.values);
+      this.edges.putAll(other.edges);
+
+      // update mapping of vars
+      for (Entry<String, String> var : other.vars.entries()) {
+        varToPartition.put(Pair.of(var.getKey(), var.getValue()), this);
+      }
+
+      // update mapping of edges
+      for (Entry<CFAEdge, Integer> edge : other.edges.entries()) {
+        edgeToPartition.put(Pair.of(edge.getKey(), edge.getValue()), this);
+      }
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      if (other instanceof Partition) {
+        Partition p = (Partition) other;
+        return this.vars == p.vars;
+      } else {
+        return false;
+      }
+    }
+
+    @Override
+    public int hashCode() {
+      return vars.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return vars.toString() + " --> " + Arrays.toString(values.toArray());
+    }
+  }
+
   /** This class stores dependencies between variables.
    * It sorts vars into partitions.
    * Dependent vars are in the same partition. Partitions are independent. */
   private class Dependencies {
 
     /** partitions, each of them contains vars */
-    private List<Multimap<String, String>> partitions = Lists.newArrayList();
+    private List<Partition> partitions = Lists.newArrayList();
 
     /** map to get partition of a var */
-    private Map<Pair<String, String>, Multimap<String, String>> varToPartition = Maps.newHashMap();
+    private Map<Pair<String, String>, Partition> varToPartition = Maps.newHashMap();
 
-    public List<Multimap<String, String>> getPartitions() {
+    /** table to get a partition for a edge. */
+    Map<Pair<CFAEdge, Integer>, Partition> edgeToPartition = Maps.newHashMap();
+
+    public List<Partition> getPartitions() {
       return partitions;
     }
 
-    public Multimap<String, String> getPartitionForVar(String function, String var) {
+    public Partition getPartitionForVar(String function, String var) {
       return varToPartition.get(Pair.of(function, var));
+    }
+
+    public Partition getPartitionForEdge(CFAEdge edge, int index) {
+      return edgeToPartition.get(Pair.of(edge, index));
     }
 
     /** This function creates a dependency between function1::var1 and function2::var2. */
@@ -735,55 +863,46 @@ public class VariableClassification {
 
       // if both vars exists in some dependencies,
       // either ignore them or merge their partitions
-      if (varToPartition.containsKey(first) && varToPartition.containsKey(second)) {
-        Multimap<String, String> partition1 = varToPartition.get(first);
-        Multimap<String, String> partition2 = varToPartition.get(second);
+      Partition partition1 = varToPartition.get(first);
+      Partition partition2 = varToPartition.get(second);
+      if (partition1 != null && partition2 != null) {
 
         // swap partitions, we create partitions in the order they are used
         if (partitions.lastIndexOf(partition1) > partitions.lastIndexOf(partition2)) {
-          Multimap<String, String> tmp = partition2;
+          Partition tmp = partition2;
           partition2 = partition1;
           partition1 = tmp;
         }
 
         if (!partition1.equals(partition2)) {
-          // merge partition1 and partition2
-          partition1.putAll(partition2);
-
-          // update vars from partition2 and delete partition2
-          for (Entry<String, String> e : partition2.entries()) {
-            Pair<String, String> var = Pair.of(e.getKey(), e.getValue());
-            varToPartition.put(var, partition1);
-          }
+          partition1.merge(partition2);
           partitions.remove(partition2);
         }
 
         // if only left side of dependency exists, add right side into same partition
-      } else if (varToPartition.containsKey(first)) {
-        Multimap<String, String> partition = varToPartition.get(first);
-        partition.put(function2, var2);
-        varToPartition.put(second, partition);
+      } else if (partition1 != null) {
+        partition1.add(function2, var2);
 
         // if only right side of dependency exists, add left side into same partition
-      } else if (varToPartition.containsKey(second)) {
-        Multimap<String, String> partition = varToPartition.get(second);
-        partition.put(function1, var1);
-        varToPartition.put(first, partition);
+      } else if (partition2 != null) {
+        partition2.add(function1, var1);
 
         // if none side is in any existing partition, create new partition
       } else {
-        Multimap<String, String> partition = LinkedHashMultimap.create();
+        Partition partition = new Partition(varToPartition, edgeToPartition);
+        partition.add(function1, var1);
+        partition.add(function2, var2);
         partitions.add(partition);
-        partition.put(function1, var1);
-        partition.put(function2, var2);
-        varToPartition.put(first, partition);
-        varToPartition.put(second, partition);
       }
     }
 
-    /** This function adds a group of vars to exactly one partition. */
-    public void addAll(Multimap<String, String> vars) {
+    /** This function adds a group of vars to exactly one partition.
+     * The values are stored in the partition.
+     * The partition is "connected" with the expression. */
+    public void addAll(Multimap<String, String> vars, Set<BigInteger> values,
+        CFAEdge edge, int index) {
       if (vars == null || vars.isEmpty()) { return; }
+
       Iterator<Entry<String, String>> iter = vars.entries().iterator();
 
       // we use same function and varName for all other vars --> dependency
@@ -791,10 +910,18 @@ public class VariableClassification {
       String function = entry.getKey();
       String varName = entry.getValue();
 
+      // first add th single var
+      addVar(function, varName);
+
+      // then add all other vars, they are dependent from the first var
       while (iter.hasNext()) {
         entry = iter.next();
         add(function, varName, entry.getKey(), entry.getValue());
       }
+
+      Partition partition = getPartitionForVar(function, varName);
+      partition.addValues(values);
+      partition.addEdge(edge, index);
     }
 
     /** This function adds one single variable to the partitions.
@@ -804,10 +931,9 @@ public class VariableClassification {
 
       // if var exists, we can ignore it, otherwise create new partition for var
       if (!varToPartition.containsKey(var)) {
-        Multimap<String, String> partition = LinkedHashMultimap.create(1, 1);
-        partition.put(function, varName);
+        Partition partition = new Partition(varToPartition, edgeToPartition);
+        partition.add(function, varName);
         partitions.add(partition);
-        varToPartition.put(var, partition);
       }
     }
 
@@ -815,11 +941,11 @@ public class VariableClassification {
      * If A depends on B and A is part of the set, B is added to the set, and vice versa.
     * Example: If A is not boolean, B is not boolean. */
     public void solve(final Multimap<String, String> vars) {
-      for (Multimap<String, String> partition : partitions) {
+      for (Partition partition : partitions) {
 
         // is at least one var from the partition part of vars
         boolean isDependency = false;
-        for (Entry<String, String> var : partition.entries()) {
+        for (Entry<String, String> var : partition.getVars().entries()) {
           if (vars.containsEntry(var.getKey(), var.getValue())) {
             isDependency = true;
             break;
@@ -828,7 +954,7 @@ public class VariableClassification {
 
         // add all dependend vars to vars
         if (isDependency) {
-          vars.putAll(partition);
+          vars.putAll(partition.getVars());
         }
       }
     }
@@ -836,10 +962,15 @@ public class VariableClassification {
     @Override
     public String toString() {
       StringBuilder str = new StringBuilder("[");
-      for (Multimap<String, String> partition : partitions) {
+      for (Partition partition : partitions) {
         str.append(partition.toString() + ",\n");
       }
-      str.append("]");
+      str.append("]\n\n");
+
+      for (Pair<CFAEdge, Integer> edge : edgeToPartition.keySet()) {
+        str.append(edge.getFirst().getRawStatement() + " :: "
+            + edge.getSecond() + " --> " + edgeToPartition.get(edge) + "\n");
+      }
       return str.toString();
     }
   }

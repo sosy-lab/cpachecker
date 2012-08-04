@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
@@ -111,8 +112,8 @@ public class BDDVectorTransferRelation implements TransferRelation {
   private final NamedRegionManager rmgr;
 
   /** for statistics */
-  private int createdPredicates;
-  private int deletedPredicates;
+  private int createdPredicates = 0;
+  private int deletedPredicates = 0;
 
   /** The Constructor of BDDVectorTransferRelation sets the NamedRegionManager
    * and the BitVectorManager. Both are used to build and manipulate BDDs,
@@ -138,8 +139,8 @@ public class BDDVectorTransferRelation implements TransferRelation {
     int size = bvmgr.getBitSize();
 
     if (initPartitions) {
-      for (Multimap<String, String> vars : varClass.getPartitions()) {
-        createPredicates(size, vars, precision);
+      for (Partition partition : varClass.getPartitions()) {
+        createPredicates(size, partition.getVars(), precision);
       }
 
     } else {
