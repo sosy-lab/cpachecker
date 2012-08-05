@@ -104,6 +104,9 @@ public class BDDVectorTransferRelation implements TransferRelation {
   @Option(description = "declare vars ordered in partitions")
   private boolean initPartitions = true;
 
+  @Option(description = "default bitsize for values and vars")
+  private int bitsize = 32;
+
   private final VariableClassification varClass;
   private final Map<Multimap<String, String>, String> partitionToTmpVar =
       new HashMap<Multimap<String, String>, String>();
@@ -136,23 +139,21 @@ public class BDDVectorTransferRelation implements TransferRelation {
    *  This function declares those vars in the beginning of the analysis,
    *  so that we can choose between some orders. */
   private void initVars(BDDVectorPrecision precision) {
-    int size = bvmgr.getBitSize();
-
     if (initPartitions) {
       for (Partition partition : varClass.getPartitions()) {
-        createPredicates(size, partition.getVars(), precision);
+        createPredicates(partition.getVars(), precision);
       }
 
     } else {
       Multimap<String, String> vars = varClass.getAllVars();
-      createPredicates(size, vars, precision);
+      createPredicates(vars, precision);
     }
   }
 
   /** This function declares variables for a given collection of vars.
    * The flag 'bitwise' chooses between initialing each var after each other
    * or bitwise overlapped (bit1 of all vars, then bit2 of all vars, etc). */
-  private void createPredicates(int size, Multimap<String, String> vars, BDDVectorPrecision precision) {
+  private void createPredicates(Multimap<String, String> vars, BDDVectorPrecision precision) {
 
     // add a temporary variable for each partition
     // (or for allVars, then this action is senseless, but simplifies code)
@@ -161,8 +162,8 @@ public class BDDVectorTransferRelation implements TransferRelation {
 
     if (initBitwise) {
       // [a2, b2, c2, a1, b1, c1, a0, b0, c0]
-      for (int i = 0; i < size; i++) {
-        int index = initBitsIncreasing ? i : (size - i - 1);
+      for (int i = 0; i < bitsize; i++) {
+        int index = initBitsIncreasing ? i : (bitsize - i - 1);
         for (Entry<String, String> entry : vars.entries()) {
           if (precision.isTracking(entry.getKey(), entry.getValue())) {
             rmgr.createPredicate(buildVarName(entry.getKey(), entry.getValue()) + "@" + index);
@@ -174,14 +175,14 @@ public class BDDVectorTransferRelation implements TransferRelation {
     } else {
       // [a2, a1, a0, b2, b1, b0, c2, c1, c0]
       for (Entry<String, String> entry : vars.entries()) { // different loop order!
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < bitsize; i++) {
           if (precision.isTracking(entry.getKey(), entry.getValue())) {
-            int index = initBitsIncreasing ? i : (size - i - 1);
+            int index = initBitsIncreasing ? i : (bitsize - i - 1);
             rmgr.createPredicate(buildVarName(entry.getKey(), entry.getValue()) + "@" + index);
           }
         }
-        for (int i = 0; i < size; i++) {
-          int index = initBitsIncreasing ? i : (size - i - 1);
+        for (int i = 0; i < bitsize; i++) {
+          int index = initBitsIncreasing ? i : (bitsize - i - 1);
           rmgr.createPredicate(tmpVar + "@" + index);
         }
       }
@@ -572,12 +573,11 @@ public class BDDVectorTransferRelation implements TransferRelation {
   /** This function returns regions containing bits of a variable.
    * returns regions for positions of a variable, s --> [s@0, s@1, s@2] */
   private Region[] createPredicate(String s) {
-    int size = bvmgr.getBitSize();
-    Region[] newRegions = new Region[size];
-    for (int i = size - 1; i >= 0; i--) { // inverse order
+    Region[] newRegions = new Region[bitsize];
+    for (int i = bitsize - 1; i >= 0; i--) { // inverse order
       newRegions[i] = rmgr.createPredicate(s + "@" + i);
     }
-    createdPredicates += size;
+    createdPredicates += bitsize;
     return newRegions;
   }
 
@@ -718,7 +718,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
 
     @Override
     public Region[] visit(CIntegerLiteralExpression exp) throws UnrecognizedCCodeException {
-      return bvmgr.makeNumber(exp.getValue());
+      return bvmgr.makeNumber(exp.getValue(), bitsize);
     }
 
     @Override
@@ -748,7 +748,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
         break;
 
       case MINUS: // -X == (0-X)
-        returnValue = bvmgr.makeSub(bvmgr.makeNumber(BigInteger.ZERO), operand);
+        returnValue = bvmgr.makeSub(bvmgr.makeNumber(BigInteger.ZERO, bitsize), operand);
         break;
 
       default:
