@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -100,6 +101,10 @@ public class VariableClassification {
   private Multimap<String, String> simpleNumberVars;
   private Multimap<String, String> incVars;
 
+  private Set<Partition> booleanPartitions;
+  private Set<Partition> simpleNumberPartitions;
+  private Set<Partition> incPartitions;
+
   private CFA cfa;
 
   public VariableClassification(CFA cfa) {
@@ -122,6 +127,10 @@ public class VariableClassification {
       booleanVars = LinkedHashMultimap.create();
       simpleNumberVars = LinkedHashMultimap.create();
       incVars = LinkedHashMultimap.create();
+
+      booleanPartitions = new HashSet<Partition>();
+      simpleNumberPartitions = new HashSet<Partition>();
+      incPartitions = new HashSet<Partition>();
 
       // fill maps
       collectVars();
@@ -155,6 +164,13 @@ public class VariableClassification {
     return booleanVars;
   }
 
+  /** This function returns a collection of partitions.
+   * Each partition contains only boolean vars. */
+  public Collection<Partition> getBooleanPartitions() {
+    build();
+    return booleanPartitions;
+  }
+
   /** This function returns a collection of (functionName, varNames).
    * This collection contains all vars, that have only the values of simple numbers.
    * The collection also includes some boolean vars,
@@ -163,6 +179,13 @@ public class VariableClassification {
   public Multimap<String, String> getSimpleNumberVars() {
     build();
     return simpleNumberVars;
+  }
+
+  /** This function returns a collection of partitions.
+   * Each partition contains only simple numeral vars. */
+  public Collection<Partition> getSimpleNumberPartitions() {
+    build();
+    return simpleNumberPartitions;
   }
 
   /** This function returns a collection of (functionName, varNames).
@@ -231,14 +254,17 @@ public class VariableClassification {
 
         if (!nonBooleanVars.containsEntry(function, s)) {
           booleanVars.put(function, s);
+          booleanPartitions.add(getPartitionForVar(function, s));
         }
 
         if (!nonSimpleNumberVars.containsEntry(function, s)) {
           simpleNumberVars.put(function, s);
+          simpleNumberPartitions.add(getPartitionForVar(function, s));
         }
 
         if (!nonIncVars.containsEntry(function, s)) {
           incVars.put(function, s);
+          incPartitions.add(getPartitionForVar(function, s));
         }
       }
     }
