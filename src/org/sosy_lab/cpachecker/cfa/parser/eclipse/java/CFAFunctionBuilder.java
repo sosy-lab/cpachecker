@@ -61,6 +61,7 @@ import org.eclipse.jdt.core.dom.SwitchStatement;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
@@ -72,6 +73,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
@@ -96,8 +98,6 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Builder to traverse AST.
- *
- *
  *
  */
 class CFAFunctionBuilder extends ASTVisitor {
@@ -127,20 +127,22 @@ class CFAFunctionBuilder extends ASTVisitor {
   private FunctionEntryNode cfa = null;
   private final Set<CFANode> cfaNodes = new HashSet<CFANode>();
 
+
   private final Scope scope;
   private final ASTConverter astCreator;
+
+  private final List<Pair<IADeclaration, String>> nonStaticFieldDeclarations;
 
   private final LogManager logger;
 
 
   public CFAFunctionBuilder(LogManager pLogger, boolean pIgnoreCasts,
-      Scope pScope, ASTConverter pAstCreator) {
+      Scope pScope, ASTConverter pAstCreator, List<Pair<IADeclaration, String>> pNonStaticFieldDeclarations) {
 
     logger = pLogger;
     scope = pScope;
     astCreator = pAstCreator;
-
-
+    nonStaticFieldDeclarations = pNonStaticFieldDeclarations;
   }
 
   FunctionEntryNode getStartNode() {
@@ -208,9 +210,20 @@ class CFAFunctionBuilder extends ASTVisitor {
         startNode, nextNode, "Function start dummy edge");
     addToCFA(dummyEdge);
 
+    //If Declaration is Constructor add non static field member Declarations
+    if(declaration.isConstructor()){
+      //TODO ugly , define new function for addDecl
+      for(Pair<IADeclaration, String> decl : nonStaticFieldDeclarations){
+        List<IADeclaration> arr = new ArrayList<IADeclaration>();
+        arr.add(decl.getFirst());
+
+        locStack.push( addDeclarationsToCFA( arr ,decl.getSecond(), locStack.poll()));
+
+      }
+    }
+
     // Stop , and manually go to Block, to protect parameter variables to be processed
     // more than one time
-    // TODO Find a better Solution, this should not work
     declaration.getBody().accept(this);
     return SKIP_CHILDS;
 
@@ -251,25 +264,31 @@ class CFAFunctionBuilder extends ASTVisitor {
   @Override
   public void endVisit(MethodDeclaration declaration) {
 
+
     // If declaration is Constructor, add return for Object
+
       if(declaration.isConstructor()){
 
         CFileLocation fileloc = astCreator.getFileLocation(declaration);
-
         CFANode prevNode = locStack.pop();
         FunctionExitNode functionExitNode = cfa.getExitNode();
 
 
+        AReturnStatement cfaObjectReturn = astCreator.getConstructorObjectReturn(declaration);
+
+        // If return expression is function
+        prevNode = handleSideassignments(prevNode, declaration.toString(), fileloc.getStartingLineNumber());
+
+
         //TODO toString() not allowed
         AReturnStatementEdge edge = new AReturnStatementEdge("",
-            astCreator.getConstructorObjectReturn(declaration), fileloc.getStartingLineNumber(), prevNode, functionExitNode);
+         cfaObjectReturn , fileloc.getStartingLineNumber(), prevNode, functionExitNode);
         addToCFA(edge);
 
         CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(),
             cfa.getFunctionName());
         cfaNodes.add(nextNode);
         locStack.push(nextNode);
-
       }
 
 
@@ -444,13 +463,11 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   @Override
   public void  endVisit(Block bl) {
-    // TODO This works if else is a Block (else {Statement})
-    // , but not if it has just one statement (else Statement)
+    // This works if else is a Block (else {Statement})
+    // ,but not if it has just one statement (else Statement)
     // In that case, every Statement needs to be visited
     // and handleElsoCondition be implemented.
     scope.leaveBlock();
-
-
   }
 
 
@@ -518,7 +535,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
 
    // Handle special condition for else
-   // TODO Ask why == works, but not equals
+   // TODO Investigate why == works, but not equals
    if (node.getLocationInParent() == IfStatement.ELSE_STATEMENT_PROPERTY) {
      // Edge from current location to post if-statement location
      CFANode prevNode = locStack.pop();
@@ -1494,7 +1511,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     handleElseCondition(breakStatement);
 
-    //TODO Check Validity of Break Statement
+    //TODO Check Correctness of Break Statement
 
     if(breakStatement.getLabel() == null ){
       handleBreakStatement(breakStatement);
@@ -1585,13 +1602,23 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFileLocation fileloc = astCreator.getFileLocation(returnStatement);
 
     CFANode prevNode = locStack.pop();
+
+
     FunctionExitNode functionExitNode = cfa.getExitNode();
 
 
-    //TODO toString() not allowed
+
+    AReturnStatement cfaReturnStatement = astCreator.convert(returnStatement);
+
+    // If return expression is function
+    prevNode = handleSideassignments(prevNode, returnStatement.toString(), fileloc.getStartingLineNumber());
+
+
     AReturnStatementEdge edge = new AReturnStatementEdge(returnStatement.toString(),
-        astCreator.convert(returnStatement), fileloc.getStartingLineNumber(), prevNode, functionExitNode);
+        cfaReturnStatement , fileloc.getStartingLineNumber(), prevNode, functionExitNode);
     addToCFA(edge);
+
+
 
     CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(),
         cfa.getFunctionName());

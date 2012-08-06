@@ -105,6 +105,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanzeCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
@@ -129,9 +130,9 @@ public class ASTConverter {
 
   private static final boolean NOT_GLOBAL = false;
 
-  private static final boolean NOT_STATIC = false;
-
   private static final boolean GLOBAL = true;
+
+  private static final boolean NOT_FINAL = false;
 
   private final LogManager logger;
 
@@ -223,13 +224,13 @@ public class ASTConverter {
     StringBuilder name;
 
     if(binding.getName().equals("main")){
-      name = new StringBuilder(binding.getName());
+      name = new StringBuilder(binding.getName().replace('.', '_'));
     } else {
-      name = new StringBuilder((binding.getDeclaringClass().getQualifiedName() + "_" + binding.getName()).replace('.', '_'));
+      name = new StringBuilder((binding.getDeclaringClass().getQualifiedName().replace('.', '_') + "_" + binding.getName()).replace('.', '_'));
       ITypeBinding[] parameterTypes = binding.getParameterTypes();
       String[] typeNames = new String[parameterTypes.length];
       for(int c = 0; c < parameterTypes.length; c++) {
-        typeNames[c] = parameterTypes[c].getQualifiedName();
+        typeNames[c] = parameterTypes[c].getQualifiedName().replace('.', '_');
       }
 
 
@@ -264,14 +265,14 @@ public class ASTConverter {
     ITypeBinding binding = t.resolveBinding();
     ModifierBean mB = ModifierBean.getModifiers(binding);
 
-    return new JClassType(binding.getQualifiedName(), mB.visibility, mB.isFinal, mB.isAbstract, mB.isStrictFp);
+    return new JClassType(binding.getQualifiedName().replace('.', '_'), mB.visibility, mB.isFinal, mB.isAbstract, mB.isStrictFp);
   }
 
   private JClassType convert(SimpleType t) {
     ITypeBinding binding = t.resolveBinding();
     ModifierBean mB = ModifierBean.getModifiers(binding);
 
-    return new JClassType(binding.getQualifiedName(), mB.visibility, mB.isFinal, mB.isAbstract, mB.isStrictFp);
+    return new JClassType(binding.getQualifiedName().replace('.', '_'), mB.visibility, mB.isFinal, mB.isAbstract, mB.isStrictFp);
   }
 
   private JType convert(ITypeBinding t) {
@@ -285,7 +286,7 @@ public class ASTConverter {
 
       ModifierBean mB = ModifierBean.getModifiers(t);
 
-      return new JClassType(t.getQualifiedName(), mB.getVisibility(), mB.isFinal, mB.isAbstract, mB.isStrictFp);
+      return new JClassType(t.getQualifiedName().replace('.', '_'), mB.getVisibility(), mB.isFinal, mB.isAbstract, mB.isStrictFp);
     }
 
     assert false : "Could Not Find Type";
@@ -328,17 +329,8 @@ public class ASTConverter {
 
   private  JSimpleType convert(final PrimitiveType t) {
 
-
-
-
         PrimitiveType.Code primitiveTypeName = t.getPrimitiveTypeCode();
-
-
-        //TODO refactor SimpleDeclSpecifier for Information in Java
-        //  Object is instantiated here, but filled with modifier Information later
-        // to make the above functions more common
         return new JSimpleType(convertPrimitiveType(primitiveTypeName.toString()));
-
   }
 
   private JBasicType convertPrimitiveType(String primitiveTypeName) {
@@ -381,7 +373,7 @@ public class ASTConverter {
 
     org.sosy_lab.cpachecker.cfa.types.Type type = convert(p.getType());
 
-    return new AParameterDeclaration(getFileLocation(p), type, p.getName().getFullyQualifiedName());
+    return new AParameterDeclaration(getFileLocation(p), type, p.getName().getFullyQualifiedName().replace('.', '_'));
   }
 
 
@@ -409,7 +401,7 @@ public class ASTConverter {
       Triple<String , String , AInitializerExpression> nameAndInitializer = getNamesAndInitializer(vdf);
 
 
-      result.add( new JVariableDeclaration(fileLoc, GLOBAL,
+      result.add( new JFieldDeclaration(fileLoc, GLOBAL,
           convert(type) ,    nameAndInitializer.getFirst().replace('.', '.') ,nameAndInitializer.getSecond().replace('.', '.'),
              nameAndInitializer.getThird(),  mB.isFinal, mB.isStatic, mB.isTransient, mB.isVolatile , mB.getVisibility()));
 
@@ -703,7 +695,7 @@ public class ASTConverter {
       Triple<String , String , AInitializerExpression> nameAndInitializer = getNamesAndInitializer(vdf);
 
         variableDeclarations.add( new JVariableDeclaration(fileLoc, NOT_GLOBAL,
-            convert(type) ,    nameAndInitializer.getFirst() ,nameAndInitializer.getSecond()   , nameAndInitializer.getThird() ,  mB.isFinal , NOT_STATIC , mB.isTransient , mB.isVolatile));
+            convert(type) ,    nameAndInitializer.getFirst() ,nameAndInitializer.getSecond()   , nameAndInitializer.getThird() ,  mB.isFinal));
     }
 
     return variableDeclarations;
@@ -735,8 +727,8 @@ public class ASTConverter {
     }
 
     return new JVariableDeclaration(getFileLocation(d), NOT_GLOBAL,
-        convert(type), d.getName().getFullyQualifiedName(), d.getName().getFullyQualifiedName(), initializerExpression,
-        mB.isFinal, NOT_STATIC, mB.isTransient, mB.isVolatile);
+        convert(type), d.getName().getFullyQualifiedName().replace('.', '_'), d.getName().getFullyQualifiedName().replace('.', '_'), initializerExpression,
+        mB.isFinal);
   }
 
 
@@ -786,11 +778,11 @@ public class ASTConverter {
     name += i;
 
     JVariableDeclaration decl = new JVariableDeclaration(getFileLocation(e),
-                                               false,
+                                               NOT_GLOBAL,
                                                convert(e.resolveTypeBinding()),
                                                name,
                                                name,
-                                               null, false, false, false, false);
+                                               null, NOT_FINAL);
 
     scope.registerDeclaration(decl);
     preSideAssignments.add(decl);
@@ -854,8 +846,7 @@ public class ASTConverter {
        case ASTNode.BOOLEAN_LITERAL:
          return convert((BooleanLiteral) e);
        case ASTNode.FIELD_ACCESS:
-                scope.registerClasses( ((FieldAccess) e).resolveFieldBinding().getDeclaringClass());
-         return convertExpressionWithoutSideEffects(((FieldAccess) e).getExpression());
+        return  convert((FieldAccess) e);
        case ASTNode.SIMPLE_NAME:
          return convert((SimpleName) e);
        case ASTNode.PARENTHESIZED_EXPRESSION:
@@ -872,13 +863,26 @@ public class ASTConverter {
          return convert((ArrayInitializer)e);
        case ASTNode.CONDITIONAL_EXPRESSION :
          return convert( (ConditionalExpression)e);
+       case ASTNode.THIS_EXPRESSION:
+         assert false : "Expression must be handled in parent node"; return null;
     }
 
        logger.log(Level.SEVERE, "Expression of typ "+  AstErrorChecker.getTypeName(e.getNodeType()) + " not implemented");
        return null;
   }
 
+  private IAstNode convert(FieldAccess e) {
+    scope.registerClasses(e.resolveFieldBinding().getDeclaringClass());
 
+    // This Expression can be ignored, is solved through resolve Binding
+    // and does'nt need to be included in the cfa
+    if(e.getExpression().getNodeType() == ASTNode.THIS_EXPRESSION){
+      return convertExpressionWithoutSideEffects(e.getName());
+    } else {
+      return convertExpressionWithoutSideEffects(e.getExpression());
+    }
+
+  }
 
   private IAstNode convert(ClassInstanceCreation cIC) {
 
@@ -902,16 +906,8 @@ public class ASTConverter {
     JConstructorDeclaration declaration = (JConstructorDeclaration) scope.lookupFunction(name);
 
     //TODO Investigate if type Right
-    IAExpression functionName = new AIdExpression(getFileLocation(cIC), convert(cIC.resolveTypeBinding()),
-     name  ,  declaration);
-
-
-
-      AIdExpression idExpression = (AIdExpression)functionName;
-      //String name = idExpression.getName();
-
-
-
+    IAExpression functionName = new AIdExpression(getFileLocation(cIC), convert(cIC.resolveTypeBinding()), name,  declaration);
+    AIdExpression idExpression = (AIdExpression)functionName;
 
       if (idExpression.getDeclaration() != null) {
         // clone idExpression because the declaration in it is wrong
@@ -922,10 +918,7 @@ public class ASTConverter {
       }
 
 
-    return new JClassInstanzeCreation(getFileLocation(cIC),declaration.getType() , (JExpression) functionName, params, declaration);
-
-
-
+    return new JClassInstanzeCreation(getFileLocation(cIC),null , (JExpression) functionName, params, declaration);
   }
 
   private IAstNode convert(ConditionalExpression e) {
@@ -1002,7 +995,7 @@ public class ASTConverter {
     if(e.resolveBinding() instanceof IMethodBinding ){
       name = (((IMethodBinding) e.resolveBinding()).getDeclaringClass().getQualifiedName() + "_" + e.resolveBinding().getName()).replace('.', '_');
     } else {
-      name = e.getFullyQualifiedName();
+      name = e.getFullyQualifiedName().replace('.', '_');
        declaration = scope.lookupVariable(name);
 
     }
@@ -1481,7 +1474,7 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
 
     JClassType objectReturnType = (JClassType) convert(constructor.resolveBinding().getDeclaringClass());
 
-    //TODO Ugly, change IAExpression, maybe complete new Type for Object return
+    //TODO Ugly, change AStringLiteral, maybe complete new Type for Object return
     return new JObjectReferenceReturn(fileloc, new AStringLiteralExpression(fileloc, objectReturnType, objectReturnType.getName()), objectReturnType);
   }
 }

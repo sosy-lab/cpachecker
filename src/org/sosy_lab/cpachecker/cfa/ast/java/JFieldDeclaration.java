@@ -23,25 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-public class JVariableDeclaration extends AVariableDeclaration {
+public class JFieldDeclaration extends JVariableDeclaration {
+
+  private final VisibilityModifier visibility;
+  private final boolean isStatic;
+  private final boolean isTransient;
+  private final boolean isVolatile;
 
 
-  private final boolean isFinal;
+  public JFieldDeclaration(CFileLocation pFileLocation, boolean pIsGlobal, JType pType, String pName, String pOrigName,
+      CInitializer pInitializer, boolean pIsFinal, boolean pIsStatic, boolean pIsTransient, boolean pIsVolatile,
+      VisibilityModifier pVisibility) {
+    super(pFileLocation, pIsGlobal, pType, pName, pOrigName, pInitializer, pIsFinal);
 
+    isTransient = pIsTransient;
+    isVolatile =  pIsVolatile;
+    isStatic = pIsStatic;
+    visibility = pVisibility;
 
-
-
-  public JVariableDeclaration(CFileLocation pFileLocation, boolean pIsGlobal, JType pType, String pName,
-      String pOrigName, CInitializer pInitializer, boolean pIsFinal) {
-    super(pFileLocation, pIsGlobal, pType, pName, pOrigName, pInitializer);
-
-    isFinal = pIsFinal;
   }
 
 
@@ -50,8 +54,16 @@ public class JVariableDeclaration extends AVariableDeclaration {
   public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
 
-    if(isFinal){
+    if(visibility != null){
+    lASTString.append(visibility.getModifierString() + " ");
+    }
+
+    if(isFinal()){
     lASTString.append("final ");
+    }
+
+    if(isStatic){
+    lASTString.append("static ");
     }
 
     lASTString.append(getType().toASTString(getName()));
@@ -65,7 +77,20 @@ public class JVariableDeclaration extends AVariableDeclaration {
     return lASTString.toString();
   }
 
-  public boolean isFinal() {
-    return isFinal;
+  public boolean isStatic() {
+    return isStatic;
   }
+
+  public boolean isTransient() {
+    return isTransient;
+  }
+
+  public boolean isVolatile() {
+    return isVolatile;
+  }
+
+  public VisibilityModifier getVisibility(){
+    return visibility;
+  }
+
 }

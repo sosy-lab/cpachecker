@@ -20,14 +20,19 @@ public class FunctionCall {
     n = teile(n ,n);
     Function3.setValue(1);
     assert(n == Function3.getValue());
-	  
-    
-    
-	  
+	   
 	}
 	
 	public static int teile(int op , int op2) {
 	  return op / op2;            
-	}   
+	}
+	
+	public static int teileRec(int op , int op2) {
+	  int n2 = 4;
+	  
+	  int n6 = 55;
+	  
+	  return teile(op , op2);            
+	}
 	
 }

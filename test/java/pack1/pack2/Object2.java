@@ -5,14 +5,25 @@ package pack1.pack2;
 
 public class Object2 {
 
-
+  static int idGenerator = 0;
+  int id = 0;
   
-  public static void main(
-      String[] args) { 
-    
-
-    
-    
+  public Object2(){
+    id = idGenerator;
+    idGenerator++;
   }
+  
+  public Object2(int id , int n1 , int n3 , int name){
+    this.id = id;
+    this.id = n1;
+    
+    id = idGenerator;
+    idGenerator++;
+  }
+  
+  
+  public int getId(){
+    return id;
+  }  
   
 }

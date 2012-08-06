@@ -36,9 +36,8 @@ import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
@@ -67,8 +66,9 @@ class CFABuilder extends ASTVisitor {
   private final Map<String, FunctionEntryNode> cfas = new HashMap<String, FunctionEntryNode>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
-  // Data structure for storing global declarations
-  private final List<Pair<IADeclaration, String>> globalDeclarations = Lists.newArrayList();
+  // Data structure for storing static and nonStatic field declarations
+  private final List<Pair<IADeclaration, String>> staticFieldDeclarations = Lists.newArrayList();
+  private final List<Pair<IADeclaration, String>> nonStaticFieldDeclarations = Lists.newArrayList();
 
 
 
@@ -112,7 +112,7 @@ class CFABuilder extends ASTVisitor {
    * @return global declarations
    */
   public List<Pair<IADeclaration, String>> getGlobalDeclarations() {
-    return globalDeclarations;
+    return staticFieldDeclarations;
   }
 
 
@@ -142,7 +142,7 @@ class CFABuilder extends ASTVisitor {
         throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
       }
 
-      globalDeclarations.add(Pair.of(functionDefinition, "What is that" + " " + "What is that"));
+      staticFieldDeclarations.add(Pair.of(functionDefinition, "What is that" + " " + "What is that"));
 
       return SKIP_CHILDREN;
 
@@ -151,33 +151,33 @@ class CFABuilder extends ASTVisitor {
   @Override
   public boolean visit(FieldDeclaration fd) {
 
-    final List<IADeclaration> newDs = astCreator.convert(fd);
-    assert !newDs.isEmpty();
 
-    if (astCreator.numberOfPreSideAssignments() > 0) {
-      throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", fd);
-    }
+      final List<IADeclaration> newDs = astCreator.convert(fd);
+      assert !newDs.isEmpty();
 
-    String rawSignature = fd.toString();
+      if (astCreator.numberOfPreSideAssignments() > 0) { throw new CFAGenerationRuntimeException(
+          "Initializer of global variable has side effect", fd); }
 
-    for (IADeclaration newD : newDs) {
-      if (newD instanceof AVariableDeclaration) {
-        scope.registerDeclaration(newD);
-      } else if (newD instanceof AFunctionDeclaration) {
-        scope.registerFunctionDeclaration((AFunctionDeclaration) newD);
+      String rawSignature = fd.toString();
+
+      // static field are declared when a class is loaded
+      // non static fields are declared when an object is created
+      for (IADeclaration newD : newDs) {
+        if( ((JFieldDeclaration) newD).isStatic()){
+          staticFieldDeclarations.add(Pair.of(newD, rawSignature));
+        }else {
+          nonStaticFieldDeclarations.add(Pair.of(newD , rawSignature));
+        }
       }
 
-      globalDeclarations.add(Pair.of(newD, rawSignature));
-    }
-
     return SKIP_CHILDREN;
-}
+  }
 
   @Override
   public void endVisit(CompilationUnit translationUnit) {
     for (MethodDeclaration declaration : functionDeclarations) {
       CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, ignoreCasts,
-          scope, astCreator);
+          scope, astCreator, nonStaticFieldDeclarations);
 
       declaration.accept(functionBuilder);
 

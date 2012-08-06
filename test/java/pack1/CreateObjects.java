@@ -1,7 +1,8 @@
 package pack1; 
   
 
-
+import pack1.pack2.Object2;
+import pack3.Object3;
 
 public class CreateObjects {
 
@@ -40,12 +41,17 @@ public class CreateObjects {
 	public static void main(
 			String[] args) { 
 	  
-	  CreateObjects object1 = new CreateObjects( 2);
-	   CreateObjects object3 = new CreateObjects();
-	  CreateObjects object2 = new CreateObjects( 2 , 7);
-
 	  
-	  assert object1.compare() ;	 	  
+	  CreateObjects object1 = new CreateObjects( 2);
+	  
+	  CreateObjects object3 = new CreateObjects();
+	  CreateObjects object2 = new CreateObjects( 2 , 7);
+	  Object2 object4 = new Object2();
+	  Object3 object5 = new Object3(2 ,3 ,5 , "bam");
+	  Object1 object6 = object5.createAnotherObject(object4);
+	  
+	  
+	  assert object1.compare();	 	  
 	}
 	
 }

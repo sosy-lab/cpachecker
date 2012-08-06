@@ -43,7 +43,7 @@ public class JClassType implements JReferenceType {
     isAbstract = pIsAbstract;
     strictFp = pStrictFp;
 
-     assert !isFinal && !isAbstract : "Classes can't be abstract and final";
+     assert !isFinal || !isAbstract : "Classes can't be abstract and final";
      assert (visibility != VisibilityModifier.PRIVATE) || (visibility != VisibilityModifier.PROTECTED) : " Classes can't be private or protected";
 
   }
