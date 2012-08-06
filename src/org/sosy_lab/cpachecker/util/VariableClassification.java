@@ -140,7 +140,7 @@ public class VariableClassification {
 
       // add last vars to dependencies,
       // this allows to get partitions for all vars,
-      // otherwies only dependent vars are in the partitions
+      // otherwise only dependent vars are in the partitions
       for (Entry<String, String> var : allVars.entries()) {
         dependencies.addVar(var.getKey(), var.getValue());
       }
@@ -282,7 +282,7 @@ public class VariableClassification {
       dependencies.addAll(dep, dcv.getValues(), edge, 0);
 
       exp.accept(new BoolCollectingVisitor(pre));
-      exp.accept(new NumberCollectingVisitor(pre));
+      exp.accept(new NumberCollectingVisitor(pre, false));
       exp.accept(new IncCollectingVisitor(pre));
 
       break;
@@ -429,7 +429,7 @@ public class VariableClassification {
     Multimap<String, String> possibleBoolean = exp.accept(bcv);
     handleResult(varName, function, possibleBoolean, nonBooleanVars);
 
-    NumberCollectingVisitor ncv = new NumberCollectingVisitor(pre);
+    NumberCollectingVisitor ncv = new NumberCollectingVisitor(pre, true);
     Multimap<String, String> possibleNumbers = exp.accept(ncv);
     handleResult(varName, function, possibleNumbers, nonSimpleNumberVars);
 
@@ -456,6 +456,49 @@ public class VariableClassification {
       if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
     }
     return false;
+  }
+
+  /** returns the var of a (nested) IntegerLiteralExpression
+   * or null for anything else. */
+  private BigInteger getNumber(CExpression exp) {
+    if (exp instanceof CIntegerLiteralExpression) {
+      return ((CIntegerLiteralExpression) exp).getValue();
+
+    } else if (exp instanceof CUnaryExpression) {
+      CUnaryExpression unExp = (CUnaryExpression) exp;
+      switch (unExp.getOperator()) {
+      case PLUS:
+        return getNumber(unExp.getOperand());
+      case MINUS:
+        return BigInteger.ZERO.subtract(getNumber(unExp.getOperand()));
+      default:
+        return null;
+      }
+
+    } else if (exp instanceof CCastExpression) {
+      return getNumber(((CCastExpression) exp).getOperand());
+
+    } else {
+      return null;
+    }
+  }
+
+  /** returns true, if the expression contains a casted or negated binaryExpression. */
+  private boolean isNestedBinaryExp(CExpression exp) {
+    if (exp instanceof CBinaryExpression) {
+      return true;
+
+    } else if (exp instanceof CUnaryExpression) {
+      CUnaryExpression unExp = (CUnaryExpression) exp;
+      return (UnaryOperator.NOT == unExp.getOperator()) &&
+          isNestedBinaryExp(unExp.getOperand());
+
+    } else if (exp instanceof CCastExpression) {
+      return isNestedBinaryExp(((CCastExpression) exp).getOperand());
+
+    } else {
+      return false;
+    }
   }
 
   @Override
@@ -496,8 +539,28 @@ public class VariableClassification {
 
     @Override
     public Multimap<String, String> visit(CBinaryExpression exp) throws NullPointerException {
-      Multimap<String, String> operand1 = exp.getOperand1().accept(this);
-      Multimap<String, String> operand2 = exp.getOperand2().accept(this);
+
+      // for numeral values
+      BigInteger val1 = getNumber(exp.getOperand1());
+      Multimap<String, String> operand1;
+      if (val1 == null) {
+        operand1 = exp.getOperand1().accept(this);
+      } else {
+        values.add(val1);
+        operand1 = null;
+      }
+
+      // for numeral values
+      BigInteger val2 = getNumber(exp.getOperand1());
+      Multimap<String, String> operand2;
+      if (val2 == null) {
+        operand2 = exp.getOperand2().accept(this);
+      } else {
+        values.add(val2);
+        operand2 = null;
+      }
+
+      // handle vars from operands
       if (operand1 == null) {
         return operand2;
       } else if (operand2 == null) {
@@ -510,7 +573,13 @@ public class VariableClassification {
 
     @Override
     public Multimap<String, String> visit(CCastExpression exp) throws NullPointerException {
-      return exp.getOperand().accept(this);
+      BigInteger val = getNumber(exp.getOperand());
+      if (val == null) {
+        return exp.getOperand().accept(this);
+      } else {
+        values.add(val);
+        return null;
+      }
     }
 
     @Override
@@ -559,7 +628,13 @@ public class VariableClassification {
 
     @Override
     public Multimap<String, String> visit(CUnaryExpression exp) {
-      return exp.getOperand().accept(this);
+      BigInteger val = getNumber(exp);
+      if (val == null) {
+        return exp.getOperand().accept(this);
+      } else {
+        values.add(val);
+        return null;
+      }
     }
   }
 
@@ -640,16 +715,47 @@ public class VariableClassification {
    * - a collection, if the expression is a number, unaryExp, == or != */
   private class NumberCollectingVisitor extends DependencyCollectingVisitor {
 
-    public NumberCollectingVisitor(CFANode pre) {
+    /** this flag only allows vars and values, no calculations */
+    private boolean onlyOneExp;
+
+    public NumberCollectingVisitor(CFANode pre, boolean onlyOneExp) {
       super(pre);
+      this.onlyOneExp = onlyOneExp;
+    }
+
+    @Override
+    public Multimap<String, String> visit(CCastExpression exp) throws NullPointerException {
+      BigInteger val = getNumber(exp.getOperand());
+      if (val == null) {
+        return exp.getOperand().accept(this);
+      } else {
+        return HashMultimap.create(0, 0);
+      }
     }
 
     @Override
     public Multimap<String, String> visit(CBinaryExpression exp) throws NullPointerException {
-      Multimap<String, String> operand1 = exp.getOperand1().accept(this);
-      Multimap<String, String> operand2 = exp.getOperand2().accept(this);
 
-      if (operand1 == null || operand2 == null) { // a+0.2 --> no simple number
+      // for numeral values
+      BigInteger val1 = getNumber(exp.getOperand1());
+      Multimap<String, String> operand1;
+      if (val1 == null) {
+        operand1 = exp.getOperand1().accept(this);
+      } else {
+        operand1 = null;
+      }
+
+      // for numeral values
+      BigInteger val2 = getNumber(exp.getOperand1());
+      Multimap<String, String> operand2;
+      if (val2 == null) {
+        operand2 = exp.getOperand2().accept(this);
+      } else {
+        operand2 = null;
+      }
+
+      // handle vars from operands
+      if (onlyOneExp || operand1 == null || operand2 == null) { // a+0.2 --> no simple number
         if (operand1 != null) {
           nonSimpleNumberVars.putAll(operand1);
         }
@@ -680,14 +786,22 @@ public class VariableClassification {
 
     @Override
     public Multimap<String, String> visit(CUnaryExpression exp) throws NullPointerException {
-      Multimap<String, String> inner = exp.getOperand().accept(this);
 
+      // if exp is numeral
+      BigInteger val = getNumber(exp);
+      if (val != null) { return HashMultimap.create(0, 0); }
+
+      // if exp is binary expression
+      Multimap<String, String> inner = exp.getOperand().accept(this);
+      if (isNestedBinaryExp(exp)) { return inner; }
+
+      // if exp is unknown
       if (inner == null) { return null; }
 
+      // if exp is a simple var
       switch (exp.getOperator()) {
-      case PLUS: // simple calculations, no usage of another param
+      case PLUS: // this is no calculation, no usage of another param
         return inner;
-      case MINUS: // -X is equal to 0-X, so this is a calculation
       default: // *, ~, etc --> not numeral
         nonSimpleNumberVars.putAll(inner);
         return null;
@@ -937,6 +1051,7 @@ public class VariableClassification {
       String varName = entry.getValue();
 
       // first add th single var
+      allVars.put(function, varName);
       addVar(function, varName);
 
       // then add all other vars, they are dependent from the first var
