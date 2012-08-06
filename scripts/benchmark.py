@@ -1955,7 +1955,7 @@ from the output of this script.""")
 
     global options, OUTPUT_PATH
     (options, args) = parser.parse_args(argv)
-    OUTPUT_PATH = options.output_path
+    OUTPUT_PATH = os.path.normpath(options.output_path) + os.sep
     
     if len(args) < 2:
         parser.error("invalid number of arguments")
