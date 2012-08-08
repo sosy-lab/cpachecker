@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -343,7 +344,7 @@ public class VariableClassification {
       break;
     }
 
-    case FunctionCallEdge:
+    case FunctionCallEdge: {
       CFunctionCallEdge functionCall = (CFunctionCallEdge) edge;
 
       // overtake arguments from last functioncall into function,
@@ -365,6 +366,8 @@ public class VariableClassification {
       // create dependency for functionreturn
       CFunctionSummaryEdge func = functionCall.getSummaryEdge();
       CStatement statement = func.getExpression().asStatement();
+
+      // a=f();
       if (statement instanceof CFunctionCallAssignmentStatement) {
         CFunctionCallAssignmentStatement call = (CFunctionCallAssignmentStatement) statement;
         CExpression lhs = call.getLeftHandSide();
@@ -373,13 +376,20 @@ public class VariableClassification {
         allVars.put(innerFunctionName, FUNCTION_RETURN_VARIABLE);
         dependencies.add(innerFunctionName, FUNCTION_RETURN_VARIABLE, function, varName);
 
+        // f(); without assignment
       } else if (statement instanceof CFunctionCallStatement) {
-        // f(x); we can ignore it, there is no dependency
+        dependencies.addVar(innerFunctionName, FUNCTION_RETURN_VARIABLE);
+        Partition partition = getPartitionForVar(innerFunctionName, FUNCTION_RETURN_VARIABLE);
+        partition.addEdge(edge, 0);
       }
       break;
+    }
 
     case FunctionReturnEdge: {
-      // TODO does this edge appear? see statementEdge for functioncalls.
+      String innerFunctionName = ((CFunctionReturnEdge) edge).getPredecessor().getFunctionName();
+      dependencies.addVar(innerFunctionName, FUNCTION_RETURN_VARIABLE);
+      Partition partition = getPartitionForVar(innerFunctionName, FUNCTION_RETURN_VARIABLE);
+      partition.addEdge(edge, 0);
       break;
     }
 
