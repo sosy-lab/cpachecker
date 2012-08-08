@@ -330,8 +330,9 @@ public class BDDVectorTransferRelation implements TransferRelation {
             if (initPartitions) {
               tmpVarName = varsToTmpVar.get(varClass.getPartitionForVar(function, varName).getVars());
             } else {
-              tmpVarName = TMP_VARIABLE;
+              tmpVarName = varsToTmpVar.get(varClass.getAllVars());
             }
+            assert tmpVarName != null;
 
             Partition partition = varClass.getPartitionForEdge(cfaEdge);
             if (varClass.getBooleanPartitions().contains(partition)) {
