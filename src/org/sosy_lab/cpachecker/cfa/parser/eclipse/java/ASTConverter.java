@@ -77,7 +77,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
@@ -97,10 +96,11 @@ import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanzeCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
@@ -917,8 +917,16 @@ public class ASTConverter {
         functionName = new AIdExpression(idExpression.getFileLocation(), idExpression.getExpressionType(), name, declaration);
       }
 
+      JConstructorType type = null;
 
-    return new JClassInstanzeCreation(getFileLocation(cIC),null , (JExpression) functionName, params, declaration);
+      if(declaration != null){
+        type = declaration.getType();
+      } else {
+        type = new JConstructorType((JClassType) convert(cIC.resolveTypeBinding()),  new ArrayList<AParameterDeclaration>() , cIC.resolveConstructorBinding().isVarargs());
+      }
+
+//TODO getDeclaration somehow (Needs to be done after everything is parsed)
+    return new JClassInstanzeCreation(getFileLocation(cIC), type , (JExpression) functionName, params, declaration);
   }
 
   private IAstNode convert(ConditionalExpression e) {
@@ -1082,8 +1090,8 @@ public class ASTConverter {
   private IAstNode convert(Assignment e) {
 
     CFileLocation fileLoc = getFileLocation(e);
-    org.sosy_lab.cpachecker.cfa.types.Type type = convert(e.resolveTypeBinding());
-    IAExpression leftHandSide = convertExpressionWithoutSideEffects(e.getLeftHandSide());
+    JType type = convert(e.resolveTypeBinding());
+    JExpression leftHandSide = convertExpressionWithoutSideEffects(e.getLeftHandSide());
 
     BinaryOperator op = convert(e.getOperator());
 
@@ -1092,7 +1100,7 @@ public class ASTConverter {
       IAstNode rightHandSide =  convertExpressionWithSideEffects(e.getRightHandSide()); // right-hand side may have a function call
 
 
-      if (rightHandSide instanceof IAExpression) {
+      if (rightHandSide instanceof JExpression) {
         // a = b
         return new AExpressionAssignmentStatement(fileLoc, leftHandSide, (IAExpression)rightHandSide);
 
@@ -1110,10 +1118,10 @@ public class ASTConverter {
 
     } else {
       // a += b etc.
-      IAExpression rightHandSide = convertExpressionWithoutSideEffects(e.getRightHandSide());
+      JExpression rightHandSide = convertExpressionWithoutSideEffects(e.getRightHandSide());
 
       // first create expression "a + b"
-      ABinaryExpression exp = new ABinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
+      JBinaryExpression exp = new JBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
 
       // and now the assignment
       return new AExpressionAssignmentStatement(fileLoc, leftHandSide, exp);
@@ -1124,7 +1132,6 @@ public class ASTConverter {
   private BinaryOperator convert(Assignment.Operator op) {
 
 
-    //TODO implement eager operator Needs own class (Do enums  work here?)
     if(op.equals(Assignment.Operator.ASSIGN)){
       return null;
     } else if (op.equals(Assignment.Operator.BIT_AND_ASSIGN)) {
@@ -1138,7 +1145,9 @@ public class ASTConverter {
     }else if (op.equals(Assignment.Operator.LEFT_SHIFT_ASSIGN)) {
       return BinaryOperator.SHIFT_LEFT;
     } else if (op.equals(Assignment.Operator.RIGHT_SHIFT_SIGNED_ASSIGN)) {
-      return BinaryOperator.SHIFT_RIGHT;
+      return BinaryOperator.SHIFT_RIGHT_SIGNED;
+    } else if (op.equals(Assignment.Operator.RIGHT_SHIFT_UNSIGNED_ASSIGN)) {
+      return BinaryOperator.SHIFT_RIGHT_UNSIGNED;
     } else if (op.equals(Assignment.Operator.MINUS_ASSIGN)) {
       return BinaryOperator.MINUS;
     } else if (op.equals(Assignment.Operator.PLUS_ASSIGN)) {
@@ -1200,10 +1209,10 @@ public class ASTConverter {
 
       CFileLocation fileLoc = getFileLocation(e);
       JType type = convert(e.resolveTypeBinding());
-      IAExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+      JExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
 
-      IAExpression preOne = new JIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
-      ABinaryExpression preExp = new ABinaryExpression(fileLoc, type, operand, preOne, postOp);
+      JExpression preOne = new JIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
+      JBinaryExpression preExp = new JBinaryExpression(fileLoc, type, operand, preOne, postOp);
       return new AExpressionAssignmentStatement(fileLoc, operand, preExp);
     }
   }
@@ -1227,10 +1236,10 @@ public class ASTConverter {
 
       CFileLocation fileLoc = getFileLocation(e);
       JType type = convert(e.resolveTypeBinding());
-      IAExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+      JExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
 
-      IAExpression preOne = new JIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
-      ABinaryExpression preExp = new ABinaryExpression(fileLoc, type, operand, preOne, preOp);
+      JExpression preOne = new JIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
+      JBinaryExpression preExp = new JBinaryExpression(fileLoc, type, operand, preOne, preOp);
       return new AExpressionAssignmentStatement(fileLoc, operand, preExp);
     }
   }
@@ -1240,7 +1249,7 @@ public class ASTConverter {
 
 private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
 
-  //TODO implement eager operator Needs own class (Do enums  work here?)
+
   if(op.equals(PrefixExpression.Operator.NOT)){
     return UnaryOperator.NOT;
   } else if (op.equals(PrefixExpression.Operator.PLUS)) {
@@ -1259,14 +1268,14 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
   @SuppressWarnings("unchecked")
   private IAExpression convert(InfixExpression e) {
     CFileLocation fileLoc = getFileLocation(e);
-    org.sosy_lab.cpachecker.cfa.types.Type type = convert(e.resolveTypeBinding());
-    IAExpression leftHandSide = convertExpressionWithoutSideEffects(e.getLeftOperand());
+    JType type = convert(e.resolveTypeBinding());
+    JExpression leftHandSide = convertExpressionWithoutSideEffects(e.getLeftOperand());
 
     BinaryOperator op =   convertBinaryOperator(e.getOperator());
 
-    IAExpression rightHandSide = convertExpressionWithoutSideEffects(e.getRightOperand());
+    JExpression rightHandSide = convertExpressionWithoutSideEffects(e.getRightOperand());
 
-    IAExpression binaryExpression = new ABinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
+    JExpression binaryExpression = new JBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
 
     //TODO Here we could translate the Idea of extended Operands
     //Maybe change tree Structure
@@ -1274,7 +1283,7 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
     // a x b x c is being translated to (((a x b) x c) x d)
     if (e.hasExtendedOperands()) {
       for (Expression extendedOperand : (List<Expression>) e.extendedOperands()) {
-        binaryExpression = new ABinaryExpression(fileLoc, type, binaryExpression,
+        binaryExpression = new JBinaryExpression(fileLoc, type, binaryExpression,
                                                  convertExpressionWithoutSideEffects(extendedOperand), op);
       }
     }
@@ -1312,7 +1321,9 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
     } else if (op.equals(InfixExpression.Operator.LEFT_SHIFT)) {
       return BinaryOperator.SHIFT_LEFT;
     } else if (op.equals(InfixExpression.Operator.RIGHT_SHIFT_SIGNED)) {
-      return BinaryOperator.SHIFT_RIGHT;
+      return BinaryOperator.SHIFT_RIGHT_SIGNED;
+    } else if (op.equals(InfixExpression.Operator.RIGHT_SHIFT_UNSIGNED)) {
+      return BinaryOperator.SHIFT_RIGHT_UNSIGNED;
     } else if(op.equals(InfixExpression.Operator.NOT_EQUALS)){
      return BinaryOperator.NOT_EQUALS;
     } else {
@@ -1431,8 +1442,8 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
 
     JExpression exp = convertExpressionWithoutSideEffects(e);
     if (!isBooleanExpression(exp)) {
-      IAExpression zero = new JBooleanLiteralExpression(exp.getFileLocation(), (JType) exp.getExpressionType(), false);
-      return new ABinaryExpression(exp.getFileLocation(), exp.getExpressionType(), exp, zero, BinaryOperator.NOT_EQUALS);
+      JExpression zero = new JBooleanLiteralExpression(exp.getFileLocation(), (JType) exp.getExpressionType(), false);
+      return new JBinaryExpression(exp.getFileLocation(), (JType) exp.getExpressionType(), exp, zero, BinaryOperator.NOT_EQUALS);
     }
 
     return exp;
@@ -1451,8 +1462,8 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
   private static final int NO_LINE = 0;
 
   private boolean isBooleanExpression(IAExpression e) {
-    if (e instanceof ABinaryExpression) {
-      return BOOLEAN_BINARY_OPERATORS.contains(((ABinaryExpression)e).getOperator());
+    if (e instanceof JBinaryExpression) {
+      return BOOLEAN_BINARY_OPERATORS.contains(((JBinaryExpression)e).getOperator());
 
     } else if (e instanceof AUnaryExpression) {
       return ((AUnaryExpression) e).getOperator() == UnaryOperator.NOT;

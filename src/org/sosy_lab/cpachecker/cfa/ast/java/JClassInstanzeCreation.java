@@ -52,4 +52,14 @@ public class JClassInstanzeCreation extends AFunctionCallExpression implements J
   public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
   }
+
+
+  @Override
+  public String toASTString() {
+
+    StringBuilder astString = new StringBuilder("new ");
+    astString.append(getExpressionType().toASTString(functionName.toASTString()));
+
+    return astString.toString();
+  }
 }

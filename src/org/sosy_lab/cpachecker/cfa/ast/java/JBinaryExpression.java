@@ -21,46 +21,44 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast.c;
+package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-public class CBinaryExpression extends ABinaryExpression implements CExpression {
 
-  public CBinaryExpression(final CFileLocation pFileLocation,
-                              final CType pType,
-                              final CExpression pOperand1,
-                              final CExpression pOperand2,
-                              final BinaryOperator pOperator) {
-    super(pFileLocation, pType , pOperand1 , pOperand2, pOperator);
+public class JBinaryExpression extends ABinaryExpression implements JExpression {
 
+  public JBinaryExpression(CFileLocation pFileLocation, JType pType, JExpression pOperand1, JExpression pOperand2,
+      BinaryOperator pOperator) {
+    super(pFileLocation, pType, pOperand1, pOperand2, pOperator);
+    // TODO Auto-generated constructor stub
   }
 
   @Override
-  public <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
   @Override
-  public <R, X extends Exception> R accept(CRightHandSideVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
   @Override
-  public CType getExpressionType() {
-    return (CType) type;
+  public JType getExpressionType() {
+    return (JType) type;
   }
 
   @Override
-  public CExpression getOperand1() {
-    return (CExpression) operand1;
+  public JExpression getOperand1() {
+    return (JExpression) operand1;
   }
 
   @Override
-  public CExpression getOperand2() {
-    return (CExpression)operand2;
+  public JExpression getOperand2() {
+    return (JExpression)operand2;
   }
 
   @Override
@@ -72,10 +70,12 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
     MULTIPLY      ("*"),
     DIVIDE        ("/"),
     MODULO        ("%"),
+    STRING_CONCATENATION("+"),
     PLUS          ("+"),
     MINUS         ("-"),
     SHIFT_LEFT    ("<<"),
-    SHIFT_RIGHT   (">>"),
+    SHIFT_RIGHT_SIGNED   (">>"),
+    SHIFT_RIGHT_UNSIGNED (">>>"),
     LESS_THAN     ("<"),
     GREATER_THAN  (">"),
     LESS_EQUAL    ("<="),
@@ -83,8 +83,11 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
     BINARY_AND    ("&"),
     BINARY_XOR    ("^"),
     BINARY_OR     ("|"),
-    LOGICAL_AND   ("&&"),
-    LOGICAL_OR    ("||"),
+    LOGICAL_AND   ("&"),
+    LOGICAL_OR    ("|"),
+    LOGICAL_XOR   ("^"),
+    CONDITIONAL_AND ("&&"),
+    CONDITIONAL_OR  ("||"),
     EQUALS        ("=="),
     NOT_EQUALS    ("!="),
     ;
@@ -103,4 +106,5 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
       return op;
     }
   }
+
 }

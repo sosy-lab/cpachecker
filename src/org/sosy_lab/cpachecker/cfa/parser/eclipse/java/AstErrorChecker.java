@@ -27,6 +27,9 @@ import java.util.logging.Level;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.ClassInstanceCreation;
+import org.eclipse.jdt.core.dom.IMethodBinding;
+import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.sosy_lab.common.LogManager;
 
 
@@ -47,9 +50,9 @@ class AstErrorChecker extends ASTVisitor {
 
 
 
-    //System.out.println(getTypeName(problem.getNodeType()));
-    //System.out.println(problem);
-    //System.out.println();
+   // System.out.println(getTypeName(problem.getNodeType()));
+   // System.out.println(problem);
+   // System.out.println();
 
 
     // flags return the bitwise or of value Recovered =case 8, Malformed = case 1
@@ -155,5 +158,36 @@ class AstErrorChecker extends ASTVisitor {
     return name;
 
   }
+
+  @Override
+  public boolean visit(MethodInvocation mI) {
+
+     System.out.println(getTypeName(mI.getNodeType()));
+     System.out.println(mI);
+     System.out.println();
+
+    IMethodBinding bind = mI.resolveMethodBinding();
+
+
+
+    System.out.println(bind);
+
+    return true;
+  }
+
+ @Override
+public boolean visit(ClassInstanceCreation cIC) {
+
+   System.out.println(getTypeName(cIC.getNodeType()));
+   System.out.println(cIC);
+   System.out.println();
+
+  IMethodBinding bind = cIC.resolveConstructorBinding();
+
+  System.out.println(bind);
+
+
+  return true;
+}
 
 }

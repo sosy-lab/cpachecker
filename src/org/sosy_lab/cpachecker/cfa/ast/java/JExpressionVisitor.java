@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
@@ -41,7 +40,7 @@ public interface JExpressionVisitor<R, X extends Exception>  {
 
   R visit(AStringLiteralExpression paStringLiteralExpression) throws X;
 
-  R visit (ABinaryExpression paBinaryExpression) throws X;
+  R visit (JBinaryExpression paBinaryExpression) throws X;
 
   R visit(AIdExpression pAIdExpression) throws X;
 

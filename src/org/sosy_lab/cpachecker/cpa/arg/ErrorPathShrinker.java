@@ -723,7 +723,7 @@ public final class ErrorPathShrinker {
             equals(lastBinExpOp1.toASTString());
 
             // check, if lastEdge is the true-branch of "==" or the false-branch of "!="
-            final BinaryOperator op = ((ABinaryExpression) lastExp).getOperator();
+            final BinaryOperator op = (BinaryOperator) ((ABinaryExpression) lastExp).getOperator();
             final boolean isEqualOp = (op == BinaryOperator.EQUALS && lastAss.getTruthAssumption())
                 || (op == BinaryOperator.NOT_EQUALS && !lastAss.getTruthAssumption());
 

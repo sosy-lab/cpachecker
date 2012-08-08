@@ -1480,13 +1480,13 @@ class CFAFunctionBuilder extends ASTVisitor {
           addToCFA(blankEdge);
 
 
-          //TODO Find better Solution (to String not allowed)
+
         } else if (node instanceof AExpressionAssignmentStatement) {
           final AStatementEdge lastEdge = new AStatementEdge(exp.toString(),
               (AExpressionAssignmentStatement) node, filelocStart, loopInit, nextNode);
           addToCFA(lastEdge);
 
-          //TODO Find  better Solution (to String not allowed)
+
         } else if (node instanceof AFunctionCallAssignmentStatement) {
           final AStatementEdge edge = new AStatementEdge(exp.toString(),
               (AFunctionCallAssignmentStatement) node, filelocStart,loopInit ,   nextNode);
@@ -1511,7 +1511,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     handleElseCondition(breakStatement);
 
-    //TODO Check Correctness of Break Statement
+
 
     if(breakStatement.getLabel() == null ){
       handleBreakStatement(breakStatement);
@@ -1530,7 +1530,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode prevNode = locStack.pop();
     CFANode postLoopNode = loopNextStack.peek();
 
-    //TODO SOlution not allowed (toString()) find better Solution
+
     BlankEdge blankEdge = new BlankEdge(breakStatement.toString(),
         fileloc.getStartingLineNumber(), prevNode, postLoopNode, "break");
     addToCFA(blankEdge);
@@ -1549,7 +1549,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode prevNode = locStack.pop();
     CFANode postLoopNode = labelMap.get(breakStatement.getLabel().getIdentifier());
 
-    //TODO SOlution not allowed (toString()) find better Solution
+
     BlankEdge blankEdge = new BlankEdge(breakStatement.toString(),
         fileloc.getStartingLineNumber(), prevNode, postLoopNode, "break ");
     addToCFA(blankEdge);
@@ -1566,7 +1566,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     handleElseCondition(continueStatement);
 
-    //TODO Check Validity of Continue Statement
+
 
     if(continueStatement.getLabel() == null ){
       handleContinueStatement(continueStatement);
@@ -1585,7 +1585,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode prevNode = locStack.pop();
     CFANode loopStartNode = loopStartStack.peek();
 
-    //TODO toString() not allowed
+
     BlankEdge blankEdge = new BlankEdge(continueStatement.toString(),
         fileloc.getStartingLineNumber(), prevNode, loopStartNode, "continue");
     addToCFA(blankEdge);
@@ -1603,22 +1603,16 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode prevNode = locStack.pop();
 
-
     FunctionExitNode functionExitNode = cfa.getExitNode();
-
-
 
     AReturnStatement cfaReturnStatement = astCreator.convert(returnStatement);
 
     // If return expression is function
     prevNode = handleSideassignments(prevNode, returnStatement.toString(), fileloc.getStartingLineNumber());
 
-
     AReturnStatementEdge edge = new AReturnStatementEdge(returnStatement.toString(),
         cfaReturnStatement , fileloc.getStartingLineNumber(), prevNode, functionExitNode);
     addToCFA(edge);
-
-
 
     CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(),
         cfa.getFunctionName());
@@ -1627,8 +1621,6 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     return SKIP_CHILDS;
   }
-
-
 
   /**
    * This method adds this edge to the leaving and entering edges

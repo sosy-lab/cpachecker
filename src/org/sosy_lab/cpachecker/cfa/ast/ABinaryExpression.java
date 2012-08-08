@@ -24,25 +24,22 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSideVisitor;
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
 
-public class ABinaryExpression extends AExpression implements JExpression{
+public class ABinaryExpression extends AExpression {
 
 
   protected final IAExpression operand1;
   protected final IAExpression operand2;
-  protected final BinaryOperator operator;
+  protected final ABinaryOperator operator;
 
   public ABinaryExpression(CFileLocation pFileLocation, Type pType,
       final IAExpression pOperand1,
       final IAExpression pOperand2,
-      final BinaryOperator pOperator) {
+      final ABinaryOperator pOperator) {
     super(pFileLocation, pType);
     operand1 = pOperand1;
     operand2 = pOperand2;
@@ -59,7 +56,7 @@ public class ABinaryExpression extends AExpression implements JExpression{
     return operand2;
   }
 
-  public BinaryOperator getOperator() {
+  public ABinaryOperator getOperator() {
     return operator;
   }
 
@@ -69,18 +66,11 @@ public class ABinaryExpression extends AExpression implements JExpression{
         + operator.getOperator() + " " + operand2.toParenthesizedASTString();
   }
 
-
-
-  @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
-
-
-
-  @Override
-  public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
-    return v.visit(this);
+  public static  interface ABinaryOperator {
+    /**
+     * Returns the string representation of this operator (e.g. "*", "+").
+     */
+    public String getOperator();
   }
 
 }

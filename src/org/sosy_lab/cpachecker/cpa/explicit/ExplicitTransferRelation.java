@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression.ABinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -71,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanzeCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -767,9 +769,9 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     @Override
-    public Long visit(ABinaryExpression pE) throws UnrecognizedCCodeException {
+    public Long visit(JBinaryExpression pE) throws UnrecognizedCCodeException {
 
-      BinaryOperator binaryOperator = pE.getOperator();
+      org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator binaryOperator = pE.getOperator();
       IAExpression lVarInBinaryExp = pE.getOperand1();
       IAExpression rVarInBinaryExp = pE.getOperand2();
 
@@ -874,7 +876,8 @@ public class ExplicitTransferRelation implements TransferRelation
         return (result ? 1L : 0L);
       }
       case MODULO:
-      case SHIFT_RIGHT:
+      case SHIFT_RIGHT_SIGNED:
+      case SHIFT_RIGHT_UNSIGNED:
       default:
         // TODO check which cases can be handled (I think all)
         return null;
@@ -1071,8 +1074,8 @@ public class ExplicitTransferRelation implements TransferRelation
 
 
     @Override
-    public Long visit(ABinaryExpression pE) throws UnrecognizedCCodeException {
-      BinaryOperator binaryOperator   = pE.getOperator();
+    public Long visit(JBinaryExpression pE) throws UnrecognizedCCodeException {
+      JBinaryExpression.BinaryOperator binaryOperator   = pE.getOperator();
 
       IAExpression lVarInBinaryExp  = pE.getOperand1();
 
@@ -1083,7 +1086,7 @@ public class ExplicitTransferRelation implements TransferRelation
       Long leftValue                  = ((JExpression) lVarInBinaryExp).accept(this);
       Long rightValue                 = ((JExpression) rVarInBinaryExp).accept(this);
 
-      if((binaryOperator == BinaryOperator.EQUALS && truthValue) || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue)) {
+      if((binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && truthValue) || (binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && !truthValue)) {
         if(leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
           String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
           if (currentPrecision.isTracking(leftVariableName)) {
@@ -1102,8 +1105,8 @@ public class ExplicitTransferRelation implements TransferRelation
       if (initAssumptionVars) {
         // x is unknown, a binaryOperation (x!=0), true-branch: set x=1L
         // x is unknown, a binaryOperation (x==0), false-branch: set x=1L
-        if ((binaryOperator == BinaryOperator.NOT_EQUALS && truthValue)
-            || (binaryOperator == BinaryOperator.EQUALS && !truthValue)) {
+        if ((binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && truthValue)
+            || (binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && !truthValue)) {
           if (leftValue == null && rightValue == 0L && isAssignable(lVarInBinaryExp)) {
             String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
             if (currentPrecision.isTracking(leftVariableName)) {
@@ -1288,7 +1291,7 @@ public class ExplicitTransferRelation implements TransferRelation
     if(expression instanceof ABinaryExpression) {
       ABinaryExpression binaryExpression = (ABinaryExpression)expression;
 
-      BinaryOperator operator = binaryExpression.getOperator();
+      ABinaryOperator operator = binaryExpression.getOperator();
       IAExpression leftOperand = binaryExpression.getOperand1();
       IAExpression riteOperand = binaryExpression.getOperand2();
 
