@@ -316,8 +316,8 @@ cpa.bdd.trackBooleanFromCFA = true
 # adding a new value to the state can be done from 0 to N or from N to 0
 cpa.bdd.vector.addIncreasing = false
 
-# bitsize for values
-cpa.bdd.vector.bitsize = 8
+# default bitsize for values and vars
+cpa.bdd.vector.bitsize = 32
 
 # initialize all variables to 0 when they are declared
 cpa.bdd.vector.initAllVars = false
