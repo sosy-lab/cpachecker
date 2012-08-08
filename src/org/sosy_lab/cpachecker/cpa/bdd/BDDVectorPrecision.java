@@ -37,7 +37,7 @@ public class BDDVectorPrecision implements Precision {
 
   @Option(description = "track boolean variables from cfa as bitvectors,"
       + " this option limits the whitelist")
-  private boolean trackBooleanFromCFA = false;
+  private boolean trackBooleanFromCFA = true;
 
   @Option(description = "track simple numeral variables from cfa as bitvectors,"
       + " this option limits the whitelist")
@@ -69,7 +69,9 @@ public class BDDVectorPrecision implements Precision {
     boolean isTrackedBoolean = trackBooleanFromCFA &&
         varClass.isPresent() && varClass.get().getBooleanVars().containsEntry(function, var);
     boolean isTrackedSimpleNumber = trackSimpleNumbersFromCFA &&
-        varClass.isPresent() && varClass.get().getSimpleNumberVars().containsEntry(function, var);
+        varClass.isPresent() &&
+        varClass.get().getSimpleNumberVars().containsEntry(function, var);
+//&&  !varClass.get().getBooleanVars().containsEntry(function, var);
     // System.out.println(function + var + isTrackedBoolean + isTrackedSimpleNumber);
     return isTrackedBoolean || isTrackedSimpleNumber;
   }

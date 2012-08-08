@@ -308,7 +308,7 @@ public class BDDTransferRelation implements TransferRelation {
         // track vars, so we can delete them after returning from a function,
         // see handleFunctionReturnEdge(...) for detail.
         if (!vdecl.isGlobal()) {
-          state.getVars().add(scopedVarName);
+          state.getVars().add(var);
         }
 
         // initializer on RIGHT SIDE available, make region for it
@@ -333,7 +333,7 @@ public class BDDTransferRelation implements TransferRelation {
       BDDPrecision precision) throws UnrecognizedCCodeException {
 
     Region newRegion = state.getRegion();
-    Set<String> newVars = new LinkedHashSet<String>();
+    Set<Region> newVars = new LinkedHashSet<Region>();
 
     // overtake arguments from last functioncall into function,
     // get args from functioncall and make them equal with params from functionstart
@@ -351,8 +351,8 @@ public class BDDTransferRelation implements TransferRelation {
 
       // make region for arg and build equality of var and arg
       if (precision.isTracking(innerFunctionName, varName)) {
-        newVars.add(scopedVarName);
         Region var = createPredicate(scopedVarName);
+        newVars.add(var);
         BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
         Region arg = args.get(i).accept(ev);
         newRegion = addEquality(var, arg, newRegion);
@@ -372,8 +372,8 @@ public class BDDTransferRelation implements TransferRelation {
 
     // delete variables from returning function,
     // this results in a smaller BDD and allows to call a function twice.
-    for (String varName : state.getVars()) {
-      newRegion = removePredicate(newRegion, createPredicate(varName));
+    for (Region r : state.getVars()) {
+      newRegion = removePredicate(newRegion, r);
     }
 
     // set result of function equal to variable on left side
