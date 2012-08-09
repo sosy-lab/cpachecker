@@ -132,19 +132,20 @@ public class BDDVectorTransferRelation implements TransferRelation {
 
     assert cfa.getVarClassification().isPresent();
     this.varClass = cfa.getVarClassification().get();
-    initVars(precision);
+    initVars(precision, cfa);
   }
 
   /** The BDDRegionManager orders the variables as they are declared
    *  (later vars are deeper in the BDD).
    *  This function declares those vars in the beginning of the analysis,
    *  so that we can choose between some orders. */
-  private void initVars(BDDVectorPrecision precision) {
+  private void initVars(BDDVectorPrecision precision, CFA cfa) {
     Collection<Partition> booleanPartitions = varClass.getBooleanPartitions();
     Collection<Partition> simpleNumberPartitions = varClass.getSimpleNumberPartitions();
 
     if (initPartitions) {
-      for (Partition partition : varClass.getPartitions()) {
+      BDDPartitionOrderer d = new BDDPartitionOrderer(cfa);
+      for (Partition partition : d.getOrderedPartitions()) {
         if (booleanPartitions.contains(partition)) {
           createPredicates(partition.getVars(), precision, 1);
         } else if (simpleNumberPartitions.contains(partition)) {
@@ -362,9 +363,6 @@ public class BDDVectorTransferRelation implements TransferRelation {
               newRegion = removePredicate(newRegion, var);
               newRegion = addEquality(var, tmp, newRegion);
               newRegion = removePredicate(newRegion, tmp);
-
-            } else {
-              System.out.println("OTHER   " + cfaEdge.getRawStatement());
             }
 
           } else {
@@ -387,9 +385,6 @@ public class BDDVectorTransferRelation implements TransferRelation {
               BDDVectorCExpressionVisitor ev = new BDDVectorCExpressionVisitor(state, precision);
               Region[] regRHS = ((CExpression) rhs).accept(ev);
               newRegion = addEquality(var, regRHS, newRegion);
-
-            } else {
-              System.out.println("OTHER   " + cfaEdge.getRawStatement());
             }
           }
 
@@ -408,8 +403,6 @@ public class BDDVectorTransferRelation implements TransferRelation {
             Region[] var = createPredicates(buildVarName(function, varName));
             newRegion = removePredicate(newRegion, var);
 
-          } else {
-            System.out.println("OTHER   " + cfaEdge.getRawStatement());
           }
         }
 
@@ -491,9 +484,6 @@ public class BDDVectorTransferRelation implements TransferRelation {
             return new BDDState(rmgr, state.getFunctionCallState(), newRegion,
                 state.getVars(), cfaEdge.getPredecessor().getFunctionName());
           }
-
-        } else {
-          System.out.println("OTHER   " + cfaEdge.getRawStatement());
         }
       }
     }
@@ -544,9 +534,6 @@ public class BDDVectorTransferRelation implements TransferRelation {
           for (int j = 0; j < var.length; j++) {
             newVars.add(var[j]);
           }
-
-        } else {
-          System.out.println("OTHER   " + cfaEdge.getRawStatement());
         }
       }
     }
@@ -607,9 +594,6 @@ public class BDDVectorTransferRelation implements TransferRelation {
 
         // LAST ACTION: delete varname of right side
         newRegion = removePredicate(newRegion, retVar);
-
-      } else {
-        System.out.println("OTHER   " + cfaEdge.getRawStatement());
       }
 
     } else if (call instanceof CFunctionCallStatement) {
@@ -621,9 +605,6 @@ public class BDDVectorTransferRelation implements TransferRelation {
       } else if (varClass.getSimpleNumberPartitions().contains(partition)) {
         Region[] retVar = createPredicates(buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE));
         newRegion = removePredicate(newRegion, retVar);
-
-      } else {
-        System.out.println("OTHER   " + cfaEdge.getRawStatement());
       }
 
     } else {
@@ -672,9 +653,6 @@ public class BDDVectorTransferRelation implements TransferRelation {
         BDDVectorCExpressionVisitor ev = new BDDVectorCExpressionVisitor(state, precision);
         Region[] regRHS = ((CExpression) rhs).accept(ev);
         newRegion = addEquality(retvar, regRHS, newRegion);
-
-      } else {
-        System.out.println("OTHER   " + cfaEdge.getRawStatement());
       }
 
       return new BDDState(rmgr, state.getFunctionCallState(), newRegion,
@@ -703,9 +681,6 @@ public class BDDVectorTransferRelation implements TransferRelation {
       BDDVectorCExpressionVisitor ev = new BDDVectorCExpressionVisitor(state, precision);
       Region[] operand = expression.accept(ev);
       evaluated = bvmgr.makeOr(operand);
-
-    } else {
-      System.out.println("OTHER   " + cfaEdge.getRawStatement());
     }
 
     if (evaluated == null) { // assumption cannot be evaluated
