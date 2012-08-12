@@ -10,6 +10,7 @@ public class Assert1 {
 
         assert false : "Wrong";
       
+	      
       	
     }
 }

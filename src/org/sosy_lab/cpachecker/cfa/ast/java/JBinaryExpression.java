@@ -33,7 +33,7 @@ public class JBinaryExpression extends ABinaryExpression implements JExpression 
   public JBinaryExpression(CFileLocation pFileLocation, JType pType, JExpression pOperand1, JExpression pOperand2,
       BinaryOperator pOperator) {
     super(pFileLocation, pType, pOperand1, pOperand2, pOperator);
-    // TODO Auto-generated constructor stub
+
   }
 
   @Override
@@ -106,5 +106,4 @@ public class JBinaryExpression extends ABinaryExpression implements JExpression 
       return op;
     }
   }
-
 }

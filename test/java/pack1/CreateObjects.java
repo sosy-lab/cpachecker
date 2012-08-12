@@ -14,7 +14,6 @@ public class CreateObjects {
     
     num = n1;
     num2 = n2;
-   
  }
   
   public CreateObjects( int n){
@@ -49,7 +48,7 @@ public class CreateObjects {
 	  Object2 object4 = new Object2();
 	  Object3 object5 = new Object3(2 ,3 ,5 , "bam");
 	  Object1 object6 = object5.createAnotherObject(object4);
-	  
+	 
 	  
 	  assert object1.compare();	 	  
 	}

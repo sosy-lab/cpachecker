@@ -37,11 +37,31 @@ import com.google.common.base.Strings;
 public class JSimpleType extends CType implements JType {
 
   private final JBasicType type;
+  private final boolean isPrimitive;
 
 
   public JSimpleType(JBasicType pType) {
     super(false, false);
     type = pType;
+
+    switch (type) {
+    case BOOLEAN:
+      //$FALL-THROUGH$
+    case BYTE:
+      //$FALL-THROUGH$
+    case INT:
+      //$FALL-THROUGH$
+    case SHORT:
+      //$FALL-THROUGH$
+    case FLOAT:
+      //$FALL-THROUGH$
+    case DOUBLE:
+      isPrimitive = true;
+      break;
+    default:
+      isPrimitive = false;
+    }
+
   }
 
 
@@ -57,6 +77,11 @@ public class JSimpleType extends CType implements JType {
     parts.add(Strings.emptyToNull(pDeclarator));
 
     return Joiner.on(' ').skipNulls().join(parts);
+  }
+
+
+  public boolean isPrimitive() {
+    return isPrimitive;
   }
 
 }

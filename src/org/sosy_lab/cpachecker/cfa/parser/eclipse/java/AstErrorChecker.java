@@ -49,10 +49,9 @@ class AstErrorChecker extends ASTVisitor {
   public void preVisit(ASTNode problem) {
 
 
-
-   // System.out.println(getTypeName(problem.getNodeType()));
-   // System.out.println(problem);
-   // System.out.println();
+    //System.out.println(getTypeName(problem.getNodeType()));
+    //System.out.println(problem);
+    //System.out.println();
 
 
     // flags return the bitwise or of value Recovered =case 8, Malformed = case 1
@@ -122,37 +121,37 @@ class AstErrorChecker extends ASTVisitor {
         case 74: name="PARAMETERIZED_TYPE"; break;
         case 36: name="PARENTHESIZED_EXPRESSION"; break;
         case 37: name="POSTFIX_EXPRESSION"; break;
-         case 38: name="PREFIX_EXPRESSION"; break;
+        case 38: name="PREFIX_EXPRESSION"; break;
         case 39: name="PRIMITIVE_TYPE"; break;
         case 40: name="QUALIFIED_NAME"; break;
         case 75: name="QUALIFIED_TYPE"; break;
         case 41: name="RETURN_STATEMENT"; break;
-         case 42: name="SIMPLE_NAME"; break;
-         case 43: name="SIMPLE_TYPE"; break;
+        case 42: name="SIMPLE_NAME"; break;
+        case 43: name="SIMPLE_TYPE"; break;
         case 79: name="SINGLE_MEMBER_ANNOTATION"; break;
-         case 44: name="SINGLE_VARIABLE_DECLARATION"; break;
+        case 44: name="SINGLE_VARIABLE_DECLARATION"; break;
         case 45: name="STRING_LITERAL"; break;
         case 46: name="SUPER_CONSTRUCTOR_INVOCATION"; break;
         case 47: name="SUPER_FIELD_ACCESS"; break;
-         case 48: name="SUPER_METHOD_INVOCATION"; break;
-         case 49: name="SWITCH_CASE"; break;
+        case 48: name="SUPER_METHOD_INVOCATION"; break;
+        case 49: name="SWITCH_CASE"; break;
         case 50: name="SWITCH_STATEMENT"; break;
         case 51: name="SYNCHRONIZED_STATEMENT"; break;
-         case 65: name="TAG_ELEMENT"; break;
+        case 65: name="TAG_ELEMENT"; break;
         case 66: name="TEXT_ELEMENT"; break;
-         case 52: name="THIS_EXPRESSION"; break;
-         case 53: name="THROW_STATEMENT"; break;
-         case 54: name="TRY_STATEMENT"; break;
+        case 52: name="THIS_EXPRESSION"; break;
+        case 53: name="THROW_STATEMENT"; break;
+        case 54: name="TRY_STATEMENT"; break;
         case 55: name="TYPE_DECLARATION"; break;
         case 56: name="TYPE_DECLARATION_STATEMENT"; break;
         case 57: name="TYPE_LITERAL"; break;
         case 73: name="TYPE_PARAMETER"; break;
         case 84: name="UNION_TYPE"; break;
-         case 58: name="VARIABLE_DECLARATION_EXPRESSION"; break;
-         case 59: name="VARIABLE_DECLARATION_FRAGMENT"; break;
+        case 58: name="VARIABLE_DECLARATION_EXPRESSION"; break;
+        case 59: name="VARIABLE_DECLARATION_FRAGMENT"; break;
         case 60: name="VARIABLE_DECLARATION_STATEMENT"; break;
-         case 61: name="WHILE_STATEMENT"; break;
-         case 76: name="WILDCARD_TYPE"; break;
+        case 61: name="WHILE_STATEMENT"; break;
+        case 76: name="WILDCARD_TYPE"; break;
     }
 
     return name;
@@ -162,15 +161,15 @@ class AstErrorChecker extends ASTVisitor {
   @Override
   public boolean visit(MethodInvocation mI) {
 
-     System.out.println(getTypeName(mI.getNodeType()));
-     System.out.println(mI);
-     System.out.println();
+     //System.out.println(getTypeName(mI.getNodeType()));
+     //System.out.println(mI);
+     //System.out.println();
 
     IMethodBinding bind = mI.resolveMethodBinding();
 
 
 
-    System.out.println(bind);
+    //System.out.println(bind);
 
     return true;
   }
@@ -178,13 +177,13 @@ class AstErrorChecker extends ASTVisitor {
  @Override
 public boolean visit(ClassInstanceCreation cIC) {
 
-   System.out.println(getTypeName(cIC.getNodeType()));
-   System.out.println(cIC);
-   System.out.println();
+   //System.out.println(getTypeName(cIC.getNodeType()));
+   //System.out.println(cIC);
+   //System.out.println();
 
   IMethodBinding bind = cIC.resolveConstructorBinding();
 
-  System.out.println(bind);
+  //System.out.println(bind);
 
 
   return true;

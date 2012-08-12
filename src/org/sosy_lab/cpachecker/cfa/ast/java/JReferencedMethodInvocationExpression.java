@@ -23,17 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.util.List;
+
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
+public class JReferencedMethodInvocationExpression extends JMethodInvocationExpression {
 
+  private final IASimpleDeclaration referencedVariable;
 
+  public JReferencedMethodInvocationExpression(CFileLocation pFileLocation, JType pType, JExpression pFunctionName,
+      List<? extends JExpression> pParameters, IASimpleDeclaration pDeclaration, IASimpleDeclaration pReferencedVariable) {
+    super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
+      referencedVariable = pReferencedVariable;
 
-public interface  JRightHandSideVisitor<R, X extends Exception> extends  JExpressionVisitor<R, X> {
+  }
 
-  R visit(JMethodInvocationExpression pAFunctionCallExpression) throws X;
-
-  R visit(JClassInstanzeCreation pJClassInstanzeCreation) throws X;
-
-
+  public IASimpleDeclaration getReferencedVariable() {
+    return referencedVariable;
+  }
 
 }

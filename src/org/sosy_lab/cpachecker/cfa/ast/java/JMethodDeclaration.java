@@ -32,13 +32,13 @@ import com.google.common.base.Strings;
 
 public  class JMethodDeclaration extends AFunctionDeclaration {
 
-  final boolean isFinal;
-  final boolean isAbstract;
-  final boolean isStatic;
-  final boolean isNative;
-  final boolean isSynchronized;
-  final boolean isStrictfp;
-  final VisibilityModifier visibility;
+  private final boolean isFinal;
+  private final boolean isAbstract;
+  private final boolean isStatic;
+  private final boolean isNative;
+  private final boolean isSynchronized;
+  private final boolean isStrictfp;
+  private final VisibilityModifier visibility;
 
 
   public JMethodDeclaration(CFileLocation pFileLocation, IAFunctionType pType, String pName , VisibilityModifier pVisibility  ,final boolean pIsFinal
@@ -54,7 +54,7 @@ public  class JMethodDeclaration extends AFunctionDeclaration {
 
 
     assert(pVisibility != null);
-    assert(isAbstract && !isStatic && !isNative && !isFinal && !isSynchronized && !isStrictfp || (!isAbstract))
+    assert(isAbstract() && !isStatic() && !isNative() && !isFinal() && !isSynchronized() && !isStrictfp() || (!isAbstract()))
     : "Abstract Method may only have one Modifier , either public or protected";
 
   }
@@ -65,27 +65,62 @@ public  class JMethodDeclaration extends AFunctionDeclaration {
     String name = Strings.nullToEmpty(getName());
     StringBuilder modifier = new StringBuilder() ;
 
-    modifier.append(visibility.getModifierString() + " ");
+    modifier.append(getVisibility().getModifierString() + " ");
 
-    if(isAbstract){
+    if(isAbstract()){
       modifier.append("abstract ");
     }
-    if(isStatic){
+    if(isStatic()){
       modifier.append( "static ");
     }
-    if(isFinal){
+    if(isFinal()){
       modifier.append( "final ");
     }
-    if(isSynchronized){
+    if(isSynchronized()){
       modifier.append("synchronized ");
     }
-    if(isNative){
+    if(isNative()){
       modifier.append( "native ");
     }
-    if(isStrictfp){
+    if(isStrictfp()){
       modifier.append("strictfp ");
     }
 
     return modifier + getType().toASTString(name) + ";";
+  }
+
+
+  public boolean isFinal() {
+    return isFinal;
+  }
+
+
+  public boolean isAbstract() {
+    return isAbstract;
+  }
+
+
+  public boolean isStatic() {
+    return isStatic;
+  }
+
+
+  public boolean isNative() {
+    return isNative;
+  }
+
+
+  public boolean isSynchronized() {
+    return isSynchronized;
+  }
+
+
+  public boolean isStrictfp() {
+    return isStrictfp;
+  }
+
+
+  public VisibilityModifier getVisibility() {
+    return visibility;
   }
 }

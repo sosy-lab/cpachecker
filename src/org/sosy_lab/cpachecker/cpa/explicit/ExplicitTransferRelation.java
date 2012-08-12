@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
@@ -78,9 +77,13 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanzeCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
+import org.sosy_lab.cpachecker.cfa.ast.java.JThisRunTimeType;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -885,7 +888,7 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     @Override
-    public Long visit(AIdExpression idExp) throws UnrecognizedCCodeException {
+    public Long visit(JIdExpression idExp) throws UnrecognizedCCodeException {
       if(idExp.getDeclaration() instanceof CEnumerator) {
         CEnumerator enumerator = (CEnumerator)idExp.getDeclaration();
         if(enumerator.hasValue()) {
@@ -958,7 +961,7 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     @Override
-    public Long visit(AFunctionCallExpression pAFunctionCallExpression) throws UnrecognizedCCodeException {
+    public Long visit(JMethodInvocationExpression pAFunctionCallExpression) throws UnrecognizedCCodeException {
       return null;
     }
 
@@ -979,7 +982,16 @@ public class ExplicitTransferRelation implements TransferRelation
 
     @Override
     public Long visit(JClassInstanzeCreation pJClassInstanzeCreation) throws UnrecognizedCCodeException {
-      // TODO Auto-generated method stub
+      return null;
+    }
+
+    @Override
+    public Long visit(JThisRunTimeType pJThisRunTimeType) throws UnrecognizedCCodeException {
+      return null;
+    }
+
+    @Override
+    public Long visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) throws UnrecognizedCCodeException {
       return null;
     }
   }

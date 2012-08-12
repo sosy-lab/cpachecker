@@ -27,15 +27,13 @@ import static com.google.common.collect.Iterables.transform;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 
-public class AFunctionCallExpression extends ARightHandSide implements JRightHandSide{
+public class AFunctionCallExpression extends ARightHandSide {
 
 
   protected final IAExpression functionName;
@@ -85,8 +83,4 @@ public class AFunctionCallExpression extends ARightHandSide implements JRightHan
     return lASTString.toString();
   }
 
-  @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
 }

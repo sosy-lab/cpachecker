@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -123,7 +124,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final Map<String, CLabelNode> labelMap = new HashMap<String, CLabelNode>();
   //private final Multimap<String, CFANode> gotoLabelNeeded = ArrayListMultimap.create();
 
-  // Data structures for handling function declarations
+  // Data structures for handling method declarations
   private FunctionEntryNode cfa = null;
   private final Set<CFANode> cfaNodes = new HashSet<CFANode>();
 
@@ -180,11 +181,16 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     assert cfa == null;
 
-    final AFunctionDeclaration fdef = astCreator.convert(declaration);
+    final JMethodDeclaration fdef = astCreator.convert(declaration);
     final String nameOfFunction = fdef.getName();
     assert !nameOfFunction.isEmpty();
 
     scope.enterFunction(fdef);
+
+    if(!fdef.isStatic()){
+      // Get all fully qualified method names this method overrides
+
+    }
 
     final List<AParameterDeclaration> parameters =   ((AFunctionType) fdef.getType()).getParameters();
     final List<String> parameterNames = new ArrayList<String>(parameters.size());
@@ -228,7 +234,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     return SKIP_CHILDS;
 
   }
-
 
   @Override
   public boolean visit(final VariableDeclarationStatement sd) {

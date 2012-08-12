@@ -21,40 +21,33 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.ast.java;
+
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
+public class JIdExpression extends AIdExpression implements JExpression {
 
+  public JIdExpression(CFileLocation pFileLocation, JType pType, String pName, IASimpleDeclaration pDeclaration) {
+    super(pFileLocation, pType, pName, pDeclaration);
 
-public class AIdExpression extends AExpression {
-
-  private final String name;
-  protected final IASimpleDeclaration declaration;
-
-
-  public AIdExpression(CFileLocation pFileLocation, Type pType, final String pName,
-      final IASimpleDeclaration pDeclaration ) {
-    super(pFileLocation, pType);
-    name = pName.intern();
-    declaration = pDeclaration;
-  }
-
-  public String getName() {
-    return name;
   }
 
   @Override
-  public String toParenthesizedASTString() {
-    return toASTString();
+  public JType getExpressionType() {
+    return (JType) super.getExpressionType();
   }
 
   @Override
-  public String toASTString() {
-    return name;
+  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 
-  public IASimpleDeclaration getDeclaration() {
-    return   declaration;
+  @Override
+  public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 }

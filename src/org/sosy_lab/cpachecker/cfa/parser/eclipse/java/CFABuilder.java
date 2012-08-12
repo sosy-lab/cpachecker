@@ -46,10 +46,11 @@ import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 
 /**
- * Builder to traverse AST.
+ * Builder to traverse AST. This Class has to be reusable for ASTs.
+ * Additionally, it tracks variables over the traversed ASTs.
+ *
+ *
  * Known Limitations:
- * <p> -- K&R style function definitions not implemented
- * <p> -- Pointer modifiers not tracked (i.e. const, volatile, etc. for *
  */
 class CFABuilder extends ASTVisitor {
 
@@ -58,19 +59,25 @@ class CFABuilder extends ASTVisitor {
   private static final boolean SKIP_CHILDREN = false;
 
 
-  private static final boolean VISIT_CHILDREEN = true;
+  private static final boolean VISIT_CHILDREN = true;
 
 
-  // Data structures for handling function declarations
-  private Queue<MethodDeclaration> functionDeclarations = new LinkedList<MethodDeclaration>();
+  // Data structure for tracking method Declaration over ASTs
+  // Used to resolve dynamic Bindings
+  private final Map<String, MethodDeclaration> allParsedMethodDeclaration = new HashMap<String, MethodDeclaration>();
+
+
+  // Data structures for handling method declarations
+  private  Queue<MethodDeclaration> methodDeclarations = new LinkedList<MethodDeclaration>();
   private final Map<String, FunctionEntryNode> cfas = new HashMap<String, FunctionEntryNode>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
-  // Data structure for storing static and nonStatic field declarations
+  // Data structure for storing static field declarations over this Ast
+  private final List<Pair<IADeclaration, String>> nonStaticFieldDeclarationsOfThisClass = Lists.newArrayList();
+
+  // Data structure for storing static and nonStatic field declarations over several AST
   private final List<Pair<IADeclaration, String>> staticFieldDeclarations = Lists.newArrayList();
   private final List<Pair<IADeclaration, String>> nonStaticFieldDeclarations = Lists.newArrayList();
-
-
 
   private final Scope scope ;
   private final ASTConverter astCreator;
@@ -115,17 +122,15 @@ class CFABuilder extends ASTVisitor {
     return staticFieldDeclarations;
   }
 
-
   @Override
   public boolean visit(CompilationUnit cu) {
 
     // To make the builder reusable, past declarations have to be cleared.
-    functionDeclarations.clear();
-
-    return VISIT_CHILDREEN;
+    getMethodDeclarations().clear();
+    nonStaticFieldDeclarationsOfThisClass.clear();
+    return VISIT_CHILDREN;
 
   }
-
 
   /* (non-Javadoc)
    * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IADeclaration)
@@ -134,11 +139,11 @@ class CFABuilder extends ASTVisitor {
   public boolean visit(MethodDeclaration fd) {
 
 
-      functionDeclarations.add(fd);
+      getMethodDeclarations().add(fd);
 
       // add forward declaration to list of global declarations
-      IADeclaration functionDefinition = astCreator.convert(fd);
-      if (astCreator.numberOfSideAssignments() > 0) {
+      IADeclaration functionDefinition = getAstCreator().convert(fd);
+      if (getAstCreator().numberOfSideAssignments() > 0) {
         throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
       }
 
@@ -152,10 +157,10 @@ class CFABuilder extends ASTVisitor {
   public boolean visit(FieldDeclaration fd) {
 
 
-      final List<IADeclaration> newDs = astCreator.convert(fd);
+      final List<IADeclaration> newDs = getAstCreator().convert(fd);
       assert !newDs.isEmpty();
 
-      if (astCreator.numberOfPreSideAssignments() > 0) { throw new CFAGenerationRuntimeException(
+      if (getAstCreator().numberOfPreSideAssignments() > 0) { throw new CFAGenerationRuntimeException(
           "Initializer of global variable has side effect", fd); }
 
       String rawSignature = fd.toString();
@@ -167,6 +172,7 @@ class CFABuilder extends ASTVisitor {
           staticFieldDeclarations.add(Pair.of(newD, rawSignature));
         }else {
           nonStaticFieldDeclarations.add(Pair.of(newD , rawSignature));
+          nonStaticFieldDeclarationsOfThisClass.add(Pair.of(newD, rawSignature));
         }
       }
 
@@ -175,9 +181,10 @@ class CFABuilder extends ASTVisitor {
 
   @Override
   public void endVisit(CompilationUnit translationUnit) {
-    for (MethodDeclaration declaration : functionDeclarations) {
+
+    for (MethodDeclaration declaration : getMethodDeclarations()) {
       CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, ignoreCasts,
-          scope, astCreator, nonStaticFieldDeclarations);
+          scope, getAstCreator(), nonStaticFieldDeclarationsOfThisClass);
 
       declaration.accept(functionBuilder);
 
@@ -189,12 +196,29 @@ class CFABuilder extends ASTVisitor {
       }
       cfas.put(functionName, startNode);
       cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
+      allParsedMethodDeclaration.put(functionName, declaration);
     }
+
   }
 
 
   public Scope getScope() {
     return scope;
+  }
+
+
+  public Queue<MethodDeclaration> getMethodDeclarations() {
+    return methodDeclarations;
+  }
+
+
+  public Map<String ,MethodDeclaration> getAllParsedMethodDeclaration() {
+    return allParsedMethodDeclaration;
+  }
+
+
+  public ASTConverter getAstCreator() {
+    return astCreator;
   }
 
 }

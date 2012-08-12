@@ -49,7 +49,7 @@ public  class EclipseJavaParser implements CParser {
   private static final int START_OF_STRING = 0;
   private final ASTParser  parser = ASTParser.newParser(AST.JLS4);
 
-  //TODO Prototyp, think about how root Path can be smoothly given to builder
+  //TODO Prototype, think about how root Path can be smoothly given to builder
   private String rootPath;
 
   private boolean ignoreCasts;
@@ -179,6 +179,9 @@ public  class EclipseJavaParser implements CParser {
         throw new ParserException(e);
       }
 
+      DynamicBindingCreator tracker = new DynamicBindingCreator(builder);
+      tracker.trackAndCreateDynamicBindings();
+
       return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations());
 
     } finally {
@@ -190,18 +193,15 @@ public  class EclipseJavaParser implements CParser {
   private CompilationUnit parseAdditionalClasses(String pFileName) throws ParserException {
 
      String name = rootPath + pFileName;
-
-    parseTimer.start();
-    try {
+     parseTimer.start();
+     try {
       File file = new File(name);
 
       String source = FileUtils.readFileToString(file);
 
-
-
-
-     String [] sourceFilePath = {rootPath};
-     String[] encoding = {"utf8"};
+      String [] sourceFilePath = {rootPath};
+      //TODO Should be decided by user
+      String[] encoding = {"utf8"};
 
       parser.setSource(source.toCharArray());
       parser.setEnvironment(null, sourceFilePath, encoding, true);
