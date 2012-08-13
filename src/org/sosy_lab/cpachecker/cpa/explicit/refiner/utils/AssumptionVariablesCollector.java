@@ -246,7 +246,6 @@ import com.google.common.collect.Multimap;
         }
         i++;
       }
-
       break;
 
     case AssumeEdge:

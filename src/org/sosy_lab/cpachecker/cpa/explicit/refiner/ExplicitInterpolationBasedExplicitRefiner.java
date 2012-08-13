@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision.CegarPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssignedVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssumptionVariablesCollector;
@@ -66,9 +65,8 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
   private int numberOfErrorPathElements     = 0;
   private Timer timerCounterExampleChecks   = new Timer();
 
-  protected ExplicitInterpolationBasedExplicitRefiner(
-      Configuration config, PathFormulaManager
-      pathFormulaManager) throws InvalidConfigurationException {
+  protected ExplicitInterpolationBasedExplicitRefiner(Configuration config, PathFormulaManager pathFormulaManager)
+      throws InvalidConfigurationException {
     config.inject(this);
   }
 
@@ -94,34 +92,24 @@ ExplicitTransferRelation.DEBUG = false;
     if(!isPathFeasable(errorPath, HashMultimap.<CFANode, String>create())) {
 
       // make copy of error path, as it will be destructed here, but is needed later on, again
-      Path currentErrorPath = new Path();
-      int j = 0;
-      for(Pair<ARGState, CFAEdge> pathElement : errorPath) {
-        if(j++ == 0) {
-          continue;
-        }
-        currentErrorPath.add(pathElement);
-      }
+      Path currentErrorPath   = cloneErrorPath(errorPath);
+      List<CFAEdge> cfaTrace  = extractCFAEdgeTrace(currentErrorPath);
 
-      List<CFAEdge> cfaTrace = extractCFAEdgeTrace(currentErrorPath);
+      Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(cfaTrace);
 
 debug("error path: " + currentErrorPath);
 
-      ExplicitInterpolator interpolator = new ExplicitInterpolator();
-
-      Map<String, Long> currentInterpolant = new HashMap<String, Long>();
-
-      Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(cfaTrace);
+      ExplicitInterpolator interpolator     = new ExplicitInterpolator();
+      Map<String, Long> currentInterpolant  = new HashMap<String, Long>();
 
       for(int i = 0; i < cfaTrace.size(); i++){
         if(i > 0) {
           currentErrorPath.remove();
         }
 
-        CFAEdge currentEdge = cfaTrace.get(i);
-
         numberOfErrorPathElements++;
 
+        CFAEdge currentEdge = cfaTrace.get(i);
         if(currentEdge instanceof CFunctionReturnEdge) {
           currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
         }
@@ -166,10 +154,24 @@ debug("\nincrement: " + increment);
   }
 
   /**
-   * This method determines the locations where to do a counterexample-check.
+   * This method creates a clone of the current error path, as it will read "destructive".
    *
-   * @param cfaTrace
-   * @return
+   * @param errorPath the error path to clone
+   * @return the cloned error path
+   */
+  private Path cloneErrorPath(Path errorPath) {
+    Path currentErrorPath = new Path();
+    for(Pair<ARGState, CFAEdge> pathElement : errorPath) {
+      currentErrorPath.add(pathElement);
+    }
+    return currentErrorPath;
+  }
+
+  /**
+   * This method determines the mapping where to do an explicit interpolation for which variables.
+   *
+   * @param cfaTrace the CFA trace to check
+   * @return the mapping where to do an explicit interpolation for which variables
    */
   private Multimap<CFANode, String> determineReferencedVariableMapping(List<CFAEdge> cfaTrace) {
     if(useAssumptionClosure) {
@@ -181,18 +183,6 @@ debug("\nincrement: " + increment);
       AssignedVariablesCollector collector = new AssignedVariablesCollector();
       return collector.collectVars(cfaTrace);
     }
-  }
-
-  /**
-   * This method checks whether or not a variable is already in the precision for the given edge.
-   *
-   * @param precision the current precision
-   * @param currentEdge the current CFA edge
-   * @param referencedVariableAtEdge the variable referenced at the current edge
-   * @return true, if adding the given variable to the precision would be redundant, else false
-  */
-  private boolean isRedundant(CegarPrecision precision, CFAEdge currentEdge, String referencedVariableAtEdge) {
-    return precision.allowsTrackingAt(currentEdge.getSuccessor(), referencedVariableAtEdge);
   }
 
   @Override
