@@ -333,7 +333,7 @@ cpa.bdd.vector.initPartitions = true
 
 # track boolean variables from cfa as bitvectors, this option limits the
 # whitelist
-cpa.bdd.vector.trackBooleanFromCFA = false
+cpa.bdd.vector.trackBooleanFromCFA = true
 
 # track simple numeral variables from cfa as bitvectors, this option limits
 # the whitelist
