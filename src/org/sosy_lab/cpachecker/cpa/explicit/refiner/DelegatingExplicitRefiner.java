@@ -72,15 +72,10 @@ import com.google.common.collect.Multimap;
 public class DelegatingExplicitRefiner
   extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARGState, CFANode>> {
 
-  @Option(description="whether to use refinement based on Explicit-Interpolation - with this option set to false, refinement will be done using SMT-based interpolation")
-  boolean useExplicitInterpolation = true;
-
   @Option(description="whether or not to always use the inital node as starting point for the next re-exploration of the ARG")
   boolean useInitialNodeAsRestartingPoint = true;
 
   private ExplicitRefiner explicitInterpolatingRefiner;
-
-  private ExplicitRefiner smtInterpolatingRefiner;
 
   private PredicatingExplicitRefiner predicatingRefiner;
 
@@ -155,12 +150,7 @@ public class DelegatingExplicitRefiner
 
     config.inject(this, DelegatingExplicitRefiner.class);
 
-    if(useExplicitInterpolation) {
-      explicitInterpolatingRefiner  = new ExplicitInterpolationBasedExplicitRefiner(config, pathFormulaManager);
-    }
-    else {
-      smtInterpolatingRefiner       = new SmtBasedExplicitRefiner(config, pathFormulaManager, formulaManager, interpolationManager);
-    }
+    explicitInterpolatingRefiner  = new ExplicitInterpolationBasedExplicitRefiner(config, pathFormulaManager);
 
     if(((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class) != null) {
       predicatingRefiner = new PredicatingExplicitRefiner();
@@ -178,16 +168,9 @@ public class DelegatingExplicitRefiner
 
     ARGState interpolationPoint = null;
 
-    if(explicitInterpolatingRefiner != null) {
-      precisionIncrement = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
-      interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
-      //System.out.println("\nfinal explicit-precisionIncrement: " + precisionIncrement);
-    }
-    else {
-      precisionIncrement = smtInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
-      interpolationPoint = smtInterpolatingRefiner.determineInterpolationPoint(errorPath);
-      //System.out.println("\nfinal smt-precisionIncrement: " + precisionIncrement);
-    }
+    precisionIncrement = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
+    interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
+    //System.out.println("\nfinal explicit-precisionIncrement: " + precisionIncrement);
 
     if(precisionIncrement.size() > 0) {
       ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
@@ -244,13 +227,7 @@ public class DelegatingExplicitRefiner
 
     out.println("Explicit Refinement:");
 
-    if(explicitInterpolatingRefiner != null) {
-      explicitInterpolatingRefiner.printStatistics(out, result, reached);
-    }
-
-    if(smtInterpolatingRefiner != null) {
-      smtInterpolatingRefiner.printStatistics(out, result, reached);
-    }
+    explicitInterpolatingRefiner.printStatistics(out, result, reached);
 
     if(predicatingRefiner != null) {
       predicatingRefiner.printStatistics(out, result, reached);

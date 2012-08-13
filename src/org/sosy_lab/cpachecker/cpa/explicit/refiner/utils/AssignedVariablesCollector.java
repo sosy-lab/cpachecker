@@ -93,8 +93,6 @@ public class AssignedVariablesCollector {
       break;
 
     case ReturnStatementEdge:
-System.out.println(edge);
-System.out.println(successorEdge);
       CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge)edge;
 
       CFunctionReturnEdge returnEdge2 = (CFunctionReturnEdge)successorEdge;
@@ -110,6 +108,10 @@ System.out.println(successorEdge);
 
         collectedVariables.put(cFunctionSummaryEdge2.getSuccessor(), assignedVariable);
         collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables);
+        collectVariables(returnStatementEdge, new CIdExpression(returnStatementEdge.getExpression().getFileLocation(),
+            null,
+            "___cpa_temp_result_var_",
+            null), collectedVariables);
       }
 
       break;

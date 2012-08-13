@@ -333,7 +333,7 @@ cpa.bdd.vector.initPartitions = true
 
 # track boolean variables from cfa as bitvectors, this option limits the
 # whitelist
-cpa.bdd.vector.trackBooleanFromCFA = false
+cpa.bdd.vector.trackBooleanFromCFA = true
 
 # track simple numeral variables from cfa as bitvectors, this option limits
 # the whitelist
@@ -431,10 +431,6 @@ cpa.explicit.precision.path.defaultThreshold = -1
 # threshold for amount of different values that are tracked for one variable
 # within the reached set (-1 means infinitely)
 cpa.explicit.precision.reachedSet.defaultThreshold = -1
-
-# whether to use refinement based on Explicit-Interpolation - with this
-# option set to false, refinement will be done using SMT-based interpolation
-cpa.explicit.refiner.useExplicitInterpolation = true
 
 # whether or not to always use the inital node as starting point for the next
 # re-exploration of the ARG
