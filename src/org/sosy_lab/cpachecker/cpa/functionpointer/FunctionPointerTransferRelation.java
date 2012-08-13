@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -85,6 +86,7 @@ import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownT
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 @Options(prefix="cpa.functionpointer")
 class FunctionPointerTransferRelation implements TransferRelation {
@@ -138,10 +140,28 @@ class FunctionPointerTransferRelation implements TransferRelation {
     return results;
   }
 
+
   private void getAbstractSuccessorForEdge(
       FunctionPointerState oldState, Precision pPrecision, CFAEdge pCfaEdge, Collection<FunctionPointerState> results)
       throws CPATransferException, InterruptedException {
     CFAEdge cfaEdge;
+
+    /*first handle edge of multi edge, handleEdge(multiEdge)
+
+    if call to function pointer
+      -> split multi edge there, in two multi edges
+
+
+    //oldState.g
+    oldState.getTargetMap();
+*/
+    if(pCfaEdge instanceof MultiEdge) {
+      for(CFAEdge edge : ((MultiEdge)pCfaEdge).getEdges()) {
+        getAbstractSuccessorForEdge(oldState, pPrecision, edge, results);
+        System.out.println(results);
+      }
+      return;
+    }
 
     // first, check if this is a function pointer call
     String functionCallVariable = getFunctionPointerCall(pCfaEdge);
@@ -215,7 +235,6 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
     for (AbstractState newWrappedState : newWrappedStates) {
       FunctionPointerState.Builder newState = oldState.createBuilderWithNewWrappedState(newWrappedState);
-
       newState = handleEdge(newState, cfaEdge);
 
       if (newState != null) {

@@ -53,7 +53,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     constantsMap = new HashMap<String, Long>();
   }
 
-  private ExplicitState(Map<String, Long> constantsMap) {
+  public ExplicitState(Map<String, Long> constantsMap) {
     this.constantsMap = constantsMap;
   }
 
@@ -66,7 +66,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     constantsMap.put(checkNotNull(variableName), checkNotNull(value));
   }
 
-  void forget(String variableName) {
+  public void forget(String variableName) {
     constantsMap.remove(variableName);
   }
 

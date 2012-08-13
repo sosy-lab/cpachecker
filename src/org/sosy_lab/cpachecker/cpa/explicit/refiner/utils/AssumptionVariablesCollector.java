@@ -196,6 +196,10 @@ import com.google.common.collect.Multimap;
         if (dependingVariables.contains(assignedVariable)) {
           collectedVariables.put(cFunctionSummaryEdge2.getSuccessor(), assignedVariable);
           collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables, true);
+          collectVariables(returnStatementEdge, new CIdExpression(returnStatementEdge.getExpression().getFileLocation(),
+              null,
+              "___cpa_temp_result_var_",
+              null), collectedVariables, true);
         }
       }
 

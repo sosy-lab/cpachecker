@@ -20,5 +20,6 @@
 	<classpathentry kind="lib" path="lib/edu.cmu.sei.rtss.jldd.jar"/>
 	<classpathentry kind="lib" path="lib/yicesapijava.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="lib/java-contrib/common-sources.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

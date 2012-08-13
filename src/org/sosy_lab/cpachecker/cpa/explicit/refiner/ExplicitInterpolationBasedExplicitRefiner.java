@@ -25,8 +25,11 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -38,11 +41,13 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision.CegarPrecision;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssignedVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssumptionVariablesCollector;
+import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
@@ -67,6 +72,11 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
     config.inject(this);
   }
 
+  public static boolean DEBUG = !true;
+  private static void debug(String message) {
+    if(DEBUG) System.out.println(message);
+  }
+
   @Override
   protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet,
       Path errorPath) throws CPAException {
@@ -76,16 +86,38 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
 
     numberOfRefinements++;
 
-    Multimap<CFANode, String> increment = HashMultimap.create();
+debug("\n\ndeterminePrecisionIncrement");
 
+    Multimap<CFANode, String> increment = HashMultimap.create();
+ExplicitTransferRelation.DEBUG = false;
     // only do a refinement if a full-precision check shows that the path is infeasible
     if(!isPathFeasable(errorPath, HashMultimap.<CFANode, String>create())) {
-      List<CFAEdge> cfaTrace = extractCFAEdgeTrace(errorPath);
 
-      Multimap<CFANode, String> variablesToBeIgnored      = HashMultimap.create();
+      // make copy of error path, as it will be destructed here, but is needed later on, again
+      Path currentErrorPath = new Path();
+      int j = 0;
+      for(Pair<ARGState, CFAEdge> pathElement : errorPath) {
+        if(j++ == 0) {
+          continue;
+        }
+        currentErrorPath.add(pathElement);
+      }
+
+      List<CFAEdge> cfaTrace = extractCFAEdgeTrace(currentErrorPath);
+
+debug("error path: " + currentErrorPath);
+
+      ExplicitInterpolator interpolator = new ExplicitInterpolator();
+
+      Map<String, Long> currentInterpolant = new HashMap<String, Long>();
+
       Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(cfaTrace);
 
       for(int i = 0; i < cfaTrace.size(); i++){
+        if(i > 0) {
+          currentErrorPath.remove();
+        }
+
         CFAEdge currentEdge = cfaTrace.get(i);
 
         numberOfErrorPathElements++;
@@ -98,27 +130,27 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
 
         // no potentially interesting variables referenced - skip
         if(referencedVariablesAtEdge.isEmpty()) {
-          continue;
+          for(String variableName : currentInterpolant.keySet()) {
+            increment.put(currentEdge.getSuccessor(), variableName);
+          }
         }
 
+debug("\ncurrentEdge [" + currentEdge.getEdgeType() + "]: " + currentEdge);
+
         // check for each variable, if ignoring it makes the error path feasible
-        for(String importantVariable : referencedVariablesAtEdge) {
-          // do a redundancy check against current node of the ART (and not against the error node in the ART)
-          ExplicitPrecision currentPrecision = extractExplicitPrecision(reachedSet.getPrecision(edgeToState.get(cfaTrace.get(i))));
-          if(isRedundant(currentPrecision.getCegarPrecision(), currentEdge, importantVariable)) {
-            continue;
+        for(String currentVariable : referencedVariablesAtEdge) {
+          numberOfCounterExampleChecks++;
+debug("  currentVariable: " + currentVariable);
+          try {
+            currentInterpolant = interpolator.deriveInterpolant(currentErrorPath, currentVariable, currentInterpolant);
+debug("--> currentInterpolant: " + currentInterpolant);
+          }
+          catch (InterruptedException e) {
+            throw new CPAException("Explicit-Interpolation failed: ", e);
           }
 
-          numberOfCounterExampleChecks++;
-
-          // variables to ignore in the current run
-          variablesToBeIgnored.put(currentEdge.getSuccessor(), importantVariable);
-
-          // if path becomes feasible, remove it from the set of variables to be ignored,
-          // and add the variable to the precision increment, also setting the interpolation point
-          if(isPathFeasable(errorPath, variablesToBeIgnored)) {
-            variablesToBeIgnored.remove(currentEdge.getSuccessor(), importantVariable);
-            increment.put(currentEdge.getSuccessor(), importantVariable);
+          for(String variableName : currentInterpolant.keySet()) {
+            increment.put(currentEdge.getSuccessor(), variableName);
 
             if(firstInterpolationPoint == null) {
               firstInterpolationPoint = edgeToState.get(cfaTrace.get(i + 1));
@@ -127,7 +159,8 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
         }
       }
     }
-
+debug("\nincrement: " + increment);
+//ExplicitTransferRelation.DEBUG = true;
     timerCounterExampleChecks.stop();
     return increment;
   }

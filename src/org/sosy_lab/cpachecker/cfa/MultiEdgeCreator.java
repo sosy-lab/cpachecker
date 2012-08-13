@@ -118,6 +118,18 @@ class MultiEdgeCreator extends DefaultCFAVisitor {
   }
 
   private boolean edgeQualifies(CFAEdge edge) {
+/*
+    if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
+      CStatement statement = ((CStatementEdge)edge).getStatement();
+      //System.out.println(statement);
+      if ((statement instanceof CFunctionCall)) {
+        return false;
+      }
+    }
+
+    if(edge.getEdgeType() == CFAEdgeType.DeclarationEdge)
+      return false;
+*/
     return edge.getEdgeType() == CFAEdgeType.BlankEdge
         || edge.getEdgeType() == CFAEdgeType.DeclarationEdge
         || edge.getEdgeType() == CFAEdgeType.StatementEdge

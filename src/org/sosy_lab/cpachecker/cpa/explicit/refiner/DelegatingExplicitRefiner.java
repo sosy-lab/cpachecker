@@ -181,10 +181,12 @@ public class DelegatingExplicitRefiner
     if(explicitInterpolatingRefiner != null) {
       precisionIncrement = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
       interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
+      //System.out.println("\nfinal explicit-precisionIncrement: " + precisionIncrement);
     }
     else {
       precisionIncrement = smtInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
       interpolationPoint = smtInterpolatingRefiner.determineInterpolationPoint(errorPath);
+      //System.out.println("\nfinal smt-precisionIncrement: " + precisionIncrement);
     }
 
     if(precisionIncrement.size() > 0) {

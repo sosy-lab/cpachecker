@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 
-import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -38,16 +38,21 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 import com.google.common.collect.HashMultimap;
@@ -61,14 +66,18 @@ import com.google.common.collect.Multimap;
 public class AssignedVariablesCollector {
   Set<String> globalVariables = new HashSet<String>();
 
+  CFAEdge successorEdge = null;
+
   public AssignedVariablesCollector() {
   }
 
-  public Multimap<CFANode, String> collectVars(Collection<CFAEdge> edges) {
+  public Multimap<CFANode, String> collectVars(List<CFAEdge> edges) {
     Multimap<CFANode, String> collectedVariables = HashMultimap.create();
 
-    for (CFAEdge edge : edges) {
-      collectVariables(edge, collectedVariables);
+    for (int i = 0; i < edges.size() - 1; i++) {
+      successorEdge = (i == edges.size() - 1) ? null : edges.get(i + 1);
+
+      collectVariables(edges.get(i), collectedVariables);
     }
 
     return collectedVariables;
@@ -80,13 +89,34 @@ public class AssignedVariablesCollector {
     switch (edge.getEdgeType()) {
     case BlankEdge:
     case CallToReturnEdge:
-    case ReturnStatementEdge:
       //nothing to do
+      break;
+
+    case ReturnStatementEdge:
+System.out.println(edge);
+System.out.println(successorEdge);
+      CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge)edge;
+
+      CFunctionReturnEdge returnEdge2 = (CFunctionReturnEdge)successorEdge;
+
+      CFunctionSummaryEdge cFunctionSummaryEdge2 = returnEdge2.getSummaryEdge();
+
+      CFunctionCall functionCall2 = cFunctionSummaryEdge2.getExpression();
+
+      if (functionCall2 instanceof CFunctionCallAssignmentStatement) {
+        CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCall2;
+        String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), successorEdge.getSuccessor().getFunctionName());
+
+
+        collectedVariables.put(cFunctionSummaryEdge2.getSuccessor(), assignedVariable);
+        collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables);
+      }
+
       break;
 
     case DeclarationEdge:
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
-      if (declaration.getName() != null && declaration.isGlobal()) {
+      if (declaration instanceof CVariableDeclaration && declaration.getName() != null && declaration.isGlobal()) {
         globalVariables.add(declaration.getName());
         collectedVariables.put(edge.getSuccessor(), declaration.getName());
       }
@@ -122,6 +152,19 @@ public class AssignedVariablesCollector {
         collectedVariables.put(edge.getSuccessor(), assignedVariable);
         collectVariables(functionCallEdge, funcAssign.getRightHandSide(), collectedVariables);
       }
+
+
+      String functionName = functionCallEdge.getSuccessor().getFunctionDefinition().getName();
+
+      int i = 0;
+      for (CParameterDeclaration parameter : functionCallEdge.getSuccessor().getFunctionDefinition().getType().getParameters()) {
+        String parameterName = functionName + "::" + parameter.getName();
+
+        // collect the formal parameter, and make the argument a depending variable
+        collectedVariables.put(functionCallEdge.getSuccessor(), parameterName);
+        i++;
+      }
+
       break;
     }
   }
