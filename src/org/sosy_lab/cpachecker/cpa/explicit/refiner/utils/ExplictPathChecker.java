@@ -81,7 +81,7 @@ public class ExplictPathChecker {
         next = extractNextState(successors);
 
         // path is not feasible
-        if (next == null && pathElement.getSecond() != path.get(path.size() - 1)) {
+        if(next == null && !pathElement.getFirst().isTarget()) {
           return false;
         }
       }

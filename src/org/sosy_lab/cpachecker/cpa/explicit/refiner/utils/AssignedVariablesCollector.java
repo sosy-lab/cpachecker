@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -54,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -71,13 +71,13 @@ public class AssignedVariablesCollector {
   public AssignedVariablesCollector() {
   }
 
-  public Multimap<CFANode, String> collectVars(List<CFAEdge> edges) {
+  public Multimap<CFANode, String> collectVars(Path currentErrorPath) {
     Multimap<CFANode, String> collectedVariables = HashMultimap.create();
 
-    for (int i = 0; i < edges.size() - 1; i++) {
-      successorEdge = (i == edges.size() - 1) ? null : edges.get(i + 1);
+    for (int i = 0; i < currentErrorPath.size() - 1; i++) {
+      successorEdge = (i == currentErrorPath.size() - 1) ? null : currentErrorPath.get(i + 1).getSecond();
 
-      collectVariables(edges.get(i), collectedVariables);
+      collectVariables(currentErrorPath.get(i).getSecond(), collectedVariables);
     }
 
     return collectedVariables;

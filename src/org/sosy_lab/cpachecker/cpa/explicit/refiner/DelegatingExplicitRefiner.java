@@ -75,7 +75,7 @@ public class DelegatingExplicitRefiner
   @Option(description="whether or not to always use the inital node as starting point for the next re-exploration of the ARG")
   boolean useInitialNodeAsRestartingPoint = true;
 
-  private ExplicitRefiner explicitInterpolatingRefiner;
+  private ExplicitInterpolationBasedExplicitRefiner explicitInterpolatingRefiner;
 
   private PredicatingExplicitRefiner predicatingRefiner;
 

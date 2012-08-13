@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
@@ -47,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssignedVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssumptionVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
+import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictPathChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
@@ -54,10 +54,19 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.explict.refiner")
-public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
+public class ExplicitInterpolationBasedExplicitRefiner {
+  @Option(description="whether or not to always use the inital node as starting point for the next re-exploration of the ARG")
+  private boolean useInitialNodeAsRestartingPoint = true;
 
   @Option(description="whether or not to use assumption-closure for explicit refinement")
-  boolean useAssumptionClosure = true;
+  private boolean useAssumptionClosure = true;
+
+  private HashMap<CFAEdge, ARGState> edgeToState = new HashMap<CFAEdge, ARGState>();
+
+  /**
+   * the ART element, from where to cut-off the subtree, and restart the analysis
+   */
+  private ARGState firstInterpolationPoint = null;
 
   // statistics
   private int numberOfRefinements           = 0;
@@ -75,7 +84,6 @@ public class ExplicitInterpolationBasedExplicitRefiner extends ExplicitRefiner {
     if(DEBUG) System.out.println(message);
   }
 
-  @Override
   protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet,
       Path errorPath) throws CPAException {
     timerCounterExampleChecks.start();
@@ -91,25 +99,24 @@ ExplicitTransferRelation.DEBUG = false;
     // only do a refinement if a full-precision check shows that the path is infeasible
     if(!isPathFeasable(errorPath, HashMultimap.<CFANode, String>create())) {
 
-      // make copy of error path, as it will be destructed here, but is needed later on, again
-      Path currentErrorPath   = cloneErrorPath(errorPath);
-      List<CFAEdge> cfaTrace  = extractCFAEdgeTrace(currentErrorPath);
+      // make copy of error path, as it will be read destructive here, but is needed later on, again
+      Path currentErrorPath = cloneErrorPath(errorPath);
 
-      Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(cfaTrace);
+      Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(currentErrorPath);
 
 debug("error path: " + currentErrorPath);
 
       ExplicitInterpolator interpolator     = new ExplicitInterpolator();
       Map<String, Long> currentInterpolant  = new HashMap<String, Long>();
 
-      for(int i = 0; i < cfaTrace.size(); i++){
+      for(int i = 0; i < errorPath.size(); i++){
         if(i > 0) {
           currentErrorPath.remove();
         }
 
         numberOfErrorPathElements++;
 
-        CFAEdge currentEdge = cfaTrace.get(i);
+        CFAEdge currentEdge = errorPath.get(i).getSecond();
         if(currentEdge instanceof CFunctionReturnEdge) {
           currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
         }
@@ -141,7 +148,7 @@ debug("--> currentInterpolant: " + currentInterpolant);
             increment.put(currentEdge.getSuccessor(), variableName);
 
             if(firstInterpolationPoint == null) {
-              firstInterpolationPoint = edgeToState.get(cfaTrace.get(i + 1));
+              firstInterpolationPoint = errorPath.get(i).getFirst();
             }
           }
         }
@@ -151,6 +158,42 @@ debug("\nincrement: " + increment);
 //ExplicitTransferRelation.DEBUG = true;
     timerCounterExampleChecks.stop();
     return increment;
+  }
+
+  /**
+   * This method determines the new interpolation point.
+   *
+   * @param errorPath the error path from where to determine the interpolation point
+   * @return the new interpolation point
+   */
+  protected ARGState determineInterpolationPoint(Path errorPath) {
+    // just use initial node of error path if the respective option is set
+    if(useInitialNodeAsRestartingPoint) {
+      return errorPath.get(1).getFirst();
+    }
+
+    // otherwise, use the first node where new information is present
+    else {
+      return firstInterpolationPoint;
+    }
+  }
+
+  /**
+   * This method determines the mapping where to do an explicit interpolation for which variables.
+   *
+   * @param currentErrorPath the current error path to check
+   * @return the mapping where to do an explicit interpolation for which variables
+   */
+  private Multimap<CFANode, String> determineReferencedVariableMapping(Path currentErrorPath) {
+    if(useAssumptionClosure) {
+      AssumptionVariablesCollector coll = new AssumptionVariablesCollector();
+      return coll.collectVariables(currentErrorPath);
+    }
+
+    else {
+      AssignedVariablesCollector collector = new AssignedVariablesCollector();
+      return collector.collectVars(currentErrorPath);
+    }
   }
 
   /**
@@ -168,24 +211,25 @@ debug("\nincrement: " + increment);
   }
 
   /**
-   * This method determines the mapping where to do an explicit interpolation for which variables.
+   * This method checks if the given path is feasible, when not tracking the given set of variables.
    *
-   * @param cfaTrace the CFA trace to check
-   * @return the mapping where to do an explicit interpolation for which variables
+   * @param path the path to check
+   * @param variablesToBeIgnored the variables to ignore
+   * @return true, if the path is feasible, else false
+   * @throws CPAException if the path check gets interrupted
    */
-  private Multimap<CFANode, String> determineReferencedVariableMapping(List<CFAEdge> cfaTrace) {
-    if(useAssumptionClosure) {
-      AssumptionVariablesCollector coll = new AssumptionVariablesCollector();
-      return coll.collectVariables(cfaTrace);
-    }
+  private boolean isPathFeasable(Path path, Multimap<CFANode, String> variablesToBeIgnored) throws CPAException {
+    try {
+      // create a new ExplicitPathChecker, which does not track any of the given variables
+      ExplictPathChecker checker = new ExplictPathChecker();
 
-    else {
-      AssignedVariablesCollector collector = new AssignedVariablesCollector();
-      return collector.collectVars(cfaTrace);
+      return checker.checkPath(path, variablesToBeIgnored);
+    }
+    catch (InterruptedException e) {
+      throw new CPAException("counterexample-check failed: ", e);
     }
   }
 
-  @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     out.println(this.getClass().getSimpleName() + ":");
     out.println("  number of explicit-interpolation-based refinements:  " + numberOfRefinements);
