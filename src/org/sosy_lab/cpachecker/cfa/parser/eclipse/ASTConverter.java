@@ -1293,7 +1293,7 @@ class ASTConverter {
     return new CNamedType(d.isConst(), d.isVolatile(), convert(d.getName()));
   }
 
-  private CSimpleType convert(IASTSimpleDeclSpecifier d) {
+  private CType convert(IASTSimpleDeclSpecifier d) {
     if (!(d instanceof org.eclipse.cdt.core.dom.ast.c.ICASTSimpleDeclSpecifier)) {
       throw new CFAGenerationRuntimeException("Unsupported type", d);
     }
@@ -1322,8 +1322,12 @@ class ASTConverter {
     case IASTSimpleDeclSpecifier.t_void:
       type = CBasicType.VOID;
       break;
+    case IASTSimpleDeclSpecifier.t_typeof:
+      // TODO This might loose some information of dd or dd.getDeclTypeExpression()
+      // (the latter should be of type IASTTypeIdExpression)
+      return convert(dd.getDeclTypeExpression().getExpressionType());
     default:
-      throw new CFAGenerationRuntimeException("Unknown basic type " + dd.getType(), d);
+      throw new CFAGenerationRuntimeException("Unknown basic type " + dd.getType() + " " + dd.getClass().getSimpleName(), d);
     }
 
     if ((dd.isShort() && dd.isLong())
