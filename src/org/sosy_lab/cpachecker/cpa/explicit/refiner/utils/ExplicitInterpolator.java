@@ -30,7 +30,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
@@ -50,6 +49,18 @@ public class ExplicitInterpolator {
   private ExplicitTransferRelation transfer = null;
 
   /**
+   * whether or not to block any further interpolations, i.e. a blocking state was reached
+   */
+  private boolean block = false;
+
+  /**
+   * the current blocking state, i.e. the first pair of ARGState and CFA edge that make the current error path
+   * infeasible - when interpolating beyond this state, the error path might be always feasible, as no assume
+   * edges are between the current interpolation state and the error state
+   */
+  private ARGState blockingState = null;
+
+  /**
    * This method acts as the constructor of the class.
    */
   public ExplicitInterpolator() throws CPAException {
@@ -62,18 +73,9 @@ public class ExplicitInterpolator {
       throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);
     }
   }
-  ARGState blockingState = null;
-  boolean block = false;
-  Long returnValue = null;
-
-  public static boolean DEBUG = !true;
-  private static void debug(String message) {
-    if(DEBUG) System.out.println(message);
-  }
-
 
   /**
-   * TODO never gets called when using AssignedVariablesCollector and current edge is a CReturnStatementEdge, as that does not collect variables from these edges
+   * This method derives an interpolant for the given error path and interpolation state.
    *
    * @param errorPath the path to check
    * @param iterpolationState the state at where to start the current interpolation
@@ -103,20 +105,16 @@ public class ExplicitInterpolator {
         block = true;
       }
 
-      CFAEdge interpolationEdge = iterpolationState.getSecond();
-      interpolationEdge.hashCode();
-
-      boolean startinterpolation = false;
+      boolean startInterpolation = false;
       for(Pair<ARGState, CFAEdge> pathElement : errorPath) {
         if(iterpolationState == pathElement) {
-          startinterpolation = true;
+          startInterpolation = true;
         }
 
-        if(!startinterpolation) {
+        if(!startInterpolation) {
           continue;
         }
 
-        CFAEdge presentEdge = pathElement.getSecond();
         Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
             next,
             precision,
@@ -127,14 +125,10 @@ public class ExplicitInterpolator {
         // there is no successor, but current path element is not an error state => error path is spurious
         if(next == null && !pathElement.getFirst().isTarget()) {
           blockingState = pathElement.getFirst();
-debug("    path is infeasible @ " + pathElement.getSecond());
 
-/*
           if(variableValue == null) {
-            System.out.println("REMOVED-INFEASIBLE " + currentVariable);
             currentInterpolant.remove(currentVariable);
           }
-*/
 
           return currentInterpolant;
         }
@@ -147,35 +141,16 @@ debug("    path is infeasible @ " + pathElement.getSecond());
             variableValue = null;
           }
 
-          if(interpolationEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
-            String returnVariableName = interpolationEdge.getSuccessor().getFunctionName() + "::___cpa_temp_result_var_";
-            if(next.contains(returnVariableName)) {
-              returnValue = next.getValueFor(returnVariableName);
-              next.forget(returnVariableName);
-            }
-          }
-
           next.forget(currentVariable);
 
           interpolated = true;
         }
       }
-debug("    path is feasable");
 
       if(variableValue != null) {
-debug("      adding " + currentVariable + " to interpolant with value " + variableValue);
         currentInterpolant.put(currentVariable, variableValue);
-      }/* else {
-        System.out.println("REMOVED-FEASABLE " + currentVariable);
+      } else {
         currentInterpolant.remove(currentVariable);
-      }*/
-
-
-      // might be no longer needed, as fun::___cpa_temp_result_var_ is in set of collected variables/ReturnStatementEdge in set of relevant edges
-      if(interpolationEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge && returnValue != null) {
-debug("      adding function assignment to interpolant");
-        currentInterpolant.put(currentVariable, returnValue);
-        returnValue = null;
       }
 
       // path is feasible

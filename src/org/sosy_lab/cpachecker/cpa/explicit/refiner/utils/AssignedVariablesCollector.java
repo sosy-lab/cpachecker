@@ -64,9 +64,9 @@ import com.google.common.collect.Multimap;
  * that they either appear on the left hand side of an assignment or within an assume edge.
  */
 public class AssignedVariablesCollector {
-  Set<String> globalVariables = new HashSet<String>();
+  private Set<String> globalVariables = new HashSet<String>();
 
-  CFAEdge successorEdge = null;
+  private CFAEdge successorEdge = null;
 
   public AssignedVariablesCollector() {
   }
@@ -155,16 +155,12 @@ public class AssignedVariablesCollector {
         collectVariables(functionCallEdge, funcAssign.getRightHandSide(), collectedVariables);
       }
 
-
       String functionName = functionCallEdge.getSuccessor().getFunctionDefinition().getName();
-
-      int i = 0;
       for (CParameterDeclaration parameter : functionCallEdge.getSuccessor().getFunctionDefinition().getType().getParameters()) {
         String parameterName = functionName + "::" + parameter.getName();
 
         // collect the formal parameter, and make the argument a depending variable
         collectedVariables.put(functionCallEdge.getSuccessor(), parameterName);
-        i++;
       }
 
       break;

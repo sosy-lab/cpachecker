@@ -70,12 +70,12 @@ import com.google.common.collect.Multimap;
   /**
    * the set of global variables declared in the given path
    */
-  Set<String> globalVariables           = new HashSet<String>();
+  private Set<String> globalVariables           = new HashSet<String>();
 
   /**
    * the set of variables for which to find the referencing ones
    */
-  Collection<String> dependingVariables = new HashSet<String>();
+  private Collection<String> dependingVariables = new HashSet<String>();
 
   /**
    * This method acts as the constructor of the class.

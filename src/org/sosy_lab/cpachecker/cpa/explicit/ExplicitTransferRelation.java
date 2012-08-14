@@ -85,7 +85,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 @Options(prefix="cpa.explicit")
 public class ExplicitTransferRelation implements TransferRelation
 {
-
   @Option(description = "if there is an assumption like (x!=0), "
       + "this option sets unknown (uninitialized) variables to 1L, "
       + "when the true-branch is handled.")
@@ -98,11 +97,6 @@ public class ExplicitTransferRelation implements TransferRelation
 
   private CRightHandSide missingInformationRightExpression = null;
 
-  public static boolean DEBUG = !true;
-  private static void debug(String message) {
-    if(DEBUG) System.out.println(message);
-  }
-
   public ExplicitTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
@@ -112,10 +106,6 @@ public class ExplicitTransferRelation implements TransferRelation
 
     ExplicitState explicitState     = (ExplicitState)element;
     ExplicitPrecision explicitPrecision = (ExplicitPrecision)pPrecision;
-
-
-    debug("\ninput element = " + element);
-    debug("current edge: " + cfaEdge);
 
     ExplicitState successor;
 
@@ -145,12 +135,6 @@ public class ExplicitTransferRelation implements TransferRelation
       handleSimpleEdge(successor, explicitPrecision, cfaEdge);
     }
 
-
-    if(successor != null)
-      debug("successor = " + successor.getConstantsMap());
-    else
-      debug("successor = " + "null");
-
     successor = computeAbstraction(successor, explicitPrecision, cfaEdge);
 
     if (successor == null) {
@@ -172,7 +156,6 @@ public class ExplicitTransferRelation implements TransferRelation
       }
 
       for(String variableName: variablesToDrop) {
-debug("    dropping " + variableName +" @ " + cfaEdge.getSuccessor().getNodeNumber());
         successor.forget(variableName);
       }
     }

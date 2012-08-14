@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssignedVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssumptionVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
@@ -82,11 +81,6 @@ public class ExplicitInterpolationBasedExplicitRefiner {
     config.inject(this);
   }
 
-  public static boolean DEBUG = !true;
-  private static void debug(String message) {
-    if(DEBUG) System.out.println(message);
-  }
-
   protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet,
       Path errorPath) throws CPAException {
     timerCounterExampleChecks.start();
@@ -95,16 +89,11 @@ public class ExplicitInterpolationBasedExplicitRefiner {
 
     numberOfRefinements++;
 
-debug("\n\ndeterminePrecisionIncrement");
-
     Multimap<CFANode, String> increment = HashMultimap.create();
-ExplicitTransferRelation.DEBUG = false;
     // only do a refinement if a full-precision check shows that the path is infeasible
     if(!isPathFeasable(errorPath, HashMultimap.<CFANode, String>create())) {
 
       Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(errorPath);
-
-debug("error path: " + errorPath);
 
       ExplicitInterpolator interpolator     = new ExplicitInterpolator();
       Map<String, Long> currentInterpolant  = new HashMap<String, Long>();
@@ -126,15 +115,12 @@ debug("error path: " + errorPath);
           }
         }
 
-debug("\ncurrentEdge [" + currentEdge.getEdgeType() + "]: " + currentEdge);
-
         // check for each variable, if ignoring it makes the error path feasible
         for(String currentVariable : referencedVariablesAtEdge) {
           numberOfCounterExampleChecks++;
-debug("  currentVariable: " + currentVariable);
+
           try {
             currentInterpolant = interpolator.deriveInterpolant(errorPath, errorPath.get(i), currentVariable, currentInterpolant);
-debug("--> currentInterpolant: " + currentInterpolant);
           }
           catch (InterruptedException e) {
             throw new CPAException("Explicit-Interpolation failed: ", e);
@@ -150,8 +136,7 @@ debug("--> currentInterpolant: " + currentInterpolant);
         }
       }
     }
-debug("\nincrement: " + increment);
-//ExplicitTransferRelation.DEBUG = true;
+
     timerCounterExampleChecks.stop();
     return increment;
   }
@@ -212,7 +197,7 @@ debug("\nincrement: " + increment);
     }
   }
 
-  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+  protected void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     out.println(this.getClass().getSimpleName() + ":");
     out.println("  number of explicit-interpolation-based refinements:  " + numberOfRefinements);
     out.println("  number of counter-example checks:                    " + numberOfCounterExampleChecks);
