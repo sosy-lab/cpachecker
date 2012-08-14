@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -103,21 +102,14 @@ ExplicitTransferRelation.DEBUG = false;
     // only do a refinement if a full-precision check shows that the path is infeasible
     if(!isPathFeasable(errorPath, HashMultimap.<CFANode, String>create())) {
 
-      // make copy of error path, as it will be read destructive here, but is needed later on, again
-      Path currentErrorPath = cloneErrorPath(errorPath);
+      Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(errorPath);
 
-      Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(currentErrorPath);
-
-debug("error path: " + currentErrorPath);
+debug("error path: " + errorPath);
 
       ExplicitInterpolator interpolator     = new ExplicitInterpolator();
       Map<String, Long> currentInterpolant  = new HashMap<String, Long>();
 
-      for(int i = 0; i < errorPath.size(); i++){
-        if(i > 0) {
-          currentErrorPath.remove();
-        }
-
+      for(int i = 0; i < errorPath.size(); i++) {
         numberOfErrorPathElements++;
 
         CFAEdge currentEdge = errorPath.get(i).getSecond();
@@ -141,7 +133,7 @@ debug("\ncurrentEdge [" + currentEdge.getEdgeType() + "]: " + currentEdge);
           numberOfCounterExampleChecks++;
 debug("  currentVariable: " + currentVariable);
           try {
-            currentInterpolant = interpolator.deriveInterpolant(currentErrorPath, currentVariable, currentInterpolant);
+            currentInterpolant = interpolator.deriveInterpolant(errorPath, errorPath.get(i), currentVariable, currentInterpolant);
 debug("--> currentInterpolant: " + currentInterpolant);
           }
           catch (InterruptedException e) {
@@ -198,20 +190,6 @@ debug("\nincrement: " + increment);
       AssignedVariablesCollector collector = new AssignedVariablesCollector();
       return collector.collectVars(currentErrorPath);
     }
-  }
-
-  /**
-   * This method creates a clone of the current error path, as it will read "destructive".
-   *
-   * @param errorPath the error path to clone
-   * @return the cloned error path
-   */
-  private Path cloneErrorPath(Path errorPath) {
-    Path currentErrorPath = new Path();
-    for(Pair<ARGState, CFAEdge> pathElement : errorPath) {
-      currentErrorPath.add(pathElement);
-    }
-    return currentErrorPath;
   }
 
   /**

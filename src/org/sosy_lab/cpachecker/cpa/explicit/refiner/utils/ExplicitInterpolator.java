@@ -75,32 +75,47 @@ public class ExplicitInterpolator {
   /**
    * TODO never gets called when using AssignedVariablesCollector and current edge is a CReturnStatementEdge, as that does not collect variables from these edges
    *
-   * @param path the path to check
+   * @param errorPath the path to check
+   * @param iterpolationState the state at where to start the current interpolation
+   * @param currentVariable the variable on which the interpolation is performed on
+   * @param currentInterpolant the current interpolant, which is build iteratively
    * @throws CPAException
    * @throws InterruptedException
    */
-  public Map<String, Long> deriveInterpolant(Path path, String currentVariable, Map<String, Long> currentInterpolant) throws CPAException, InterruptedException {
+  public Map<String, Long> deriveInterpolant(
+      Path errorPath,
+      Pair<ARGState, CFAEdge> iterpolationState,
+      String currentVariable,
+      Map<String, Long> currentInterpolant) throws CPAException, InterruptedException {
     try {
 
       ExplicitState next          = new ExplicitState(currentInterpolant);
       ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
 
-      Long variableValue = null;
-
+      Long variableValue    = null;
       boolean interpolated = false;
 
       if(block) {
         return currentInterpolant;
       }
 
-      if(blockingState != null && blockingState == path.get(0).getFirst()) {
+      if(blockingState != null && blockingState == iterpolationState.getFirst()) {
         block = true;
       }
 
-      CFAEdge interpolationEdge = path.get(0).getSecond();
+      CFAEdge interpolationEdge = iterpolationState.getSecond();
       interpolationEdge.hashCode();
 
-      for(Pair<ARGState, CFAEdge> pathElement : path) {
+      boolean startinterpolation = false;
+      for(Pair<ARGState, CFAEdge> pathElement : errorPath) {
+        if(iterpolationState == pathElement) {
+          startinterpolation = true;
+        }
+
+        if(!startinterpolation) {
+          continue;
+        }
+
         CFAEdge presentEdge = pathElement.getSecond();
         Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
             next,
