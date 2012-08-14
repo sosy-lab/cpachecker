@@ -659,12 +659,13 @@ class ASTConverter {
         // something like '\n'
         check(s.length() == 1, "character literal too long", e);
         switch (c) {
+        case 'a'  : result = 7   ; break;
         case 'b'  : result = '\b'; break;
+        case 'f'  : result = '\f'; break;
+        case 'n'  : result = '\n'; break;
+        case 'r'  : result = '\r'; break;
         case 't'  : result = '\t'; break;
         case 'v'  : result = 11; break;
-        case 'n'  : result = '\n'; break;
-        case 'f'  : result = '\f'; break;
-        case 'r'  : result = '\r'; break;
         case '"'  : result = '\"'; break;
         case '\'' : result = '\''; break;
         case '\\' : result = '\\'; break;
