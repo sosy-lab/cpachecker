@@ -256,6 +256,7 @@ public class AssignedVariablesCollector {
       case AMPER:
       case STAR:
         collectVariable(pE.toASTString());
+        break;
       default:
         pE.getOperand().accept(this);
       }

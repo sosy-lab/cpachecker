@@ -53,15 +53,19 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.explict.refiner")
+@Options(prefix="cpa.explict.refiner.useAssumptionClosure")
 public class ExplicitInterpolationBasedExplicitRefiner {
+  /**
+   * whether or not to always use the initial node as starting point for the next re-exploration of the ARG
+   */
   @Option(description="whether or not to always use the inital node as starting point for the next re-exploration of the ARG")
   private boolean useInitialNodeAsRestartingPoint = true;
 
+  /**
+   * whether or not to use the assumption-closure for explicit refinement (defaults to true)
+   */
   @Option(description="whether or not to use assumption-closure for explicit refinement")
   private boolean useAssumptionClosure = true;
-
-  private HashMap<CFAEdge, ARGState> edgeToState = new HashMap<CFAEdge, ARGState>();
 
   /**
    * the ART element, from where to cut-off the subtree, and restart the analysis

@@ -390,6 +390,7 @@ import com.google.common.collect.Multimap;
       case AMPER:
       case STAR:
         collectVariables(pE.toASTString());
+        break;
       default:
         pE.getOperand().accept(this);
       }
