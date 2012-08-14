@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.explict.refiner.useAssumptionClosure")
+@Options(prefix="cpa.explicit.refiner")
 public class ExplicitInterpolationBasedExplicitRefiner {
   /**
    * whether or not to always use the initial node as starting point for the next re-exploration of the ARG

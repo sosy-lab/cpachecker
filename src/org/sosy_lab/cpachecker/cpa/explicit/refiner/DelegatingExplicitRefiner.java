@@ -32,8 +32,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -68,15 +66,17 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.explicit.refiner")
 public class DelegatingExplicitRefiner
   extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARGState, CFANode>> {
 
-  @Option(description="whether or not to always use the inital node as starting point for the next re-exploration of the ARG")
-  boolean useInitialNodeAsRestartingPoint = true;
-
+  /**
+   * refiner used for explicit interpolation refinement
+   */
   private ExplicitInterpolationBasedExplicitRefiner explicitInterpolatingRefiner;
 
+  /**
+   * backup-refiner used for predicate refinement, when explicit refinement fails (due to lack of expressiveness)
+   */
   private PredicatingExplicitRefiner predicatingRefiner;
 
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
@@ -148,8 +148,6 @@ public class DelegatingExplicitRefiner
 
     super(config, logger, cpa, interpolationManager);
 
-    config.inject(this, DelegatingExplicitRefiner.class);
-
     explicitInterpolatingRefiner  = new ExplicitInterpolationBasedExplicitRefiner(config, pathFormulaManager);
 
     if(((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class) != null) {
@@ -170,7 +168,7 @@ public class DelegatingExplicitRefiner
 
     precisionIncrement = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
     interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
-    //System.out.println("\nfinal explicit-precisionIncrement: " + precisionIncrement);
+    System.out.println("\nfinal explicit-precisionIncrement: " + precisionIncrement);
 
     if(precisionIncrement.size() > 0) {
       ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
