@@ -105,6 +105,9 @@ public class BDDVectorTransferRelation implements TransferRelation {
   @Option(description = "declare vars ordered in partitions")
   private boolean initPartitions = true;
 
+  @Option(description = "declare partitions ordered")
+  private boolean initPartitionsOrdered = true;
+
   @Option(description = "default bitsize for values and vars")
   private int bitsize = 32;
 
@@ -144,8 +147,16 @@ public class BDDVectorTransferRelation implements TransferRelation {
     Collection<Partition> simpleNumberPartitions = varClass.getSimpleNumberPartitions();
 
     if (initPartitions) {
-      BDDPartitionOrderer d = new BDDPartitionOrderer(cfa);
-      for (Partition partition : d.getOrderedPartitions()) {
+
+      Partition[] partitions;
+      if (initPartitionsOrdered) {
+        BDDPartitionOrderer d = new BDDPartitionOrderer(cfa);
+        partitions = d.getOrderedPartitions();
+      } else {
+        partitions = varClass.getPartitions().toArray(new Partition[0]);
+      }
+
+      for (Partition partition : partitions) {
         if (booleanPartitions.contains(partition)) {
           createPredicates(partition.getVars(), precision, 1);
         } else if (simpleNumberPartitions.contains(partition)) {
@@ -680,6 +691,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
     } else if (varClass.getSimpleNumberPartitions().contains(partition)) {
       BDDVectorCExpressionVisitor ev = new BDDVectorCExpressionVisitor(state, precision);
       Region[] operand = expression.accept(ev);
+      if (operand == null) { return state; }
       evaluated = bvmgr.makeOr(operand);
     }
 
