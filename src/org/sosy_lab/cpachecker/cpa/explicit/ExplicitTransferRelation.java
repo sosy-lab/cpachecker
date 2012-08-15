@@ -90,6 +90,10 @@ public class ExplicitTransferRelation implements TransferRelation
       + "when the true-branch is handled.")
   private boolean initAssumptionVars = false;
 
+  @Option(description = "whether or not to keep values in an abstract state,"
+      + "despite the identifier not being in the precision ")
+  private boolean useLazyPrecision = false;
+
   private final Set<String> globalVariables = new HashSet<String>();
 
   private String missingInformationLeftVariable = null;
@@ -108,6 +112,8 @@ public class ExplicitTransferRelation implements TransferRelation
     ExplicitPrecision explicitPrecision = (ExplicitPrecision)pPrecision;
 
     ExplicitState successor;
+
+    ExplicitState.lastWrite.clear();
 
     switch (cfaEdge.getEdgeType()) {
     // this is an assumption, e.g. if (a == b)
@@ -156,7 +162,10 @@ public class ExplicitTransferRelation implements TransferRelation
       }
 
       for(String variableName: variablesToDrop) {
-        successor.forget(variableName);
+        // eager precision -> delete all that are not in precision
+        // lazy precision -> delete only those that are not in precision and were (re)written in current iteration
+        if(!useLazyPrecision || ExplicitState.lastWrite.contains(variableName))
+          successor.forget(variableName);
       }
     }
 
