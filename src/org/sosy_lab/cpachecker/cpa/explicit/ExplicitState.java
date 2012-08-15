@@ -29,6 +29,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -57,6 +58,8 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     this.constantsMap = constantsMap;
   }
 
+  static Set<String> lastWrite = new HashSet<String>();
+
   /**
    * Assigns a value to the variable and puts it in the map
    * @param variableName name of the variable.
@@ -64,6 +67,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    */
   void assignConstant(String variableName, Long value) {
     constantsMap.put(checkNotNull(variableName), checkNotNull(value));
+    lastWrite.add(variableName);
   }
 
   public void forget(String variableName) {
