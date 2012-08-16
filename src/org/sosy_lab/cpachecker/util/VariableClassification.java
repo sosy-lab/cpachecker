@@ -93,18 +93,18 @@ public class VariableClassification {
   private Multimap<String, String> allVars = null;
 
   private Multimap<String, String> nonBooleanVars;
-  private Multimap<String, String> nonSimpleNumberVars;
-  private Multimap<String, String> nonIncVars;
+  private Multimap<String, String> nonDiscreteValueVars;
+  private Multimap<String, String> nonSimpleCalcVars;
 
   private Dependencies dependencies;
 
   private Multimap<String, String> booleanVars;
-  private Multimap<String, String> simpleNumberVars;
-  private Multimap<String, String> incVars;
+  private Multimap<String, String> discreteValueVars;
+  private Multimap<String, String> simpleCalcVars;
 
   private Set<Partition> booleanPartitions;
-  private Set<Partition> simpleNumberPartitions;
-  private Set<Partition> incPartitions;
+  private Set<Partition> discreteValuePartitions;
+  private Set<Partition> simpleCalcPartitions;
 
   private CFA cfa;
 
@@ -120,18 +120,18 @@ public class VariableClassification {
       // init maps
       allVars = LinkedHashMultimap.create();
       nonBooleanVars = LinkedHashMultimap.create();
-      nonSimpleNumberVars = LinkedHashMultimap.create();
-      nonIncVars = LinkedHashMultimap.create();
+      nonDiscreteValueVars = LinkedHashMultimap.create();
+      nonSimpleCalcVars = LinkedHashMultimap.create();
 
       dependencies = new Dependencies();
 
       booleanVars = LinkedHashMultimap.create();
-      simpleNumberVars = LinkedHashMultimap.create();
-      incVars = LinkedHashMultimap.create();
+      discreteValueVars = LinkedHashMultimap.create();
+      simpleCalcVars = LinkedHashMultimap.create();
 
       booleanPartitions = new HashSet<Partition>();
-      simpleNumberPartitions = new HashSet<Partition>();
-      incPartitions = new HashSet<Partition>();
+      discreteValuePartitions = new HashSet<Partition>();
+      simpleCalcPartitions = new HashSet<Partition>();
 
       // fill maps
       collectVars();
@@ -173,29 +173,36 @@ public class VariableClassification {
   }
 
   /** This function returns a collection of (functionName, varNames).
-   * This collection contains all vars, that have only the values of simple numbers.
+   * This collection contains all vars, that have only discrete values.
    * The collection also includes some boolean vars,
-   * because they are simple numbers, too.
+   * because they are discrete, too.
    * There are NO mathematical calculations (add, sub, mult) with these vars. */
-  public Multimap<String, String> getSimpleNumberVars() {
+  public Multimap<String, String> getDiscreteValueVars() {
     build();
-    return simpleNumberVars;
+    return discreteValueVars;
   }
 
   /** This function returns a collection of partitions.
-   * Each partition contains only simple numeral vars. */
-  public Collection<Partition> getSimpleNumberPartitions() {
+   * Each partition contains only vars, that have only discrete values. */
+  public Collection<Partition> getDiscreteValuePartitions() {
     build();
-    return simpleNumberPartitions;
+    return discreteValuePartitions;
   }
 
   /** This function returns a collection of (functionName, varNames).
-   * This collection contains all vars, that can be incremented.
-   * The collection includes all boolean vars and simple numbers, too.
-   * The only allowed mathematical calculation with these vars is increment (add 1). */
-  public Multimap<String, String> getIncNumberVars() {
+   * This collection contains all vars, that are only used in simple calculations
+   * (+, -, <, >, <=, >=, ==, !=, &, &&, |, ||, ^).
+   * The collection includes all boolean vars and simple numbers, too. */
+  public Multimap<String, String> getSimpleCalcVars() {
     build();
-    return incVars;
+    return simpleCalcVars;
+  }
+
+  /** This function returns a collection of partitions.
+   * Each partition contains only vars, that are used in simple calculations. */
+  public Collection<Partition> getSimpleCalcPartitions() {
+    build();
+    return simpleCalcPartitions;
   }
 
   /** This function returns a collection of partitions.
@@ -238,14 +245,10 @@ public class VariableClassification {
       }
     }
 
-    // if a value is nonbool, all dependent vars are nonbool and viceversa
+    // if a value is not boolean, all dependent vars are not boolean and viceversa
     dependencies.solve(nonBooleanVars);
-
-    // if a value is no simple number, all dependent vars are no simple numbers and viceversa
-    dependencies.solve(nonSimpleNumberVars);
-
-    // if a value is not incremented, all dependent vars are not incremented and viceversa
-    dependencies.solve(nonIncVars);
+    dependencies.solve(nonDiscreteValueVars);
+    dependencies.solve(nonSimpleCalcVars);
   }
 
   /** This function builds the opposites of each non-x-vars-collection. */
@@ -258,14 +261,14 @@ public class VariableClassification {
           booleanPartitions.add(getPartitionForVar(function, s));
         }
 
-        if (!nonSimpleNumberVars.containsEntry(function, s)) {
-          simpleNumberVars.put(function, s);
-          simpleNumberPartitions.add(getPartitionForVar(function, s));
+        if (!nonDiscreteValueVars.containsEntry(function, s)) {
+          discreteValueVars.put(function, s);
+          discreteValuePartitions.add(getPartitionForVar(function, s));
         }
 
-        if (!nonIncVars.containsEntry(function, s)) {
-          incVars.put(function, s);
-          incPartitions.add(getPartitionForVar(function, s));
+        if (!nonSimpleCalcVars.containsEntry(function, s)) {
+          simpleCalcVars.put(function, s);
+          simpleCalcPartitions.add(getPartitionForVar(function, s));
         }
       }
     }
@@ -284,7 +287,7 @@ public class VariableClassification {
 
       exp.accept(new BoolCollectingVisitor(pre));
       exp.accept(new NumberCollectingVisitor(pre, false));
-      exp.accept(new IncCollectingVisitor(pre));
+      exp.accept(new SimpleCalcCollectingVisitor(pre));
 
       break;
     }
@@ -440,16 +443,12 @@ public class VariableClassification {
     handleResult(varName, function, possibleBoolean, nonBooleanVars);
 
     NumberCollectingVisitor ncv = new NumberCollectingVisitor(pre, true);
-    Multimap<String, String> possibleNumbers = exp.accept(ncv);
-    handleResult(varName, function, possibleNumbers, nonSimpleNumberVars);
+    Multimap<String, String> possibleDiscreteVars = exp.accept(ncv);
+    handleResult(varName, function, possibleDiscreteVars, nonDiscreteValueVars);
 
-    IncCollectingVisitor icv = new IncCollectingVisitor(pre);
-    Multimap<String, String> possibleIncs = exp.accept(icv);
-
-    // assignment of number is allowed for incVars
-    if (!(exp instanceof CIntegerLiteralExpression)) {
-      handleResult(varName, function, possibleIncs, nonIncVars);
-    }
+    SimpleCalcCollectingVisitor icv = new SimpleCalcCollectingVisitor(pre);
+    Multimap<String, String> possibleSimpleCalcVars = exp.accept(icv);
+    handleResult(varName, function, possibleSimpleCalcVars, nonSimpleCalcVars);
   }
 
   /** adds the variable to notPossibleVars, if possibleVars is null.  */
@@ -518,8 +517,8 @@ public class VariableClassification {
     StringBuilder str = new StringBuilder();
     str.append("\nALL  " + allVars.size() + "\n    " + allVars);
     str.append("\nBOOL  " + booleanVars.size() + "\n    " + booleanVars);
-    str.append("\nSIMPLE NUMBER  " + simpleNumberVars.size() + "\n    " + simpleNumberVars);
-    str.append("\nINCREMENT  " + incVars.size() + "\n    " + incVars);
+    str.append("\nDISCRETE VALUES  " + discreteValueVars.size() + "\n    " + discreteValueVars);
+    str.append("\nSIMPLE CALCULATION  " + simpleCalcVars.size() + "\n    " + simpleCalcVars);
     return str.toString();
   }
 
@@ -767,10 +766,10 @@ public class VariableClassification {
       // handle vars from operands
       if (onlyOneExp || operand1 == null || operand2 == null) { // a+0.2 --> no simple number
         if (operand1 != null) {
-          nonSimpleNumberVars.putAll(operand1);
+          nonDiscreteValueVars.putAll(operand1);
         }
         if (operand2 != null) {
-          nonSimpleNumberVars.putAll(operand2);
+          nonDiscreteValueVars.putAll(operand2);
         }
         return null;
       }
@@ -783,8 +782,8 @@ public class VariableClassification {
         return operand1;
 
       default: // +-*/ --> no simple operators
-        nonSimpleNumberVars.putAll(operand1);
-        nonSimpleNumberVars.putAll(operand2);
+        nonDiscreteValueVars.putAll(operand1);
+        nonDiscreteValueVars.putAll(operand2);
         return null;
       }
     }
@@ -813,7 +812,7 @@ public class VariableClassification {
       case PLUS: // this is no calculation, no usage of another param
         return inner;
       default: // *, ~, etc --> not numeral
-        nonSimpleNumberVars.putAll(inner);
+        nonDiscreteValueVars.putAll(inner);
         return null;
       }
     }
@@ -822,11 +821,12 @@ public class VariableClassification {
 
   /** This Visitor evaluates an Expression.
    * Each visit-function returns
-   * - null, if the expression contains calculations
-   * - a collection, if the expression is a var or 1 */
-  private class IncCollectingVisitor extends DependencyCollectingVisitor {
+   * - a collection, if the expression is a var or a simple mathematical
+   *   calculation (add, sub, <, >, <=, >=, ==, !=, !),
+   * - else null */
+  private class SimpleCalcCollectingVisitor extends DependencyCollectingVisitor {
 
-    public IncCollectingVisitor(CFANode pre) {
+    public SimpleCalcCollectingVisitor(CFANode pre) {
       super(pre);
     }
 
@@ -837,46 +837,36 @@ public class VariableClassification {
 
       if (operand1 == null || operand2 == null) { // a+0.2 --> no simple number
         if (operand1 != null) {
-          nonIncVars.putAll(operand1);
+          nonSimpleCalcVars.putAll(operand1);
         }
         if (operand2 != null) {
-          nonIncVars.putAll(operand2);
+          nonSimpleCalcVars.putAll(operand2);
         }
         return null;
       }
 
       switch (exp.getOperator()) {
 
+      case PLUS:
+      case MINUS:
+      case LESS_THAN:
+      case LESS_EQUAL:
+      case GREATER_THAN:
+      case GREATER_EQUAL:
       case EQUALS:
-      case NOT_EQUALS: // ==, != work with all numbers
+      case NOT_EQUALS:
+      case BINARY_AND:
+      case BINARY_XOR:
+      case BINARY_OR:
+      case LOGICAL_AND:
+      case LOGICAL_OR:
+        // this calculations work with all numbers
         operand1.putAll(operand2);
         return operand1;
 
-      case PLUS:
-        // 1+x
-        if (exp.getOperand1() instanceof CIntegerLiteralExpression
-            && BigInteger.ONE.equals(
-                ((CIntegerLiteralExpression) exp.getOperand1()).getValue())) {
-          assert operand1.isEmpty();
-          return operand2;
-
-          // x+1
-        } else if (exp.getOperand2() instanceof CIntegerLiteralExpression
-            && BigInteger.ONE.equals(
-                ((CIntegerLiteralExpression) exp.getOperand2()).getValue())) {
-          assert operand2.isEmpty();
-          return operand1;
-
-          // x+y, x+2
-        } else {
-          nonIncVars.putAll(operand1);
-          nonIncVars.putAll(operand2);
-          return null;
-        }
-
-      default: // +-*/ --> no simple operators
-        nonIncVars.putAll(operand1);
-        nonIncVars.putAll(operand2);
+      default: // *, /, %, shift --> no simple calculations
+        nonSimpleCalcVars.putAll(operand1);
+        nonSimpleCalcVars.putAll(operand2);
         return null;
       }
     }
@@ -889,10 +879,19 @@ public class VariableClassification {
     @Override
     public Multimap<String, String> visit(CUnaryExpression exp) throws NullPointerException {
       Multimap<String, String> inner = exp.getOperand().accept(this);
-      if (inner != null) { // increment is no unary operation, remove these vars
-        nonIncVars.putAll(inner);
+      if (inner != null) {
+        nonSimpleCalcVars.putAll(inner);
+        return null;
       }
-      return null;
+
+      switch (exp.getOperator()) {
+      case PLUS:
+      case MINUS:
+        return inner;
+      default: // *, ~, etc --> not simple
+        nonSimpleCalcVars.putAll(inner);
+        return null;
+      }
     }
   }
 

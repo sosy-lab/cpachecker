@@ -144,7 +144,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
    *  so that we can choose between some orders. */
   private void initVars(BDDVectorPrecision precision, CFA cfa) {
     Collection<Partition> booleanPartitions = varClass.getBooleanPartitions();
-    Collection<Partition> simpleNumberPartitions = varClass.getSimpleNumberPartitions();
+    Collection<Partition> discreteValuePartitions = varClass.getDiscreteValuePartitions();
 
     if (initPartitions) {
 
@@ -159,7 +159,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
       for (Partition partition : partitions) {
         if (booleanPartitions.contains(partition)) {
           createPredicates(partition.getVars(), precision, 1);
-        } else if (simpleNumberPartitions.contains(partition)) {
+        } else if (discreteValuePartitions.contains(partition)) {
           createPredicates(partition.getVars(), precision, bitsize);
         } else {
           // createPredicates(partition.getVars(), precision, bitsize);
@@ -361,7 +361,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
               newRegion = addEquality(var, tmp, newRegion);
               newRegion = removePredicate(newRegion, tmp);
 
-            } else if (varClass.getSimpleNumberPartitions().contains(partition)) {
+            } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
               Region[] tmp = createPredicates(tmpVarName);
 
               // make region for RIGHT SIDE and build equality of var and region
@@ -388,7 +388,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
               Region regRHS = ((CExpression) rhs).accept(ev);
               newRegion = addEquality(var, regRHS, newRegion);
 
-            } else if (varClass.getSimpleNumberPartitions().contains(partition)) {
+            } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
               Region[] var = createPredicates(buildVarName(function, varName));
               newRegion = removePredicate(newRegion, var);
 
@@ -410,7 +410,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
             Region var = createPredicate(buildVarName(function, varName));
             newRegion = removePredicate(newRegion, var);
 
-          } else if (varClass.getSimpleNumberPartitions().contains(partition)) {
+          } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
             Region[] var = createPredicates(buildVarName(function, varName));
             newRegion = removePredicate(newRegion, var);
 
@@ -475,7 +475,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
                 state.getVars(), cfaEdge.getPredecessor().getFunctionName());
           }
 
-        } else if (varClass.getSimpleNumberPartitions().contains(partition)) {
+        } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
           Region[] var = createPredicates(scopedVarName);
           Region newRegion = removePredicate(state.getRegion(), var);
 
@@ -537,7 +537,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
           newRegion = addEquality(var, arg, newRegion);
           newVars.add(var);
 
-        } else if (varClass.getSimpleNumberPartitions().contains(partition)) {
+        } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
           Region[] var = createPredicates(scopedVarName);
           BDDVectorCExpressionVisitor ev = new BDDVectorCExpressionVisitor(state, precision);
           Region[] arg = args.get(i).accept(ev);
@@ -594,7 +594,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
         // LAST ACTION: delete varname of right side
         newRegion = removePredicate(newRegion, retVar);
 
-      } else if (varClass.getSimpleNumberPartitions().contains(partition)) {
+      } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
         // make region (predicate) for RIGHT SIDE
         Region[] retVar = createPredicates(buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE));
         if (precision.isTracking(function, varName)) {
@@ -613,7 +613,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
         Region retVar = createPredicate(buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE));
         newRegion = removePredicate(newRegion, retVar);
 
-      } else if (varClass.getSimpleNumberPartitions().contains(partition)) {
+      } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
         Region[] retVar = createPredicates(buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE));
         newRegion = removePredicate(newRegion, retVar);
       }
@@ -651,7 +651,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
         Region regRHS = ((CExpression) rhs).accept(ev);
         newRegion = addEquality(retvar, regRHS, newRegion);
 
-      } else if (varClass.getSimpleNumberPartitions().contains(partition)) {
+      } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
         // make variable (predicate) for returnStatement,
         // delete variable, if it was used before, this is done with an existential operator
         String scopedFuncName = buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE);
@@ -687,16 +687,13 @@ public class BDDVectorTransferRelation implements TransferRelation {
     if (varClass.getBooleanPartitions().contains(partition)) {
       BDDBooleanCExpressionVisitor ev = new BDDBooleanCExpressionVisitor(state, precision);
       evaluated = expression.accept(ev);
+      if (evaluated == null) { return state; } // assumption cannot be evaluated
 
-    } else if (varClass.getSimpleNumberPartitions().contains(partition)) {
+    } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
       BDDVectorCExpressionVisitor ev = new BDDVectorCExpressionVisitor(state, precision);
       Region[] operand = expression.accept(ev);
-      if (operand == null) { return state; }
+      if (operand == null) { return state; } // assumption cannot be evaluated
       evaluated = bvmgr.makeOr(operand);
-    }
-
-    if (evaluated == null) { // assumption cannot be evaluated
-      return state;
     }
 
     if (!cfaEdge.getTruthAssumption()) { // if false-branch

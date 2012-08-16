@@ -36,10 +36,13 @@ import com.google.common.base.Optional;
 public class BDDVectorPrecision implements Precision {
 
   @Option(description = "track boolean variables from cfa")
-  private boolean trackBooleanFromCFA = true;
+  private boolean trackBooleans = true;
 
   @Option(description = "track simple numeral variables from cfa as bitvectors")
-  private boolean trackSimpleNumbersFromCFA = true;
+  private boolean trackDiscretes = true;
+
+  @Option(description = "track variables, only used in simple calculations, from cfa as bitvectors")
+  private boolean trackSimpleCalcs = true;
 
   private final Optional<VariableClassification> varClass;
 
@@ -52,12 +55,14 @@ public class BDDVectorPrecision implements Precision {
   public boolean isDisabled() {
     if (!varClass.isPresent()) { return true; }
 
-    boolean trackSomeBoolean = trackBooleanFromCFA &&
+    boolean trackSomeBooleans = trackBooleans &&
         !varClass.get().getBooleanVars().isEmpty();
-    boolean trackSomeSimpleNumber = trackSimpleNumbersFromCFA &&
-        !varClass.get().getSimpleNumberVars().isEmpty();
+    boolean trackSomeDiscretes = trackDiscretes &&
+        !varClass.get().getDiscreteValueVars().isEmpty();
+    boolean trackSomeSimpleCalcs = trackSimpleCalcs &&
+        !varClass.get().getSimpleCalcVars().isEmpty();
 
-    return !(trackSomeBoolean || trackSomeSimpleNumber);
+    return !(trackSomeBooleans || trackSomeDiscretes || trackSomeSimpleCalcs);
   }
 
   /**
@@ -69,15 +74,20 @@ public class BDDVectorPrecision implements Precision {
   public boolean isTracking(String function, String var) {
     if (!varClass.isPresent()) { return false; }
 
-    boolean isTrackedBoolean = trackBooleanFromCFA &&
+    boolean isTrackedBoolean = trackBooleans &&
         varClass.get().getBooleanVars().containsEntry(function, var);
 
-    // if a variable is both boolean AND simple numeral,
-    // we do NOT track it as simple number!
-    boolean isTrackedSimpleNumber = trackSimpleNumbersFromCFA &&
+    // if a var is both boolean AND discrete, do NOT track it as discrete var!
+    boolean isTrackedDiscrete = trackDiscretes &&
         !varClass.get().getBooleanVars().containsEntry(function, var) &&
-        varClass.get().getSimpleNumberVars().containsEntry(function, var);
+        varClass.get().getDiscreteValueVars().containsEntry(function, var);
 
-    return isTrackedBoolean || isTrackedSimpleNumber;
+    // if a var is boolean, discrete and part of simple calcs, do NOT track it as simple-calc-var!
+    boolean isTrackedSimpleNumber = trackSimpleCalcs &&
+        !varClass.get().getBooleanVars().containsEntry(function, var) &&
+        !varClass.get().getDiscreteValueVars().containsEntry(function, var) &&
+        varClass.get().getSimpleCalcVars().containsEntry(function, var);
+
+    return isTrackedBoolean || isTrackedDiscrete || isTrackedSimpleNumber;
   }
 }
