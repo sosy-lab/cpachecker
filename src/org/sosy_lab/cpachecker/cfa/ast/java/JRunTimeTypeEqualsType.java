@@ -26,17 +26,17 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
 
 public class JRunTimeTypeEqualsType extends AExpression implements JExpression {
 
   private final JThisRunTimeType runTimeTypeExpression;
-  private final JClassType typeDef;
+  private final JClassOrInterfaceType typeDef;
 
   public JRunTimeTypeEqualsType(CFileLocation pFileLocation,
-      JThisRunTimeType pRunTimeTypeExpression, JClassType pTypeDef) {
+      JThisRunTimeType pRunTimeTypeExpression, JClassOrInterfaceType pTypeDef) {
     super(pFileLocation, new JSimpleType(JBasicType.BOOLEAN));
 
     runTimeTypeExpression = pRunTimeTypeExpression;

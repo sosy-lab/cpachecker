@@ -34,9 +34,6 @@ public class JVariableDeclaration extends AVariableDeclaration {
 
   private final boolean isFinal;
 
-
-
-
   public JVariableDeclaration(CFileLocation pFileLocation, boolean pIsGlobal, JType pType, String pName,
       String pOrigName, CInitializer pInitializer, boolean pIsFinal) {
     super(pFileLocation, pIsGlobal, pType, pName, pOrigName, pInitializer);

@@ -27,12 +27,16 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
 public class JReferencedMethodInvocationExpression extends JMethodInvocationExpression {
 
   private final IASimpleDeclaration referencedVariable;
+
+  private boolean hasKnownRunTimeBinding = false;
+  private JClassType runTimeBinding = null;
 
   public JReferencedMethodInvocationExpression(CFileLocation pFileLocation, JType pType, JExpression pFunctionName,
       List<? extends JExpression> pParameters, IASimpleDeclaration pDeclaration, IASimpleDeclaration pReferencedVariable) {
@@ -43,6 +47,30 @@ public class JReferencedMethodInvocationExpression extends JMethodInvocationExpr
 
   public IASimpleDeclaration getReferencedVariable() {
     return referencedVariable;
+  }
+
+  @Override
+  public String toASTString() {
+    // TODO Auto-generated method stub
+    return referencedVariable.getName() + "_" + super.toASTString();
+  }
+
+
+
+  public void setHasKnownRunTimeBinding(boolean hasKnownRunTimeBinding) {
+    this.hasKnownRunTimeBinding = hasKnownRunTimeBinding;
+  }
+
+  public JClassType getRunTimeBinding() {
+    return runTimeBinding;
+  }
+
+  public void setRunTimeBinding(JClassType runTimeBinding) {
+    this.runTimeBinding = runTimeBinding;
+  }
+
+  public boolean hasKnownRunTimeBinding() {
+      return hasKnownRunTimeBinding;
   }
 
 }

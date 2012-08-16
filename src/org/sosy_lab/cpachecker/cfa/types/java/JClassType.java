@@ -26,36 +26,28 @@ package org.sosy_lab.cpachecker.cfa.types.java;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 
 
-public class JClassType implements JReferenceType {
+public class JClassType extends JClassOrInterfaceType implements JReferenceType {
 
-  private final VisibilityModifier visibility;
+
   private final boolean isFinal;
   private final boolean isAbstract;
   private final boolean strictFp;
-  private final String name;
 
 
-  public JClassType(String pName  ,final VisibilityModifier pVisibility, final boolean pIsFinal,
+
+  public JClassType(String fullyQualifiedName  ,final VisibilityModifier pVisibility, final boolean pIsFinal,
       final boolean pIsAbstract, final boolean pStrictFp) {
-    name = pName;
-    visibility = pVisibility;
+    super(fullyQualifiedName, pVisibility);
     isFinal = pIsFinal;
     isAbstract = pIsAbstract;
     strictFp = pStrictFp;
 
      assert !isFinal || !isAbstract : "Classes can't be abstract and final";
-     assert (visibility != VisibilityModifier.PRIVATE) || (visibility != VisibilityModifier.PROTECTED) : " Classes can't be private or protected";
+     assert (getVisibility() != VisibilityModifier.PRIVATE) || (getVisibility() != VisibilityModifier.PROTECTED) : " Classes can't be private or protected";
 
   }
 
-  @Override
-  public String toASTString(String pDeclarator) {
-    return pDeclarator.isEmpty() ? name : name + " " + pDeclarator;
-  }
 
-  public VisibilityModifier getVisibility() {
-    return visibility;
-  }
 
   public boolean isFinal() {
     return isFinal;
@@ -65,11 +57,8 @@ public class JClassType implements JReferenceType {
     return isAbstract;
   }
 
-  public String getName() {
-    return name;
-  }
-
   public boolean isStrictFp() {
     return strictFp;
   }
+
 }

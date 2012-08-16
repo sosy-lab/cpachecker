@@ -64,6 +64,8 @@ import com.google.common.collect.Iterables;
 @Options
 public class CFACreator {
 
+  private static final String JAVA_PATH_FILE_REGEX = ".*.java";
+
   @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
       description="entry function")
   private String mainFunctionName = "main";
@@ -150,7 +152,7 @@ public class CFACreator {
 
       ParseResult c;
 
-      if( filename.matches(".*.java")){
+      if( filename.matches(JAVA_PATH_FILE_REGEX)){
         EclipseJavaParser par = new EclipseJavaParser(logger);
         c = par.parseFile(filename);
       } else{

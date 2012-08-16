@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
@@ -78,15 +79,22 @@ import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanzeCreation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -106,6 +114,8 @@ class CFAFunctionBuilder extends ASTVisitor {
   private static final boolean VISIT_CHILDS = true;
 
   private static final boolean SKIP_CHILDS = false;
+
+  private static final int ONLY_EDGE = 0;
 
   // Data structure for maintaining our scope stack in a function
   private final Deque<CFANode> locStack = new ArrayDeque<CFANode>();
@@ -136,14 +146,17 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private final LogManager logger;
 
+  private final TypeHierachie typeHierachie;
+
 
   public CFAFunctionBuilder(LogManager pLogger, boolean pIgnoreCasts,
-      Scope pScope, ASTConverter pAstCreator, List<Pair<IADeclaration, String>> pNonStaticFieldDeclarations) {
+      Scope pScope, ASTConverter pAstCreator, List<Pair<IADeclaration, String>> pNonStaticFieldDeclarations, TypeHierachie pTypeHierachie) {
 
     logger = pLogger;
     scope = pScope;
     astCreator = pAstCreator;
     nonStaticFieldDeclarations = pNonStaticFieldDeclarations;
+    typeHierachie = pTypeHierachie;
   }
 
   FunctionEntryNode getStartNode() {
@@ -187,11 +200,6 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     scope.enterFunction(fdef);
 
-    if(!fdef.isStatic()){
-      // Get all fully qualified method names this method overrides
-
-    }
-
     final List<AParameterDeclaration> parameters =   ((AFunctionType) fdef.getType()).getParameters();
     final List<String> parameterNames = new ArrayList<String>(parameters.size());
 
@@ -228,11 +236,14 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
     }
 
-    // Stop , and manually go to Block, to protect parameter variables to be processed
-    // more than one time
-    declaration.getBody().accept(this);
-    return SKIP_CHILDS;
+    // Check if method has a body. Interface methods are always marked with abstract.
+    if(!fdef.isAbstract() && !fdef.isNative()){
+      // Stop , and manually go to Block, to protect parameter variables to be processed
+      // more than one time
+      declaration.getBody().accept(this);
+    }
 
+    return SKIP_CHILDS;
   }
 
   @Override
@@ -567,6 +578,17 @@ class CFAFunctionBuilder extends ASTVisitor {
 
    IAStatement statement = astCreator.convert(expressionStatement);
 
+
+   // If this is a ReferencedFunctionCall, see if
+   // the Run-Time-Class can be inferred
+   if(statement instanceof AFunctionCall
+       && ((AFunctionCall)statement).getFunctionCallExpression()
+                 instanceof JReferencedMethodInvocationExpression ){
+
+          searchForRunTimeClass( (JReferencedMethodInvocationExpression )
+                                    ((AFunctionCall)statement).getFunctionCallExpression(), prevNode);
+   }
+
    //TODO Solution not allowed, find better Solution
    String rawSignature = expressionStatement.toString();
 
@@ -604,8 +626,88 @@ class CFAFunctionBuilder extends ASTVisitor {
    return SKIP_CHILDS;
  }
 
+ private void searchForRunTimeClass(JReferencedMethodInvocationExpression methodInvocation, CFANode prevNode) {
 
- private void handleTernaryExpression(ConditionalExpression condExp, CFANode rootNode, CFANode lastNode, IAstNode statement) {
+   // This Algorithm  goes backwards from methodInvocation and searches
+   // for a Class Instance Creation, which Class can be distinctly assigned as Run Time Class
+   // If there is a distinct variable Assignment , the searched for variable reference will
+   // changes to the assigned variable reference.
+
+ // Class can only be found if there is only one Path to
+ // a ClassInstanceCreation, stop if there is not exactly one
+ boolean finished = prevNode.getNumEnteringEdges() != 1;
+ CFANode traversedNode = prevNode;
+
+ IASimpleDeclaration referencedVariable =  methodInvocation.getReferencedVariable();
+
+ while(!finished){
+   CFAEdge currentEdge = traversedNode.getEnteringEdge(ONLY_EDGE);
+
+   // Look for Instance Creation Assignment and Variable Assignment.
+   // Stop if there is a function Call and the Variable is a FieldDeclaration
+   // or there is an Assignment Function Call which isn't a Instance Creation Assignment
+   if(currentEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+
+     IAStatement statement = ((AStatementEdge) currentEdge).getStatement();
+
+     if(statement instanceof AExpressionAssignmentStatement) {
+        if(isReferencableVariable(referencedVariable, (AAssignment)statement)){
+          referencedVariable = assignVariableReference((AExpressionAssignmentStatement) statement);
+        } else {
+          finished = isReferenced(referencedVariable, (AAssignment)statement);
+        }
+     } else if(statement instanceof AFunctionCallStatement) {
+        finished = (referencedVariable instanceof JFieldDeclaration);
+     } else if(statement instanceof AFunctionCallAssignmentStatement){
+          finished = isReferenced(referencedVariable, (AAssignment)statement);
+        if(finished) {
+          assignClassRunTimeInstanceIfInstanceCreation(methodInvocation ,(AFunctionCallAssignmentStatement) statement);
+        }
+     }
+   }
+
+   // if not finished, continue iff there is only one path
+   finished = finished || traversedNode.getNumEnteringEdges() != 1;
+
+   if(!finished){
+     traversedNode = currentEdge.getPredecessor();
+   }
+ }
+
+}
+
+
+ private boolean isReferenced(IASimpleDeclaration referencedVariable, AAssignment assignment) {
+   IAExpression leftHandSide = assignment.getLeftHandSide();
+
+  return (leftHandSide instanceof JIdExpression) && ((JIdExpression)leftHandSide).getDeclaration().getName().equals(referencedVariable.getName()) ;
+}
+
+private void assignClassRunTimeInstanceIfInstanceCreation(JReferencedMethodInvocationExpression methodInvocation, AFunctionCallAssignmentStatement functionCallAssignment) {
+
+   AFunctionCallExpression  functionCall = functionCallAssignment.getFunctionCallExpression();
+
+   if(functionCall instanceof JClassInstanzeCreation){
+     astCreator.assignRunTimeClass(methodInvocation , (JClassInstanzeCreation) functionCall);
+   }
+
+}
+
+private IASimpleDeclaration assignVariableReference(AExpressionAssignmentStatement expressionAssignment) {
+
+   JIdExpression newReferencedVariable = (JIdExpression) expressionAssignment.getRightHandSide();
+  return newReferencedVariable.getDeclaration();
+}
+
+private boolean isReferencableVariable(IASimpleDeclaration referencedVariable, AAssignment assignment) {
+
+   IAExpression leftHandSide = assignment.getLeftHandSide();
+   IARightHandSide rightHandSide = assignment.getRightHandSide();
+
+  return (leftHandSide instanceof JIdExpression) && (rightHandSide instanceof JIdExpression) &&((JIdExpression)leftHandSide).getDeclaration().getName().equals(referencedVariable.getName()) ;
+}
+
+private void handleTernaryExpression(ConditionalExpression condExp, CFANode rootNode, CFANode lastNode, IAstNode statement) {
    CFileLocation fileLoc = astCreator.getFileLocation(condExp);
    int filelocStart = fileLoc.getStartingLineNumber();
 

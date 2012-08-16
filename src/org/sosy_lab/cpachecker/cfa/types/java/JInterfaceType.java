@@ -23,23 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.java;
 
-import java.util.List;
-
-import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
+import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 
 
-public class JConstructorType extends AFunctionType implements JType, IAFunctionType {
+public class JInterfaceType extends JClassOrInterfaceType implements JReferenceType {
 
-  public JConstructorType(JClassType pReturnType, List<AParameterDeclaration> pParameters, boolean pTakesVarArgs) {
-    super(pReturnType, pParameters, pTakesVarArgs);
 
-  }
 
-  @Override
-  public JClassType getReturnType() {
-    return (JClassType) returnType;
+
+  public JInterfaceType (String fullyQualifiedpName  ,final VisibilityModifier pVisibility) {
+    super(fullyQualifiedpName , pVisibility);
+
   }
 
 }

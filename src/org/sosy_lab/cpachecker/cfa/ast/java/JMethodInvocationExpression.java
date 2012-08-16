@@ -36,7 +36,7 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
   public JMethodInvocationExpression(CFileLocation pFileLocation, JType pType, JExpression pFunctionName,
       List<? extends JExpression> pParameters, IASimpleDeclaration pDeclaration) {
     super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
-    // TODO Auto-generated constructor stub
+
   }
 
   @Override
@@ -46,7 +46,7 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
 
   @Override
   public JType getExpressionType() {
-    // TODO Auto-generated method stub
+
     return (JType) super.getExpressionType();
   }
 

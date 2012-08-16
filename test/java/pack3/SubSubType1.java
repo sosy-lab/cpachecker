@@ -31,4 +31,8 @@ public class SubSubType1 extends SubType1 {
     return subsubNum1 + subsubNum2;
   }
   
+  public boolean compare(){
+    return false;
+  }
+    
 }

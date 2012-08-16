@@ -81,19 +81,21 @@ class CFABuilder extends ASTVisitor {
 
   private final Scope scope ;
   private final ASTConverter astCreator;
+  private final TypeHierachie typeHierachie;
 
   private final LogManager logger;
   private final boolean ignoreCasts;
 
-  public CFABuilder(LogManager pLogger, boolean pIgnoreCasts , String fullyQualifiedNameOfMainClass) {
+  public CFABuilder(LogManager pLogger, boolean pIgnoreCasts , String fullyQualifiedNameOfMainClass, TypeHierachie pTypeHierachie) {
     logger = pLogger;
     ignoreCasts = pIgnoreCasts;
+    typeHierachie = pTypeHierachie;
 
     if (pIgnoreCasts) {
       logger.log(Level.WARNING, "Ignoring all casts in the program because of user request!");
     }
     scope = new Scope(fullyQualifiedNameOfMainClass);
-    astCreator = new ASTConverter(scope, pIgnoreCasts, logger);
+    astCreator = new ASTConverter(scope, pIgnoreCasts, logger , typeHierachie);
 
   }
 
@@ -184,7 +186,7 @@ class CFABuilder extends ASTVisitor {
 
     for (MethodDeclaration declaration : getMethodDeclarations()) {
       CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, ignoreCasts,
-          scope, getAstCreator(), nonStaticFieldDeclarationsOfThisClass);
+          scope, getAstCreator(), nonStaticFieldDeclarationsOfThisClass , typeHierachie);
 
       declaration.accept(functionBuilder);
 

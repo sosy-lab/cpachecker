@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -175,7 +176,7 @@ class Scope {
     if (functions.containsKey(name)) {
       // TODO multiple function declarations are legal, as long as they are equal
       // check this and throw exception if not
-//        throw new CFAGenerationRuntimeException("Function " + name + " already declared", declaration);
+      // throw new CFAGenerationRuntimeException("Function " + name + " already declared", declaration);
     }
 
     functions.put(name, declaration);
@@ -206,8 +207,7 @@ class Scope {
     if(classesToBeParsed.isEmpty()){
       return null;
     } else {
-      //TODO Make this Work for Windows
-      return classesToBeParsed.poll().replace('.', '/') + ".java";
+      return classesToBeParsed.poll().replace('.', File.separatorChar) + ".java";
     }
   }
 
