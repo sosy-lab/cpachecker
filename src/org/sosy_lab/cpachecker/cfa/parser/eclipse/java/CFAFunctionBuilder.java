@@ -39,6 +39,7 @@ import java.util.Set;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AssertStatement;
+import org.eclipse.jdt.core.dom.Assignment;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BooleanLiteral;
 import org.eclipse.jdt.core.dom.BreakStatement;
@@ -49,7 +50,6 @@ import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.ForStatement;
 import org.eclipse.jdt.core.dom.IfStatement;
-import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.LabeledStatement;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.ParenthesizedExpression;
@@ -73,21 +73,26 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanzeCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -100,6 +105,7 @@ import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -231,7 +237,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         List<IADeclaration> arr = new ArrayList<IADeclaration>();
         arr.add(decl.getFirst());
 
-        locStack.push( addDeclarationsToCFA( arr ,decl.getSecond(), locStack.poll()));
+        locStack.push( addDeclarationsToCFA( arr,  decl.getFirst().getFileLocation().getStartingLineNumber(), decl.getSecond(), locStack.poll()));
 
       }
     }
@@ -411,20 +417,30 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
 
 
-  private CFANode addDeclarationsToCFA(final List<IADeclaration> declList, String rawSignature , CFANode prevNode) {
+  private CFANode addDeclarationsToCFA(final List<IADeclaration> declList, int filelocStart ,String rawSignature , CFANode prevNode) {
 
 
+
+
+
+    CFANode middleNode = new CFANode(filelocStart, cfa.getFunctionName());
+    cfaNodes.add(middleNode);
+
+    if (astCreator.getConditionalExpression() != null) {
+      ConditionalExpression condExp = astCreator.getConditionalExpression();
+      astCreator.resetConditionalExpression();
+      JIdExpression statement = astCreator.getConditionalTemporaryVariable();
+      handleTernaryExpression(condExp, prevNode, middleNode, statement);
+    } else {
+      middleNode = prevNode;
+    }
 
     prevNode = handleSideassignments(prevNode, rawSignature, declList.get(0).getFileLocation().getStartingLineNumber());
 
     // create one edge for every declaration
     for (IADeclaration newD : declList) {
 
-      if (newD instanceof AVariableDeclaration) {
-        scope.registerDeclaration(newD);
-      } else if (newD instanceof AFunctionDeclaration) {
-        scope.registerFunctionDeclaration((AFunctionDeclaration) newD);
-      }
+
 
       CFANode nextNode = new CFANode(declList.get(0).getFileLocation().getStartingLineNumber(), cfa.getFunctionName());
       cfaNodes.add(nextNode);
@@ -434,10 +450,47 @@ class CFAFunctionBuilder extends ASTVisitor {
       addToCFA(edge);
 
       prevNode = nextNode;
+
+
+      if (newD instanceof AVariableDeclaration) {
+        scope.registerDeclaration(newD);
+
+        CInitializer initializer = ((JVariableDeclaration)newD).getInitializer();
+
+        // resolve Boolean Initializer for easier analysis
+        if( initializer instanceof AInitializerExpression && astCreator.isBooleanExpression( ((AInitializerExpression)initializer).getExpression()) && !(((AInitializerExpression)initializer).getExpression() instanceof JBooleanLiteralExpression) ) {
+
+          CFANode afterResolvedBooleanExpressionNode = new CFANode(newD.getFileLocation().getStartingLineNumber(), cfa.getFunctionName());
+          cfaNodes.add(afterResolvedBooleanExpressionNode);
+
+          AInitializerExpression booleanInitializer = (AInitializerExpression) initializer;
+          resolveBooleanAssignment( booleanInitializer.getExpression() , new JIdExpression(newD.getFileLocation(), (JType) newD.getType(), newD.getName(), newD), prevNode, afterResolvedBooleanExpressionNode);
+          prevNode = afterResolvedBooleanExpressionNode;
+        }
+
+      } else if (newD instanceof AFunctionDeclaration) {
+        scope.registerFunctionDeclaration((AFunctionDeclaration) newD);
+      }
+
+    }
+
+
+    CFANode nextNode = null;
+    while (astCreator.numberOfPostSideAssignments() > 0) {
+        nextNode = new CFANode(filelocStart, cfa.getFunctionName());
+        cfaNodes.add(nextNode);
+
+        IAstNode sideeffect = astCreator.getNextPostSideAssignment();
+
+        createSideAssignmentEdges(prevNode, nextNode, rawSignature, filelocStart, sideeffect);
+        prevNode = nextNode;
+
     }
 
     return prevNode;
   }
+
+
 
   private CFANode addDeclarationsToCFA(final VariableDeclarationStatement sd, CFANode prevNode) {
 
@@ -447,9 +500,9 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     final List<IADeclaration> declList =
         astCreator.convert(sd);
-    //TODO  Search for better Solution.
+
     final String rawSignature = sd.toString();
-    return addDeclarationsToCFA(declList , rawSignature, prevNode);
+    return addDeclarationsToCFA(declList ,astCreator.getFileLocation(sd).getStartingLineNumber() , rawSignature, prevNode);
   }
 
   private CFANode addDeclarationsToCFA(final SingleVariableDeclaration sd, CFANode prevNode) {
@@ -458,10 +511,10 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     declList.add(astCreator.convert(sd));
 
-    //TODO  Search for better Solution.
+
     final String rawSignature = sd.toString();
 
-    return addDeclarationsToCFA(declList , rawSignature, prevNode);
+    return addDeclarationsToCFA(declList , astCreator.getFileLocation(sd).getStartingLineNumber() ,rawSignature, prevNode);
   }
 
 
@@ -486,6 +539,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     scope.leaveBlock();
   }
 
+
+  /*
 
   @Override
   public boolean  visit(AssertStatement assertStatement) {
@@ -533,6 +588,76 @@ class CFAFunctionBuilder extends ASTVisitor {
        blankEdge = new BlankEdge(assertStatement.toString(), errorLabelNode.getLineNumber(),
            unsuccessfulNode, errorLabelNode, "asssert fail:" + message);
        addToCFA(blankEdge);
+
+    return SKIP_CHILDS;
+  }
+
+  */
+
+  @Override
+  public boolean  visit(AssertStatement assertStatement) {
+
+
+     final String message;
+
+     if(assertStatement.getMessage() == null){
+       message = "";
+     } else {
+       //TODO Extract Message from String
+       message = assertStatement.getMessage().toString();
+     }
+
+
+     CFileLocation fileloc = astCreator.getFileLocation(assertStatement);
+     CFANode prevNode = locStack.pop();
+
+     //Create CFA Node for end of assert Location and push to local Stack
+     CFANode postAssertNode = new CFANode(fileloc.getEndingLineNumber(),
+         cfa.getFunctionName());
+     cfaNodes.add(postAssertNode);
+     locStack.push(postAssertNode);
+
+     // Node for successful assert
+     CFANode successfulNode = new CFANode(fileloc.getStartingLineNumber(),
+         cfa.getFunctionName());
+     cfaNodes.add(successfulNode);
+
+     // Error Label Node and unsuccessfulNode for unSuccessful assert,
+     CFANode unsuccessfulNode = new CFANode(fileloc.getStartingLineNumber(),
+         cfa.getFunctionName());
+     cfaNodes.add(unsuccessfulNode);
+     CLabelNode  errorLabelNode = new CLabelNode(fileloc.getStartingLineNumber(),cfa.getFunctionName(), "ERROR");
+       cfaNodes.add(errorLabelNode);
+
+       CONDITION kind = getConditionKind(assertStatement.getExpression());
+
+       createConditionEdges( assertStatement.getExpression() ,
+           fileloc.getStartingLineNumber(), prevNode, successfulNode, unsuccessfulNode);
+
+       boolean createUnsuccessfulEdge = true;
+       boolean createSuccessfulEdge = true;
+
+       switch(kind){
+       case ALWAYS_TRUE:
+         createUnsuccessfulEdge = false;break;
+       case ALWAYS_FALSE: createSuccessfulEdge = false;break;
+       }
+
+
+       BlankEdge blankEdge;
+
+       //Blank Edge from successful assert to  postAssert location
+       if(createSuccessfulEdge){
+       blankEdge = new BlankEdge(assertStatement.toString(), postAssertNode.getLineNumber(), successfulNode, postAssertNode, "assert success");
+       addToCFA(blankEdge);
+       }
+
+      // Blank Edge from unsuccessful assert to Error  location
+       if(createUnsuccessfulEdge){
+       blankEdge = new BlankEdge(assertStatement.toString(), errorLabelNode.getLineNumber(),
+           unsuccessfulNode, errorLabelNode, "asssert fail:" + message);
+       addToCFA(blankEdge);
+       }
 
     return SKIP_CHILDS;
   }
@@ -592,6 +717,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    //TODO Solution not allowed, find better Solution
    String rawSignature = expressionStatement.toString();
 
+
    CFANode lastNode = new CFANode(statement.getFileLocation().getStartingLineNumber(), cfa.getFunctionName());
    cfaNodes.add(lastNode);
 
@@ -617,16 +743,93 @@ class CFAFunctionBuilder extends ASTVisitor {
    } else {
      CFANode nextNode = handleSideassignments(prevNode, rawSignature, statement.getFileLocation().getStartingLineNumber());
 
+
+     // Resolve boolean Assignments, resolve & , && , | , || to be easier analyzed
+     if(statement instanceof AExpressionAssignmentStatement && astCreator.isBooleanExpression(((AExpressionAssignmentStatement) statement).getRightHandSide()) && !(((AExpressionAssignmentStatement) statement).getRightHandSide() instanceof JBooleanLiteralExpression )) {
+
+       Assignment booleanAssignment = (Assignment) expressionStatement.getExpression();
+       AExpressionAssignmentStatement booleanAssignmentExpression = (AExpressionAssignmentStatement) statement;
+
+       resolveBooleanAssignment(booleanAssignment.getRightHandSide(), booleanAssignmentExpression.getLeftHandSide() , nextNode , lastNode);
+
+     } else {
+
+
      AStatementEdge edge = new AStatementEdge(rawSignature, statement,
          statement.getFileLocation().getStartingLineNumber(), nextNode, lastNode);
      addToCFA(edge);
    }
+
    locStack.push(lastNode);
 
+
+   }
+
+
    return SKIP_CHILDS;
+
+ }
+/*
+ private void resolveBooleanAssignment(Expression condition,
+    IAExpression variableExpression, CFANode prevNode , CFANode lastNode) {
+
+   CFANode trueNode = new CFANode(variableExpression.getFileLocation().getStartingLineNumber(), cfa.getFunctionName());
+   cfaNodes.add(trueNode);
+
+   CFANode falseNode = new CFANode(variableExpression.getFileLocation().getStartingLineNumber(), cfa.getFunctionName());
+   cfaNodes.add(falseNode);
+
+   createConditionEdges(condition, variableExpression.getFileLocation().getStartingLineNumber(), prevNode, trueNode, falseNode);
+
+   AExpressionAssignmentStatement trueAssign = astCreator.getBooleanAssign(variableExpression , true);
+   AExpressionAssignmentStatement falseAssign = astCreator.getBooleanAssign(variableExpression , false);
+
+   AStatementEdge trueAssignmentEdge = new AStatementEdge(condition.toString(), trueAssign,
+       variableExpression.getFileLocation().getStartingLineNumber(), trueNode, lastNode);
+   addToCFA(trueAssignmentEdge);
+
+   AStatementEdge falseAssignmentEdge = new AStatementEdge(condition.toString(), falseAssign,
+       variableExpression.getFileLocation().getStartingLineNumber(), falseNode, lastNode);
+   addToCFA(falseAssignmentEdge);
+
+}
+
+*/
+
+
+
+ private void resolveBooleanAssignment(Expression condition,
+     IAExpression variableExpression, CFANode prevNode , CFANode afterResolvedBooleanExpressionNode) {
+   resolveBooleanAssignment(astCreator.convertBooleanExpression(condition), variableExpression, prevNode, afterResolvedBooleanExpressionNode);
  }
 
- private void searchForRunTimeClass(JReferencedMethodInvocationExpression methodInvocation, CFANode prevNode) {
+ private void resolveBooleanAssignment(IAExpression condition, IAExpression variableExpression, CFANode prevNode,
+     CFANode afterResolvedBooleanExpressionNode) {
+
+   CFANode trueNode = new CFANode(variableExpression.getFileLocation().getStartingLineNumber(), cfa.getFunctionName());
+   cfaNodes.add(trueNode);
+
+   CFANode falseNode = new CFANode(variableExpression.getFileLocation().getStartingLineNumber(), cfa.getFunctionName());
+   cfaNodes.add(falseNode);
+
+   createConditionEdges(condition, variableExpression.getFileLocation().getStartingLineNumber(), prevNode, trueNode, falseNode);
+
+   AExpressionAssignmentStatement trueAssign = astCreator.getBooleanAssign(variableExpression , true);
+   AExpressionAssignmentStatement falseAssign = astCreator.getBooleanAssign(variableExpression , false);
+
+   AStatementEdge trueAssignmentEdge = new AStatementEdge(condition.toString(), trueAssign,
+       variableExpression.getFileLocation().getStartingLineNumber(), trueNode, afterResolvedBooleanExpressionNode);
+   addToCFA(trueAssignmentEdge);
+
+   AStatementEdge falseAssignmentEdge = new AStatementEdge(condition.toString(), falseAssign,
+       variableExpression.getFileLocation().getStartingLineNumber(), falseNode, afterResolvedBooleanExpressionNode);
+   addToCFA(falseAssignmentEdge);
+
+ }
+
+
+
+private void searchForRunTimeClass(JReferencedMethodInvocationExpression methodInvocation, CFANode prevNode) {
 
    // This Algorithm  goes backwards from methodInvocation and searches
    // for a Class Instance Creation, which Class can be distinctly assigned as Run Time Class
@@ -966,6 +1169,8 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
 
   private static enum CONDITION { NORMAL, ALWAYS_FALSE, ALWAYS_TRUE }
 
+
+  /*
   private void createConditionEdges(final Expression condition,
       final int filelocStart, CFANode rootNode, CFANode thenNode,
       final CFANode elseNode) {
@@ -1002,23 +1207,189 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
     }
   }
 
+  */
 
+  private void createConditionEdges(final Expression condition,
+      final int filelocStart, CFANode rootNode, CFANode thenNode,
+      final CFANode elseNode) {
+    createConditionEdges(astCreator.convertBooleanExpression(condition), filelocStart, rootNode, thenNode, elseNode);
+  }
+
+  private void createConditionEdges(IAExpression condition, final int filelocStart, CFANode rootNode, CFANode thenNode,
+      final CFANode elseNode) {
+    assert condition != null;
+
+    final CONDITION kind = getConditionKind(condition);
+    //TODO solution not allowed, find better Solution
+        String rawSignature = condition.toString();
+
+    switch (kind) {
+    case ALWAYS_FALSE:
+      // no edge connecting rootNode with thenNode,
+      // so the "then" branch won't be connected to the rest of the CFA
+
+      final BlankEdge falseEdge = new BlankEdge(rawSignature, filelocStart, rootNode, elseNode, "");
+      addToCFA(falseEdge);
+      break;
+
+    case ALWAYS_TRUE:
+      final BlankEdge trueEdge = new BlankEdge(rawSignature, filelocStart, rootNode, thenNode, "");
+      addToCFA(trueEdge);
+
+      // no edge connecting prevNode with elseNode,
+      // so the "else" branch won't be connected to the rest of the CFA
+      break;
+
+    case NORMAL:
+        buildConditionTree(condition, filelocStart, rootNode, thenNode, elseNode, thenNode, elseNode, true, true);
+      break;
+
+    default:
+      throw new InternalError("Missing switch clause");
+    }
+  }
+
+  private void buildConditionTree(IAExpression condition, final int filelocStart,
+      CFANode rootNode, CFANode thenNode, final CFANode elseNode,
+      CFANode thenNodeForLastThen, CFANode elseNodeForLastElse,
+      boolean furtherThenComputation, boolean furtherElseComputation) {
+
+    CFANode nextNode =
+        handleSideassignments(rootNode, condition.toASTString(), condition.getFileLocation().getStartingLineNumber());
+
+
+      if (condition instanceof JBinaryExpression
+          && ((((JBinaryExpression) condition).getOperator() == JBinaryExpression.BinaryOperator.CONDITIONAL_AND) || ((JBinaryExpression) condition).getOperator() == JBinaryExpression.BinaryOperator.LOGICAL_AND)) {
+        CFANode innerNode = new CFANode(filelocStart, cfa.getFunctionName());
+        cfaNodes.add(innerNode);
+        buildConditionTree(((JBinaryExpression) condition).getOperand1(), filelocStart, rootNode, innerNode, elseNode,
+            thenNodeForLastThen, elseNodeForLastElse, true, false);
+        buildConditionTree(((JBinaryExpression) condition).getOperand2(), filelocStart, innerNode, thenNode, elseNode,
+            thenNodeForLastThen, elseNodeForLastElse, true, true);
+
+      } else if (condition instanceof JBinaryExpression
+        &&  (((JBinaryExpression) condition).getOperator() == JBinaryExpression.BinaryOperator.CONDITIONAL_OR  || ((JBinaryExpression) condition).getOperator() == JBinaryExpression.BinaryOperator.LOGICAL_OR) ) {
+        CFANode innerNode = new CFANode(filelocStart, cfa.getFunctionName());
+        cfaNodes.add(innerNode);
+        buildConditionTree(((JBinaryExpression) condition).getOperand1(), filelocStart, rootNode, thenNode, innerNode,
+            thenNodeForLastThen, elseNodeForLastElse, false, true);
+        buildConditionTree(((JBinaryExpression) condition).getOperand2(), filelocStart, innerNode, thenNode, elseNode,
+            thenNodeForLastThen, elseNodeForLastElse, true, true);
+
+      }  else {
+
+        String rawSignature = condition.toASTString();
+
+
+        if (furtherThenComputation) {
+          thenNodeForLastThen = thenNode;
+        }
+        if (furtherElseComputation) {
+          elseNodeForLastElse = elseNode;
+        }
+
+
+        // edge connecting last condition with elseNode
+        final AssumeEdge JAssumeEdgeFalse = new AssumeEdge("!(" + rawSignature + ")",
+            filelocStart,
+            nextNode,
+            elseNodeForLastElse,
+            condition,
+            false);
+        addToCFA(JAssumeEdgeFalse);
+
+        // edge connecting last condition with thenNode
+        final AssumeEdge JAssumeEdgeTrue = new AssumeEdge(rawSignature,
+            filelocStart,
+            nextNode,
+            thenNodeForLastThen,
+            condition,
+            true);
+        addToCFA(JAssumeEdgeTrue);
+      }
+  }
 
 
   private void buildConditionTree(Expression condition, final int filelocStart,
       CFANode rootNode, CFANode thenNode, final CFANode elseNode,
       CFANode thenNodeForLastThen, CFANode elseNodeForLastElse,
       boolean furtherThenComputation, boolean furtherElseComputation) {
+    buildConditionTree(astCreator.convertBooleanExpression(condition), filelocStart, rootNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, furtherThenComputation, furtherElseComputation);
+  }
 
-    //TODO eager And Implementation
 
-    while (condition.getNodeType() == ASTNode.PARENTHESIZED_EXPRESSION) {
-      condition = ((ParenthesizedExpression) condition).getExpression();
+
+
+/*
+
+  private void buildConditionTreeForInstanceOf(IAExpression orExpOrEqualsRunTimeTyp, IAExpression boolLit, BinaryOperator op, final int filelocStart,
+      CFANode rootNode, CFANode thenNode, final CFANode elseNode,
+      CFANode thenNodeForLastThen, CFANode elseNodeForLastElse,
+      boolean furtherThenComputation, boolean furtherElseComputation) {
+
+    // TODO add eager way (just define tmp variables which are not used to simulate
+    // TODO the handling of an eager Condition)
+
+
+
+     if (orExpOrEqualsRunTimeTyp instanceof JBinaryExpression
+      &&  (((JBinaryExpression) orExpOrEqualsRunTimeTyp).getOperator() == JBinaryExpression.BinaryOperator.CONDITIONAL_OR   || ((JBinaryExpression) orExpOrEqualsRunTimeTyp).getOperator() == JBinaryExpression.BinaryOperator.LOGICAL_OR) ) {
+      CFANode innerNode = new CFANode(filelocStart, cfa.getFunctionName());
+      cfaNodes.add(innerNode);
+      buildConditionTreeForInstanceOf(((JBinaryExpression) orExpOrEqualsRunTimeTyp).getOperand1(),boolLit, op,  filelocStart, rootNode, thenNode, innerNode,
+          thenNodeForLastThen, elseNodeForLastElse, false, true);
+      buildConditionTreeForInstanceOf(((JBinaryExpression) orExpOrEqualsRunTimeTyp).getOperand2(), boolLit, op, filelocStart, innerNode, thenNode, elseNode,
+          thenNodeForLastThen, elseNodeForLastElse, true, true);
+
+    } else {
+
+      String rawSignature = orExpOrEqualsRunTimeTyp.toString();
+      CFANode nextNode =
+          handleSideassignments(rootNode, rawSignature, orExpOrEqualsRunTimeTyp.getFileLocation().getStartingLineNumber());
+      if (furtherThenComputation) {
+        thenNodeForLastThen = thenNode;
+      }
+      if (furtherElseComputation) {
+        elseNodeForLastElse = elseNode;
+      }
+
+      // edge connecting last condition with elseNode
+      final AssumeEdge JAssumeEdgeFalse = new AssumeEdge("!(" + rawSignature + ")",
+          filelocStart,
+          nextNode,
+          elseNodeForLastElse,
+          new JBinaryExpression(orExpOrEqualsRunTimeTyp.getFileLocation(), (JType) orExpOrEqualsRunTimeTyp.getExpressionType(), (JExpression)orExpOrEqualsRunTimeTyp, (JExpression)boolLit, op),
+          false);
+      addToCFA(JAssumeEdgeFalse);
+
+      // edge connecting last condition with thenNode
+      final AssumeEdge JAssumeEdgeTrue = new AssumeEdge(rawSignature,
+          filelocStart,
+          nextNode,
+          thenNodeForLastThen,
+          new JBinaryExpression(orExpOrEqualsRunTimeTyp.getFileLocation(), (JType) orExpOrEqualsRunTimeTyp.getExpressionType(), (JExpression)orExpOrEqualsRunTimeTyp, (JExpression)boolLit, op),
+          true);
+      addToCFA(JAssumeEdgeTrue);
     }
+  }
+
+*/
 
 
-    if (condition.getNodeType() == ASTNode.INFIX_EXPRESSION
-        && ((InfixExpression) condition).getOperator() == InfixExpression.Operator.CONDITIONAL_AND) {
+/*
+
+  private void buildConditionTree(Expression condition, final int filelocStart,
+      CFANode rootNode, CFANode thenNode, final CFANode elseNode,
+      CFANode thenNodeForLastThen, CFANode elseNodeForLastElse,
+      boolean furtherThenComputation, boolean furtherElseComputation) {
+
+    // TODO add eager way (just define tmp variables which are not used to simulate
+    // the handling of an eager Condition)
+
+    if (condition.getNodeType() == ASTNode.PARENTHESIZED_EXPRESSION) {
+      buildConditionTree(((ParenthesizedExpression)condition).getExpression(), filelocStart, rootNode, thenNode, elseNode, thenNode, elseNode, true, true);
+    } else if (condition.getNodeType() == ASTNode.INFIX_EXPRESSION
+        && ((((InfixExpression) condition).getOperator() == InfixExpression.Operator.CONDITIONAL_AND) || ((InfixExpression) condition).getOperator() == InfixExpression.Operator.AND)) {
       CFANode innerNode = new CFANode(filelocStart, cfa.getFunctionName());
       cfaNodes.add(innerNode);
       buildConditionTree(((InfixExpression) condition).getLeftOperand(), filelocStart, rootNode, innerNode, elseNode,
@@ -1027,7 +1398,7 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
           thenNodeForLastThen, elseNodeForLastElse, true, true);
 
     } else if (condition.getNodeType() == ASTNode.INFIX_EXPRESSION
-      &&  ((InfixExpression) condition).getOperator() == InfixExpression.Operator.CONDITIONAL_OR) {
+      &&  (((InfixExpression) condition).getOperator() == InfixExpression.Operator.CONDITIONAL_OR   || ((InfixExpression) condition).getOperator() == InfixExpression.Operator.OR) ) {
       CFANode innerNode = new CFANode(filelocStart, cfa.getFunctionName());
       cfaNodes.add(innerNode);
       buildConditionTree(((InfixExpression) condition).getLeftOperand(), filelocStart, rootNode, thenNode, innerNode,
@@ -1035,7 +1406,15 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
       buildConditionTree(((InfixExpression) condition).getRightOperand(), filelocStart, innerNode, thenNode, elseNode,
           thenNodeForLastThen, elseNodeForLastElse, true, true);
 
+    } else if(condition.getNodeType() ==   ASTNode.INSTANCEOF_EXPRESSION){
+      final IAExpression exp = astCreator.convertBooleanExpression(condition);
+      final IAExpression orExp = ((JBinaryExpression) exp).getOperand1();
+      final IAExpression BoolLit = ((JBinaryExpression) exp).getOperand2();
+      final BinaryOperator op = ((JBinaryExpression) exp).getOperator();
+
+      buildConditionTreeForInstanceOf(orExp, BoolLit, op,  filelocStart, rootNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, furtherThenComputation, furtherElseComputation);
     } else {
+
 
       final IAExpression exp = astCreator.convertBooleanExpression(condition);
 
@@ -1073,7 +1452,27 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
     }
   }
 
-  private CONDITION getConditionKind(final Expression cond) {
+  */
+
+  private CONDITION getConditionKind(IAExpression condition) {
+    if(condition instanceof JBooleanLiteralExpression){
+      if(((JBooleanLiteralExpression) condition).getValue()){
+        return CONDITION.ALWAYS_TRUE;
+      } else {
+        return CONDITION.ALWAYS_FALSE;
+      }
+    }
+    return CONDITION.NORMAL;
+  }
+
+
+
+  private CONDITION getConditionKind(Expression cond) {
+
+    while(cond.getNodeType() == ASTNode.PARENTHESIZED_EXPRESSION){
+      cond = ((ParenthesizedExpression) cond).getExpression();
+    }
+
     if (cond.getNodeType() == ASTNode.BOOLEAN_LITERAL) {
          if(((BooleanLiteral) cond).booleanValue()){
            return CONDITION.ALWAYS_TRUE;
@@ -1083,6 +1482,7 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
     }
     return CONDITION.NORMAL;
 }
+
 
 
 

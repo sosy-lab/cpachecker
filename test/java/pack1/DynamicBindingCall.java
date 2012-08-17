@@ -30,8 +30,12 @@ public class DynamicBindingCall  {
      obj2 = new SubType1(3 , 3); 
     }
     
-    boolean b3 = obj2 instanceof SubType1;
+    boolean b11 = false;
+    if( obj2 instanceof SubType1) {
+      b11 = true;
+    }
     
+    assert b11;
     
     boolean b10 = obj2 instanceof Interface1;
     

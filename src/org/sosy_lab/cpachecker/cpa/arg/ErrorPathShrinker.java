@@ -39,13 +39,14 @@ import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -723,9 +724,22 @@ public final class ErrorPathShrinker {
             equals(lastBinExpOp1.toASTString());
 
             // check, if lastEdge is the true-branch of "==" or the false-branch of "!="
-            final BinaryOperator op = (BinaryOperator) ((ABinaryExpression) lastExp).getOperator();
-            final boolean isEqualOp = (op == BinaryOperator.EQUALS && lastAss.getTruthAssumption())
-                || (op == BinaryOperator.NOT_EQUALS && !lastAss.getTruthAssumption());
+            ABinaryExpression aLastExp = ((ABinaryExpression) lastExp);
+            final boolean isEqualOp;
+
+
+            if(aLastExp instanceof CBinaryExpression) {
+              final CBinaryExpression.BinaryOperator op = (CBinaryExpression.BinaryOperator) aLastExp.getOperator();
+              isEqualOp = (op == CBinaryExpression.BinaryOperator.EQUALS && lastAss.getTruthAssumption())
+                  || (op == CBinaryExpression.BinaryOperator.NOT_EQUALS && !lastAss.getTruthAssumption());
+
+            } else {
+              final JBinaryExpression.BinaryOperator op = (JBinaryExpression.BinaryOperator) aLastExp.getOperator();
+              isEqualOp = (op == JBinaryExpression.BinaryOperator.EQUALS && lastAss.getTruthAssumption())
+                  || (op == JBinaryExpression.BinaryOperator.NOT_EQUALS && !lastAss.getTruthAssumption());
+
+            }
+
 
             return (isEqualVarName && isEqualOp);
           }

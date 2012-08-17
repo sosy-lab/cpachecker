@@ -756,7 +756,7 @@ public class ASTConverter {
   }
 
 
-  public JVariableDeclaration convert(SingleVariableDeclaration d) {
+  public IADeclaration convert(SingleVariableDeclaration d) {
 
 
     Type type = d.getType();
@@ -1326,6 +1326,7 @@ public class ASTConverter {
       IAstNode rightHandSide =  convertExpressionWithSideEffects(e.getRightHandSide()); // right-hand side may have a function call
 
 
+
       if (rightHandSide instanceof JExpression) {
         // a = b
         return new AExpressionAssignmentStatement(fileLoc, leftHandSide, (IAExpression)rightHandSide);
@@ -1670,6 +1671,8 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
 
     JExpression exp = convertExpressionWithoutSideEffects(e);
     if (!isBooleanExpression(exp)) {
+
+      // TODO: probably the type of the zero is not always correct
       JExpression zero = new JBooleanLiteralExpression(exp.getFileLocation(), (JType) exp.getExpressionType(), false);
       return new JBinaryExpression(exp.getFileLocation(), (JType) exp.getExpressionType(), exp, zero, BinaryOperator.NOT_EQUALS);
     }
@@ -1685,9 +1688,11 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
       BinaryOperator.LESS_EQUAL,
       BinaryOperator.LESS_THAN,
       BinaryOperator.LOGICAL_AND,
-      BinaryOperator.LOGICAL_OR);
+      BinaryOperator.LOGICAL_OR,
+      BinaryOperator.CONDITIONAL_AND,
+      BinaryOperator.CONDITIONAL_OR);
 
-  private boolean isBooleanExpression(IAExpression e) {
+  public boolean isBooleanExpression(IAExpression e) {
     if (e instanceof JBinaryExpression) {
       return BOOLEAN_BINARY_OPERATORS.contains(((JBinaryExpression)e).getOperator());
 
@@ -1724,5 +1729,9 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
     JConstructorType constructorType = functionCall.getExpressionType();
 
     methodInvocation.setRunTimeBinding(constructorType.getReturnType());
+  }
+
+  public AExpressionAssignmentStatement getBooleanAssign(IAExpression pLeftHandSide, boolean booleanLiteral) {
+    return new AExpressionAssignmentStatement(pLeftHandSide.getFileLocation(), pLeftHandSide, new JBooleanLiteralExpression(pLeftHandSide.getFileLocation(),new JSimpleType(JBasicType.BOOLEAN), booleanLiteral));
   }
 }
