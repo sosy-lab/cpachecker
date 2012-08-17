@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
@@ -45,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssignedVariablesColle
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssumptionVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictPathChecker;
+import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.UsedVariablesCollector;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
@@ -88,7 +91,8 @@ public class ExplicitInterpolationBasedExplicitRefiner {
     firstInterpolationPoint = null;
 
     numberOfRefinements++;
-
+System.out.println("--------------------------\ndeterminePrecisionIncrement\n--------------------------");
+//System.out.println(errorPath);
     Multimap<CFANode, String> increment = HashMultimap.create();
     // only do a refinement if a full-precision check shows that the path is infeasible
     if(!isPathFeasable(errorPath, HashMultimap.<CFANode, String>create())) {
@@ -106,31 +110,45 @@ public class ExplicitInterpolationBasedExplicitRefiner {
           currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
         }
 
+//System.out.println("current edge: " + currentEdge);
+
         Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge.getSuccessor());
+
+        // get variables used after current statement
+        UsedVariablesCollector coll = new UsedVariablesCollector();
+        Set<String> usedAfter = coll.collectVariables(errorPath, errorPath.get(i));
 
         // no potentially interesting variables referenced - skip
         if(referencedVariablesAtEdge.isEmpty()) {
+
           for(String variableName : currentInterpolant.keySet()) {
-            increment.put(currentEdge.getSuccessor(), variableName);
+            if(usedAfter.contains(variableName)) {
+              increment.put(currentEdge.getSuccessor(), variableName);
+            }
           }
         }
 
+        Set<String> toBeAdded = new HashSet<String>();
         // check for each variable, if ignoring it makes the error path feasible
         for(String currentVariable : referencedVariablesAtEdge) {
           numberOfCounterExampleChecks++;
 
           try {
+//System.out.println("\tinput interpolant [" + currentVariable + "]: " + currentInterpolant);
             currentInterpolant = interpolator.deriveInterpolant(errorPath, errorPath.get(i), currentVariable, currentInterpolant);
+//System.out.println("\toutput interpolant: " + currentInterpolant);
           }
           catch (InterruptedException e) {
             throw new CPAException("Explicit-Interpolation failed: ", e);
           }
 
           for(String variableName : currentInterpolant.keySet()) {
-            increment.put(currentEdge.getSuccessor(), variableName);
+            if(usedAfter.contains(variableName)) {
+              increment.put(currentEdge.getSuccessor(), variableName);
 
-            if(firstInterpolationPoint == null) {
-              firstInterpolationPoint = errorPath.get(i).getFirst();
+              if(firstInterpolationPoint == null) {
+                firstInterpolationPoint = errorPath.get(i).getFirst();
+              }
             }
           }
         }

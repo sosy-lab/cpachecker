@@ -49,18 +49,6 @@ public class ExplicitInterpolator {
   private ExplicitTransferRelation transfer = null;
 
   /**
-   * whether or not to block any further interpolations, i.e. a blocking state was reached
-   */
-  private boolean block = false;
-
-  /**
-   * the current blocking state, i.e. the first pair of ARGState and CFA edge that make the current error path
-   * infeasible - when interpolating beyond this state, the error path might be always feasible, as no assume
-   * edges are between the current interpolation state and the error state
-   */
-  private ARGState blockingState = null;
-
-  /**
    * This method acts as the constructor of the class.
    */
   public ExplicitInterpolator() throws CPAException {
@@ -97,14 +85,6 @@ public class ExplicitInterpolator {
       Long variableValue    = null;
       boolean interpolated = false;
 
-      if(block) {
-        return currentInterpolant;
-      }
-
-      if(blockingState != null && blockingState == iterpolationState.getFirst()) {
-        block = true;
-      }
-
       boolean startInterpolation = false;
       for(Pair<ARGState, CFAEdge> pathElement : errorPath) {
         if(iterpolationState == pathElement) {
@@ -124,12 +104,11 @@ public class ExplicitInterpolator {
 
         // there is no successor, but current path element is not an error state => error path is spurious
         if(next == null && !pathElement.getFirst().isTarget()) {
-          blockingState = pathElement.getFirst();
+//System.out.println("\t---> infeasible");
 
-          if(variableValue == null) {
+          //if(variableValue == null) {
             currentInterpolant.remove(currentVariable);
-          }
-
+          //}
           return currentInterpolant;
         }
 
@@ -152,6 +131,8 @@ public class ExplicitInterpolator {
       } else {
         currentInterpolant.remove(currentVariable);
       }
+
+//System.out.println("\t---> feasible");
 
       // path is feasible
       return currentInterpolant;
