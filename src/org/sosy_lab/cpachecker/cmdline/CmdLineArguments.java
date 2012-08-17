@@ -101,6 +101,9 @@ class CmdLineArguments {
       ) {
         // nothing left to do
 
+      } else if (handleMultipleArgument1("-cmc", "restartAlgorithm.configFiles", arg, argsIt, properties)) {
+        properties.put("analysis.restartAfterUnknown", "true");
+
       } else if (arg.equals("-cpas")) {
         if (argsIt.hasNext()) {
           properties.put("cpa", CompositeCPA.class.getName());
