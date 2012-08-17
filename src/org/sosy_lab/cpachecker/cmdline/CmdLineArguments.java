@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.configuration.OptionCollector;
@@ -60,6 +61,8 @@ class CmdLineArguments {
 
   private CmdLineArguments() { } // prevent instantiation, this is a static helper class
 
+  private static final Pattern DEFAULT_CONFIG_FILES_PATTERN = Pattern.compile("^[a-zA-Z0-9-]+$");
+
   /**
    * The directory where to look for configuration files for options like
    * "-predicateAbstraction" that get translated into a config file name.
@@ -67,6 +70,8 @@ class CmdLineArguments {
   private static final String DEFAULT_CONFIG_FILES_DIR = "config/%s.properties";
 
   static final String CONFIGURATION_FILE_OPTION = "configuration.file";
+
+  private static final String CMC_CONFIGURATION_FILES_OPTION = "restartAlgorithm.configFiles";
 
   /**
    * Reads the arguments and process them.
@@ -101,8 +106,8 @@ class CmdLineArguments {
       ) {
         // nothing left to do
 
-      } else if (handleMultipleArgument1("-cmc", "restartAlgorithm.configFiles", arg, argsIt, properties)) {
-        properties.put("analysis.restartAfterUnknown", "true");
+      } else if (arg.equals("-cmc")) {
+        handleCmc(argsIt, properties);
 
       } else if (arg.equals("-cpas")) {
         if (argsIt.hasNext()) {
@@ -151,7 +156,7 @@ class CmdLineArguments {
         String argName = arg.substring(1); // remove "-"
         File f = new File(String.format(DEFAULT_CONFIG_FILES_DIR, argName));
 
-        if (argName.matches("^[a-zA-Z0-9-]+$") && f.exists()) {
+        if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches() && f.exists()) {
           try {
             Files.checkReadableFile(f);
             putIfNotExistent(properties, CONFIGURATION_FILE_OPTION, f.getPath());
@@ -176,6 +181,35 @@ class CmdLineArguments {
       putIfNotExistent(properties, "analysis.programNames", Joiner.on(", ").join(programs));
     }
     return properties;
+  }
+
+  private static void handleCmc(Iterator<String> argsIt, Map<String, String> properties)
+      throws InvalidCmdlineArgumentException {
+    properties.put("analysis.restartAfterUnknown", "true");
+
+    if (argsIt.hasNext()) {
+      String newValue = argsIt.next();
+
+      // replace "predicateAnalysis" with config/predicateAnalysis.properties etc.
+      if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches() && !(new File(newValue).exists())) {
+        File f = new File(String.format(DEFAULT_CONFIG_FILES_DIR, newValue));
+
+        if (f.exists()) {
+          newValue = f.getPath();
+        }
+      }
+
+      String value = properties.get(CMC_CONFIGURATION_FILES_OPTION);
+      if (value != null) {
+        value += "," + newValue;
+      } else {
+        value = newValue;
+      }
+      properties.put(CMC_CONFIGURATION_FILES_OPTION, value);
+
+    } else {
+      throw new InvalidCmdlineArgumentException("-cmc argument missing.");
+    }
   }
 
   private static void printHelp() {
