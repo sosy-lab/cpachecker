@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -79,6 +80,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
@@ -103,16 +105,22 @@ public class BDDVectorTransferRelation implements TransferRelation {
   @Option(description = "declare vars ordered in partitions")
   private boolean initPartitions = true;
 
+  @Option(description = "declare partitions ordered")
+  private boolean initPartitionsOrdered = true;
+
+  @Option(description = "default bitsize for values and vars")
+  private int bitsize = 32;
+
   private final VariableClassification varClass;
-  private final Map<Multimap<String, String>, String> partitionToTmpVar =
+  private final Map<Multimap<String, String>, String> varsToTmpVar =
       new HashMap<Multimap<String, String>, String>();
 
   private final BitvectorManager bvmgr;
   private final NamedRegionManager rmgr;
 
   /** for statistics */
-  private int createdPredicates;
-  private int deletedPredicates;
+  private int createdPredicates = 0;
+  private int deletedPredicates = 0;
 
   /** The Constructor of BDDVectorTransferRelation sets the NamedRegionManager
    * and the BitVectorManager. Both are used to build and manipulate BDDs,
@@ -127,61 +135,106 @@ public class BDDVectorTransferRelation implements TransferRelation {
 
     assert cfa.getVarClassification().isPresent();
     this.varClass = cfa.getVarClassification().get();
-    initVars(precision);
+    initVars(precision, cfa);
   }
 
   /** The BDDRegionManager orders the variables as they are declared
    *  (later vars are deeper in the BDD).
    *  This function declares those vars in the beginning of the analysis,
    *  so that we can choose between some orders. */
-  private void initVars(BDDVectorPrecision precision) {
-    int size = bvmgr.getBitSize();
+  private void initVars(BDDVectorPrecision precision, CFA cfa) {
+    Collection<Partition> booleanPartitions = varClass.getBooleanPartitions();
+    Collection<Partition> discreteValuePartitions = varClass.getDiscreteValuePartitions();
 
     if (initPartitions) {
-      for (Multimap<String, String> vars : varClass.getPartitions()) {
-        createPredicates(size, vars, precision);
+
+      Partition[] partitions;
+      if (initPartitionsOrdered) {
+        BDDPartitionOrderer d = new BDDPartitionOrderer(cfa);
+        partitions = d.getOrderedPartitions();
+      } else {
+        partitions = varClass.getPartitions().toArray(new Partition[0]);
+      }
+
+      for (Partition partition : partitions) {
+        if (booleanPartitions.contains(partition)) {
+          createPredicates(partition.getVars(), precision, 1);
+        } else if (discreteValuePartitions.contains(partition)) {
+          createPredicates(partition.getVars(), precision, bitsize);
+        } else {
+          // createPredicates(partition.getVars(), precision, bitsize);
+        }
       }
 
     } else {
       Multimap<String, String> vars = varClass.getAllVars();
-      createPredicates(size, vars, precision);
+      createPredicates(vars, precision, bitsize);
     }
   }
 
   /** This function declares variables for a given collection of vars.
-   * The flag 'bitwise' chooses between initialing each var after each other
-   * or bitwise overlapped (bit1 of all vars, then bit2 of all vars, etc). */
-  private void createPredicates(int size, Multimap<String, String> vars, BDDVectorPrecision precision) {
+   * The value 'bitsize' chooses how much bits are used for each var. */
+  private void createPredicates(Multimap<String, String> vars,
+      BDDVectorPrecision precision, int bitsize) {
+
+    assert bitsize > 0 : "you need at least one bit for a variable.";
 
     // add a temporary variable for each partition
     // (or for allVars, then this action is senseless, but simplifies code)
-    String tmpVar = TMP_VARIABLE + "_" + partitionToTmpVar.size();
-    partitionToTmpVar.put(vars, tmpVar);
+    String tmpVar = TMP_VARIABLE + "_" + varsToTmpVar.size();
+    varsToTmpVar.put(vars, tmpVar);
 
-    if (initBitwise) {
-      // [a2, b2, c2, a1, b1, c1, a0, b0, c0]
-      for (int i = 0; i < size; i++) {
-        int index = initBitsIncreasing ? i : (size - i - 1);
-        for (Entry<String, String> entry : vars.entries()) {
-          if (precision.isTracking(entry.getKey(), entry.getValue())) {
-            rmgr.createPredicate(buildVarName(entry.getKey(), entry.getValue()) + "@" + index);
-          }
+    // real boolean vars
+    if (bitsize == 1) {
+
+      boolean isTrackingSomething = false;
+      for (Entry<String, String> entry : vars.entries()) { // different loop order!
+        if (precision.isTracking(entry.getKey(), entry.getValue())) {
+          createPredicate(buildVarName(entry.getKey(), entry.getValue()));
+          isTrackingSomething = true;
         }
-        rmgr.createPredicate(tmpVar + "@" + index);
+      }
+      if (isTrackingSomething) {
+        rmgr.createPredicate(tmpVar);
       }
 
     } else {
-      // [a2, a1, a0, b2, b1, b0, c2, c1, c0]
-      for (Entry<String, String> entry : vars.entries()) { // different loop order!
-        for (int i = 0; i < size; i++) {
-          if (precision.isTracking(entry.getKey(), entry.getValue())) {
-            int index = initBitsIncreasing ? i : (size - i - 1);
-            rmgr.createPredicate(buildVarName(entry.getKey(), entry.getValue()) + "@" + index);
+      // bitvectors [a2, a1, a0]
+      // 'initBitwise' chooses between initialing each var separately or bitwise overlapped.
+      if (initBitwise) {
+
+        // [a2, b2, c2, a1, b1, c1, a0, b0, c0]
+        boolean isTrackingSomething = false;
+        for (int i = 0; i < bitsize; i++) {
+          int index = initBitsIncreasing ? i : (bitsize - i - 1);
+          for (Entry<String, String> entry : vars.entries()) {
+            if (precision.isTracking(entry.getKey(), entry.getValue())) {
+              createPredicate(buildVarName(entry.getKey(), entry.getValue()) + "@" + index);
+              isTrackingSomething = true;
+            }
+          }
+          if (isTrackingSomething) {
+            createPredicate(tmpVar + "@" + index);
           }
         }
-        for (int i = 0; i < size; i++) {
-          int index = initBitsIncreasing ? i : (size - i - 1);
-          rmgr.createPredicate(tmpVar + "@" + index);
+
+      } else {
+        // [a2, a1, a0, b2, b1, b0, c2, c1, c0]
+        boolean isTrackingSomething = false;
+        for (Entry<String, String> entry : vars.entries()) { // different loop order!
+          if (precision.isTracking(entry.getKey(), entry.getValue())) {
+            for (int i = 0; i < bitsize; i++) {
+              int index = initBitsIncreasing ? i : (bitsize - i - 1);
+              createPredicate(buildVarName(entry.getKey(), entry.getValue()) + "@" + index);
+            }
+            isTrackingSomething = true;
+          }
+        }
+        if (isTrackingSomething) {
+          for (int i = 0; i < bitsize; i++) {
+            int index = initBitsIncreasing ? i : (bitsize - i - 1);
+            createPredicate(tmpVar + "@" + index);
+          }
         }
       }
     }
@@ -278,7 +331,6 @@ public class BDDVectorTransferRelation implements TransferRelation {
       if (precision.isTracking(function, varName)) {
 
         Region newRegion = state.getRegion();
-        Region[] var = createPredicate(buildVarName(function, varName));
         CRightHandSide rhs = assignment.getRightHandSide();
 
         if (rhs instanceof CExpression) {
@@ -288,29 +340,63 @@ public class BDDVectorTransferRelation implements TransferRelation {
             // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
             String tmpVarName;
             if (initPartitions) {
-              tmpVarName = partitionToTmpVar.get(varClass.getPartitionForVar(function, varName));
+              tmpVarName = varsToTmpVar.get(varClass.getPartitionForVar(function, varName).getVars());
             } else {
-              tmpVarName = TMP_VARIABLE;
+              tmpVarName = varsToTmpVar.get(varClass.getAllVars());
             }
-            Region[] tmp = createPredicate(tmpVarName);
+            assert tmpVarName != null;
 
-            // make region for RIGHT SIDE and build equality of var and region
-            BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
-            Region[] regRHS = exp.accept(ev);
-            newRegion = addEquality(tmp, regRHS, newRegion);
+            Partition partition = varClass.getPartitionForEdge(cfaEdge);
+            if (varClass.getBooleanPartitions().contains(partition)) {
+              Region tmp = createPredicate(tmpVarName);
 
-            // delete var, make tmp equal to (new) var, then delete tmp
-            newRegion = removePredicate(newRegion, var);
-            newRegion = addEquality(var, tmp, newRegion);
-            newRegion = removePredicate(newRegion, tmp);
+              // make region for RIGHT SIDE and build equality of var and region
+              BDDBooleanCExpressionVisitor ev = new BDDBooleanCExpressionVisitor(state, precision);
+              Region regRHS = exp.accept(ev);
+              newRegion = addEquality(tmp, regRHS, newRegion);
+
+              // delete var, make tmp equal to (new) var, then delete tmp
+              Region var = createPredicate(buildVarName(function, varName));
+              newRegion = removePredicate(newRegion, var);
+              newRegion = addEquality(var, tmp, newRegion);
+              newRegion = removePredicate(newRegion, tmp);
+
+            } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
+              Region[] tmp = createPredicates(tmpVarName);
+
+              // make region for RIGHT SIDE and build equality of var and region
+              BDDVectorCExpressionVisitor ev = new BDDVectorCExpressionVisitor(state, precision);
+              Region[] regRHS = exp.accept(ev);
+              newRegion = addEquality(tmp, regRHS, newRegion);
+
+              // delete var, make tmp equal to (new) var, then delete tmp
+              Region[] var = createPredicates(buildVarName(function, varName));
+              newRegion = removePredicate(newRegion, var);
+              newRegion = addEquality(var, tmp, newRegion);
+              newRegion = removePredicate(newRegion, tmp);
+            }
 
           } else {
-            newRegion = removePredicate(newRegion, var);
 
-            // make region for RIGHT SIDE and build equality of var and region
-            BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
-            Region[] regRHS = ((CExpression) rhs).accept(ev);
-            newRegion = addEquality(var, regRHS, newRegion);
+            Partition partition = varClass.getPartitionForEdge(cfaEdge);
+            if (varClass.getBooleanPartitions().contains(partition)) {
+              Region var = createPredicate(buildVarName(function, varName));
+              newRegion = removePredicate(newRegion, var);
+
+              // make region for RIGHT SIDE and build equality of var and region
+              BDDBooleanCExpressionVisitor ev = new BDDBooleanCExpressionVisitor(state, precision);
+              Region regRHS = ((CExpression) rhs).accept(ev);
+              newRegion = addEquality(var, regRHS, newRegion);
+
+            } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
+              Region[] var = createPredicates(buildVarName(function, varName));
+              newRegion = removePredicate(newRegion, var);
+
+              // make region for RIGHT SIDE and build equality of var and region
+              BDDVectorCExpressionVisitor ev = new BDDVectorCExpressionVisitor(state, precision);
+              Region[] regRHS = ((CExpression) rhs).accept(ev);
+              newRegion = addEquality(var, regRHS, newRegion);
+            }
           }
 
         } else {
@@ -318,7 +404,17 @@ public class BDDVectorTransferRelation implements TransferRelation {
           // call of external function: we know nothing, so we do nothing
           // TODO can we assume, that malloc returns something !=0?
           // are there some "save functions"?
-          newRegion = removePredicate(newRegion, var);
+
+          Partition partition = varClass.getPartitionForEdge(cfaEdge);
+          if (varClass.getBooleanPartitions().contains(partition)) {
+            Region var = createPredicate(buildVarName(function, varName));
+            newRegion = removePredicate(newRegion, var);
+
+          } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
+            Region[] var = createPredicates(buildVarName(function, varName));
+            newRegion = removePredicate(newRegion, var);
+
+          }
         }
 
         result = new BDDState(rmgr, state.getFunctionCallState(), newRegion,
@@ -357,22 +453,48 @@ public class BDDVectorTransferRelation implements TransferRelation {
       String varName = vdecl.getName();
       String scopedVarName = buildVarName(function, varName);
       if (precision.isTracking(function, varName)) {
-        Region[] var = createPredicate(scopedVarName);
-        Region newRegion = removePredicate(state.getRegion(), var);
 
-        // track vars, so we can delete them after returning from a function,
-        // see handleFunctionReturnEdge(...) for detail.
-        if (!vdecl.isGlobal()) {
-          state.getVars().add(scopedVarName);
-        }
 
-        // initializer on RIGHT SIDE available, make region for it
-        if (init != null) {
-          BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
-          Region[] regRHS = init.accept(ev);
-          newRegion = addEquality(var, regRHS, newRegion);
-          return new BDDState(rmgr, state.getFunctionCallState(), newRegion,
-              state.getVars(), cfaEdge.getPredecessor().getFunctionName());
+        Partition partition = varClass.getPartitionForEdge(cfaEdge);
+        if (varClass.getBooleanPartitions().contains(partition)) {
+          Region var = createPredicate(scopedVarName);
+          Region newRegion = removePredicate(state.getRegion(), var);
+
+          // track vars, so we can delete them after returning from a function,
+          // see handleFunctionReturnEdge(...) for detail.
+          if (!vdecl.isGlobal()) {
+            state.getVars().add(var);
+          }
+
+          // initializer on RIGHT SIDE available, make region for it
+          if (init != null) {
+            BDDBooleanCExpressionVisitor ev = new BDDBooleanCExpressionVisitor(state, precision);
+            Region regRHS = init.accept(ev);
+            newRegion = addEquality(var, regRHS, newRegion);
+            return new BDDState(rmgr, state.getFunctionCallState(), newRegion,
+                state.getVars(), cfaEdge.getPredecessor().getFunctionName());
+          }
+
+        } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
+          Region[] var = createPredicates(scopedVarName);
+          Region newRegion = removePredicate(state.getRegion(), var);
+
+          // track vars, so we can delete them after returning from a function,
+          // see handleFunctionReturnEdge(...) for detail.
+          if (!vdecl.isGlobal()) {
+            for (int i = 0; i < var.length; i++) {
+              state.getVars().add(var[i]);
+            }
+          }
+
+          // initializer on RIGHT SIDE available, make region for it
+          if (init != null) {
+            BDDVectorCExpressionVisitor ev = new BDDVectorCExpressionVisitor(state, precision);
+            Region[] regRHS = init.accept(ev);
+            newRegion = addEquality(var, regRHS, newRegion);
+            return new BDDState(rmgr, state.getFunctionCallState(), newRegion,
+                state.getVars(), cfaEdge.getPredecessor().getFunctionName());
+          }
         }
       }
     }
@@ -388,7 +510,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
       BDDVectorPrecision precision) throws UnrecognizedCCodeException {
 
     Region newRegion = state.getRegion();
-    Set<String> newVars = new LinkedHashSet<String>();
+    Set<Region> newVars = new LinkedHashSet<Region>();
 
     // overtake arguments from last functioncall into function,
     // get args from functioncall and make them equal with params from functionstart
@@ -406,11 +528,24 @@ public class BDDVectorTransferRelation implements TransferRelation {
 
       // make region for arg and build equality of var and arg
       if (precision.isTracking(innerFunctionName, varName)) {
-        newVars.add(scopedVarName);
-        Region[] var = createPredicate(scopedVarName);
-        BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
-        Region[] arg = args.get(i).accept(ev);
-        newRegion = addEquality(var, arg, newRegion);
+
+        Partition partition = varClass.getPartitionForEdge(cfaEdge, i);
+        if (varClass.getBooleanPartitions().contains(partition)) {
+          Region var = createPredicate(scopedVarName);
+          BDDBooleanCExpressionVisitor ev = new BDDBooleanCExpressionVisitor(state, precision);
+          Region arg = args.get(i).accept(ev);
+          newRegion = addEquality(var, arg, newRegion);
+          newVars.add(var);
+
+        } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
+          Region[] var = createPredicates(scopedVarName);
+          BDDVectorCExpressionVisitor ev = new BDDVectorCExpressionVisitor(state, precision);
+          Region[] arg = args.get(i).accept(ev);
+          newRegion = addEquality(var, arg, newRegion);
+          for (int j = 0; j < var.length; j++) {
+            newVars.add(var[j]);
+          }
+        }
       }
     }
 
@@ -427,16 +562,13 @@ public class BDDVectorTransferRelation implements TransferRelation {
 
     // delete variables from returning function,
     // this results in a smaller BDD and allows to call a function twice.
-    for (String varName : state.getVars()) {
-      newRegion = removePredicate(newRegion, createPredicate(varName));
+    for (Region r : state.getVars()) {
+      newRegion = removePredicate(newRegion, r);
     }
 
     // set result of function equal to variable on left side
     CFunctionSummaryEdge fnkCall = cfaEdge.getSummaryEdge();
     CStatement call = fnkCall.getExpression().asStatement();
-
-    // make region (predicate) for RIGHT SIDE
-    Region[] retVar = createPredicate(buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE));
 
     // handle assignments like "y = f(x);"
     if (call instanceof CFunctionCallAssignmentStatement) {
@@ -448,15 +580,47 @@ public class BDDVectorTransferRelation implements TransferRelation {
       BDDState functionCall = state.getFunctionCallState();
       String function = isGlobal(lhs) ? null : functionCall.getFunctionName();
       String varName = lhs.toASTString();
-      if (precision.isTracking(function, varName)) {
-        Region[] var = createPredicate(buildVarName(function, varName));
-        newRegion = removePredicate(newRegion, var);
-        newRegion = addEquality(var, retVar, newRegion);
-      }
-    }
 
-    // LAST ACTION: delete varname of right side
-    newRegion = removePredicate(newRegion, retVar);
+      Partition partition = varClass.getPartitionForEdge(cfaEdge);
+      if (varClass.getBooleanPartitions().contains(partition)) {
+        // make region (predicate) for RIGHT SIDE
+        Region retVar = createPredicate(buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE));
+        if (precision.isTracking(function, varName)) {
+          Region var = createPredicate(buildVarName(function, varName));
+          newRegion = removePredicate(newRegion, var);
+          newRegion = addEquality(var, retVar, newRegion);
+        }
+
+        // LAST ACTION: delete varname of right side
+        newRegion = removePredicate(newRegion, retVar);
+
+      } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
+        // make region (predicate) for RIGHT SIDE
+        Region[] retVar = createPredicates(buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE));
+        if (precision.isTracking(function, varName)) {
+          Region[] var = createPredicates(buildVarName(function, varName));
+          newRegion = removePredicate(newRegion, var);
+          newRegion = addEquality(var, retVar, newRegion);
+        }
+
+        // LAST ACTION: delete varname of right side
+        newRegion = removePredicate(newRegion, retVar);
+      }
+
+    } else if (call instanceof CFunctionCallStatement) {
+      Partition partition = varClass.getPartitionForEdge(cfaEdge);
+      if (varClass.getBooleanPartitions().contains(partition)) {
+        Region retVar = createPredicate(buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE));
+        newRegion = removePredicate(newRegion, retVar);
+
+      } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
+        Region[] retVar = createPredicates(buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE));
+        newRegion = removePredicate(newRegion, retVar);
+      }
+
+    } else {
+      assert false;
+    }
 
     return new BDDState(rmgr, state.getFunctionCallState().getFunctionCallState(),
         newRegion, state.getFunctionCallState().getVars(),
@@ -468,21 +632,40 @@ public class BDDVectorTransferRelation implements TransferRelation {
    * evaluated right side ("x") is added to the new state. */
   private BDDState handleReturnStatementEdge(BDDState state, CReturnStatementEdge cfaEdge,
       BDDVectorPrecision precision) throws UnrecognizedCCodeException {
-
-    // make variable (predicate) for returnStatement,
-    // delete variable, if it was used before, this is done with an existential operator
-    String scopedFuncName = buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE);
-    Region[] retvar = createPredicate(scopedFuncName);
-
-    assert state.getRegion().equals(removePredicate(state.getRegion(), retvar)) : scopedFuncName
-        + " was used twice in one trace??";
-
-    // make region for RIGHT SIDE, this is the 'x' from 'return (x);
     CRightHandSide rhs = cfaEdge.getExpression();
     if (rhs instanceof CExpression) {
-      BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
-      Region[] regRHS = ((CExpression) rhs).accept(ev);
-      Region newRegion = addEquality(retvar, regRHS, state.getRegion());
+
+      Region newRegion = state.getRegion();
+      Partition partition = varClass.getPartitionForEdge(cfaEdge);
+      if (varClass.getBooleanPartitions().contains(partition)) {
+        // make variable (predicate) for returnStatement,
+        // delete variable, if it was used before, this is done with an existential operator
+        String scopedFuncName = buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE);
+        Region retvar = createPredicate(scopedFuncName);
+
+        assert newRegion.equals(removePredicate(newRegion, retvar)) : scopedFuncName
+            + " was used twice in one trace??";
+
+        // make region for RIGHT SIDE, this is the 'x' from 'return (x);
+        BDDBooleanCExpressionVisitor ev = new BDDBooleanCExpressionVisitor(state, precision);
+        Region regRHS = ((CExpression) rhs).accept(ev);
+        newRegion = addEquality(retvar, regRHS, newRegion);
+
+      } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
+        // make variable (predicate) for returnStatement,
+        // delete variable, if it was used before, this is done with an existential operator
+        String scopedFuncName = buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE);
+        Region[] retvar = createPredicates(scopedFuncName);
+
+        assert newRegion.equals(removePredicate(newRegion, retvar)) : scopedFuncName
+            + " was used twice in one trace??";
+
+        // make region for RIGHT SIDE, this is the 'x' from 'return (x);
+        BDDVectorCExpressionVisitor ev = new BDDVectorCExpressionVisitor(state, precision);
+        Region[] regRHS = ((CExpression) rhs).accept(ev);
+        newRegion = addEquality(retvar, regRHS, newRegion);
+      }
+
       return new BDDState(rmgr, state.getFunctionCallState(), newRegion,
           state.getVars(), cfaEdge.getPredecessor().getFunctionName());
     }
@@ -498,28 +681,43 @@ public class BDDVectorTransferRelation implements TransferRelation {
       BDDVectorPrecision precision) throws UnrecognizedCCodeException {
 
     CExpression expression = cfaEdge.getExpression();
-    BDDCExpressionVisitor ev = new BDDCExpressionVisitor(state, precision);
-    Region[] operand = expression.accept(ev);
 
-    if (operand == null) { // assumption cannot be evaluated
-      return state;
+    Region evaluated = null;
+    Partition partition = varClass.getPartitionForEdge(cfaEdge);
+    if (varClass.getBooleanPartitions().contains(partition)) {
+      BDDBooleanCExpressionVisitor ev = new BDDBooleanCExpressionVisitor(state, precision);
+      evaluated = expression.accept(ev);
+      if (evaluated == null) { return state; } // assumption cannot be evaluated
 
+    } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
+      BDDVectorCExpressionVisitor ev = new BDDVectorCExpressionVisitor(state, precision);
+      Region[] operand = expression.accept(ev);
+      if (operand == null) { return state; } // assumption cannot be evaluated
+      evaluated = bvmgr.makeOr(operand);
+    }
+
+    if (!cfaEdge.getTruthAssumption()) { // if false-branch
+      evaluated = rmgr.makeNot(evaluated);
+    }
+
+    // get information from region into evaluated region
+    Region newRegion = rmgr.makeAnd(state.getRegion(), evaluated);
+    if (newRegion.isFalse()) { // assumption is not fulfilled / not possible
+      return null;
     } else {
+      return new BDDState(rmgr, state.getFunctionCallState(), newRegion,
+          state.getVars(), cfaEdge.getPredecessor().getFunctionName());
+    }
+  }
 
-      Region evaluated = bvmgr.makeOr(operand);
-
-      if (!cfaEdge.getTruthAssumption()) { // if false-branch
-        evaluated = rmgr.makeNot(evaluated);
-      }
-
-      // get information from region into evaluated region
-      Region newRegion = rmgr.makeAnd(state.getRegion(), evaluated);
-      if (newRegion.isFalse()) { // assumption is not fulfilled / not possible
-        return null;
-      } else {
-        return new BDDState(rmgr, state.getFunctionCallState(), newRegion,
-            state.getVars(), cfaEdge.getPredecessor().getFunctionName());
-      }
+  /** This function builds the equality of left and right side and adds it to the environment.
+   * If left or right side is null, the environment is returned unchanged. */
+  private Region addEquality(Region leftSide, Region rightSide, Region environment) {
+    if (leftSide == null || rightSide == null) {
+      return environment;
+    } else {
+      final Region assignRegion = rmgr.makeEqual(leftSide, rightSide);
+      return rmgr.makeAnd(environment, assignRegion);
     }
   }
 
@@ -530,23 +728,6 @@ public class BDDVectorTransferRelation implements TransferRelation {
       return environment;
     } else {
       final Region[] assignRegions = bvmgr.makeBinaryEqual(leftSide, rightSide);
-
-      //      // TODO maybe faster??
-      //      Region[] tmp = assignRegions;
-      //      while (tmp.length > 1) {
-      //        Region[] tmp2 = new Region[tmp.length / 2];
-      //        for (int i = 0; i < tmp2.length; i++) {
-      //          tmp2[i] = rmgr.makeAnd(tmp[2 * i], tmp[2 * i + 1]);
-      //        }
-      //        if (tmp.length != tmp2.length * 2) {
-      //          assert tmp.length == tmp2.length * 2 + 1;
-      //          tmp2[tmp2.length - 1] = rmgr.makeAnd(tmp2[tmp2.length - 1], tmp[tmp.length - 1]);
-      //        }
-      //        tmp = tmp2;
-      //      }
-      //
-      //      assert tmp.length == 1;
-      //      Region result1 = rmgr.makeAnd(environment, tmp[0]);
 
       Region result;
 
@@ -568,32 +749,177 @@ public class BDDVectorTransferRelation implements TransferRelation {
     }
   }
 
+  /** This function returns a region for a variable. */
+  private Region createPredicate(String varName) {
+    createdPredicates++;
+    return rmgr.createPredicate(varName);
+  }
+
   /** This function returns regions containing bits of a variable.
-   * returns regions for positions of a variable, s --> [s@0, s@1, s@2] */
-  private Region[] createPredicate(String s) {
-    int size = bvmgr.getBitSize();
-    Region[] newRegions = new Region[size];
-    for (int i = size - 1; i >= 0; i--) { // inverse order
+   * returns regions for positions of a variable, s --> [s@2, s@1, s@0] */
+  private Region[] createPredicates(String s) {
+    Region[] newRegions = new Region[bitsize];
+    for (int i = bitsize - 1; i >= 0; i--) { // inverse order
       newRegions[i] = rmgr.createPredicate(s + "@" + i);
     }
-    createdPredicates += size;
+    createdPredicates += bitsize;
     return newRegions;
   }
 
   /** This function returns a region without a variable. */
   private Region removePredicate(Region region, Region... existing) {
-    region = rmgr.makeExists(region, existing);
-    return region;
+    return rmgr.makeExists(region, existing);
   }
 
+
   /** This Visitor evaluates the visited expression and creates a region for it. */
-  private class BDDCExpressionVisitor
-      implements CExpressionVisitor<Region[], UnrecognizedCCodeException> {
+  private class BDDBooleanCExpressionVisitor
+      implements CExpressionVisitor<Region, RuntimeException> {
 
     private String functionName;
     private BDDVectorPrecision precision;
 
-    BDDCExpressionVisitor(BDDState state, BDDVectorPrecision prec) {
+    BDDBooleanCExpressionVisitor(BDDState state, BDDVectorPrecision prec) {
+      this.functionName = state.getFunctionName();
+      this.precision = prec;
+    }
+
+    /** This function returns a region containing a variable.
+     * The name of the variable is build from functionName and varName.
+     * If the precision does not allow to track this variable, NULL is returned. */
+    private Region makePredicate(CExpression exp, String functionName, BDDVectorPrecision precision) {
+      String var = exp.toASTString();
+      String function = isGlobal(exp) ? null : functionName;
+
+      if (precision.isTracking(function, var)) {
+        return createPredicate(buildVarName(function, var));
+      } else {
+        return null;
+      }
+    }
+
+    @Override
+    public Region visit(CArraySubscriptExpression exp) {
+      return makePredicate(exp, functionName, precision);
+    }
+
+    @Override
+    public Region visit(CBinaryExpression exp) {
+      Region operand1 = exp.getOperand1().accept(this);
+      Region operand2 = exp.getOperand2().accept(this);
+
+      if (operand1 == null || operand2 == null) { return null; }
+
+      Region returnValue = null;
+      switch (exp.getOperator()) {
+
+      case BINARY_AND:
+      case LOGICAL_AND:
+        returnValue = rmgr.makeAnd(operand1, operand2);
+        break;
+
+      case BINARY_OR:
+      case LOGICAL_OR:
+        returnValue = rmgr.makeOr(operand1, operand2);
+        break;
+
+      case EQUALS:
+        returnValue = rmgr.makeEqual(operand1, operand2);
+        break;
+
+      case NOT_EQUALS:
+      case LESS_THAN:
+      case GREATER_THAN:
+      case BINARY_XOR:
+        returnValue = rmgr.makeUnequal(operand1, operand2);
+        break;
+
+      default:
+        // a+b, a-b, etc --> don't know anything
+      }
+      return returnValue;
+    }
+
+    @Override
+    public Region visit(CCastExpression exp) {
+      // we ignore casts, because Zero is Zero.
+      return exp.getOperand().accept(this);
+    }
+
+    @Override
+    public Region visit(CFieldReference exp) {
+      return makePredicate(exp, functionName, precision);
+    }
+
+    @Override
+    public Region visit(CIdExpression exp) {
+      return makePredicate(exp, functionName, precision);
+    }
+
+    @Override
+    public Region visit(CCharLiteralExpression exp) {
+      return null;
+    }
+
+    @Override
+    public Region visit(CFloatLiteralExpression exp) {
+      return null;
+    }
+
+    @Override
+    public Region visit(CIntegerLiteralExpression exp) {
+      Region region;
+      if (exp.getValue().equals(BigInteger.ZERO)) {
+        region = rmgr.makeFalse();
+      } else if (exp.getValue().equals(BigInteger.ONE)) {
+        region = rmgr.makeTrue();
+      } else {
+        region = null;
+      }
+      return region;
+    }
+
+    @Override
+    public Region visit(CStringLiteralExpression exp) {
+      return null;
+    }
+
+    @Override
+    public Region visit(CTypeIdExpression exp) {
+      return null;
+    }
+
+    @Override
+    public Region visit(CUnaryExpression exp) {
+      Region operand = exp.getOperand().accept(this);
+
+      if (operand == null) { return null; }
+
+      Region returnValue = null;
+      switch (exp.getOperator()) {
+      case NOT:
+        returnValue = rmgr.makeNot(operand);
+        break;
+      case PLUS: // (+X == 0) <==> (X == 0)
+      case MINUS: // (-X == 0) <==> (X == 0)
+        returnValue = operand;
+        break;
+      default:
+        // *exp --> don't know anything
+      }
+      return returnValue;
+    }
+  }
+
+
+  /** This Visitor evaluates the visited expression and creates a region for it. */
+  private class BDDVectorCExpressionVisitor
+      implements CExpressionVisitor<Region[], RuntimeException> {
+
+    private String functionName;
+    private BDDVectorPrecision precision;
+
+    BDDVectorCExpressionVisitor(BDDState state, BDDVectorPrecision prec) {
       this.functionName = state.getFunctionName();
       this.precision = prec;
     }
@@ -606,19 +932,19 @@ public class BDDVectorTransferRelation implements TransferRelation {
       String function = isGlobal(exp) ? null : functionName;
 
       if (precision.isTracking(function, var)) {
-        return createPredicate(buildVarName(function, var));
+        return createPredicates(buildVarName(function, var));
       } else {
         return null;
       }
     }
 
     @Override
-    public Region[] visit(CArraySubscriptExpression exp) throws UnrecognizedCCodeException {
+    public Region[] visit(CArraySubscriptExpression exp) {
       return makePredicate(exp, functionName, precision);
     }
 
     @Override
-    public Region[] visit(CBinaryExpression exp) throws UnrecognizedCCodeException {
+    public Region[] visit(CBinaryExpression exp) {
       Region[] operand1 = exp.getOperand1().accept(this);
       Region[] operand2 = exp.getOperand2().accept(this);
 
@@ -690,48 +1016,48 @@ public class BDDVectorTransferRelation implements TransferRelation {
     }
 
     @Override
-    public Region[] visit(CCastExpression exp) throws UnrecognizedCCodeException {
+    public Region[] visit(CCastExpression exp) {
       // we ignore casts, because Zero is Zero.
       return exp.getOperand().accept(this);
     }
 
     @Override
-    public Region[] visit(CFieldReference exp) throws UnrecognizedCCodeException {
+    public Region[] visit(CFieldReference exp) {
       return makePredicate(exp, functionName, precision);
     }
 
     @Override
-    public Region[] visit(CIdExpression exp) throws UnrecognizedCCodeException {
+    public Region[] visit(CIdExpression exp) {
       return makePredicate(exp, functionName, precision);
     }
 
     @Override
-    public Region[] visit(CCharLiteralExpression exp) throws UnrecognizedCCodeException {
+    public Region[] visit(CCharLiteralExpression exp) {
       return null;
     }
 
     @Override
-    public Region[] visit(CFloatLiteralExpression exp) throws UnrecognizedCCodeException {
+    public Region[] visit(CFloatLiteralExpression exp) {
       return null;
     }
 
     @Override
-    public Region[] visit(CIntegerLiteralExpression exp) throws UnrecognizedCCodeException {
-      return bvmgr.makeNumber(exp.getValue());
+    public Region[] visit(CIntegerLiteralExpression exp) {
+      return bvmgr.makeNumber(exp.getValue(), bitsize);
     }
 
     @Override
-    public Region[] visit(CStringLiteralExpression exp) throws UnrecognizedCCodeException {
+    public Region[] visit(CStringLiteralExpression exp) {
       return null;
     }
 
     @Override
-    public Region[] visit(CTypeIdExpression exp) throws UnrecognizedCCodeException {
+    public Region[] visit(CTypeIdExpression exp) {
       return null;
     }
 
     @Override
-    public Region[] visit(CUnaryExpression exp) throws UnrecognizedCCodeException {
+    public Region[] visit(CUnaryExpression exp) {
       Region[] operand = exp.getOperand().accept(this);
 
       if (operand == null) { return null; }
@@ -747,7 +1073,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
         break;
 
       case MINUS: // -X == (0-X)
-        returnValue = bvmgr.makeSub(bvmgr.makeNumber(BigInteger.ZERO), operand);
+        returnValue = bvmgr.makeSub(bvmgr.makeNumber(BigInteger.ZERO, bitsize), operand);
         break;
 
       default:

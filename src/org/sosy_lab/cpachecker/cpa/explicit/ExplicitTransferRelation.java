@@ -157,6 +157,8 @@ public class ExplicitTransferRelation implements TransferRelation
     case FunctionReturnEdge:
       FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) cfaEdge;
       successor = handleFunctionReturn(explicitState, functionReturnEdge);
+
+      successor.dropFrame(functionReturnEdge.getPredecessor().getFunctionName());
       break;
 
     default:
@@ -217,14 +219,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
   private ExplicitState handleFunctionCall(ExplicitState element, FunctionCallEdge callEdge)
     throws UnrecognizedCCodeException {
-    ExplicitState newElement = new ExplicitState(element);
-
-    // copy global variables into the new state, to make them available in body of called function
-    for (String globalVar : globalVariables) {
-      if (element.contains(globalVar)) {
-        newElement.assignConstant(globalVar, element.getValueFor(globalVar));
-      }
-    }
+    ExplicitState newElement = element.clone();
 
     FunctionEntryNode functionEntryNode = callEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();
@@ -283,21 +278,13 @@ public class ExplicitTransferRelation implements TransferRelation
    */
   private ExplicitState handleFunctionReturn(ExplicitState element, FunctionReturnEdge functionReturnEdge)
     throws UnrecognizedCCodeException {
+
     FunctionSummaryEdge summaryEdge    = functionReturnEdge.getSummaryEdge();
     AFunctionCall exprOnSummary  = summaryEdge.getExpression();
 
-    ExplicitState newElement      = element.getPreviousState().clone();
-    String callerFunctionName       = functionReturnEdge.getSuccessor().getFunctionName();
-    String calledFunctionName       = functionReturnEdge.getPredecessor().getFunctionName();
-
-    // copy global variables back to the new state, to make them available in body of calling function
-    for (String variableName : globalVariables) {
-      if (element.contains(variableName)) {
-        newElement.assignConstant(variableName, element.getValueFor(variableName));
-      } else {
-        newElement.forget(variableName);
-      }
-    }
+    ExplicitState newElement  = element.clone();
+    String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
+    String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
 
     // expression is an assignment operation, e.g. a = g(b);
 

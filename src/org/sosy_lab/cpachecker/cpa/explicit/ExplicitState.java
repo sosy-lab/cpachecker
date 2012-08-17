@@ -27,7 +27,9 @@ import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -47,24 +49,12 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    */
   private final Map<String, Long> constantsMap;
 
-  /**
-   * the element from the previous context, needed for return edges
-   */
-  private final ExplicitState previousState;
-
   public ExplicitState() {
-    constantsMap    = new HashMap<String, Long>();
-    previousState = null;
+    constantsMap = new HashMap<String, Long>();
   }
 
-  ExplicitState(ExplicitState previousElement) {
-    constantsMap          = new HashMap<String, Long>();
-    this.previousState  = previousElement;
-  }
-
-  private ExplicitState(Map<String, Long> constantsMap, ExplicitState previousElement) {
-    this.constantsMap     = constantsMap;
-    this.previousState  = previousElement;
+  private ExplicitState(Map<String, Long> constantsMap) {
+    this.constantsMap = constantsMap;
   }
 
   /**
@@ -80,16 +70,31 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     constantsMap.remove(variableName);
   }
 
+  /**
+   * This method drops all entries belonging to the stack frame of a function. This method should be called right before leaving a function.
+   *
+   * @param functionName the name of the function that is about to be left
+   */
+  void dropFrame(String functionName) {
+    List<String> toDropAll = new ArrayList<String>();
+
+    for(String variableName : constantsMap.keySet()) {
+      if(variableName.startsWith(functionName + "::")) {
+        toDropAll.add(variableName);
+      }
+    }
+
+    for(String variableNameToDrop : toDropAll) {
+      constantsMap.remove(variableNameToDrop);
+    }
+  }
+
   public Long getValueFor(String variableName) {
     return checkNotNull(constantsMap.get(variableName));
   }
 
   public boolean contains(String variableName) {
     return constantsMap.containsKey(variableName);
-  }
-
-  ExplicitState getPreviousState() {
-    return previousState;
   }
 
   public int getSize() {
@@ -115,7 +120,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
       }
     }
 
-    return new ExplicitState(newConstantsMap, previousState);
+    return new ExplicitState(newConstantsMap);
   }
 
   /**
@@ -125,10 +130,6 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @return true, if this element is less or equal than the other element, based on the order imposed by the lattice
    */
   boolean isLessOrEqual(ExplicitState other) {
-    // this element is not less or equal than the other element, if the previous elements differ
-    if (previousState != other.previousState) {
-      return false;
-    }
 
     // also, this element is not less or equal than the other element, if it contains less elements
     if (constantsMap.size() < other.constantsMap.size()) {
@@ -150,7 +151,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
 
   @Override
   public ExplicitState clone() {
-    return new ExplicitState(new HashMap<String, Long>(constantsMap), previousState);
+    return new ExplicitState(new HashMap<String, Long>(constantsMap));
   }
 
   @Override
@@ -169,8 +170,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
 
     ExplicitState otherElement = (ExplicitState) other;
 
-    return (otherElement.previousState == previousState)
-        && otherElement.constantsMap.equals(constantsMap);
+    return otherElement.constantsMap.equals(constantsMap);
   }
 
   @Override

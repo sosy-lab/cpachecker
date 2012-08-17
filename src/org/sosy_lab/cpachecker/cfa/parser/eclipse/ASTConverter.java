@@ -659,12 +659,13 @@ class ASTConverter {
         // something like '\n'
         check(s.length() == 1, "character literal too long", e);
         switch (c) {
+        case 'a'  : result = 7   ; break;
         case 'b'  : result = '\b'; break;
+        case 'f'  : result = '\f'; break;
+        case 'n'  : result = '\n'; break;
+        case 'r'  : result = '\r'; break;
         case 't'  : result = '\t'; break;
         case 'v'  : result = 11; break;
-        case 'n'  : result = '\n'; break;
-        case 'f'  : result = '\f'; break;
-        case 'r'  : result = '\r'; break;
         case '"'  : result = '\"'; break;
         case '\'' : result = '\''; break;
         case '\\' : result = '\\'; break;
@@ -1292,7 +1293,7 @@ class ASTConverter {
     return new CNamedType(d.isConst(), d.isVolatile(), convert(d.getName()));
   }
 
-  private CSimpleType convert(IASTSimpleDeclSpecifier d) {
+  private CType convert(IASTSimpleDeclSpecifier d) {
     if (!(d instanceof org.eclipse.cdt.core.dom.ast.c.ICASTSimpleDeclSpecifier)) {
       throw new CFAGenerationRuntimeException("Unsupported type", d);
     }
@@ -1321,8 +1322,12 @@ class ASTConverter {
     case IASTSimpleDeclSpecifier.t_void:
       type = CBasicType.VOID;
       break;
+    case IASTSimpleDeclSpecifier.t_typeof:
+      // TODO This might loose some information of dd or dd.getDeclTypeExpression()
+      // (the latter should be of type IASTTypeIdExpression)
+      return convert(dd.getDeclTypeExpression().getExpressionType());
     default:
-      throw new CFAGenerationRuntimeException("Unknown basic type " + dd.getType(), d);
+      throw new CFAGenerationRuntimeException("Unknown basic type " + dd.getType() + " " + dd.getClass().getSimpleName(), d);
     }
 
     if ((dd.isShort() && dd.isLong())

@@ -20,15 +20,11 @@
 
     <dependencies>
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.210" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.216" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
         <dependency org="com.google.guava" name="guava" rev="12.0" conf="runtime->default; contrib->sources"/>
-
-        <!-- JSON.simple - A simple Java toolkit for JSON
-             Used for dumping verification result as JSON for report builder. -->
-        <dependency org="com.googlecode.json-simple" name="json-simple" rev="1.1" conf="runtime->default; contrib->sources"/>
 
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->

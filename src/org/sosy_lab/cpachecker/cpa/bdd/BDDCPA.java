@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
@@ -98,7 +99,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   @Override
   public AbstractState getInitialState(CFANode node) {
     return new BDDState(manager, null, manager.makeTrue(),
-        new LinkedHashSet<String>(), node.getFunctionName());
+        new LinkedHashSet<Region>(), node.getFunctionName());
   }
 
   @Override

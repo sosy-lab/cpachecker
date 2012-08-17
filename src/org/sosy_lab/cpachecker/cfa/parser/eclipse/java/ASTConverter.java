@@ -704,7 +704,7 @@ public class ASTConverter {
 
     String name = getFullyQualifiedName(d.resolveBinding());
 
-    return new Triple<String , String ,AInitializerExpression>( name, name, initializerExpression);
+    return Triple.of( name, name, initializerExpression);
   }
 
 

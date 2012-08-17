@@ -862,12 +862,11 @@ class CFAFunctionBuilder extends ASTVisitor {
                                   CFANode thenNodeForLastThen, CFANode elseNodeForLastElse,
                                   boolean furtherThenComputation, boolean furtherElseComputation) {
 
-    while (condition instanceof IASTUnaryExpression
+    if (condition instanceof IASTUnaryExpression
           && ((IASTUnaryExpression)condition).getOperator() == IASTUnaryExpression.op_bracketedPrimary){
-      condition = ((IASTUnaryExpression)condition).getOperand();
-    }
+      buildConditionTree(((IASTUnaryExpression)condition).getOperand(), filelocStart, rootNode, thenNode, elseNode, thenNode, elseNode, true, true);
 
-    if (condition instanceof IASTBinaryExpression
+    } else if (condition instanceof IASTBinaryExpression
         && ((IASTBinaryExpression) condition).getOperator() == IASTBinaryExpression.op_logicalAnd) {
       CFANode innerNode = new CFANode(filelocStart, cfa.getFunctionName());
       cfaNodes.add(innerNode);

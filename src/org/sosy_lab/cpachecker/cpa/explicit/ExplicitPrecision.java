@@ -77,10 +77,16 @@ public class ExplicitPrecision implements Precision {
       + "i.e. with BDDCPA.")
   private boolean ignoreBooleans = false;
 
-  @Option(description = "ignore variables with only simple numbers. "
+  @Option(description = "ignore variables with only discrete values "
+  		+ "and no calculations except checks for equality. "
       + "if this option is used, these variables from the cfa should "
       + "tracked with another CPA, i.e. with BDDCPA.")
-  private boolean ignoreSimpleNumbers = false;
+  private boolean ignoreDiscretes = false;
+
+  @Option(description = "ignore variables, that are only used in simple calculations. "
+      + "if this option is used, these variables from the cfa should "
+      + "tracked with another CPA, i.e. with BDDCPA.")
+  private boolean ignoreSimpleCalcs = false;
 
   private Optional<VariableClassification> varClass;
 
@@ -152,7 +158,8 @@ public class ExplicitPrecision implements Precision {
         && ignore.allowsTrackingOf(variable)
         && !isOnBlacklist(variable)
         && !(ignoreBooleans && isBoolean(variable))
-        && !(ignoreSimpleNumbers && isSimpleNumber(variable));
+        && !(ignoreDiscretes && isDiscreteValueVar(variable))
+        && !(ignoreSimpleCalcs && isSimpleCalcVar(variable));
   }
 
   private boolean isBoolean(String variable) {
@@ -161,10 +168,16 @@ public class ExplicitPrecision implements Precision {
         && varClass.get().getBooleanVars().containsEntry(var.getFirst(), var.getSecond());
   }
 
-  private boolean isSimpleNumber(String variable) {
+  private boolean isDiscreteValueVar(String variable) {
     Pair<String,String> var = splitVar(variable);
     return varClass.isPresent()
-        && varClass.get().getSimpleNumberVars().containsEntry(var.getFirst(), var.getSecond());
+        && varClass.get().getDiscreteValueVars().containsEntry(var.getFirst(), var.getSecond());
+  }
+
+  private boolean isSimpleCalcVar(String variable) {
+    Pair<String,String> var = splitVar(variable);
+    return varClass.isPresent()
+        && varClass.get().getSimpleCalcVars().containsEntry(var.getFirst(), var.getSecond());
   }
 
   /** split var into function and varName */

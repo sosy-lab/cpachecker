@@ -1,0 +1,8 @@
+{{for line in ['tool', 'test', 'title']}}
+{{if line in head and head[line]}}
+{{head[line].name.lower()}}	{{flatten([[value]*width for value, width in head[line].content]) | '\t'.join}}
+{{endif}}
+{{endfor}}
+{{for line in body}}
+{{line.shortFileName}}	{{[value or '' for test in line.results for value in test.values] | '\t'.join}}
+{{endfor}}

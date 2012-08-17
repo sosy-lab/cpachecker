@@ -34,26 +34,23 @@ import xml.etree.ElementTree as ET
 import collections
 import os.path
 import glob
+import json
 import shutil
 import optparse
 import time
+import tempita
 
 from datetime import date
 from decimal import *
-try:
-  from urllib import quote
-except ImportError: # 'quote' was moved into 'parse' in Python 3
-  from urllib.parse import quote
 
 
-NAME_START = "results" # first part of filename of html-table
-
-CSV_SEPARATOR = '\t'
+NAME_START = "results" # first part of filename of table
 
 LIB_URL = "http://www.sosy-lab.org/lib"
 LIB_URL_OFFLINE = "lib/javascript"
 
-TEMPLATE_FILE_NAME = os.path.join(os.path.dirname(__file__), 'table-generator-template.html')
+TEMPLATE_FILE_NAME = os.path.join(os.path.dirname(__file__), 'table-generator-template.{format}')
+TEMPLATE_FORMATS = ['html', 'csv']
 
 # string searched in filenames to determine correct or incorrect status.
 # use lower case!
@@ -65,33 +62,6 @@ SCORE_CORRECT_UNSAFE = 1
 SCORE_UNKNOWN = 0
 SCORE_WRONG_UNSAFE = -2
 SCORE_WRONG_SAFE = -4
-
-
-class Template():
-    """
-    a limited template "engine", similar to report-generator
-    """
-
-    def __init__(self, infileName, outfileName):
-        self.infileName = infileName
-        self.outfileName = outfileName
-
-    def render(self, **kws):
-        """
-        This function replaces every appearance of "{{{key}}}"
-        through the value of the key.
-        """
-        infile = open(self.infileName, 'r')
-        template = infile.read();
-        infile.close();
-
-        for key in kws:
-             matcher = "{{{" + key + "}}}"
-             template = template.replace(matcher, kws[key])
-
-        outfile = open(self.outfileName, 'w')
-        outfile.write(template)
-        outfile.close()
 
 
 class Util:
@@ -167,11 +137,10 @@ class Util:
 
     @staticmethod
     def toDecimal(s):
-        s = s.strip()
-        if s.endswith('s'): # '1.23s'
-            s = s[:-1].strip() # remove last char
-        elif s in ['-', '']:
-            s = 0
+        # remove whitespaces and trailing 's' (e.g., in '1.23s')
+        s = (s or '').lstrip(' \t').rstrip('s \t')
+        if not s or s == '-':
+            return Decimal()
         return Decimal(s)
 
 
@@ -199,6 +168,15 @@ class Util:
             if column.get('title') == columnTitle:
                     return column.get('value')
         return default
+
+    @staticmethod
+    def flatten(list):
+        return [value for sublist in list for value in sublist]
+
+    @staticmethod
+    def json(obj):
+        return tempita.html(json.dumps(obj))
+
 
 def parseTableDefinitionFile(file):
     '''
@@ -236,13 +214,13 @@ def parseTableDefinitionFile(file):
 
 class Column:
     """
-    The class Column contains title, text (to identify a line in logFile),
+    The class Column contains title, pattern (to identify a line in logFile),
     and numberOfDigits of a column.
     It does NOT contain the value of a column.
     """
-    def __init__(self, title, text, numOfDigits):
+    def __init__(self, title, pattern, numOfDigits):
         self.title = title
-        self.text = text
+        self.pattern = pattern
         self.numberOfDigits = numOfDigits
 
 
@@ -441,57 +419,58 @@ class Test:
                     'wrongUnsafe':   SCORE_WRONG_UNSAFE,
                     }.get(category,  SCORE_UNKNOWN)
 
-        def getValueFromLogfile(content, identifier):
+        def readLogfileLines(logfileName):
+            if not logfileName: return []
+            baseDir = os.path.dirname(resultFilename)
+            logfileName = os.path.join(baseDir, logfileName)
+            try:
+                with open(logfileName) as logfile:
+                    return logfile.readlines()
+            except IOError as e:
+                print('WARNING: Could not read value from logfile: {}'.format(e))
+                return []
+
+        def getValueFromLogfile(lines, identifier):
             """
             This method searches for values in lines of the content.
             The format of such a line must be:    "identifier:  value  (rest)".
 
-            If a value is not found, the value is set to "-".
+            If a value is not found, the value is set to None.
             """
             # stop after the first line, that contains the searched text
-            value = "-" # default value
-            if not content: return value
-            for line in content.splitlines():
+            for line in lines:
                 if identifier in line:
                     startPosition = line.find(':') + 1
                     endPosition = line.find('(') # bracket maybe not found -> (-1)
                     if (endPosition == -1):
-                        value = line[startPosition:].strip()
+                        return line[startPosition:].strip()
                     else:
-                        value = line[startPosition: endPosition].strip()
-                    break
-            return value
+                        return line[startPosition: endPosition].strip()
+            return None
 
         status = Util.getColumnValue(sourcefileTag, 'status', 'unknown')
         category = getResultCategory(status)
         score = calculateScore(category)
-        logfileContent = None
+        logfileLines = None
 
         values = []
 
         for column in listOfColumns: # for all columns that should be shown
-            value = "-" # default value
+            value = None # default value
             if column.title.lower() == 'score':
                 value = str(score)
             elif column.title.lower() == 'status':
                 value = status
 
             elif not correctOnly or score > 0:
-                if column.text == None: # collect values from XML
-                    value = Util.getColumnValue(sourcefileTag, column.title, '-')
+                if not column.pattern: # collect values from XML
+                    value = Util.getColumnValue(sourcefileTag, column.title)
 
-                elif sourcefileTag.logfile != None: # collect values from logfile
-                    if logfileContent == None: # cache content
-                        baseDir = os.path.dirname(resultFilename)
-                        logfileName = os.path.join(baseDir, sourcefileTag.logfile)
-                        try:
-                            logfile = open(logfileName)
-                            logfileContent = logfile.read()
-                            logfile.close
-                        except IOError as e:
-                            print('WARNING: Could not read value from logfile: {}'.format(e))
+                else: # collect values from logfile
+                    if logfileLines is None: # cache content
+                        logfileLines = readLogfileLines(sourcefileTag.logfile)
 
-                    value = getValueFromLogfile(logfileContent, column.text)
+                    value = getValueFromLogfile(logfileLines, column.pattern)
 
             if column.numberOfDigits is not None:
                 value = Util.formatNumber(value, column.numberOfDigits)
@@ -499,24 +478,6 @@ class Test:
             values.append(value)
 
         return Test(status, category, sourcefileTag.logfile, listOfColumns, values)
-
-    def toHTML(self):
-        """
-        This function returns a String for HTML.
-        If the columnTitle is 'status', different colors are used,
-        else the value is only wrapped in a table-cell.
-        """
-        result = []
-        for column, value in zip(self.columns, self.values):
-            if column.title == 'status' and self.logFile != None:
-                # different colors for correct and incorrect results
-
-                result.append('<td class="{0}"><a href="{1}">{2}</a></td>'.format(
-                            self.category, quote(self.logFile), value.lower()))
-
-            else:
-                result.append('<td class="{0}Value">{1}</td>'.format(self.category, value))
-        return "".join(result)
 
 
 class Row:
@@ -533,26 +494,15 @@ class Row:
     def fileIsUnsafe(self):
         return Util.containsAny(self.fileName.lower(), BUG_SUBSTRING_LIST)
 
-    def toCSV(self, commonPrefix):
+    def setRelativePath(self, commonPrefix, baseDir):
         """
-        generate CSV representation of rows with filename as first column
-        """
-        fileName = self.fileName.replace(commonPrefix, '', 1)
-        allValues = [value for test in self.results for value in test.values]
-        return CSV_SEPARATOR.join([fileName] + allValues)
-
-    def toHTML(self, commonPrefix, outputPath):
-        """
-        generate HTML representation of rows with filename as first column
+        generate output representation of rows
         """
         # make path relative to directory of output file if necessary
-        filePath = self.fileName if os.path.isabs(self.fileName) \
-                                 else os.path.relpath(self.fileName, outputPath)
+        self.filePath = self.fileName if os.path.isabs(self.fileName) \
+                                 else os.path.relpath(self.fileName, baseDir)
 
-        fileName = self.fileName.replace(commonPrefix, '', 1)
-
-        HTMLrow = [test.toHTML() for test in self.results]
-        return '<tr><td><a href="{0}">{1}</a></td>{2}</tr>'.format(quote(filePath), fileName, "".join(HTMLrow))
+        self.shortFileName = self.fileName.replace(commonPrefix, '', 1)
 
 def rowsToColumns(rows):
     """
@@ -615,95 +565,56 @@ def filterRowsWithDifferences(rows):
 
 
 def getTableHead(listOfTests, commonFileNamePrefix):
-    '''
-    get tablehead (tools, limits, testnames, systeminfo, columntitles for html,
-    testnames and columntitles for csv)
-    '''
-    def formatLine(str):
-        return [str.format(**test.attributes) for test in listOfTests]
-
-    def getHtmlRow(rowName, values, widths, collapse=False, id=None):
-        if not any(values): return '' # skip row without values completely
-        if not id:
-            id = rowName.lower().split(' ')[0]
-
-        valuesAndWidths = Util.collapseEqualValues(values, widths) \
-                          if collapse else zip(values, widths)
-
-        cells = ['<td colspan="{0}">{1}</td>'.format(width, value) for value, width in valuesAndWidths if width]
-        return '<tr id="{0}"><td>{1}</td>{2}</tr>'.format(id, rowName, "".join(cells))
-
-    def getCsvRow(rowName, values, widths):
-        cells = [CSV_SEPARATOR.join([value]*width) for value, width in zip(values, widths) if width]
-
-        return CSV_SEPARATOR.join([rowName.lower()] + cells)
-
 
     testWidths = [len(test.columns) for test in listOfTests]
 
-    tools       = formatLine('{tool} {version}')
-    toolRow     = getHtmlRow('Tool', tools, testWidths, collapse=True)
-    toolLine    = getCsvRow('Tool', tools, testWidths)
+    def getRow(rowName, format, collapse=False):
+        values = [format.format(**test.attributes) for test in listOfTests]
+        if not any(values): return None # skip row without values completely
 
-    limits      = formatLine('timelimit: {timelimit}, memlimit: {memlimit}')
-    limitRow    = getHtmlRow('Limits', limits, testWidths, collapse=True)
+        valuesAndWidths = list(Util.collapseEqualValues(values, testWidths)) \
+                          if collapse else zip(values, testWidths)
 
-    hosts       = formatLine('{host}')
-    hostRow     = getHtmlRow('Host', hosts, testWidths, collapse=True)
+        return tempita.bunch(id=rowName.lower().split(' ')[0],
+                             name=rowName,
+                             content=valuesAndWidths)
 
-    os          = formatLine('{os}')
-    osRow       = getHtmlRow('OS', os, testWidths, collapse=True)
-
-    systems     = formatLine('CPU: {cpu} with {cores} cores, frequency: {freq}; RAM: {ram}')
-    systemRow   = getHtmlRow('System', systems, testWidths, collapse=True)
-
-    dates       = formatLine('{date}')
-    dateRow     = getHtmlRow('Date of run', dates, testWidths, collapse=True)
-
-    tests       = formatLine('{name}')
-    testRow     = getHtmlRow('Test', tests, testWidths)
-    testLine    = getCsvRow('Test', tests, testWidths)
-
-    branches    = formatLine('{branch}')
-    branchesRow = getHtmlRow('Branch', branches, testWidths)
-
-    options     = [str.replace(' -', '<br/>-')
-                      .replace('=', '=<wbr/>')
-                      for str in formatLine('{options}')] 
-    optionsRow  = getHtmlRow('Options', options, testWidths)
 
     titles      = [column.title for test in listOfTests for column in test.columns]
     testWidths1 = [1]*sum(testWidths)
-    titleRow    = getHtmlRow(commonFileNamePrefix, titles, testWidths1, id='columnTitles')
-    titleLine   = getCsvRow(commonFileNamePrefix, titles, testWidths1)
+    titleRow    = tempita.bunch(id='columnTitles', name=commonFileNamePrefix,
+                                content=zip(titles, testWidths1))
 
-    return ('\n'.join([toolRow, limitRow, hostRow, osRow, systemRow, dateRow, testRow, branchesRow, optionsRow, titleRow]),
-            '\n'.join([toolLine, testLine, titleLine]))
+    return {'tool':    getRow('Tool', '{tool} {version}', collapse=True),
+            'limit':   getRow('Limits', 'timelimit: {timelimit}, memlimit: {memlimit}', collapse=True),
+            'host':    getRow('Host', '{host}', collapse=True),
+            'os':      getRow('OS', '{os}', collapse=True),
+            'system':  getRow('System', 'CPU: {cpu} with {cores} cores, frequency: {freq}; RAM: {ram}', collapse=True),
+            'date':    getRow('Date of run', '{date}', collapse=True),
+            'test':    getRow('Test', '{name}'),
+            'branch':  getRow('Branch', '{branch}'),
+            'options': getRow('Options', '{options}'),
+            'title':   titleRow}
 
 
+def getStats(rows):
+    countUnsafe = len([row for row in rows if row.fileIsUnsafe()])
+    countSafe = len(rows) - countUnsafe
+    maxScore = SCORE_CORRECT_UNSAFE * countUnsafe + SCORE_CORRECT_SAFE * countSafe
 
-def getStatsHTML(rows):
-    maxScore = sum([SCORE_CORRECT_UNSAFE if row.fileIsUnsafe() else SCORE_CORRECT_SAFE
-                        for row in rows])
-    rowsForStats = [['<td>total files</td>'],
-                    ['<td title="(no bug exists + result is SAFE) OR ' + \
-                     '(bug exists + result is UNSAFE)">correct results</td>'],
-                    ['<td title="bug exists + result is SAFE">false negatives</td>'],
-                    ['<td title="no bug exists + result is UNSAFE">false positives</td>'],
-                    ['<td>score ({0} files, max score: {1})</td>'
-                        .format(len(rows), maxScore)]]
+    stats = [getStatsOfTest(tests) for tests in rowsToColumns(rows)] # column-wise
+    rowsForStats = list(map(Util.flatten, zip(*stats))) # row-wise
 
-    # get statistics
-    for tests in rowsToColumns(rows):
-        stats = getStatsOfTest(tests)
-        for row, values in zip(rowsForStats, stats): row.extend(values)
-
-    return ['<tr>{0}</tr>'.format("".join(row)) for row in rowsForStats]
-
+    return [tempita.bunch(default=None, title='total files', content=rowsForStats[0]),
+            tempita.bunch(default=None, title='correct results', description='(no bug exists + result is SAFE) OR (bug exists + result is UNSAFE)', content=rowsForStats[1]),
+            tempita.bunch(default=None, title='false negatives', description='bug exists + result is SAFE', content=rowsForStats[2]),
+            tempita.bunch(default=None, title='false positives', description='no bug exists + result is UNSAFE', content=rowsForStats[3]),
+            tempita.bunch(default=None, title='score ({0} files, max score: {1})'.format(len(rows), maxScore), id='score', description='{0} safe files, {1} unsafe files'.format(countSafe, countUnsafe), content=rowsForStats[4])
+            ]
 
 def getStatsOfTest(tests):
     """
-    This function return HTML for the table-footer.
+    This function returns the numbers of the statistics.
     """
 
     # convert:
@@ -724,17 +635,25 @@ def getStatsOfTest(tests):
 
     for column, values in zip(columns, listsOfValues):
         if column.title == 'status':
-            sum, correctSafe, correctUnsafe, wrongSafe, wrongUnsafe = getStatsOfStatusColumn(statusList)
+            countCorrectSafe, countCorrectUnsafe, countWrongSafe, countWrongUnsafe = getCategoryCount(statusList)
 
-            correct = correctSafe + correctUnsafe
-            score   = SCORE_CORRECT_SAFE   * correctSafe + \
-                      SCORE_CORRECT_UNSAFE * correctUnsafe + \
-                      SCORE_WRONG_SAFE     * wrongSafe + \
-                      SCORE_WRONG_UNSAFE   * wrongUnsafe
+            sum     = StatValue(len(statusList))
+            correct = StatValue(countCorrectSafe + countCorrectUnsafe)
+            score   = StatValue(
+                                SCORE_CORRECT_SAFE   * countCorrectSafe + \
+                                SCORE_CORRECT_UNSAFE * countCorrectUnsafe + \
+                                SCORE_WRONG_SAFE     * countWrongSafe + \
+                                SCORE_WRONG_UNSAFE   * countWrongUnsafe,
+                                )
+            wrongSafe   = StatValue(countWrongSafe)
+            wrongUnsafe = StatValue(countWrongUnsafe)
 
         else:
             sum, correct, wrongSafe, wrongUnsafe = getStatsOfNumberColumn(values, statusList)
             score = ''
+
+        if (sum.sum, correct.sum, wrongSafe.sum, wrongUnsafe.sum) == (0,0,0,0):
+            (sum, correct, wrongSafe, wrongUnsafe) = (None, None, None, None)
 
         sumRow.append(sum)
         correctRow.append(correct)
@@ -742,22 +661,40 @@ def getStatsOfTest(tests):
         wrongUnsafeRow.append(wrongUnsafe)
         scoreRow.append(score)
 
-    sumRow         = map('<td>{0}</td>'.format, sumRow)
-    correctRow     = map('<td>{0}</td>'.format, correctRow)
-    wrongSafeRow   = map('<td>{0}</td>'.format, wrongSafeRow)
-    wrongUnsafeRow = map('<td>{0}</td>'.format, wrongUnsafeRow)
-    scoreRow       = map('<td class="score">{0}</td>'.format, scoreRow)
-
     return (sumRow, correctRow, wrongSafeRow, wrongUnsafeRow, scoreRow)
 
 
-def getStatsOfStatusColumn(categoryList):
+class StatValue:
+    def __init__(self, sum, min=None, max=None, avg=None, median=None):
+        self.sum = sum
+        self.min = min
+        self.max = max
+        self.avg = avg
+        self.median = median
+
+    def __str__(self):
+        return str(self.sum)
+
+    @classmethod
+    def fromList(cls, values):
+        if not values:
+            return StatValue(0)
+
+        return StatValue(sum(values),
+                         min    = min(values),
+                         max    = max(values),
+                         avg    = sum(values) / len(values),
+                         median = sorted(values)[int(len(values)/2)],
+                         )
+
+
+def getCategoryCount(categoryList):
     # count different elems in statusList
     counts = collections.defaultdict(int)
     for category in categoryList:
         counts[category] += 1
 
-    return (len(categoryList), counts['correctSafe'], counts['correctUnsafe'],
+    return (counts['correctSafe'], counts['correctUnsafe'],
             counts['wrongSafe'], counts['wrongUnsafe'])
 
 
@@ -765,18 +702,21 @@ def getStatsOfNumberColumn(values, categoryList):
     assert len(values) == len(categoryList)
     try:
         valueList = [Util.toDecimal(v) for v in values]
-    except InvalidOperation:
-        print ("Warning: NumberParseException. Statistics may be wrong.")
-        return (0, 0, 0, 0)
+    except InvalidOperation as e:
+        print("Warning: {0}. Statistics may be wrong.".format(e))
+        return (StatValue(0), StatValue(0), StatValue(0), StatValue(0))
 
-    valuesPerCategory = collections.defaultdict(int)
+    valuesPerCategory = collections.defaultdict(list)
     for value, category in zip(valueList, categoryList):
-        valuesPerCategory[category] += value
+        if category.startswith('correct'):
+            category = 'correct'
+        valuesPerCategory[category] += [value]
 
-    return (sum(valueList),
-            valuesPerCategory['correctSafe'] + valuesPerCategory['correctUnsafe'],
-            valuesPerCategory['wrongSafe'], valuesPerCategory['wrongUnsafe'])
-
+    return (StatValue.fromList(valueList),
+            StatValue.fromList(valuesPerCategory['correct']),
+            StatValue.fromList(valuesPerCategory['wrongSafe']),
+            StatValue.fromList(valuesPerCategory['wrongUnsafe']),
+            )
 
 
 def getCounts(rows): # for options.dumpCounts
@@ -795,8 +735,7 @@ def getCounts(rows): # for options.dumpCounts
     return countsList
 
 
-
-def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath):
+def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, libUrl):
     '''
     create tables and write them to files
     '''
@@ -804,39 +743,44 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath):
     # get common folder of sourcefiles
     commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
     commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
+    list(map(lambda row: Row.setRelativePath(row, commonPrefix, outputPath), rows))
 
-    HTMLhead, CSVhead = getTableHead(listOfTests, commonPrefix)
+    head = getTableHead(listOfTests, commonPrefix)
+    testData = [test.attributes for test in listOfTests]
+    testColumns = [[column.title for column in test.columns] for test in listOfTests]
 
     def writeTable(outfile, name, rows):
         outfile = os.path.join(outputPath, outfile)
-        print ('writing html into {0} ...'.format(outfile + ".html"))
 
-        HTMLbody = '\n'.join([row.toHTML(commonPrefix, outputPath) for row in rows])
-        HTMLfoot = '\n'.join(getStatsHTML(rows))
-        CSVbody  = '\n'.join([row.toCSV(commonPrefix) for row in rows])
+        stats = getStats(rows)
 
-        # write HTML to file
-        Template(TEMPLATE_FILE_NAME, outfile + ".html").render(
-                    title=name,
-                    head=HTMLhead,
-                    body=HTMLbody,
-                    foot=HTMLfoot,
-                    lib_url=LIB_URL
-                    )
+        for format in TEMPLATE_FORMATS:
+            print ('writing {0} into {1}.{0} ...'.format(format, outfile))
 
-        # write CSV to file
-        CSVFile = open(outfile + ".csv", "w")
-        CSVFile.write(CSVhead)
-        CSVFile.write('\n')
-        CSVFile.write(CSVbody)
-        CSVFile.close()
+            # read template
+            Template = tempita.HTMLTemplate if format == 'html' else tempita.Template
+            template = Template.from_filename(TEMPLATE_FILE_NAME.format(format=format),
+                                              namespace={'flatten': Util.flatten, 'json': Util.json},
+                                              encoding='UTF-8')
+
+            # write file
+            with open(outfile + "." + format, 'w') as file:
+                file.write(template.substitute(
+                        title=name,
+                        head=head,
+                        body=rows,
+                        foot=stats,
+                        tests=testData,
+                        columns=testColumns,
+                        lib_url=libUrl,
+                        ))
 
 
     # write normal tables
     writeTable(name + ".table", name, rows)
 
     # write difference tables
-    if len(rowsDiff) > 1:
+    if rowsDiff:
         writeTable(name + ".diff", name + " differences", rowsDiff)
 
 
@@ -895,9 +839,7 @@ def main(args=None):
         print("Invalid combination of arguments (--merge and --common)")
         exit()
 
-    if options.offline:
-        global LIB_URL
-        LIB_URL = LIB_URL_OFFLINE
+    libUrl = LIB_URL_OFFLINE if options.offline else LIB_URL
 
     if not os.path.isdir(options.outputPath): os.makedirs(options.outputPath)
 
@@ -944,7 +886,7 @@ def main(args=None):
     rowsDiff = filterRowsWithDifferences(rows) if options.writeDiffTable else []
 
     print ('generating table ...')
-    createTables(name, listOfTests, fileNames, rows, rowsDiff, options.outputPath)
+    createTables(name, listOfTests, fileNames, rows, rowsDiff, options.outputPath, libUrl)
 
     print ('done')
 
