@@ -162,7 +162,7 @@ public class ExplicitPrecision implements Precision {
 
   /** returns true, iff the variable is in an varClass, that should be ignored. */
   private boolean isInIgnoredVarClass(String variable) {
-    if (!varClass.isPresent()) { return false; }
+    if (varClass==null || !varClass.isPresent()) { return false; }
 
     Pair<String, String> var = splitVar(variable);
 
