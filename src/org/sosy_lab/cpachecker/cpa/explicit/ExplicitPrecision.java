@@ -157,27 +157,29 @@ public class ExplicitPrecision implements Precision {
         && cegarPrecision.allowsTrackingOf(variable)
         && ignore.allowsTrackingOf(variable)
         && !isOnBlacklist(variable)
-        && !(ignoreBooleans && isBoolean(variable))
-        && !(ignoreDiscretes && isDiscreteValueVar(variable))
-        && !(ignoreSimpleCalcs && isSimpleCalcVar(variable));
+        && !isInIgnoredVarClass(variable);
   }
 
-  private boolean isBoolean(String variable) {
-    Pair<String,String> var = splitVar(variable);
-    return varClass.isPresent()
-        && varClass.get().getBooleanVars().containsEntry(var.getFirst(), var.getSecond());
-  }
+  /** returns true, iff the variable is in an varClass, that should be ignored. */
+  private boolean isInIgnoredVarClass(String variable) {
+    if (!varClass.isPresent()) { return false; }
 
-  private boolean isDiscreteValueVar(String variable) {
-    Pair<String,String> var = splitVar(variable);
-    return varClass.isPresent()
-        && varClass.get().getDiscreteValueVars().containsEntry(var.getFirst(), var.getSecond());
-  }
+    Pair<String, String> var = splitVar(variable);
 
-  private boolean isSimpleCalcVar(String variable) {
-    Pair<String,String> var = splitVar(variable);
-    return varClass.isPresent()
-        && varClass.get().getSimpleCalcVars().containsEntry(var.getFirst(), var.getSecond());
+    boolean isIgnoredBoolean = ignoreBooleans &&
+        varClass.get().getBooleanVars().containsEntry(var.getFirst(), var.getSecond());
+
+    // if a var is boolean and discrete, it is handled as boolean only.
+    boolean isIgnoredDiscrete = ignoreDiscretes &&
+        !varClass.get().getBooleanVars().containsEntry(var.getFirst(), var.getSecond()) &&
+            varClass.get().getDiscreteValueVars().containsEntry(var.getFirst(), var.getSecond());
+
+    boolean isIgnoredSimpleCalc = ignoreSimpleCalcs &&
+        !varClass.get().getBooleanVars().containsEntry(var.getFirst(), var.getSecond()) &&
+            !varClass.get().getDiscreteValueVars().containsEntry(var.getFirst(), var.getSecond()) &&
+            varClass.get().getSimpleCalcVars().containsEntry(var.getFirst(), var.getSecond());
+
+    return isIgnoredBoolean || isIgnoredDiscrete || isIgnoredSimpleCalc;
   }
 
   /** split var into function and varName */
