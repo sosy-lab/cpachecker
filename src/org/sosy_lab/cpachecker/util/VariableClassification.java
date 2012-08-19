@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.LinkedHashMultimap;
@@ -146,6 +147,11 @@ public class VariableClassification {
         dependencies.addVar(var.getKey(), var.getValue());
       }
 
+      //      System.out.println(dependencies);
+      //      System.out.println("BOOL\n" + booleanVars);
+      //      System.out.println("DISCRETE\n" + discreteValueVars);
+      //      System.out.println("SIMPLECALC\n" + simpleCalcVars);
+      //      System.out.println("ALL\n" + allVars);
       // TODO is there a need to change the Maps later? make Maps immutable?
     }
   }
@@ -302,6 +308,13 @@ public class VariableClassification {
 
       allVars.put(function, varName);
 
+      // only simple types (int, long) are allowed for booleans, ...
+      if (!(vdecl.getType() instanceof CSimpleType)) {
+        nonBooleanVars.put(function, varName);
+        nonDiscreteValueVars.put(function, varName);
+        nonSimpleCalcVars.put(function, varName);
+      }
+
       CInitializer initializer = vdecl.getInitializer();
       if ((initializer == null) || !(initializer instanceof CInitializerExpression)) { return; }
 
@@ -323,6 +336,13 @@ public class VariableClassification {
       CExpression lhs = assignment.getLeftHandSide();
       String varName = lhs.toASTString();
       String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
+
+      // only simple types (int, long) are allowed for booleans, ...
+      if (!(lhs instanceof CIdExpression && lhs.getExpressionType() instanceof CSimpleType)) {
+        nonBooleanVars.put(function, varName);
+        nonDiscreteValueVars.put(function, varName);
+        nonSimpleCalcVars.put(function, varName);
+      }
 
       allVars.put(function, varName);
 
@@ -360,10 +380,19 @@ public class VariableClassification {
       assert args.size() >= params.size();
 
       for (int i = 0; i < params.size(); i++) {
+        CParameterDeclaration param = params.get(i);
+        String varName = param.getName();
+
+        // only simple types (int, long) are allowed for booleans, ...
+        if (!(param.getType() instanceof CSimpleType)) {
+          nonBooleanVars.put(innerFunctionName, varName);
+          nonDiscreteValueVars.put(innerFunctionName, varName);
+          nonSimpleCalcVars.put(innerFunctionName, varName);
+        }
 
         // build name for param and evaluate it
         // this variable is not global (->false)
-        handleExpression(edge, args.get(i), params.get(i).getName(), innerFunctionName, i);
+        handleExpression(edge, args.get(i), varName, innerFunctionName, i);
       }
 
       // create dependency for functionreturn
@@ -593,7 +622,7 @@ public class VariableClassification {
 
     @Override
     public Multimap<String, String> visit(CFieldReference exp) {
-      String varName = exp.getFieldName();
+      String varName = exp.toASTString(); // TODO "(*p).x" vs "p->x"
       String function = isGlobal(exp) ? null : predecessor.getFunctionName();
       HashMultimap<String, String> ret = HashMultimap.create(1, 1);
       ret.put(function, varName);
@@ -657,6 +686,12 @@ public class VariableClassification {
 
     public BoolCollectingVisitor(CFANode pre) {
       super(pre);
+    }
+
+    @Override
+    public Multimap<String, String> visit(CFieldReference exp) {
+      nonBooleanVars.putAll(super.visit(exp));
+      return null;
     }
 
     @Override
@@ -740,6 +775,12 @@ public class VariableClassification {
       } else {
         return HashMultimap.create(0, 0);
       }
+    }
+
+    @Override
+    public Multimap<String, String> visit(CFieldReference exp) {
+      nonDiscreteValueVars.putAll(super.visit(exp));
+      return null;
     }
 
     @Override
@@ -828,6 +869,12 @@ public class VariableClassification {
 
     public SimpleCalcCollectingVisitor(CFANode pre) {
       super(pre);
+    }
+
+    @Override
+    public Multimap<String, String> visit(CFieldReference exp) {
+      nonSimpleCalcVars.putAll(super.visit(exp));
+      return null;
     }
 
     @Override
@@ -1117,10 +1164,10 @@ public class VariableClassification {
       }
       str.append("]\n\n");
 
-      for (Pair<CFAEdge, Integer> edge : edgeToPartition.keySet()) {
-        str.append(edge.getFirst().getRawStatement() + " :: "
-            + edge.getSecond() + " --> " + edgeToPartition.get(edge) + "\n");
-      }
+      //      for (Pair<CFAEdge, Integer> edge : edgeToPartition.keySet()) {
+      //        str.append(edge.getFirst().getRawStatement() + " :: "
+      //            + edge.getSecond() + " --> " + edgeToPartition.get(edge) + "\n");
+      //      }
       return str.toString();
     }
   }
