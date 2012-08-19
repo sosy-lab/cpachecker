@@ -322,9 +322,9 @@ public class BDDVectorTransferRelation implements TransferRelation {
     CAssignment assignment = (CAssignment) statement;
 
     CExpression lhs = assignment.getLeftHandSide();
+    if (!(lhs instanceof CIdExpression)) { return state; }
+
     BDDState result = state;
-    if (lhs instanceof CIdExpression || lhs instanceof CFieldReference
-        || lhs instanceof CArraySubscriptExpression) {
 
       String function = isGlobal(lhs) ? null : state.getFunctionName();
       String varName = lhs.toASTString();
@@ -344,10 +344,10 @@ public class BDDVectorTransferRelation implements TransferRelation {
             } else {
               tmpVarName = varsToTmpVar.get(varClass.getAllVars());
             }
-            assert tmpVarName != null;
 
             Partition partition = varClass.getPartitionForEdge(cfaEdge);
             if (varClass.getBooleanPartitions().contains(partition)) {
+              assert tmpVarName != null;
               Region tmp = createPredicate(tmpVarName);
 
               // make region for RIGHT SIDE and build equality of var and region
@@ -362,6 +362,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
               newRegion = removePredicate(newRegion, tmp);
 
             } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
+              assert tmpVarName != null;
               Region[] tmp = createPredicates(tmpVarName);
 
               // make region for RIGHT SIDE and build equality of var and region
@@ -420,7 +421,6 @@ public class BDDVectorTransferRelation implements TransferRelation {
         result = new BDDState(rmgr, state.getFunctionCallState(), newRegion,
             state.getVars(), cfaEdge.getPredecessor().getFunctionName());
       }
-    }
 
     assert !result.getRegion().isFalse();
     return result;
@@ -687,7 +687,6 @@ public class BDDVectorTransferRelation implements TransferRelation {
     if (varClass.getBooleanPartitions().contains(partition)) {
       BDDBooleanCExpressionVisitor ev = new BDDBooleanCExpressionVisitor(state, precision);
       evaluated = expression.accept(ev);
-      if (evaluated == null) { return state; } // assumption cannot be evaluated
 
     } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
       BDDVectorCExpressionVisitor ev = new BDDVectorCExpressionVisitor(state, precision);
@@ -695,6 +694,8 @@ public class BDDVectorTransferRelation implements TransferRelation {
       if (operand == null) { return state; } // assumption cannot be evaluated
       evaluated = bvmgr.makeOr(operand);
     }
+
+    if (evaluated == null) { return state; } // assumption cannot be evaluated
 
     if (!cfaEdge.getTruthAssumption()) { // if false-branch
       evaluated = rmgr.makeNot(evaluated);
@@ -848,7 +849,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
 
     @Override
     public Region visit(CFieldReference exp) {
-      return makePredicate(exp, functionName, precision);
+      return null;
     }
 
     @Override
@@ -1023,7 +1024,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
 
     @Override
     public Region[] visit(CFieldReference exp) {
-      return makePredicate(exp, functionName, precision);
+      return null;
     }
 
     @Override
