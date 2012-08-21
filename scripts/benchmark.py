@@ -1732,7 +1732,8 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
             status = 'OUT OF JAVA MEMORY'
         elif isOutOfNativeMemory(line):
             status = 'OUT OF NATIVE MEMORY'
-        elif 'There is insufficient memory for the Java Runtime Environment to continue.' in line:
+        elif 'There is insufficient memory for the Java Runtime Environment to continue.' in line \
+                or 'cannot allocate memory for thread-local data: ABORT' in line:
             status = 'OUT OF MEMORY'
         elif 'SIGSEGV' in line:
             status = 'SEGMENTATION FAULT'
