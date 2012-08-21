@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import static org.sosy_lab.cpachecker.cpa.bdd.BDDTransferRelation.*;
 import static org.sosy_lab.cpachecker.util.VariableClassification.FUNCTION_RETURN_VARIABLE;
 
 import java.math.BigInteger;
@@ -59,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -89,6 +89,8 @@ import com.google.common.collect.Multimap;
 /** This Transfer Relation tracks variables and handles them as bitvectors. */
 @Options(prefix = "cpa.bdd.vector")
 public class BDDVectorTransferRelation implements TransferRelation {
+
+  public static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
 
   @Option(description = "initialize all variables to 0 when they are declared")
   private boolean initAllVars = false;
@@ -844,6 +846,28 @@ public class BDDVectorTransferRelation implements TransferRelation {
     }
   }
 
+  /** This function returns, if the variable is used in the Expression. */
+  private static boolean isUsedInExpression(String function, String varName, CExpression exp)
+      throws UnrecognizedCCodeException {
+    return exp.accept(new VarCExpressionVisitor(function, varName));
+  }
+
+  private static boolean isGlobal(CExpression exp) {
+    if (exp instanceof CIdExpression) {
+      CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
+      if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
+    }
+    return false;
+  }
+
+  private static String buildVarName(String function, String var) {
+    if (function == null) {
+      return var;
+    } else {
+      return function + "::" + var;
+    }
+  }
+
   /** This function returns a region for a variable. */
   private Region createPredicate(String varName) {
     createdPredicates++;
@@ -1175,6 +1199,85 @@ public class BDDVectorTransferRelation implements TransferRelation {
         // *exp --> don't know anything
       }
       return returnValue;
+    }
+  }
+
+  /** This Visitor evaluates the visited expression and
+   * returns iff the given variable is used in it. */
+  private static class VarCExpressionVisitor implements CExpressionVisitor<Boolean, RuntimeException> {
+
+    private String functionName;
+    private String varName;
+
+    VarCExpressionVisitor(String function, String var) {
+      this.functionName = function;
+      this.varName = var;
+    }
+
+    private Boolean handle(CExpression exp, String functionName) {
+      String var = exp.toASTString();
+      String function = isGlobal(exp) ? null : functionName;
+
+      if (functionName == null) {
+        return function == null && varName.equals(var);
+      } else {
+        return functionName.equals(function) && varName.equals(var);
+      }
+    }
+
+    @Override
+    public Boolean visit(CArraySubscriptExpression exp) {
+      return handle(exp, functionName);
+    }
+
+    @Override
+    public Boolean visit(CBinaryExpression exp) {
+      return exp.getOperand1().accept(this) || exp.getOperand2().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CCastExpression exp) {
+      return exp.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CFieldReference exp) {
+      return handle(exp, functionName);
+    }
+
+    @Override
+    public Boolean visit(CIdExpression exp) {
+      return handle(exp, functionName);
+    }
+
+    @Override
+    public Boolean visit(CCharLiteralExpression exp) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CFloatLiteralExpression exp) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CIntegerLiteralExpression exp) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CStringLiteralExpression exp) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CTypeIdExpression exp) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CUnaryExpression exp) {
+      return exp.getOperand().accept(this);
     }
   }
 
