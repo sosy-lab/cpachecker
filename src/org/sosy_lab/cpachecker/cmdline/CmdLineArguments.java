@@ -39,6 +39,8 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
 
 /**
  * This classes parses the CPAchecker command line arguments.
@@ -46,6 +48,8 @@ import com.google.common.base.Joiner;
  * and list it in {@link #printHelp()}.
  */
 class CmdLineArguments {
+
+  private static final Splitter SETPROP_OPTION_SPLITTER = Splitter.on('=').trimResults();
 
   /**
    * Exception thrown when something invalid is specified on the command line.
@@ -124,11 +128,11 @@ class CmdLineArguments {
       } else if (arg.equals("-setprop")) {
         if (argsIt.hasNext()) {
           String s = argsIt.next();
-          String[] bits = s.split("=");
-          if (bits.length != 2) {
+          List<String> bits = Lists.newArrayList(SETPROP_OPTION_SPLITTER.split(s));
+          if (bits.size() != 2) {
             throw new InvalidCmdlineArgumentException("-setprop argument must be a key=value pair, but \"" + s + "\" is not.");
           }
-          putIfNotExistent(properties, bits[0], bits[1]);
+          putIfNotExistent(properties, bits.get(0), bits.get(1));
         } else {
           throw new InvalidCmdlineArgumentException("-setprop argument missing.");
         }
