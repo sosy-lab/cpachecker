@@ -92,7 +92,7 @@ class PredicateCPAStatistics implements Statistics {
       }
 
       // check if/where to dump the predicate map
-      if ((result != Result.UNSAFE) && export && file != null) {
+      if (export && file != null) {
         TreeMap<CFANode, Collection<AbstractionPredicate>> sortedPredicates
               = new TreeMap<CFANode, Collection<AbstractionPredicate>>(predicates.asMap());
         StringBuilder sb = new StringBuilder();
