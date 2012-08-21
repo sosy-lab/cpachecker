@@ -54,11 +54,11 @@ public class PredicateRefinementManager extends InterpolationManager<Collection<
 
   private final AbstractionManager amgr;
 
-  @Option(description="only use the atoms from the interpolants as predicates, "
+  @Option(description="use only the atoms from the interpolants as predicates, "
     + "and not the whole interpolant")
   private boolean atomicPredicates = true;
 
-  @Option(description="split arithmetic equalities when extracting predicates from interpolants")
+  @Option(description="split each arithmetic equality into two inequalities when extracting predicates from interpolants")
   private boolean splitItpAtoms = false;
 
   public PredicateRefinementManager(

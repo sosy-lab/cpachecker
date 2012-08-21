@@ -331,13 +331,17 @@ cpa.bdd.vector.initBitwise = true
 # declare vars ordered in partitions
 cpa.bdd.vector.initPartitions = true
 
-# track boolean variables from cfa as bitvectors, this option limits the
-# whitelist
-cpa.bdd.vector.trackBooleanFromCFA = true
+# declare partitions ordered
+cpa.bdd.vector.initPartitionsOrdered = true
 
-# track simple numeral variables from cfa as bitvectors, this option limits
-# the whitelist
-cpa.bdd.vector.trackSimpleNumbersFromCFA = true
+# track boolean variables from cfa
+cpa.bdd.vector.trackBooleans = true
+
+# track simple numeral variables from cfa as bitvectors
+cpa.bdd.vector.trackDiscretes = true
+
+# track variables, only used in simple calculations, from cfa as bitvectors
+cpa.bdd.vector.trackSimpleCalcs = true
 
 # which vars should be tracked, default: track all. the regex is not used for
 # functionname, only for the variablename itself.
@@ -420,9 +424,15 @@ cpa.explicit.merge = "SEP"
 # should tracked with another CPA, i.e. with BDDCPA.
 cpa.explicit.precision.ignoreBooleans = false
 
-# ignore variables with only simple numbers. if this option is used, these
-# variables from the cfa should tracked with another CPA, i.e. with BDDCPA.
-cpa.explicit.precision.ignoreSimpleNumbers = false
+# ignore variables with only discrete values and no calculations except
+# checks for equality. if this option is used, these variables from the cfa
+# should tracked with another CPA, i.e. with BDDCPA.
+cpa.explicit.precision.ignoreDiscretes = false
+
+# ignore variables, that are only used in simple calculations. if this option
+# is used, these variables from the cfa should tracked with another CPA, i.e.
+# with BDDCPA.
+cpa.explicit.precision.ignoreSimpleCalcs = false
 
 # threshold for amount of different values that are tracked for one variable
 # per path (-1 means infinitely)
@@ -626,7 +636,7 @@ cpa.predicate.refinement.addPredicatesGlobally = false
 # THIS FEATURE IS CURRENTLY NOT AVAILABLE. 
 cpa.predicate.refinement.addWellScopedPredicates = false
 
-# only use the atoms from the interpolants as predicates, and not the whole
+# use only the atoms from the interpolants as predicates, and not the whole
 # interpolant
 cpa.predicate.refinement.atomicPredicates = true
 
@@ -664,6 +674,8 @@ cpa.predicate.refinement.shortestCexTraceUseSuffix = false
 # trace
 cpa.predicate.refinement.shortestCexTraceZigZag = false
 
+# split each arithmetic equality into two inequalities when extracting
+# predicates from interpolants
 # split arithmetic equalities when extracting predicates from interpolants
 cpa.predicate.refinement.splitItpAtoms = false
 
