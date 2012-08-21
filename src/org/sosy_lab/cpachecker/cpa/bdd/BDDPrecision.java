@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import com.google.common.base.Optional;
 
 @Options(prefix = "cpa.bdd.vector")
-public class BDDVectorPrecision implements Precision {
+public class BDDPrecision implements Precision {
 
   @Option(description = "track boolean variables from cfa")
   private boolean trackBooleans = true;
@@ -46,7 +46,7 @@ public class BDDVectorPrecision implements Precision {
 
   private final Optional<VariableClassification> varClass;
 
-  public BDDVectorPrecision(Configuration config, Optional<VariableClassification> vc)
+  public BDDPrecision(Configuration config, Optional<VariableClassification> vc)
       throws InvalidConfigurationException {
     config.inject(this);
     this.varClass = vc;

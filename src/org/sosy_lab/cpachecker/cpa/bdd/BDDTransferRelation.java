@@ -88,9 +88,9 @@ import com.google.common.collect.Multimap;
 
 /** This Transfer Relation tracks variables and handles them as bitvectors. */
 @Options(prefix = "cpa.bdd.vector")
-public class BDDVectorTransferRelation implements TransferRelation {
+public class BDDTransferRelation implements TransferRelation {
 
-  public static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
+  private static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
 
   @Option(description = "initialize all variables to 0 when they are declared")
   private boolean initAllVars = false;
@@ -127,8 +127,8 @@ public class BDDVectorTransferRelation implements TransferRelation {
   /** The Constructor of BDDVectorTransferRelation sets the NamedRegionManager
    * and the BitVectorManager. Both are used to build and manipulate BDDs,
    * that represent the regions. */
-  public BDDVectorTransferRelation(NamedRegionManager manager,
-      Configuration config, CFA cfa, BDDVectorPrecision precision)
+  public BDDTransferRelation(NamedRegionManager manager,
+      Configuration config, CFA cfa, BDDPrecision precision)
       throws InvalidConfigurationException {
     config.inject(this);
 
@@ -144,7 +144,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
    *  (later vars are deeper in the BDD).
    *  This function declares those vars in the beginning of the analysis,
    *  so that we can choose between some orders. */
-  private void initVars(BDDVectorPrecision precision, CFA cfa) {
+  private void initVars(BDDPrecision precision, CFA cfa) {
     Collection<Partition> booleanPartitions = varClass.getBooleanPartitions();
     Collection<Partition> discreteValuePartitions = varClass.getDiscreteValuePartitions();
     Collection<Partition> simpleCalcPartitions = varClass.getSimpleCalcPartitions();
@@ -180,7 +180,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
   /** This function declares variables for a given collection of vars.
    * The value 'bitsize' chooses how much bits are used for each var. */
   private void createPredicates(Multimap<String, String> vars,
-      BDDVectorPrecision precision, int bitsize) {
+      BDDPrecision precision, int bitsize) {
 
     assert bitsize > 0 : "you need at least one bit for a variable.";
 
@@ -250,7 +250,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
       AbstractState abstractState, Precision prec, CFAEdge cfaEdge)
       throws CPATransferException {
     BDDState state = (BDDState) abstractState;
-    BDDVectorPrecision precision = (BDDVectorPrecision) prec;
+    BDDPrecision precision = (BDDPrecision) prec;
 
     if (precision.isDisabled()) {
       // this means that no variables should be tracked
@@ -321,7 +321,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
    * Then this region is assigned to the variable at the left side.
    * This equality is added to the BDDstate to get the next state. */
   private BDDState handleStatementEdge(BDDState state, CStatementEdge cfaEdge,
-      BDDVectorPrecision precision) throws UnrecognizedCCodeException {
+      BDDPrecision precision) throws UnrecognizedCCodeException {
     CStatement statement = cfaEdge.getStatement();
     if (!(statement instanceof CAssignment)) { return state; }
     CAssignment assignment = (CAssignment) statement;
@@ -464,7 +464,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
    * variable (bitvector) at the left side.
    * These equalities are added to the BDDstate to get the next state. */
   private BDDState handleDeclarationEdge(BDDState state, CDeclarationEdge cfaEdge,
-      BDDVectorPrecision precision) throws UnrecognizedCCodeException {
+      BDDPrecision precision) throws UnrecognizedCCodeException {
 
     CDeclaration decl = cfaEdge.getDeclaration();
 
@@ -559,7 +559,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
    * to a param ("int a") of the function. The equalities of
    * all arg-param-pairs are added to the BDDstate to get the next state. */
   private BDDState handleFunctionCallEdge(BDDState state, CFunctionCallEdge cfaEdge,
-      BDDVectorPrecision precision) throws UnrecognizedCCodeException {
+      BDDPrecision precision) throws UnrecognizedCCodeException {
 
     Region newRegion = state.getRegion();
     Set<Region> newVars = new LinkedHashSet<Region>();
@@ -617,7 +617,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
    * left side ("y") is added to the new state.
    * Each variable from inside the function is removed from the BDDstate. */
   private BDDState handleFunctionReturnEdge(BDDState state, CFunctionReturnEdge cfaEdge,
-      BDDVectorPrecision precision) {
+      BDDPrecision precision) {
     Region newRegion = state.getRegion();
 
     // delete variables from returning function,
@@ -707,7 +707,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
    * The equality of the returnValue (FUNCTION_RETURN_VARIABLE) and the
    * evaluated right side ("x") is added to the new state. */
   private BDDState handleReturnStatementEdge(BDDState state, CReturnStatementEdge cfaEdge,
-      BDDVectorPrecision precision) throws UnrecognizedCCodeException {
+      BDDPrecision precision) throws UnrecognizedCCodeException {
     CRightHandSide rhs = cfaEdge.getExpression();
     if (rhs instanceof CExpression) {
 
@@ -768,7 +768,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
    * If the next state is False, the assumption is not fulfilled.
    * In this case NULL is returned. */
   private BDDState handleAssumption(BDDState state, CAssumeEdge cfaEdge,
-      BDDVectorPrecision precision) throws UnrecognizedCCodeException {
+      BDDPrecision precision) throws UnrecognizedCCodeException {
 
     CExpression expression = cfaEdge.getExpression();
 
@@ -896,9 +896,9 @@ public class BDDVectorTransferRelation implements TransferRelation {
       implements CExpressionVisitor<Region, RuntimeException> {
 
     private String functionName;
-    private BDDVectorPrecision precision;
+    private BDDPrecision precision;
 
-    BDDBooleanCExpressionVisitor(BDDState state, BDDVectorPrecision prec) {
+    BDDBooleanCExpressionVisitor(BDDState state, BDDPrecision prec) {
       this.functionName = state.getFunctionName();
       this.precision = prec;
     }
@@ -906,7 +906,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
     /** This function returns a region containing a variable.
      * The name of the variable is build from functionName and varName.
      * If the precision does not allow to track this variable, NULL is returned. */
-    private Region makePredicate(CExpression exp, String functionName, BDDVectorPrecision precision) {
+    private Region makePredicate(CExpression exp, String functionName, BDDPrecision precision) {
       String var = exp.toASTString();
       String function = isGlobal(exp) ? null : functionName;
 
@@ -1036,9 +1036,9 @@ public class BDDVectorTransferRelation implements TransferRelation {
       implements CExpressionVisitor<Region[], RuntimeException> {
 
     private String functionName;
-    private BDDVectorPrecision precision;
+    private BDDPrecision precision;
 
-    BDDVectorCExpressionVisitor(BDDState state, BDDVectorPrecision prec) {
+    BDDVectorCExpressionVisitor(BDDState state, BDDPrecision prec) {
       this.functionName = state.getFunctionName();
       this.precision = prec;
     }
@@ -1046,7 +1046,7 @@ public class BDDVectorTransferRelation implements TransferRelation {
     /** This function returns regions containing bits of a variable.
      * The name of the variable is build from functionName and varName.
      * If the precision does not allow to track this variable, NULL is returned. */
-    private Region[] makePredicate(CExpression exp, String functionName, BDDVectorPrecision precision) {
+    private Region[] makePredicate(CExpression exp, String functionName, BDDPrecision precision) {
       String var = exp.toASTString();
       String function = isGlobal(exp) ? null : functionName;
 

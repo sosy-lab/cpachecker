@@ -53,27 +53,27 @@ import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
-public class BDDVectorCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(BDDVectorCPA.class);
+    return AutomaticCPAFactory.forType(BDDCPA.class);
   }
 
   private final NamedRegionManager manager;
   private final BDDDomain abstractDomain;
-  private final BDDVectorPrecision precision;
+  private final BDDPrecision precision;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
 
-  private BDDVectorCPA(CFA cfa, Configuration config, LogManager logger)
+  private BDDCPA(CFA cfa, Configuration config, LogManager logger)
       throws InvalidConfigurationException {
     manager = new NamedRegionManager(BDDRegionManager.getInstance(config));
     abstractDomain = new BDDDomain();
-    precision = new BDDVectorPrecision(config, cfa.getVarClassification());
+    precision = new BDDPrecision(config, cfa.getVarClassification());
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopSepOperator(abstractDomain);
-    transferRelation = new BDDVectorTransferRelation(manager, config, cfa, precision);
+    transferRelation = new BDDTransferRelation(manager, config, cfa, precision);
   }
 
   @Override
