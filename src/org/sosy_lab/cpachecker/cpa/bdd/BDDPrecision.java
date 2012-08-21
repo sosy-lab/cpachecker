@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 
-@Options(prefix = "cpa.bdd.vector")
+@Options(prefix = "cpa.bdd")
 public class BDDPrecision implements Precision {
 
   @Option(description = "track boolean variables from cfa")

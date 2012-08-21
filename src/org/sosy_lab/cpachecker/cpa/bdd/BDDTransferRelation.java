@@ -87,7 +87,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import com.google.common.collect.Multimap;
 
 /** This Transfer Relation tracks variables and handles them as bitvectors. */
-@Options(prefix = "cpa.bdd.vector")
+@Options(prefix = "cpa.bdd")
 public class BDDTransferRelation implements TransferRelation {
 
   private static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
