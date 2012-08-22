@@ -58,6 +58,9 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
   @Option(description = "Use UIFs (recommended because its more precise)")
   private boolean useUIFs = true;
 
+  @Option(description = "Use theory of EUF in solver (recommended if UIFs are used, otherwise they are useless)")
+  private boolean useEUFtheory = true;
+
   // the MathSAT environment in which all terms are created
   // default visibility because its heavily used in sub-classes
   final long msatEnv;
@@ -114,6 +117,10 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
 
     if (ghostFilter) {
       msat_set_option(cfg, "ghost_filtering", "true");
+    }
+
+    if (!useEUFtheory) {
+      msat_set_option(cfg, "theory.euf.enabled", "false");
     }
 
     if (shared) {
