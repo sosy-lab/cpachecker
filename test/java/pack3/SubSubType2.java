@@ -29,8 +29,6 @@ public class SubSubType2 extends SubType1 {
   }
   
   private boolean  compare() {
-    assert (num == num2) && (num == 0) ;
-    
     return (subNum1 == subNum2);
   }
   

@@ -76,10 +76,12 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanzeCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
@@ -99,6 +101,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.jort.JortState;
 import org.sosy_lab.cpachecker.cpa.pointer.Memory;
 import org.sosy_lab.cpachecker.cpa.pointer.Pointer;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerState;
@@ -116,6 +119,8 @@ public class ExplicitTransferRelation implements TransferRelation
   private boolean initAssumptionVars = false;
 
   private final Set<String> globalVariables = new HashSet<String>();
+
+  private final Set<String> javaNonStaticVariables = new HashSet<String>();
 
   private String missingInformationLeftVariable = null;
   private String missingInformationLeftPointer  = null;
@@ -295,9 +300,9 @@ public class ExplicitTransferRelation implements TransferRelation
       // we expect left hand side of the expression to be a variable
 
       if((op1 instanceof AIdExpression) || (op1 instanceof CFieldReference)) {
-        String returnVarName = getScopedVariableName("___cpa_temp_result_var_", calledFunctionName);
+        String returnVarName = getScopedVariableName("___cpa_temp_result_var_", calledFunctionName, newElement.getJavaClassScope());
 
-        String assignedVarName = getScopedVariableName(op1.toASTString(), callerFunctionName);
+        String assignedVarName = getScopedVariableName(op1.toASTString(), callerFunctionName, newElement.getJavaClassScope());
 
         if (currentPrecision.isTracking(assignedVarName) && element.contains(returnVarName)) {
           newElement.assignConstant(assignedVarName, element.getValueFor(returnVarName));
@@ -374,6 +379,10 @@ public class ExplicitTransferRelation implements TransferRelation
       // if this is a global variable, add to the list of global variables
       globalVariables.add(varName);
 
+      if(decl instanceof JFieldDeclaration && !((JFieldDeclaration)decl).isStatic()){
+        javaNonStaticVariables.add(varName);
+      }
+
       // global variables without initializer are set to 0 in C
       initialValue = 0L;
     }
@@ -388,7 +397,7 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     // assign initial value if necessary
-    String scopedVarName = getScopedVariableName(varName, functionName);
+    String scopedVarName = getScopedVariableName(varName, functionName, newElement.getJavaClassScope());
 
     if (initialValue != null && precision.isTracking(scopedVarName)) {
       newElement.assignConstant(scopedVarName, initialValue);
@@ -422,7 +431,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
     if(op1 instanceof AIdExpression) {
       // a = ...
-      if (!precision.isOnBlacklist(getScopedVariableName(((AIdExpression)op1).getName(), cfaEdge.getPredecessor().getFunctionName()))) {
+      if (!precision.isOnBlacklist(getScopedVariableName(((AIdExpression)op1).getName(), cfaEdge.getPredecessor().getFunctionName(), newElement.getJavaClassScope()))) {
         String functionName = cfaEdge.getPredecessor().getFunctionName();
 
         handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor(cfaEdge, newElement, functionName));
@@ -454,7 +463,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
     else if (op1 instanceof CFieldReference) {
       // a->b = ...
-      if (precision.isOnBlacklist(getScopedVariableName(op1.toASTString(),cfaEdge.getPredecessor().getFunctionName()))) {
+      if (precision.isOnBlacklist(getScopedVariableName(op1.toASTString(),cfaEdge.getPredecessor().getFunctionName() , newElement.getJavaClassScope()))) {
         return;
       } else {
         String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -491,7 +500,7 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     ExplicitState newElement = visitor.state;
-    String assignedVar = getScopedVariableName(lParam, visitor.functionName);
+    String assignedVar = getScopedVariableName(lParam, visitor.functionName, newElement.getJavaClassScope());
 
     if (value == null) {
       newElement.forget(assignedVar);
@@ -885,7 +894,7 @@ public class ExplicitTransferRelation implements TransferRelation
         }
       }
 
-      String varName = getScopedVariableName(idExp.getName(), functionName);
+      String varName = getScopedVariableName(idExp.getName(), functionName, state.getJavaClassScope());
 
       if(state.contains(varName)) {
         return state.getValueFor(varName);
@@ -979,6 +988,11 @@ public class ExplicitTransferRelation implements TransferRelation
 
     @Override
     public Long visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) throws UnrecognizedCCodeException {
+      return null;
+    }
+
+    @Override
+    public Long visit(JNullLiteralExpression pJNullLiteralExpression) throws UnrecognizedCCodeException {
       return null;
     }
   }
@@ -1087,14 +1101,14 @@ public class ExplicitTransferRelation implements TransferRelation
 
       if((binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && truthValue) || (binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && !truthValue)) {
         if(leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
-          String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
+          String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName , state.getJavaClassScope());
           if (currentPrecision.isTracking(leftVariableName)) {
             state.assignConstant(leftVariableName, rightValue);
           }
         }
 
         else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
-          String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName);
+          String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName , state.getJavaClassScope());
           if (currentPrecision.isTracking(rightVariableName)) {
             state.assignConstant(rightVariableName, leftValue);
           }
@@ -1107,14 +1121,14 @@ public class ExplicitTransferRelation implements TransferRelation
         if ((binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && truthValue)
             || (binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && !truthValue)) {
           if (leftValue == null && rightValue == 0L && isAssignable(lVarInBinaryExp)) {
-            String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
+            String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName , state.getJavaClassScope());
             if (currentPrecision.isTracking(leftVariableName)) {
               state.assignConstant(leftVariableName, 1L);
             }
           }
 
           else if (rightValue == null && leftValue == 0L && isAssignable(rVarInBinaryExp)) {
-            String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName);
+            String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName , state.getJavaClassScope());
             if (currentPrecision.isTracking(rightVariableName)) {
               state.assignConstant(rightVariableName, 1L);
             }
@@ -1185,7 +1199,7 @@ public class ExplicitTransferRelation implements TransferRelation
       if(unaryOperand instanceof AIdExpression) {
         String rightVar = derefPointerToVariable(pointerState, ((AIdExpression)unaryOperand).getName());
         if (rightVar != null) {
-          rightVar = getScopedVariableName(rightVar, functionName);
+          rightVar = getScopedVariableName(rightVar, functionName , state.getJavaClassScope());
 
           if (state.contains(rightVar)) {
             return state.getValueFor(rightVar);
@@ -1209,7 +1223,21 @@ public class ExplicitTransferRelation implements TransferRelation
     }
   }
 
+  public String getScopedVariableName(String variableName, String functionName, String javaScope) {
+
+    if(javaNonStaticVariables.contains(variableName)) {
+      return javaScope + "::" + variableName;
+    }
+
+    if (globalVariables.contains(variableName)) {
+      return variableName;
+    }
+
+    return functionName + "::" + variableName;
+  }
+
   public String getScopedVariableName(String variableName, String functionName) {
+
     if (globalVariables.contains(variableName)) {
       return variableName;
     }
@@ -1226,10 +1254,21 @@ public class ExplicitTransferRelation implements TransferRelation
     for (AbstractState ae : elements) {
       if (ae instanceof PointerState) {
         return strengthen(explicitState, (PointerState)ae, cfaEdge, precision);
+      } else if(ae instanceof JortState) {
+        return strengthen(explicitState, (JortState)ae, cfaEdge, precision);
       }
     }
 
+
     return null;
+  }
+
+  private Collection<? extends AbstractState> strengthen(ExplicitState explicitState, JortState jortState, CFAEdge cfaEdge,
+      Precision precision) {
+
+    ExplicitState newElement = explicitState.clone();
+    newElement.setJavaClassScope(jortState.getClassObjectScope());
+    return Collections.singleton(newElement);
   }
 
   private Collection<? extends AbstractState> strengthen(ExplicitState explicitState, PointerState pointerElement, CFAEdge cfaEdge, Precision precision)

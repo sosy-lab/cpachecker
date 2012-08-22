@@ -41,16 +41,25 @@ public class CreateObjects {
 			String[] args) { 
 	  
 	  
-	  CreateObjects object1 = new CreateObjects( 2);
+	  CreateObjects object1 = new CreateObjects(2);
 	  
 	  CreateObjects object3 = new CreateObjects();
 	  CreateObjects object2 = new CreateObjects( 2 , 7);
 	  Object2 object4 = new Object2();
+	  Object2 object42 = new Object2();
 	  Object3 object5 = new Object3(2 ,3 ,5 , "bam");
-	  Object1 object6 = object5.createAnotherObject(object4);
+	  Object1 object6 = object5.createAnotherObject(object42);
 	 
 	  
 	  assert object1.compare();	 	  
+	  assert object3.compare();
+	  assert !object2.compare();
+	  
+	  
+	  assert  object4.getId() == 0;
+	  assert  object6.getId() == 1;
+	  
+	  
 	}
 	
 }

@@ -32,7 +32,7 @@ public class SubSubType1 extends SubType1 {
   }
   
   public boolean compare(){
-    return false;
+    return (subsubNum1 == subsubNum2);
   }
     
 }

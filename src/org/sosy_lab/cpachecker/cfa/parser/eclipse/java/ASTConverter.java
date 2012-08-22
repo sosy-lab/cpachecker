@@ -112,6 +112,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JObjectReferenceReturn;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
@@ -446,7 +447,7 @@ public class ASTConverter {
 
 
       result.add( new JFieldDeclaration(fileLoc, GLOBAL,
-          convert(type) ,    nameAndInitializer.getFirst().replace('.', '.') ,nameAndInitializer.getSecond().replace('.', '.'),
+          convert(type) ,    nameAndInitializer.getFirst() ,nameAndInitializer.getSecond().replace('.', '.'),
              nameAndInitializer.getThird(),  mB.isFinal, mB.isStatic, mB.isTransient, mB.isVolatile , mB.getVisibility()));
 
     }
@@ -1652,12 +1653,8 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
     return new AStringLiteralExpression(fileLoc, type, e.getLiteralValue());
   }
 
-  AStringLiteralExpression convert(NullLiteral e) {
-    CFileLocation fileLoc = getFileLocation(e);
-
-    //TODO Prototype , null has to be created as astType in object model
-    JType type = new JDummyType("null");
-    return new AStringLiteralExpression(fileLoc, type, "null");
+  JNullLiteralExpression convert(NullLiteral e) {
+    return new JNullLiteralExpression( getFileLocation(e));
   }
 
 

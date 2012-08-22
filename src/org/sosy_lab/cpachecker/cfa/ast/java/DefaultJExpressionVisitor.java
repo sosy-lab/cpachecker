@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 
 
@@ -31,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 
 public abstract class DefaultJExpressionVisitor<R ,X extends Exception> implements JExpressionVisitor<R, X> {
 
-  abstract R visitDefault(IAExpression e);
+  protected abstract R visitDefault(IAExpression e);
 
   @Override
   public R visit(JIntegerLiteralExpression e) throws X {
@@ -46,6 +50,61 @@ public abstract class DefaultJExpressionVisitor<R ,X extends Exception> implemen
 
   @Override
   public R visit(JFloatLiteralExpression e) throws X{
+    return visitDefault(e);
+  }
+
+  @Override
+  public R visit(ACharLiteralExpression e) throws X {
+    return visitDefault(e);
+  }
+
+  @Override
+  public R visit(AStringLiteralExpression e) throws X {
+    return visitDefault(e);
+  }
+
+  @Override
+  public R visit(JBinaryExpression e) throws X {
+    return visitDefault(e);
+  }
+
+  @Override
+  public R visit(AUnaryExpression e) throws X {
+    return visitDefault(e);
+  }
+
+  @Override
+  public R visit(JArrayCreationExpression e) throws X {
+    return visitDefault(e);
+  }
+
+  @Override
+  public R visit(JArrayInitializer e) throws X {
+    return visitDefault(e);
+  }
+
+  @Override
+  public R visit(AArraySubscriptExpression e) throws X {
+    return visitDefault(e);
+  }
+
+  @Override
+  public R visit(JThisRunTimeType e) throws X {
+    return visitDefault(e);
+  }
+
+  @Override
+  public R visit(JIdExpression e) throws X {
+    return visitDefault(e);
+  }
+
+  @Override
+  public R visit(JRunTimeTypeEqualsType e) throws X {
+    return visitDefault(e);
+  }
+
+  @Override
+  public R visit(JNullLiteralExpression e) throws X {
     return visitDefault(e);
   }
 

@@ -35,8 +35,7 @@ public class SubType1 extends SuperType1 implements Interface1 {
   
   @Override
   public boolean  compare() {
-    assert (num == num2) && (num == 0) ;    
-    return (subNum1 == subNum2);
+    return  (subNum1 == subNum2);
   }
   
   public int add(){

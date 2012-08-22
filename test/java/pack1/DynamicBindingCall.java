@@ -1,7 +1,6 @@
 package pack1; 
 
 
-import org.eclipse.jdt.internal.core.search.SubTypeSearchJob;
 
 import pack3.*;
 
@@ -9,8 +8,7 @@ public class DynamicBindingCall  {
   
   public static void main(String[] args){
         
-    SuperType1 obj3 = new SuperType1(1 , 2);
-    SuperType1 obj1 = null;
+    SuperType1 obj1 = new SuperType1(1 , 2);
     
     int n = 2;
     int n2 = 4;
@@ -40,18 +38,19 @@ public class DynamicBindingCall  {
     boolean b10 = obj2 instanceof Interface1;
     
     boolean b1 = obj2.compare();
+    
     assert b1;
      
     
-    Interface1 obj4 = null; 
+    Interface1 obj3 = null; 
     
     
     
     obj2 = new SubSubType1(3 , 3);
     
-    obj4 = obj2;
+    obj3 = obj2;
 
-    b1 = obj4.compare();
+    b1 = obj3.compare();
     assert b1;    
   }
 }

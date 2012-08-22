@@ -23,27 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
 
-public class JRunTimeTypeEqualsType extends AExpression implements JExpression {
+public class JNullLiteralExpression extends ALiteralExpression implements JExpression {
 
-  private final JThisRunTimeType runTimeTypeExpression;
-  private final JClassOrInterfaceType typeDef;
+  public JNullLiteralExpression(CFileLocation pFileLocation) {
+    super(pFileLocation, new JSimpleType(JBasicType.NULL));
 
-  public JRunTimeTypeEqualsType(CFileLocation pFileLocation,
-      JThisRunTimeType pRunTimeTypeExpression, JClassOrInterfaceType pTypeDef) {
-    super(pFileLocation, new JSimpleType(JBasicType.BOOLEAN));
-
-    runTimeTypeExpression = pRunTimeTypeExpression;
-    typeDef = pTypeDef;
-
-    assert getRunTimeTypeExpression() != null;
-    assert getTypeDef() != null;
   }
 
   @Override
@@ -52,25 +42,17 @@ public class JRunTimeTypeEqualsType extends AExpression implements JExpression {
   }
 
   @Override
+  public String toASTString() {
+    return "null";
+  }
+
+  @Override
   public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
   @Override
-  public String toASTString() {
-    StringBuilder astString = new StringBuilder("(");
-    astString.append(getRunTimeTypeExpression().toASTString());
-    astString.append("_equals(");
-    astString.append(getTypeDef().getName());
-    astString.append("))");
-    return astString.toString();
-  }
-
-  public JClassOrInterfaceType getTypeDef() {
-    return typeDef;
-  }
-
-  public JThisRunTimeType getRunTimeTypeExpression() {
-    return runTimeTypeExpression;
+  public Object getValue() {
+    return "null";
   }
 }

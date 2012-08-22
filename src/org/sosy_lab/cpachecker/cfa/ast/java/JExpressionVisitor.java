@@ -56,4 +56,6 @@ public interface JExpressionVisitor<R, X extends Exception>  {
 
   R visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) throws X;
 
+  R visit(JNullLiteralExpression pJNullLiteralExpression) throws X;
+
 }

@@ -49,12 +49,15 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    */
   private final Map<String, Long> constantsMap;
 
+  private String javaClassScope = "";
+
   public ExplicitState() {
     constantsMap = new HashMap<String, Long>();
   }
 
-  private ExplicitState(Map<String, Long> constantsMap) {
+  private ExplicitState(Map<String, Long> constantsMap , String pJavaClassScope) {
     this.constantsMap = constantsMap;
+    javaClassScope = pJavaClassScope;
   }
 
   /**
@@ -120,7 +123,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
       }
     }
 
-    return new ExplicitState(newConstantsMap);
+    return new ExplicitState(newConstantsMap, new String(javaClassScope));
   }
 
   /**
@@ -151,7 +154,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
 
   @Override
   public ExplicitState clone() {
-    return new ExplicitState(new HashMap<String, Long>(constantsMap));
+    return new ExplicitState(new HashMap<String, Long>(constantsMap) , new String(javaClassScope));
   }
 
   @Override
@@ -342,5 +345,13 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
 
   Map<String, Long> getConstantsMap() {
     return constantsMap;
+  }
+
+  String getJavaClassScope() {
+    return javaClassScope;
+  }
+
+  void setJavaClassScope(String javaClassScope) {
+    this.javaClassScope = javaClassScope;
   }
 }

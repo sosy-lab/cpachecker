@@ -170,6 +170,9 @@ class CFABuilder extends ASTVisitor {
       // static field are declared when a class is loaded
       // non static fields are declared when an object is created
       for (IADeclaration newD : newDs) {
+
+        scope.registerDeclaration(newD);
+
         if( ((JFieldDeclaration) newD).isStatic()){
           staticFieldDeclarations.add(Pair.of(newD, rawSignature));
         }else {
