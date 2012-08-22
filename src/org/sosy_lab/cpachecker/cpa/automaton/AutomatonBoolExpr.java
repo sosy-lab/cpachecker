@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Optional;
 
@@ -290,6 +291,29 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public String toString() {
       return "CHECK(" + cpaName + "(\"" + queryString + "\"))";
+    }
+  }
+
+  static enum CheckAllCpasForTargetState implements AutomatonBoolExpr {
+    INSTANCE;
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      if (pArgs.getAbstractStates().isEmpty()) {
+        return new ResultValue<Boolean>("No CPA elements available", "AutomatonBoolExpr.CheckAllCpasForTargetState");
+      } else {
+        for (AbstractState ae : pArgs.getAbstractStates()) {
+          if (AbstractStates.isTargetState(ae)) {
+            return CONST_TRUE;
+          }
+        }
+        return CONST_FALSE;
+      }
+    }
+
+    @Override
+    public String toString() {
+      return "CHECK(IS_TARGET_STATE)";
     }
   }
 
