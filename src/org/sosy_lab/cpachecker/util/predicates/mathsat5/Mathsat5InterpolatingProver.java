@@ -37,7 +37,6 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
 
     private final Mathsat5FormulaManager mgr;
     private long interpolEnv;
-    private long cfg;
 
     private final boolean useSharedEnv;
 
@@ -51,7 +50,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
     public void init() {
         Preconditions.checkState(interpolEnv == 0);
 
-        cfg = msat_create_config();
+        long cfg = msat_create_config();
         msat_set_option(cfg, "interpolation", "true");
         msat_set_option( cfg, "model_generation", "true");
         interpolEnv = mgr.createEnvironment(cfg, useSharedEnv, false);

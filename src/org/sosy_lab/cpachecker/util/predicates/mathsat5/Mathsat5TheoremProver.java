@@ -44,7 +44,6 @@ public class Mathsat5TheoremProver implements TheoremProver {
 
   private final Mathsat5FormulaManager mgr;
   private long curEnv;
-  private long cfg;
 
   public Mathsat5TheoremProver(Mathsat5FormulaManager pMgr) {
     mgr = pMgr;
@@ -82,7 +81,7 @@ public class Mathsat5TheoremProver implements TheoremProver {
   public void init() {
     Preconditions.checkState(curEnv == 0);
 
-    cfg = msat_create_config();
+    long cfg = msat_create_config();
     msat_set_option(cfg, "model_generation", "true");
     curEnv = mgr.createEnvironment(cfg, true, true);
   }
@@ -104,7 +103,7 @@ public class Mathsat5TheoremProver implements TheoremProver {
       throw new RuntimeException("Error occurred during Mathsat allsat: all-sat should not be called with empty 'important'-Collection");
     }
 
-    long allsatEnv = mgr.createEnvironment(cfg, true, true);
+    long allsatEnv = mgr.createEnvironment(msat_create_config(), true, true);
     long formula = getTerm(f);
 
     long[] imp = new long[important.size()];
