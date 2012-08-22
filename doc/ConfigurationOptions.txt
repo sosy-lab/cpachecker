@@ -303,49 +303,65 @@ cpa.automaton.dotExportFile = "%s.dot"
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
 
+# adding a new value to the state can be done from 0 to N or from N to 0
+cpa.bdd.addIncreasing = false
+
+# default bitsize for values and vars
+cpa.bdd.bitsize = 32
+
 # initialize all variables to 0 when they are declared
 cpa.bdd.initAllVars = false
 
-# declare vars ordered in partitions. otherwise vars are declared when they
-# are needed.
-cpa.bdd.initPartitions = false
-
-# track boolean variables from cfa only, this option limits the whitelist
-cpa.bdd.trackBooleanFromCFA = true
-
-# adding a new value to the state can be done from 0 to N or from N to 0
-cpa.bdd.vector.addIncreasing = false
-
-# default bitsize for values and vars
-cpa.bdd.vector.bitsize = 32
-
-# initialize all variables to 0 when they are declared
-cpa.bdd.vector.initAllVars = false
-
 # declare the bits of a var from 0 to N or from N to 0
-cpa.bdd.vector.initBitsIncreasing = true
+cpa.bdd.initBitsIncreasing = true
 
 # declare first bit of all vars, then second bit,...
-cpa.bdd.vector.initBitwise = true
+cpa.bdd.initBitwise = true
 
 # declare vars ordered in partitions
-cpa.bdd.vector.initPartitions = true
+cpa.bdd.initPartitions = true
 
 # declare partitions ordered
-cpa.bdd.vector.initPartitionsOrdered = true
+cpa.bdd.initPartitionsOrdered = true
 
 # track boolean variables from cfa
-cpa.bdd.vector.trackBooleans = true
+cpa.bdd.trackBooleans = true
 
 # track simple numeral variables from cfa as bitvectors
-cpa.bdd.vector.trackDiscretes = true
+cpa.bdd.trackDiscretes = true
 
 # track variables, only used in simple calculations, from cfa as bitvectors
-cpa.bdd.vector.trackSimpleCalcs = true
+cpa.bdd.trackSimpleCalcs = true
 
-# which vars should be tracked, default: track all. the regex is not used for
-# functionname, only for the variablename itself.
-cpa.bdd.whiteListRegex = ".*"
+# adding a new value to the state can be done from 0 to N or from N to 0
+cpa.bdd.vector.addIncreasing = no default value
+
+# default bitsize for values and vars
+cpa.bdd.vector.bitsize = no default value
+
+# initialize all variables to 0 when they are declared
+cpa.bdd.vector.initAllVars = no default value
+
+# declare the bits of a var from 0 to N or from N to 0
+cpa.bdd.vector.initBitsIncreasing = no default value
+
+# declare first bit of all vars, then second bit,...
+cpa.bdd.vector.initBitwise = no default value
+
+# declare vars ordered in partitions
+cpa.bdd.vector.initPartitions = no default value
+
+# declare partitions ordered
+cpa.bdd.vector.initPartitionsOrdered = no default value
+
+# track boolean variables from cfa
+cpa.bdd.vector.trackBooleans = no default value
+
+# track simple numeral variables from cfa as bitvectors
+cpa.bdd.vector.trackDiscretes = no default value
+
+# track variables, only used in simple calculations, from cfa as bitvectors
+cpa.bdd.vector.trackSimpleCalcs = no default value
 
 # which composite merge operator to use (plain or agree)
 # Both delegate to the component cpas, but agree only allows merging if all
