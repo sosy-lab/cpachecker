@@ -651,9 +651,17 @@ class OutputHandler:
                 + "ram:".ljust(columnWidth) + memory + "\n"\
                 + simpleLine
 
+        testname = None
+        if len(self.benchmark.tests) == 1:
+            # in case there is only a single test, we can use this name
+            testname = self.benchmark.tests[0].name
+        elif options.testRunOnly and len(options.testRunOnly) == 1:
+            # in case we run only a single test, we can use this name
+            testname = options.testRunOnly[0]
+
         # write to file
         self.TXTContent = header + systemInfo
-        self.TXTFile = FileWriter(self.getFileName(None, "txt"), self.TXTContent)
+        self.TXTFile = FileWriter(self.getFileName(testname, "txt"), self.TXTContent)
 
 
     def getToolnameForPrinting(self):
