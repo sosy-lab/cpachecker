@@ -926,14 +926,12 @@ public class VariableClassification {
     @Override
     public Multimap<String, String> visit(CUnaryExpression exp) throws NullPointerException {
       Multimap<String, String> inner = exp.getOperand().accept(this);
-      if (inner != null) {
-        nonSimpleCalcVars.putAll(inner);
-        return null;
-      }
+      if (inner == null) { return null; }
 
       switch (exp.getOperator()) {
       case PLUS:
       case MINUS:
+      case NOT:
         return inner;
       default: // *, ~, etc --> not simple
         nonSimpleCalcVars.putAll(inner);
