@@ -48,7 +48,7 @@ class AutomatonStatistics implements Statistics {
 
     AutomatonTransferRelation trans = mCpa.getTransferRelation();
     out.println("Number of states:                    " + mCpa.getAutomaton().getNumberOfStates());
-    out.println("Total time for sucessor computation: " + trans.totalPostTime);
+    out.println("Total time for successor computation: " + trans.totalPostTime);
     if (trans.totalPostTime.getSumTime() >= 500) {
       // normally automaton is very fast, and time measurements are very imprecise
       // so don't care about very small times
