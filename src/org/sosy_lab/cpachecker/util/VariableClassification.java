@@ -308,6 +308,11 @@ public class VariableClassification {
 
       allVars.put(function, varName);
 
+      // "connect" the edge with its partition
+      HashMultimap<String, String> var = HashMultimap.create(1, 1);
+      var.put(function, varName);
+      dependencies.addAll(var, new HashSet<BigInteger>(), edge, 0);
+
       // only simple types (int, long) are allowed for booleans, ...
       if (!(vdecl.getType() instanceof CSimpleType)) {
         nonBooleanVars.put(function, varName);
@@ -410,9 +415,8 @@ public class VariableClassification {
 
         // f(); without assignment
       } else if (statement instanceof CFunctionCallStatement) {
+        // next line is not necessary, but we do it for completeness, TODO correct?
         dependencies.addVar(innerFunctionName, FUNCTION_RETURN_VARIABLE);
-        Partition partition = getPartitionForVar(innerFunctionName, FUNCTION_RETURN_VARIABLE);
-        partition.addEdge(edge, 0);
       }
       break;
     }
@@ -496,9 +500,9 @@ public class VariableClassification {
     return false;
   }
 
-  /** returns the var of a (nested) IntegerLiteralExpression
-   * or null for anything else. */
-  private BigInteger getNumber(CExpression exp) {
+  /** returns the value of a (nested) IntegerLiteralExpression
+   * or null for everything else. */
+  public static BigInteger getNumber(CExpression exp) {
     if (exp instanceof CIntegerLiteralExpression) {
       return ((CIntegerLiteralExpression) exp).getValue();
 
@@ -557,7 +561,7 @@ public class VariableClassification {
    * other visits return null.
   * The Visitor collects all numbers used in the expression. */
   private class DependencyCollectingVisitor implements
-      CExpressionVisitor<Multimap<String, String>, NullPointerException> {
+      CExpressionVisitor<Multimap<String, String>, RuntimeException> {
 
     private CFANode predecessor;
     private Set<BigInteger> values = new TreeSet<BigInteger>();
@@ -576,7 +580,7 @@ public class VariableClassification {
     }
 
     @Override
-    public Multimap<String, String> visit(CBinaryExpression exp) throws NullPointerException {
+    public Multimap<String, String> visit(CBinaryExpression exp) {
 
       // for numeral values
       BigInteger val1 = getNumber(exp.getOperand1());
@@ -610,7 +614,7 @@ public class VariableClassification {
     }
 
     @Override
-    public Multimap<String, String> visit(CCastExpression exp) throws NullPointerException {
+    public Multimap<String, String> visit(CCastExpression exp) {
       BigInteger val = getNumber(exp.getOperand());
       if (val == null) {
         return exp.getOperand().accept(this);
@@ -695,7 +699,7 @@ public class VariableClassification {
     }
 
     @Override
-    public Multimap<String, String> visit(CBinaryExpression exp) throws NullPointerException {
+    public Multimap<String, String> visit(CBinaryExpression exp) {
       Multimap<String, String> operand1 = exp.getOperand1().accept(this);
       Multimap<String, String> operand2 = exp.getOperand2().accept(this);
 
@@ -737,7 +741,7 @@ public class VariableClassification {
     }
 
     @Override
-    public Multimap<String, String> visit(CUnaryExpression exp) throws NullPointerException {
+    public Multimap<String, String> visit(CUnaryExpression exp) {
       Multimap<String, String> inner = exp.getOperand().accept(this);
 
       if (inner == null) {
@@ -768,7 +772,7 @@ public class VariableClassification {
     }
 
     @Override
-    public Multimap<String, String> visit(CCastExpression exp) throws NullPointerException {
+    public Multimap<String, String> visit(CCastExpression exp) {
       BigInteger val = getNumber(exp.getOperand());
       if (val == null) {
         return exp.getOperand().accept(this);
@@ -784,7 +788,7 @@ public class VariableClassification {
     }
 
     @Override
-    public Multimap<String, String> visit(CBinaryExpression exp) throws NullPointerException {
+    public Multimap<String, String> visit(CBinaryExpression exp) {
 
       // for numeral values
       BigInteger val1 = getNumber(exp.getOperand1());
@@ -792,16 +796,16 @@ public class VariableClassification {
       if (val1 == null) {
         operand1 = exp.getOperand1().accept(this);
       } else {
-        operand1 = null;
+        operand1 = HashMultimap.create(0, 0);
       }
 
       // for numeral values
-      BigInteger val2 = getNumber(exp.getOperand1());
+      BigInteger val2 = getNumber(exp.getOperand2());
       Multimap<String, String> operand2;
       if (val2 == null) {
         operand2 = exp.getOperand2().accept(this);
       } else {
-        operand2 = null;
+        operand2 = HashMultimap.create(0, 0);
       }
 
       // handle vars from operands
@@ -835,7 +839,7 @@ public class VariableClassification {
     }
 
     @Override
-    public Multimap<String, String> visit(CUnaryExpression exp) throws NullPointerException {
+    public Multimap<String, String> visit(CUnaryExpression exp) {
 
       // if exp is numeral
       BigInteger val = getNumber(exp);
@@ -872,13 +876,18 @@ public class VariableClassification {
     }
 
     @Override
+    public Multimap<String, String> visit(CCastExpression exp) {
+      return exp.getOperand().accept(this);
+    }
+
+    @Override
     public Multimap<String, String> visit(CFieldReference exp) {
       nonSimpleCalcVars.putAll(super.visit(exp));
       return null;
     }
 
     @Override
-    public Multimap<String, String> visit(CBinaryExpression exp) throws NullPointerException {
+    public Multimap<String, String> visit(CBinaryExpression exp) {
       Multimap<String, String> operand1 = exp.getOperand1().accept(this);
       Multimap<String, String> operand2 = exp.getOperand2().accept(this);
 
@@ -924,7 +933,7 @@ public class VariableClassification {
     }
 
     @Override
-    public Multimap<String, String> visit(CUnaryExpression exp) throws NullPointerException {
+    public Multimap<String, String> visit(CUnaryExpression exp) {
       Multimap<String, String> inner = exp.getOperand().accept(this);
       if (inner == null) { return null; }
 
