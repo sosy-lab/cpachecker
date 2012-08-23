@@ -68,12 +68,13 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   private BDDCPA(CFA cfa, Configuration config, LogManager logger)
       throws InvalidConfigurationException {
-    manager = new NamedRegionManager(BDDRegionManager.getInstance(config));
+    BDDRegionManager rmgr = BDDRegionManager.getInstance(config, logger);
+    manager = new NamedRegionManager(rmgr);
     abstractDomain = new BDDDomain();
     precision = new BDDPrecision(config, cfa.getVarClassification());
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopSepOperator(abstractDomain);
-    transferRelation = new BDDTransferRelation(manager, config, cfa, precision);
+    transferRelation = new BDDTransferRelation(manager, config, rmgr, cfa, precision);
   }
 
   @Override

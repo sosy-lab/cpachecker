@@ -152,7 +152,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       regionManager = new SymbolicRegionManager(formulaManager, solver);
     } else {
       assert abstractionType.equals("BDD");
-      regionManager = BDDRegionManager.getInstance(config);
+      regionManager = BDDRegionManager.getInstance(config, logger);
       libraries += " and " + ((BDDRegionManager)regionManager).getVersion();
     }
     logger.log(Level.INFO, "Using predicate analysis with", libraries + ".");

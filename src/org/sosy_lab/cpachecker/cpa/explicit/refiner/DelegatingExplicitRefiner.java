@@ -118,7 +118,7 @@ public class DelegatingExplicitRefiner
     } else {
       factory                     = new FormulaManagerFactory(config, logger);
       TheoremProver theoremProver = factory.createTheoremProver();
-      RegionManager regionManager = BDDRegionManager.getInstance(config);
+      RegionManager regionManager = BDDRegionManager.getInstance(config, logger);
       formulaManager              = new ExtendedFormulaManager(factory.getFormulaManager(), config, logger);
       pathFormulaManager          = new PathFormulaManagerImpl(formulaManager, config, logger);
       solver                      = new Solver(formulaManager, theoremProver);

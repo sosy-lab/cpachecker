@@ -82,6 +82,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import com.google.common.collect.Multimap;
@@ -128,11 +129,11 @@ public class BDDTransferRelation implements TransferRelation {
    * and the BitVectorManager. Both are used to build and manipulate BDDs,
    * that represent the regions. */
   public BDDTransferRelation(NamedRegionManager manager,
-      Configuration config, CFA cfa, BDDPrecision precision)
+      Configuration config, BDDRegionManager rmgr, CFA cfa, BDDPrecision precision)
       throws InvalidConfigurationException {
     config.inject(this);
 
-    this.bvmgr = new BitvectorManager(config);
+    this.bvmgr = new BitvectorManager(config, rmgr);
     this.rmgr = manager;
 
     assert cfa.getVarClassification().isPresent();

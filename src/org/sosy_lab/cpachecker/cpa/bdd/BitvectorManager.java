@@ -34,9 +34,9 @@ public class BitvectorManager {
 
   private BDDRegionManager rmgr;
 
-  public BitvectorManager(Configuration config)
+  public BitvectorManager(Configuration config, BDDRegionManager pRmgr)
       throws InvalidConfigurationException {
-    this.rmgr = BDDRegionManager.getInstance(config);
+    this.rmgr = pRmgr;
   }
 
   private int getBitSize(Region[] r1, Region[] r2) {

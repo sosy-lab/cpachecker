@@ -25,11 +25,14 @@ package org.sosy_lab.cpachecker.util.predicates.bdd;
 
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
+import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.logging.Level;
 
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -49,6 +52,8 @@ import com.google.common.collect.Maps;
 @Options(prefix = "bddregionmanager")
 public class BDDRegionManager implements RegionManager {
 
+  private static final Level LOG_LEVEL = Level.FINE;
+
   @Option(name = "package", description = "which bdd-package should be used? "
       + "\n- cudd:  CUDD-library, reordering not supported"
       + "\n- java:  JFactory, fallback for all other packages"
@@ -58,6 +63,7 @@ public class BDDRegionManager implements RegionManager {
   // documentation of the packages can be found at source of BDDFactory.init()
   private String BDD_PACKAGE = "cudd";
 
+  private final LogManager logger;
   private final BDDFactory factory;
   private final Region trueFormula;
   private final Region falseFormula;
@@ -67,9 +73,39 @@ public class BDDRegionManager implements RegionManager {
 
   private static BDDRegionManager instance;
 
-  private BDDRegionManager(Configuration config) throws InvalidConfigurationException {
+  private BDDRegionManager(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
+    logger = pLogger;
     factory = BDDFactory.init(BDD_PACKAGE, 10000, 1000);
+
+    // register callbacks for logging
+    try {
+      Method gcCallback = BDDRegionManager.class.getDeclaredMethod("gcCallback", new Class[]{Integer.class, BDDFactory.GCStats.class});
+      gcCallback.setAccessible(true);
+      factory.registerGCCallback(this, gcCallback);
+
+      Method resizeCallback = BDDRegionManager.class.getDeclaredMethod("resizeCallback", new Class[]{Integer.class, Integer.class});
+      resizeCallback.setAccessible(true);
+      factory.registerResizeCallback(this, resizeCallback);
+
+      Method reorderCallback = BDDRegionManager.class.getDeclaredMethod("reorderCallback", new Class[]{Integer.class, BDDFactory.ReorderStats.class});
+      reorderCallback.setAccessible(true);
+      factory.registerReorderCallback(this, reorderCallback);
+
+      // If we do not log, unregister the handlers to avoid the cost of
+      // calling them with reflection.
+      // Registering and immediately unregistering prevents the library
+      // from printing stuff to stdout.
+      if (!logger.wouldBeLogged(LOG_LEVEL)) {
+        factory.unregisterGCCallback(this, gcCallback);
+        factory.unregisterResizeCallback(this, resizeCallback);
+        factory.unregisterReorderCallback(this, reorderCallback);
+      }
+
+    } catch (NoSuchMethodException e) {
+      throw new AssertionError(e);
+    }
+
     factory.setVarNum(varcount);
     trueFormula = new BDDRegion(factory.one());
     falseFormula = new BDDRegion(factory.zero());
@@ -77,11 +113,48 @@ public class BDDRegionManager implements RegionManager {
 
   /** this method will return the same object at any call. the very first given
    *  configuration will be used, each other configuration will be ignored. */
-  public static BDDRegionManager getInstance(Configuration config) throws InvalidConfigurationException {
+  public static BDDRegionManager getInstance(Configuration config, LogManager logger) throws InvalidConfigurationException {
     if (instance == null) {
-      instance = new BDDRegionManager(config);
+      instance = new BDDRegionManager(config, logger);
     }
     return instance;
+  }
+
+  @SuppressWarnings("unused")
+  private void gcCallback(Integer pre, BDDFactory.GCStats stats) {
+    if (logger.wouldBeLogged(LOG_LEVEL)) {
+      switch (pre) {
+      case 1:
+        logger.log(LOG_LEVEL, "Starting BDD Garbage Collection");
+        break;
+      case 0:
+        logger.log(LOG_LEVEL, "Finished BDD", stats);
+        break;
+      default:
+        logger.log(LOG_LEVEL, stats);
+      }
+    }
+  }
+
+  @SuppressWarnings("unused")
+  private void resizeCallback(Integer oldSize, Integer newSize) {
+    logger.log(LOG_LEVEL, "BDD node table resized from", oldSize, "to", newSize);
+  }
+
+  @SuppressWarnings("unused")
+  private void reorderCallback(Integer pre, BDDFactory.ReorderStats stats) {
+    if (logger.wouldBeLogged(LOG_LEVEL)) {
+      switch (pre) {
+      case 1:
+        logger.log(LOG_LEVEL, "Starting BDD Reordering");
+        break;
+      case 0:
+        logger.log(LOG_LEVEL, "Finished BDD Reordering:", stats);
+        break;
+      default:
+        logger.log(LOG_LEVEL, stats);
+      }
+    }
   }
 
   private BDD createNewVar() {
