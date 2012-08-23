@@ -32,11 +32,6 @@ call "ant report-dependencies".
   Open-source license: license-cbmc.txt
   Bit-precise bounded model checker for C
 
-- libcudd.so: CUDD: CU Decision Diagram Package
-  http://vlsi.colorado.edu/~fabio/CUDD/
-  Open-source library: license-libcudd.txt
-  BDD library (used for predicate analysis)
-
 - csisat: CSIsat
   http://www.sosy-lab.org/~dbeyer/CSIsat/
   Apache License 2.0: ../License_Apache-2.0.txt

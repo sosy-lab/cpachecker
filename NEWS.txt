@@ -1,5 +1,7 @@
 Changes since CPAchecker 1.1
 ----------------------------
+* r6470: The Cudd BDD library was removed, now JavaBDD's implementation is used by default
+  (it has similar performance, but more features).
 * r6165: The ARTCPA was renamed to ARGCPA.
   Replace cpa.art with cpa.arg and ARTCPA with ARGCPA in your configuration files.
 * r6066: The option analysis.traversal.useTopsort (used in most configuration files)

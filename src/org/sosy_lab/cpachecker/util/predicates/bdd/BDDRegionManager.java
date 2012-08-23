@@ -51,19 +51,22 @@ import com.google.common.collect.Maps;
  * This class is not thread-safe, but it could be easily made so by synchronizing
  * the {@link #createNewVar()} method.
  */
-@Options(prefix = "bddregionmanager")
+@Options(prefix = "bdd")
 public class BDDRegionManager implements RegionManager {
 
   private static final Level LOG_LEVEL = Level.FINE;
 
-  @Option(name = "package", description = "which bdd-package should be used? "
-      + "\n- cudd:  CUDD-library, reordering not supported"
-      + "\n- java:  JFactory, fallback for all other packages"
-      + "\n- micro: MicroFactory, maximum number of BDD variables is 1024,"
-      + "\n         slow, but less memory-comsumption.",
-      values = { "cudd", "java", "micro" })
+  @Option(name="package",
+      description = "Which BDD package should be used?"
+      + "\n- java:  JavaBDD (default, no dependencies, many features)"
+      + "\n- cudd:  CUDD (native library required, reordering not supported)"
+      + "\n- micro: MicroFactory (maximum number of BDD variables is 1024, slow, but less memory-comsumption)"
+      + "\n- buddy: Buddy (native library required)"
+      + "\n- cal:   CAL (native library required)"
+      + "\n- jdd:   JDD",
+      values = {"java", "cudd", "micro", "buddy", "cal", "jdd"})
   // documentation of the packages can be found at source of BDDFactory.init()
-  private String BDD_PACKAGE = "cudd";
+  private String bddPackage = "java";
 
   private final LogManager logger;
   private final BDDFactory factory;
@@ -78,7 +81,7 @@ public class BDDRegionManager implements RegionManager {
   private BDDRegionManager(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
-    factory = BDDFactory.init(BDD_PACKAGE, 10000, 1000);
+    factory = BDDFactory.init(bddPackage, 10000, 1000);
 
     // register callbacks for logging
     try {

@@ -146,13 +146,16 @@ assumptions.automatonFile = "AssumptionAutomaton.txt"
 assumptions.export = true
 assumptions.file = "assumptions.txt"
 
-# which bdd-package should be used? 
-# - cudd:  CUDD-library, reordering not supported
-# - java:  JFactory, fallback for all other packages
-# - micro: MicroFactory, maximum number of BDD variables is 1024,
-#          slow, but less memory-comsumption.
-bddregionmanager.package = "cudd"
-  allowed values: [cudd, java, micro]
+# Which BDD package should be used?
+# - java:  JavaBDD (default, no dependencies, many features)
+# - cudd:  CUDD (native library required, reordering not supported)
+# - micro: MicroFactory (maximum number of BDD variables is 1024, slow, but
+# less memory-comsumption)
+# - buddy: Buddy (native library required)
+# - cal:   CAL (native library required)
+# - jdd:   JDD
+bdd.package = "java"
+  allowed values: [java, cudd, micro, buddy, cal, jdd]
 
 # Allow reduction of function entries; calculate abstractions alwasy at
 # function entries?
