@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
 
+import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
@@ -102,15 +103,16 @@ public class SmtInterpolTheoremProver implements TheoremProver {
 
   @Override
   public AllSatResult allSat(Formula f, Collection<Formula> formulas,
-                             RegionCreator rmgr, Timer timer) {
+                             RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) {
     checkNotNull(rmgr);
-    checkNotNull(timer);
+    checkNotNull(solveTime);
+    checkNotNull(enumTime);
 
     SmtInterpolEnvironment allsatEnv = mgr.createEnvironment();
     checkNotNull(allsatEnv);
 
     // create new allSatResult
-    SmtInterpolAllSatCallback result = new SmtInterpolAllSatCallback(rmgr, timer);
+    SmtInterpolAllSatCallback result = new SmtInterpolAllSatCallback(rmgr, solveTime, enumTime);
 
     allsatEnv.push(1);
 
@@ -121,6 +123,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
       importantTerms[i++] = getTerm(impF);
     }
 
+    solveTime.start();
     int numModels = 0;
     allsatEnv.assertTerm(getTerm(f));
     while (allsatEnv.checkSat() == LBool.SAT) {
@@ -160,6 +163,12 @@ public class SmtInterpolTheoremProver implements TheoremProver {
       allsatEnv.assertTerm(notTerm);
     }
 
+    if (solveTime.isRunning()) {
+      solveTime.stop();
+    } else {
+      enumTime.stopOuter();
+    }
+
     allsatEnv.pop(numModels + 1); // we pushed some levels on assertionStack, remove them
     return result;
   }
@@ -170,17 +179,20 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   class SmtInterpolAllSatCallback implements TheoremProver.AllSatResult {
     private final RegionCreator rmgr;
 
-    private final Timer totalTime;
+    private final Timer solveTime;
+    private final NestedTimer enumTime;
+    private Timer regionTime = null;
 
     private int count = 0;
 
     private Region formula;
     private final Deque<Region> cubes = new ArrayDeque<Region>();
 
-    public SmtInterpolAllSatCallback(RegionCreator rmgr, Timer timer) {
+    public SmtInterpolAllSatCallback(RegionCreator rmgr, Timer pSolveTime, NestedTimer pEnumTime) {
       this.rmgr = rmgr;
       this.formula = rmgr.makeFalse();
-      this.totalTime = timer;
+      this.solveTime = pSolveTime;
+      this.enumTime = pEnumTime;
     }
 
 /*
@@ -216,7 +228,13 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     }
 
     public void callback(Term[] model) { // TODO function needed for smtInterpol???
-      totalTime.start();
+      if (count == 0) {
+        solveTime.stop();
+        enumTime.startOuter();
+        regionTime = enumTime.getInnerTimer();
+      }
+
+      regionTime.start();
 
       // the abstraction is created simply by taking the disjunction
       // of all the models found by msat_all_sat, and storing them in a BDD
@@ -247,7 +265,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
 
       count++;
 
-      totalTime.stop();
+      regionTime.stop();
     }
   }
 }

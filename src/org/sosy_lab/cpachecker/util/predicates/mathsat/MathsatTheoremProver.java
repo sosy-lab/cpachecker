@@ -31,6 +31,7 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 
+import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
@@ -94,9 +95,10 @@ public class MathsatTheoremProver implements TheoremProver {
 
   @Override
   public AllSatResult allSat(Formula f, Collection<Formula> important,
-                             RegionCreator rmgr, Timer timer) {
+                             RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) {
     checkNotNull(rmgr);
-    checkNotNull(timer);
+    checkNotNull(solveTime);
+    checkNotNull(enumTime);
     long formula = getTerm(f);
 
     long allsatEnv = mgr.createEnvironment(true, true);
@@ -106,9 +108,16 @@ public class MathsatTheoremProver implements TheoremProver {
     for (Formula impF : important) {
       imp[i++] = getTerm(impF);
     }
-    MathsatAllSatCallback callback = new MathsatAllSatCallback(rmgr, timer);
+    MathsatAllSatCallback callback = new MathsatAllSatCallback(rmgr, solveTime, enumTime);
+    solveTime.start();
     msat_assert_formula(allsatEnv, formula);
     int numModels = msat_all_sat(allsatEnv, imp, callback);
+
+    if (solveTime.isRunning()) {
+      solveTime.stop();
+    } else {
+      enumTime.stopOuter();
+    }
 
     if (numModels == -1) {
       throw new RuntimeException("Error occurred during Mathsat allsat");
@@ -132,17 +141,20 @@ public class MathsatTheoremProver implements TheoremProver {
   static class MathsatAllSatCallback implements NativeApi.AllSatModelCallback, TheoremProver.AllSatResult {
     private final RegionCreator rmgr;
 
-    private final Timer totalTime;
+    private final Timer solveTime;
+    private final NestedTimer enumTime;
+    private Timer regionTime = null;
 
     private int count = 0;
 
     private Region formula;
     private final Deque<Region> cubes = new ArrayDeque<Region>();
 
-    public MathsatAllSatCallback(RegionCreator rmgr, Timer timer) {
+    public MathsatAllSatCallback(RegionCreator rmgr, Timer pSolveTime, NestedTimer pEnumTime) {
       this.rmgr = rmgr;
       this.formula = rmgr.makeFalse();
-      this.totalTime = timer;
+      this.solveTime = pSolveTime;
+      this.enumTime = pEnumTime;
     }
 
     public void setInfiniteNumberOfModels() {
@@ -177,7 +189,13 @@ public class MathsatTheoremProver implements TheoremProver {
 
     @Override
     public void callback(long[] model) {
-      totalTime.start();
+      if (count == 0) {
+        solveTime.stop();
+        enumTime.startOuter();
+        regionTime = enumTime.getInnerTimer();
+      }
+
+      regionTime.start();
 
       // the abstraction is created simply by taking the disjunction
       // of all the models found by msat_all_sat, and storing them
@@ -209,7 +227,7 @@ public class MathsatTheoremProver implements TheoremProver {
 
       count++;
 
-      totalTime.stop();
+      regionTime.stop();
     }
   }
 }

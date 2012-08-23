@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.Collection;
 
+import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
@@ -38,8 +39,19 @@ public interface TheoremProver {
   Model getModel();
   void reset();
 
+  /**
+   * Check a formula for satisfiability,
+   * and create a region representing all satisfying models of the formula.
+   *
+   * @param f The formula to check.
+   * @param important A set of variables appearing in f. Only these variables will appear in the region.
+   * @param mgr The object used for creating regions.
+   * @param solveTime A timer to use for time which the solver needs for finding out whether the formula is satisfiable (without enumerating all the models).
+   * @param regionTime A NestedTimer to use for timing model enumeration (outer: solver; inner: region creation).
+   * @return A region representing all satisfying models of the formula.
+   */
   AllSatResult allSat(Formula f, Collection<Formula> important,
-                      RegionCreator mgr, Timer timer);
+                      RegionCreator mgr, Timer solveTime, NestedTimer enumTime);
 
   interface AllSatResult {
 

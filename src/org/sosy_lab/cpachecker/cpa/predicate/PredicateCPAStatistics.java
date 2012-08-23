@@ -203,8 +203,9 @@ class PredicateCPAStatistics implements Statistics {
       out.println("Time for prec operator:              " + prec.totalPrecTime);
       if (prec.numAbstractions > 0) {
         out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
-        out.println("    Solving time:                    " + as.abstractionTime.printOuterSumTime() + " (Max: " + as.abstractionTime.printOuterMaxTime() + ")");
-        out.println("    Time for BDD construction:       " + as.abstractionTime.printInnerSumTime()   + " (Max: " + as.abstractionTime.printInnerMaxTime() + ")");
+        out.println("    Solving time:                    " + as.abstractionSolveTime + " (Max: " + as.abstractionSolveTime.printMaxTime() + ")");
+        out.println("    Model enumeration time:          " + Timer.formatTime(as.abstractionEnumTime.getOuterSumTime()-as.abstractionSolveTime.getSumTime()));
+        out.println("    Time for BDD construction:       " + as.abstractionEnumTime.printInnerSumTime()   + " (Max: " + as.abstractionEnumTime.printInnerMaxTime() + ")");
       }
 
       MergeOperator merge = cpa.getMergeOperator();
@@ -219,7 +220,7 @@ class PredicateCPAStatistics implements Statistics {
       if (domain.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for symbolic coverage checks: " + domain.symbolicCoverageCheckTimer);
       }
-      out.println("Total time for SMT solver (w/o itp): " + Timer.formatTime(solver.solverTime.getSumTime() + as.abstractionTime.getOuterSumTime()));
+      out.println("Total time for SMT solver (w/o itp): " + Timer.formatTime(solver.solverTime.getSumTime() + as.abstractionSolveTime.getSumTime() + as.abstractionEnumTime.getOuterSumTime()));
 
       if (trans.pathFormulaCheckTimer.getNumberOfIntervals() > 0 || trans.abstractionCheckTimer.getNumberOfIntervals() > 0) {
         out.println("Time for abstraction checks:       " + trans.abstractionCheckTimer);
