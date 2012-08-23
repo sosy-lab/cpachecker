@@ -48,14 +48,3 @@ call "ant report-dependencies".
   CPAchecker-specific license: license-libmathsatj.txt
   SMT-solver (used for predicate analysis)
   Source for Java wrapper library in native/source/libmathsatj/
-
-- libyices.so: Yices SMT solver
-  http://yices.csl.sri.com/
-  Binary-only license: http://yices.csl.sri.com/yices-newlicense.shtml
-  SMT-solver (used for predicate analysis)
-
-- yicesapijava.jar: Yices Java Lite API
-  http://atlantis.seidenberg.pace.edu/wiki/lep/Yices%20Java%20API%20Lite
-  Open source (license not specified)
-  Java wrapper library for Yices
-
