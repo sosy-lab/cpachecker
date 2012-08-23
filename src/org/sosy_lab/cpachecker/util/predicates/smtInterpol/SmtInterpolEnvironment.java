@@ -86,7 +86,10 @@ public class SmtInterpolEnvironment implements Script {
     }
   }
 
-  @Option(name="logfile", description="export solverqueries in smtlib-format")
+  @Option(description="Export solver queries in Smtlib format into a file.")
+  private boolean logAllQueries = false;
+
+  @Option(name="logfile", description="Export solver queries in Smtlib format into a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File smtLogfile = new File("smtinterpol.smt2");
 
@@ -119,19 +122,18 @@ public class SmtInterpolEnvironment implements Script {
     logger.setLevel(Level.OFF);
 
     SMTInterpol smtInterpol = new SMTInterpol(logger);
-    if (smtLogfile == null) { // option -noout
-      script = smtInterpol;
-
-    } else {
+    if (logAllQueries && smtLogfile != null) {
       String filename = getFilename(smtLogfile.getAbsolutePath());
       try {
         // create a thin wrapper around Benchmark,
         // this allows to write most formulas of the solver to outputfile
-        // TODO how much faster is SmtInterpol without this Wrapper?
         script = new LoggingScript(smtInterpol, filename, true);
       } catch (FileNotFoundException e) {
         e.printStackTrace();
       }
+
+    } else {
+      script = smtInterpol;
     }
 
     try {

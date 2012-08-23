@@ -312,6 +312,9 @@ cpa.bdd.addIncreasing = false
 # default bitsize for values and vars
 cpa.bdd.bitsize = 32
 
+# use a smaller bitsize for all vars, that have only discrete values
+cpa.bdd.compressDiscretes = false
+
 # initialize all variables to 0 when they are declared
 cpa.bdd.initAllVars = false
 
@@ -321,7 +324,7 @@ cpa.bdd.initBitsIncreasing = true
 # declare first bit of all vars, then second bit,...
 cpa.bdd.initBitwise = true
 
-# declare vars ordered in partitions
+# declare vars partitionwise
 cpa.bdd.initPartitions = true
 
 # declare partitions ordered
@@ -684,7 +687,8 @@ cpa.predicate.refinement.verifyInterpolants = false
 # blocksize)
 cpa.predicate.satCheck = 0
 
-# export solverqueries in smtlib-format
+# Export solver queries in Smtlib format into a file.
+cpa.predicate.smtinterpol.logAllQueries = false
 cpa.predicate.smtinterpol.logfile = "smtinterpol.smt2"
 
 # Whether to use MathSAT 4, MathSAT 5, or SmtInterpol as SMT solver
