@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.PrintStream;
+
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -144,8 +146,8 @@ public class SymbolicRegionManager implements RegionManager {
   }
 
   @Override
-  public String getStatistics() {
-    throw new UnsupportedOperationException();
+  public void printStatistics(PrintStream out) {
+    // do nothing
   }
 
 }

@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
@@ -66,10 +67,12 @@ class PredicateCPAStatistics implements Statistics {
 
     private final PredicateCPA cpa;
     private final BlockOperator blk;
+    private final RegionManager rmgr;
 
-    public PredicateCPAStatistics(PredicateCPA cpa, BlockOperator blk) throws InvalidConfigurationException {
+    public PredicateCPAStatistics(PredicateCPA cpa, BlockOperator blk, RegionManager rmgr) throws InvalidConfigurationException {
       this.cpa = cpa;
       this.blk = blk;
+      this.rmgr = rmgr;
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
     }
 
@@ -223,6 +226,8 @@ class PredicateCPAStatistics implements Statistics {
         out.println("Time for path formulae checks:     " + trans.pathFormulaCheckTimer + " (Num: " + as.numPathFormulaCoverageChecks + ", Equal: " + as.numEqualPathFormulae + ", Syn. entailed: " + as.numSyntacticEntailedPathFormulae + ", Sem. entailed: " + as.numSemanticEntailedPathFormulae + ")");
         out.println("Time for unsat checks:             " + trans.satCheckTimer + " (Calls: " + trans.satCheckTimer.getNumberOfIntervals() + ")");
       }
+      out.println();
+      rmgr.printStatistics(out);
     }
 
     private String toPercent(double val, double full) {

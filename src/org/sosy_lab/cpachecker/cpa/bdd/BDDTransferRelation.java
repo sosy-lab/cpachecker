@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 
 import static org.sosy_lab.cpachecker.util.VariableClassification.FUNCTION_RETURN_VARIABLE;
 
+import java.io.PrintStream;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
@@ -1290,10 +1291,9 @@ public class BDDTransferRelation implements TransferRelation {
     return null;
   }
 
-  @Override
-  public String toString() {
-    return "Number of created predicates: " + createdPredicates +
-        "\nNumber of deleted predicates: " + deletedPredicates +
-        "\n" + rmgr.getStatistics();
+  void printStatistics(PrintStream out) {
+    out.println("Number of created predicates:        " + createdPredicates);
+    out.println("Number of deleted predicates:        " + deletedPredicates);
+    rmgr.printStatistics(out);
   }
 }

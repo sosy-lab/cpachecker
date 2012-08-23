@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.bdd;
 
+import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.reflect.Method;
@@ -33,6 +34,7 @@ import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -154,6 +156,25 @@ public class BDDRegionManager implements RegionManager {
       default:
         logger.log(LOG_LEVEL, stats);
       }
+    }
+  }
+
+  @Override
+  public void printStatistics(PrintStream out) {
+    try {
+      out.println("Number of BDD nodes:                 " + factory.getNodeNum());
+      out.println("Size of BDD node table:              " + factory.getNodeTableSize());
+
+      // cache size is currently always 1000
+      //out.println("Size of BDD cache:                   " + factory.getCacheSize());
+
+      BDDFactory.GCStats stats = factory.getGCStats();
+      out.println("Time for BDD garbage collection:     " + Timer.formatTime(stats.sumtime) + " (in " + stats.num + " runs)");
+      // unfortunately, factory.getCacheStats() returns an empty object
+      // because statistics collection for the cache is disabled in the library
+    } catch (UnsupportedOperationException e) {
+      // Not all factories might have all statistics supported.
+      // As statistics are not that important, just ignore it.
     }
   }
 
@@ -313,17 +334,7 @@ public class BDDRegionManager implements RegionManager {
     return result;
   }
 
-  public int getNumberOfNodes() {
-    return factory.getNodeNum();
-  }
-
   public String getVersion() {
     return factory.getVersion();
-  }
-
-  @Override
-  public String getStatistics() {
-    return "Number of nodes:              " + getNumberOfNodes() +
-         "\nTablesize:                    " + factory.getNodeTableSize() + "\n";
   }
 }

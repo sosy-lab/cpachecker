@@ -64,7 +64,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   private final BDDPrecision precision;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
-  private final TransferRelation transferRelation;
+  private final BDDTransferRelation transferRelation;
 
   private BDDCPA(CFA cfa, Configuration config, LogManager logger)
       throws InvalidConfigurationException {
@@ -119,7 +119,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
       @Override
       public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-        out.append(transferRelation.toString());
+        transferRelation.printStatistics(out);
       }
 
       @Override

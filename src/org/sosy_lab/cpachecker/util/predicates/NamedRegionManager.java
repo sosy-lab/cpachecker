@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -69,11 +70,6 @@ public class NamedRegionManager implements RegionManager {
       regionMap.put(pName, result);
     }
     return result;
-  }
-
-  /** returns the number of named regions, this excludes anonymous regions */
-  public int getNumberOfNamedRegions() {
-    return regionMap.size() - anonymousPredicateCounter;
   }
 
   @Override
@@ -242,8 +238,8 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public String getStatistics() {
-    return "Number of named predicates:   " + getNumberOfNamedRegions() + "\n" +
-        delegate.getStatistics();
+  public void printStatistics(PrintStream out) {
+    out.println("Number of named predicates:          " + (regionMap.size() - anonymousPredicateCounter));
+    delegate.printStatistics(out);
   }
 }
