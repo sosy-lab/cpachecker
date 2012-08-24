@@ -593,7 +593,7 @@ public class VariableClassification {
       }
 
       // for numeral values
-      BigInteger val2 = getNumber(exp.getOperand1());
+      BigInteger val2 = getNumber(exp.getOperand2());
       Multimap<String, String> operand2;
       if (val2 == null) {
         operand2 = exp.getOperand2().accept(this);
