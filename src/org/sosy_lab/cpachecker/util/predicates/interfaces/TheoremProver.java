@@ -27,6 +27,7 @@ import java.util.Collection;
 
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 
@@ -36,7 +37,7 @@ public interface TheoremProver {
   void push(Formula f);
   void pop();
   boolean isUnsat();
-  Model getModel();
+  Model getModel() throws SolverException;
   void reset();
 
   /**

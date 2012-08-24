@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.Model.Function;
@@ -120,11 +121,18 @@ public class Mathsat5Model {
     }
   }
 
-  static Model createMathsatModel(long lMathsatEnvironmentID, Mathsat5FormulaManager fmgr) {
+  static Model createMathsatModel(long lMathsatEnvironmentID, Mathsat5FormulaManager fmgr) throws SolverException {
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
     long modelFormula = msat_make_true(lMathsatEnvironmentID);
 
-    ModelIterator lModelIterator = msat_create_ModelIterator(lMathsatEnvironmentID);
+    ModelIterator lModelIterator;
+    try {
+      lModelIterator = msat_create_ModelIterator(lMathsatEnvironmentID);
+    } catch (IllegalArgumentException e) {
+      // creating the iterator may fail,
+      // for example if some theories were disabled in the solver but are needed
+      throw new SolverException("Model iterator could not be created", e);
+    }
 
     while (lModelIterator.hasNext()) {
       long[] lModelElement = lModelIterator.next();

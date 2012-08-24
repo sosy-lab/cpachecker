@@ -824,7 +824,7 @@ public abstract class InterpolationManager<I> {
     Formula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
 
     if (branchingFormula.isTrue()) {
-      return new CounterexampleTraceInfo<I>(f, pItpProver.getModel(), Collections.<Integer, Boolean>emptyMap());
+      return new CounterexampleTraceInfo<I>(f, getModel(pItpProver), Collections.<Integer, Boolean>emptyMap());
     }
 
     // add formula to solver environment
@@ -835,7 +835,7 @@ public abstract class InterpolationManager<I> {
     boolean stillSatisfiable = !pItpProver.isUnsat();
 
     if (stillSatisfiable) {
-      Model model = pItpProver.getModel();
+      Model model = getModel(pItpProver);
       return new CounterexampleTraceInfo<I>(f, model, pmgr.getBranchingPredicateValuesFromModel(model));
 
     } else {
@@ -850,6 +850,15 @@ public abstract class InterpolationManager<I> {
     }
   }
 
+  private <T> Model getModel(InterpolatingTheoremProver<T> pItpProver) {
+    try {
+      return pItpProver.getModel();
+    } catch (SolverException e) {
+      logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
+      logger.logDebugException(e);
+      return new Model(fmgr); // return empty model
+    }
+  }
 
   public CounterexampleTraceInfo<I> checkPath(List<CFAEdge> pPath) throws CPATransferException {
     Formula f = pmgr.makeFormulaForPath(pPath).getFormula();
@@ -861,12 +870,23 @@ public abstract class InterpolationManager<I> {
       if (thmProver.isUnsat()) {
         return new CounterexampleTraceInfo<I>();
       } else {
-        return new CounterexampleTraceInfo<I>(Collections.singletonList(f), thmProver.getModel(), ImmutableMap.<Integer, Boolean>of());
+        return new CounterexampleTraceInfo<I>(Collections.singletonList(f), getModel(thmProver), ImmutableMap.<Integer, Boolean>of());
       }
     } finally {
       thmProver.reset();
     }
   }
+
+  private <T> Model getModel(TheoremProver thmProver) {
+    try {
+      return thmProver.getModel();
+    } catch (SolverException e) {
+      logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
+      logger.logDebugException(e);
+      return new Model(fmgr); // return empty model
+    }
+  }
+
 
   /**
    * Helper method to dump a list of formulas to files.

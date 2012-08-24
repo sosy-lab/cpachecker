@@ -33,6 +33,7 @@ import java.util.Deque;
 
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -59,7 +60,7 @@ public class Mathsat5TheoremProver implements TheoremProver {
   }
 
   @Override
-  public Model getModel() {
+  public Model getModel() throws SolverException {
     Preconditions.checkState(curEnv != 0);
 
     return Mathsat5Model.createMathsatModel(curEnv, mgr);

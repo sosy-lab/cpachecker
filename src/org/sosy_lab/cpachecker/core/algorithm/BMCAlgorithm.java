@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.predicates.Model;
@@ -288,21 +289,32 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         return;
       }
 
+      Model model;
+
       // add formula to solver environment
       prover.push(branchingFormula);
+      try {
 
-      // need to ask solver for satisfiability again,
-      // otherwise model doesn't contain new predicates
-      boolean stillSatisfiable = !prover.isUnsat();
+        // need to ask solver for satisfiability again,
+        // otherwise model doesn't contain new predicates
+        boolean stillSatisfiable = !prover.isUnsat();
 
-      if (!stillSatisfiable) {
-        // should not occur
-        logger.log(Level.WARNING, "Could not create error path information because of inconsistent branching information!");
-        return;
+        if (!stillSatisfiable) {
+          // should not occur
+          logger.log(Level.WARNING, "Could not create error path information because of inconsistent branching information!");
+          return;
+        }
+
+        try {
+          model = prover.getModel();
+        } catch (SolverException e) {
+          logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
+          logger.logDebugException(e);
+          return;
+        }
+      } finally {
+        prover.pop(); // remove branchingFormula
       }
-
-      Model model = prover.getModel();
-      prover.pop(); // remove branchingFormula
 
 
       // get precise error path
@@ -327,7 +339,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       if (prover.isUnsat()) {
         logger.log(Level.WARNING, "Inconsistent replayed error path!");
       } else {
-        model = prover.getModel();
+        try {
+          model = prover.getModel();
+        } catch (SolverException e) {
+          logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
+          logger.logDebugException(e);
+          return;
+        }
       }
 
       // create and store CounterexampleInfo object
