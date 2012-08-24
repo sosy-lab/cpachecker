@@ -584,6 +584,10 @@ cpa.predicate.lvalsAsUIFs = false
 cpa.predicate.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
 
+# Export solver queries in Smtlib format into a file (for Mathsat5).
+cpa.predicate.mathsat.logAllQueries = false
+cpa.predicate.mathsat.logfile = "mathsat5.%d.smt2"
+
 # use a combination of theories (this is incomplete)
 cpa.predicate.mathsat.useDtc = false
 
