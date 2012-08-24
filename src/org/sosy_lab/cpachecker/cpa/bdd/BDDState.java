@@ -72,7 +72,10 @@ public class BDDState implements AbstractState {
   public BDDState join(BDDState other) {
     assert this.functionName.equals(other.functionName) : "same function needed: "
         + this.functionName + " vs " + other.functionName;
-    this.currentVars.addAll(other.currentVars); // some vars more make no difference
+
+    // vars are shared over all states of a function
+    assert this.currentVars == other.currentVars;
+    assert this.functionCallState == other.functionCallState;
 
     Region result = manager.makeOr(this.currentState, other.currentState);
 
