@@ -49,7 +49,7 @@ import com.google.common.collect.Maps;
  * A wrapper for the javabdd (http://javabdd.sf.net) package.
  *
  * This class is not thread-safe, but it could be easily made so by synchronizing
- * the {@link #createNewVar()} method.
+ * the {@link #createNewVar()} method (assuming the BDDFactory is thread-safe).
  */
 @Options(prefix = "bdd")
 public class BDDRegionManager implements RegionManager {
@@ -73,10 +73,8 @@ public class BDDRegionManager implements RegionManager {
   private final Region trueFormula;
   private final Region falseFormula;
 
-  private static int nextvar = 0;
-  private static int varcount = 100;
-
-  private static BDDRegionManager instance;
+  private int nextvar = 0;
+  private int varcount = 100;
 
   private BDDRegionManager(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
@@ -116,13 +114,9 @@ public class BDDRegionManager implements RegionManager {
     falseFormula = new BDDRegion(factory.zero());
   }
 
-  /** this method will return the same object at any call. the very first given
-   *  configuration will be used, each other configuration will be ignored. */
+  /** Instantiate a new BDDRegionManager */
   public static BDDRegionManager getInstance(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    if (instance == null) {
-      instance = new BDDRegionManager(config, logger);
-    }
-    return instance;
+    return new BDDRegionManager(config, logger);
   }
 
   @SuppressWarnings("unused")
