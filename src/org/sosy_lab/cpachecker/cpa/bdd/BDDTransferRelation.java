@@ -30,11 +30,9 @@ import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -86,6 +84,7 @@ import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
@@ -122,6 +121,9 @@ public class BDDTransferRelation implements TransferRelation {
   private final VariableClassification varClass;
   private final Map<Multimap<String, String>, String> varsToTmpVar =
       new HashMap<Multimap<String, String>, String>();
+
+  /** This map is used for scoping vars. It contains all used vars of a function. */
+  private final Multimap<String, Region> functionToVars = ArrayListMultimap.create();
 
   private final BitvectorManager bvmgr;
   private final NamedRegionManager rmgr;
@@ -457,8 +459,7 @@ public class BDDTransferRelation implements TransferRelation {
         }
       }
 
-      result = new BDDState(rmgr, state.getFunctionCallState(), newRegion,
-          state.getVars(), cfaEdge.getPredecessor().getFunctionName());
+      result = new BDDState(rmgr, newRegion, cfaEdge.getPredecessor().getFunctionName());
     }
 
     assert !result.getRegion().isFalse();
@@ -501,7 +502,8 @@ public class BDDTransferRelation implements TransferRelation {
           // track vars, so we can delete them after returning from a function,
           // see handleFunctionReturnEdge(...) for detail.
           if (!vdecl.isGlobal()) {
-            state.getVars().add(var);
+            assert function != null;
+            functionToVars.put(function, var);
           }
 
           // initializer on RIGHT SIDE available, make region for it
@@ -509,8 +511,7 @@ public class BDDTransferRelation implements TransferRelation {
             BDDBooleanCExpressionVisitor ev = new BDDBooleanCExpressionVisitor(state, precision);
             Region regRHS = init.accept(ev);
             newRegion = addEquality(var, regRHS, newRegion);
-            return new BDDState(rmgr, state.getFunctionCallState(), newRegion,
-                state.getVars(), cfaEdge.getPredecessor().getFunctionName());
+            return new BDDState(rmgr, newRegion, cfaEdge.getPredecessor().getFunctionName());
           }
 
         } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
@@ -520,8 +521,9 @@ public class BDDTransferRelation implements TransferRelation {
           // track vars, so we can delete them after returning from a function,
           // see handleFunctionReturnEdge(...) for detail.
           if (!vdecl.isGlobal()) {
+            assert function != null;
             for (int i = 0; i < var.length; i++) {
-              state.getVars().add(var[i]);
+              functionToVars.put(function, var[i]);
             }
           }
 
@@ -530,8 +532,7 @@ public class BDDTransferRelation implements TransferRelation {
             BDDVectorCExpressionVisitor ev = new BDDVectorCExpressionVisitor(state, precision, partition);
             Region[] regRHS = init.accept(ev);
             newRegion = addEquality(var, regRHS, newRegion);
-            return new BDDState(rmgr, state.getFunctionCallState(), newRegion,
-                state.getVars(), cfaEdge.getPredecessor().getFunctionName());
+            return new BDDState(rmgr, newRegion, cfaEdge.getPredecessor().getFunctionName());
           }
 
         } else if (varClass.getSimpleCalcPartitions().contains(partition)) {
@@ -541,8 +542,9 @@ public class BDDTransferRelation implements TransferRelation {
           // track vars, so we can delete them after returning from a function,
           // see handleFunctionReturnEdge(...) for detail.
           if (!vdecl.isGlobal()) {
+            assert function != null;
             for (int i = 0; i < var.length; i++) {
-              state.getVars().add(var[i]);
+              functionToVars.put(function, var[i]);
             }
           }
 
@@ -551,8 +553,7 @@ public class BDDTransferRelation implements TransferRelation {
             BDDVectorCExpressionVisitor ev = new BDDVectorCExpressionVisitor(state, precision);
             Region[] regRHS = init.accept(ev);
             newRegion = addEquality(var, regRHS, newRegion);
-            return new BDDState(rmgr, state.getFunctionCallState(), newRegion,
-                state.getVars(), cfaEdge.getPredecessor().getFunctionName());
+            return new BDDState(rmgr, newRegion, cfaEdge.getPredecessor().getFunctionName());
           }
         }
       }
@@ -567,9 +568,7 @@ public class BDDTransferRelation implements TransferRelation {
    * all arg-param-pairs are added to the BDDstate to get the next state. */
   private BDDState handleFunctionCallEdge(BDDState state, CFunctionCallEdge cfaEdge,
       BDDPrecision precision) throws UnrecognizedCCodeException {
-
     Region newRegion = state.getRegion();
-    Set<Region> newVars = new LinkedHashSet<Region>();
 
     // overtake arguments from last functioncall into function,
     // get args from functioncall and make them equal with params from functionstart
@@ -578,12 +577,13 @@ public class BDDTransferRelation implements TransferRelation {
     String innerFunctionName = cfaEdge.getSuccessor().getFunctionName();
     assert args.size() == params.size();
 
+    assert !functionToVars.containsKey(innerFunctionName) : "recursive function is not allowed";
+
     for (int i = 0; i < args.size(); i++) {
 
       // make variable (predicate) for param, this variable is not global (->false)
       String varName = params.get(i).getName();
       String scopedVarName = buildVarName(innerFunctionName, varName);
-      assert !newVars.contains(scopedVarName) : "variable used twice as param: " + scopedVarName;
 
       // make region for arg and build equality of var and arg
       if (precision.isTracking(innerFunctionName, varName)) {
@@ -594,7 +594,7 @@ public class BDDTransferRelation implements TransferRelation {
           BDDBooleanCExpressionVisitor ev = new BDDBooleanCExpressionVisitor(state, precision);
           Region arg = args.get(i).accept(ev);
           newRegion = addEquality(var, arg, newRegion);
-          newVars.add(var);
+          functionToVars.put(innerFunctionName, var);
 
         } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
           Region[] var = createPredicates(scopedVarName, partitionToBitsize(partition));
@@ -602,21 +602,22 @@ public class BDDTransferRelation implements TransferRelation {
           Region[] arg = args.get(i).accept(ev);
           newRegion = addEquality(var, arg, newRegion);
           for (int j = 0; j < var.length; j++) {
-            newVars.add(var[j]);
+            functionToVars.put(innerFunctionName, var[j]);
           }
+
         } else if (varClass.getSimpleCalcPartitions().contains(partition)) {
           Region[] var = createPredicates(scopedVarName, bitsize);
           BDDVectorCExpressionVisitor ev = new BDDVectorCExpressionVisitor(state, precision);
           Region[] arg = args.get(i).accept(ev);
           newRegion = addEquality(var, arg, newRegion);
           for (int j = 0; j < var.length; j++) {
-            newVars.add(var[j]);
+            functionToVars.put(innerFunctionName, var[j]);
           }
         }
       }
     }
 
-    return new BDDState(rmgr, state, newRegion, newVars, innerFunctionName);
+    return new BDDState(rmgr, newRegion, innerFunctionName);
   }
 
   /** This function handles functionReturns like "y=f(x)".
@@ -627,10 +628,13 @@ public class BDDTransferRelation implements TransferRelation {
       BDDPrecision precision) {
     Region newRegion = state.getRegion();
 
+    String outerFunctionName = cfaEdge.getSuccessor().getFunctionName();
+
     // delete variables from returning function,
     // this results in a smaller BDD and allows to call a function twice.
-    for (Region r : state.getVars()) {
-      newRegion = removePredicate(newRegion, r);
+    Collection<Region> innerVars = functionToVars.removeAll(state.getFunctionName());
+    if (innerVars.size() > 0) {
+      newRegion = removePredicate(newRegion, innerVars.toArray(new Region[0]));
     }
 
     // set result of function equal to variable on left side
@@ -644,8 +648,7 @@ public class BDDTransferRelation implements TransferRelation {
 
       // make variable (predicate) for LEFT SIDE of assignment,
       // delete variable, if it was used before, this is done with an existential operator
-      BDDState functionCall = state.getFunctionCallState();
-      String function = isGlobal(lhs) ? null : functionCall.getFunctionName();
+      String function = isGlobal(lhs) ? null : outerFunctionName;
       String varName = lhs.toASTString();
 
       Partition partition = varClass.getPartitionForEdge(cfaEdge);
@@ -712,9 +715,7 @@ public class BDDTransferRelation implements TransferRelation {
       assert false;
     }
 
-    return new BDDState(rmgr, state.getFunctionCallState().getFunctionCallState(),
-        newRegion, state.getFunctionCallState().getVars(),
-        cfaEdge.getSuccessor().getFunctionName());
+    return new BDDState(rmgr, newRegion, outerFunctionName);
   }
 
   /** This function handles functionStatements like "return (x)".
@@ -770,8 +771,7 @@ public class BDDTransferRelation implements TransferRelation {
         newRegion = addEquality(retvar, regRHS, newRegion);
       }
 
-      return new BDDState(rmgr, state.getFunctionCallState(), newRegion,
-          state.getVars(), cfaEdge.getPredecessor().getFunctionName());
+      return new BDDState(rmgr, newRegion, cfaEdge.getPredecessor().getFunctionName());
     }
     return state;
   }
@@ -816,8 +816,7 @@ public class BDDTransferRelation implements TransferRelation {
     if (newRegion.isFalse()) { // assumption is not fulfilled / not possible
       return null;
     } else {
-      return new BDDState(rmgr, state.getFunctionCallState(), newRegion,
-          state.getVars(), cfaEdge.getPredecessor().getFunctionName());
+      return new BDDState(rmgr, newRegion, cfaEdge.getPredecessor().getFunctionName());
     }
   }
 

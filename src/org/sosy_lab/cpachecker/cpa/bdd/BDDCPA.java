@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,7 +50,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
@@ -99,8 +97,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    return new BDDState(manager, null, manager.makeTrue(),
-        new LinkedHashSet<Region>(), node.getFunctionName());
+    return new BDDState(manager, manager.makeTrue(), node.getFunctionName());
   }
 
   @Override
@@ -124,7 +121,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
       @Override
       public String getName() {
-        return "BDDVectorCPA";
+        return "BDDCPA";
       }
     });
   }
