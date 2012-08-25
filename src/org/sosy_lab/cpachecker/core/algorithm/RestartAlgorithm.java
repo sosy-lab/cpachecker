@@ -130,7 +130,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  @Option(description = "list of files with configurations to use")
+  @Option(required=true, description = "list of files with configurations to use")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private List<File> configFiles;
 
