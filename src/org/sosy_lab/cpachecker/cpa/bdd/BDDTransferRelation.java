@@ -84,7 +84,7 @@ import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
-import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
@@ -123,7 +123,7 @@ public class BDDTransferRelation implements TransferRelation {
       new HashMap<Multimap<String, String>, String>();
 
   /** This map is used for scoping vars. It contains all used vars of a function. */
-  private final Multimap<String, Region> functionToVars = ArrayListMultimap.create();
+  private final Multimap<String, Region> functionToVars = HashMultimap.create();
 
   private final BitvectorManager bvmgr;
   private final NamedRegionManager rmgr;
@@ -577,8 +577,6 @@ public class BDDTransferRelation implements TransferRelation {
     String innerFunctionName = cfaEdge.getSuccessor().getFunctionName();
     assert args.size() == params.size();
 
-    assert !functionToVars.containsKey(innerFunctionName) : "recursive function is not allowed";
-
     for (int i = 0; i < args.size(); i++) {
 
       // make variable (predicate) for param, this variable is not global (->false)
@@ -632,7 +630,7 @@ public class BDDTransferRelation implements TransferRelation {
 
     // delete variables from returning function,
     // this results in a smaller BDD and allows to call a function twice.
-    Collection<Region> innerVars = functionToVars.removeAll(state.getFunctionName());
+    Collection<Region> innerVars = functionToVars.get(state.getFunctionName());
     if (innerVars.size() > 0) {
       newRegion = removePredicate(newRegion, innerVars.toArray(new Region[0]));
     }
