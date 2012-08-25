@@ -40,7 +40,8 @@ public class CreateObjects {
 	public static void main(
 			String[] args) { 
 	  
-	  
+	
+
 	  CreateObjects object1 = new CreateObjects(2);
 	  
 	  CreateObjects object3 = new CreateObjects();
@@ -58,8 +59,6 @@ public class CreateObjects {
 	  
 	  assert  object4.getId() == 0;
 	  assert  object6.getId() == 1;
-	  
-	  
 	}
-	
+	  
 }

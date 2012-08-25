@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanzeCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JObjectReferenceReturn;
@@ -84,10 +85,12 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
 public class JortTransferRelation implements TransferRelation {
 
-  private static final String NOT_IN_OBJECT_SCOPE = "";
+  private static final String NOT_IN_OBJECT_SCOPE = JortState.NULL_REFERENCE;
   private static final int RETURN_EDGE = 0;
   private final Set<String> staticFieldVariables = new HashSet<String>();
   private final Set<String> nonStaticFieldVariables = new HashSet<String>();
+
+  private static int  nextFreeId = 0;
 
  // private String missingInformationLeftVariable  = null;
  // private IARightHandSide missingInformationRightExpression = null;
@@ -160,7 +163,9 @@ public class JortTransferRelation implements TransferRelation {
       // this is a statement edge which leads the function to the
       // last node of its CFA, where return edge is from that last node
       // to the return site of the caller function
-      handleExitFromFunction(element, returnEdge.getExpression(), returnEdge);
+      if(returnEdge.getExpression() != null){
+        handleExitFromFunction(element, returnEdge.getExpression(), returnEdge);
+      }
       break;
 
     // edge is a declaration edge, e.g. int a;
@@ -213,7 +218,7 @@ public class JortTransferRelation implements TransferRelation {
 
 
       // field variables without initializer are set to null
-      initialValue = "null";
+      initialValue = JortState.NULL_REFERENCE;
     }
 
     // get initial value
@@ -232,7 +237,7 @@ public class JortTransferRelation implements TransferRelation {
       newElement.assignObject(scopedVarName, initialValue);
     } else {
       // variable References without Objects are null
-      newElement.assignObject(scopedVarName, "null");
+      newElement.assignObject(scopedVarName, JortState.NULL_REFERENCE);
     }
   }
 
@@ -405,33 +410,49 @@ public class JortTransferRelation implements TransferRelation {
 
     AFunctionCallExpression functionCall = callEdge.getSummaryEdge().getExpression().getFunctionCallExpression();
 
+
+    // There are four possibilities when assigning this and the new object Scope.
+    // First: A New Object is created, which is the new classObject scope
     if(functionCall instanceof JClassInstanzeCreation) {
       AReturnStatementEdge returnEdge =  (AReturnStatementEdge) functionEntryNode.getExitNode().getEnteringEdge(RETURN_EDGE);
       String uniqueObject = ((JExpression) returnEdge.getExpression()).accept(  new FunctionExitValueVisitor(returnEdge, newElement, calledFunctionName));
-      newElement.assignObject(getScopedVariableName("this", calledFunctionName , newElement.getClassObjectScope()), uniqueObject);
-      newElement.assignObjectScope(newElement.getUniqueObjectFor(getScopedVariableName("this", calledFunctionName, newElement.getClassObjectScope())));
+      newElement.assignThisAndNewObjectScope(uniqueObject);
 
-    }  else if(functionCall instanceof JReferencedMethodInvocationExpression) {
+      // Second: A Referenced Method Invocation, the new scope is the unique Object
+      // of its reference variable
+    } else if(functionCall instanceof JReferencedMethodInvocationExpression) {
       JReferencedMethodInvocationExpression objectMethodInvocation = (JReferencedMethodInvocationExpression) functionCall;
       IASimpleDeclaration variableReference = objectMethodInvocation.getReferencedVariable();
 
       if( newElement.contains(getScopedVariableName(variableReference.getName(), callerFunctionName, newElement.getClassObjectScope()))){
-        newElement.assignObjectScope( newElement.getUniqueObjectFor(getScopedVariableName(variableReference.getName(), callerFunctionName, newElement.getClassObjectScope())));
+        newElement.assignThisAndNewObjectScope( newElement.getUniqueObjectFor(getScopedVariableName(variableReference.getName(), callerFunctionName, newElement.getClassObjectScope())));
       } else {
-        newElement.assignObjectScope(NOT_IN_OBJECT_SCOPE);
+        // When the object of the variable can't be found
+        newElement.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);
       }
+      // Third, a unreferenced Method Invocation
+    } else if (functionCall instanceof JMethodInvocationExpression) {
 
+      JMethodDeclaration decl = (JMethodDeclaration) ((JMethodInvocationExpression)functionCall).getDeclaration();
 
+      // If the method isn't static, the object  scope remains the same
+      if(decl.isStatic()) {
+        newElement.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);
+      }else {
+       newElement.assignThisAndNewObjectScope(newElement.getUniqueObjectFor(JortState.KEYWORD_THIS));
+      }
+     // Fourth, the method Invocation can't be handled
     } else {
-      newElement.assignObjectScope(NOT_IN_OBJECT_SCOPE);
+      newElement.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);
     }
-
     return newElement;
   }
 
   private String getScopedVariableName(String variableName, String functionName, String uniqueObject) {
 
-
+    if(variableName.equals(JortState.KEYWORD_THIS)) {
+      return variableName;
+    }
 
     if (staticFieldVariables.contains(variableName)) {
       return variableName;
@@ -580,7 +601,7 @@ public class JortTransferRelation implements TransferRelation {
 
     @Override
     public String visit(JNullLiteralExpression pJNullLiteralExpression) throws UnrecognizedCCodeException {
-      return "null";
+      return JortState.NULL_REFERENCE;
     }
 
   }
@@ -589,4 +610,11 @@ public class JortTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> strengthen(AbstractState element, List<AbstractState> elements, CFAEdge cfaEdge, Precision precision) throws CPATransferException, InterruptedException {
     return null;
   }
+
+  public static int nextId(){
+    nextFreeId++;
+    return nextFreeId;
+
+  }
+
 }

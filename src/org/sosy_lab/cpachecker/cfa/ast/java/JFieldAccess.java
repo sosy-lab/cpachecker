@@ -21,42 +21,29 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.ast.java;
+
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+public class JFieldAccess extends JIdExpression {
 
-import com.google.common.base.Function;
+  private final JVariableDeclaration referencedVariable;
 
-public abstract class AstNode implements IAstNode , CAstNode{
+  public JFieldAccess(CFileLocation pFileLocation, JType pType, String pName, JFieldDeclaration pDeclaration, JVariableDeclaration pReferencedVariable) {
+    super(pFileLocation, pType, pName, pDeclaration);
+    referencedVariable = pReferencedVariable;
 
-  private final CFileLocation fileLocation;
-
-  public AstNode(final CFileLocation pFileLocation) {
-    fileLocation = pFileLocation;
   }
 
   @Override
-  public CFileLocation getFileLocation() {
-    return fileLocation;
+  public JFieldDeclaration getDeclaration() {
+    return (JFieldDeclaration) super.getDeclaration();
   }
 
-  @Override
-  public String toParenthesizedASTString() {
-    return "(" + toASTString() + ")";
+  public JVariableDeclaration getReferencedVariable() {
+    return referencedVariable;
   }
 
-  @Override
-  public String toString() {
-    return toASTString();
-  }
-
-  public static final Function<IAstNode, String> TO_AST_STRING
-      = new Function<IAstNode, String>() {
-
-        @Override
-        public String apply(IAstNode pInput) {
-          return pInput.toASTString();
-        }
-      };
 }

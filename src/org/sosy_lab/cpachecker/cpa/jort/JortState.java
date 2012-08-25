@@ -39,6 +39,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 public class JortState implements AbstractState {
 
 
+  public static final String KEYWORD_THIS = "this";
+
+
+  public static final String NULL_REFERENCE = "null";
+
   /**
    * the map that keeps the name of ReferenceVariables and their constant  Java Run Time Class Objects
    */
@@ -64,11 +69,6 @@ public class JortState implements AbstractState {
 
 
   /**
-   * Gives every RunTimeObject its unique Identification
-   */
-  private final ObjectIdGenerator idGenerator;
-
-  /**
    * Marks the current unique Object Scope this states belons to.
    */
   private String classObjectScope;
@@ -82,23 +82,19 @@ public class JortState implements AbstractState {
     constantsMap = new HashMap<String, String>();
     identificationMap = new HashMap<String, String>();
     classTypeMap = new HashMap<String, String>();
-    idGenerator = new ObjectIdGenerator();
     classObjectStack = new Stack<String>();
-    classObjectStack.push("");
-    classObjectScope = "";
-  //  toBeErased = new HashSet<String>();
+    classObjectScope = NULL_REFERENCE;
+    constantsMap.put(KEYWORD_THIS, NULL_REFERENCE);
   }
 
   private JortState(Map<String, String> pConstantsMap,
       Map<String, String> pIdentificationMap, Map<String, String> pClassTypeMap,
-      ObjectIdGenerator pIdGenerator, String pClassObjectScope, Stack<String> pClassObjectStack) {
+      String pClassObjectScope, Stack<String> pClassObjectStack) {
     constantsMap = pConstantsMap;
     identificationMap = pIdentificationMap;
     classTypeMap = pClassTypeMap;
-    idGenerator = pIdGenerator;
     classObjectStack = pClassObjectStack;
     classObjectScope = pClassObjectScope;
-   // toBeErased = pToBeErased;
   }
 
   /**
@@ -113,11 +109,7 @@ public class JortState implements AbstractState {
     checkNotNull(object);
 
     if(constantsMap.containsValue(object)){
-    //  String oldValue = constantsMap.get(variableName);
       constantsMap.put(variableName, object);
-    // if(oldValue != null && !oldValue.equals("null") && !constantsMap.containsValue(oldValue)){
-       // forgetObject(oldValue);
-    //  }
     } else {
       assignNewUniqueObject(variableName, object);
     }
@@ -126,7 +118,6 @@ public class JortState implements AbstractState {
   private void forgetObject(String value) {
     identificationMap.remove(value);
     classTypeMap.remove(value);
-   // toBeErased.add(value);
   }
 
   /**
@@ -142,10 +133,10 @@ public class JortState implements AbstractState {
 
     String iD ;
 
-    if(javaRunTimeClassName.equals("null")){
+    if(javaRunTimeClassName.equals(NULL_REFERENCE)){
      iD = "";
     } else {
-     iD = idGenerator.getnextId();
+     iD = Integer.toString(JortTransferRelation.nextId());
     }
 
     String uniqueObject = javaRunTimeClassName + iD;
@@ -157,7 +148,7 @@ public class JortState implements AbstractState {
   void forget(String variableName) {
     String oldValue = constantsMap.get(variableName);
 
-    if(oldValue != null && !oldValue.equals("null") && !constantsMap.containsValue(oldValue)){
+    if(oldValue != null && !oldValue.equals(NULL_REFERENCE) && !constantsMap.containsValue(oldValue)){
      forgetObject(oldValue);
     }
 
@@ -165,7 +156,9 @@ public class JortState implements AbstractState {
   }
 
   /**
-   * This method drops all entries belonging to the stack frame of a function. This method should be called right before leaving a function.
+   * This method drops all entries belonging to the stack frame of a function.
+   * Additionally, it retrieves the Object scope of the returned to function.
+   * This method should be called right before leaving a function.
    *
    * @param functionName the name of the function that is about to be left
    */
@@ -182,10 +175,16 @@ public class JortState implements AbstractState {
       constantsMap.remove(variableNameToDrop);
     }
 
-    classObjectScope = classObjectStack.pop();
+    retrieveObjectScope();
   }
 
-   String getUniqueObjectFor(String variableName) {
+   private void retrieveObjectScope() {
+    // TODO Own Exception for Stack is empty
+    classObjectScope = classObjectStack.pop();
+    assignObject(KEYWORD_THIS, classObjectScope);
+  }
+
+  public String getUniqueObjectFor(String variableName) {
     return checkNotNull(constantsMap.get(variableName));
   }
 
@@ -202,7 +201,7 @@ public class JortState implements AbstractState {
     return iD;
   }
 
-   boolean contains(String variableName) {
+  public boolean contains(String variableName) {
     return constantsMap.containsKey(variableName);
   }
 
@@ -250,7 +249,7 @@ public class JortState implements AbstractState {
 
     //TODO Exception for unequal Scope
 
-    return new JortState(newConstantsMap, newIdentificationMap, newClassTypeMap, idGenerator, classObjectScope, classObjectStack);
+    return new JortState(newConstantsMap, newIdentificationMap, newClassTypeMap, classObjectScope, classObjectStack);
   }
 
   /**
@@ -296,7 +295,7 @@ public class JortState implements AbstractState {
       Stack<String> newClassObjectStack = new Stack<String>();
       newClassObjectStack.addAll(classObjectStack);
       //TODO Investigate if this works
-    return new JortState(new HashMap<String, String>(constantsMap), new HashMap<String, String>(identificationMap), new HashMap<String, String>(classTypeMap), new ObjectIdGenerator(idGenerator.nextFreeId), new String(classObjectScope), newClassObjectStack);
+    return new JortState(new HashMap<String, String>(constantsMap), new HashMap<String, String>(identificationMap), new HashMap<String, String>(classTypeMap), new String(classObjectScope), newClassObjectStack);
   }
 
   @Override
@@ -356,7 +355,7 @@ public class JortState implements AbstractState {
     return constantsMap;
   }
 
-  public String getClassObjectScope() {
+  String getClassObjectScope() {
     return classObjectScope;
   }
 
@@ -364,42 +363,26 @@ public class JortState implements AbstractState {
     this.classObjectScope = classObjectScope;
   }
 
-  public Stack<String> getClassObjectStack() {
+  Stack<String> getClassObjectStack() {
     return classObjectStack;
   }
 
-  private class ObjectIdGenerator {
+  /**
+   * Assigns a new Object Scope either from a run Time Type, or a unique Object.
+   * In case of RunTimeTyp, a new unique object will be created,
+   * In case of unique Object, it will simply be referenced to this and the object scope
+   *
+   * @param scope
+   */
+   void assignThisAndNewObjectScope(String scope) {
+    classObjectStack.push(classObjectScope);
+    assignObject(KEYWORD_THIS, scope);
+    classObjectScope = getKeywordThisUniqueObject();
 
 
-    public ObjectIdGenerator() {
-    }
-
-    public ObjectIdGenerator(int startWith) {
-      nextFreeId = startWith--;
-    }
-
-    private int nextFreeId = 0;
-
-    private int nextId(){
-      nextFreeId++;
-      return nextFreeId;
-
-    }
-
-
-
-    String getnextId() {
-      int id = nextId();
-      return Integer.toString(id);
-    }
   }
 
-   void assignObjectScope(String scope) {
-    classObjectScope = scope;
-    classObjectStack.push(scope);
-  }
-
-//  public Set<String> getToBeErased() {
-  //  return toBeErased;
- // }
+   public String getKeywordThisUniqueObject(){
+     return getUniqueObjectFor(KEYWORD_THIS);
+   }
 }

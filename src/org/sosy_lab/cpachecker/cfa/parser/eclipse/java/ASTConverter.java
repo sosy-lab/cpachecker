@@ -106,6 +106,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanzeCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
@@ -313,6 +314,9 @@ public class ASTConverter {
       return convertClassType(t);
     } else if(t.isInterface()){
       return convertInterfaceType(t);
+    } else if(t.isEnum()) {
+      //TODO Implement Enums
+      return new JSimpleType(JBasicType.UNSPECIFIED);
     }
 
     assert false : "Could Not Find Type";
@@ -335,10 +339,10 @@ public class ASTConverter {
 
   public JClassType convertClassType(ITypeBinding t) {
 
-      assert t.isClass();
+      assert t.isClass() ||t.isEnum();
 
       ModifierBean mB = ModifierBean.getModifiers(t);
-      return new JClassType(t.getQualifiedName().replace('.', '_'), mB.getVisibility(), mB.isFinal, mB.isAbstract, mB.isStrictFp);
+      return new JClassType(getFullyQualifiedClassName(t), mB.getVisibility(), mB.isFinal, mB.isAbstract, mB.isStrictFp);
   }
 
 
@@ -425,6 +429,7 @@ public class ASTConverter {
 
 
 
+
   @SuppressWarnings("unchecked")
   public List<IADeclaration> convert(FieldDeclaration fd){
 
@@ -433,6 +438,7 @@ public class ASTConverter {
     Type type = fd.getType();
 
     CFileLocation fileLoc  = getFileLocation(fd);
+    @SuppressWarnings("unchecked")
     ModifierBean mB = ModifierBean.getModifiers(fd.modifiers());
 
     assert(!mB.isAbstract) : "Field Variable has this modifier?";
@@ -446,9 +452,19 @@ public class ASTConverter {
       Triple<String , String , AInitializerExpression> nameAndInitializer = getNamesAndInitializer(vdf);
 
 
+      AInitializerExpression initializer = nameAndInitializer.getThird();
+
+      // If Fields are initialized with methods, insert assignment when appropriate
+      // (With static variables in the Beginning, with non static at Constructor start)
+      if(!preSideAssignments.isEmpty() && preSideAssignments.getLast() instanceof AFunctionCallAssignmentStatement) {
+        //TODO track initializer and insert assignment when appropriate
+        initializer = null;
+        preSideAssignments.clear();
+      }
+
       result.add( new JFieldDeclaration(fileLoc, GLOBAL,
           convert(type) ,    nameAndInitializer.getFirst() ,nameAndInitializer.getSecond().replace('.', '.'),
-             nameAndInitializer.getThird(),  mB.isFinal, mB.isStatic, mB.isTransient, mB.isVolatile , mB.getVisibility()));
+            initializer,  mB.isFinal, mB.isStatic, mB.isTransient, mB.isVolatile , mB.getVisibility()));
 
     }
     return result;
@@ -552,7 +568,6 @@ public class ASTConverter {
         visibility = VisibilityModifier.NONE;
       }
 
-
       return new ModifierBean(isFinal, isStatic, isVolatile, isTransient, visibility,
           isNative, isAbstract, isStrictFp, isSynchronized);
 
@@ -635,17 +650,16 @@ public class ASTConverter {
             assert false : " Unkown  Modifier";
 
           }
-
-          // If no VisibilityModifier was given
-          if(visibility == null){
-            visibility = VisibilityModifier.NONE;
-          }
-
         }
       }
+
+      // If no VisibilityModifier was given
+      if(visibility == null){
+        visibility = VisibilityModifier.NONE;
+      }
+
       return new ModifierBean(isFinal, isStatic, isVolatile, isTransient, visibility,
           isNative, isAbstract, isStrictFp, isSynchronized);
-
     }
 
     public VisibilityModifier getVisibility(){
@@ -740,7 +754,7 @@ public class ASTConverter {
 
    assert(!mB.isAbstract) : "Local Variable has abstract modifier?";
    assert(!mB.isNative) : "Local Variable has native modifier?";
-   assert(mB.visibility == null) : "Local Variable has Visibility modifier?";
+   assert(mB.visibility == VisibilityModifier.NONE) : "Local Variable has Visibility modifier?";
    assert(!mB.isStatic) : "Local Variable has static modifier?";
    assert(!mB.isStrictFp) : "Local Variable has strictFp modifier?";
    assert(!mB.isSynchronized) : "Local Variable has synchronized modifier?";
@@ -767,7 +781,7 @@ public class ASTConverter {
 
     assert(!mB.isAbstract) : "Local Variable has abstract modifier?";
     assert(!mB.isNative) : "Local Variable has native modifier?";
-    assert(mB.visibility != null) : "Local Variable has Visibility modifier?";
+    assert(mB.visibility == VisibilityModifier.NONE) : "Local Variable has Visibility modifier?";
     assert(!mB.isStatic) : "Local Variable has static modifier?";
     assert(!mB.isStrictFp) : "Local Variable has strictFp modifier?";
     assert(!mB.isSynchronized) : "Local Variable has synchronized modifier?";
@@ -1064,6 +1078,13 @@ public class ASTConverter {
 
     JConstructorDeclaration declaration = (JConstructorDeclaration) scope.lookupFunction(name);
 
+    if(declaration == null) {
+      //TODO ugly, search for a way to get legitimate Declarations
+
+      declaration = new JConstructorDeclaration(getFileLocation(cIC), new JConstructorType( new JClassType( "dummy" , VisibilityModifier.PUBLIC, false, false, false), new ArrayList<AParameterDeclaration>(), false), name, VisibilityModifier.PUBLIC, false);
+
+    }
+
     //TODO Investigate if type Right
     IAExpression functionName = new JIdExpression(getFileLocation(cIC), convert(cIC.resolveTypeBinding()), name,  declaration);
     JIdExpression idExpression = (JIdExpression)functionName;
@@ -1078,8 +1099,9 @@ public class ASTConverter {
 
       JConstructorType type = null;
 
-      if(declaration != null){
+    //  if(declaration != null){
         type = declaration.getType();
+        /*
       } else {
 
         boolean isVarargs = false;
@@ -1097,6 +1119,7 @@ public class ASTConverter {
 
         type = new JConstructorType( classType  ,  new ArrayList<AParameterDeclaration>() ,isVarargs);
       }
+      */
 
 //TODO getDeclaration somehow (Needs to be done after everything is parsed)
     return new JClassInstanzeCreation(getFileLocation(cIC), type , (JExpression) functionName, params, declaration);
@@ -1175,21 +1198,45 @@ public class ASTConverter {
     return new AArraySubscriptExpression(getFileLocation(e), convert(e.resolveTypeBinding()), subscriptExpression , index);
   }
 
+
   private IAstNode convert(QualifiedName e) {
 
-    String name;
+    String name = null;
     IASimpleDeclaration declaration = null;
+
+    if(((IVariableBinding)e.resolveBinding()).isEnumConstant()) {
+      //TODO Prototype for enum constant expression, investigate
+      return new AStringLiteralExpression(getFileLocation(e), convert(e.resolveTypeBinding()) , name);
+    }
 
     if(e.resolveBinding() instanceof IMethodBinding ){
       name = getFullyQualifiedMethodName((IMethodBinding) e.resolveBinding());
-    } else {
-      name = e.getFullyQualifiedName().replace('.', '_');
+    } else if(e.resolveBinding() instanceof IVariableBinding){
+      // TODO Resolve a chain of qualifier
+
+      name = e.getFullyQualifiedName();
+      IVariableBinding vb = (IVariableBinding) e.resolveBinding();
       declaration = scope.lookupVariable(name);
+
+      if(declaration == null) {
+        // TODO If can't be Found, create declaration (ugly , needs to be changed so that only one Declaration is ever created
+        ModifierBean mb = ModifierBean.getModifiers(vb.getModifiers());
+
+
+        declaration = new JFieldDeclaration(getFileLocation(e), vb.isField(), convert(e.resolveTypeBinding()), getFullyQualifiedName(vb), getFullyQualifiedName(vb), null, mb.isFinal(), mb.isStatic(), mb.isTransient(), mb.isVolatile, mb.visibility);
+      }
+
+      JExpression idExp = convertExpressionWithoutSideEffects( e.getQualifier());
+
+      if(idExp instanceof JIdExpression) {
+        JVariableDeclaration refDeclaration = (JVariableDeclaration) ((JIdExpression) idExp).getDeclaration();
+        return new JFieldAccess(getFileLocation(e), convert(e.resolveTypeBinding()), name, (JFieldDeclaration) declaration, refDeclaration);
+      }
+
+    } else {
+      name = e.getFullyQualifiedName();
     }
 
-    if (declaration != null) {
-      name = declaration.getName();
-    }
 
     return new JIdExpression(getFileLocation(e), convert(e.resolveTypeBinding()), name, declaration);
   }
@@ -1218,9 +1265,9 @@ public class ASTConverter {
   @SuppressWarnings({ "unchecked", "cast" })
   private IAstNode convert(MethodInvocation mi) {
 
-    boolean couldResolveBinding = mi.resolveMethodBinding() != null;
+    boolean canBeResolve = mi.resolveMethodBinding() != null;
 
-    if(couldResolveBinding) {
+    if(canBeResolve) {
       scope.registerClasses(mi.resolveMethodBinding().getDeclaringClass());
     }
 
@@ -1240,8 +1287,10 @@ public class ASTConverter {
     JExpression referencedVariableName = null;
 
 
-    if (couldResolveBinding) {
-      ModifierBean mb = ModifierBean.getModifiers(mi.resolveMethodBinding());
+    ModifierBean mb = null;
+
+    if (canBeResolve) {
+      mb = ModifierBean.getModifiers(mi.resolveMethodBinding());
 
       if (!mb.isStatic) {
         referencedVariableName = convertExpressionWithoutSideEffects(mi.getExpression());
@@ -1255,21 +1304,21 @@ public class ASTConverter {
       declaration = scope.lookupFunction( name);
 
       if (idExpression.getDeclaration() != null) {
-        // clone idExpression because the declaration in it is wrong
-        // or the method not yet parsed
-        // (it's the declaration of an equally named variable
-        //   or the method is part of another class )
         // TODO this is ugly
 
         functionName = new JIdExpression(idExpression.getFileLocation(), idExpression.getExpressionType(), name, declaration);
       }
     }
 
+    if( canBeResolve && declaration == null) {
+      declaration = new JMethodDeclaration(getFileLocation(mi), new AFunctionType( new JClassType( "dummy" , VisibilityModifier.PUBLIC, false, false, false), new ArrayList<AParameterDeclaration>(), false), functionName.toASTString(), VisibilityModifier.PUBLIC, mb.isFinal , mb.isAbstract, mb.isStatic ,mb.isNative ,mb.isSynchronized, mb.isStrictFp );
+    }
+
     if(referencedVariableName == null){
+
     return new JMethodInvocationExpression(getFileLocation(mi), convert(mi.resolveTypeBinding()), functionName, params, declaration);
     } else {
       String variableName = convertExpressionWithoutSideEffects(mi.getExpression()).toASTString();
-
 
       IASimpleDeclaration referencedVariable = scope.lookupVariable(variableName);
       return new JReferencedMethodInvocationExpression(getFileLocation(mi), convert(mi.resolveTypeBinding()), functionName, params, declaration, referencedVariable);
@@ -1297,11 +1346,27 @@ public class ASTConverter {
       IBinding binding = e.resolveBinding();
 
       if (binding instanceof IVariableBinding) {
+
+
+
         name = getFullyQualifiedName((IVariableBinding) binding);
+
+
         declaration = scope.lookupVariable(name);
+
+        if(declaration == null) {
+          // TODO If can't be Found, create declaration (ugly , needs to be changed so that only one Declaration is ever created)
+          IVariableBinding vb = (IVariableBinding) binding;
+          declaration = new JVariableDeclaration(getFileLocation(e), vb.isField(), convert(e.resolveTypeBinding()), getFullyQualifiedName(vb), getFullyQualifiedName(vb), null, false);
+        }
+
       } else if (binding instanceof IMethodBinding) {
         name = getFullyQualifiedMethodName((IMethodBinding) binding);
+        declaration = scope.lookupFunction(name);
+      } else if(binding instanceof ITypeBinding){
+        name = e.getIdentifier();
       }
+
     } else {
       name = e.getIdentifier();
     }
@@ -1519,7 +1584,7 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
 
   private BinaryOperator convertBinaryOperator(InfixExpression.Operator op) {
 
-    //TODO implement eager operator Needs own class (Do enums  work here?)
+
     if(op.equals(InfixExpression.Operator.PLUS)){
       return BinaryOperator.PLUS;
     } else if (op.equals(InfixExpression.Operator.MINUS)) {
@@ -1701,15 +1766,13 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
     }
   }
 
-  public AReturnStatement getConstructorObjectReturn(MethodDeclaration constructor) {
+  AReturnStatement getConstructorObjectReturn(ITypeBinding declaringClass , CFileLocation constructorFileLoc) {
 
-    assert constructor.isConstructor() : "Method " + constructor.toString() + " is no Contructor";
-
-    CFileLocation constructorFileLoc = getFileLocation(constructor);
+    assert declaringClass.isClass() : "Method " + declaringClass.getName() + " is no Contructor";
 
     CFileLocation fileloc= new CFileLocation(constructorFileLoc.getEndingLineNumber(), constructorFileLoc.getFileName(), NO_LINE, constructorFileLoc.getEndingLineNumber(), constructorFileLoc.getEndingLineNumber());
 
-    JClassType objectReturnType = (JClassType) convert(constructor.resolveBinding().getDeclaringClass());
+    JClassType objectReturnType = (JClassType) convert(declaringClass);
 
     //TODO Ugly, change AStringLiteral, maybe complete new Type for Object return
     return new JObjectReferenceReturn(fileloc, new AStringLiteralExpression(fileloc, objectReturnType, objectReturnType.getName()), objectReturnType);
@@ -1731,4 +1794,27 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
   public AExpressionAssignmentStatement getBooleanAssign(IAExpression pLeftHandSide, boolean booleanLiteral) {
     return new AExpressionAssignmentStatement(pLeftHandSide.getFileLocation(), pLeftHandSide, new JBooleanLiteralExpression(pLeftHandSide.getFileLocation(),new JSimpleType(JBasicType.BOOLEAN), booleanLiteral));
   }
+
+  public String getFullyQualifiedClassName(ITypeBinding classBinding) {
+    return classBinding.getQualifiedName().replace('.', '_');
+  }
+
+  public JMethodDeclaration createDefaultConstructor(ITypeBinding classBinding) {
+
+    @SuppressWarnings({ "cast", "unchecked" })
+    List<AParameterDeclaration> param = new LinkedList<AParameterDeclaration>();
+
+
+    // TODO File Location of Default Constructor???
+    CFileLocation fileLoc = new CFileLocation(0, "", 0, 0, 0);
+
+    JConstructorType type = new JConstructorType((JClassType) convert( classBinding), param , false);
+    return new JConstructorDeclaration(fileLoc, type , getFullyQualifiedDefaultConstructorName(classBinding) , VisibilityModifier.PUBLIC  , false);
+  }
+
+  private String getFullyQualifiedDefaultConstructorName(ITypeBinding classBinding) {
+
+    return (classBinding.getQualifiedName().replace('.', '_') + "_" + classBinding.getName()).replace('.', '_');
+  }
+
 }

@@ -49,6 +49,7 @@ import org.eclipse.jdt.core.dom.DoStatement;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.ForStatement;
+import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.LabeledStatement;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
@@ -64,7 +65,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanzeCreation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
@@ -201,6 +202,39 @@ class CFAFunctionBuilder extends ASTVisitor {
     assert cfa == null;
 
     final JMethodDeclaration fdef = astCreator.convert(declaration);
+
+    handleMethodDeclaration(fdef);
+
+    //If Declaration is Constructor add non static field member Declarations
+    if(declaration.isConstructor()){
+      addNonStaticFieldMember();
+    }
+
+    // Check if method has a body. Interface methods are always marked with abstract.
+    if(!fdef.isAbstract() && !fdef.isNative()){
+      // Stop , and manually go to Block, to protect parameter variables to be processed
+      // more than one time
+      declaration.getBody().accept(this);
+    }
+
+    return SKIP_CHILDS;
+  }
+
+
+  private void addNonStaticFieldMember() {
+    for(Pair<IADeclaration, String> decl : nonStaticFieldDeclarations){
+      List<IADeclaration> arr = new ArrayList<IADeclaration>();
+      arr.add(decl.getFirst());
+
+      locStack.push( addDeclarationsToCFA( arr,  decl.getFirst().getFileLocation().getStartingLineNumber(), decl.getSecond(), locStack.poll()));
+
+    }
+  }
+
+  private void handleMethodDeclaration( JMethodDeclaration fdef) {
+
+
+
     final String nameOfFunction = fdef.getName();
     assert !nameOfFunction.isEmpty();
 
@@ -230,27 +264,9 @@ class CFAFunctionBuilder extends ASTVisitor {
         startNode, nextNode, "Function start dummy edge");
     addToCFA(dummyEdge);
 
-    //If Declaration is Constructor add non static field member Declarations
-    if(declaration.isConstructor()){
-      //TODO ugly , define new function for addDecl
-      for(Pair<IADeclaration, String> decl : nonStaticFieldDeclarations){
-        List<IADeclaration> arr = new ArrayList<IADeclaration>();
-        arr.add(decl.getFirst());
 
-        locStack.push( addDeclarationsToCFA( arr,  decl.getFirst().getFileLocation().getStartingLineNumber(), decl.getSecond(), locStack.poll()));
-
-      }
-    }
-
-    // Check if method has a body. Interface methods are always marked with abstract.
-    if(!fdef.isAbstract() && !fdef.isNative()){
-      // Stop , and manually go to Block, to protect parameter variables to be processed
-      // more than one time
-      declaration.getBody().accept(this);
-    }
-
-    return SKIP_CHILDS;
   }
+
 
   @Override
   public boolean visit(final VariableDeclarationStatement sd) {
@@ -283,6 +299,35 @@ class CFAFunctionBuilder extends ASTVisitor {
     return SKIP_CHILDS;
   }
 
+
+  private void handleReturnFromObject(CFileLocation fileloc, String rawSignature, ITypeBinding cb) {
+
+     assert cb.isClass() : cb.getName() + "is no Object Return";
+
+     CFANode prevNode = locStack.pop();
+     FunctionExitNode functionExitNode = cfa.getExitNode();
+
+
+     AReturnStatement cfaObjectReturn = astCreator.getConstructorObjectReturn(cb, fileloc);
+
+
+
+     // If return expression is function
+     prevNode = handleSideassignments(prevNode, rawSignature, fileloc.getStartingLineNumber());
+
+
+     //TODO toString() not allowed
+     AReturnStatementEdge edge = new AReturnStatementEdge("",
+      cfaObjectReturn , fileloc.getStartingLineNumber(), prevNode, functionExitNode);
+     addToCFA(edge);
+
+     CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(),
+         cfa.getFunctionName());
+     cfaNodes.add(nextNode);
+     locStack.push(nextNode);
+
+   }
+
   @Override
   public void endVisit(MethodDeclaration declaration) {
 
@@ -292,61 +337,47 @@ class CFAFunctionBuilder extends ASTVisitor {
       if(declaration.isConstructor()){
 
         CFileLocation fileloc = astCreator.getFileLocation(declaration);
-        CFANode prevNode = locStack.pop();
-        FunctionExitNode functionExitNode = cfa.getExitNode();
-
-
-        AReturnStatement cfaObjectReturn = astCreator.getConstructorObjectReturn(declaration);
-
-        // If return expression is function
-        prevNode = handleSideassignments(prevNode, declaration.toString(), fileloc.getStartingLineNumber());
-
-
-        //TODO toString() not allowed
-        AReturnStatementEdge edge = new AReturnStatementEdge("",
-         cfaObjectReturn , fileloc.getStartingLineNumber(), prevNode, functionExitNode);
-        addToCFA(edge);
-
-        CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(),
-            cfa.getFunctionName());
-        cfaNodes.add(nextNode);
-        locStack.push(nextNode);
+        handleReturnFromObject(fileloc, declaration.toString(), declaration.resolveBinding().getDeclaringClass());
       }
 
+      handleEndVisitMethodDeclaration();
+
+  }
 
 
-      if (locStack.size() != 1) {
-        throw new CFAGenerationRuntimeException("Depth wrong. Geoff needs to do more work");
-      }
-
-      CFANode lastNode = locStack.pop();
-
-      if (isReachableNode(lastNode)) {
-        BlankEdge blankEdge = new BlankEdge("",
-            lastNode.getLineNumber(), lastNode, cfa.getExitNode(), "default return");
-        addToCFA(blankEdge);
-      }
+private void handleEndVisitMethodDeclaration(){
 
 
+  if (locStack.size() != 1) {
+    throw new CFAGenerationRuntimeException("Depth wrong. Geoff needs to do more work");
+  }
 
-      Set<CFANode> reachableNodes = CFATraversal.dfs().collectNodesReachableFrom(cfa);
+  CFANode lastNode = locStack.pop();
 
-
-      Iterator<CFANode> it = cfaNodes.iterator();
-      while (it.hasNext()) {
-        CFANode n = it.next();
-
-        if (!reachableNodes.contains(n)) {
-          // node was created but isn't part of CFA (e.g. because of dead code)
-          it.remove(); // remove n from currentCFANodes
-        }
-      }
-
-      scope.leaveFunction();
+  if (isReachableNode(lastNode)) {
+    BlankEdge blankEdge = new BlankEdge("",
+        lastNode.getLineNumber(), lastNode, cfa.getExitNode(), "default return");
+    addToCFA(blankEdge);
   }
 
 
 
+  Set<CFANode> reachableNodes = CFATraversal.dfs().collectNodesReachableFrom(cfa);
+
+
+  Iterator<CFANode> it = cfaNodes.iterator();
+  while (it.hasNext()) {
+    CFANode n = it.next();
+
+    if (!reachableNodes.contains(n)) {
+      // node was created but isn't part of CFA (e.g. because of dead code)
+      it.remove(); // remove n from currentCFANodes
+    }
+  }
+
+  scope.leaveFunction();
+
+}
 
 
   /**
@@ -418,10 +449,6 @@ class CFAFunctionBuilder extends ASTVisitor {
 
 
   private CFANode addDeclarationsToCFA(final List<IADeclaration> declList, int filelocStart ,String rawSignature , CFANode prevNode) {
-
-
-
-
 
     CFANode middleNode = new CFANode(filelocStart, cfa.getFunctionName());
     cfaNodes.add(middleNode);
@@ -722,23 +749,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    cfaNodes.add(lastNode);
 
    if(astCreator.getConditionalExpression() != null) {
-     ConditionalExpression condExp = astCreator.getConditionalExpression();
-     astCreator.resetConditionalExpression();
-
-     //unpack unaryExpressions if there are some
-     ASTNode parentExp = condExp.getParent();
-     while(parentExp.getNodeType() == ASTNode.PARENTHESIZED_EXPRESSION
-            || parentExp.getNodeType() == ASTNode.POSTFIX_EXPRESSION
-            || parentExp.getNodeType() == ASTNode.PREFIX_EXPRESSION) {
-       parentExp = parentExp.getParent();
-     }
-
-     //evaluates to true if the ternary expressions return value is not used (i. e. var==0 ? 0 : 1;)
-     if(parentExp.getNodeType() == ASTNode.EXPRESSION_STATEMENT) {
-       handleTernaryStatement(condExp, prevNode, lastNode);
-     } else {
-       handleTernaryExpression(condExp, prevNode, lastNode, statement);
-     }
+     handleConditionalStatement(prevNode, lastNode, statement);
 
    } else {
      CFANode nextNode = handleSideassignments(prevNode, rawSignature, statement.getFileLocation().getStartingLineNumber());
@@ -769,6 +780,36 @@ class CFAFunctionBuilder extends ASTVisitor {
    return SKIP_CHILDS;
 
  }
+
+
+
+ private void handleConditionalStatement( CFANode prevNode , CFANode lastNode , IAStatement statement){
+
+   ConditionalExpression condExp = astCreator.getConditionalExpression();
+   astCreator.resetConditionalExpression();
+
+   //unpack unaryExpressions if there are some
+   ASTNode parentExp = condExp.getParent();
+   while(parentExp.getNodeType() == ASTNode.PARENTHESIZED_EXPRESSION
+          || parentExp.getNodeType() == ASTNode.POSTFIX_EXPRESSION
+          || parentExp.getNodeType() == ASTNode.PREFIX_EXPRESSION) {
+     parentExp = parentExp.getParent();
+   }
+
+   //evaluates to true if the ternary expressions return value is not used (i. e. var==0 ? 0 : 1;)
+   if(parentExp.getNodeType() == ASTNode.EXPRESSION_STATEMENT) {
+     handleTernaryStatement(condExp, prevNode, lastNode);
+   } else {
+     handleTernaryExpression(condExp, prevNode, lastNode, statement);
+   }
+
+ }
+
+
+
+
+
+
 /*
  private void resolveBooleanAssignment(Expression condition,
     IAExpression variableExpression, CFANode prevNode , CFANode lastNode) {
@@ -1628,19 +1669,19 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
     final int filelocStart = fileloc.getStartingLineNumber();
 
     // build condition, left part, "a"
-    final IAExpression switchExpr =
-        switchExprStack.peek();
+    final JExpression switchExpr =
+        (JExpression) switchExprStack.peek();
 
     // build condition, right part, "2"
-    final IAExpression caseExpr =
+    final JExpression caseExpr =
         astCreator.convertExpressionWithoutSideEffects(statement
             .getExpression());
 
     // build condition, "a==2", TODO correct type?
-    final ABinaryExpression binExp =
-        new ABinaryExpression(fileloc,
-            switchExpr.getExpressionType(), switchExpr, caseExpr,
-            org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS);
+    final JBinaryExpression binExp =
+        new JBinaryExpression(fileloc,
+            (JType) switchExpr.getExpressionType(), switchExpr, caseExpr,
+            JBinaryExpression.BinaryOperator.EQUALS);
 
     // build condition edges, to caseNode with "a==2", to notCaseNode with "!(a==2)"
     final CFANode rootNode = switchCaseStack.pop();
@@ -2110,6 +2151,11 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
 
     CFANode prevNode = locStack.pop();
 
+    CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(),
+        cfa.getFunctionName());
+    cfaNodes.add(nextNode);
+
+
     FunctionExitNode functionExitNode = cfa.getExitNode();
 
     AReturnStatement cfaReturnStatement = astCreator.convert(returnStatement);
@@ -2117,13 +2163,15 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
     // If return expression is function
     prevNode = handleSideassignments(prevNode, returnStatement.toString(), fileloc.getStartingLineNumber());
 
+    // TODO After String is supported, delete this
+    if(astCreator.getConditionalExpression() != null) {
+      astCreator.resetConditionalExpression();
+    }
+
     AReturnStatementEdge edge = new AReturnStatementEdge(returnStatement.toString(),
         cfaReturnStatement , fileloc.getStartingLineNumber(), prevNode, functionExitNode);
     addToCFA(edge);
 
-    CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(),
-        cfa.getFunctionName());
-    cfaNodes.add(nextNode);
     locStack.push(nextNode);
 
     return SKIP_CHILDS;
@@ -2136,5 +2184,19 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
    */
   private void addToCFA(CFAEdge edge) {
     CFACreationUtils.addEdgeToCFA(edge, logger);
+  }
+
+  public void createDefaultConstructor(ITypeBinding classBinding) {
+
+    if (locStack.size() != 0) { throw new CFAGenerationRuntimeException("Nested function declarations?"); }
+
+    assert cfa == null;
+
+    final JMethodDeclaration fdef = astCreator.createDefaultConstructor(classBinding);
+    handleMethodDeclaration(fdef);
+    addNonStaticFieldMember();
+    handleReturnFromObject(new CFileLocation(0, "", 0, 0, 0), classBinding.getName(), classBinding);
+    handleEndVisitMethodDeclaration();
+
   }
 }

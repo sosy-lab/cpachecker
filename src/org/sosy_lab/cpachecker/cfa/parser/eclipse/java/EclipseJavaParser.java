@@ -114,7 +114,11 @@ public  class EclipseJavaParser implements CParser {
         qualifiedNameOfMainClass = fileName.substring(START_OF_STRING, fileName.length() - 5);
       }
 
-      rootPath = pFileName.substring( START_OF_STRING , pFileName.length() - packageString.length() - fileName.length() - 1) ;
+      if(packageString.length() == 0) {
+        rootPath = pFileName.substring( START_OF_STRING , pFileName.length() - fileName.length());
+      } else {
+        rootPath = pFileName.substring( START_OF_STRING , pFileName.length() - packageString.length() - fileName.length() - 1);
+      }
 
       CompilationUnit unit = parse(file);
 

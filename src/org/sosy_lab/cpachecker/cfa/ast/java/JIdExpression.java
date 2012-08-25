@@ -33,6 +33,7 @@ public class JIdExpression extends AIdExpression implements JExpression {
 
   public JIdExpression(CFileLocation pFileLocation, JType pType, String pName, IASimpleDeclaration pDeclaration) {
     super(pFileLocation, pType, pName, pDeclaration);
+    //assert pDeclaration != null;
 
   }
 
