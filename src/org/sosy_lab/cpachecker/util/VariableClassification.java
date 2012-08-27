@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -443,10 +444,19 @@ public class VariableClassification {
       break;
     }
 
+    case MultiEdge:
+      for (CFAEdge innerEdge : (MultiEdge) edge) {
+        handleEdge(innerEdge);
+      }
+      break;
+
     case BlankEdge:
     case CallToReturnEdge:
-    default:
       // other cases are not interesting
+      break;
+
+    default:
+      throw new AssertionError("Unknoewn edgeType: " + edge.getEdgeType());
     }
   }
 

@@ -84,7 +84,7 @@ import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
@@ -123,7 +123,7 @@ public class BDDTransferRelation implements TransferRelation {
       new HashMap<Multimap<String, String>, String>();
 
   /** This map is used for scoping vars. It contains all used vars of a function. */
-  private final Multimap<String, Region> functionToVars = HashMultimap.create();
+  private final Multimap<String, Region> functionToVars = LinkedHashMultimap.create();
 
   private final BitvectorManager bvmgr;
   private final NamedRegionManager rmgr;
@@ -276,29 +276,6 @@ public class BDDTransferRelation implements TransferRelation {
       successor = handleAssumption(state, (CAssumeEdge) cfaEdge, precision);
       break;
 
-    case StatementEdge:
-      successor = handleStatementEdge(state, (CStatementEdge) cfaEdge, precision);
-      break;
-
-    case DeclarationEdge:
-      successor = handleDeclarationEdge(state, (CDeclarationEdge) cfaEdge, precision);
-      break;
-
-    case MultiEdge:
-      successor = state;
-      Collection<BDDState> c = null;
-      for (CFAEdge innerEdge : (MultiEdge) cfaEdge) {
-        c = getAbstractSuccessors(successor, precision, innerEdge);
-        if (c.isEmpty()) {
-          successor = state; //TODO really correct??
-        } else if (c.size() == 1) {
-          successor = c.toArray(new BDDState[1])[0];
-        } else {
-          throw new AssertionError("only size 0 or 1 allowed");
-        }
-      }
-      break;
-
     case FunctionCallEdge:
       successor = handleFunctionCallEdge(state, (CFunctionCallEdge) cfaEdge, precision);
       break;
@@ -307,14 +284,15 @@ public class BDDTransferRelation implements TransferRelation {
       successor = handleFunctionReturnEdge(state, (CFunctionReturnEdge) cfaEdge, precision);
       break;
 
-    case ReturnStatementEdge:
-      successor = handleReturnStatementEdge(state, (CReturnStatementEdge) cfaEdge, precision);
+    case MultiEdge:
+      successor = state;
+      for (CFAEdge innerEdge : (MultiEdge) cfaEdge) {
+        successor = handleSimpleEdge(successor, precision, innerEdge);
+      }
       break;
 
-    case BlankEdge:
-    case CallToReturnEdge:
     default:
-      successor = state;
+      successor = handleSimpleEdge(state, precision, cfaEdge);
     }
 
     if (successor == null) {
@@ -325,12 +303,36 @@ public class BDDTransferRelation implements TransferRelation {
     }
   }
 
+  /** This function handles simple edges like Declarations, Statements,
+   * ReturnStatements and BlankEdges. */
+  private BDDState handleSimpleEdge(
+      BDDState state, BDDPrecision prec, CFAEdge cfaEdge) {
+
+    switch (cfaEdge.getEdgeType()) {
+    case DeclarationEdge:
+      return handleDeclarationEdge(state, (CDeclarationEdge) cfaEdge, prec);
+
+    case StatementEdge:
+      return handleStatementEdge(state, (CStatementEdge) cfaEdge, prec);
+
+    case ReturnStatementEdge:
+      return handleReturnStatementEdge(state, (CReturnStatementEdge) cfaEdge, prec);
+
+    case BlankEdge:
+    case CallToReturnEdge:
+      return state; // nothing to do
+
+    default:
+      throw new AssertionError("unknown edgeType");
+    }
+  }
+
   /** This function handles statements like "a = 0;" and "b = !a;".
    * A region is build for the right side of the statement.
    * Then this region is assigned to the variable at the left side.
    * This equality is added to the BDDstate to get the next state. */
   private BDDState handleStatementEdge(BDDState state, CStatementEdge cfaEdge,
-      BDDPrecision precision) throws UnrecognizedCCodeException {
+      BDDPrecision precision) {
     CStatement statement = cfaEdge.getStatement();
     if (!(statement instanceof CAssignment)) { return state; }
     CAssignment assignment = (CAssignment) statement;
@@ -472,7 +474,7 @@ public class BDDTransferRelation implements TransferRelation {
    * variable (bitvector) at the left side.
    * These equalities are added to the BDDstate to get the next state. */
   private BDDState handleDeclarationEdge(BDDState state, CDeclarationEdge cfaEdge,
-      BDDPrecision precision) throws UnrecognizedCCodeException {
+      BDDPrecision precision) {
 
     CDeclaration decl = cfaEdge.getDeclaration();
 
@@ -720,7 +722,7 @@ public class BDDTransferRelation implements TransferRelation {
    * The equality of the returnValue (FUNCTION_RETURN_VARIABLE) and the
    * evaluated right side ("x") is added to the new state. */
   private BDDState handleReturnStatementEdge(BDDState state, CReturnStatementEdge cfaEdge,
-      BDDPrecision precision) throws UnrecognizedCCodeException {
+      BDDPrecision precision) {
     CRightHandSide rhs = cfaEdge.getExpression();
     if (rhs instanceof CExpression) {
 
@@ -858,8 +860,7 @@ public class BDDTransferRelation implements TransferRelation {
   }
 
   /** This function returns, if the variable is used in the Expression. */
-  private static boolean isUsedInExpression(String function, String varName, CExpression exp)
-      throws UnrecognizedCCodeException {
+  private static boolean isUsedInExpression(String function, String varName, CExpression exp) {
     return exp.accept(new VarCExpressionVisitor(function, varName));
   }
 
