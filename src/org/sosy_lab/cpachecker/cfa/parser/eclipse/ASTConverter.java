@@ -78,6 +78,7 @@ import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTypeId;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.eclipse.cdt.core.dom.ast.IField;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -1019,7 +1020,6 @@ class ASTConverter {
     }
     IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
 
-    CFileLocation fileLoc = convert(d.getFileLocation());
     Pair<CStorageClass, ? extends CType> specifier = convert(sd.getDeclSpecifier());
     if (specifier.getFirst() != CStorageClass.AUTO) {
       throw new CFAGenerationRuntimeException("Unsupported storage class inside composite type", d);
@@ -1030,25 +1030,25 @@ class ASTConverter {
     IASTDeclarator[] declarators = sd.getDeclarators();
     if (declarators == null || declarators.length == 0) {
       // declaration without declarator, anonymous struct field?
-      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(fileLoc, type, null);
+      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(type, null);
       result = Collections.singletonList(newD);
 
     } else if (declarators.length == 1) {
-      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(fileLoc, type, declarators[0]);
+      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(type, declarators[0]);
       result = Collections.singletonList(newD);
 
     } else {
       result = new ArrayList<CCompositeTypeMemberDeclaration>(declarators.length);
       for (IASTDeclarator c : declarators) {
 
-        result.add(createDeclarationForCompositeType(fileLoc, type, c));
+        result.add(createDeclarationForCompositeType(type, c));
       }
     }
 
     return result;
   }
 
-  private CCompositeTypeMemberDeclaration createDeclarationForCompositeType(CFileLocation fileLoc, CType type, IASTDeclarator d) {
+  private CCompositeTypeMemberDeclaration createDeclarationForCompositeType(CType type, IASTDeclarator d) {
     String name = null;
 
     if (d != null) {
@@ -1062,7 +1062,7 @@ class ASTConverter {
       name = declarator.getThird();
     }
 
-    return new CCompositeTypeMemberDeclaration(fileLoc, type, name);
+    return new CCompositeTypeMemberDeclaration(type, name);
   }
 
   private Triple<CType, CInitializer, String> convert(IASTDeclarator d, CType specifier) {
@@ -1522,12 +1522,24 @@ class ASTConverter {
     } else if (t instanceof org.eclipse.cdt.core.dom.ast.ITypedef) {
       return convert((org.eclipse.cdt.core.dom.ast.ITypedef)t);
 
+    } else if(t instanceof org.eclipse.cdt.core.dom.ast.ICompositeType) {
+      org.eclipse.cdt.core.dom.ast.ICompositeType ct = (org.eclipse.cdt.core.dom.ast.ICompositeType) t;
+      return new CCompositeType(false, false, ct.getKey(), convert(ct.getFields()), ct.getName());
+
     } else if (t instanceof org.eclipse.cdt.core.dom.ast.IBinding) {
       return new CComplexType(((org.eclipse.cdt.core.dom.ast.IBinding) t).getName());
 
     } else {
       return new CDummyType(t.toString());
     }
+  }
+
+  private List<CCompositeTypeMemberDeclaration> convert(IField[] pFields) {
+    List<CCompositeTypeMemberDeclaration> lst = new LinkedList<CCompositeTypeMemberDeclaration>();
+    for(int i = 0; i < pFields.length; i++) {
+      lst.add(new CCompositeTypeMemberDeclaration(convert(pFields[i].getType()), pFields[i].getName()));
+    }
+    return lst;
   }
 
   private CSimpleType convert(final org.eclipse.cdt.core.dom.ast.IBasicType t) {
