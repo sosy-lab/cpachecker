@@ -303,4 +303,14 @@ public class ForwardingFormulaManager implements FormulaManager {
   public String getVersion() {
     return delegate.getVersion();
   }
+
+  @Override
+  public String dumpFormulaList(FormulaList pFlist) {
+    return delegate.dumpFormulaList(pFlist);
+  }
+
+  @Override
+  public FormulaList parseList(String pS) throws IllegalArgumentException {
+    return delegate.parseList(pS);
+  }
 }

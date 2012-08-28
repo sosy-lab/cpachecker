@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.NamedTermsWrapper;
 
 @Options(prefix = "cpa.predicate.mathsat")
 public abstract class Mathsat5FormulaManager implements FormulaManager {
@@ -436,6 +437,13 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
   */
 
   @Override
+  public String dumpFormulaList(FormulaList pFlist) {
+    assert pFlist instanceof NamedTermsWrapper;
+    NamedTermsWrapper ntw = (NamedTermsWrapper) pFlist;
+    return msat_named_list_to_smtlib2(msatEnv, ntw);
+  }
+
+  @Override
   public Formula parseInfix(String s) {
     long f = msat_from_string(msatEnv, s);
     return encapsulate(f);
@@ -445,6 +453,13 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
   public Formula parse(String s) {
     long f = msat_from_smtlib2(msatEnv, s);
     return encapsulate(f);
+  }
+
+  @Override
+  public FormulaList parseList(String pS) throws IllegalArgumentException {
+    NamedTermsWrapper ntw = msat_named_list_from_smtlib2(msatEnv, pS);
+    ntw.msatEnv = msatEnv;
+    return ntw;
   }
 
   @Override

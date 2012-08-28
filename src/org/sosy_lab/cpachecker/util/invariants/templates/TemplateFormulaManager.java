@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 public class TemplateFormulaManager implements FormulaManager {
 
   private final TemplateParseMode tpMode;
@@ -538,6 +540,11 @@ public class TemplateFormulaManager implements FormulaManager {
     return null;
   }
 
+  @Override
+  public FormulaList parseList(String pS) throws IllegalArgumentException {
+    throw new NotImplementedException();
+  }
+
   /**
    * Given a formula that uses "generic" variables, returns the corresponding
    * one that "instantiates" such variables according to the given SSA map.
@@ -597,6 +604,11 @@ public class TemplateFormulaManager implements FormulaManager {
    */
   @Override
   public String dumpFormula(Formula pT) { return null; }
+
+  @Override
+  public String dumpFormulaList(FormulaList pFlist) {
+    throw new NotImplementedException();
+  }
 
   /**
    * Looks for uninterpreted functions in the formula and adds bitwise
