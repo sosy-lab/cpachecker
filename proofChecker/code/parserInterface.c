@@ -13,7 +13,8 @@ void assert_equal(unsigned state1, unsigned state2) {
 	if(state1 != state2) {
 		printf("ERROR: found state %i but expected state %i (UNSAFE)\n", state1, state2);
 		exit(EXIT_FAILURE);
-	}
+    }
+
 }
 
 namespace {
