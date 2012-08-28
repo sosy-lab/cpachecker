@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -42,8 +43,10 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -170,14 +173,65 @@ class CFABuilder extends ASTVisitor {
 
     String rawSignature = sd.getRawSignature();
 
+
+    boolean declarationAdded = true;
     for (CDeclaration newD : newDs) {
+      // we don't need forward declarations of functions here, they are
+      // created from the normal function anyway
+      if(newD.toASTString().endsWith(");")) {
+        declarationAdded = false;
+      }
+
       if (newD instanceof CVariableDeclaration) {
+        // checking that variables are not declarated twice
+        CSimpleDeclaration decl = scope.lookupVariable(newD.getName());
+
+        if(decl != null && (newD.toASTString().endsWith("= 0;")
+                            || newD.toASTString().endsWith("= '\\x" + Integer.toHexString('\0') + "';")
+                            || newD.toASTString().endsWith("String " + decl.getName() + ";"))) {
+
+          declarationAdded = false;
+
+         // if new declaration has an initializer, the old one is deleted
+         // and the new one gets on the old ones index in the globalDeclarations list
+        } else if (decl != null && ((decl.toASTString().endsWith("= 0;") && !newD.toASTString().endsWith("= 0;"))
+                                    || (decl.toASTString().endsWith("= '\\x" + Integer.toHexString('\0') + "';") && !newD.toASTString().endsWith("= '\\x" + Integer.toHexString('\0') + "';"))
+                                    || (decl.toASTString().endsWith("String " + decl.getName() + ";") && !newD.toASTString().endsWith("String " + decl.getName() + ";")))) {
+
+          Iterator<Pair<CDeclaration, String>> it = globalDeclarations.iterator();
+          int counter = 0;
+          while (it.hasNext()) {
+            Pair<CDeclaration, String> next = it.next();
+            if (next.getFirst().getName().equals(newD.getName())) {
+              globalDeclarations.remove(counter);
+              globalDeclarations.add(counter, Pair.of(newD, rawSignature));
+              declarationAdded = false;
+              break;
+            }
+            counter++;
+          }
+        }
+
         scope.registerDeclaration(newD);
       } else if (newD instanceof CFunctionDeclaration) {
         scope.registerFunctionDeclaration((CFunctionDeclaration) newD);
+
+      // checking that forwards declarations of structs are only added once
+      } else if (newD instanceof CComplexTypeDeclaration) {
+        Iterator<Pair<CDeclaration, String>> it = globalDeclarations.iterator();
+        while (it.hasNext()) {
+          Pair<CDeclaration, String> next = it.next();
+          if (next.getFirst().toASTString().equals(newD.toASTString())) {
+            declarationAdded = false;
+            break;
+          }
+        }
       }
 
-      globalDeclarations.add(Pair.of(newD, rawSignature));
+      if(declarationAdded) {
+        globalDeclarations.add(Pair.of(newD, rawSignature));
+      }
+      declarationAdded = true;
     }
 
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
