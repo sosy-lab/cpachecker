@@ -386,4 +386,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
     pStatsCollection.add(new AssumptionCollectionStatistics());
   }
+
+  @Override
+  public boolean reset() {
+    return false;
+  }
 }

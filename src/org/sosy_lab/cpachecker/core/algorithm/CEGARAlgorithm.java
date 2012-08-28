@@ -142,10 +142,19 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   @Option(description = "threshold (in ms) after which the CEGAR algorithm gives up refining (spurious) counterexamples")
   private int stopRefiningThreshold = -1; //TODO maybe use ProgressObserver instead?
 
+  @Option(description = "maximum count of attempted refinements")
+  private int stopRefiningCount = -1;
+
+  @Option(description="do not refine after a reset of the CEGAR algorithm")
+  private boolean noRefinementInFirstRun = false;
+
   private long startTime = 0;
+  private int refinementCount = 0;
   private final LogManager logger;
   private final Algorithm algorithm;
   private final Refiner mRefiner;
+  private int resets = 0;
+
 
   // TODO Copied from CPABuilder, should be refactored into a generic implementation
   private Refiner createInstance(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
@@ -228,6 +237,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     boolean continueAnalysis;
+
     do {
       continueAnalysis = false;
 
@@ -238,7 +248,10 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
       // if the element is a target element do refinement
       if (AbstractElements.isTargetElement(lastElement)) {
-        if(stopRefiningThreshold == -1 || System.currentTimeMillis() - startTime <= stopRefiningThreshold) {
+        if ((stopRefiningThreshold == -1 || System.currentTimeMillis() - startTime <= stopRefiningThreshold) &&
+            (stopRefiningCount == -1 || stopRefiningCount > refinementCount) &&
+            !(resets == 0 && noRefinementInFirstRun)) {
+          refinementCount++;
           logger.log(Level.FINE, "Error found, performing CEGAR");
           stats.countRefinements++;
           sizeOfReachedSetBeforeRefinement = reached.size();
@@ -301,4 +314,11 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     pStatsCollection.add(stats);
   }
 
+  @Override
+  public boolean reset() {
+    startTime = 0;
+    refinementCount = 0;
+    resets++;
+    return algorithm.reset();
+  }
 }

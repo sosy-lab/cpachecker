@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.ContinueOnCounterexampleAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.PostProcessingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.PruneUnrefinedARGAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -140,6 +141,10 @@ public class CPAchecker {
     @Option(name="analysis.contiuneOnCounterexample",
         description="restarts the analysis on (spurious or not) counterexamples until the waitlist is empty")
         boolean useContinueOnCounterexamle = false;
+
+    @Option(name="analysis.pruneUnrefinedARG",
+        description="prunes paths from ARG that were shown to be superfluous")
+      boolean pruneUnrefinedARG = false;
 
     @Option(name="analysis.postProcessing",
         description="if enabled post processes (cosmetic changes) the reached set as specified by the CPAs")
@@ -391,6 +396,10 @@ public class CPAchecker {
 
       if (options.useContinueOnCounterexamle) {
         algorithm = new ContinueOnCounterexampleAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, cfa);
+      }
+
+      if (options.pruneUnrefinedARG) {
+        algorithm = new PruneUnrefinedARGAlgorithm(algorithm, cpa, logger, reachedSetFactory, cfa);
       }
 
       if (options.useBMC) {

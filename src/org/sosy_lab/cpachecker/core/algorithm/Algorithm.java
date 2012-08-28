@@ -37,4 +37,9 @@ public interface Algorithm {
    * @throws InterruptedException
    */
   public boolean run(ReachedSet reachedSet) throws CPAException, InterruptedException;
+
+  /**
+   * Reset the algorithm. Returns false if reset was (partially) a no-op, otherwise true.
+   */
+  public boolean reset();
 }

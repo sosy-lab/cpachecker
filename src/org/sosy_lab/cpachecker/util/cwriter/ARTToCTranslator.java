@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.cwriter;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -45,6 +46,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 
 import com.google.common.collect.Iterables;
@@ -167,10 +170,12 @@ public class ARTToCTranslator {
   private final Set<ARTElement> discoveredElements = new HashSet<ARTElement>();
   private final Set<ARTElement> mergeElements = new HashSet<ARTElement>();
   private FunctionBody mainFunctionBody;
+  private static Collection<AbstractElement> reached;
 
   private ARTToCTranslator() { }
 
-  public static String translateART(ARTElement artRoot) {
+  public static String translateART(ARTElement artRoot, ReachedSet pReached) {
+    reached = pReached.getReached();
     ARTToCTranslator translator = new ARTToCTranslator();
 
     translator.translate(artRoot);
@@ -211,6 +216,7 @@ public class ARTToCTranslator {
   }
 
   private void getRelevantChildrenOfElement(ARTElement currentElement, Deque<ARTEdge> waitlist, CompoundStatement currentBlock) {
+    discoveredElements.add(currentElement);
     // generate label for element and add to current block if needed
     generateLabel(currentElement, currentBlock);
 
@@ -239,7 +245,7 @@ public class ARTToCTranslator {
       int ind = 0;
       for (ARTElement child : childrenOfElement) {
         CFAEdge edgeToChild = currentElement.getEdgeToChild(child);
-        assert edgeToChild instanceof AssumeEdge : "something wrong: branch in ART without condition";
+        assert edgeToChild instanceof AssumeEdge : "something wrong: branch in ART without condition: " + edgeToChild;
         AssumeEdge assumeEdge = (AssumeEdge)edgeToChild;
         boolean truthAssumption = assumeEdge.getTruthAssumption();
 
@@ -277,7 +283,7 @@ public class ARTToCTranslator {
   }
 
   private void pushToWaitlist(Deque<ARTEdge> pWaitlist, ARTElement pCurrentElement, ARTElement pChild, CFAEdge pEdgeToChild, CompoundStatement pCurrentBlock) {
-    discoveredElements.add(pCurrentElement);
+    assert (!pChild.isDestroyed());
     pWaitlist.push(new ARTEdge(pCurrentElement, pChild, pEdgeToChild, pCurrentBlock));
   }
 
@@ -345,7 +351,8 @@ public class ARTToCTranslator {
     }
 
     if (childElement.isTarget()) {
-      currentBlock.addStatement(new SimpleStatement("HALT" + childElement.getElementId() + ": goto HALT" + childElement.getElementId() + "; // target state"));
+      System.out.println("HALT for line no " + edge.getLineNumber());
+      currentBlock.addStatement(new SimpleStatement("HALT" + childElement.getElementId() + ": goto HALT" + childElement.getElementId() + ";"));
     }
 
     return currentBlock;

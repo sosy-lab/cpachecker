@@ -35,6 +35,7 @@ import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
@@ -55,7 +56,10 @@ public class RVARTSimplifier implements PostProcessor {
   @Override
   public void postProcess(ReachedSet pReached) {
     ARTElement artRoot = (ARTElement) pReached.getFirstElement();
-    removeMonitorTransitions(artRoot, pReached);
+    AbstractElement lastElement = pReached.getLastElement();
+    if (!AbstractElements.isTargetElement(lastElement)) {
+      removeMonitorTransitions(artRoot, pReached);
+    }
   }
 
   public void removeMonitorTransitions(ARTElement artRoot, ReachedSet pReached) {

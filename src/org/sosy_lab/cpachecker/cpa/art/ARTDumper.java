@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -55,11 +56,15 @@ public class ARTDumper implements PostProcessor {
 
   @Override
   public void postProcess(ReachedSet pReached) {
-    if(dumpART) {
+    if (dumpART) {
+      Timer t = new Timer();
+      t.start();
       //generate source code out of given ART / ReachedSet
       ARTElement artRoot = (ARTElement) pReached.getFirstElement();
       try {
-        Files.writeFile(dumpFile, ARTToCTranslator.translateART(artRoot));
+        Files.writeFile(dumpFile, ARTToCTranslator.translateART(artRoot, pReached));
+        t.stop();
+        System.out.println("ARTToC translation took " + t);
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e,
             "Could not dump ART to file");

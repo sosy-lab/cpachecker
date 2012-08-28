@@ -125,11 +125,13 @@ public class ARTUtils {
     return path;
   }
 
-  private static String determineColor(ARTElement currentElement)
+  private static String determineColor(ARTElement currentElement, boolean pInWaitList)
   {
     String color;
 
-    if (currentElement.isCovered()) {
+    if (pInWaitList) {
+      color = "yellow";
+    } else if (currentElement.isCovered()) {
       color = "green";
 
     } else if (currentElement.isTarget()) {
@@ -204,9 +206,10 @@ public class ARTUtils {
    * Create String with ART in the DOT format of Graphviz.
    * @param pReached the reached set
    * @param pathEdges the edges of the error path (may be empty)
+   * @param pWaitlist
    * @return the ART as DOT graph
    */
-  static String convertARTToDot(ReachedSet pReached, Set<Pair<ARTElement, ARTElement>> pathEdges) {
+  static String convertARTToDot(ReachedSet pReached, Set<Pair<ARTElement, ARTElement>> pathEdges, Collection<AbstractElement> pWaitlist) {
     ARTElement firstElement = (ARTElement)pReached.getFirstElement();
 
     Deque<ARTElement> worklist = new LinkedList<ARTElement>();
@@ -235,7 +238,7 @@ public class ARTUtils {
         sb.append(currentElement.getElementId());
         sb.append(" [");
         sb.append("shape=\"diamond\" ");
-        sb.append("color=\"" + determineColor(currentElement) + "\" ");
+        sb.append("color=\"" + determineColor(currentElement, pWaitlist.contains(currentElement)) + "\" ");
         sb.append("style=\"filled\" ");
         sb.append("label=\"" + label +"\" ");
         sb.append("id=\"" + currentElement.getElementId() + "\"");

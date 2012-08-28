@@ -312,4 +312,9 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   public String getName() {
     return "Counterexample-Check Algorithm";
   }
+
+  @Override
+  public boolean reset() {
+    return false;
+  }
 }

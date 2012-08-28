@@ -181,9 +181,9 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
    */
   public boolean isLessOrEqual(ExplicitElement other)
   {
-    // this element is not less or equal than the other element, if the previous elements differ
+    /* // this element is not less or equal than the other element, if the previous elements differ
     if(previousElement != other.previousElement)
-      return false;
+      return false; */
 
     // also, this element is not less or equal than the other element, if it contains less elements
     if(constantsMap.size() < other.constantsMap.size())

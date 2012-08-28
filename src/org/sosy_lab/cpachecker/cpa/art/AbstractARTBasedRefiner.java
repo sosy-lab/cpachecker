@@ -168,7 +168,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     return ARTUtils.getOnePathTo(pLastElement);
   }
 
-  private static boolean checkART(ReachedSet pReached) {
+  public static boolean checkART(ReachedSet pReached) {
 
     Deque<AbstractElement> workList = new ArrayDeque<AbstractElement>();
     Set<ARTElement> art = new HashSet<ARTElement>();
@@ -197,7 +197,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
 
         assert pReached.contains(currentElement)
             || pReached.getWaitlist().containsAll(currentElement.getParents())
-            : "Element in ART but not in reached set";
+            : "Element in ART but not in reached set: " + currentElement;
       }
 
       if (art.add(currentElement)) {

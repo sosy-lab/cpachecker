@@ -39,8 +39,10 @@ public class PredicatePostProcessor implements PostProcessor {
 
   @Override
   public void postProcess(ReachedSet pReached) {
-    System.out.println("Called post processing for predicate cpa :-)");
-    removeUnsatPaths(pReached);
+    AbstractElement lastElement = pReached.getLastElement();
+    if (!AbstractElements.isTargetElement(lastElement)) {
+      removeUnsatPaths(pReached);
+    }
   }
 
   private void removeUnsatPaths(ReachedSet pReached) {

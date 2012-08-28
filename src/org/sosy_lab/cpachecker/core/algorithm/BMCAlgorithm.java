@@ -728,4 +728,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
     pStatsCollection.add(stats);
   }
+
+  @Override
+  public boolean reset() {
+    return false;
+  }
 }

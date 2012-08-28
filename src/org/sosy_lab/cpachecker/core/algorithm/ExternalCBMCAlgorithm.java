@@ -185,4 +185,9 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       return true;
     }
   }
+
+  @Override
+  public boolean reset() {
+    return false;
+  }
 }

@@ -71,4 +71,9 @@ public class PostProcessingAlgorithm implements Algorithm, StatisticsProvider {
       ((StatisticsProvider)innerAlgorithm).collectStatistics(pStatsCollection);
     }
   }
+
+  @Override
+  public boolean reset() {
+    return false;
+  }
 }

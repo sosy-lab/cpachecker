@@ -330,4 +330,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     }
     pStatsCollection.add(stats);
   }
+
+  @Override
+  public boolean reset() {
+    return false;
+  }
 }

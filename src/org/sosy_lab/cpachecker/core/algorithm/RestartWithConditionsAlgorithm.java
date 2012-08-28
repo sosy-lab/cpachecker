@@ -154,4 +154,9 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
     ProgressObserverPrecision observerPrecision = Precisions.extractPrecisionByType(pReached.getPrecision(pParent), ProgressObserverPrecision.class);
     return observerPrecision.adjustPrecisions();
   }
+
+  @Override
+  public boolean reset() {
+    return false;
+  }
 }

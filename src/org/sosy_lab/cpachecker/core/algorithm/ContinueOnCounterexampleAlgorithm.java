@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -59,10 +58,6 @@ public class ContinueOnCounterexampleAlgorithm implements Algorithm, StatisticsP
     this.algorithm = algorithm;
     this.logger = logger;
     config.inject(this);
-
-    if (!(pCpa instanceof ARTCPA)) {
-      throw new InvalidConfigurationException("ART CPA needed for counterexample check");
-    }
   }
 
   @Override
@@ -79,6 +74,7 @@ public class ContinueOnCounterexampleAlgorithm implements Algorithm, StatisticsP
       }
 
       AbstractElement lastElement = reached.getLastElement();
+
       if (!(lastElement instanceof ARTElement)) {
         // no analysis possible
         break;
@@ -113,8 +109,12 @@ public class ContinueOnCounterexampleAlgorithm implements Algorithm, StatisticsP
     //TODO: siblings of error element?
     assert parent.getChildren().size() == 1;
 
+
+    reached.add(errorElement, reached.getPrecision(parent));
+    reached.add(parent, reached.getPrecision(parent));
     reached.removeOnlyFromWaitlist(errorElement);
     reached.removeOnlyFromWaitlist(parent);
+
   }
 
   @Override
@@ -138,5 +138,10 @@ public class ContinueOnCounterexampleAlgorithm implements Algorithm, StatisticsP
   @Override
   public String getName() {
     return "Continue-On-Counterexample Algorithm";
+  }
+
+  @Override
+  public boolean reset() {
+    return algorithm.reset();
   }
 }
