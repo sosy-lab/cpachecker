@@ -255,8 +255,19 @@ public class ASTConverter {
       name = new StringBuilder((binding.getDeclaringClass().getQualifiedName().replace('.', '_') + "_" + binding.getName()).replace('.', '_'));
       ITypeBinding[] parameterTypes = binding.getParameterTypes();
       String[] typeNames = new String[parameterTypes.length];
-      for(int c = 0; c < parameterTypes.length; c++) {
-        typeNames[c] = parameterTypes[c].getQualifiedName().replace('.', '_');
+      int c = 0;
+      for(ITypeBinding parameterTypeBindings : parameterTypes) {
+        if(parameterTypeBindings.isRecovered() && !parameterTypeBindings.getBinaryName().equals("String") && !parameterTypeBindings.getQualifiedName().equals("java.lang.String")){
+          System.out.println(parameterTypeBindings.getBinaryName());
+        }
+
+        // TODO Erase when Library in class Path
+        if(parameterTypeBindings.getBinaryName().equals("String") || parameterTypeBindings.getQualifiedName().equals("java.lang.String")){
+        typeNames[c] = "java_lang_String";
+        } else {
+        typeNames[c] = parameterTypeBindings.getQualifiedName().replace('.', '_');
+        }
+        c++;
       }
 
 
@@ -1022,6 +1033,7 @@ public class ASTConverter {
   // Create tmp Variable to a AbstractReferenceReturn
   private IAstNode convert(ThisExpression e) {
 
+    //TODO Unnecessary now, change to reference this
    JIdExpression expression =   createTemporaryVariable(e);
     preSideAssignments.add(expression);
 

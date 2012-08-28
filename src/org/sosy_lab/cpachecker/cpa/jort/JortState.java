@@ -181,7 +181,7 @@ public class JortState implements AbstractState {
    private void retrieveObjectScope() {
     // TODO Own Exception for Stack is empty
     classObjectScope = classObjectStack.pop();
-    assignObject(KEYWORD_THIS, classObjectScope);
+    constantsMap.put(KEYWORD_THIS, classObjectScope);
   }
 
   public String getUniqueObjectFor(String variableName) {
@@ -376,9 +376,9 @@ public class JortState implements AbstractState {
    */
    void assignThisAndNewObjectScope(String scope) {
     classObjectStack.push(classObjectScope);
+
     assignObject(KEYWORD_THIS, scope);
     classObjectScope = getKeywordThisUniqueObject();
-
 
   }
 

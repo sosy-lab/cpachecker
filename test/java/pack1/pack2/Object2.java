@@ -15,7 +15,7 @@ public class Object2 {
   
   public Object2(int id , int n1 , int n3 , int name){
     this.id = id;
-    this.id = n1;
+    idGenerator = id;
     
     id = idGenerator;
     idGenerator++;

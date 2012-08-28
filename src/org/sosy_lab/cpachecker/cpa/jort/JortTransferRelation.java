@@ -348,7 +348,7 @@ public class JortTransferRelation implements TransferRelation {
       if((op1 instanceof AIdExpression) || (op1 instanceof CFieldReference)) {
         String returnVarName = getScopedVariableName("___cpa_temp_result_var_", calledFunctionName, newElement.getClassObjectScope());
 
-        String assignedVarName = getScopedVariableName(op1.toASTString(), callerFunctionName, newElement.getClassObjectScope());
+        String assignedVarName = getScopedVariableName(op1.toASTString(), callerFunctionName, newElement.getClassObjectStack().peek());
 
         if (element.contains(returnVarName)) {
           newElement.assignObject(assignedVarName, element.getUniqueObjectFor(returnVarName));
