@@ -81,6 +81,8 @@ public class BDDPartitionOrderer {
     Partition assPartition = varClass.getPartitionForEdge(ass1);
     assert varClass.getPartitionForEdge(ass2) == assPartition;
 
+    if (assPartition == null) { return; } // assumption is like "3==4"
+
     // left branch
     CFAUntilSplitCollector fCol1 = new CFAUntilSplitCollector();
     CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(ass1.getSuccessor(), fCol1);
