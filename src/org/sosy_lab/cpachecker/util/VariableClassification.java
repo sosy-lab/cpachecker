@@ -366,8 +366,9 @@ public class VariableClassification {
           dependencies.add(functionName, FUNCTION_RETURN_VARIABLE, function, varName);
 
         } else {
-          // external function --> we can ignore this case completely
-          // if var is used anywhere else, it should be handled.
+          // external function
+          Partition partition = getPartitionForVar(function, varName);
+          partition.addEdge(edge, 0);
         }
       }
       break;
