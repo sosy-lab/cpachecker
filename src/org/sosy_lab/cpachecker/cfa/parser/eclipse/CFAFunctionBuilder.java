@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 
+import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -75,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -84,9 +86,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -103,6 +108,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
 /**
@@ -862,10 +868,17 @@ class CFAFunctionBuilder extends ASTVisitor {
                                   CFANode thenNodeForLastThen, CFANode elseNodeForLastElse,
                                   boolean furtherThenComputation, boolean furtherElseComputation) {
 
+    // unwrap (a)
     if (condition instanceof IASTUnaryExpression
           && ((IASTUnaryExpression)condition).getOperator() == IASTUnaryExpression.op_bracketedPrimary){
       buildConditionTree(((IASTUnaryExpression)condition).getOperand(), filelocStart, rootNode, thenNode, elseNode, thenNode, elseNode, true, true);
 
+      // switch branches for !a
+    } else if (condition instanceof IASTUnaryExpression
+        && ((IASTUnaryExpression) condition).getOperator() == IASTUnaryExpression.op_not) {
+      buildConditionTree(((IASTUnaryExpression) condition).getOperand(), filelocStart, rootNode, elseNode, thenNode, elseNode, thenNode, true, true);
+
+      // a && b
     } else if (condition instanceof IASTBinaryExpression
         && ((IASTBinaryExpression) condition).getOperator() == IASTBinaryExpression.op_logicalAnd) {
       CFANode innerNode = new CFANode(filelocStart, cfa.getFunctionName());
@@ -873,6 +886,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       buildConditionTree(((IASTBinaryExpression) condition).getOperand1(), filelocStart, rootNode, innerNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, false);
       buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), filelocStart, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, true);
 
+      // a || b
     } else if (condition instanceof IASTBinaryExpression
         && ((IASTBinaryExpression) condition).getOperator() == IASTBinaryExpression.op_logicalOr) {
       CFANode innerNode = new CFANode(filelocStart, cfa.getFunctionName());
@@ -882,10 +896,9 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     } else {
 
-      final CExpression exp = astCreator.convertBooleanExpression(condition);
-      String rawSignature = condition.getRawSignature();
+      final CExpression exp = astCreator.convertExpressionWithoutSideEffects(condition);
 
-      CFANode nextNode = handleSideassignments(rootNode, rawSignature, condition.getFileLocation().getStartingLineNumber());
+      CFANode nextNode = handleSideassignments(rootNode, condition.getRawSignature(), condition.getFileLocation().getStartingLineNumber());
 
       if (furtherThenComputation) {
         thenNodeForLastThen = thenNode;
@@ -894,23 +907,58 @@ class CFAFunctionBuilder extends ASTVisitor {
         elseNodeForLastElse = elseNode;
       }
 
-      // edge connecting last condition with elseNode
-      final CAssumeEdge assumeEdgeFalse = new CAssumeEdge("!(" + condition.getRawSignature() + ")",
-                                                        filelocStart,
-                                                        nextNode,
-                                                        elseNodeForLastElse,
-                                                        exp,
-                                                        false);
-      addToCFA(assumeEdgeFalse);
+      if (isBooleanExpression(exp)) {
+        addConditionEdges(exp, nextNode, thenNodeForLastThen, elseNodeForLastElse);
 
-      // edge connecting last condition with thenNode
-      final CAssumeEdge assumeEdgeTrue = new CAssumeEdge(condition.getRawSignature(),
-                                                       filelocStart,
-                                                       nextNode,
-                                                       thenNodeForLastThen,
-                                                       exp,
-                                                       true);
-      addToCFA(assumeEdgeTrue);
+      }else{
+        // build new boolean expression: a==0 and switch branches
+        // TODO: probably the type of the zero is not always correct
+        CExpression zero = new CIntegerLiteralExpression(exp.getFileLocation(), exp.getExpressionType(), BigInteger.ZERO);
+        CExpression conv = new CBinaryExpression(exp.getFileLocation(), exp.getExpressionType(), exp, zero, BinaryOperator.EQUALS);
+
+        addConditionEdges(conv, nextNode, elseNodeForLastElse, thenNodeForLastThen);
+      }
+    }
+  }
+
+  /** This method adds 2 edges to the cfa:
+   * 1. trueEdge from rootNode to thenNode and
+   * 2. falseEdge from rootNode to elseNode. */
+  private void addConditionEdges(CExpression condition, CFANode rootNode, CFANode thenNode, CFANode elseNode) {
+    // edge connecting condition with thenNode
+    final CAssumeEdge trueEdge = new CAssumeEdge(condition.toASTString(),
+        rootNode.getLineNumber(), rootNode, thenNode, condition, true);
+
+    rootNode.addLeavingEdge(trueEdge);
+    thenNode.addEnteringEdge(trueEdge);
+
+    // edge connecting condition with elseNode
+    final CAssumeEdge falseEdge = new CAssumeEdge("!(" + condition.toASTString() + ")",
+        rootNode.getLineNumber(), rootNode, elseNode, condition, false);
+
+    rootNode.addLeavingEdge(falseEdge);
+    elseNode.addEnteringEdge(falseEdge);
+  }
+
+  private static final Set<BinaryOperator> BOOLEAN_BINARY_OPERATORS = ImmutableSet.of(
+      BinaryOperator.EQUALS,
+      BinaryOperator.NOT_EQUALS,
+      BinaryOperator.GREATER_EQUAL,
+      BinaryOperator.GREATER_THAN,
+      BinaryOperator.LESS_EQUAL,
+      BinaryOperator.LESS_THAN,
+      BinaryOperator.LOGICAL_AND,
+      BinaryOperator.LOGICAL_OR);
+
+  private boolean isBooleanExpression(CExpression e) {
+    if (e instanceof CBinaryExpression) {
+      return BOOLEAN_BINARY_OPERATORS.contains(((CBinaryExpression)e).getOperator());
+
+    } else if (e instanceof CUnaryExpression) {
+      return ((CUnaryExpression) e).getOperator() == UnaryOperator.NOT;
+
+    } else {
+      return false;
     }
   }
 

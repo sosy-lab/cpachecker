@@ -32,7 +32,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
@@ -137,7 +136,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedef;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 @SuppressWarnings("deprecation") // several methods are deprecated in CDT 7 but still working
@@ -191,41 +189,6 @@ class ASTConverter {
 
   public CIdExpression getConditionalTemporaryVariable() {
     return conditionalTemporaryVariable;
-  }
-
-  private static final Set<BinaryOperator> BOOLEAN_BINARY_OPERATORS = ImmutableSet.of(
-      BinaryOperator.EQUALS,
-      BinaryOperator.NOT_EQUALS,
-      BinaryOperator.GREATER_EQUAL,
-      BinaryOperator.GREATER_THAN,
-      BinaryOperator.LESS_EQUAL,
-      BinaryOperator.LESS_THAN,
-      BinaryOperator.LOGICAL_AND,
-      BinaryOperator.LOGICAL_OR);
-
-  private boolean isBooleanExpression(CExpression e) {
-    if (e instanceof CBinaryExpression) {
-      return BOOLEAN_BINARY_OPERATORS.contains(((CBinaryExpression)e).getOperator());
-
-    } else if (e instanceof CUnaryExpression) {
-      return ((CUnaryExpression) e).getOperator() == UnaryOperator.NOT;
-
-    } else {
-      return false;
-    }
-  }
-
-  public CExpression convertBooleanExpression(IASTExpression e){
-
-    CExpression exp = convertExpressionWithoutSideEffects(e);
-    if (!isBooleanExpression(exp)) {
-
-      // TODO: probably the type of the zero is not always correct
-      CExpression zero = new CIntegerLiteralExpression(exp.getFileLocation(), exp.getExpressionType(), BigInteger.ZERO);
-      return new CBinaryExpression(exp.getFileLocation(), exp.getExpressionType(), exp, zero, BinaryOperator.NOT_EQUALS);
-    }
-
-    return exp;
   }
 
   public CExpression convertExpressionWithoutSideEffects(
