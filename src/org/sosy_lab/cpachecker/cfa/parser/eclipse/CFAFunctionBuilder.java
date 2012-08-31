@@ -928,16 +928,12 @@ class CFAFunctionBuilder extends ASTVisitor {
     // edge connecting condition with thenNode
     final CAssumeEdge trueEdge = new CAssumeEdge(condition.toASTString(),
         rootNode.getLineNumber(), rootNode, thenNode, condition, true);
-
-    rootNode.addLeavingEdge(trueEdge);
-    thenNode.addEnteringEdge(trueEdge);
+    addToCFA(trueEdge);
 
     // edge connecting condition with elseNode
     final CAssumeEdge falseEdge = new CAssumeEdge("!(" + condition.toASTString() + ")",
         rootNode.getLineNumber(), rootNode, elseNode, condition, false);
-
-    rootNode.addLeavingEdge(falseEdge);
-    elseNode.addEnteringEdge(falseEdge);
+    addToCFA(falseEdge);
   }
 
   private static final Set<BinaryOperator> BOOLEAN_BINARY_OPERATORS = ImmutableSet.of(
