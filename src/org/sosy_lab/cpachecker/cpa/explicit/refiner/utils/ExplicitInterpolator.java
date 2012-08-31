@@ -72,6 +72,7 @@ public class ExplicitInterpolator {
    * @throws CPAException
    * @throws InterruptedException
    */
+  public static boolean isFeasible = true;
   public Map<String, Long> deriveInterpolant(
       Path errorPath,
       Pair<ARGState, CFAEdge> iterpolationState,
@@ -104,11 +105,14 @@ public class ExplicitInterpolator {
 
         // there is no successor, but current path element is not an error state => error path is spurious
         if(next == null && !pathElement.getFirst().isTarget()) {
-//System.out.println("\t---> infeasible");
+//System.out.println("\t---> infeasible at " + pathElement.getSecond());
 
-          //if(variableValue == null) {
+          if(variableValue == null) {
             currentInterpolant.remove(currentVariable);
-          //}
+          }
+
+          isFeasible = false;
+
           return currentInterpolant;
         }
 
@@ -131,6 +135,8 @@ public class ExplicitInterpolator {
       } else {
         currentInterpolant.remove(currentVariable);
       }
+
+      isFeasible = true;
 
 //System.out.println("\t---> feasible");
 
