@@ -90,10 +90,6 @@ public class ExplicitTransferRelation implements TransferRelation
       + "when the true-branch is handled.")
   private boolean initAssumptionVars = false;
 
-  @Option(description = "whether or not to keep values in an abstract state,"
-      + "despite the identifier not being in the precision ")
-  private boolean useLazyPrecision = false;
-
   private final Set<String> globalVariables = new HashSet<String>();
 
   private String missingInformationLeftVariable = null;
@@ -112,8 +108,6 @@ public class ExplicitTransferRelation implements TransferRelation
     ExplicitPrecision explicitPrecision = (ExplicitPrecision)pPrecision;
 
     ExplicitState successor;
-
-    ExplicitState.lastWrite.clear();
 
     switch (cfaEdge.getEdgeType()) {
     // this is an assumption, e.g. if (a == b)
@@ -141,35 +135,11 @@ public class ExplicitTransferRelation implements TransferRelation
       handleSimpleEdge(successor, explicitPrecision, cfaEdge);
     }
 
-    successor = computeAbstraction(successor, explicitPrecision, cfaEdge);
-
     if (successor == null) {
       return Collections.emptySet();
     } else {
       return Collections.singleton(successor);
     }
-  }
-
-  private ExplicitState computeAbstraction(ExplicitState successor, ExplicitPrecision explicitPrecision, CFAEdge cfaEdge) {
-    if(successor != null) {
-      explicitPrecision.setLocation(cfaEdge.getSuccessor());
-
-      Set<String> variablesToDrop = new HashSet<String>();
-      for(String variableName: successor.getConstantsMap().keySet()) {
-        if(!explicitPrecision.isTracking(variableName) && !variableName.contains("___cpa_temp_result_var_")) {
-          variablesToDrop.add(variableName);
-        }
-      }
-
-      for(String variableName: variablesToDrop) {
-        // eager precision -> delete all that are not in precision
-        // lazy precision -> delete only those that are not in precision and were (re)written in current iteration
-        if(!useLazyPrecision || ExplicitState.lastWrite.contains(variableName))
-          successor.forget(variableName);
-      }
-    }
-
-    return successor;
   }
 
   private void handleSimpleEdge(ExplicitState element, ExplicitPrecision precision, CFAEdge cfaEdge)

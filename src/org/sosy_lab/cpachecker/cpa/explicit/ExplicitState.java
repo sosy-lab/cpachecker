@@ -50,6 +50,11 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    */
   private final Map<String, Long> constantsMap;
 
+  /**
+   * the set of variables that were changed since the last precision adjustment
+   */
+  private Set<String> delta = null;
+
   public ExplicitState() {
     constantsMap = new HashMap<String, Long>();
   }
@@ -58,8 +63,6 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     this.constantsMap = constantsMap;
   }
 
-  static Set<String> lastWrite = new HashSet<String>();
-
   /**
    * Assigns a value to the variable and puts it in the map
    * @param variableName name of the variable.
@@ -67,7 +70,11 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    */
   void assignConstant(String variableName, Long value) {
     constantsMap.put(checkNotNull(variableName), checkNotNull(value));
-    lastWrite.add(variableName);
+
+    if(delta == null) {
+      delta = new HashSet<String>();
+    }
+    delta.add(variableName);
   }
 
   public void forget(String variableName) {
@@ -91,6 +98,18 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     for(String variableNameToDrop : toDropAll) {
       constantsMap.remove(variableNameToDrop);
     }
+  }
+
+  void resetDelta() {
+    delta = null;
+  }
+
+  boolean deltaContains(String variableName) {
+    if(delta == null) {
+      return false;
+    }
+
+    return delta.contains(variableName);
   }
 
   public Long getValueFor(String variableName) {
