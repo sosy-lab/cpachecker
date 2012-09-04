@@ -7,12 +7,10 @@ public class Loop7 {
 			String[] args) {
 		
 
-        int n1;
-        
-        n1 = 0;
+    
 	
       
-        for(n1 = 10 ; n1 < 20 ; n1++){
+        for(int n1 = 10 ; n1 < 20 ; n1++){
         
             assert(n1 > 9);
             

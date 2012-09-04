@@ -1857,6 +1857,8 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
   @Override
   public boolean visit(final ForStatement forStatement) {
 
+    scope.enterBlock();
+
     handleElseCondition(forStatement);
 
     final CFileLocation fileloc = astCreator.getFileLocation(forStatement);
@@ -1921,6 +1923,8 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
     assert lastNodeInLoop == loopStartStack.pop();
     assert postLoopNode == loopNextStack.pop();
     assert postLoopNode == locStack.peek();
+
+    scope.leaveBlock();
 
     // skip visiting children of loop, because loopbody was handled before
     return SKIP_CHILDS;
@@ -2015,27 +2019,43 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
 
       for (Expression exp : initializers) {
 
-        //TODO Investigate if we can use Expression without Side Effect here
         final IAstNode node = astCreator.convertExpressionWithSideEffects(exp);
+
+        if(node == null && astCreator.numberOfForInitDeclarations() > 0) {
+
+          nextNode = addDeclarationsToCFA(astCreator.getForInitDeclaration(),filelocStart, initializers.toString() ,nextNode);
+          astCreator.getForInitDeclaration().clear();
+
+        } else if (node instanceof AIdExpression) {
+
 
           nextNode = new CFANode(filelocStart, cfa.getFunctionName());
           cfaNodes.add(nextNode);
 
 
-        if (node instanceof AIdExpression) {
           final BlankEdge blankEdge = new BlankEdge(node.toASTString(),
               filelocStart, loopInit, nextNode , "");
           addToCFA(blankEdge);
 
-
-
         } else if (node instanceof AExpressionAssignmentStatement) {
+
+
+          nextNode = new CFANode(filelocStart, cfa.getFunctionName());
+          cfaNodes.add(nextNode);
+
+
           final AStatementEdge lastEdge = new AStatementEdge(exp.toString(),
               (AExpressionAssignmentStatement) node, filelocStart, loopInit, nextNode);
           addToCFA(lastEdge);
 
 
         } else if (node instanceof AFunctionCallAssignmentStatement) {
+
+
+          nextNode = new CFANode(filelocStart, cfa.getFunctionName());
+          cfaNodes.add(nextNode);
+
+
           final AStatementEdge edge = new AStatementEdge(exp.toString(),
               (AFunctionCallAssignmentStatement) node, filelocStart,loopInit ,   nextNode);
           addToCFA(edge);
@@ -2049,9 +2069,6 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
       assert nextNode != null;
 
       return nextNode;
-
-
-
   }
 
   @Override

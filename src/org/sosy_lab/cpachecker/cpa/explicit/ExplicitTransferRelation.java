@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanzeCreation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
@@ -1086,6 +1087,11 @@ public class ExplicitTransferRelation implements TransferRelation
 
     @Override
     public Long visit(JNullLiteralExpression pJNullLiteralExpression) throws UnrecognizedCCodeException {
+      return null;
+    }
+
+    @Override
+    public Long visit(JEnumConstantExpression pJEnumConstantExpression) throws UnrecognizedCCodeException {
       return null;
     }
   }

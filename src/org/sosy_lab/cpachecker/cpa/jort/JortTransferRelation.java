@@ -50,7 +50,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.java.DefaultJExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanzeCreation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
@@ -537,9 +539,27 @@ public class JortTransferRelation implements TransferRelation {
     }
 
     @Override
-    public String visit(JBinaryExpression pPaBinaryExpression) throws UnrecognizedCCodeException {
-      // TODO Support String
+    public String visit(JBinaryExpression binaryExpression) throws UnrecognizedCCodeException {
+
+      if((binaryExpression.getOperator() == BinaryOperator.EQUALS || binaryExpression.getOperator() == BinaryOperator.NOT_EQUALS) && (binaryExpression.getOperand1() instanceof JEnumConstantExpression ||  binaryExpression.getOperand2() instanceof JEnumConstantExpression)) {
+        return handleEnumComparison(binaryExpression.getOperand1() , binaryExpression.getOperand2() , binaryExpression.getOperator());
+      }
       return null;
+    }
+
+    private String handleEnumComparison(JExpression operand1, JExpression operand2, BinaryOperator operator) throws UnrecognizedCCodeException {
+
+      String value1 = operand1.accept(this);
+      String value2 = operand2.accept(this);
+
+      boolean result = value1.equals(value2);
+
+      switch(operator){
+      case EQUALS:   break;
+      case NOT_EQUALS: result = !result;
+      }
+
+      return Boolean.toString(result);
     }
 
     @Override
@@ -582,11 +602,8 @@ public class JortTransferRelation implements TransferRelation {
 
       String jrunTimeType = jRunTimeTypeEqualsType.getRunTimeTypeExpression().accept(this);
 
-      if(jrunTimeType != null && jRunTimeTypeEqualsType.getTypeDef().getName().equals(jrunTimeType)) {
-        return "true";
-      } else {
-        return "false";
-      }
+      return Boolean.toString(jrunTimeType != null && jRunTimeTypeEqualsType.getTypeDef().getName().equals(jrunTimeType));
+
     }
 
     @Override
@@ -602,6 +619,12 @@ public class JortTransferRelation implements TransferRelation {
     @Override
     public String visit(JNullLiteralExpression pJNullLiteralExpression) throws UnrecognizedCCodeException {
       return JortState.NULL_REFERENCE;
+    }
+
+    @Override
+    public String visit(JEnumConstantExpression e) throws UnrecognizedCCodeException {
+
+      return e.getValue();
     }
 
   }

@@ -73,6 +73,7 @@ import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.ThisExpression;
 import org.eclipse.jdt.core.dom.Type;
+import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.sosy_lab.common.LogManager;
@@ -105,6 +106,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanzeCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
@@ -158,6 +160,7 @@ public class ASTConverter {
   private final LogManager logger;
 
   private Scope scope;
+  private LinkedList<IADeclaration> forInitDeclarations = new LinkedList<IADeclaration>();
   private LinkedList<IAstNode> preSideAssignments = new LinkedList<IAstNode>();
   private LinkedList<IAstNode> postSideAssignments = new LinkedList<IAstNode>();
   private ConditionalExpression conditionalExpression = null;
@@ -217,6 +220,15 @@ public class ASTConverter {
   public IAstNode getNextPreSideAssignment() {
     return preSideAssignments.removeFirst();
   }
+
+  public List<IADeclaration> getForInitDeclaration() {
+    return forInitDeclarations;
+  }
+
+  public int numberOfForInitDeclarations() {
+    return forInitDeclarations.size();
+  }
+
 
 
   public JMethodDeclaration convert(final MethodDeclaration md) {
@@ -327,7 +339,7 @@ public class ASTConverter {
       return convertInterfaceType(t);
     } else if(t.isEnum()) {
       //TODO Implement Enums
-      return new JSimpleType(JBasicType.UNSPECIFIED);
+      return new JClassType(getFullyQualifiedClassName(t), VisibilityModifier.PUBLIC, true, false, false);
     }
 
     assert false : "Could Not Find Type";
@@ -782,6 +794,11 @@ public class ASTConverter {
   }
 
 
+
+
+
+
+
   public IADeclaration convert(SingleVariableDeclaration d) {
 
 
@@ -956,10 +973,47 @@ public class ASTConverter {
          return convert((InstanceofExpression)e);
        //case ASTNode.CAST_EXPRESSION:
          //return convert((CastExpression) e);
+       case ASTNode.VARIABLE_DECLARATION_EXPRESSION:
+         return convert( (VariableDeclarationExpression)e);
     }
 
        logger.log(Level.SEVERE, "Expression of typ "+  AstErrorChecker.getTypeName(e.getNodeType()) + " not implemented");
        return null;
+  }
+
+  private JIdExpression convert(VariableDeclarationExpression vde) {
+
+    List<IADeclaration> variableDeclarations = new ArrayList<IADeclaration>();
+
+    @SuppressWarnings({ "cast", "unchecked" })
+    List<VariableDeclarationFragment> variableDeclarationFragments =
+                                            (List<VariableDeclarationFragment>)vde.fragments();
+
+    CFileLocation fileLoc = getFileLocation(vde);
+    Type type = vde.getType();
+
+
+    @SuppressWarnings("unchecked")
+    ModifierBean mB = ModifierBean.getModifiers(vde.modifiers());
+
+   assert(!mB.isAbstract) : "Local Variable has abstract modifier?";
+   assert(!mB.isNative) : "Local Variable has native modifier?";
+   assert(mB.visibility == VisibilityModifier.NONE) : "Local Variable has Visibility modifier?";
+   assert(!mB.isStatic) : "Local Variable has static modifier?";
+   assert(!mB.isStrictFp) : "Local Variable has strictFp modifier?";
+   assert(!mB.isSynchronized) : "Local Variable has synchronized modifier?";
+
+    for(VariableDeclarationFragment vdf : variableDeclarationFragments){
+
+      Triple<String , String , AInitializerExpression> nameAndInitializer = getNamesAndInitializer(vdf);
+
+        variableDeclarations.add( new JVariableDeclaration(fileLoc, NOT_GLOBAL,
+            convert(type) ,    nameAndInitializer.getFirst() ,nameAndInitializer.getSecond()   , nameAndInitializer.getThird() ,  mB.isFinal));
+    }
+
+    forInitDeclarations.addAll(variableDeclarations);
+
+    return null;
   }
 
   //private IAstNode convert(CastExpression e) {
@@ -1216,10 +1270,11 @@ public class ASTConverter {
     String name = null;
     IASimpleDeclaration declaration = null;
 
-    if(((IVariableBinding)e.resolveBinding()).isEnumConstant()) {
-      //TODO Prototype for enum constant expression, investigate
-      return new AStringLiteralExpression(getFileLocation(e), convert(e.resolveTypeBinding()) , name);
-    }
+    boolean canBeResolved = e.resolveBinding() != null;
+      if(canBeResolved && ((IVariableBinding)e.resolveBinding()).isEnumConstant()) {
+        //TODO Prototype for enum constant expression, investigate
+        return new JEnumConstantExpression(getFileLocation(e), (JClassType) convert(e.resolveTypeBinding()) , getFullyQualifiedName((IVariableBinding) e.resolveBinding()));
+      }
 
     if(e.resolveBinding() instanceof IMethodBinding ){
       name = getFullyQualifiedMethodName((IMethodBinding) e.resolveBinding());
@@ -1233,8 +1288,6 @@ public class ASTConverter {
       if(declaration == null) {
         // TODO If can't be Found, create declaration (ugly , needs to be changed so that only one Declaration is ever created
         ModifierBean mb = ModifierBean.getModifiers(vb.getModifiers());
-
-
         declaration = new JFieldDeclaration(getFileLocation(e), vb.isField(), convert(e.resolveTypeBinding()), getFullyQualifiedName(vb), getFullyQualifiedName(vb), null, mb.isFinal(), mb.isStatic(), mb.isTransient(), mb.isVolatile, mb.visibility);
       }
 

@@ -58,4 +58,6 @@ public interface JExpressionVisitor<R, X extends Exception>  {
 
   R visit(JNullLiteralExpression pJNullLiteralExpression) throws X;
 
+  R visit(JEnumConstantExpression pJEnumConstantExpression) throws X;
+
 }
