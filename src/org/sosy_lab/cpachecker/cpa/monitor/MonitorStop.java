@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.monitor;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -41,27 +41,27 @@ public class MonitorStop implements StopOperator {
   }
 
   @Override
-  public boolean stop(AbstractElement pElement,
-      Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
+  public boolean stop(AbstractState pElement,
+      Collection<AbstractState> pReached, Precision pPrecision) throws CPAException {
 
-    MonitorElement monitorElement = (MonitorElement)pElement;
-    if (monitorElement.mustDumpAssumptionForAvoidance()) {
+    MonitorState monitorState = (MonitorState)pElement;
+    if (monitorState.mustDumpAssumptionForAvoidance()) {
       return false;
     }
 
-    AbstractElement wrappedElement = monitorElement.getWrappedElement();
+    AbstractState wrappedState = monitorState.getWrappedState();
     StopOperator stopOp = wrappedCpa.getStopOperator();
 
-    for (AbstractElement reachedElement : pReached) {
+    for (AbstractState reachedState : pReached) {
 
-      MonitorElement monitorReachedElement = (MonitorElement)reachedElement;
-      if (monitorReachedElement.mustDumpAssumptionForAvoidance()) {
+      MonitorState monitorReachedState = (MonitorState)reachedState;
+      if (monitorReachedState.mustDumpAssumptionForAvoidance()) {
         return false;
       }
 
-      AbstractElement wrappedReachedElement = monitorReachedElement.getWrappedElement();
+      AbstractState wrappedReachedState = monitorReachedState.getWrappedState();
 
-      if (stopOp.stop(wrappedElement, Collections.singleton(wrappedReachedElement), pPrecision)) {
+      if (stopOp.stop(wrappedState, Collections.singleton(wrappedReachedState), pPrecision)) {
         return true;
       }
     }

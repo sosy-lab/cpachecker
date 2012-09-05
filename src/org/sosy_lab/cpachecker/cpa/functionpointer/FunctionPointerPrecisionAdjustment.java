@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Functions;
@@ -44,30 +44,30 @@ class FunctionPointerPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement,
+  public Triple<AbstractState, Precision, Action> prec(AbstractState pElement,
       Precision oldPrecision, UnmodifiableReachedSet pElements) throws CPAException {
 
-    Preconditions.checkArgument(pElement instanceof FunctionPointerElement);
-    FunctionPointerElement element = (FunctionPointerElement)pElement;
+    Preconditions.checkArgument(pElement instanceof FunctionPointerState);
+    FunctionPointerState element = (FunctionPointerState)pElement;
 
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
-        pElements,  ARTElement.getUnwrapFunction(), Functions.<Precision>identity());
+        pElements,  ARGState.getUnwrapFunction(), Functions.<Precision>identity());
 
-    AbstractElement oldElement = element.getWrappedElement();
+    AbstractState oldElement = element.getWrappedState();
 
-    Triple<AbstractElement, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
+    Triple<AbstractState, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
 
-    AbstractElement newElement = unwrappedResult.getFirst();
+    AbstractState newElement = unwrappedResult.getFirst();
     Precision newPrecision = unwrappedResult.getSecond();
     Action action = unwrappedResult.getThird();
 
     if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
       // nothing has changed
-      return new Triple<AbstractElement, Precision, Action>(pElement, oldPrecision, action);
+      return Triple.of(pElement, oldPrecision, action);
     }
 
-    FunctionPointerElement resultElement = element.createDuplicateWithNewWrappedElement(newElement);
+    AbstractState resultElement = element.createDuplicateWithNewWrappedState(newElement);
 
-    return new Triple<AbstractElement, Precision, Action>(resultElement, newPrecision, action);
+    return Triple.of(resultElement, newPrecision, action);
   }
 }

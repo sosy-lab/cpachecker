@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,12 +33,12 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 
 
 /**
@@ -46,31 +46,33 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  */
 public class BlockPartitioningBuilder {
 
+  private static final CFATraversal TRAVERSE_CFA_INSIDE_FUNCTION = CFATraversal.dfs().ignoreFunctionCalls();
+
   private final ReferencedVariablesCollector referenceCollector;
 
   private final Map<CFANode, Set<ReferencedVariable>> referencedVariablesMap = new HashMap<CFANode, Set<ReferencedVariable>>();
   private final Map<CFANode, Set<CFANode>> callNodesMap = new HashMap<CFANode, Set<CFANode>>();
   private final Map<CFANode, Set<CFANode>> returnNodesMap = new HashMap<CFANode, Set<CFANode>>();
-  private final Map<CFANode, Set<CFAFunctionDefinitionNode>> innerFunctionCallsMap = new HashMap<CFANode, Set<CFAFunctionDefinitionNode>>();
+  private final Map<CFANode, Set<FunctionEntryNode>> innerFunctionCallsMap = new HashMap<CFANode, Set<FunctionEntryNode>>();
   private final Map<CFANode, Set<CFANode>> blockNodesMap = new HashMap<CFANode, Set<CFANode>>();
 
   public BlockPartitioningBuilder(Set<CFANode> mainFunctionBody) {
     referenceCollector = new ReferencedVariablesCollector(mainFunctionBody);
   }
 
-  public BlockPartitioning build() {
+  public BlockPartitioning build(CFANode mainFunction) {
     //fixpoint iteration to take inner function calls into account for referencedVariables and callNodesMap
     boolean changed = true;
-    outer: while(changed) {
+    outer: while (changed) {
       changed = false;
-      for(CFANode node : referencedVariablesMap.keySet()) {
-        for(CFANode calledFun : innerFunctionCallsMap.get(node)) {
+      for (CFANode node : referencedVariablesMap.keySet()) {
+        for (CFANode calledFun : innerFunctionCallsMap.get(node)) {
           Set<ReferencedVariable> functionVars = referencedVariablesMap.get(calledFun);
           Set<CFANode> functionBody = blockNodesMap.get(calledFun);
-          if(functionVars == null || functionBody == null) {
+          if (functionVars == null || functionBody == null) {
             assert functionVars == null && functionBody == null;
             //compute it only the fly
-            functionBody = CFAUtils.exploreSubgraph(calledFun, ((CFAFunctionDefinitionNode)calledFun).getExitNode());
+            functionBody = TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(calledFun);
             functionVars = collectReferencedVariables(functionBody);
             //and save it
             blockNodesMap.put(calledFun, functionBody);
@@ -80,10 +82,10 @@ public class BlockPartitioningBuilder {
             continue outer;
           }
 
-          if(referencedVariablesMap.get(node).addAll(functionVars)) {
+          if (referencedVariablesMap.get(node).addAll(functionVars)) {
             changed = true;
           }
-          if(blockNodesMap.get(node).addAll(functionBody)) {
+          if (blockNodesMap.get(node).addAll(functionBody)) {
             changed = true;
           }
         }
@@ -92,26 +94,26 @@ public class BlockPartitioningBuilder {
 
     //now we can create the Blocks   for the BlockPartitioning
     Collection<Block> blocks = new ArrayList<Block>(returnNodesMap.keySet().size());
-    for(CFANode key : returnNodesMap.keySet()) {
+    for (CFANode key : returnNodesMap.keySet()) {
       blocks.add(new Block(referencedVariablesMap.get(key), callNodesMap.get(key), returnNodesMap.get(key), blockNodesMap.get(key)));
     }
-    return new BlockPartitioning(blocks);
+    return new BlockPartitioning(blocks, mainFunction);
   }
 
   /**
    * @param nodes Nodes from which Block should be created; if the set of nodes contains inner function calls, the called function body should NOT be included
    */
 
-  public void addBlock(Set<CFANode> nodes) {
+  public void addBlock(Set<CFANode> nodes, CFANode mainFunction) {
     Set<ReferencedVariable> referencedVariables = collectReferencedVariables(nodes);
-    Set<CFANode> callNodes = collectCallNodes(nodes);
-    Set<CFANode> returnNodes = collectReturnNodes(nodes);
-    Set<CFAFunctionDefinitionNode> innerFunctionCalls = collectInnerFunctionCalls(nodes);
+    Set<CFANode> callNodes = collectCallNodes(nodes, mainFunction);
+    Set<CFANode> returnNodes = collectReturnNodes(nodes, mainFunction);
+    Set<FunctionEntryNode> innerFunctionCalls = collectInnerFunctionCalls(nodes);
 
     CFANode registerNode = null;
-    for(CFANode node : callNodes) {
+    for (CFANode node : callNodes) {
       registerNode = node;
-      if(node instanceof CFAFunctionDefinitionNode) {
+      if (node instanceof FunctionEntryNode) {
         break;
       }
     }
@@ -123,38 +125,39 @@ public class BlockPartitioningBuilder {
     blockNodesMap.put(registerNode, nodes);
   }
 
-  private Set<CFAFunctionDefinitionNode> collectInnerFunctionCalls(Set<CFANode> pNodes) {
-    Set<CFAFunctionDefinitionNode> result = new HashSet<CFAFunctionDefinitionNode>();
-    for(CFANode node : pNodes) {
-      for(int i = 0; i < node.getNumLeavingEdges(); i++) {
+  private Set<FunctionEntryNode> collectInnerFunctionCalls(Set<CFANode> pNodes) {
+    Set<FunctionEntryNode> result = new HashSet<FunctionEntryNode>();
+    for (CFANode node : pNodes) {
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge e = node.getLeavingEdge(i);
-        if (e instanceof FunctionCallEdge) {
-          result.add(((FunctionCallEdge)e).getSuccessor());
+        if (e instanceof CFunctionCallEdge) {
+          result.add(((CFunctionCallEdge)e).getSuccessor());
         }
       }
     }
     return result;
   }
 
-  private Set<CFANode> collectCallNodes(Set<CFANode> pNodes) {
+  private Set<CFANode> collectCallNodes(Set<CFANode> pNodes, CFANode mainFunction) {
     Set<CFANode> result = new HashSet<CFANode>();
-    for(CFANode node : pNodes) {
-      if(node instanceof CFAFunctionDefinitionNode && node.getFunctionName().equalsIgnoreCase("main")) {
+    for (CFANode node : pNodes) {
+      if (node instanceof FunctionEntryNode &&
+         node.getFunctionName().equalsIgnoreCase(mainFunction.getFunctionName())) {
         //main definition is always a call edge
         result.add(node);
         continue;
       }
-      if(node.getEnteringSummaryEdge() != null) {
+      if (node.getEnteringSummaryEdge() != null) {
         CFANode pred = node.getEnteringSummaryEdge().getPredecessor();
-        if(!pNodes.contains(pred)) {
+        if (!pNodes.contains(pred)) {
           result.add(node);
         }
         //ignore inner function calls
         continue;
       }
-      for(int i = 0; i < node.getNumEnteringEdges(); i++) {
+      for (int i = 0; i < node.getNumEnteringEdges(); i++) {
         CFANode pred = node.getEnteringEdge(i).getPredecessor();
-        if(!pNodes.contains(pred)) {
+        if (!pNodes.contains(pred)) {
           //entering edge from "outside" of the given set of nodes
           //-> this is a call-node
           result.add(node);
@@ -164,30 +167,31 @@ public class BlockPartitioningBuilder {
     return result;
   }
 
-  private Set<CFANode> collectReturnNodes(Set<CFANode> pNodes) {
+  private Set<CFANode> collectReturnNodes(Set<CFANode> pNodes, CFANode mainFunction) {
     Set<CFANode> result = new HashSet<CFANode>();
-    for(CFANode node : pNodes) {
-      if(node instanceof CFAFunctionExitNode && node.getFunctionName().equalsIgnoreCase("main")) {
+    for (CFANode node : pNodes) {
+      if (node instanceof FunctionExitNode &&
+         node.getFunctionName().equalsIgnoreCase(mainFunction.getFunctionName())) {
         //main exit nodes are always return nodes
         result.add(node);
         continue;
       }
 
-      for(int i = 0; i < node.getNumLeavingEdges(); i++) {
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFANode succ = node.getLeavingEdge(i).getSuccessor();
-        if(!pNodes.contains(succ)) {
+        if (!pNodes.contains(succ)) {
           //leaving edge from inside of the given set of nodes to outside
           //-> this is a either return-node or a function call
-          if(!(node.getLeavingEdge(i) instanceof FunctionCallEdge)) {
+          if (!(node.getLeavingEdge(i) instanceof CFunctionCallEdge)) {
             //-> only add if its not a function call
             result.add(node);
           } else {
             //otherwise check if the summary edge is inside of the block
-            CFANode sumSucc = ((FunctionCallEdge)node.getLeavingEdge(i)).getSummaryEdge().getSuccessor();
-            if(!pNodes.contains(sumSucc)) {
+            CFANode sumSucc = ((CFunctionCallEdge)node.getLeavingEdge(i)).getSummaryEdge().getSuccessor();
+            if (!pNodes.contains(sumSucc)) {
               //summary edge successor not in nodes set; this is a leaving edge
               //add entering nodes
-              for(int j = 0; j < sumSucc.getNumEnteringEdges(); j++) {
+              for (int j = 0; j < sumSucc.getNumEnteringEdges(); j++) {
                 result.add(sumSucc.getEnteringEdge(j).getPredecessor());
               }
             }

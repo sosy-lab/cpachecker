@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,9 +29,22 @@ import java.util.Vector;
 public class EliminationAnswer {
 
   private Vector<EAPair> pairs;
+  private boolean truthValue = true; // for use when Redlog says 'false'.
 
   public EliminationAnswer() {
     pairs = new Vector<EAPair>();
+  }
+
+  public EliminationAnswer(boolean value) {
+    this.truthValue = value;
+  }
+
+  public boolean getTruthValue() {
+    return truthValue;
+  }
+
+  void setTruthValue(boolean b) {
+    truthValue = b;
   }
 
   public void addPair(EAPair pair) {

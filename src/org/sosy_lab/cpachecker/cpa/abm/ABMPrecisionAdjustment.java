@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.abm;
 import java.util.Map;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -34,29 +34,37 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class ABMPrecisionAdjustment implements PrecisionAdjustment {
 
-  private Map<AbstractElement, Precision> forwardPrecisionToExpandedPrecision;
-
-  public final PrecisionAdjustment wrappedPrecisionAdjustment;
+  private Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision;
+  private boolean breakAnalysis = false;
+  private final PrecisionAdjustment wrappedPrecisionAdjustment;
 
   public ABMPrecisionAdjustment(PrecisionAdjustment pWrappedPrecisionAdjustment) {
     this.wrappedPrecisionAdjustment = pWrappedPrecisionAdjustment;
   }
 
   void setForwardPrecisionToExpandedPrecision(
-      Map<AbstractElement, Precision> pForwardPrecisionToExpandedPrecision) {
+      Map<AbstractState, Precision> pForwardPrecisionToExpandedPrecision) {
     forwardPrecisionToExpandedPrecision = pForwardPrecisionToExpandedPrecision;
   }
 
   @Override
-  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement, Precision pPrecision, UnmodifiableReachedSet pElements) throws CPAException {
-    Triple<AbstractElement, Precision, Action> result = wrappedPrecisionAdjustment.prec(pElement, pPrecision, pElements);
+  public Triple<AbstractState, Precision, Action> prec(AbstractState pElement, Precision pPrecision, UnmodifiableReachedSet pElements) throws CPAException {
+    if (breakAnalysis) {
+      return Triple.of(pElement, pPrecision, Action.BREAK);
+    }
+
+    Triple<AbstractState, Precision, Action> result = wrappedPrecisionAdjustment.prec(pElement, pPrecision, pElements);
 
     Precision newPrecision = forwardPrecisionToExpandedPrecision.get(pElement);
-    if(newPrecision != null) {
+    if (newPrecision != null) {
       return Triple.of(result.getFirst(), newPrecision, result.getThird());
     } else {
       return result;
     }
+  }
+
+  void breakAnalysis() {
+    breakAnalysis = true;
   }
 
 }

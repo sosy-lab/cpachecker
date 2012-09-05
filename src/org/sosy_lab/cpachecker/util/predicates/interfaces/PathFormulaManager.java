@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -62,28 +62,28 @@ public interface PathFormulaManager {
 
   /**
    * Build a formula containing a predicate for all branching situations in the
-   * ART. If a satisfying assignment is created for this formula, it can be used
-   * to find out which paths in the ART are feasible.
+   * ARG. If a satisfying assignment is created for this formula, it can be used
+   * to find out which paths in the ARG are feasible.
    *
    * This method may be called with an empty set, in which case it does nothing
    * and returns the formula "true".
    *
-   * @param elementsOnPath The ART elements that should be considered.
+   * @param elementsOnPath The ARG states that should be considered.
    * @return A formula containing a predicate for each branching.
    * @throws CPATransferException
    */
-  Formula buildBranchingFormula(Iterable<ARTElement> pElementsOnPath)
+  Formula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
       throws CPATransferException;
 
   /**
    * Extract the information about the branching predicates created by
    * {@link #buildBranchingFormula(Set)} from a satisfying assignment.
    *
-   * A map is created that stores for each ARTElement (using its element id as
+   * A map is created that stores for each ARGState (using its element id as
    * the map key) which edge was taken (the positive or the negated one).
    *
    * @param model A satisfying assignment that should contain values for branching predicates.
-   * @return A map from ART element id to a boolean value indicating direction.
+   * @return A map from ARG state id to a boolean value indicating direction.
    */
   Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model pModel);
 }

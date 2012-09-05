@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,10 @@ import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.sosy_lab.cpachecker.util.invariants.Coeff;
-import org.sosy_lab.cpachecker.util.invariants.redlog.Rational;
+import org.sosy_lab.cpachecker.util.invariants.Rational;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Monomial;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Term;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -45,6 +48,9 @@ public class TemplateTerm extends TemplateSum {
   private static AtomicInteger nextParamIndex = new AtomicInteger(0);
   public static final String paramHead = "p";
 
+  // To write "as form" means that in our toString method we suppress
+  // coefficient and parameter. Thus, the "form" of a term simply reflects
+  // its variables and UIFs.
   private boolean writingAsForm = false;
 
   // In case we wish to unevaluate, we store old values.
@@ -52,6 +58,10 @@ public class TemplateTerm extends TemplateSum {
   private TemplateNumber oldCoeff = null;
 
   public TemplateTerm() {}
+
+  public TemplateTerm(TemplateUIF uif) {
+    this.uif = uif;
+  }
 
   public static TemplateTerm makeZero() {
   	TemplateTerm T = new TemplateTerm();
@@ -91,7 +101,7 @@ public class TemplateTerm extends TemplateSum {
   }
 
   @Override
-  public boolean evaluate(HashMap<String,Rational> map) {
+  public boolean evaluate(Map<String,Rational> map) {
     boolean ans = true;
     if (hasParameter()) {
       ans = false;
@@ -103,7 +113,7 @@ public class TemplateTerm extends TemplateSum {
         param = null;
         // Update coefficient.
         oldCoeff = coeff;
-        TemplateNumber P = new TemplateNumber(R.toStringNice());
+        TemplateNumber P = new TemplateNumber(R);
         if (!hasCoefficient()) {
           setCoefficient(P);
         } else {
@@ -176,6 +186,9 @@ public class TemplateTerm extends TemplateSum {
     }
   }
 
+  // The purpose of "generalizing" is to turn the Term into a template.
+  // This means that we eliminate any coefficient, and we generate a
+  // fresh parameter.
   @Override
   public void generalize() {
     coeff = null;
@@ -188,8 +201,12 @@ public class TemplateTerm extends TemplateSum {
     }
   }
 
-  static TemplateVariable getNextFreshParameter() {
+  public static TemplateVariable getNextFreshParameter() {
     return new TemplateVariable(paramHead, nextParamIndex.incrementAndGet());
+  }
+
+  public static void resetParameterIndices() {
+    nextParamIndex.set(0);
   }
 
 //------------------------------------------------------------------
@@ -211,21 +228,43 @@ public class TemplateTerm extends TemplateSum {
     HashSet<TemplateVariable> params = new HashSet<TemplateVariable>();
     if (hasParameter()) {
       params.add(param);
-    } else if (hasUIF()) {
+    }
+    if (hasUIF()) {
       params.addAll(uif.getAllParameters());
     }
     return params;
   }
 
   @Override
+  public Set<TemplateVariable> getAllPurificationVariables() {
+    Set<TemplateVariable> pvs = new HashSet<TemplateVariable>();
+    if (uif!=null && uif.isPurified()) {
+      pvs.add( uif.getPurifiedName().getVariable() );
+    }
+    return pvs;
+  }
+
+  @Override
   public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
     if (hasVariable()) {
       map = var.getMaxIndices(map);
-    } else if (hasUIF()) {
+    }
+    if (hasUIF()) {
       TemplateUIF U = getUIF();
       map = U.getMaxIndices(map);
     }
     return map;
+  }
+
+  public int getMaxIndex() {
+    HashMap<String,Integer> map = getMaxIndices(new HashMap<String,Integer>());
+    int n = 0;
+    for (Integer I : map.values()) {
+      if (I.intValue() > n) {
+        n = I.intValue();
+      }
+    }
+    return n;
   }
 
   @Override
@@ -249,6 +288,27 @@ public class TemplateTerm extends TemplateSum {
     } else if (hasUIF()) {
       uif.prefixVariables(prefix);
     }
+  }
+
+  public Term makeRationalFunctionTerm(Map<String,Variable> paramVars) {
+    Term t = new Term();
+    Rational c = Rational.makeUnity();
+    if (hasCoefficient()) {
+      c = coeff.rationalValue();
+    }
+    t.setCoeff(c);
+    if (hasParameter()) {
+      Variable v;
+      String s = param.toString(VariableWriteMode.REDLOG);
+      if (!paramVars.containsKey(s)) {
+        System.err.println("Creating parameter not in the TemplateNetwork's parameter map.");
+        v = new Variable(s);
+      } else {
+        v = paramVars.get(s);
+      }
+      t.setMonomial(new Monomial(v));
+    }
+    return t;
   }
 
   @Override
@@ -337,6 +397,10 @@ public class TemplateTerm extends TemplateSum {
     // Return true iff this term has no variable, UIF, or parameter, and
     // does have a coefficient.
     return (hasCoefficient() && !hasVariable() && !hasUIF() && !hasParameter());
+  }
+
+  public boolean isZero() {
+    return (hasCoefficient() && coeff.isZero());
   }
 
 //------------------------------------------------------------------
@@ -438,7 +502,7 @@ public class TemplateTerm extends TemplateSum {
       s = s.substring(1);
     } else if (s.length() == 0) {
       // In this case the coefficient is 1.
-	s = "1";
+	    s = "1";
     }
     return new Coeff(s);
   }
@@ -473,6 +537,20 @@ public class TemplateTerm extends TemplateSum {
 
 //------------------------------------------------------------------
 // Other
+
+  /*
+   * Create a new TemplateTerm which is obtained from this one by
+   * dividing its coefficient by the TemplateNumber n.
+   */
+  public TemplateTerm divideBy(TemplateNumber n) {
+    TemplateTerm t = this.copy();
+    if (t.hasCoefficient()) {
+      t.coeff = t.coeff.divideBy(n);
+    } else {
+      t.coeff = n.makeReciprocal();
+    }
+    return t;
+  }
 
   public static TemplateTerm multiply(TemplateTerm t1, TemplateTerm t2) {
     TemplateTerm T = new TemplateTerm();

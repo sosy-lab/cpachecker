@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,12 +32,12 @@ import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.collect.Iterables;
@@ -48,6 +48,7 @@ import com.google.common.collect.Iterables;
  */
 public class LoopPartitioning extends PartitioningHeuristic {
 
+  private static final CFATraversal TRAVERSE_CFA_INSIDE_FUNCTION = CFATraversal.dfs().ignoreFunctionCalls();
   private Map<CFANode, Set<CFANode>> loopHeaderToLoopBody;
   private final CFA cfa;
 
@@ -58,10 +59,10 @@ public class LoopPartitioning extends PartitioningHeuristic {
 
   private void initLoopMap() {
     loopHeaderToLoopBody = new HashMap<CFANode, Set<CFANode>>();
-    if(cfa.getLoopStructure().isPresent()) {
-      for(String functionName : cfa.getLoopStructure().get().keySet()) {
-        for(Loop loop : cfa.getLoopStructure().get().get(functionName)) {
-          if(loop.getLoopHeads().size() == 1) {
+    if (cfa.getLoopStructure().isPresent()) {
+      for (String functionName : cfa.getLoopStructure().get().keySet()) {
+        for (Loop loop : cfa.getLoopStructure().get().get(functionName)) {
+          if (loop.getLoopHeads().size() == 1) {
             //currently only loops with single loop heads supported
             loopHeaderToLoopBody.put(Iterables.getOnlyElement(loop.getLoopHeads()), loop.getLoopNodes());
           }
@@ -72,12 +73,12 @@ public class LoopPartitioning extends PartitioningHeuristic {
 
   @Override
   protected boolean shouldBeCached(CFANode pNode) {
-    if(pNode instanceof CFAFunctionDefinitionNode && pNode.getNumEnteringEdges() == 0) {
+    if (pNode instanceof FunctionEntryNode && pNode.getNumEnteringEdges() == 0) {
       //main function
       return true;
     }
-    if(pNode.isLoopStart()) {
-      if(hasBlankEdgeFromLoop(pNode) || selfLoop(pNode)) {
+    if (pNode.isLoopStart()) {
+      if (hasBlankEdgeFromLoop(pNode) || selfLoop(pNode)) {
         return false;
       }
       return true;
@@ -86,9 +87,9 @@ public class LoopPartitioning extends PartitioningHeuristic {
   }
 
   private static boolean hasBlankEdgeFromLoop(CFANode pNode) {
-    for(int i = 0; i < pNode.getNumEnteringEdges(); i++) {
+    for (int i = 0; i < pNode.getNumEnteringEdges(); i++) {
       CFAEdge edge = pNode.getEnteringEdge(i);
-      if(edge instanceof BlankEdge && edge.getPredecessor().isLoopStart()) {
+      if (edge instanceof BlankEdge && edge.getPredecessor().isLoopStart()) {
         return true;
       }
     }
@@ -101,17 +102,16 @@ public class LoopPartitioning extends PartitioningHeuristic {
 
   @Override
   protected Set<CFANode> getBlockForNode(CFANode pNode) {
-    if(pNode instanceof CFAFunctionDefinitionNode) {
-      CFAFunctionDefinitionNode functionNode = (CFAFunctionDefinitionNode) pNode;
-      return CFAUtils.exploreSubgraph(functionNode, functionNode.getExitNode());
+    if (pNode instanceof FunctionEntryNode) {
+      return TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
     }
-    if(pNode.isLoopStart()) {
+    if (pNode.isLoopStart()) {
       Set<CFANode> loopBody = new HashSet<CFANode>();
-      if(loopHeaderToLoopBody == null) {
+      if (loopHeaderToLoopBody == null) {
         initLoopMap();
       }
       Set<CFANode> immutableLoopBody = loopHeaderToLoopBody.get(pNode);
-      if(immutableLoopBody == null) {
+      if (immutableLoopBody == null) {
         return null;
       }
       loopBody.addAll(immutableLoopBody);
@@ -123,9 +123,9 @@ public class LoopPartitioning extends PartitioningHeuristic {
   }
 
   private void insertLoopStartState(Set<CFANode> pLoopBody, CFANode pLoopHeader) {
-    for(int i = 0; i < pLoopHeader.getNumEnteringEdges(); i++) {
+    for (int i = 0; i < pLoopHeader.getNumEnteringEdges(); i++) {
       CFAEdge edge = pLoopHeader.getEnteringEdge(i);
-      if(edge instanceof BlankEdge && !pLoopBody.contains(edge.getPredecessor())) {
+      if (edge instanceof BlankEdge && !pLoopBody.contains(edge.getPredecessor())) {
         pLoopBody.add(edge.getPredecessor());
       }
     }
@@ -133,10 +133,10 @@ public class LoopPartitioning extends PartitioningHeuristic {
 
   private void insertLoopReturnStates(Set<CFANode> pLoopBody) {
     List<CFANode> addNodes = new ArrayList<CFANode>();
-    for(CFANode node : pLoopBody) {
-      for(int i = 0; i < node.getNumLeavingEdges(); i++) {
+    for (CFANode node : pLoopBody) {
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge edge = node.getLeavingEdge(i);
-        if(!pLoopBody.contains(edge.getSuccessor()) && !(node.getLeavingEdge(i) instanceof FunctionCallEdge))  {
+        if (!pLoopBody.contains(edge.getSuccessor()) && !(node.getLeavingEdge(i).getEdgeType() == CFAEdgeType.FunctionCallEdge))  {
           addNodes.add(edge.getSuccessor());
         }
       }

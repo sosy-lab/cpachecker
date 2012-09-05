@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,21 +36,21 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplateVariableManager
 import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
 
 public class UIFAxiom {
-  
+
   private TemplateConjunction antecedent;
   private TemplateConstraint consequent;
 
   public UIFAxiom(TemplateUIF F1, TemplateUIF F2) {
     construct(F1, F2);
   }
-  
+
   public UIFAxiom(TemplateUIF U1, TemplateUIF U2, TemplateTerm T1, TemplateTerm T2) {
     TemplateSumList L1 = U1.getArgs();
     TemplateSumList L2 = U2.getArgs();
     antecedent = new TemplateConjunction(L1, L2);
     consequent = new TemplateConstraint(T1, InfixReln.EQUAL, T2);
   }
-  
+
   /**
    * Construct the UIF axiom for those UIFs that were assigned
    * the indices i and j in the Purification pur.
@@ -60,8 +60,10 @@ public class UIFAxiom {
     TemplateUIF F2 = pur.getUIFByIndex(j);
     construct(F1,F2);
   }
-  
+
   private void construct(TemplateUIF F1, TemplateUIF F2) {
+    F1 = F1.copy();
+    F2 = F2.copy();
     TemplateSumList A1 = F1.getArgs();
     TemplateTerm    U1 = F1.getPurifiedName();
     TemplateSumList A2 = F2.getArgs();
@@ -69,23 +71,32 @@ public class UIFAxiom {
     antecedent = new TemplateConjunction(A1, A2);
     consequent = new TemplateConstraint(U1, InfixReln.EQUAL, U2);
   }
-    
+
   public TemplateConjunction getAntecedent() {
     return antecedent;
   }
-  
+
   public TemplateConstraint getConsequent() {
     return consequent;
   }
-  
+
   public Set<String> getAllParameters(VariableWriteMode vwm) {
     return antecedent.getAllParameters(vwm);
   }
-  
+
   public TemplateVariableManager getVariableManager() {
     TemplateVariableManager vmgr = antecedent.getVariableManager();
     vmgr.merge(consequent.getVariableManager());
     return vmgr;
   }
-  
+
+  @Override
+  public String toString() {
+    String s = "";
+    s += antecedent.toString();
+    s += " --> ";
+    s += consequent.toString();
+    return s;
+  }
+
 }

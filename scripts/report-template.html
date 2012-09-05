@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
     <head>
-        <title>CPAchecker Report - {{{sourcefile}}}</title>
+        <title>CPAchecker Report - {{sourcefilename}}</title>
         <style>
 .edge {
     cursor: pointer;
@@ -96,9 +96,13 @@ html,body {
     padding: 0px;
 }
 
-#errpathwin ul span {
+#errpathwin ul > li > span {
     width: 4em;
     background: #ccc;
+    display: inline-block;
+}
+
+#errpathwin ul > li > code > a {
     display: inline-block;
 }
 
@@ -107,7 +111,11 @@ html,body {
     white-space: nowrap;
 }
 
-#errpathwin ul li.selected {
+#errpathwin ul > li:nth-child(odd) {
+    background-color: #f3f3f3;
+}
+
+#errpathwin ul > li.selected {
     border: 1px solid red;
     margin: 0px;
 }
@@ -194,6 +202,11 @@ a.action:hover {
 #tab_cil #cil_holder td pre {
     padding: 0px;
     margin: 0px;
+    border: none;
+}
+
+#tab_cil #cil_holder tr:nth-child(2n+1) td pre.prettyprint {
+    background-color: #f3f3f3;
 }
 
 .zoomSliderContainer {
@@ -232,13 +245,17 @@ a.action:hover {
 }
 
 </style>
+
+    <link href="http://www.sosy-lab.org/lib/google-code-prettify-2011-06-01/prettify.css" type="text/css" rel="stylesheet" />
+    <script type="text/javascript" src="http://www.sosy-lab.org/lib/google-code-prettify-2011-06-01/prettify.js"></script>
+
     </head>
 
-    <body>
+    <body onload="prettyPrint()">
         <div class="toolbar" id="header">
             <h1>CPAchecker Report</h1>
-            <small>Generated: {{{time_generated}}}</small>
-            <h2>{{{sourcefile}}}</h2>
+            <small>Generated: {{time_generated}}</small>
+            <h2>{{sourcefilename}}</h2>
             <h3 id="cfalabel" style="display:none;">main</h3>
         </div>
 
@@ -257,7 +274,7 @@ a.action:hover {
         <div id="rightContent">
             <div class="toolbar">
                 <a class="action" id="show_cfa">CFA</a>
-                <a class="action" id="show_art">ART</a>
+                <a class="action" id="show_art">ARG</a>
                 <a class="action" id="show_cil">CIL</a>
                 <a class="action" id="show_log">Log</a>
                 <a class="action" id="show_stats">Statistics</a>
@@ -293,20 +310,28 @@ a.action:hover {
                         <div id="zoomLabel_tab_art">100 %</div>
                     </div>
                     <div class="iframeWrapper">
-						<iframe name="tab_art" src="ART.svg"></iframe>
+						<iframe name="tab_art" src="ARG.svg"></iframe>
 					</div>
                 </div>
-                <div id="tab_cil">
-                    {{{formatted_cil}}}
+		<div id="tab_cil">
+                    {{if sourcefilecontent}}
+                    <table id="cil_holder">
+{{for loop, line in looper(sourcefilecontent.splitlines())}}
+<tr id="cil_line_{{loop.index}}"><td><pre>{{loop.index}}</pre></td><td><pre class="prettyprint lang-c">{{line}}</pre></td></tr>
+{{endfor}}
+                    </table>
+                    {{else}}
+                    <h3>Source code not available.</h3>
+                    {{endif}}
                 </div>
                 <div id="tab_log">
-                    <pre>{{{logfile}}}</pre>
+                    <pre>{{logfile or 'Logfile not available.'}}</pre>
                 </div>
                 <div id="tab_stats">
-                    <pre>{{{statistics}}}</pre>
+                    <pre>{{statistics or 'Statistics not available.'}}</pre>
                 </div>
                 <div id="tab_conf">
-                    <pre>{{{conffile}}}</pre>
+                    <pre>{{conffile or 'CPAchecker configuration not available.'}}</pre>
                 </div>
             </div>
         </div>
@@ -727,7 +752,7 @@ a.action:hover {
                 //errorpath edge selection handler
                 function edge_clickaction(edgeid, errpathindex) {
                     return function() {
-                        errpathelem_select(this.parentNode);
+                        errpathelem_select(this.parentNode.parentNode);
                         viewer.windows.simulator.pos = errpathindex;
                         self.handlers.fire('edge_selected', edgeid, errpathindex);
                     };
@@ -763,7 +788,7 @@ a.action:hover {
                         if ('' + elem.source in viewer.data.fcalledges) {
                             var fcalledge = viewer.data.fcalledges['' + elem.source];
                             var substitute = {
-                                'artelem' : elem.artelem,
+                                'argelem' : elem.argelem,
                                 'source' : elem.source,
                                 'target' : parseInt(fcalledge[0], 10),
                                 'desc' : elem.desc,
@@ -772,7 +797,7 @@ a.action:hover {
                             };
                             extended.push(substitute);
                             var jumpToFunc = {
-                                'artelem' : elem.artelem,
+                                'argelem' : elem.argelem,
                                 'source' : parseInt(fcalledge[0], 10),
                                 'target' : elem.target,
                                 'desc' : '',
@@ -822,7 +847,7 @@ a.action:hover {
 
                         }
 
-                        if (step.desc.substring(0, 'Return Edge to'.length) == 'Return Edge to') {
+                        if (step.desc.substring(0, 'Return edge from'.length) == 'Return edge from') {
                             level -= 1;
                             self.edge2li[step.source + '->' + step.target] = li;
                             self.index2li[i] = li;
@@ -851,15 +876,18 @@ a.action:hover {
                         edgelink.innerHTML = step.desc;
                         edgelink.onclick = edge_clickaction([step['source'], step['target']], i);
                         edgelink.style.textIndent = '' + (level * 15) + 'px';
-                        edgelink.style.display = 'inline-block';
-                        li.appendChild(edgelink);
+
+                        var code = document.createElement('code');
+                        code.className = 'prettyprint lang-c';
+                        code.appendChild(edgelink);
+                        li.appendChild(code);
                         ul.appendChild(li);
                     }
                 };
             })();
 
-            //the ART window
-            viewer.windows.artwin = new (function() {
+            //the ARG window
+            viewer.windows.argwin = new (function() {
                 var self = this;
 
                 //focus a cfa node - scrolls node into view and places an arrow next to the node
@@ -907,7 +935,7 @@ a.action:hover {
 
                 };
 
-                //initialize ART window - DOM must be ready
+                //initialize ARG window - DOM must be ready
                 self.init = function() {
                     console.log('tab_art -- init');
                     self.frame = window.frames['tab_art'];
@@ -989,20 +1017,20 @@ a.action:hover {
 
         <script>
             //the errorpath data
-            viewer.data.errorpath = {{{errorpath}}};
+            viewer.data.errorpath = {{errorpath | html}};
 
             //list of functions in the CFA
-            viewer.data.functionlist = {{{functionlist}}};
+            viewer.data.functionlist = {{functionlist | html}};
 
             //nodes that wrap multiple edges
-            viewer.data.combinednodes = {{{combinednodes}}};
+            viewer.data.combinednodes = {{combinednodes | html}};
 
             //info about all nodes and edges in the cfa ... this is not yet fully available via GUI
-            viewer.data.cfainfo = {{{cfainfo}}};
+            viewer.data.cfainfo = {{cfainfo | html}};
 
             //the virtual edges that had to be inserted in the CFA where other functions are called
             //(edges to and from the nodes representing function calls)
-            viewer.data.fcalledges = {{{fcalledges}}};
+            viewer.data.fcalledges = {{fcalledges | html}};
 
 
             function draw_error_path_cfa() {
@@ -1030,10 +1058,10 @@ a.action:hover {
                     line--;
                 }
                 if (selected_cil) {
-                    selected_cil.style.backgroundColor = '#fff';
+                    selected_cil.children[1].children[0].style.backgroundColor = '';
                 }
                 selected_cil = document.getElementById('cil_line_' + line);
-                selected_cil.style.backgroundColor = 'red';
+                selected_cil.children[1].children[0].style.backgroundColor = 'red';
                 selected_cil.scrollIntoView();
             }
 
@@ -1042,8 +1070,8 @@ a.action:hover {
                 if (viewer.windows.rightpane.selection == 'tab_cfa') {
                     viewer.windows.cfawin.focus_node(nodeid);
                 } else if (viewer.windows.rightpane.selection == 'tab_art') {
-                    viewer.windows.artwin.focus_node(
-                        '' + viewer.data.errorpath[errpathindex].artelem
+                    viewer.windows.argwin.focus_node(
+                        '' + viewer.data.errorpath[errpathindex].argelem
                     );
                 } else if (viewer.windows.rightpane.selection == 'tab_cil') {
                     scroll_cil(viewer.data.cfainfo.nodes[nodeid].line);
@@ -1055,8 +1083,8 @@ a.action:hover {
                     viewer.windows.cfawin.focus_node(edgeid[1]);
                     //viewer.windows.cfawin.set_edge_color(edgeid, 'red');
                 } else if (viewer.windows.rightpane.selection == 'tab_art') {
-                    viewer.windows.artwin.focus_node(
-                        '' + viewer.data.errorpath[errpathindex].artelem
+                    viewer.windows.argwin.focus_node(
+                        '' + viewer.data.errorpath[errpathindex].argelem
                     );
                 } else if (viewer.windows.rightpane.selection == 'tab_cil') {
                     scroll_cil(viewer.data.cfainfo.edges[edgeid[0] + '->' + edgeid[1]].line);
@@ -1075,11 +1103,11 @@ a.action:hover {
 
             var task = setInterval(function() {
                 //console.log('check DOMready');
-                viewer.windows.artwin.init();
-                if (viewer.windows.artwin.svgdoc && viewer.windows.artwin.svgdoc.getElementById) {
-                    console.log('ART DOM seems to be ready.');
+                viewer.windows.argwin.init();
+                if (viewer.windows.argwin.svgdoc && viewer.windows.argwin.svgdoc.getElementById) {
+                    console.log('ARG DOM seems to be ready.');
                     clearInterval(task);
-                    viewer.windows.artwin.onready();
+                    viewer.windows.argwin.onready();
                 }
             }, 1000);
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,51 +35,52 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.pointer.PointerElement;
+import org.sosy_lab.cpachecker.cpa.pointer.PointerState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
-import org.sosy_lab.cpachecker.util.assumptions.NumericTypes;
 
 @Options(prefix="cpa.interval")
 public class IntervalAnalysisTransferRelation implements TransferRelation
@@ -103,37 +104,37 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   }
 
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors (AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException
+  public Collection<? extends AbstractState> getAbstractSuccessors (AbstractState element, Precision precision, CFAEdge cfaEdge) throws CPATransferException
   {
-    Collection<? extends AbstractElement> successors  = null;
+    Collection<? extends AbstractState> successors  = null;
 
-    AbstractElement successor                         = null;
+    AbstractState successor                         = null;
 
-    IntervalAnalysisElement intervalElement           = (IntervalAnalysisElement)element;
+    IntervalAnalysisState intervalElement           = (IntervalAnalysisState)element;
 
     // check the type of the edge
-    switch(cfaEdge.getEdgeType())
+    switch (cfaEdge.getEdgeType())
     {
       // if edge is a statement edge, e.g. a = b + c
       case StatementEdge:
-        StatementEdge statementEdge = (StatementEdge)cfaEdge;
+        CStatementEdge statementEdge = (CStatementEdge)cfaEdge;
         successor = handleStatement(intervalElement, statementEdge.getStatement(), cfaEdge);
         break;
 
         // this is the statement edge which leads the function to the last node of its CFA (not same as a return edge)
       case ReturnStatementEdge:
-        ReturnStatementEdge returnEdge = (ReturnStatementEdge)cfaEdge;
+        CReturnStatementEdge returnEdge = (CReturnStatementEdge)cfaEdge;
         successor = handleExitFromFunction(intervalElement, returnEdge.getExpression(), returnEdge, cfaEdge);
         break;
 
       // edge is a declaration edge, e.g. int a;
       case DeclarationEdge:
-        successor = handleDeclaration(intervalElement, (DeclarationEdge)cfaEdge);
+        successor = handleDeclaration(intervalElement, (CDeclarationEdge)cfaEdge);
         break;
 
-      // this is an assumption, e.g. if(a == b)
+      // this is an assumption, e.g. if (a == b)
       case AssumeEdge:
-        AssumeEdge assumeEdge = (AssumeEdge)cfaEdge;
+        CAssumeEdge assumeEdge = (CAssumeEdge)cfaEdge;
         successors = handleAssumption(intervalElement, assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption());
         break;
 
@@ -142,67 +143,66 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         break;
 
       case FunctionCallEdge:
-        FunctionCallEdge functionCallEdge = (FunctionCallEdge)cfaEdge;
+        CFunctionCallEdge functionCallEdge = (CFunctionCallEdge)cfaEdge;
         successor = handleFunctionCall(intervalElement, functionCallEdge, cfaEdge);
         break;
 
       // this is a return edge from function, this is different from return statement
       // of the function. See case in statement edge for details
       case FunctionReturnEdge:
-        successor = handleFunctionReturn(intervalElement, (FunctionReturnEdge)cfaEdge);
+        successor = handleFunctionReturn(intervalElement, (CFunctionReturnEdge)cfaEdge);
         break;
 
       default:
         throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
 
-    if(successors != null)
+    if (successors != null) {
       return successors;
-
-    else if(successor == null)
+    } else if (successor == null) {
       return noSuccessors();
-
-    else
+    } else {
       return soleSuccessor(successor);
+    }
   }
 
   /**
    * Handles return from one function to another function.
    *
-   * @param element previous abstract element.
+   * @param element previous abstract state.
    * @param functionReturnEdge return edge from a function to its call site.
-   * @return new abstract element.
+   * @return new abstract state.
    */
-  private IntervalAnalysisElement handleFunctionReturn(IntervalAnalysisElement element, FunctionReturnEdge functionReturnEdge)
+  private IntervalAnalysisState handleFunctionReturn(IntervalAnalysisState element, CFunctionReturnEdge functionReturnEdge)
     throws UnrecognizedCCodeException
   {
-    CallToReturnEdge summaryEdge = functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
+    CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
 
-    IASTFunctionCall expression = summaryEdge.getExpression();
+    CFunctionCall expression = summaryEdge.getExpression();
 
-    IntervalAnalysisElement newElement = element.getPreviousElement().clone();
+    IntervalAnalysisState newElement = element.getPreviousState().clone();
 
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
 
     // expression is an assignment operation, e.g. a = g(b);
-    if(expression instanceof IASTFunctionCallAssignmentStatement)
+    if (expression instanceof CFunctionCallAssignmentStatement)
     {
-      IASTFunctionCallAssignmentStatement funcExp = (IASTFunctionCallAssignmentStatement)expression;
+      CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement)expression;
 
-      IASTExpression operand1 = funcExp.getLeftHandSide();
+      CExpression operand1 = funcExp.getLeftHandSide();
 
       // left hand side of the expression has to be a variable
-      if((operand1 instanceof IASTIdExpression) || (operand1 instanceof IASTFieldReference))
+      if ((operand1 instanceof CIdExpression) || (operand1 instanceof CFieldReference))
       {
-        String assignedVariableName = operand1.getRawSignature();
+        String assignedVariableName = operand1.toASTString();
 
         String returnedVariableName = calledFunctionName + "::" + RETURN_VARIABLE_BASE_NAME;
 
-        for(String globalVar : globalVars)
+        for (String globalVar : globalVars)
         {
           // if the assigned variable represents global variable, set the global variable to the value of the returning variable or unknown
-          if(globalVar.equals(assignedVariableName))
+          if (globalVar.equals(assignedVariableName))
           {
             Interval interval = element.contains(returnedVariableName) ? element.getInterval(returnedVariableName) : Interval.createUnboundInterval();
 
@@ -219,7 +219,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         }
 
         // set the value of the assigned variable to the value of the returned variable
-        if(!globalVars.contains(assignedVariableName))
+        if (!globalVars.contains(assignedVariableName))
         {
           Interval interval = element.contains(returnedVariableName) ? element.getInterval(returnedVariableName) : Interval.createUnboundInterval();
 
@@ -228,26 +228,25 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       }
 
       // a* = b(); TODO: for now, nothing is done here, but cloning the current element
-      else if(operand1 instanceof IASTUnaryExpression && ((IASTUnaryExpression)operand1).getOperator() == UnaryOperator.STAR)
-          return element.clone();
-
-      else
+      else if (operand1 instanceof CUnaryExpression && ((CUnaryExpression)operand1).getOperator() == UnaryOperator.STAR) {
+        return element.clone();
+      } else {
         throw new UnrecognizedCCodeException("on function return", summaryEdge, operand1);
+      }
     }
 
     // import the global variables back into the scope of the calling function
-    else if(expression instanceof IASTFunctionCallStatement)
+    else if (expression instanceof CFunctionCallStatement)
     {
-      for(String globalVar : globalVars)
+      for (String globalVar : globalVars)
       {
           Interval interval = element.contains(globalVar) ? element.getInterval(globalVar) : Interval.createUnboundInterval();
 
           newElement.addInterval(globalVar, interval, this.threshold);
       }
-    }
-
-    else
+    } else {
       throw new UnrecognizedCCodeException("on function return", summaryEdge, expression.asStatement());
+    }
 
     return newElement;
   }
@@ -260,32 +259,33 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return the successor element
    * @throws UnrecognizedCCodeException
    */
-  private IntervalAnalysisElement handleFunctionCall(IntervalAnalysisElement previousElement, FunctionCallEdge callEdge, CFAEdge edge)
+  private IntervalAnalysisState handleFunctionCall(IntervalAnalysisState previousElement, CFunctionCallEdge callEdge, CFAEdge edge)
     throws UnrecognizedCCodeException
   {
-    FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
+    CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
 
     String calledFunctionName = functionEntryNode.getFunctionName();
     String callerFunctionName = callEdge.getPredecessor().getFunctionName();
 
     List<String> parameterNames = functionEntryNode.getFunctionParameterNames();
-    List<IASTExpression> arguments  = callEdge.getArguments();
+    List<CExpression> arguments  = callEdge.getArguments();
 
     assert(parameterNames.size() == arguments.size());
 
-    IntervalAnalysisElement newElement = new IntervalAnalysisElement(previousElement);
+    IntervalAnalysisState newElement = new IntervalAnalysisState(previousElement);
 
     // import global variables into the current scope first
-    for(String globalVar : globalVars)
+    for (String globalVar : globalVars)
     {
-      if(previousElement.contains(globalVar))
+      if (previousElement.contains(globalVar)) {
         newElement.addInterval(globalVar, previousElement.getInterval(globalVar), threshold);
+      }
     }
 
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(previousElement, callerFunctionName, edge);
 
     // set the interval of each formal parameter to the interval of its respective actual parameter
-    for(int i = 0; i < arguments.size(); i++)
+    for (int i = 0; i < arguments.size(); i++)
     {
       //Interval interval = evaluateInterval(previousElement, arguments.get(i), callerFunctionName, callEdge);
       // get value of actual parameter in caller function context
@@ -304,14 +304,16 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    *
    * @param element the analysis element
    * @param expression the expression
-   * @param ReturnStatementEdge the CFA edge corresponding to this statement
+   * @param CReturnStatementEdge the CFA edge corresponding to this statement
    * @return the successor elements
    */
-  private IntervalAnalysisElement handleExitFromFunction(IntervalAnalysisElement element, IASTExpression expression, ReturnStatementEdge returnEdge, CFAEdge edge)
+  private IntervalAnalysisState handleExitFromFunction(IntervalAnalysisState element, CExpression expression, CReturnStatementEdge returnEdge, CFAEdge edge)
     throws UnrecognizedCCodeException
   {
     if (expression == null)
-      expression = NumericTypes.ZERO; // this is the default in C
+     {
+      expression = CNumericTypes.ZERO; // this is the default in C
+    }
 
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(element, returnEdge.getPredecessor().getFunctionName(), edge);
 
@@ -328,15 +330,15 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param truthValue flag to determine whether this is the then- or the else-branch of the assumption
    * @return the successor elements
    */
-  private Collection<? extends AbstractElement> handleAssumption(IntervalAnalysisElement element, IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
+  private Collection<? extends AbstractState> handleAssumption(IntervalAnalysisState element, CExpression expression, CFAEdge cfaEdge, boolean truthValue)
     throws UnrecognizedCCodeException
   {
     // first, unpack the expression to deal with a raw assumption
-    if(expression instanceof IASTUnaryExpression)
+    if (expression instanceof CUnaryExpression)
     {
-      IASTUnaryExpression unaryExp = ((IASTUnaryExpression)expression);
+      CUnaryExpression unaryExp = ((CUnaryExpression)expression);
 
-      switch(unaryExp.getOperator())
+      switch (unaryExp.getOperator())
       {
         // remove negation
         case NOT:
@@ -351,42 +353,40 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       }
     }
 
-    // a plain (boolean) identifier, e.g. if(a)
-    else if(expression instanceof IASTIdExpression)
-        return handleAssumption(element, convertToBinaryAssume((IASTIdExpression)expression), cfaEdge, truthValue);
-
-    // a binary expression, e.g. if(exp1 op exp2)
-    else if(expression instanceof IASTBinaryExpression)
+    // a plain (boolean) identifier, e.g. if (a)
+    else if (expression instanceof CIdExpression) {
+      return handleAssumption(element, convertToBinaryAssume((CIdExpression)expression), cfaEdge, truthValue);
+    } else if (expression instanceof CBinaryExpression)
     {
-      IntervalAnalysisElement newElement = element.clone();
+      IntervalAnalysisState newElement = element.clone();
 
-      BinaryOperator operator = ((IASTBinaryExpression)expression).getOperator();
-      IASTExpression operand1 = ((IASTBinaryExpression)expression).getOperand1();
-      IASTExpression operand2 = ((IASTBinaryExpression)expression).getOperand2();
+      BinaryOperator operator = ((CBinaryExpression)expression).getOperator();
+      CExpression operand1 = ((CBinaryExpression)expression).getOperand1();
+      CExpression operand2 = ((CBinaryExpression)expression).getOperand2();
 
       ExpressionValueVisitor visitor = new ExpressionValueVisitor(newElement, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
 
       Interval interval1 = operand1.accept(visitor);
       Interval interval2 = operand2.accept(visitor);
 
-      switch(operator)
+      switch (operator)
       {
         case MINUS:
         case PLUS:
           Interval result = null;
 
-          if(operator == BinaryOperator.MINUS)
+          if (operator == BinaryOperator.MINUS) {
             result = interval1.minus(interval2);
-
-          else if(operator == BinaryOperator.PLUS)
+          } else if (operator == BinaryOperator.PLUS) {
             result = interval1.plus(interval2);
+          }
 
           // in then-branch and interval maybe true, or in else-branch and interval maybe false, add a successor
-          if((truthValue && !result.isFalse()) || (!truthValue && !result.isTrue()))
+          if ((truthValue && !result.isFalse()) || (!truthValue && !result.isTrue())) {
             return soleSuccessor(newElement);
-
-          else
+          } else {
             return noSuccessors();
+          }
 
         case EQUALS:
         case NOT_EQUALS:
@@ -409,10 +409,11 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     return noSuccessors();
   }
 
-  private Collection<? extends AbstractElement> processAssumption(IntervalAnalysisElement element, BinaryOperator operator, IASTExpression operand1, IASTExpression operand2, boolean truthValue, CFAEdge cfaEdge) throws UnrecognizedCCodeException
+  private Collection<? extends AbstractState> processAssumption(IntervalAnalysisState element, BinaryOperator operator, CExpression operand1, CExpression operand2, boolean truthValue, CFAEdge cfaEdge) throws UnrecognizedCCodeException
   {
-    if(!truthValue)
+    if (!truthValue) {
       return processAssumption(element, negateOperator(operator), operand1, operand2, !truthValue, cfaEdge);
+    }
 
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(element, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
 
@@ -425,105 +426,116 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     //Interval orgInterval2 = evaluateInterval(element, operand2, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
     Interval tmpInterval2 = orgInterval2.clone();
 
-    String variableName1 = constructVariableName(operand1.getRawSignature(), cfaEdge.getPredecessor().getFunctionName());
-    String variableName2 = constructVariableName(operand2.getRawSignature(), cfaEdge.getPredecessor().getFunctionName());
+    String variableName1 = constructVariableName(operand1.toASTString(), cfaEdge.getPredecessor().getFunctionName());
+    String variableName2 = constructVariableName(operand2.toASTString(), cfaEdge.getPredecessor().getFunctionName());
 
     // determine whether or not the respective operand is an identifier
-    boolean isIdOp1 = operand1 instanceof IASTIdExpression;
-    boolean isIdOp2 = operand2 instanceof IASTIdExpression;
+    boolean isIdOp1 = operand1 instanceof CIdExpression;
+    boolean isIdOp2 = operand2 instanceof CIdExpression;
 
     // a < b, a < 1
-    if(operator == BinaryOperator.LESS_THAN)
+    if (operator == BinaryOperator.LESS_THAN)
     {
       // a may be less than b, so there can be a successor
-      if(tmpInterval1.mayBeLessThan(tmpInterval2))
+      if (tmpInterval1.mayBeLessThan(tmpInterval2))
       {
-        if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitUpperBoundBy(tmpInterval2.minus(1L)), threshold);
-        if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitLowerBoundBy(tmpInterval1.plus(1L)), threshold);
-      }
-
-      // a is always greater than b, so a can't be less than b, so there can't be a successor
-      else
+        if (isIdOp1) {
+          element.addInterval(variableName1, orgInterval1.limitUpperBoundBy(tmpInterval2.minus(1L)), threshold);
+        }
+        if (isIdOp2) {
+          element.addInterval(variableName2, orgInterval2.limitLowerBoundBy(tmpInterval1.plus(1L)), threshold);
+        }
+      } else {
         return noSuccessors();
+      }
     }
 
     // a <= b, a <= 1
-    else if(operator == BinaryOperator.LESS_EQUAL)
+    else if (operator == BinaryOperator.LESS_EQUAL)
     {
       // a may be less or equal than b, so there can be a successor
-      if(tmpInterval1.mayBeLessOrEqualThan(tmpInterval2))
+      if (tmpInterval1.mayBeLessOrEqualThan(tmpInterval2))
       {
-        if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitUpperBoundBy(tmpInterval2), threshold);
-        if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitLowerBoundBy(tmpInterval1), threshold);
-      }
-
-      // a is always greater than b, so a can't be less than b, so there can't be a successor
-      else
+        if (isIdOp1) {
+          element.addInterval(variableName1, orgInterval1.limitUpperBoundBy(tmpInterval2), threshold);
+        }
+        if (isIdOp2) {
+          element.addInterval(variableName2, orgInterval2.limitLowerBoundBy(tmpInterval1), threshold);
+        }
+      } else {
         return noSuccessors();
+      }
     }
 
     // a > b, a > 1
-    else if(operator == BinaryOperator.GREATER_THAN)
+    else if (operator == BinaryOperator.GREATER_THAN)
     {
       // a may be greater than b, so there can be a successor
-      if(tmpInterval1.mayBeGreaterThan(tmpInterval2))
+      if (tmpInterval1.mayBeGreaterThan(tmpInterval2))
       {
-        if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitLowerBoundBy(tmpInterval2.plus(1L)), threshold);
-        if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitUpperBoundBy(tmpInterval1.minus(1L)), threshold);
-      }
-
-      // a is always less than b, so a can't be greater than b, so there can't be a successor
-      else
+        if (isIdOp1) {
+          element.addInterval(variableName1, orgInterval1.limitLowerBoundBy(tmpInterval2.plus(1L)), threshold);
+        }
+        if (isIdOp2) {
+          element.addInterval(variableName2, orgInterval2.limitUpperBoundBy(tmpInterval1.minus(1L)), threshold);
+        }
+      } else {
         return noSuccessors();
+      }
     }
 
     // a >= b, a >= 1
-    else if(operator == BinaryOperator.GREATER_EQUAL)
+    else if (operator == BinaryOperator.GREATER_EQUAL)
     {
       // a may be greater or equal than b, so there can be a successor
-      if(tmpInterval1.mayBeGreaterOrEqualThan(tmpInterval2))
+      if (tmpInterval1.mayBeGreaterOrEqualThan(tmpInterval2))
       {
-        if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitLowerBoundBy(tmpInterval2), threshold);
-        if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitUpperBoundBy(tmpInterval1), threshold);
-      }
-
-      // a is always less than b, so a can't be greater than b, so there can't be a successor
-      else
+        if (isIdOp1) {
+          element.addInterval(variableName1, orgInterval1.limitLowerBoundBy(tmpInterval2), threshold);
+        }
+        if (isIdOp2) {
+          element.addInterval(variableName2, orgInterval2.limitUpperBoundBy(tmpInterval1), threshold);
+        }
+      } else {
         return noSuccessors();
+      }
     }
 
     // a == b, a == 1
-    else if(operator == BinaryOperator.EQUALS)
+    else if (operator == BinaryOperator.EQUALS)
     {
       // a and b intersect, so they may have the same value, so they may be equal
-      if(tmpInterval1.intersects(tmpInterval2))
+      if (tmpInterval1.intersects(tmpInterval2))
       {
-        if(isIdOp1) element.addInterval(variableName1, orgInterval1.intersect(tmpInterval2), threshold);
-        if(isIdOp2) element.addInterval(variableName2, orgInterval2.intersect(tmpInterval1), threshold);
-      }
-
-      // a and b do not intersect, so they can't be equal, so there can't be a successor
-      else
+        if (isIdOp1) {
+          element.addInterval(variableName1, orgInterval1.intersect(tmpInterval2), threshold);
+        }
+        if (isIdOp2) {
+          element.addInterval(variableName2, orgInterval2.intersect(tmpInterval1), threshold);
+        }
+      } else {
         return noSuccessors();
+      }
     }
 
     // a != b, a != 1
-    else if(operator == BinaryOperator.NOT_EQUALS)
+    else if (operator == BinaryOperator.NOT_EQUALS)
     {
       // a = [x, x] = b => a and b are always equal, so there can't be a successor
-      if(tmpInterval1.isSingular() && tmpInterval1.equals(tmpInterval2))
+      if (tmpInterval1.isSingular() && tmpInterval1.equals(tmpInterval2)) {
         return noSuccessors();
+      }
 
       // TODO: currently depends on the fact that operand1 is a identifier, while operand2 is a literal
-      if(splitIntervals && isIdOp1 && !isIdOp2)
+      if (splitIntervals && isIdOp1 && !isIdOp2)
       {
-        IntervalAnalysisElement newElement = null;
+        IntervalAnalysisState newElement = null;
 
-        Collection<IntervalAnalysisElement> successors = new LinkedList<IntervalAnalysisElement>();
+        Collection<IntervalAnalysisState> successors = new LinkedList<IntervalAnalysisState>();
 
         Interval result = null;
 
-        if(!(result = orgInterval1.intersect(Interval.createUpperBoundedInterval(orgInterval2.getLow() - 1L))).isEmpty())
+        if (!(result = orgInterval1.intersect(Interval.createUpperBoundedInterval(orgInterval2.getLow() - 1L))).isEmpty())
         {
           newElement = element.clone();
 
@@ -532,7 +544,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
           successors.add(newElement);
         }
 
-        if(!(result = orgInterval1.intersect(Interval.createLowerBoundedInterval(orgInterval2.getLow() + 1L))).isEmpty())
+        if (!(result = orgInterval1.intersect(Interval.createLowerBoundedInterval(orgInterval2.getLow() + 1L))).isEmpty())
         {
           newElement = element.clone();
 
@@ -543,9 +555,9 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
         return successors;
       }
-    }
-    else
+    } else {
       throw new UnrecognizedCCodeException("unknown operator", cfaEdge);
+    }
 
     return soleSuccessor(element);
   }
@@ -558,7 +570,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    */
   private BinaryOperator negateOperator(BinaryOperator operator)
   {
-    switch(operator) {
+    switch (operator) {
       case EQUALS:
         return BinaryOperator.NOT_EQUALS;
 
@@ -591,38 +603,38 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @param declarationEdge the CFA edge
    * @return the successor element
    */
-  private IntervalAnalysisElement handleDeclaration(IntervalAnalysisElement element, DeclarationEdge declarationEdge)
+  private IntervalAnalysisState handleDeclaration(IntervalAnalysisState element, CDeclarationEdge declarationEdge)
   throws UnrecognizedCCodeException
   {
-    IntervalAnalysisElement newElement = element.clone();
-    if (declarationEdge.getName() != null) {
+    IntervalAnalysisState newElement = element.clone();
+    if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {
+        CVariableDeclaration decl = (CVariableDeclaration)declarationEdge.getDeclaration();
 
         // ignore pointer variables
-        if (declarationEdge.getDeclSpecifier() instanceof IASTPointerTypeSpecifier)
+        if (decl.getType() instanceof CPointerType) {
           return newElement;
+        }
 
         // if this is a global variable, add it to the list of global variables
-        if(declarationEdge.isGlobal())
+        if (decl.isGlobal())
         {
-          globalVars.add(declarationEdge.getName().toString());
+          globalVars.add(decl.getName().toString());
 
           Interval interval;
 
-          IASTInitializer init = declarationEdge.getInitializer();
+          CInitializer init = decl.getInitializer();
 
           // global variables may be initialized explicitly on the spot ...
-          if(init instanceof IASTInitializerExpression)
+          if (init instanceof CInitializerExpression)
           {
-            IASTRightHandSide exp = ((IASTInitializerExpression)init).getExpression();
+            CExpression exp = ((CInitializerExpression)init).getExpression();
 
             interval = evaluateInterval(element, exp, "", declarationEdge);
+          } else {
+            interval = new Interval(0L);
           }
 
-          // ... or implicitly initialized to 0
-          else
-            interval = new Interval(0L);
-
-          String varName = constructVariableName(declarationEdge.getName().toString(), "");
+          String varName = constructVariableName(decl.getName().toString(), "");
 
           newElement.addInterval(varName, interval, this.threshold);
         }
@@ -630,7 +642,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         // non-global variables are initialized with an unbound interval
         else
         {
-          String varName = constructVariableName(declarationEdge.getName(), declarationEdge.getPredecessor().getFunctionName());
+          String varName = constructVariableName(decl.getName(), declarationEdge.getPredecessor().getFunctionName());
 
           newElement.addInterval(varName, Interval.createUnboundInterval(), this.threshold);
           //newElement.addInterval(varName, new Interval(0L), this.threshold);
@@ -649,23 +661,19 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return the successor
    * @throws UnrecognizedCCodeException
    */
-  private IntervalAnalysisElement handleStatement(IntervalAnalysisElement element, IASTStatement expression, CFAEdge cfaEdge)
+  private IntervalAnalysisState handleStatement(IntervalAnalysisState element, CStatement expression, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException
   {
     // expression is an assignment operation, e.g. a = b;
-    if(expression instanceof IASTAssignment)
-      return handleAssignment(element, (IASTAssignment)expression, cfaEdge);
-
-    // ext(); => do nothing
-    else if(expression instanceof IASTFunctionCallStatement)
+    if (expression instanceof CAssignment) {
+      return handleAssignment(element, (CAssignment)expression, cfaEdge);
+    } else if (expression instanceof CFunctionCallStatement) {
       return element.clone();
-
-    // a; nothing to do
-    else if(expression instanceof IASTExpressionStatement)
+    } else if (expression instanceof CExpressionStatement) {
       return element.clone();
-
-    else
+    } else {
       throw new UnrecognizedCCodeException(cfaEdge, expression);
+    }
   }
 
    /**
@@ -677,51 +685,46 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return the successor element
    * TODO pointer dereferencing via strengthening
    */
-  private IntervalAnalysisElement handleAssignment(IntervalAnalysisElement element, IASTAssignment assignExpression, CFAEdge cfaEdge)
+  private IntervalAnalysisState handleAssignment(IntervalAnalysisState element, CAssignment assignExpression, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException
   {
-    IASTExpression op1 = assignExpression.getLeftHandSide();
-    IASTRightHandSide op2 = assignExpression.getRightHandSide();
+    CExpression op1 = assignExpression.getLeftHandSide();
+    CRightHandSide op2 = assignExpression.getRightHandSide();
 
     // a = ?
-    if(op1 instanceof IASTIdExpression)
+    if (op1 instanceof CIdExpression)
     {
       ExpressionValueVisitor visitor = new ExpressionValueVisitor(element, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
 
-      return handleAssignmentToVariable(op1.getRawSignature(), op2, visitor);
+      return handleAssignmentToVariable(((CIdExpression)op1).getName(), op2, visitor);
     }
 
     // TODO: assignment to pointer, *a = ?
-    else if(op1 instanceof IASTUnaryExpression && ((IASTUnaryExpression)op1).getOperator() == UnaryOperator.STAR)
+    else if (op1 instanceof CUnaryExpression && ((CUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
       return element.clone();
-
-    // TODO assignment to field, a->b = ?
-    else if (op1 instanceof IASTFieldReference)
+    } else if (op1 instanceof CFieldReference) {
       return element.clone();
-
-    // TODO assignment to array cell, a[b] = ?
-    else if (op1 instanceof IASTArraySubscriptExpression)
+    } else if (op1 instanceof CArraySubscriptExpression) {
       return element.clone();
-
-    else
+    } else {
       throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
+    }
   }
 
   /**
    * This method handles the assignment of a variable.
    *
-   * @param element the analysis element
    * @param lParam the local name of the variable to assign to
    * @param rightExp the assigning expression
    * @param cfaEdge the respective CFA edge
    * @return the successor element
    */
-  private IntervalAnalysisElement handleAssignmentToVariable(String lParam, IASTRightHandSide expression, ExpressionValueVisitor v)
+  private IntervalAnalysisState handleAssignmentToVariable(String lParam, CRightHandSide expression, ExpressionValueVisitor v)
     throws UnrecognizedCCodeException
   {
     Interval value = expression.accept(v);
 
-    IntervalAnalysisElement newElement = v.element.clone();
+    IntervalAnalysisState newElement = v.state.clone();
     String variableName = constructVariableName(lParam, v.functionName);
 
     newElement.addInterval(variableName, value, this.threshold);
@@ -739,34 +742,33 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return the interval in respect to the evaluated expression of null, if the expression could not be evaluated properly
    */
   //getExpressionValue
-  private Interval evaluateInterval(IntervalAnalysisElement element, IASTRightHandSide expression, String functionName, CFAEdge cfaEdge)
+  private Interval evaluateInterval(IntervalAnalysisState element, CRightHandSide expression, String functionName, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException
   {
-    if(expression instanceof IASTLiteralExpression)
+    if (expression instanceof CLiteralExpression)
     {
-      Long value = parseLiteral((IASTLiteralExpression)expression, cfaEdge);
+      Long value = parseLiteral((CLiteralExpression)expression, cfaEdge);
 
       return (value == null) ? Interval.createUnboundInterval() : new Interval(value, value);
     }
 
-    else if(expression instanceof IASTIdExpression)
+    else if (expression instanceof CIdExpression)
     {
-      String varName = constructVariableName(expression.getRawSignature(), functionName);
+      String varName = constructVariableName(((CIdExpression)expression).getName(), functionName);
 
       return (element.contains(varName)) ? element.getInterval(varName) : Interval.createUnboundInterval();
     }
 
-    else if(expression instanceof IASTCastExpression)
-      return evaluateInterval(element, ((IASTCastExpression)expression).getOperand(), functionName, cfaEdge);
-
-    else if(expression instanceof IASTUnaryExpression)
+    else if (expression instanceof CCastExpression) {
+      return evaluateInterval(element, ((CCastExpression)expression).getOperand(), functionName, cfaEdge);
+    } else if (expression instanceof CUnaryExpression)
     {
-      IASTUnaryExpression unaryExpression = (IASTUnaryExpression)expression;
+      CUnaryExpression unaryExpression = (CUnaryExpression)expression;
 
       UnaryOperator unaryOperator = unaryExpression.getOperator();
-      IASTExpression unaryOperand = unaryExpression.getOperand();
+      CExpression unaryOperand = unaryExpression.getOperand();
 
-      switch(unaryOperator)
+      switch (unaryOperator)
       {
         case MINUS:
           Interval interval = evaluateInterval(element, unaryOperand, functionName, cfaEdge);
@@ -779,14 +781,14 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     }
 
     // added for expression "if (! (req_a___0 + 50 == rsp_d___0))" in "systemc/mem_slave_tlm.1.cil.c"
-    else if(expression instanceof IASTBinaryExpression)
+    else if (expression instanceof CBinaryExpression)
     {
-      IASTBinaryExpression binaryExpression = (IASTBinaryExpression)expression;
+      CBinaryExpression binaryExpression = (CBinaryExpression)expression;
 
       Interval interval1 = evaluateInterval(element, binaryExpression.getOperand1(), functionName, cfaEdge);
       Interval interval2 = evaluateInterval(element, binaryExpression.getOperand2(), functionName, cfaEdge);
 
-      switch(binaryExpression.getOperator())
+      switch (binaryExpression.getOperator())
       {
         case PLUS:
           return interval1.plus(interval2);
@@ -794,12 +796,10 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         default:
           throw new UnrecognizedCCodeException("unknown binary operator", cfaEdge, binaryExpression);
       }
-    }
-
-    // TODO fields, arrays
-    else
+    } else {
       //throw new UnrecognizedCCodeException(cfaEdge, expression);
       return Interval.createUnboundInterval();
+    }
   }
 
   /**
@@ -809,18 +809,18 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return a number or null if the parsing failed
    * @throws UnrecognizedCCodeException
    */
-  private static Long parseLiteral(IASTLiteralExpression expression, CFAEdge edge) throws UnrecognizedCCodeException
+  private static Long parseLiteral(CLiteralExpression expression, CFAEdge edge) throws UnrecognizedCCodeException
   {
-    if (expression instanceof IASTIntegerLiteralExpression) {
-      return ((IASTIntegerLiteralExpression)expression).asLong();
+    if (expression instanceof CIntegerLiteralExpression) {
+      return ((CIntegerLiteralExpression)expression).asLong();
 
-    } else if (expression instanceof IASTFloatLiteralExpression) {
+    } else if (expression instanceof CFloatLiteralExpression) {
       return null;
 
-    } else if (expression instanceof IASTCharLiteralExpression) {
-      return (long)((IASTCharLiteralExpression)expression).getCharacter();
+    } else if (expression instanceof CCharLiteralExpression) {
+      return (long)((CCharLiteralExpression)expression).getCharacter();
 
-    } else if (expression instanceof IASTStringLiteralExpression) {
+    } else if (expression instanceof CStringLiteralExpression) {
       return null;
 
     } else {
@@ -837,74 +837,74 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    */
   public String constructVariableName(String variableName, String functionName)
   {
-    if(globalVars.contains(variableName))
+    if (globalVars.contains(variableName)) {
       return variableName;
+    }
 
     return functionName + "::" + variableName;
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement element, List<AbstractElement> elements,
+  public Collection<? extends AbstractState> strengthen(AbstractState element, List<AbstractState> elements,
       CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException
   {
-    assert element instanceof IntervalAnalysisElement;
-    IntervalAnalysisElement intervalElement = (IntervalAnalysisElement)element;
+    assert element instanceof IntervalAnalysisState;
+    IntervalAnalysisState intervalElement = (IntervalAnalysisState)element;
 
-    for(AbstractElement elem : elements)
+    for (AbstractState elem : elements)
     {
-      if(elem instanceof PointerElement)
-        return strengthen(intervalElement, (PointerElement)elem, cfaEdge, precision);
+      if (elem instanceof PointerState) {
+        return strengthen(intervalElement, (PointerState)elem, cfaEdge, precision);
+      }
     }
 
     return null;
   }
 
-  private Collection<? extends AbstractElement> strengthen(IntervalAnalysisElement intervalElement,
-      PointerElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException
+  private Collection<? extends AbstractState> strengthen(IntervalAnalysisState intervalElement,
+      PointerState pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException
   {
     return null;
   }
 
-  private Collection<? extends AbstractElement> soleSuccessor(AbstractElement successor)
+  private Collection<? extends AbstractState> soleSuccessor(AbstractState successor)
   {
     return Collections.singleton(successor);
   }
 
-  private Collection<? extends AbstractElement> noSuccessors()
+  private Collection<? extends AbstractState> noSuccessors()
   {
     return Collections.emptySet();
   }
 
-  private IASTBinaryExpression convertToBinaryAssume(IASTIdExpression expression)
+  private CBinaryExpression convertToBinaryAssume(CIdExpression expression)
   {
-    IASTIntegerLiteralExpression zero = new IASTIntegerLiteralExpression("0",
-        expression.getFileLocation(),
-        expression.getExpressionType(),
-        BigInteger.ZERO);
+    CIntegerLiteralExpression zero = new CIntegerLiteralExpression(expression.getFileLocation(),
+                                                                         expression.getExpressionType(),
+                                                                         BigInteger.ZERO);
 
-    return new IASTBinaryExpression(expression.getRawSignature(),
-                                expression.getFileLocation(),
-                                expression.getExpressionType(),
-                                expression,
-                                zero,
-                                BinaryOperator.NOT_EQUALS);
+    return new CBinaryExpression(expression.getFileLocation(),
+                                    expression.getExpressionType(),
+                                    expression,
+                                    zero,
+                                    BinaryOperator.NOT_EQUALS);
   }
 
   /**
    * Visitor that get's the value from an expression.
    * The result may be null, i.e., the value is unknown.
    */
-  private class ExpressionValueVisitor extends DefaultExpressionVisitor<Interval, UnrecognizedCCodeException>
-                                       implements RightHandSideVisitor<Interval, UnrecognizedCCodeException> {
+  private class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, UnrecognizedCCodeException>
+                                       implements CRightHandSideVisitor<Interval, UnrecognizedCCodeException> {
 
-    protected final IntervalAnalysisElement element;
+    protected final IntervalAnalysisState state;
 
     protected final String functionName;
 
     protected final CFAEdge cfaEdge;
 
-    public ExpressionValueVisitor(IntervalAnalysisElement pElement, String pFunctionName, CFAEdge edge) {
-      element = pElement;
+    public ExpressionValueVisitor(IntervalAnalysisState pElement, String pFunctionName, CFAEdge edge) {
+      state = pElement;
       functionName = pFunctionName;
       cfaEdge = edge;
     }
@@ -912,18 +912,19 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     // TODO fields, arrays
 
     @Override
-    protected Interval visitDefault(IASTExpression expression) {
+    protected Interval visitDefault(CExpression expression) {
       return Interval.createUnboundInterval();
     }
 
     @Override
-    public Interval visit(IASTBinaryExpression binaryExpression) throws UnrecognizedCCodeException
+    public Interval visit(CBinaryExpression binaryExpression) throws UnrecognizedCCodeException
     {
       Interval interval1 = binaryExpression.getOperand1().accept(this);
       Interval interval2 = binaryExpression.getOperand2().accept(this);
 
-      if(interval1 == null || interval2 == null)
+      if (interval1 == null || interval2 == null) {
         return Interval.createUnboundInterval();
+      }
 
       switch (binaryExpression.getOperator())
       {
@@ -971,59 +972,60 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
           return Interval.createUnboundInterval();
 
         default:
-          throw new UnrecognizedCCodeException("unkown binary operator", null, binaryExpression);
+          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, binaryExpression);
       }
     }
 
     @Override
-    public Interval visit(IASTCastExpression cast) throws UnrecognizedCCodeException {
+    public Interval visit(CCastExpression cast) throws UnrecognizedCCodeException {
       return cast.getOperand().accept(this);
     }
 
     @Override
-    public Interval visit(IASTFunctionCallExpression functionCall) throws UnrecognizedCCodeException {
+    public Interval visit(CFunctionCallExpression functionCall) throws UnrecognizedCCodeException {
       return Interval.createUnboundInterval();
     }
 
     @Override
-    public Interval visit(IASTCharLiteralExpression charLiteral) throws UnrecognizedCCodeException {
+    public Interval visit(CCharLiteralExpression charLiteral) throws UnrecognizedCCodeException {
       Long l = parseLiteral(charLiteral, cfaEdge);
       return l == null ? Interval.createUnboundInterval() : new Interval(l);
     }
 
     @Override
-    public Interval visit(IASTFloatLiteralExpression floatLiteral) throws UnrecognizedCCodeException {
+    public Interval visit(CFloatLiteralExpression floatLiteral) throws UnrecognizedCCodeException {
       return Interval.createUnboundInterval();
     }
 
     @Override
-    public Interval visit(IASTIntegerLiteralExpression integerLiteral) throws UnrecognizedCCodeException {
+    public Interval visit(CIntegerLiteralExpression integerLiteral) throws UnrecognizedCCodeException {
       return new Interval(parseLiteral(integerLiteral, cfaEdge));
     }
 
     @Override
-    public Interval visit(IASTStringLiteralExpression stringLiteral) throws UnrecognizedCCodeException {
+    public Interval visit(CStringLiteralExpression stringLiteral) throws UnrecognizedCCodeException {
       return Interval.createUnboundInterval();
     }
 
     @Override
-    public Interval visit(IASTIdExpression identifier) throws UnrecognizedCCodeException
+    public Interval visit(CIdExpression identifier) throws UnrecognizedCCodeException
     {
-      if(identifier.getDeclaration() instanceof IASTEnumerator)
-        return new Interval(((IASTEnumerator)identifier.getDeclaration()).getValue());
+      if (identifier.getDeclaration() instanceof CEnumerator) {
+        return new Interval(((CEnumerator)identifier.getDeclaration()).getValue());
+      }
 
       String variableName = constructVariableName(identifier.getName(), functionName);
-      if (element.contains(variableName))
-        return element.getInterval(variableName);
-
-      else
+      if (state.contains(variableName)) {
+        return state.getInterval(variableName);
+      } else {
         return Interval.createUnboundInterval();
+      }
     }
 
     @Override
-    public Interval visit(IASTUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
+    public Interval visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
       UnaryOperator unaryOperator = unaryExpression.getOperator();
-      IASTExpression unaryOperand = unaryExpression.getOperand();
+      CExpression unaryOperand = unaryExpression.getOperand();
 
       Interval interval = unaryOperand.accept(this);
 
@@ -1033,14 +1035,13 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         return (interval != null) ? interval.negate() : Interval.createUnboundInterval();
 
       case NOT:
-        if(interval.isFalse())
+        if (interval.isFalse()) {
           return Interval.createTrueInterval();
-
-        else if(interval.isTrue())
+        } else if (interval.isTrue()) {
           return Interval.createFalseInterval();
-
-        else
+        } else {
           return new Interval(0L, 1L);
+        }
 
       case AMPER:
         return Interval.createUnboundInterval(); // valid expression, but it's a pointer value
@@ -1049,7 +1050,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         return Interval.createUnboundInterval();
 
       default:
-        throw new UnrecognizedCCodeException("unknown unary operator", null, unaryExpression);
+        throw new UnrecognizedCCodeException("unknown unary operator", cfaEdge, unaryExpression);
       }
     }
   }

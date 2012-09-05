@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,24 +25,24 @@ package org.sosy_lab.cpachecker.util.cwriter;
 
 import java.util.Stack;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 class Edge implements Comparable<Edge> {
 
-  private final ARTElement childElement;
+  private final ARGState childState;
   private final CFAEdge edge;
   private final Stack<FunctionBody> stack;
 
-  public Edge(ARTElement pChildElement,
+  public Edge(ARGState pChildElement,
       CFAEdge pEdge, Stack<FunctionBody> pStack) {
-    childElement = pChildElement;
+    childState = pChildElement;
     edge = pEdge;
     stack = pStack;
   }
 
-  public ARTElement getChildElement() {
-    return childElement;
+  public ARGState getChildState() {
+    return childState;
   }
 
   public CFAEdge getEdge() {
@@ -56,13 +56,13 @@ class Edge implements Comparable<Edge> {
   @Override
   /** comparison based on the child element*/
   public int compareTo(Edge pO) {
-    int otherElementId = pO.getChildElement().getElementId();
-    int thisElementId = this.getChildElement().getElementId();
+    int otherElementId = pO.getChildState().getStateId();
+    int thisElementId = this.getChildState().getStateId();
 
-    if(thisElementId > otherElementId){
+    if (thisElementId > otherElementId){
       return 1;
     }
-    else if(thisElementId < otherElementId){
+    else if (thisElementId < otherElementId){
       return -1;
     }
     return 0;
@@ -73,8 +73,8 @@ class Edge implements Comparable<Edge> {
     if (pObj == this) {
       return true;
     } else if (pObj instanceof Edge) {
-      int otherElementId = ((Edge)pObj).getChildElement().getElementId();
-      int thisElementId = this.getChildElement().getElementId();
+      int otherElementId = ((Edge)pObj).getChildState().getStateId();
+      int thisElementId = this.getChildState().getStateId();
       return thisElementId == otherElementId;
     } else {
       return false;
@@ -83,6 +83,6 @@ class Edge implements Comparable<Edge> {
 
   @Override
   public int hashCode() {
-    return getChildElement().getElementId();
+    return getChildState().getStateId();
   }
 }

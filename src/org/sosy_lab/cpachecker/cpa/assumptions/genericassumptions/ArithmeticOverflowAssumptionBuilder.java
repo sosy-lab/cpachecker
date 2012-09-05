@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,27 +26,25 @@ package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.util.assumptions.NumericTypes;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
  * Class to generate assumptions related to over/underflow
@@ -56,17 +54,17 @@ public class ArithmeticOverflowAssumptionBuilder
 implements GenericAssumptionBuilder
 {
 
-  private static Pair<IASTIntegerLiteralExpression, IASTIntegerLiteralExpression> boundsForType(IType typ)
+  private static Pair<CIntegerLiteralExpression, CIntegerLiteralExpression> boundsForType(CType typ)
   {
-    if (typ instanceof IASTSimpleDeclSpecifier) {
-      IASTSimpleDeclSpecifier btyp = (IASTSimpleDeclSpecifier) typ;
+    if (typ instanceof CSimpleType) {
+      CSimpleType btyp = (CSimpleType) typ;
 
         switch (btyp.getType()) {
         case INT:
           // TODO not handled yet by mathsat so we assume all vars are signed integers for now
           // will enable later
           return Pair.of
-          (NumericTypes.INT_MIN, NumericTypes.INT_MAX);
+          (CNumericTypes.INT_MIN, CNumericTypes.INT_MAX);
           //          if (btyp.isLong())
           //            if (btyp.isUnsigned())
           //              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
@@ -105,7 +103,7 @@ implements GenericAssumptionBuilder
      * expression, ignoring bounds if applicable. The method does
      * not check that the expression is indeed an arithmetic expression.
      */
-    private static IASTNode conjunctPredicateForArithmeticExpression(IASTExpression exp, IASTNode result)
+    private static CExpression conjunctPredicateForArithmeticExpression(CExpression exp, CExpression result)
     {
       return conjunctPredicateForArithmeticExpression(exp.getExpressionType(), exp, result);
     }
@@ -116,114 +114,96 @@ implements GenericAssumptionBuilder
    * The two last, boolean arguments allow to avoid generating
    * lower and/or upper bounds predicates.
    */
-  private static IASTNode conjunctPredicateForArithmeticExpression(IType typ,
-      IASTExpression exp, IASTNode result) {
+  private static CExpression conjunctPredicateForArithmeticExpression(CType typ,
+      CExpression exp, CExpression result) {
 
-    Pair<IASTIntegerLiteralExpression, IASTIntegerLiteralExpression> bounds =
+    Pair<CIntegerLiteralExpression, CIntegerLiteralExpression> bounds =
         boundsForType(typ);
 
     if (bounds.getFirst() != null) {
 
-      final String rawStatementOfsecondExpr =
-          "(" + exp.getRawSignature() + ">=" + bounds.getFirst().getRawSignature() + ")";
-      final IASTBinaryExpression secondExp =
-          new IASTBinaryExpression(rawStatementOfsecondExpr, null, null, exp,
+      final CBinaryExpression secondExp = new CBinaryExpression(null, null, exp,
               bounds.getFirst(), BinaryOperator.GREATER_EQUAL);
-      final String rawStatementOfNewResult =
-          "(" + result.getRawSignature() + "&&" + secondExp.getRawSignature()
-              + ")";
-      result =
-          new IASTBinaryExpression(rawStatementOfNewResult, null, null,
-              (IASTExpression) result, secondExp, BinaryOperator.LOGICAL_AND);
+      result = new CBinaryExpression(null, null,
+              result, secondExp, BinaryOperator.LOGICAL_AND);
     }
 
     if (bounds.getSecond() != null) {
 
-      final String rawStatementOfsecondExpr =
-          "(" + exp.getRawSignature() + "<=" + bounds.getSecond().getRawSignature() + ")";
-      final IASTBinaryExpression secondExp =
-          new IASTBinaryExpression(rawStatementOfsecondExpr, null, null, exp,
+      final CBinaryExpression secondExp = new CBinaryExpression(null, null, exp,
               bounds.getSecond(), BinaryOperator.LESS_EQUAL);
-      final String rawStatementOfNewResult =
-          "(" + result.getRawSignature() + "&&" + secondExp.getRawSignature()
-              + ")";
-      result =
-          new IASTBinaryExpression(rawStatementOfNewResult, null, null,
-              (IASTExpression) result, secondExp, BinaryOperator.LOGICAL_AND);
+      result =new CBinaryExpression(null, null,
+              result, secondExp, BinaryOperator.LOGICAL_AND);
     }
     return result;
   }
 
-    private static IASTNode visit(IASTExpression pExpression, IASTNode result) {
-      if(pExpression instanceof IASTIdExpression){
+    private static CExpression visit(CExpression pExpression, CExpression result) {
+      if (pExpression instanceof CIdExpression){
         result = conjunctPredicateForArithmeticExpression(pExpression, result);
       }
-      else if (pExpression instanceof IASTBinaryExpression)
+      else if (pExpression instanceof CBinaryExpression)
       {
-        IASTBinaryExpression binexp = (IASTBinaryExpression)pExpression;
-        IASTExpression op1 = binexp.getOperand1();
+        CBinaryExpression binexp = (CBinaryExpression)pExpression;
+        CExpression op1 = binexp.getOperand1();
         // Only variables for now, ignoring * & operators
-        if(op1 instanceof IASTIdExpression){
+        if (op1 instanceof CIdExpression){
           result = conjunctPredicateForArithmeticExpression(op1, result);
         }
       }
-      else if (pExpression instanceof IASTUnaryExpression)
+      else if (pExpression instanceof CUnaryExpression)
       {
-        IASTUnaryExpression unexp = (IASTUnaryExpression)pExpression;
-        IASTExpression op1 = unexp.getOperand();
+        CUnaryExpression unexp = (CUnaryExpression)pExpression;
+        CExpression op1 = unexp.getOperand();
         // Only variables. Ignoring * & operators for now
-        if(op1 instanceof IASTIdExpression){
+        if (op1 instanceof CIdExpression){
           result = conjunctPredicateForArithmeticExpression(op1, result);
         }
       }
-      else if (pExpression instanceof IASTCastExpression)
+      else if (pExpression instanceof CCastExpression)
       {
-        IASTCastExpression castexp = (IASTCastExpression)pExpression;
-        IType toType = castexp.getExpressionType();
+        CCastExpression castexp = (CCastExpression)pExpression;
+        CType toType = castexp.getExpressionType();
         result = conjunctPredicateForArithmeticExpression(toType, castexp.getOperand(), result);
       }
       return result;
     }
 
   @Override
-  public IASTNode assumptionsForEdge(CFAEdge pEdge) {
-    IASTNode result = NumericTypes.TRUE;
+  public CExpression assumptionsForEdge(CFAEdge pEdge) {
+    CExpression result = CNumericTypes.TRUE;
 
     switch (pEdge.getEdgeType()) {
-    case DeclarationEdge:
-      DeclarationEdge declarationEdge = (DeclarationEdge) pEdge;
-      result = declarationEdge.getRawAST();
-      break;
     case AssumeEdge:
-      AssumeEdge assumeEdge = (AssumeEdge) pEdge;
+      CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
       result = visit(assumeEdge.getExpression(), result);
       break;
     case FunctionCallEdge:
-      FunctionCallEdge fcallEdge = (FunctionCallEdge) pEdge;
+      CFunctionCallEdge fcallEdge = (CFunctionCallEdge) pEdge;
       if (!fcallEdge.getArguments().isEmpty()) {
-        FunctionDefinitionNode fdefnode = fcallEdge.getSuccessor();
-        List<IASTParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
-        for (IASTParameterDeclaration paramdecl : formalParams)
+        CFunctionEntryNode fdefnode = fcallEdge.getSuccessor();
+        List<CParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
+        for (CParameterDeclaration paramdecl : formalParams)
         {
           String name = paramdecl.getName();
-          IType type = paramdecl.getDeclSpecifier();
-          IASTExpression exp = new IASTIdExpression(paramdecl.getRawSignature(), paramdecl.getFileLocation(), type, name, paramdecl);
+          CType type = paramdecl.getType();
+          CExpression exp = new CIdExpression(paramdecl.getFileLocation(), type, name, paramdecl);
           result = visit(exp, result);
         }
       }
       break;
     case StatementEdge:
-      StatementEdge stmtEdge = (StatementEdge) pEdge;
+      CStatementEdge stmtEdge = (CStatementEdge) pEdge;
 
-      IASTStatement stmt = stmtEdge.getStatement();
-      if (stmt instanceof IASTAssignment) {
-        result = visit(((IASTAssignment)stmt).getLeftHandSide(), result);
+      CStatement stmt = stmtEdge.getStatement();
+      if (stmt instanceof CAssignment) {
+        result = visit(((CAssignment)stmt).getLeftHandSide(), result);
       }
       break;
     case ReturnStatementEdge:
-      ReturnStatementEdge returnEdge = (ReturnStatementEdge) pEdge;
+      CReturnStatementEdge returnEdge = (CReturnStatementEdge) pEdge;
 
-      if(returnEdge.getExpression() != null){
+      if (returnEdge.getExpression() != null){
         result = visit(returnEdge.getExpression(), result);
       }
       break;

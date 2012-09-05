@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,4 +41,10 @@ public interface WrapperCPA {
    * @return An instance of an element with type T or null if there is none.
    */
   public <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> type);
+
+  /**
+   * Retrieve all wrapped CPAs contained directly in this object (not recursively).
+   * @return A non-empty unmodifiable list of CPAs.
+   */
+  public Iterable<? extends ConfigurableProgramAnalysis> getWrappedCPAs();
 }

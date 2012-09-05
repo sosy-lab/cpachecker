@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,13 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
-import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
-import org.sosy_lab.cpachecker.util.invariants.redlog.Rational;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.invariants.Rational;
+import org.sosy_lab.cpachecker.util.invariants.templates.TemplateBoolean;
+import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
 
 public class TemplateNetwork {
 
+  private AssumptionSet currentAssumptions = new AssumptionSet();
   private Vector<Transition> trans;
   private TemplateMap tmap;
 
@@ -50,6 +55,14 @@ public class TemplateNetwork {
     this.tmap = tmap;
   }
 
+  public void setAssumptions(AssumptionSet aset) {
+    currentAssumptions = aset;
+  }
+
+  public AssumptionSet getAssumptions() {
+    return currentAssumptions;
+  }
+
   public Vector<Transition> getTransitions() {
     return trans;
   }
@@ -58,9 +71,25 @@ public class TemplateNetwork {
     return tmap;
   }
 
-  public boolean evaluate(HashMap<String,Rational> vals) {
+  public Template getTemplate(CFANode n) {
+    return tmap.getTemplate(n);
+  }
+
+  public boolean evaluate(Map<String,Rational> vals) {
     boolean ans = tmap.evaluate(vals);
     return ans;
+  }
+
+  public String dumpTemplates() {
+    return tmap.dumpTemplates();
+  }
+
+  public Vector<TemplateBoolean> getAllNonzeroParameterClauses() {
+    return tmap.getAllNonzeroParameterClauses();
+  }
+
+  public Set<String> writeAllParameters(VariableWriteMode vwm) {
+    return tmap.writeAllParameters(vwm);
   }
 
 }

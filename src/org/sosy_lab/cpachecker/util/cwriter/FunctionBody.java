@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.cwriter;
 import java.util.Iterator;
 import java.util.Stack;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 
 /**
  * A function is basically a stack of blocks, where the first element is the
@@ -44,7 +44,7 @@ class FunctionBody implements Iterable<BasicBlock> {
     stack.addAll(oldStack.stack);
   }
 
-  public void enterBlock(int pElementId, AssumeEdge pEdge, String pConditionString) {
+  public void enterBlock(int pElementId, CAssumeEdge pEdge, String pConditionString) {
     BasicBlock block = new BasicBlock(pElementId, pEdge, pConditionString);
     stack.peek().write(block); // register the inner block in its outer block
     stack.push(block);

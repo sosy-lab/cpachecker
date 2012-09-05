@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -90,7 +90,7 @@ public class SubsetGenerator {
 
   public static void main(String[] args) {
     // Test:
-    SubsetGenerator SG = new SubsetGenerator(8,3);
+    SubsetGenerator SG = new SubsetGenerator(5,3);
     HashSet<Integer> S;
     while (SG.hasMore()) {
       S = SG.getNext();

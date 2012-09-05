@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,15 +41,15 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
@@ -164,17 +164,17 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     try {
       factoryMethod = refiner.getMethod("create", ConfigurableProgramAnalysis.class);
     } catch (NoSuchMethodException e) {
-      throw new CPAException("Each Refiner class has to offer a public static method \"create\" with one parameters, but " + refiner.getSimpleName() + " does not!");
+      throw new InvalidComponentException(refiner, "Refiner", "No public static method \"create\" with exactly one parameter of type ConfigurableProgramAnalysis.");
     }
 
     // verify signature
     if (!Modifier.isStatic(factoryMethod.getModifiers())) {
-      throw new CPAException("The factory method of the refiner " + refiner.getSimpleName() + " is not static!");
+      throw new InvalidComponentException(refiner, "Refiner", "Factory method is not static");
     }
 
     String exception = Classes.verifyDeclaredExceptions(factoryMethod, CPAException.class, InvalidConfigurationException.class);
     if (exception != null) {
-      throw new CPAException("The factory method of the refiner " + refiner.getSimpleName() + " declares the unsupported checked exception: " + exception);
+      throw new InvalidComponentException(refiner, "Refiner", "Factory method declares the unsupported checked exception " + exception + ".");
     }
 
     // invoke factory method
@@ -183,7 +183,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       refinerObj = factoryMethod.invoke(null, pCpa);
 
     } catch (IllegalAccessException e) {
-      throw new CPAException("The factory method of the refiner " + refiner.getSimpleName() + " is not public!");
+      throw new InvalidComponentException(refiner, "Refiner", "Factory method is not public.");
 
     } catch (InvocationTargetException e) {
       Throwable cause = e.getCause();
@@ -193,7 +193,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     if ((refinerObj == null) || !(refinerObj instanceof Refiner)) {
-      throw new CPAException("The factory method of the refiner " + refiner.getSimpleName() + " didn't return a Refiner!");
+      throw new InvalidComponentException(refiner, "Refiner", "Factory method did not return a Refiner instance.");
     }
 
     return (Refiner)refinerObj;
@@ -231,71 +231,70 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     boolean sound = true;
 
     stats.totalTimer.start();
-
-    if(startTime == 0) {
+    if (startTime == 0) {
       startTime = System.currentTimeMillis();
     }
 
-    boolean continueAnalysis;
+    try {
+      boolean refinementSuccessful;
+      do {
+        refinementSuccessful = false;
 
-    do {
-      continueAnalysis = false;
+        // run algorithm
+        sound &= algorithm.run(reached);
 
-      // run algorithm
-      sound &= algorithm.run(reached);
-
-      AbstractElement lastElement = reached.getLastElement();
-
-      // if the element is a target element do refinement
-      if (AbstractElements.isTargetElement(lastElement)) {
-        if ((stopRefiningThreshold == -1 || System.currentTimeMillis() - startTime <= stopRefiningThreshold) &&
-            (stopRefiningCount == -1 || stopRefiningCount > refinementCount) &&
-            !(resets == 0 && noRefinementInFirstRun)) {
-          refinementCount++;
-          logger.log(Level.FINE, "Error found, performing CEGAR");
-          stats.countRefinements++;
-          sizeOfReachedSetBeforeRefinement = reached.size();
-
-          stats.refinementTimer.start();
-          boolean refinementResult;
-          try {
-            refinementResult = mRefiner.performRefinement(reached);
-
-          } catch (RefinementFailedException e) {
-            stats.countFailedRefinements++;
-            throw e;
-          } finally {
-            stats.refinementTimer.stop();
-          }
-
-          if (refinementResult) {
-            // successful refinement
-
-            logger.log(Level.FINE, "Refinement successful");
-            stats.countSuccessfulRefinements++;
-
-            if (restartOnRefinement) {
-              // TODO
-            }
-
-            runGC();
-
-            continueAnalysis = true;
-
+        // if the last state is a target state do refinement
+        if (AbstractStates.isTargetState(reached.getLastState())) {
+          if ((stopRefiningThreshold == -1 || System.currentTimeMillis() - startTime <= stopRefiningThreshold) &&
+              (stopRefiningCount == -1 || stopRefiningCount > refinementCount) &&
+              !(resets == 0 && noRefinementInFirstRun)) {
+            refinementCount++;
+            refinementSuccessful = refine(reached);
           } else {
-            // no refinement found, because the counterexample is not spurious
-            logger.log(Level.FINE, "Refinement unsuccessful");
+            stats.timedOut = true;
           }
-        } else {
-          stats.timedOut = true;
         }
-      } // if lastElement is target element
 
-    } while (continueAnalysis);
+      } while (refinementSuccessful);
 
-    stats.totalTimer.stop();
+    } finally {
+      stats.totalTimer.stop();
+    }
     return sound;
   }
+
+  private boolean refine(ReachedSet reached) throws CPAException, InterruptedException {
+    logger.log(Level.FINE, "Error found, performing CEGAR");
+    stats.countRefinements++;
+    sizeOfReachedSetBeforeRefinement = reached.size();
+
+    stats.refinementTimer.start();
+    boolean refinementResult;
+    try {
+      refinementResult = mRefiner.performRefinement(reached);
+
+    } catch (RefinementFailedException e) {
+      stats.countFailedRefinements++;
+      throw e;
+    } finally {
+      stats.refinementTimer.stop();
+    }
+
+    logger.log(Level.FINE, "Refinement successful:", refinementResult);
+
+    if (refinementResult) {
+      stats.countSuccessfulRefinements++;
+
+      if (restartOnRefinement) {
+        // TODO
+      }
+
+      runGC();
+    }
+
+    return refinementResult;
+  }
+
 
   private void runGC() {
     if ((++gcCounter % GC_PERIOD) == 0) {
@@ -310,6 +309,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (algorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
+    }
+    if (mRefiner instanceof StatisticsProvider) {
+      ((StatisticsProvider)mRefiner).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
   }

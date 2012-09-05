@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -104,9 +104,9 @@ public class EAPair {
 
     //Iterator denomit = getAllDenominators().iterator();
     //String d = "";
-    //IASTNode N;
+    //CAstNode N;
     //while (denomit.hasNext()) {
-    //  N = (IASTNode) denomit.next();
+    //  N = (CAstNode) denomit.next();
     //  d += " and "+N.getRawSignature()+" <> 0";
     //}
     //psi += d;
@@ -114,9 +114,9 @@ public class EAPair {
 
     // Second alternative:
     // 5B. Say that the denominators are equal to 1.
-    Iterator<IASTNode> denomit = getAllDenominators().iterator();
+    Iterator<CAstNode> denomit = getAllDenominators().iterator();
     String d = "";
-    IASTNode N;
+    CAstNode N;
     while (denomit.hasNext()) {
       N = denomit.next();
       d += " and "+N.getRawSignature()+" = 1";
@@ -129,23 +129,23 @@ public class EAPair {
     return psi;
   }
 
-  public Vector<IASTNode> getAllDenominators() {
+  public Vector<CAstNode> getAllDenominators() {
     // Checks for syntactical identity between denominators and
     // only counts them once.
     HashSet<String> seen = new HashSet<String>();
-    Vector<IASTNode> denoms = new Vector<IASTNode>();
-    Vector<IASTNode> found;
+    Vector<CAstNode> denoms = new Vector<CAstNode>();
+    Vector<CAstNode> found;
     int n = soln.getNumEquations();
     Equation E;
     String s;
-    Iterator<IASTNode> it;
-    IASTNode N;
+    Iterator<CAstNode> it;
+    CAstNode N;
     for (int i = 0; i < n; i++) {
       E = soln.getEquation(i);
       s = E.getRawSignature();
-      IASTExpressionAssignmentStatement EAS =
-        (IASTExpressionAssignmentStatement) E.getTree();
-      IASTExpression RHS = EAS.getRightHandSide();
+      CExpressionAssignmentStatement EAS =
+        (CExpressionAssignmentStatement) E.getTree();
+      CExpression RHS = EAS.getRightHandSide();
       found = TreeReader.findDenominators(RHS);
       it = found.iterator();
       while (it.hasNext()) {

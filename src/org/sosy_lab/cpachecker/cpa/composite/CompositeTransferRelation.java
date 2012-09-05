@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,20 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageTransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
@@ -64,46 +71,50 @@ public class CompositeTransferRelation implements TransferRelation{
   }
 
   @Override
-  public Collection<CompositeElement> getAbstractSuccessors(AbstractElement element, Precision precision, CFAEdge cfaEdge)
+  public Collection<CompositeState> getAbstractSuccessors(AbstractState element, Precision precision, CFAEdge cfaEdge)
         throws CPATransferException, InterruptedException {
-    CompositeElement compositeElement = (CompositeElement) element;
+    CompositeState compositeState = (CompositeState) element;
     CompositePrecision compositePrecision = (CompositePrecision)precision;
-    Collection<CompositeElement> results;
+    Collection<CompositeState> results;
 
     if (cfaEdge == null) {
-      CFANode node = compositeElement.retrieveLocationElement().getLocationNode();
-      results = new ArrayList<CompositeElement>(node.getNumLeavingEdges());
+      CFANode node = extractLocation(compositeState);
+      if (node == null) {
+        throw new CPATransferException("Analysis without LocationCPA is not supported, please add one to the configuration");
+      }
+
+      results = new ArrayList<CompositeState>(node.getNumLeavingEdges());
 
       for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
         CFAEdge edge = node.getLeavingEdge(edgeIdx);
-        getAbstractSuccessorForEdge(compositeElement, compositePrecision, edge, results);
+        getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
       }
 
     } else {
-      results = new ArrayList<CompositeElement>(1);
-      getAbstractSuccessorForEdge(compositeElement, compositePrecision, cfaEdge, results);
+      results = new ArrayList<CompositeState>(1);
+      getAbstractSuccessorForEdge(compositeState, compositePrecision, cfaEdge, results);
 
     }
 
     return results;
   }
 
-  private void getAbstractSuccessorForEdge(CompositeElement compositeElement, CompositePrecision compositePrecision, CFAEdge cfaEdge,
-      Collection<CompositeElement> compositeSuccessors) throws CPATransferException, InterruptedException {
+  private void getAbstractSuccessorForEdge(CompositeState compositeState, CompositePrecision compositePrecision, CFAEdge cfaEdge,
+      Collection<CompositeState> compositeSuccessors) throws CPATransferException, InterruptedException {
     assert cfaEdge != null;
 
 
     // first, call all the post operators
     int resultCount = 1;
-    List<AbstractElement> componentElements = compositeElement.getElements();
-    List<Collection<? extends AbstractElement>> allComponentsSuccessors = new ArrayList<Collection<? extends AbstractElement>>(size);
+    List<AbstractState> componentElements = compositeState.getWrappedStates();
+    List<Collection<? extends AbstractState>> allComponentsSuccessors = new ArrayList<Collection<? extends AbstractState>>(size);
 
     for (int i = 0; i < size; i++) {
       TransferRelation lCurrentTransfer = transferRelations.get(i);
-      AbstractElement lCurrentElement = componentElements.get(i);
+      AbstractState lCurrentElement = componentElements.get(i);
       Precision lCurrentPrecision = compositePrecision.get(i);
 
-      Collection<? extends AbstractElement> componentSuccessors = lCurrentTransfer.getAbstractSuccessors(lCurrentElement, lCurrentPrecision, cfaEdge);
+      Collection<? extends AbstractState> componentSuccessors = lCurrentTransfer.getAbstractSuccessors(lCurrentElement, lCurrentPrecision, cfaEdge);
       resultCount *= componentSuccessors.size();
 
       if (resultCount == 0) {
@@ -115,23 +126,23 @@ public class CompositeTransferRelation implements TransferRelation{
     }
 
     // create cartesian product of all elements we got
-    Collection<List<AbstractElement>> allResultingElements
+    Collection<List<AbstractState>> allResultingElements
         = createCartesianProduct(allComponentsSuccessors, resultCount);
 
     // second, call strengthen for each result of the cartesian product
-    for (List<AbstractElement> lReachedElement : allResultingElements) {
+    for (List<AbstractState> lReachedState : allResultingElements) {
 
-      List<Collection<? extends AbstractElement>> lStrengthenResults = new ArrayList<Collection<? extends AbstractElement>>(size);
+      List<Collection<? extends AbstractState>> lStrengthenResults = new ArrayList<Collection<? extends AbstractState>>(size);
 
       resultCount = 1;
 
       for (int i = 0; i < size; i++) {
 
         TransferRelation lCurrentTransfer = transferRelations.get(i);
-        AbstractElement lCurrentElement = lReachedElement.get(i);
+        AbstractState lCurrentElement = lReachedState.get(i);
         Precision lCurrentPrecision = compositePrecision.get(i);
 
-        Collection<? extends AbstractElement> lResultsList = lCurrentTransfer.strengthen(lCurrentElement, lReachedElement, cfaEdge, lCurrentPrecision);
+        Collection<? extends AbstractState> lResultsList = lCurrentTransfer.strengthen(lCurrentElement, lReachedState, cfaEdge, lCurrentPrecision);
 
         if (lResultsList == null) {
           lStrengthenResults.add(Collections.singleton(lCurrentElement));
@@ -149,31 +160,31 @@ public class CompositeTransferRelation implements TransferRelation{
 
       // special case handling if we have predicate and assumption cpas
       if (predicatesIndex >= 0 && assumptionIndex >= 0 && resultCount > 0) {
-        AbstractElement predElement = Iterables.getOnlyElement(lStrengthenResults.get(predicatesIndex));
-        AbstractElement assumptionElement = Iterables.getOnlyElement(lStrengthenResults.get(assumptionIndex));
+        AbstractState predElement = Iterables.getOnlyElement(lStrengthenResults.get(predicatesIndex));
+        AbstractState assumptionElement = Iterables.getOnlyElement(lStrengthenResults.get(assumptionIndex));
         Precision predPrecision = compositePrecision.get(predicatesIndex);
         TransferRelation predTransfer = transferRelations.get(predicatesIndex);
 
-        Collection<? extends AbstractElement> predResult = predTransfer.strengthen(predElement, Collections.singletonList(assumptionElement), cfaEdge, predPrecision);
+        Collection<? extends AbstractState> predResult = predTransfer.strengthen(predElement, Collections.singletonList(assumptionElement), cfaEdge, predPrecision);
         resultCount *= predResult.size();
 
         lStrengthenResults.set(predicatesIndex, predResult);
       }
 
       // create cartesian product again
-      Collection<List<AbstractElement>> lResultingElements
+      Collection<List<AbstractState>> lResultingElements
           = createCartesianProduct(lStrengthenResults, resultCount);
 
-      // finally, create a CompositeElement for each result of the cartesian product
-      for (List<AbstractElement> lList : lResultingElements) {
-        compositeSuccessors.add(new CompositeElement(lList));
+      // finally, create a CompositeState for each result of the cartesian product
+      for (List<AbstractState> lList : lResultingElements) {
+        compositeSuccessors.add(new CompositeState(lList));
       }
     }
   }
 
-  protected static Collection<List<AbstractElement>> createCartesianProduct(
-      List<Collection<? extends AbstractElement>> allComponentsSuccessors, int resultCount) {
-    Collection<List<AbstractElement>> allResultingElements;
+  protected static Collection<List<AbstractState>> createCartesianProduct(
+      List<Collection<? extends AbstractState>> allComponentsSuccessors, int resultCount) {
+    Collection<List<AbstractState>> allResultingElements;
     switch (resultCount) {
     case 0:
       // at least one CPA decided that there is no successor
@@ -181,8 +192,8 @@ public class CompositeTransferRelation implements TransferRelation{
       break;
 
     case 1:
-      List<AbstractElement> resultingElements = new ArrayList<AbstractElement>(allComponentsSuccessors.size());
-      for (Collection<? extends AbstractElement> componentSuccessors : allComponentsSuccessors) {
+      List<AbstractState> resultingElements = new ArrayList<AbstractState>(allComponentsSuccessors.size());
+      for (Collection<? extends AbstractState> componentSuccessors : allComponentsSuccessors) {
         resultingElements.add(Iterables.getOnlyElement(componentSuccessors));
       }
       allResultingElements = Collections.singleton(resultingElements);
@@ -190,8 +201,8 @@ public class CompositeTransferRelation implements TransferRelation{
 
     default:
       // create cartesian product of all componentSuccessors and store the result in allResultingElements
-      List<AbstractElement> initialPrefix = Collections.emptyList();
-      allResultingElements = new ArrayList<List<AbstractElement>>(resultCount);
+      List<AbstractState> initialPrefix = Collections.emptyList();
+      allResultingElements = new ArrayList<List<AbstractState>>(resultCount);
       createCartesianProduct0(allComponentsSuccessors, initialPrefix, allResultingElements);
     }
 
@@ -199,18 +210,18 @@ public class CompositeTransferRelation implements TransferRelation{
     return allResultingElements;
   }
 
-  private static void createCartesianProduct0(List<Collection<? extends AbstractElement>> allComponentsSuccessors,
-      List<AbstractElement> prefix, Collection<List<AbstractElement>> allResultingElements) {
+  private static void createCartesianProduct0(List<Collection<? extends AbstractState>> allComponentsSuccessors,
+      List<AbstractState> prefix, Collection<List<AbstractState>> allResultingElements) {
 
     if (prefix.size() == allComponentsSuccessors.size()) {
       allResultingElements.add(prefix);
 
     } else {
       int depth = prefix.size();
-      Collection<? extends AbstractElement> myComponentsSuccessors = allComponentsSuccessors.get(depth);
+      Collection<? extends AbstractState> myComponentsSuccessors = allComponentsSuccessors.get(depth);
 
-      for (AbstractElement currentComponent : myComponentsSuccessors) {
-        List<AbstractElement> newPrefix = new ArrayList<AbstractElement>(prefix);
+      for (AbstractState currentComponent : myComponentsSuccessors) {
+        List<AbstractState> newPrefix = new ArrayList<AbstractState>(prefix);
         newPrefix.add(currentComponent);
 
         createCartesianProduct0(allComponentsSuccessors, newPrefix, allResultingElements);
@@ -219,10 +230,45 @@ public class CompositeTransferRelation implements TransferRelation{
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement element,
-      List<AbstractElement> otherElements, CFAEdge cfaEdge,
+  public Collection<? extends AbstractState> strengthen(AbstractState element,
+      List<AbstractState> otherElements, CFAEdge cfaEdge,
       Precision precision) {
     // strengthen is only called by the composite CPA on its component CPAs
     return null;
+  }
+
+  boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors, List<ConfigurableProgramAnalysis> cpas) throws CPATransferException, InterruptedException {
+    Preconditions.checkNotNull(pCfaEdge);
+
+    CompositeState compositeState = (CompositeState)pElement;
+
+    int resultCount = 1;
+    boolean result = true;
+    for (int i = 0; i < size; ++i) {
+      Set<AbstractState> componentSuccessors = new HashSet<AbstractState>();
+      for (AbstractState successor : pSuccessors) {
+        CompositeState compositeSuccessor = (CompositeState)successor;
+        if (compositeSuccessor.getNumberOfStates() != size) {
+          return false;
+        }
+        componentSuccessors.add(compositeSuccessor.get(i));
+      }
+      resultCount *= componentSuccessors.size();
+      ProofChecker componentProofChecker = (ProofChecker)cpas.get(i);
+      if (!componentProofChecker.areAbstractSuccessors(compositeState.get(i), pCfaEdge, componentSuccessors)) {
+        result = false; //if there are no successors it might be still ok if one of the other components is fine with the empty set
+      } else {
+        if (componentSuccessors.isEmpty()) {
+          assert pSuccessors.isEmpty();
+          return true; //another component is indeed fine with the empty set as set of successors; transition is ok
+        }
+      }
+    }
+
+    if (resultCount != pSuccessors.size()) {
+      return false;
+    }
+
+    return result;
   }
 }

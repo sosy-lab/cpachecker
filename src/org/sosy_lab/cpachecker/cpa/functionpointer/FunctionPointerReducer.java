@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,12 +25,12 @@ package org.sosy_lab.cpachecker.cpa.functionpointer;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
-// TODO implements a no-op for the function pointer map and passes the wrapped abstract element to the wrappedReducer; could be improved
+// TODO implements a no-op for the function pointer map and passes the wrapped abstract state to the wrappedReducer; could be improved
 // TODO functions called through function pointers are yet not considered for the computation of relevant predicates of a block. Using ABM with FunctionPointerCPA might thus yield unsound verification results.
 public class FunctionPointerReducer implements Reducer {
 
@@ -41,29 +41,29 @@ public class FunctionPointerReducer implements Reducer {
   }
 
   @Override
-  public AbstractElement getVariableReducedElement(
-      AbstractElement pExpandedElement, Block pContext,
+  public AbstractState getVariableReducedState(
+      AbstractState pExpandedState, Block pContext,
       CFANode pLocation) {
 
-    FunctionPointerElement funElement = (FunctionPointerElement)pExpandedElement;
-    return funElement.createDuplicateWithNewWrappedElement(wrappedReducer.getVariableReducedElement(funElement.getWrappedElement(), pContext, pLocation));
+    FunctionPointerState funElement = (FunctionPointerState)pExpandedState;
+    return funElement.createDuplicateWithNewWrappedState(wrappedReducer.getVariableReducedState(funElement.getWrappedState(), pContext, pLocation));
   }
 
   @Override
-  public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, Block pReducedContext,
-      AbstractElement pReducedElement) {
+  public AbstractState getVariableExpandedState(
+      AbstractState pRootState, Block pReducedContext,
+      AbstractState pReducedState) {
 
-    FunctionPointerElement funRootElement = (FunctionPointerElement)pRootElement;
-    FunctionPointerElement funReducedElement = (FunctionPointerElement)pReducedElement;
+    FunctionPointerState funRootState = (FunctionPointerState)pRootState;
+    FunctionPointerState funReducedState = (FunctionPointerState)pReducedState;
 
-    return funReducedElement.createDuplicateWithNewWrappedElement(wrappedReducer.getVariableExpandedElement(funRootElement.getWrappedElement(), pReducedContext, funReducedElement.getWrappedElement()));
+    return funReducedState.createDuplicateWithNewWrappedState(wrappedReducer.getVariableExpandedState(funRootState.getWrappedState(), pReducedContext, funReducedState.getWrappedState()));
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
-    FunctionPointerElement funElement = (FunctionPointerElement)pElementKey;
-    return Pair.of(funElement.getTargetMap(), wrappedReducer.getHashCodeForElement(funElement.getWrappedElement(), pPrecisionKey));
+  public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
+    FunctionPointerState funElement = (FunctionPointerState)pElementKey;
+    return Pair.of(funElement.getTargetMap(), wrappedReducer.getHashCodeForState(funElement.getWrappedState(), pPrecisionKey));
   }
 
   @Override

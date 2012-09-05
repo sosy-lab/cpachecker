@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.core.defaults;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
@@ -38,18 +38,18 @@ public class NoOpReducer implements Reducer {
   }
 
   @Override
-  public AbstractElement getVariableReducedElement(AbstractElement pExpandedElement, Block pContext, CFANode pCallNode) {
-    return pExpandedElement;
+  public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
+    return pExpandedState;
   }
 
   @Override
-  public AbstractElement getVariableExpandedElement(AbstractElement pRootElement, Block pReducedContext, AbstractElement pReducedElement) {
-    return pReducedElement;
+  public AbstractState getVariableExpandedState(AbstractState pRootState, Block pReducedContext, AbstractState pReducedState) {
+    return pReducedState;
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
-    return pElementKey;
+  public Object getHashCodeForState(AbstractState pStateKey, Precision pPrecisionKey) {
+    return pStateKey;
   }
 
   @Override

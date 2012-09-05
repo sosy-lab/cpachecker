@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -59,7 +59,7 @@ public class ReferencedVariable {
 
   @Override
   public boolean equals(Object o) {
-    if(!(o instanceof ReferencedVariable)) {
+    if (!(o instanceof ReferencedVariable)) {
       return false;
     }
 

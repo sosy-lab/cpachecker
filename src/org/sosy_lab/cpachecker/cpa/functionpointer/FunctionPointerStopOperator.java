@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.functionpointer;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -40,14 +40,14 @@ class FunctionPointerStopOperator implements StopOperator {
   }
 
   @Override
-  public boolean stop(AbstractElement pElement,
-      Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
+  public boolean stop(AbstractState pElement,
+      Collection<AbstractState> pReached, Precision pPrecision) throws CPAException {
 
-    FunctionPointerElement fpElement = (FunctionPointerElement)pElement;
+    FunctionPointerState fpElement = (FunctionPointerState)pElement;
 
-    for (AbstractElement reachedElement : pReached) {
-      FunctionPointerElement fpReachedElement = (FunctionPointerElement)reachedElement;
-      if (stop(fpElement, fpReachedElement, pPrecision)) {
+    for (AbstractState reachedState : pReached) {
+      FunctionPointerState fpReachedState = (FunctionPointerState)reachedState;
+      if (stop(fpElement, fpReachedState, pPrecision)) {
         return true;
       }
     }
@@ -55,16 +55,16 @@ class FunctionPointerStopOperator implements StopOperator {
 
   }
 
-  private boolean stop(FunctionPointerElement pElement, FunctionPointerElement pReachedElement, Precision pPrecision)
+  private boolean stop(FunctionPointerState pElement, FunctionPointerState pReachedState, Precision pPrecision)
                                                       throws CPAException {
 
-    if (!pElement.isLessOrEqualThan(pReachedElement)) {
+    if (!pElement.isLessOrEqualThan(pReachedState)) {
       return false;
     }
 
-    AbstractElement wrappedElement = pElement.getWrappedElement();
-    AbstractElement wrappedReachedElement = pReachedElement.getWrappedElement();
+    AbstractState wrappedState = pElement.getWrappedState();
+    AbstractState wrappedReachedState = pReachedState.getWrappedState();
 
-    return wrappedStop.stop(wrappedElement, Collections.singleton(wrappedReachedElement), pPrecision);
+    return wrappedStop.stop(wrappedState, Collections.singleton(wrappedReachedState), pPrecision);
   }
 }

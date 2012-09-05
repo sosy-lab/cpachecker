@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,51 +24,51 @@
 package org.sosy_lab.cpachecker.core.defaults;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * This class implements a domain for CPAs, where the partial order is
  * identical to the equality relation, if both of the two operands are neither
  * bottom nor top. The resulting lattice is a layered graph with three layers
- * (one for top, one for bottom and one for all other elements) and edges only
+ * (one for top, one for bottom and one for all other states) and edges only
  * between different layers.
  */
 public class FlatLatticeDomain implements AbstractDomain {
-  private final AbstractElement mTopElement;
+  private final AbstractState mTopState;
 
-  private static class TopElement implements AbstractElement {
+  private static class TopState implements AbstractState {
     @Override
     public String toString() {
       return "<TOP>";
     }
   }
 
-  public FlatLatticeDomain(AbstractElement pTopElement) {
-    assert(pTopElement != null);
+  public FlatLatticeDomain(AbstractState pTopState) {
+    assert(pTopState != null);
 
-    this.mTopElement = pTopElement;
+    this.mTopState = pTopState;
   }
 
   public FlatLatticeDomain() {
-    this(new TopElement());
+    this(new TopState());
   }
 
   @Override
-  public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) throws CPAException {
-    if (isLessOrEqual(pElement1, pElement2)) {
-      return pElement2;
+  public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException {
+    if (isLessOrEqual(pState1, pState2)) {
+      return pState2;
     }
 
-    if (isLessOrEqual(pElement2, pElement1)) {
-      return pElement1;
+    if (isLessOrEqual(pState2, pState1)) {
+      return pState1;
     }
 
-    return mTopElement;
+    return mTopState;
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement) throws CPAException {
-    return (mTopElement.equals(reachedElement) || newElement.equals(reachedElement));
+  public boolean isLessOrEqual(AbstractState newState, AbstractState reachedState) throws CPAException {
+    return (mTopState.equals(reachedState) || newState.equals(reachedState));
   }
 }

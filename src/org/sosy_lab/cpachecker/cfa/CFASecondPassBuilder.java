@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,23 +32,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -57,13 +54,13 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
  */
 public class CFASecondPassBuilder {
 
-  private final Map<String, CFAFunctionDefinitionNode> cfas;
+  private final Map<String, FunctionEntryNode> cfas;
 
   /**
    * Class constructor.
    * @param map List of all CFA's in the program.
    */
-  public CFASecondPassBuilder(Map<String, CFAFunctionDefinitionNode> cfas) {
+  public CFASecondPassBuilder(Map<String, FunctionEntryNode> cfas) {
     this.cfas = cfas;
   }
 
@@ -74,7 +71,7 @@ public class CFASecondPassBuilder {
    * @throws ParserException
    */
   public void insertCallEdgesRecursively() throws ParserException {
-    for (CFAFunctionDefinitionNode functionStartNode : cfas.values()) {
+    for (FunctionEntryNode functionStartNode : cfas.values()) {
       insertCallEdges(functionStartNode);
     }
   }
@@ -86,7 +83,7 @@ public class CFASecondPassBuilder {
    * @param initialNode CFANode where to start processing
    * @throws ParserException
    */
-  private void insertCallEdges(CFAFunctionDefinitionNode initialNode) throws ParserException {
+  private void insertCallEdges(FunctionEntryNode initialNode) throws ParserException {
     // we use a worklist algorithm
     Deque<CFANode> workList = new ArrayDeque<CFANode>();
     Set<CFANode> processed = new HashSet<CFANode>();
@@ -101,28 +98,13 @@ public class CFASecondPassBuilder {
       }
 
       for (CFAEdge edge : leavingEdges(node)) {
-        if (edge instanceof StatementEdge) {
-          StatementEdge statement = (StatementEdge)edge;
-          IASTStatement expr = statement.getStatement();
+        if (edge instanceof CStatementEdge) {
+          CStatementEdge statement = (CStatementEdge)edge;
+          CStatement expr = statement.getStatement();
 
           // if statement is of the form x = call(a,b); or call(a,b);
           if (shouldCreateCallEdges(expr)) {
-            createCallAndReturnEdges(statement, (IASTFunctionCall)expr);
-          }
-
-        } else if (edge instanceof DeclarationEdge) {
-          // check if this is "int x = f()" and f is a non-extern function
-          // we don't support this currently
-          IASTInitializer init = ((DeclarationEdge)edge).getInitializer();
-          if (init != null && init instanceof IASTInitializerExpression) {
-            IASTRightHandSide initExpression = ((IASTInitializerExpression)init).getExpression();
-            if (initExpression != null && initExpression instanceof IASTFunctionCallExpression) {
-              IASTFunctionCallExpression f = (IASTFunctionCallExpression)initExpression;
-              String name = f.getFunctionNameExpression().getRawSignature();
-              if (cfas.containsKey(name)) {
-                throw new ParserException("Function call in initializer not supported", edge);
-              }
-            }
+            createCallAndReturnEdges(statement, (CFunctionCall)expr);
           }
         }
 
@@ -135,12 +117,12 @@ public class CFASecondPassBuilder {
     }
   }
 
-  private boolean shouldCreateCallEdges(IASTStatement s) {
-    if (!(s instanceof IASTFunctionCall)) {
+  private boolean shouldCreateCallEdges(CStatement s) {
+    if (!(s instanceof CFunctionCall)) {
       return false;
     }
-    IASTFunctionCallExpression f = ((IASTFunctionCall)s).getFunctionCallExpression();
-    String name = f.getFunctionNameExpression().getRawSignature();
+    CFunctionCallExpression f = ((CFunctionCall)s).getFunctionCallExpression();
+    String name = f.getFunctionNameExpression().toASTString();
     return cfas.containsKey(name);
   }
 
@@ -150,30 +132,44 @@ public class CFASecondPassBuilder {
    * @param functionCall If the call was an assignment from the function call
    * this keeps only the function call expression, e.g. if statement is a = call(b);
    * then functionCall is call(b).
+   * @throws ParserException
    */
-  private void createCallAndReturnEdges(StatementEdge edge, IASTFunctionCall functionCall) {
+  private void createCallAndReturnEdges(CStatementEdge edge, CFunctionCall functionCall) throws ParserException {
     CFANode predecessorNode = edge.getPredecessor();
     CFANode successorNode = edge.getSuccessor();
-    IASTFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
-    String functionName = functionCallExpression.getFunctionNameExpression().getRawSignature();
+    CFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
+    String functionName = functionCallExpression.getFunctionNameExpression().toASTString();
     int lineNumber = edge.getLineNumber();
-    CFAFunctionDefinitionNode fDefNode = cfas.get(functionName);
-    CFAFunctionExitNode fExitNode = fDefNode.getExitNode();
+    FunctionEntryNode fDefNode = cfas.get(functionName);
+    FunctionExitNode fExitNode = fDefNode.getExitNode();
 
-    assert fDefNode instanceof FunctionDefinitionNode : "This code creates edges from package cfa.objectmodel.c, so the nodes need to be from this package, too.";
+    assert fDefNode instanceof CFunctionEntryNode : "This code creates edges from package cfa.objectmodel.c, so the nodes need to be from this package, too.";
 
     //get the parameter expression
-    List<IASTExpression> parameters = functionCallExpression.getParameterExpressions();
+    List<CExpression> parameters = functionCallExpression.getParameterExpressions();
+
+    // check if the number of function parameters are right
+    CFunctionType functionType = ((CFunctionEntryNode)fDefNode).getFunctionDefinition().getType();
+    int declaredParameters = functionType.getParameters().size();
+    int actualParameters = parameters.size();
+    if (!functionType.takesVarArgs() && (declaredParameters != actualParameters)) {
+      throw new ParserException("Function " + functionName + " takes "
+        + declaredParameters + " parameter(s) but is called with "
+        + actualParameters + " parameter(s)", edge);
+    }
 
     // delete old edge
     CFACreationUtils.removeEdgeFromNodes(edge);
 
     // create new edges
-    CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(functionCall.asStatement().getRawSignature(), lineNumber, predecessorNode, successorNode, functionCall);
+    CFunctionSummaryEdge calltoReturnEdge = new CFunctionSummaryEdge(edge.getRawStatement(),
+        lineNumber, predecessorNode, successorNode, functionCall);
     predecessorNode.addLeavingSummaryEdge(calltoReturnEdge);
     successorNode.addEnteringSummaryEdge(calltoReturnEdge);
 
-    FunctionCallEdge callEdge = new FunctionCallEdge(functionCallExpression.getRawSignature(), edge.getStatement(), lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, parameters, calltoReturnEdge);
+    CFunctionCallEdge callEdge = new CFunctionCallEdge(edge.getRawStatement(),
+        lineNumber, predecessorNode,
+        (CFunctionEntryNode)fDefNode, functionCall, calltoReturnEdge);
     predecessorNode.addLeavingEdge(callEdge);
     fDefNode.addEnteringEdge(callEdge);
 
@@ -185,7 +181,7 @@ public class CFASecondPassBuilder {
 
     } else {
 
-      FunctionReturnEdge returnEdge = new FunctionReturnEdge("Return Edge to " + successorNode.getNodeNumber(), lineNumber, fExitNode, successorNode, calltoReturnEdge);
+      CFunctionReturnEdge returnEdge = new CFunctionReturnEdge(lineNumber, fExitNode, successorNode, calltoReturnEdge);
       fExitNode.addLeavingEdge(returnEdge);
       successorNode.addEnteringEdge(returnEdge);
     }

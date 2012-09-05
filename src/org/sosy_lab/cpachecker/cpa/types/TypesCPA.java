@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.types;
 
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 
 public class TypesCPA extends AbstractCPA {
@@ -42,11 +42,11 @@ public class TypesCPA extends AbstractCPA {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFANode pNode) {
-    if (pNode instanceof FunctionDefinitionNode) {
+  public AbstractState getInitialState(CFANode pNode) {
+    if (pNode instanceof CFunctionEntryNode) {
       //remember the entry function definition node for later use
-      ((TypesTransferRelation)getTransferRelation()).setEntryFunctionDefinitionNode((FunctionDefinitionNode)pNode);
+      ((TypesTransferRelation)getTransferRelation()).setFunctionEntryNode((CFunctionEntryNode)pNode);
     }
-    return new TypesElement();
+    return new TypesState();
   }
 }

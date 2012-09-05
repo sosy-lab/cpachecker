@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +28,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.invariants.redlog.Rational;
+import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -60,11 +60,24 @@ public class TemplateUIF extends TemplateFormula {
 
   @Override
   public TemplateUIF copy() {
+    /*
     TemplateUIF u = null;
     if (index == null) {
       u = new TemplateUIF(name,args.copy());
     } else {
       u = new TemplateUIF(name,args.copy(),index.intValue());
+    }
+    */
+
+    TemplateUIF u = new TemplateUIF( new String(name), args.copy() );
+    if (index != null) {
+      u.index = new Integer(index);
+    }
+    if (oldPurifiedName != null) {
+      u.oldPurifiedName = oldPurifiedName.copy();
+    }
+    if (purifiedName != null) {
+      u.purifiedName = purifiedName.copy();
     }
     return u;
   }
@@ -87,7 +100,7 @@ public class TemplateUIF extends TemplateFormula {
   }
 
   @Override
-  public boolean evaluate(HashMap<String,Rational> map) {
+  public boolean evaluate(Map<String,Rational> map) {
     boolean ans = true;
     if (args!=null) {
       ans &= args.evaluate(map);
@@ -239,6 +252,10 @@ public class TemplateUIF extends TemplateFormula {
 
   public TemplateSumList getArgs() {
     return args;
+  }
+
+  public int getArity() {
+    return args.size();
   }
 
   void writeAsForm(boolean b) {

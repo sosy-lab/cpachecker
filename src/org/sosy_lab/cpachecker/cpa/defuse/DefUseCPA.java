@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,8 +31,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -72,9 +72,9 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
     this.transferRelation = new DefUseTransferRelation ();
 
     this.mergeOperator = null;
-    if(mergeType.equals("sep")){
+    if (mergeType.equals("sep")){
       this.mergeOperator = MergeSepOperator.getInstance();
-    } else if(mergeType.equals("join")){
+    } else if (mergeType.equals("join")){
       this.mergeOperator = new MergeJoinOperator(abstractDomain);
     }
 
@@ -112,12 +112,12 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
 
 
   @Override
-  public AbstractElement getInitialElement (CFANode node)
+  public AbstractState getInitialState (CFANode node)
   {
     Set<DefUseDefinition> defUseDefinitions = new HashSet<DefUseDefinition>();
-    if (node instanceof FunctionDefinitionNode)
+    if (node instanceof CFunctionEntryNode)
     {
-      List<String> parameterNames = ((FunctionDefinitionNode)node).getFunctionParameterNames ();
+      List<String> parameterNames = ((CFunctionEntryNode)node).getFunctionParameterNames ();
 
       for (String parameterName : parameterNames)
       {
@@ -126,7 +126,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
       }
     }
 
-    return new DefUseElement (defUseDefinitions);
+    return new DefUseState (defUseDefinitions);
   }
 
   @Override

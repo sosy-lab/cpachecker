@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,9 +49,8 @@ public class FeatureVarsTest {
       );
 
       prop = new HashMap<String, String>(prop);
-      prop.put("cfa.removeIrrelevantForErrorLocations", "false");
       prop.put("analysis.traversal.order", "bfs");
-      prop.put("analysis.traversal.useTopsort", "true");
+      prop.put("analysis.traversal.useReversePostorder", "true");
       prop.put("analysis.traversal.useCallstack", "true");
       prop.put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA");
 
@@ -79,7 +78,6 @@ public class FeatureVarsTest {
       );
 
       prop = new HashMap<String, String>(prop);
-      prop.put("cfa.removeIrrelevantForErrorLocations", "false");
       prop.put("analysis.traversal.order", "bfs");
       prop.put("analysis.traversal.useTopsort", "true");
       prop.put("analysis.traversal.useCallstack", "true");
@@ -110,12 +108,11 @@ public class FeatureVarsTest {
       );
 
       prop = new HashMap<String, String>(prop);
-      prop.put("cfa.removeIrrelevantForErrorLocations", "false");
       prop.put("analysis.traversal.order", "bfs");
       prop.put("analysis.traversal.useTopsort", "true");
       prop.put("analysis.traversal.useCallstack", "true");
-      prop.put("cpa","cpa.art.ARTCPA");
-      prop.put("ARTCPA.cpa","cpa.composite.CompositeCPA");
+      prop.put("cpa","cpa.arg.ARGCPA");
+      prop.put("ARGCPA.cpa","cpa.composite.CompositeCPA");
       prop.put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA");
 
       TestResults results = run(prop, "test/programs/simple/featureVarsTest.c");
@@ -139,12 +136,11 @@ public class FeatureVarsTest {
       );
 
       prop = new HashMap<String, String>(prop);
-      prop.put("cfa.removeIrrelevantForErrorLocations", "false");
-      prop.put("cpa","cpa.art.ARTCPA");
+      prop.put("cpa","cpa.arg.ARGCPA");
       prop.put("analysis.traversal.order", "bfs");
       prop.put("analysis.traversal.useTopsort", "true");
       prop.put("analysis.traversal.useCallstack", "true");
-      prop.put("ARTCPA.cpa","cpa.composite.CompositeCPA");
+      prop.put("ARGCPA.cpa","cpa.composite.CompositeCPA");
       prop.put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA");
 
       File sourceFile = new File("test/programs/simple/tmpProgram.c");
@@ -178,9 +174,8 @@ public class FeatureVarsTest {
       );
 
       prop = new HashMap<String, String>(prop);
-      prop.put("cfa.removeIrrelevantForErrorLocations", "false");
-      prop.put("cpa","cpa.art.ARTCPA");
-      prop.put("ARTCPA.cpa","cpa.composite.CompositeCPA");
+      prop.put("cpa","cpa.arg.ARGCPA");
+      prop.put("ARGCPA.cpa","cpa.composite.CompositeCPA");
       prop.put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA");
 
       File sourceFile = new File("test/programs/simple/tmpProgram.c");
@@ -212,7 +207,6 @@ public class FeatureVarsTest {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA",
         "specification",     "test/config/automata/tmpSpecification.spc",
-        "cfa.removeIrrelevantForErrorLocations", "false",
         "cpa.explicit.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
         "cpa.featurevars.variableWhitelist", "__SELECTED_FEATURE_(\\w)*"
       );
@@ -243,14 +237,13 @@ public class FeatureVarsTest {
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA",
         "specification",     "test/config/automata/tmpSpecification.spc",
         "log.consoleLevel",               "INFO",
-        "cfa.removeIrrelevantForErrorLocations", "false",
         "cpa.featurevars.variableWhitelist", "__SELECTED_FEATURE_(\\w)*"
       );
 
       File tmpFile = new File("test/config/automata/tmpSpecification.spc");
       tmpFile.deleteOnExit();
       Files.writeFile(tmpFile , "OBSERVER AUTOMATON tmpAutomaton\n" +
-      		"INITIAL STATE Init;\n"+
+          "INITIAL STATE Init;\n"+
           "STATE Init :\n"+
           "MATCH {$1} ->\n"+
           "PRINT \"Found $1 in Line $line\" GOTO Init;\n"+
@@ -258,8 +251,8 @@ public class FeatureVarsTest {
       File sourceFile = new File("test/programs/simple/tmpProgram.c");
       sourceFile.deleteOnExit();
       Files.writeFile(sourceFile, "int __SELECTED_FEATURE_base; int main() { " +
-      		"if (__SELECTED_FEATURE_base && !__SELECTED_FEATURE_base ) { foo(1); } else {foo(2);} " +
-      		"}");
+          "if (__SELECTED_FEATURE_base && !__SELECTED_FEATURE_base ) { foo(1); } else {foo(2);} " +
+          "}");
       TestResults results = run(prop, "test/programs/simple/tmpProgram.c");
       //System.out.println(results.getLog());
       //System.out.println(results.getCheckerResult().getResult());
@@ -273,7 +266,6 @@ public class FeatureVarsTest {
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA",
         "specification",     "test/config/automata/tmpSpecification.spc",
         "log.consoleLevel",               "INFO",
-        "cfa.removeIrrelevantForErrorLocations", "false",
         "cpa.featurevars.variableWhitelist", "trackNone"
       );
 
@@ -303,7 +295,6 @@ public class FeatureVarsTest {
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA",
         "specification",     "test/config/automata/tmpSpecification.spc",
         "log.consoleLevel",               "INFO",
-        "cfa.removeIrrelevantForErrorLocations", "false",
         "cpa.featurevars.variableWhitelist", "__SELECTED_FEATURE_(\\w)*"
       );
 
@@ -335,7 +326,6 @@ public class FeatureVarsTest {
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA",
         "specification",     "test/config/automata/tmpSpecification.spc",
         "log.consoleLevel",               "INFO",
-        "cfa.removeIrrelevantForErrorLocations", "false",
         "cpa.featurevars.variableWhitelist", ""
       );
 

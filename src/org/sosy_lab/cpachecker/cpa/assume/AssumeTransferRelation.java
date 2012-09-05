@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,14 +27,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 public class AssumeTransferRelation implements TransferRelation {
 
-  private static Collection<? extends AbstractElement> sUnconstrainedSingleton = Collections.singleton(UnconstrainedAssumeElement.getInstance());
+  private static Collection<? extends AbstractState> sUnconstrainedSingleton = Collections.singleton(UnconstrainedAssumeState.getInstance());
 
   private String mFunctionName;
 
@@ -51,24 +51,24 @@ public class AssumeTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors(
-      AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
     if (pCfaEdge.getEdgeType().equals(CFAEdgeType.StatementEdge)) {
-      StatementEdge lEdge = (StatementEdge)pCfaEdge;
+      CStatementEdge lEdge = (CStatementEdge)pCfaEdge;
 
-      IASTStatement lExpression = lEdge.getStatement();
+      CStatement lExpression = lEdge.getStatement();
 
-      if (lExpression instanceof IASTFunctionCallStatement) {
-        IASTFunctionCallExpression lCallExpression = ((IASTFunctionCallStatement)lExpression).getFunctionCallExpression();
+      if (lExpression instanceof CFunctionCallStatement) {
+        CFunctionCallExpression lCallExpression = ((CFunctionCallStatement)lExpression).getFunctionCallExpression();
 
-        if (lCallExpression.getFunctionNameExpression().getRawSignature().equals(mFunctionName)) {
-          List<IASTExpression> lParameterExpressions = lCallExpression.getParameterExpressions();
+        if (lCallExpression.getFunctionNameExpression().toASTString().equals(mFunctionName)) {
+          List<CExpression> lParameterExpressions = lCallExpression.getParameterExpressions();
           if (lParameterExpressions.size() != 1) {
             throw new UnrecognizedCCodeException("Function " + mFunctionName + " called with wrong number of arguments",
                                                  pCfaEdge, lCallExpression);
           }
-          AssumeElement lElement = new ConstrainedAssumeElement(lParameterExpressions.get(0));
+          AssumeState lElement = new ConstrainedAssumeState(lParameterExpressions.get(0));
 
           return Collections.singleton(lElement);
         }
@@ -79,8 +79,8 @@ public class AssumeTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(
-      AbstractElement pElement, List<AbstractElement> pOtherElements,
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pElement, List<AbstractState> pOtherElements,
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
     return null;
   }

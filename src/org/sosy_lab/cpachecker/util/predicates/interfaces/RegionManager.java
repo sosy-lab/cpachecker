@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
+
+import java.io.PrintStream;
 
 import org.sosy_lab.common.Triple;
 
@@ -74,12 +76,29 @@ public interface RegionManager {
   public Region makeOr(Region f1, Region f2);
 
   /**
-   * Creates a region representing an existential quantification of the two argument
+   * Creates a region representing an equality (bi-implication) of the two argument
    * @param f1 an AbstractFormula
    * @param f2 an AbstractFormula
-   * @return (\exists f2: f1)
+   * @return (f1 <=> f2)
    */
-  public Region makeExists(Region f1, Region f2);
+  public Region makeEqual(Region f1, Region f2);
+
+  /**
+   * Creates a region representing an disequality (XOR) of the two argument
+   * @param f1 an AbstractFormula
+   * @param f2 an AbstractFormula
+   * @return (f1 ^ f2)
+   */
+  public Region makeUnequal(Region f1, Region f2);
+
+  /**
+   * Creates a region representing an existential quantification of the second
+   * argument. If there are more arguments, each of them is quantified.
+   * @param f1 an AbstractFormula
+   * @param f2 one or more AbstractFormulas
+   * @return (exists f2... : f1)
+   */
+  public Region makeExists(Region f1, Region... f2);
 
   /**
    * Creates a new variable and returns the predicate representing it.
@@ -97,4 +116,9 @@ public interface RegionManager {
    */
   public Triple<Region, Region, Region>
       getIfThenElse(Region f);
+
+  /**
+   * Prints some information about the RegionManager.
+   */
+  public void printStatistics(PrintStream out);
 }

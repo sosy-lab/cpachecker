@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.dominator.parametric;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -46,46 +46,46 @@ public class DominatorCPA {
   private StopOperator stopOperator;
   private PrecisionAdjustment precisionAdjustment;
 
-	public DominatorCPA(ConfigurableProgramAnalysis cpa) {
-	  this.cpa = cpa;
+  public DominatorCPA(ConfigurableProgramAnalysis cpa) {
+    this.cpa = cpa;
 
-		this.abstractDomain = new DominatorDomain(this.cpa);
+    this.abstractDomain = new DominatorDomain(this.cpa);
     this.transferRelation = new DominatorTransferRelation(this.cpa);
     this.mergeOperator = new MergeJoinOperator(abstractDomain);
-		this.stopOperator = new StopSepOperator(abstractDomain);
-		this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-	}
+    this.stopOperator = new StopSepOperator(abstractDomain);
+    this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+  }
 
-	public AbstractDomain getAbstractDomain() {
-		return abstractDomain;
-	}
+  public AbstractDomain getAbstractDomain() {
+    return abstractDomain;
+  }
 
   public TransferRelation getTransferRelation() {
     return transferRelation;
   }
 
-	public MergeOperator getMergeOperator() {
-		return mergeOperator;
-	}
+  public MergeOperator getMergeOperator() {
+    return mergeOperator;
+  }
 
-	public StopOperator getStopOperator() {
-		return stopOperator;
-	}
+  public StopOperator getStopOperator() {
+    return stopOperator;
+  }
 
   public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
   }
 
-  public AbstractElement getInitialElement(CFANode node) {
-    AbstractElement dominatedInitialElement_tmp = this.cpa.getInitialElement(node);
+  public AbstractState getInitialState(CFANode node) {
+    AbstractState dominatedInitialState_tmp = this.cpa.getInitialState(node);
 
-    AbstractElement dominatedInitialElement = dominatedInitialElement_tmp;
+    AbstractState dominatedInitialState = dominatedInitialState_tmp;
 
-    DominatorElement initialElement = new DominatorElement(dominatedInitialElement);
+    DominatorState initialState = new DominatorState(dominatedInitialState);
 
-    initialElement.update(dominatedInitialElement);
+    initialState.update(dominatedInitialState);
 
-    return initialElement;
+    return initialState;
   }
 
   public Precision getInitialPrecision(CFANode pNode) {

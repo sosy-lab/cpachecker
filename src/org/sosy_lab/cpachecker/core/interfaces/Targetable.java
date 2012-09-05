@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 /**
  * This interface is provided as a shortcut, so that other CPAs' strengthen
- * operator can check whether one abstract element represents some kind of
- * "target" or "error" abstract state without needing to know more about the element
+ * operator can check whether one abstract state represents some kind of
+ * "target" or "error" abstract state without needing to know more about the state
  * (especially without knowing its actual type).
  */
 public interface Targetable {

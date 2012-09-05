@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,13 +28,13 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -56,7 +56,7 @@ public class FeatureVarsCPA implements ConfigurableProgramAnalysis {
           description="whitelist regex for variables that will be tracked by FeatureVarsCPA")
   private String variableWhitelist = "";
 
-  private final FeatureVarsElement initialElement;
+  private final FeatureVarsState initialState;
   private final FeatureVarsPrecision initialPrecision;
 
   private final AbstractDomain abstractDomain;
@@ -65,15 +65,12 @@ public class FeatureVarsCPA implements ConfigurableProgramAnalysis {
   private final TransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
 
-  public static LogManager logger;
-
   private FeatureVarsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
-    FeatureVarsCPA.logger = logger;
 
-    NamedRegionManager manager = new NamedRegionManager(BDDRegionManager.getInstance());
+    NamedRegionManager manager = new NamedRegionManager(BDDRegionManager.getInstance(config, logger));
 
-    initialElement = new FeatureVarsElement(manager.makeTrue(), manager);
+    initialState = new FeatureVarsState(manager.makeTrue(), manager);
     initialPrecision = new FeatureVarsPrecision(variableWhitelist);
 
     abstractDomain = new FeatureVarsDomain(manager);
@@ -104,8 +101,8 @@ public class FeatureVarsCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFANode node) {
-    return initialElement;
+  public AbstractState getInitialState(CFANode node) {
+    return initialState;
   }
 
   @Override

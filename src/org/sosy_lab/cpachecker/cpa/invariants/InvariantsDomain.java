@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.MapDifference.ValueDifference;
@@ -39,9 +39,9 @@ enum InvariantsDomain implements AbstractDomain {
   INSTANCE;
 
   @Override
-  public InvariantsElement join(AbstractElement pElement1, AbstractElement pElement2) {
-    InvariantsElement element1 = (InvariantsElement)pElement1;
-    InvariantsElement element2 = (InvariantsElement)pElement2;
+  public InvariantsState join(AbstractState pElement1, AbstractState pElement2) {
+    InvariantsState element1 = (InvariantsState)pElement1;
+    InvariantsState element2 = (InvariantsState)pElement2;
 
     MapDifference<String, SimpleInterval> differences = Maps.difference(element1.getIntervals(), element2.getIntervals());
 
@@ -57,14 +57,14 @@ enum InvariantsDomain implements AbstractDomain {
       result.put(entry.getKey(), SimpleInterval.span(values.leftValue(), values.rightValue()));
     }
 
-    return new InvariantsElement(result);
+    return new InvariantsState(result);
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractElement pElement1, AbstractElement pElement2) {
+  public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) {
     // check whether element 1 (or left) contains more information than element 2 (or right)
-    InvariantsElement element1 = (InvariantsElement)pElement1;
-    InvariantsElement element2 = (InvariantsElement)pElement2;
+    InvariantsState element1 = (InvariantsState)pElement1;
+    InvariantsState element2 = (InvariantsState)pElement2;
 
     MapDifference<String, SimpleInterval> differences = Maps.difference(element1.getIntervals(), element2.getIntervals());
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.cfapath;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -42,7 +42,7 @@ public class CFAPathCPA implements ConfigurableProgramAnalysis {
   private final CFAPathTransferRelation mTransferRelation;
   private final PrecisionAdjustment mPrecisionAdjustment;
   private final Precision mPrecision;
-  private final CFAPathStandardElement mInitialElement;
+  private final CFAPathStandardState mInitialState;
   private final StopOperator mStopOperator;
   private final MergeOperator mMergeOperator;
 
@@ -57,7 +57,7 @@ public class CFAPathCPA implements ConfigurableProgramAnalysis {
     mTransferRelation = new CFAPathTransferRelation();
     mPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
     mPrecision = SingletonPrecision.getInstance();
-    mInitialElement = CFAPathStandardElement.getEmptyPath();
+    mInitialState = CFAPathStandardState.getEmptyPath();
     mStopOperator = StopNeverOperator.getInstance();
     mMergeOperator = MergeSepOperator.getInstance();
   }
@@ -88,8 +88,8 @@ public class CFAPathCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public CFAPathElement getInitialElement(CFANode pNode) {
-    return mInitialElement;
+  public CFAPathState getInitialState(CFANode pNode) {
+    return mInitialState;
   }
 
   @Override

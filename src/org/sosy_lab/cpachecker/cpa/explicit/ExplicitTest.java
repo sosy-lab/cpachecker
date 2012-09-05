@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,6 +32,8 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.LogManager.StringHandler;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 
@@ -44,7 +46,6 @@ public class ExplicitTest {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA",
         "specification",     "test/config/automata/tmpSpecification.spc",
-        "cfa.removeIrrelevantForErrorLocations", "false",
         "cpa.explicit.variableBlacklist", "main::__SELECTED_FEATURE_(\\w)*",
         "cpa.explicit.threshold", "200000"
       );
@@ -62,7 +63,6 @@ public class ExplicitTest {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA",
         "specification",     "test/config/automata/tmpSpecification.spc",
-        "cfa.removeIrrelevantForErrorLocations", "false",
         "cpa.explicit.variableBlacklist", "somethingElse",
         "cpa.explicit.threshold", "200000"
       );
@@ -77,7 +77,9 @@ public class ExplicitTest {
       tmpFile.deleteOnExit();
   }
   private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
-    Configuration config = Configuration.builder().setOptions(pProperties).build();
+    Configuration config = Configuration.builder()
+      .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
+      .setOptions(pProperties).build();
     StringHandler stringLogHandler = new LogManager.StringHandler();
     LogManager logger = new LogManager(config, stringLogHandler);
     CPAchecker cpaChecker = new CPAchecker(config, logger);
@@ -87,6 +89,7 @@ public class ExplicitTest {
   @SuppressWarnings("unused")
   private TestResults run(File configFile, Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
     Configuration config = Configuration.builder()
+      .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
       .loadFromFile(configFile.getAbsolutePath())
       .setOptions(pProperties).build();
 

@@ -8,28 +8,29 @@
     <sourcefiles>
       <includesfile>test/assumptions/adjustableConditions-uninitvars.set</includesfile>
     </sourcefiles>
-    <option name="-uninitVars-heuristics"/>
+    <option name="-uninitVars"/>
+    <option name="-timelimit">10s</option>
   </test>
   <test name="uninitvars-pl">
     <sourcefiles>
       <includesfile>test/assumptions/adjustableConditions-uninitvars.set</includesfile>
     </sourcefiles>
     <option name="-config">test/assumptions/uninitvars-adjustableConditions.properties</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics=PathLengthHeuristics,TimeOutHeuristics</option>
+    <option name="-setprop">cpa.condition.path.condition=PathLengthCondition</option>
   </test>
   <test name="uninitvars-rip">
     <sourcefiles>
       <includesfile>test/assumptions/adjustableConditions-uninitvars.set</includesfile>
     </sourcefiles>
     <option name="-config">test/assumptions/uninitvars-adjustableConditions.properties</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics=RepetitionsInPathHeuristics,TimeOutHeuristics</option>
+    <option name="-setprop">cpa.condition.path.condition=RepetitionsInPathCondition</option>
   </test>
   <test name="uninitvars-ae">
     <sourcefiles>
       <includesfile>test/assumptions/adjustableConditions-uninitvars.set</includesfile>
     </sourcefiles>
     <option name="-config">test/assumptions/uninitvars-adjustableConditions.properties</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics=AssumeEdgesInPathHeuristics,TimeOutHeuristics</option>
+    <option name="-setprop">cpa.condition.path.condition=AssumeEdgesInPathCondition</option>
   </test>
   <columns>
     <column title="total">time for CPAchecker</column>

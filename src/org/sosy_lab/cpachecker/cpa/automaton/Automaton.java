@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -62,6 +62,10 @@ public class Automaton {
     for (AutomatonInternalState s : pStates) {
       s.setFollowStates(statesMap);
     }
+  }
+
+  public List<AutomatonInternalState> getStates() {
+    return states;
   }
 
   public String getName() {
@@ -126,7 +130,7 @@ public class Automaton {
   /**
    * Assert this automaton fulfills the requirements of an ObserverAutomaton.
    * This means the Automaton does not modify other CPAs (Keyword MODIFY) and does not use the BOTTOM element (Keyword STOP).
-   * @throws InvalidAutomatonException if the requirements are not fulfilled
+   * @throws InvalidConfigurationException if the requirements are not fulfilled
    */
   public void assertObserverAutomaton() throws InvalidConfigurationException {
     for (AutomatonInternalState s : this.states) {

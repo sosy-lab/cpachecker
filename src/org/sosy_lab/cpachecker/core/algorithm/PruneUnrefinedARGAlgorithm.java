@@ -28,23 +28,22 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.location.LocationElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 
 public class PruneUnrefinedARGAlgorithm implements Algorithm {
@@ -67,8 +66,8 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
   @Override
   public boolean run(ReachedSet reachedOrig) throws CPAException, InterruptedException {
     ReachedSet reached = reachedSetFactory.create();
-    CFAFunctionDefinitionNode mainFunction = cfa.getMainFunction();
-    AbstractElement initialElement = cpa.getInitialElement(mainFunction);
+    FunctionEntryNode mainFunction = cfa.getMainFunction();
+    AbstractState initialElement = cpa.getInitialState(mainFunction);
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
     reached.add(initialElement, initialPrecision);
 
@@ -83,29 +82,28 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
 
     // compute all error locations that are reachable
     Set<CFANode> locations = new HashSet<CFANode>();
-    for (AbstractElement e : reached) {
-      ARTElement artEle = (ARTElement) e;
-      LocationElement le = AbstractElements.extractElementByType(artEle, LocationElement.class);
+    for (AbstractState e : reached) {
+      ARGState artEle = (ARGState) e;
+      LocationState le = AbstractStates.extractStateByType(artEle, LocationState.class);
       if (artEle.isTarget()) {
         locations.add(le.getLocationNode());
       }
     }
 
-    Deque<ARTElement> leaves = new ArrayDeque<ARTElement>();
+    Deque<ARGState> leaves = new ArrayDeque<ARGState>();
 
     // remove all error nodes from reachedOrig that are not reachable in reached
-    List<AbstractElement> elementsToBeRemoved = new ArrayList<AbstractElement>();
-    for (AbstractElement e : reachedOrig) {
-      ARTElement artEle = (ARTElement) e;
-      LocationElement le = AbstractElements.extractElementByType(artEle, LocationElement.class);
+    for (AbstractState e : reachedOrig) {
+      ARGState artEle = (ARGState) e;
+      LocationState le = AbstractStates.extractStateByType(artEle, LocationState.class);
       if (artEle.isTarget()) {
         System.out.print("Found target " + le.getLocationNode().getLineNumber());
         if (artEle.isCovered())
           System.out.print(" COV");
         if (!locations.contains(le.getLocationNode())) {
           leaves.add(artEle);
-          for (ARTElement e2 : artEle.getCoveredByThis()) {
-            System.out.print(" (added " + AbstractElements.extractElementByType(e2, LocationElement.class).getLocationNode().getLineNumber() + " )");
+          for (ARGState e2 : artEle.getCoveredByThis()) {
+            System.out.print(" (added " + AbstractStates.extractStateByType(e2, LocationState.class).getLocationNode().getLineNumber() + " )");
             leaves.add(e2);
           }
           System.out.println(" RM");
@@ -114,23 +112,23 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
         }
       }
     }
-    AbstractARTBasedRefiner.checkART(reachedOrig);
+    AbstractARGBasedRefiner.checkART(reachedOrig);
     while (!leaves.isEmpty()) {
-      ARTElement leaf = leaves.pop();
+      ARGState leaf = leaves.pop();
 
-      Collection<ARTElement> parents = new ArrayList<ARTElement>();
+      Collection<ARGState> parents = new ArrayList<ARGState>();
       parents.addAll(leaf.getParents());
 
       reachedOrig.remove(leaf);
-      leaf.removeFromART();
+      leaf.removeFromARG();
 
-      for (ARTElement parent : parents) {
+      for (ARGState parent : parents) {
         if (parent.getChildren().size() == 0) {
           leaves.push(parent);
         }
       }
     }
-    AbstractARTBasedRefiner.checkART(reachedOrig);
+    AbstractARGBasedRefiner.checkART(reachedOrig);
 
     return sound;
   }

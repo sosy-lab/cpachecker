@@ -4,7 +4,7 @@
 CPAchecker is a tool for configurable software verification.
 This file is part of CPAchecker.
 
-Copyright (C) 2007-2011  Dirk Beyer
+Copyright (C) 2007-2012  Dirk Beyer
 All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,48 +24,23 @@ CPAchecker web page:
   http://cpachecker.sosy-lab.org
 """
 
-import os
-import re
+# prepare for Python 3
+from __future__ import absolute_import, print_function, unicode_literals
+
 import sys
+sys.dont_write_bytecode = True # prevent creation of .pyc files
+
+import os
 import time
-import shutil
 import optparse
 import subprocess
+import tempita
 try:
     import json
 except ImportError:
     #for python 2.5 and below, hope that simplejson is available
     import simplejson as json
 
-SUBSTITUTION_RE = re.compile('\{\{\{(\w+)\}\}\}')
-
-class Template(object):
-    """
-    a pretty limited template "engine" :)
-    """
-
-    def __init__(self, infile, outfile):
-        self.infile = infile
-        self.outfile = outfile
-
-    def render(self, **kws):
-        """
-        pass kwargs here. The value should be a callable that returns the string to insert for the key.
-
-        render(test=lambda : "This is a test!!") will substitute {{{test}}} for "This is a test!!"
-
-        WARNING: currently only one template var e.g. {{{test}}} may appear on a single line in the template.
-
-        """
-        for line in self.infile:
-            match = SUBSTITUTION_RE.search(line)
-            if match and match.group(1) in kws:
-                subst = kws[match.group(1)]()
-                self.outfile.write(line[:match.start()])
-                self.outfile.write(subst)
-                self.outfile.write(line[match.end():])
-            else:
-                self.outfile.write(line)
 
 def call_dot(infile, outpath):
     (basefilename, ext) = os.path.splitext(os.path.basename(infile))
@@ -86,11 +61,25 @@ def call_dot(infile, outpath):
             os.remove(outfile) # sometimes outfile is written half, so cleanup
         except OSError:
             pass # if outfile is not written, removing is impossible
+        return False
 
     if code != 0:
         print ('Error: Could not call GraphViz to create graph {0} (error code {1})'.format(outfile, code))
         print ('Report generation failed')
         sys.exit(1)
+
+    return True
+
+
+def readfile(filepath, optional=False):
+    if not os.path.isfile(filepath):
+        if optional:
+            return None
+        raise Exception('File not found: ' + filepath)
+    print ('Reading: ' + filepath)
+    with open(filepath, 'r') as fp:
+        return fp.read()
+
 
 def main():
 
@@ -105,37 +94,43 @@ def main():
         action="store",
         type="string",
         dest="outdir",
-        help="CPAChecker output.path"
+        help="CPAchecker output.path"
     )
-    parser.add_option("-a", "--art",
+    parser.add_option("-a", "--arg",
         action="store",
         type="string",
-        dest="art",
-        help="CPAChecker ART.file"
+        dest="arg",
+        help="CPAchecker ARG.file"
     )
     parser.add_option("-l", "--logfile",
         action="store",
         type="string",
         dest="logfile",
-        help="CPAChecker log.file"
+        help="CPAchecker log.file"
     )
     parser.add_option("-s", "--statistics",
         action="store",
         type="string",
         dest="statsfile",
-        help="CPAChecker statistics.file"
+        help="CPAchecker statistics.file"
     )
     parser.add_option("-e", "--errorpath",
         action="store",
         type="string",
         dest="errorpath",
-        help="CPAChecker cpa.art.errorPath.json"
+        help="CPAchecker cpa.arg.errorPath.json"
+    )
+    parser.add_option("-g", "--errorpathgraph",
+        action="store",
+        type="string",
+        dest="errorpathgraph",
+        help="CPAchecker cpa.arg.errorPath.graph"
     )
     parser.add_option("-c", "--config",
         action="store",
         type="string",
         dest="conffile",
-        help="path to CPAChecker config file"
+        help="path to CPAchecker config file"
     )
 
     options, args = parser.parse_args()
@@ -149,7 +144,8 @@ def main():
     reportdir = options.reportdir or cpaoutdir
     tplfilepath = os.path.join(scriptdir, 'report-template.html')
     outfilepath = os.path.join(reportdir, 'index.html')
-    artfilepath = options.art or os.path.join(cpaoutdir, 'ART.dot')
+    argfilepath = options.arg or os.path.join(cpaoutdir, 'ARG.dot')
+    errorpathgraph = options.errorpathgraph or os.path.join(cpaoutdir, 'ErrorPath.dot')
     errorpath = options.errorpath or os.path.join(cpaoutdir, 'ErrorPath.json')
     combinednodes = os.path.join(reportdir, 'combinednodes.json')
     cfainfo = os.path.join(reportdir, 'cfainfo.json')
@@ -157,74 +153,43 @@ def main():
     logfile = options.logfile or os.path.join(cpaoutdir, 'CPALog.txt')
     statsfile = options.statsfile or os.path.join(cpaoutdir, 'Statistics.txt')
     conffile = options.conffile or os.path.join(cpacheckerdir, 'config', 'predicateAnalysis.properties')
-    cilfile = args[0]
+    sourcefile = args[0]
     time_generated = time.strftime("%a, %d %b %Y %H:%M", time.localtime())
 
-    def filecontents(filepath, encode=False, fallback=None):
-        def inner():
-            if not os.path.isfile(filepath):
-                if fallback:
-                    return fallback
-                if not encode:
-                    raise Exception('File not found: ' + filepath)
-                else:
-                    return 'Not found:' + filepath
-            print ('Reading: ' + filepath)
-            with open(filepath, 'r') as fp:
-                if encode:
-                    return fp.read().replace('<','&lt;').replace('>', '&gt;')
-                else:
-                    return fp.read()
-        return inner
+    #if there is an ARG.dot create an SVG in the report dir
+    if os.path.isfile(argfilepath):
+        print ('Generating SVG for ARG')
+        if not call_dot(argfilepath, reportdir) and os.path.isfile(errorpathgraph):
+            if call_dot(errorpathgraph, reportdir):
+                os.rename(os.path.join(reportdir, 'ErrorPath.svg'),
+                          os.path.join(reportdir, 'ARG.svg'))
 
-    def gen_functionlist():
-        funclist = [x[5:-4] for x in os.listdir(cpaoutdir) if x.startswith('cfa__') and x.endswith('.dot')]
-        print ('Generating SVGs for CFA')
-        for func in funclist:
-            call_dot(os.path.join(cpaoutdir, 'cfa__' + func + '.dot'), reportdir)
-        return json.dumps(funclist, indent=4)
+    functions = [x[5:-4] for x in os.listdir(cpaoutdir) if x.startswith('cfa__') and x.endswith('.dot')]
+    print ('Generating SVGs for CFA')
+    for func in functions:
+        call_dot(os.path.join(cpaoutdir, 'cfa__' + func + '.dot'), reportdir)
 
-    def format_cil():
-        if not os.path.isfile(cilfile):
-            return '<h3>CIL file not found.</h3>'
-        else:
-            with open(cilfile, 'r') as fp:
-                buff = ['<table id="cil_holder">']
-                for no, line in enumerate(fp):
-                    buff.append('<tr id="cil_line_%d"><td><pre>%d</pre></td><td><pre>%s</pre></td></tr>\n' % (
-                            no,
-                            no,
-                            line.replace('<','&lt;').replace('>', '&gt;').rstrip()
-                        )
-                    )
-                buff.append('</table>')
-                return ''.join(buff)
+    template = tempita.HTMLTemplate.from_filename(tplfilepath, encoding='UTF-8')
 
-    #if there is an ART.dot create an SVG in the report dir
-    if os.path.isfile(artfilepath):
-        print ('Generating SVG for ART')
-        call_dot(artfilepath, reportdir)
+    # write file
+    with open(outfilepath, 'w') as outf:
+        outf.write(template.substitute(
+            time_generated   =time_generated,
+            sourcefilename   =os.path.basename(sourcefile),
 
-    inf = open(tplfilepath, 'r')
-    outf = open(outfilepath, 'w')
+            sourcefilecontent=readfile(sourcefile, optional=True),
+            logfile          =readfile(logfile, optional=True),
+            statistics       =readfile(statsfile, optional=True),
+            conffile         =readfile(conffile, optional=True),
 
-    t = Template(inf, outf)
-    t.render(
-        logfile=filecontents(logfile, encode=True),
-        statistics=filecontents(statsfile, encode=True),
-        conffile=filecontents(conffile, encode=True),
-        errorpath=filecontents(errorpath, fallback='[]'),
-        functionlist=gen_functionlist,
-        combinednodes=filecontents(combinednodes),
-        cfainfo=filecontents(cfainfo),
-        fcalledges=filecontents(fcalledges),
-        time_generated=lambda: time_generated,
-        formatted_cil=format_cil,
-        sourcefile=lambda: cilfile[cilfile.rfind('/') + 1:], # get filename without path
-    )
+            # JSON data for script
+            errorpath        =readfile(errorpath, optional=True) or '[]',
+            functionlist     =json.dumps(functions),
+            combinednodes    =readfile(combinednodes),
+            cfainfo          =readfile(cfainfo),
+            fcalledges       =readfile(fcalledges),
+        ))
 
-    inf.close()
-    outf.close()
     print ('Report generated in {0}'.format(outfilepath))
 
 if __name__ == '__main__':

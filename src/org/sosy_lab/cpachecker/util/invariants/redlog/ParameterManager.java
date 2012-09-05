@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.redlog;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.util.invariants.Rational;
 
 public class ParameterManager {
 
@@ -49,12 +50,14 @@ public class ParameterManager {
     makePAs();
   }
 
-  public ParameterManager(EAPair EAP, List<String> pParams) {
+  public ParameterManager(EAPair EAP, Collection<String> pParams) {
     this.EAP = EAP;
     PAmap = new HashMap<String, ParameterAssignment>();
     this.params = new String[pParams.size()];
-    for (int i = 0; i < pParams.size(); i++) {
-      this.params[i] = pParams.get(i);
+    int i = 0;
+    for (String s : pParams) {
+      this.params[i] = s;
+      i++;
     }
     makePAs();
   }
@@ -139,15 +142,15 @@ public class ParameterManager {
 
     // Go through the equations in EAP.
     Iterator<Equation> eqnit = EAP.equationIterator();
-    IASTExpression LHS, RHS;
-    IASTIdExpression ID;
+    CExpression LHS, RHS;
+    CIdExpression ID;
     Equation eqn;
     String a;
     ParameterAssignment PA;
     while (eqnit.hasNext()) {
       eqn = eqnit.next();
       LHS = eqn.getLeftHandSide();
-      ID = (IASTIdExpression) LHS;
+      ID = (CIdExpression) LHS;
       a = ID.getName().toString();
       if (waitlist.contains(a)) {
         RHS = eqn.getRightHandSide();

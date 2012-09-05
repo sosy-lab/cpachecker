@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.cpachecker.cfa.CParser;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 
 public class RedlogInterface {
 
@@ -59,6 +59,7 @@ public class RedlogInterface {
     // Redlog's output is first preprocessed by the rlwrapper.py
     // script. Then we pass the results to our build method, which
     // creates the EliminationAnswer object that we return.
+    // If Redlog has a segfault, then we return null.
     List<String> output = null;
     String wrapper_path = "src/org/sosy_lab/cpachecker/util/invariants/redlog/rlwrapper.py";
     try {
@@ -72,7 +73,10 @@ public class RedlogInterface {
       System.err.println(e.getMessage());
     }
     logger.log(Level.ALL,"Redlog output:\n",output);
-    EliminationAnswer EA = build(output);
+    EliminationAnswer EA = null;
+    if (output.size() > 0 && !output.get(0).equals("segfault")) {
+      EA = build(output);
+    }
     return EA;
   }
 
@@ -97,6 +101,17 @@ public class RedlogInterface {
       } else if (line.equals("~begin-cond")) {
         C = new Condition();
       } else if (line.equals("~end-cond")) {
+        if (formula.equals("false")) {
+          // If Redlog said 'false', then it will give no parameter values,
+          // and in fact the constraints are unsatisfiable.
+          EA = new EliminationAnswer(false);
+          break;
+        } else if (formula.equals("true")) {
+          // We record this, in case we need to know that Redlog found "true", even if
+          // it did not compute a numerical value for each parameter (e.g. it might solve
+          // for one parameter in terms of another).
+          EA.setTruthValue(true);
+        }
         C.setFormula(formula);
         formula = "";
         EAP.setCondition(C);
@@ -106,7 +121,7 @@ public class RedlogInterface {
         E = new Equation();
       } else if (line.equals("~end-eq")) {
         E.setFormula(formula);
-        IASTNode tree = parse(formula);
+        CAstNode tree = parse(formula);
         E.setTree(tree);
         /**
         if (verbose) {
@@ -131,8 +146,8 @@ public class RedlogInterface {
     return EA;
   }
 
-  private IASTNode parse(String f) {
-    IASTNode root = null;
+  private CAstNode parse(String f) {
+    CAstNode root = null;
     try {
       // The statement must be wrapped inside a function
       // declaration. This however gets stripped away.
@@ -144,7 +159,7 @@ public class RedlogInterface {
     return root;
   }
 
-  public IASTNode parseFormula(String f) {
+  public CAstNode parseFormula(String f) {
     return parse(f);
   }
 

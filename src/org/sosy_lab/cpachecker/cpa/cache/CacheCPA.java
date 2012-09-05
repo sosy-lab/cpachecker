@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,9 +26,9 @@ package org.sosy_lab.cpachecker.cpa.cache;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -37,6 +37,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
+import com.google.common.collect.ImmutableList;
+
 /*
  * CAUTION: The cache for precision adjustment is only correct for CPAs that do
  * _NOT_ depend on the reached set when performing prec.
@@ -44,7 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
 
   private final ConfigurableProgramAnalysis mCachedCPA;
-  private final Map<CFANode, AbstractElement> mInitialElementsCache;
+  private final Map<CFANode, AbstractState> mInitialStatesCache;
   private final Map<CFANode, Precision> mInitialPrecisionsCache;
   private final CacheTransferRelation mCacheTransferRelation;
   private final CachePrecisionAdjustment mCachePrecisionAdjustment;
@@ -52,7 +54,7 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
 
   public CacheCPA(ConfigurableProgramAnalysis pCachedCPA) {
     mCachedCPA = pCachedCPA;
-    mInitialElementsCache = new HashMap<CFANode, AbstractElement>();
+    mInitialStatesCache = new HashMap<CFANode, AbstractState>();
     mInitialPrecisionsCache = new HashMap<CFANode, Precision>();
     mCacheTransferRelation = new CacheTransferRelation(mCachedCPA.getTransferRelation());
     mCachePrecisionAdjustment = new CachePrecisionAdjustment(mCachedCPA.getPrecisionAdjustment());
@@ -85,15 +87,15 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFANode pNode) {
-    AbstractElement lInitialElement = mInitialElementsCache.get(pNode);
+  public AbstractState getInitialState(CFANode pNode) {
+    AbstractState lInitialState = mInitialStatesCache.get(pNode);
 
-    if (lInitialElement == null) {
-      lInitialElement = mCachedCPA.getInitialElement(pNode);
-      mInitialElementsCache.put(pNode, lInitialElement);
+    if (lInitialState == null) {
+      lInitialState = mCachedCPA.getInitialState(pNode);
+      mInitialStatesCache.put(pNode, lInitialState);
     }
 
-    return lInitialElement;
+    return lInitialState;
   }
 
   @Override
@@ -125,4 +127,8 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
     return null;
   }
 
+  @Override
+  public ImmutableList<? extends ConfigurableProgramAnalysis> getWrappedCPAs() {
+    return ImmutableList.of(mCachedCPA);
+  }
 }

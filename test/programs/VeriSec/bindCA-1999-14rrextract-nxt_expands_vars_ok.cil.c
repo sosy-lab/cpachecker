@@ -17,16 +17,14 @@ extern void *r_memcpy(void *dest , void const   *src , size_t n ) ;
 extern int dn_expand(u_char const   *msg , u_char const   *eomorig , u_char const   *comp_dn ,
                      char *exp_dn , int length ) ;
 #line 50
-extern int nondet_int() ;
+extern int __VERIFIER_nondet_int() ;
+extern int __VERIFIER_nondet_short() ;
+extern int __VERIFIER_nondet_long() ;
 #line 71 "/usr/include/assert.h"
 extern  __attribute__((__nothrow__, __noreturn__)) void __assert_fail(char const   *__assertion ,
                                                                       char const   *__file ,
                                                                       unsigned int __line ,
                                                                       char const   *__function ) ;
-#line 26 "../versisec/bind/progs1/bindCA-1999-14rrextract-nxt_expands_vars_ok.c"
-extern int ( /* missing proto */  nondet_short)() ;
-#line 32
-extern int ( /* missing proto */  nondet_long)() ;
 #line 6 "../versisec/bind/progs1/bindCA-1999-14rrextract-nxt_expands_vars_ok.c"
 static int rrextract(u_char *msg , int msglen , u_char *rrp , u_char *dname , int namelen ) 
 { u_char *eom ;
@@ -145,7 +143,7 @@ static int rrextract(u_char *msg , int msglen , u_char *rrp , u_char *dname , in
     while_1_continue: /* CIL Label */ ;
     {
 #line 26
-    type = nondet_short();
+    type = __VERIFIER_nondet_short();
 #line 26
     cp = cp + 2;
     }
@@ -159,7 +157,7 @@ static int rrextract(u_char *msg , int msglen , u_char *rrp , u_char *dname , in
     while_2_continue: /* CIL Label */ ;
     {
 #line 27
-    class = nondet_short();
+    class = __VERIFIER_nondet_short();
 #line 27
     cp = cp + 2;
     }
@@ -180,7 +178,7 @@ static int rrextract(u_char *msg , int msglen , u_char *rrp , u_char *dname , in
     while_3_continue: /* CIL Label */ ;
     {
 #line 32
-    ttl = nondet_long();
+    ttl = __VERIFIER_nondet_long();
 #line 32
     cp = cp + 4;
     }
@@ -201,7 +199,7 @@ static int rrextract(u_char *msg , int msglen , u_char *rrp , u_char *dname , in
     while_4_continue: /* CIL Label */ ;
     {
 #line 37
-    dlen = nondet_short();
+    dlen = __VERIFIER_nondet_short();
 #line 37
     cp = cp + 2;
     }
@@ -236,7 +234,7 @@ static int rrextract(u_char *msg , int msglen , u_char *rrp , u_char *dname , in
 #line 40
   rdatap = cp;
 #line 42
-  tmp = nondet_int();
+  tmp = __VERIFIER_nondet_int();
   }
 #line 42
   if (tmp) {
@@ -278,7 +276,7 @@ static int rrextract(u_char *msg , int msglen , u_char *rrp , u_char *dname , in
   }
   {
 #line 55
-  tmp___0 = nondet_int();
+  tmp___0 = __VERIFIER_nondet_int();
   }
 #line 55
   if (tmp___0) {

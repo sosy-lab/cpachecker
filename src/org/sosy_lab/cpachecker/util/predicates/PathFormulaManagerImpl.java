@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -34,12 +36,12 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
@@ -49,7 +51,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Maps;
 
 /**
@@ -242,61 +244,63 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
   /**
    * Build a formula containing a predicate for all branching situations in the
-   * ART. If a satisfying assignment is created for this formula, it can be used
-   * to find out which paths in the ART are feasible.
+   * ARG. If a satisfying assignment is created for this formula, it can be used
+   * to find out which paths in the ARG are feasible.
    *
    * This method may be called with an empty set, in which case it does nothing
    * and returns the formula "true".
    *
-   * @param elementsOnPath The ART elements that should be considered.
+   * @param elementsOnPath The ARG states that should be considered.
    * @return A formula containing a predicate for each branching.
    * @throws CPATransferException
    */
   @Override
-  public Formula buildBranchingFormula(Iterable<ARTElement> elementsOnPath) throws CPATransferException {
+  public Formula buildBranchingFormula(Iterable<ARGState> elementsOnPath) throws CPATransferException {
     // build the branching formula that will help us find the real error path
     Formula branchingFormula = fmgr.makeTrue();
-    for (final ARTElement pathElement : elementsOnPath) {
+    for (final ARGState pathElement : elementsOnPath) {
 
       if (pathElement.getChildren().size() > 1) {
         if (pathElement.getChildren().size() > 2) {
           // can't create branching formula
-          logger.log(Level.WARNING, "ART branching with more than two outgoing edges");
+          logger.log(Level.WARNING, "ARG branching with more than two outgoing edges");
           return fmgr.makeTrue();
         }
 
-        Iterable<CFAEdge> outgoingEdges = Iterables.transform(pathElement.getChildren(),
-            new Function<ARTElement, CFAEdge>() {
+        FluentIterable<CFAEdge> outgoingEdges = from(pathElement.getChildren()).transform(
+            new Function<ARGState, CFAEdge>() {
               @Override
-              public CFAEdge apply(ARTElement child) {
+              public CFAEdge apply(ARGState child) {
                 return pathElement.getEdgeToChild(child);
               }
         });
-        if (!Iterables.all(outgoingEdges, Predicates.instanceOf(AssumeEdge.class))) {
-          logger.log(Level.WARNING, "ART branching without AssumeEdge");
+        if (!outgoingEdges.allMatch(Predicates.instanceOf(CAssumeEdge.class))) {
+          logger.log(Level.WARNING, "ARG branching without CAssumeEdge");
           return fmgr.makeTrue();
         }
 
-        AssumeEdge edge = null;
+        CAssumeEdge edge = null;
         for (CFAEdge currentEdge : outgoingEdges) {
-          if (((AssumeEdge)currentEdge).getTruthAssumption()) {
-            edge = (AssumeEdge)currentEdge;
+          if (((CAssumeEdge)currentEdge).getTruthAssumption()) {
+            edge = (CAssumeEdge)currentEdge;
             break;
           }
         }
         assert edge != null;
 
-        Formula pred = fmgr.makePredicateVariable(BRANCHING_PREDICATE_NAME + pathElement.getElementId(), 0);
+        Formula pred = fmgr.makePredicateVariable(BRANCHING_PREDICATE_NAME + pathElement.getStateId(), 0);
 
         // create formula by edge, be sure to use the correct SSA indices!
-        // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractElement,
+        // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
         // it is used without PredicateCPA as well.
-        PredicateAbstractElement pe = AbstractElements.extractElementByType(pathElement, PredicateAbstractElement.class);
+        PathFormula pf;
+        PredicateAbstractState pe = AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
         if (pe == null) {
           logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA");
           return fmgr.makeTrue();
+        } else {
+          pf = pe.getPathFormula();
         }
-        PathFormula pf = pe.getPathFormula();
         pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
         pf = this.makeAnd(pf, edge);        // conjunct with edge
 
@@ -311,11 +315,11 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
    * Extract the information about the branching predicates created by
    * {@link #buildBranchingFormula(Set)} from a satisfying assignment.
    *
-   * A map is created that stores for each ARTElement (using its element id as
+   * A map is created that stores for each ARGState (using its element id as
    * the map key) which edge was taken (the positive or the negated one).
    *
    * @param model A satisfying assignment that should contain values for branching predicates.
-   * @return A map from ART element id to a boolean value indicating direction.
+   * @return A map from ARG state id to a boolean value indicating direction.
    */
   @Override
   public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model model) {

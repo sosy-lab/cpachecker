@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import java.util.Iterator;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -46,27 +46,27 @@ public class CompositeMergePlainOperator implements MergeOperator{
   }
 
   @Override
-  public AbstractElement merge(AbstractElement element1,
-                               AbstractElement element2,
+  public AbstractState merge(AbstractState element1,
+                               AbstractState element2,
                                Precision precision) throws CPAException {
 
     // Merge Sep Code
-    CompositeElement comp1 = (CompositeElement) element1;
-    CompositeElement comp2 = (CompositeElement) element2;
+    CompositeState comp1 = (CompositeState) element1;
+    CompositeState comp2 = (CompositeState) element2;
     CompositePrecision prec = (CompositePrecision) precision;
 
-    assert(comp1.getNumberofElements() == comp2.getNumberofElements());
+    assert(comp1.getNumberOfStates() == comp2.getNumberOfStates());
 
-    ImmutableList.Builder<AbstractElement> mergedElements = ImmutableList.builder();
-    Iterator<AbstractElement> iter1 = comp1.getElements().iterator();
-    Iterator<AbstractElement> iter2 = comp2.getElements().iterator();
+    ImmutableList.Builder<AbstractState> mergedElements = ImmutableList.builder();
+    Iterator<AbstractState> iter1 = comp1.getWrappedStates().iterator();
+    Iterator<AbstractState> iter2 = comp2.getWrappedStates().iterator();
     Iterator<Precision> precIter = prec.getPrecisions().iterator();
 
     boolean identicElements = true;
     for (MergeOperator mergeOp : mergeOperators) {
-      AbstractElement absElem1 = iter1.next();
-      AbstractElement absElem2 = iter2.next();
-      AbstractElement merged = mergeOp.merge(absElem1, absElem2, precIter.next());
+      AbstractState absElem1 = iter1.next();
+      AbstractState absElem2 = iter2.next();
+      AbstractState merged = mergeOp.merge(absElem1, absElem2, precIter.next());
 
       if (merged != absElem2) {
         identicElements = false;
@@ -77,7 +77,7 @@ public class CompositeMergePlainOperator implements MergeOperator{
     if (identicElements) {
       return element2;
     } else {
-      return new CompositeElement(mergedElements.build());
+      return new CompositeState(mergedElements.build());
     }
   }
 }

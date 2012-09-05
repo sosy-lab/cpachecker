@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.redlog;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 
 public class Equation {
 
   private String eqn;
-  private IASTNode tree;
+  private CAstNode tree;
 
   public Equation() {}
 
@@ -42,11 +42,11 @@ public class Equation {
     eqn = e;
   }
 
-  public void setTree(IASTNode t) {
+  public void setTree(CAstNode t) {
     tree = t;
   }
 
-  public IASTNode getTree() {
+  public CAstNode getTree() {
     return tree;
   }
 
@@ -54,17 +54,17 @@ public class Equation {
     return eqn;
   }
 
-  public IASTExpression getLeftHandSide() {
-    IASTExpressionAssignmentStatement EAS =
-      (IASTExpressionAssignmentStatement) tree;
-    IASTExpression LHS = EAS.getLeftHandSide();
+  public CExpression getLeftHandSide() {
+    CExpressionAssignmentStatement EAS =
+      (CExpressionAssignmentStatement) tree;
+    CExpression LHS = EAS.getLeftHandSide();
     return LHS;
   }
 
-  public IASTExpression getRightHandSide() {
-    IASTExpressionAssignmentStatement EAS =
-      (IASTExpressionAssignmentStatement) tree;
-    IASTExpression RHS = EAS.getRightHandSide();
+  public CExpression getRightHandSide() {
+    CExpressionAssignmentStatement EAS =
+      (CExpressionAssignmentStatement) tree;
+    CExpression RHS = EAS.getRightHandSide();
     return RHS;
   }
 

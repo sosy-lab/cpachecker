@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +28,7 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
@@ -38,7 +38,7 @@ import com.google.common.collect.Iterables;
  * The key that is used for sorting is defined by sub-classes (it's type is
  * the type parameter of this class).
  *
- * There may be several abstract elements with the same key, so this class
+ * There may be several abstract states with the same key, so this class
  * delegates the decision which of those should be chosen to a second waitlist
  * implementation. A factory for this implementation needs to be given to the
  * constructor.
@@ -56,23 +56,23 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
 
   /**
    * Constructor that needs a factory for the waitlist implementation that
-   * should be used to store elements with the same sorting key.
+   * should be used to store states with the same sorting key.
    */
   protected AbstractSortedWaitlist(WaitlistFactory pSecondaryStrategy) {
     wrappedWaitlist = Preconditions.checkNotNull(pSecondaryStrategy);
   }
 
   /**
-   * Method that generates the sorting key for any abstract element.
+   * Method that generates the sorting key for any abstract state.
    * This method may not return null.
    * If this method throws an exception, no guarantees about the state of the
    * current instance of this class are made.
    */
-  protected abstract K getSortKey(AbstractElement pElement);
+  protected abstract K getSortKey(AbstractState pState);
 
   @Override
-  public void add(AbstractElement pElement) {
-    K key = getSortKey(pElement);
+  public void add(AbstractState pState) {
+    K key = getSortKey(pState);
     Waitlist localWaitlist = waitlist.get(key);
     if (localWaitlist == null) {
       localWaitlist = wrappedWaitlist.createWaitlistInstance();
@@ -80,19 +80,19 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
     } else {
       assert !localWaitlist.isEmpty();
     }
-    localWaitlist.add(pElement);
+    localWaitlist.add(pState);
     size++;
   }
 
   @Override
-  public boolean contains(AbstractElement pElement) {
-    K key = getSortKey(pElement);
+  public boolean contains(AbstractState pState) {
+    K key = getSortKey(pState);
     Waitlist localWaitlist = waitlist.get(key);
     if (localWaitlist == null) {
       return false;
     }
     assert !localWaitlist.isEmpty();
-    return localWaitlist.contains(pElement);
+    return localWaitlist.contains(pState);
   }
 
   @Override
@@ -108,16 +108,16 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   }
 
   @Override
-  public Iterator<AbstractElement> iterator() {
+  public Iterator<AbstractState> iterator() {
     return Iterables.concat(waitlist.values()).iterator();
   }
 
   @Override
-  public AbstractElement pop() {
+  public AbstractState pop() {
     Entry<K, Waitlist> highestEntry = waitlist.lastEntry();
     Waitlist localWaitlist = highestEntry.getValue();
     assert !localWaitlist.isEmpty();
-    AbstractElement result = localWaitlist.pop();
+    AbstractState result = localWaitlist.pop();
     if (localWaitlist.isEmpty()) {
       waitlist.remove(highestEntry.getKey());
     }
@@ -126,14 +126,14 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   }
 
   @Override
-  public boolean remove(AbstractElement pElement) {
-    K key = getSortKey(pElement);
+  public boolean remove(AbstractState pState) {
+    K key = getSortKey(pState);
     Waitlist localWaitlist = waitlist.get(key);
     if (localWaitlist == null) {
       return false;
     }
     assert !localWaitlist.isEmpty();
-    boolean result = localWaitlist.remove(pElement);
+    boolean result = localWaitlist.remove(pState);
     if (result) {
       if (localWaitlist.isEmpty()) {
         waitlist.remove(key);

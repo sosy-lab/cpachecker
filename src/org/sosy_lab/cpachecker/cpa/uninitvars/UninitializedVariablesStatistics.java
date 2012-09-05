@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
-import static com.google.common.collect.Iterables.*;
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByTypeFunction;
-
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
@@ -36,8 +33,7 @@ import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-
-import com.google.common.base.Predicates;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * Statistics for UninitializedVariablesCPA.
@@ -65,15 +61,15 @@ public class UninitializedVariablesStatistics implements Statistics {
     if (printWarnings) {
 
       Set<Pair<Integer, String>> warningsDisplayed = new HashSet<Pair<Integer, String>>();
-      Iterable<UninitializedVariablesElement> projectedReached = transform(pReached, extractElementByTypeFunction(UninitializedVariablesElement.class));
+      Iterable<UninitializedVariablesState> projectedReached = AbstractStates.projectToType(pReached, UninitializedVariablesState.class);
 
       //find all UninitializedVariablesElements and get their warnings
-      for (UninitializedVariablesElement uninitElement : filter(projectedReached, Predicates.notNull())) {
+      for (UninitializedVariablesState uninitElement : projectedReached) {
 
         Collection<Triple<Integer, String, String>> warnings = uninitElement.getWarnings();
         //warnings are identified by line number and variable name
         Pair<Integer, String> warningIndex;
-        for(Triple<Integer, String, String> warning : warnings) {
+        for (Triple<Integer, String, String> warning : warnings) {
           //check if a warning has already been displayed
           warningIndex = Pair.of(warning.getFirst(), warning.getSecond());
           if (!warningsDisplayed.contains(warningIndex)) {

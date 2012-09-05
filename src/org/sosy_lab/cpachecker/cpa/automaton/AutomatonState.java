@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,23 +25,29 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Joiner;
 
 /**
  * This class combines a AutomatonInternal State with a variable Configuration.
- * Instaces of this class are passed to the CPAchecker as AbstractElement.
+ * Instaces of this class are passed to the CPAchecker as AbstractState.
  */
-public class AutomatonState implements AbstractQueryableElement, Targetable {
+public class AutomatonState implements AbstractQueryableState, Targetable, Serializable, Partitionable {
+  private static final long serialVersionUID = -4665039439114057346L;
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
 
   static class TOP extends AutomatonState {
+    private static final long serialVersionUID = -7848577870312049023L;
     public TOP(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable>emptyMap(),
             new AutomatonInternalState("_predefinedState_TOP", Collections.<AutomatonTransition>emptyList()),
@@ -57,6 +63,7 @@ public class AutomatonState implements AbstractQueryableElement, Targetable {
     }
   }
   static class BOTTOM extends AutomatonState {
+    private static final long serialVersionUID = -401794748742705212L;
     public BOTTOM(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable>emptyMap(),
             AutomatonInternalState.BOTTOM,
@@ -72,9 +79,9 @@ public class AutomatonState implements AbstractQueryableElement, Targetable {
     }
   }
 
-  private final ControlAutomatonCPA automatonCPA;
+  private transient final ControlAutomatonCPA automatonCPA;
   private final Map<String, AutomatonVariable> vars;
-  private final AutomatonInternalState internalState;
+  private transient AutomatonInternalState internalState;
 
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
@@ -99,6 +106,11 @@ public class AutomatonState implements AbstractQueryableElement, Targetable {
   }
 
   @Override
+  public Object getPartitionKey() {
+    return internalState;
+  }
+
+  @Override
   public boolean equals(Object pObj) {
     if (this == pObj) {
       return true;
@@ -117,13 +129,14 @@ public class AutomatonState implements AbstractQueryableElement, Targetable {
 
   @Override
   public int hashCode() {
-    return (internalState == null) ? super.hashCode()
-      : (internalState.hashCode() * 17 + vars.hashCode());
+    // Important: we cannot use vars.hashCode(), because the hash code of a map
+    // depends on the hash code of its values, and those may change.
+    return internalState.hashCode();
   }
 
   @Override
   public String toString() {
-    return automatonCPA.getAutomaton().getName() + ": " + internalState.getName() + ' ' + Joiner.on(' ').withKeyValueSeparator("=").join(vars);
+    return (automatonCPA!=null?automatonCPA.getAutomaton().getName() + ": ": "") + internalState.getName() + ' ' + Joiner.on(' ').withKeyValueSeparator("=").join(vars);
   }
 
 
@@ -134,6 +147,7 @@ public class AutomatonState implements AbstractQueryableElement, Targetable {
    * During the subsequent "strengthen" call enough information should be available to determine a normal AutomatonState as following State.
    */
   static class AutomatonUnknownState extends AutomatonState {
+    private static final long serialVersionUID = -2010032222354565037L;
     private final AutomatonState previousState;
 
     AutomatonUnknownState(AutomatonState pPreviousState) {
@@ -175,16 +189,19 @@ public class AutomatonState implements AbstractQueryableElement, Targetable {
     if (parts.length != 2) {
       throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
     } else {
-      if (parts[0].trim().toLowerCase().equals("state")) {
-        return this.getInternalState().getName().equals(parts[1].trim());
+      String left = parts[0].trim();
+      String right = parts[1].trim();
+      if (left.equalsIgnoreCase("state")) {
+        return this.getInternalState().getName().equals(right);
       } else {
-        if (this.vars.containsKey(parts[0].trim())) {
+        AutomatonVariable var = vars.get(left);
+        if (var != null) {
           // is a local variable
           try {
-            int val = Integer.parseInt(parts[1]);
-            return vars.get(parts[0]).getValue() == val;
+            int val = Integer.parseInt(right);
+            return var.getValue() == val;
           } catch (NumberFormatException e) {
-            throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not parse the int \"" + parts[1] + "\".");
+            throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not parse the int \"" + right + "\".");
           }
         } else {
           throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Only accepting \"State == something\" and \"varname = something\" queries so far.");
@@ -200,16 +217,18 @@ public class AutomatonState implements AbstractQueryableElement, Targetable {
     if (parts.length != 2) {
       throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not split the string correctly.");
     } else {
-      AutomatonVariable var = this.vars.get(parts[0].trim());
+      String left = parts[0].trim();
+      String right = parts[1].trim();
+      AutomatonVariable var = this.vars.get(left);
       if (var != null) {
         try {
-          int val = Integer.parseInt(parts[1]);
+          int val = Integer.parseInt(right);
           var.setValue(val);
         } catch (NumberFormatException e) {
-          throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not parse the int \"" + parts[1].trim() + "\".");
+          throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not parse the int \"" + right + "\".");
         }
       } else {
-        throw new InvalidQueryException("Could not modify the variable \"" + parts[0].trim() + "\" (Variable not found)");
+        throw new InvalidQueryException("Could not modify the variable \"" + left + "\" (Variable not found)");
       }
     }
   }
@@ -234,5 +253,16 @@ public class AutomatonState implements AbstractQueryableElement, Targetable {
 
   Map<String, AutomatonVariable> getVars() {
    return vars;
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    out.defaultWriteObject();
+    out.writeInt(internalState.getStateId());
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+    int stateId = in.readInt();
+    internalState = GlobalInfo.getInstance().getAutomatonInfo().getStateById(stateId);
   }
 }

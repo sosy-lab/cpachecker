@@ -9370,3 +9370,8 @@ void check_final_state(void)
   return;
 }
 }
+
+int main(void) {
+  ldv_main1();
+  return 0;
+}

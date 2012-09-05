@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,76 +27,78 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class DefUseTransferRelation implements TransferRelation
 {
-  private DefUseElement handleExpression (DefUseElement defUseElement, IASTStatement expression, CFAEdge cfaEdge)
+  private DefUseState handleExpression (DefUseState defUseState, CStatement expression, CFAEdge cfaEdge)
   {
-    if (expression instanceof IASTAssignment)
+    if (expression instanceof CAssignment)
     {
-      IASTAssignment assignExpression = (IASTAssignment) expression;
+      CAssignment assignExpression = (CAssignment) expression;
 
-      String lParam = assignExpression.getLeftHandSide().getRawSignature ();
+      String lParam = assignExpression.getLeftHandSide().toASTString();
       // String lParam2 = binaryExpression.getOperand2 ().getRawSignature ();
 
       DefUseDefinition definition = new DefUseDefinition (lParam, cfaEdge);
-      defUseElement = new DefUseElement(defUseElement, definition);
+      defUseState = new DefUseState(defUseState, definition);
     }
-    return defUseElement;
+    return defUseState;
   }
 
-  private DefUseElement handleDeclaration (DefUseElement defUseElement, DeclarationEdge cfaEdge)
+  private DefUseState handleDeclaration (DefUseState defUseState, CDeclarationEdge cfaEdge)
   {
-    if (cfaEdge.getName() != null) {
-      IASTInitializer initializer = cfaEdge.getInitializer ();
+    if (cfaEdge.getDeclaration() instanceof CVariableDeclaration) {
+      CVariableDeclaration decl = (CVariableDeclaration)cfaEdge.getDeclaration();
+      CInitializer initializer = decl.getInitializer();
       if (initializer != null)
       {
-        String varName = cfaEdge.getName();
+        String varName = decl.getName();
         DefUseDefinition definition = new DefUseDefinition (varName, cfaEdge);
 
-        defUseElement = new DefUseElement(defUseElement, definition);
+        defUseState = new DefUseState(defUseState, definition);
       }
     }
-    return defUseElement;
+    return defUseState;
   }
 
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
-    DefUseElement defUseElement = (DefUseElement) element;
+  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
+    DefUseState defUseState = (DefUseState) element;
 
     switch (cfaEdge.getEdgeType ())
     {
     case StatementEdge:
     {
-      StatementEdge statementEdge = (StatementEdge) cfaEdge;
-      IASTStatement expression = statementEdge.getStatement();
-      defUseElement = handleExpression (defUseElement, expression, cfaEdge);
+      CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
+      CStatement expression = statementEdge.getStatement();
+      defUseState = handleExpression (defUseState, expression, cfaEdge);
       break;
     }
     case DeclarationEdge:
     {
-      DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
-      defUseElement = handleDeclaration (defUseElement, declarationEdge);
+      CDeclarationEdge declarationEdge = (CDeclarationEdge) cfaEdge;
+      defUseState = handleDeclaration (defUseState, declarationEdge);
       break;
     }
     }
 
-    return Collections.singleton(defUseElement);
+    return Collections.singleton(defUseState);
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement element,
-                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
+  public Collection<? extends AbstractState> strengthen(AbstractState element,
+                         List<AbstractState> otherElements, CFAEdge cfaEdge,
                          Precision precision) {
     return null;
   }

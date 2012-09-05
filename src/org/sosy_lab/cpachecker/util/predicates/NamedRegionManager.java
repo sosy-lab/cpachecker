@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +25,10 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.PrintStream;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
@@ -44,6 +48,9 @@ public class NamedRegionManager implements RegionManager {
 
   private static final String ANONYMOUS_PREDICATE = "__anon_pred";
   private int anonymousPredicateCounter = 0;
+
+  /** counter needed for nodes in dot-output */
+  int nodeCounter;
 
   public NamedRegionManager(RegionManager pDelegate) {
     delegate = checkNotNull(pDelegate);
@@ -74,14 +81,22 @@ public class NamedRegionManager implements RegionManager {
    * Returns a String representation of a region.
    */
   public String dumpRegion(Region r) {
+    Map<Region, String> cache = new HashMap<Region, String>(); // map for same regions
+    return dumpRegion(r, cache);
+  }
+
+  private String dumpRegion(Region r, Map<Region, String> cache) {
+    if (cache.containsKey(r)) { return cache.get(r); } // use same region again
+
+    String result;
     if (regionMap.containsValue(r)) {
-      return regionMap.inverse().get(r);
+      result = regionMap.inverse().get(r);
 
     } else if (r.isFalse()) {
-      return "FALSE";
+      result = "FALSE";
 
     } else if (r.isTrue()) {
-      return "TRUE";
+      result = "TRUE";
 
     } else {
       Triple<Region, Region, Region> triple = delegate.getIfThenElse(r);
@@ -94,7 +109,7 @@ public class NamedRegionManager implements RegionManager {
       } else if (trueBranch.isTrue()) {
         ifTrue = predName;
       } else {
-        ifTrue = predName + " & " + dumpRegion(trueBranch);
+        ifTrue = predName + " & " + dumpRegion(trueBranch, cache);
       }
 
       Region falseBranch = triple.getThird();
@@ -104,19 +119,71 @@ public class NamedRegionManager implements RegionManager {
       } else if (falseBranch.isTrue()) {
         ifFalse = "!" + predName;
       } else {
-        ifFalse = "!" + predName + " & " + dumpRegion(falseBranch);
+        ifFalse = "!" + predName + " & " + dumpRegion(falseBranch, cache);
       }
 
       if (!ifTrue.isEmpty() && !ifFalse.isEmpty()) {
-        return "((" + ifTrue + ") | (" + ifFalse + "))";
+        result = "((" + ifTrue + ") | (" + ifFalse + "))";
       } else if (ifTrue.isEmpty()) {
-        return ifFalse;
+        result = ifFalse;
       } else if (ifFalse.isEmpty()) {
-        return ifTrue;
+        result = ifTrue;
 
       } else {
         throw new AssertionError("Both BDD Branches are empty!?");
       }
+    }
+    cache.put(r, result);
+    return result;
+  }
+
+  /** Returns a representation of a region in dot-format (graphviz). */
+  public String regionToDot(Region r) {
+    nodeCounter = 2; // counter for nodes, values 0 and 1 are used for nodes FALSE and TRUE
+    Map<Region, Integer> cache = new HashMap<Region, Integer>(); // map for same regions
+    StringBuilder str = new StringBuilder("digraph G {\n");
+
+    // make nodes for FALSE and TRUE
+    if (!r.isTrue()) {
+      str.append("0 [shape=box, label=\"0\", style=filled, shape=box, height=0.3, width=0.3];\n");
+      cache.put(makeFalse(), 0);
+    }
+    if (!r.isFalse()) {
+      str.append("1 [shape=box, label=\"1\", style=filled, shape=box, height=0.3, width=0.3];\n");
+      cache.put(makeTrue(), 1);
+    }
+
+    regionToDot(r, str, cache);
+
+    str.append("}\n");
+    return str.toString();
+  }
+
+  private int regionToDot(Region r, StringBuilder str, Map<Region, Integer> cache) {
+    if (cache.containsKey(r)) { // use same region again
+      return cache.get(r);
+
+    } else {
+      Triple<Region, Region, Region> triple = delegate.getIfThenElse(r);
+
+      // create node with label
+      String predName = regionMap.inverse().get(triple.getFirst());
+      nodeCounter += 1; // one more node is created
+      int predNum = nodeCounter;
+      str.append(predNum).append(" [label=\"").append(predName).append("\"];\n");
+
+      // create arrow for true branch
+      Region trueBranch = triple.getSecond();
+      int trueTarget = regionToDot(trueBranch, str, cache);
+      str.append(predNum).append(" -> ").append(trueTarget).append(" [style=filled];\n");
+
+      // create arrow for false branch
+      Region falseBranch = triple.getThird();
+      int falseTarget = regionToDot(falseBranch, str, cache);
+      str.append(predNum).append(" -> ").append(falseTarget).append(" [style=dotted];\n");
+
+      cache.put(r, predNum);
+      return predNum;
     }
   }
 
@@ -151,12 +218,28 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public Region makeExists(Region pF1, Region pF2) {
+  public Region makeEqual(Region pF1, Region pF2) {
+    return delegate.makeEqual(pF1, pF2);
+  }
+
+  @Override
+  public Region makeUnequal(Region pF1, Region pF2) {
+    return delegate.makeUnequal(pF1, pF2);
+  }
+
+  @Override
+  public Region makeExists(Region pF1, Region... pF2) {
     return delegate.makeExists(pF1, pF2);
   }
 
   @Override
   public Triple<Region, Region, Region> getIfThenElse(Region pF) {
     return delegate.getIfThenElse(pF);
+  }
+
+  @Override
+  public void printStatistics(PrintStream out) {
+    out.println("Number of named predicates:          " + (regionMap.size() - anonymousPredicateCounter));
+    delegate.printStatistics(out);
   }
 }

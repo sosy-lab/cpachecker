@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,9 +27,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 
@@ -38,20 +39,21 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * The Action can be executed multiple times.
  */
 abstract class AutomatonAction {
-  private AutomatonAction() {};
+  private AutomatonAction() {}
   private static ResultValue<String> defaultResultValue = new ResultValue<String>("");
 
   // in this method the Value inside the resultValueObject is not important (most ActionClasses will return "" as inner value)
   // more important is if the action was evaluated (ResultValue.canNotEvaluate())
-  abstract ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs);
+  abstract ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
   /**
    * Returns if the action can execute on the given AutomatonExpressionArguments.
-   * If it cannot execute this is probably because of missing AbstractElements (from other CPAs).
+   * If it cannot execute this is probably because of missing AbstractStates (from other CPAs).
    * @param pArgs
    * @return
+   * @throws CPATransferException
    */
-  boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
+  boolean canExecuteOn(AutomatonExpressionArguments pArgs) throws CPATransferException {
     return true;
   }
   //abstract void execute(AutomatonExpressionArguments pArgs);
@@ -65,7 +67,7 @@ abstract class AutomatonAction {
     public Print(List<AutomatonExpression> pArgs) { toPrint = pArgs; }
 
     @Override
-    boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
+    boolean canExecuteOn(AutomatonExpressionArguments pArgs) throws CPATransferException {
       // TODO: every action is computed twice (once here, once in eval)
       for (AutomatonExpression expr : toPrint) {
         ResultValue<?> res = expr.eval(pArgs);
@@ -75,7 +77,7 @@ abstract class AutomatonAction {
       }
       return true;
     }
-    @Override ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) {
+    @Override ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
       StringBuilder sb = new StringBuilder();
       for (AutomatonExpression expr : toPrint) {
         ResultValue<?> res = expr.eval(pArgs);
@@ -138,9 +140,9 @@ abstract class AutomatonAction {
       if (pArgs.replaceVariables(modificationString) == null) {
         return false;
       }
-      for (AbstractElement ae : pArgs.getAbstractElements()) {
-        if (ae instanceof AbstractQueryableElement) {
-          AbstractQueryableElement aqe = (AbstractQueryableElement) ae;
+      for (AbstractState ae : pArgs.getAbstractStates()) {
+        if (ae instanceof AbstractQueryableState) {
+          AbstractQueryableState aqe = (AbstractQueryableState) ae;
           if (aqe.getCPAName().equals(cpaName)) {
             return true;
           }
@@ -156,16 +158,16 @@ abstract class AutomatonAction {
         pArgs.getLogger().log(Level.WARNING, "Modification String \"" + modificationString + "\" could not be processed (Variable not found).");
         return new ResultValue<Boolean>("Modification String \"" + modificationString + "\" could not be processed (Variable not found).", "AutomatonActionExpr.CPAModification");
       }
-      for (AbstractElement ae : pArgs.getAbstractElements()) {
-        if (ae instanceof AbstractQueryableElement) {
-          AbstractQueryableElement aqe = (AbstractQueryableElement) ae;
+      for (AbstractState ae : pArgs.getAbstractStates()) {
+        if (ae instanceof AbstractQueryableState) {
+          AbstractQueryableState aqe = (AbstractQueryableState) ae;
           if (aqe.getCPAName().equals(cpaName)) {
             try {
               aqe.modifyProperty(processedModificationString);
             } catch (InvalidQueryException e) {
               pArgs.getLogger().logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA (Element " + aqe.toString() + ") on Edge " + pArgs.getCfaEdge().getRawStatement());
+                  + cpaName + " CPA (Element " + aqe.toString() + ") on Edge " + pArgs.getCfaEdge().getDescription());
               return defaultResultValue; // try to carry on with the further evaluation
             }
           }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.exceptions;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
  * Exception thrown if an error occurs during parsing step (e.g. because the
@@ -38,11 +38,10 @@ public class ParserException extends Exception {
   }
 
   public ParserException(Throwable cause) {
-    super(cause);
+    super(cause.getMessage(), cause);
   }
 
   public ParserException(String msg, CFAEdge edge) {
-    super(msg + " in line " + edge.getLineNumber()
-        + ": " + edge.getRawStatement());
-    }
+    super(UnrecognizedCCodeException.createMessage(msg, null, edge, null));
+  }
 }

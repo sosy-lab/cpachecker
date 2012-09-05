@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,16 +28,16 @@ import java.util.Iterator;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public class UninitializedVariablesDomain implements AbstractDomain {
 
   @Override
-  public AbstractElement join(AbstractElement element1, AbstractElement element2) {
-      UninitializedVariablesElement uninitVarsElement1 = (UninitializedVariablesElement)element1;
-      UninitializedVariablesElement uninitVarsElement2 = (UninitializedVariablesElement)element2;
+  public AbstractState join(AbstractState element1, AbstractState element2) {
+      UninitializedVariablesState uninitVarsElement1 = (UninitializedVariablesState)element1;
+      UninitializedVariablesState uninitVarsElement2 = (UninitializedVariablesState)element2;
 
-      UninitializedVariablesElement newElement = uninitVarsElement1.clone();
+      UninitializedVariablesState newElement = uninitVarsElement1.clone();
 
       newElement.getGlobalVariables().addAll(uninitVarsElement2.getGlobalVariables());
       newElement.getLocalVariables().addAll(uninitVarsElement2.getLocalVariables());
@@ -48,10 +48,10 @@ public class UninitializedVariablesDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) {
+  public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
       // returns true if element1 < element2 on lattice
-      UninitializedVariablesElement uninitVarsElement1 = (UninitializedVariablesElement)element1;
-      UninitializedVariablesElement uninitVarsElement2 = (UninitializedVariablesElement)element2;
+      UninitializedVariablesState uninitVarsElement1 = (UninitializedVariablesState)element1;
+      UninitializedVariablesState uninitVarsElement2 = (UninitializedVariablesState)element2;
 
       if (!uninitVarsElement1.getGlobalVariables().containsAll(
                               uninitVarsElement2.getGlobalVariables())) {

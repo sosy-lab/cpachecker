@@ -39,8 +39,7 @@ case "$arch-$platform" in
    ;;
 esac
 
-# where the eclipse project directory is, relative to the location of this
-# script
+# where the project directory is, relative to the location of this script
 case "$platform" in
   Linux)
     SCRIPT="$(readlink -f "$0")"
@@ -59,18 +58,10 @@ if [ ! -e "$PATH_TO_CPACHECKER/bin/org/sosy_lab/cpachecker/cmdline/CPAMain.class
   fi
 fi
 
-arch_platform_path="$PATH_TO_CPACHECKER/lib/native/$arch_platform/"
-
-# project files
-CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/bin:$PATH_TO_CPACHECKER/cpachecker.jar"
-
-# external jars shipped with the project
-CLASSPATH="$CLASSPATH:$(find "$PATH_TO_CPACHECKER/lib" -maxdepth 1 -name '*.jar' | tr "[:space:]" ":" )"
-CLASSPATH="$CLASSPATH:$(find "$PATH_TO_CPACHECKER/lib/java/runtime" -maxdepth 1 -name '*.jar' | tr "[:space:]" ":" )"
-
-export CLASSPATH
+export CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/bin:$PATH_TO_CPACHECKER/cpachecker.jar:$PATH_TO_CPACHECKER/lib/*:$PATH_TO_CPACHECKER/lib/java/runtime/*"
 
 # where to find the native binaries
+arch_platform_path="$PATH_TO_CPACHECKER/lib/native/$arch_platform/"
 export PATH="$PATH:$arch_platform_path"
 
 # loop over all input parameters and parse them

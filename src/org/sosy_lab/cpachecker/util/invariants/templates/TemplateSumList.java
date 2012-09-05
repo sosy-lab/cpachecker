@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,7 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import org.sosy_lab.cpachecker.util.invariants.redlog.Rational;
+import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -90,7 +90,7 @@ public class TemplateSumList extends TemplateFormulaList {
     }
   }
 
-  public boolean evaluate(HashMap<String,Rational> map) {
+  public boolean evaluate(Map<String,Rational> map) {
     boolean ans = true;
     if (sums != null) {
       for (int i = 0; i < sums.length; i++) {
@@ -217,6 +217,10 @@ public class TemplateSumList extends TemplateFormulaList {
 
 //------------------------------------------------------------------
 // Other
+
+  public int size() {
+    return sums.length;
+  }
 
   public Iterator<TemplateSum> iterator() {
     Vector<TemplateSum> V = new Vector<TemplateSum>();

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +28,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix="cpa.predicate")
@@ -51,13 +51,13 @@ public class PredicateAbstractDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractElement element1,
-                                       AbstractElement element2) throws CPAException {
+  public boolean isLessOrEqual(AbstractState element1,
+                                       AbstractState element2) throws CPAException {
     coverageCheckTimer.start();
     try {
 
-    PredicateAbstractElement e1 = (PredicateAbstractElement)element1;
-    PredicateAbstractElement e2 = (PredicateAbstractElement)element2;
+    PredicateAbstractState e1 = (PredicateAbstractState)element1;
+    PredicateAbstractState e2 = (PredicateAbstractState)element2;
 
     // TODO time statistics (previously in formula manager)
     /*
@@ -70,7 +70,7 @@ public class PredicateAbstractDomain implements AbstractDomain {
   ++stats.numCoverageChecks;
      */
 
-    if (e1.isAbstractionElement() && e2.isAbstractionElement()) {
+    if (e1.isAbstractionState() && e2.isAbstractionState()) {
       bddCoverageCheckTimer.start();
 
       // if e1's predicate abstraction entails e2's pred. abst.
@@ -79,7 +79,7 @@ public class PredicateAbstractDomain implements AbstractDomain {
       bddCoverageCheckTimer.stop();
       return result;
 
-    } else if (e2.isAbstractionElement()) {
+    } else if (e2.isAbstractionState()) {
       if (symbolicCoverageCheck) {
         symbolicCoverageCheckTimer.start();
 
@@ -92,7 +92,7 @@ public class PredicateAbstractDomain implements AbstractDomain {
         return false;
       }
 
-    } else if (e1.isAbstractionElement()) {
+    } else if (e1.isAbstractionState()) {
       return false;
 
     } else {
@@ -106,8 +106,8 @@ public class PredicateAbstractDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractElement join(AbstractElement pElement1,
-      AbstractElement pElement2) throws CPAException {
+  public AbstractState join(AbstractState pElement1,
+      AbstractState pElement2) throws CPAException {
     throw new UnsupportedOperationException();
   }
 }

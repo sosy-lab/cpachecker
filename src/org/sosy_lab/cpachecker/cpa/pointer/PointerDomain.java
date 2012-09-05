@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,18 +24,18 @@
 package org.sosy_lab.cpachecker.cpa.pointer;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public class PointerDomain implements AbstractDomain {
 
   @Override
-  public AbstractElement join(AbstractElement element1, AbstractElement element2) {
+  public AbstractState join(AbstractState element1, AbstractState element2) {
     throw new UnsupportedOperationException();
     /*
-      PointerElement pointerElement1 = (PointerElement)element1;
-      PointerElement pointerElement2 = (PointerElement)element2;
+      PointerState pointerElement1 = (PointerState)element1;
+      PointerState pointerElement2 = (PointerState)element2;
 
-      PointerElement pointerElementNew = pointerElement1.clone();
+      PointerState pointerElementNew = pointerElement1.clone();
 
       // TODO Join Operator
       Map<String, Pointer> pointers2   = pointerElement2.getGlobalPointers();
@@ -64,10 +64,10 @@ public class PointerDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement) {
-      PointerElement newPointerElement = (PointerElement)newElement;
-      PointerElement reachedPointerElement = (PointerElement)reachedElement;
+  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedState) {
+      PointerState newPointerState = (PointerState)newElement;
+      PointerState reachedPointerState = (PointerState)reachedState;
 
-      return reachedPointerElement.isSubsetOf(newPointerElement);
+      return reachedPointerState.isSubsetOf(newPointerState);
   }
 }

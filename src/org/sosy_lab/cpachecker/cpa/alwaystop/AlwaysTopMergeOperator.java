@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.alwaystop;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
@@ -32,13 +32,13 @@ enum AlwaysTopMergeOperator implements MergeOperator {
   INSTANCE;
 
   @Override
-  public AbstractElement merge(AbstractElement pElement1,
-      AbstractElement pElement2, Precision pPrecision) {
+  public AbstractState merge(AbstractState pElement1,
+      AbstractState pElement2, Precision pPrecision) {
 
-    assert pElement1 == AlwaysTopElement.INSTANCE;
-    assert pElement2 == AlwaysTopElement.INSTANCE;
+    assert pElement1 == AlwaysTopState.INSTANCE;
+    assert pElement2 == AlwaysTopState.INSTANCE;
     assert pPrecision == AlwaysTopPrecision.INSTANCE;
-    return AlwaysTopElement.INSTANCE;
+    return AlwaysTopState.INSTANCE;
   }
 
 }

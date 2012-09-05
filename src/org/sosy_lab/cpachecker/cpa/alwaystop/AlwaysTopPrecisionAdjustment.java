@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.alwaystop;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -37,15 +37,15 @@ enum AlwaysTopPrecisionAdjustment implements PrecisionAdjustment {
   INSTANCE;
 
   @Override
-  public Triple<AbstractElement, Precision, Action> prec(
-      AbstractElement pElement, Precision pPrecision,
+  public Triple<AbstractState, Precision, Action> prec(
+      AbstractState pElement, Precision pPrecision,
       UnmodifiableReachedSet pElements) {
 
-    assert pElement == AlwaysTopElement.INSTANCE;
+    assert pElement == AlwaysTopState.INSTANCE;
     assert pPrecision == AlwaysTopPrecision.INSTANCE;
-    assert Iterables.all(pElements, Predicates.<AbstractElement>equalTo(AlwaysTopElement.INSTANCE));
+    assert Iterables.all(pElements, Predicates.<AbstractState>equalTo(AlwaysTopState.INSTANCE));
 
-    return Triple.<AbstractElement, Precision, Action>of(
-        AlwaysTopElement.INSTANCE, AlwaysTopPrecision.INSTANCE, Action.CONTINUE);
+    return Triple.<AbstractState, Precision, Action>of(
+        AlwaysTopState.INSTANCE, AlwaysTopPrecision.INSTANCE, Action.CONTINUE);
   }
 }

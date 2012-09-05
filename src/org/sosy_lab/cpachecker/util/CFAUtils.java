@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,10 +25,8 @@ package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -37,14 +35,12 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
+import com.google.common.base.Function;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
@@ -56,9 +52,9 @@ public class CFAUtils {
    * Return an {@link Iterable} that contains all entering edges of a given CFANode,
    * including the summary edge if the node as one.
    */
-  public static Iterable<CFAEdge> allEnteringEdges(final CFANode node) {
+  public static FluentIterable<CFAEdge> allEnteringEdges(final CFANode node) {
     checkNotNull(node);
-    return new Iterable<CFAEdge>() {
+    return new FluentIterable<CFAEdge>() {
 
       @Override
       public Iterator<CFAEdge> iterator() {
@@ -89,9 +85,9 @@ public class CFAUtils {
    * Return an {@link Iterable} that contains the entering edges of a given CFANode,
    * excluding the summary edge.
    */
-  public static Iterable<CFAEdge> enteringEdges(final CFANode node) {
+  public static FluentIterable<CFAEdge> enteringEdges(final CFANode node) {
     checkNotNull(node);
-    return new Iterable<CFAEdge>() {
+    return new FluentIterable<CFAEdge>() {
 
       @Override
       public Iterator<CFAEdge> iterator() {
@@ -118,9 +114,9 @@ public class CFAUtils {
    * Return an {@link Iterable} that contains all leaving edges of a given CFANode,
    * including the summary edge if the node as one.
    */
-  public static Iterable<CFAEdge> allLeavingEdges(final CFANode node) {
+  public static FluentIterable<CFAEdge> allLeavingEdges(final CFANode node) {
     checkNotNull(node);
-    return new Iterable<CFAEdge>() {
+    return new FluentIterable<CFAEdge>() {
 
       @Override
       public Iterator<CFAEdge> iterator() {
@@ -151,9 +147,9 @@ public class CFAUtils {
    * Return an {@link Iterable} that contains the leaving edges of a given CFANode,
    * excluding the summary edge.
    */
-  public static Iterable<CFAEdge> leavingEdges(final CFANode node) {
+  public static FluentIterable<CFAEdge> leavingEdges(final CFANode node) {
     checkNotNull(node);
-    return new Iterable<CFAEdge>() {
+    return new FluentIterable<CFAEdge>() {
 
       @Override
       public Iterator<CFAEdge> iterator() {
@@ -176,161 +172,51 @@ public class CFAUtils {
     };
   }
 
+  private static final Function<CFAEdge,  CFANode> TO_PREDECESSOR = new Function<CFAEdge,  CFANode>() {
+      @Override
+      public CFANode apply(CFAEdge pInput) {
+        return pInput.getPredecessor();
+      }
+    };
+
+
+  private static final Function<CFAEdge,  CFANode> TO_SUCCESSOR = new Function<CFAEdge,  CFANode>() {
+    @Override
+    public CFANode apply(CFAEdge pInput) {
+      return pInput.getSuccessor();
+    }
+  };
+
   /**
-   * Find all nodes of the CFA that are reachable from the given entry point.
-   *
-   * Same as {@link #transitiveSuccessors(CFANode, boolean)}.
-   *
-   * @param rootNode  The start node of the search.
-   * @param interprocedural Whether interprocedural edges (function call/return) should be followed.
-   * @return A set of nodes.
+   * Return an {@link Iterable} that contains the predecessor nodes of a given CFANode,
+   * excluding the one reachable via the summary edge (if there is one).
    */
-  public static Set<CFANode> allNodes(CFAFunctionDefinitionNode rootNode, boolean interprocedural) {
-    return transitiveSuccessors(rootNode, interprocedural);
+  public static FluentIterable<CFANode> predecessorsOf(final CFANode node) {
+    return enteringEdges(node).transform(TO_PREDECESSOR);
   }
 
   /**
-   * Find all nodes of the CFA that are reachable from the given entry point.
-   * @param node  The start node of the search.
-   * @param interprocedural Whether interprocedural edges (function call/return) should be followed.
-   * @return A set of nodes.
+   * Return an {@link Iterable} that contains all the predecessor nodes of a given CFANode,
+   * including the one reachable via the summary edge (if there is one).
    */
-  public static Set<CFANode> transitiveSuccessors(CFANode node, boolean interprocedural) {
-    Set<CFANode> allNodes = new HashSet<CFANode>();
-    dfs(node, allNodes, false, interprocedural);
-    return allNodes;
+  public static FluentIterable<CFANode> allPredecessorsOf(final CFANode node) {
+    return allEnteringEdges(node).transform(TO_PREDECESSOR);
   }
 
   /**
-   * Find all nodes of the CFA from which a given node is reachable.
-   * @param node  The start node of the backwards search.
-   * @param interprocedural Whether interprocedural edges (function call/return) should be followed.
-   * @return A set of nodes.
+   * Return an {@link Iterable} that contains the successor nodes of a given CFANode,
+   * excluding the one reachable via the summary edge (if there is one).
    */
-  public static Set<CFANode> transitivePredecessors(CFANode node, boolean interprocedural) {
-    Set<CFANode> allNodes = new HashSet<CFANode>();
-    dfs(node, allNodes, true, interprocedural);
-    return allNodes;
+  public static FluentIterable<CFANode> successorsOf(final CFANode node) {
+    return leavingEdges(node).transform(TO_SUCCESSOR);
   }
 
   /**
-   * Perform a DFS search on the CFA. All visited nodes are added to a given set.
-   * If this set is non-empty at the beginning, the search does not traverse
-   * beyond the nodes of this set (the part of the CFA reachable from these nodes
-   * is considered to be know already).
-   *
-   * @param start The start node of the search.
-   * @param seen A set of nodes that have already been visited.
-   * @param reverse Whether to go backwards or forward.
-   * @param interprocedural Whether interprocedural edges (function call/return) should be followed.
-   * @return The highest node id encountered.
+   * Return an {@link Iterable} that contains all the successor nodes of a given CFANode,
+   * including the one reachable via the summary edge (if there is one).
    */
-  public static int dfs(CFANode start, Set<CFANode> seen, boolean reverse, boolean interprocedural) {
-    int maxNodeId = -1;
-
-    Deque<CFANode> toProcess = new ArrayDeque<CFANode>();
-    toProcess.push(start);
-    while (!toProcess.isEmpty()) {
-      CFANode n = toProcess.pop();
-      maxNodeId = Math.max(maxNodeId, n.getNodeNumber());
-      seen.add(n);
-      if (reverse) {
-        for (int i = 0; i < n.getNumEnteringEdges(); ++i) {
-          CFAEdge e = n.getEnteringEdge(i);
-          if (!interprocedural && (e instanceof FunctionCallEdge || e instanceof FunctionReturnEdge)) {
-            continue;
-          }
-
-          CFANode s = e.getPredecessor();
-          if (!seen.contains(s)) {
-            toProcess.push(s);
-          }
-        }
-        if (n.getEnteringSummaryEdge() != null) {
-          CFANode s = n.getEnteringSummaryEdge().getPredecessor();
-          if (!seen.contains(s)) {
-            toProcess.push(s);
-          }
-        }
-      } else {
-        for (int i = 0; i < n.getNumLeavingEdges(); ++i) {
-          CFAEdge e = n.getLeavingEdge(i);
-          if (!interprocedural && (e instanceof FunctionCallEdge || e instanceof FunctionReturnEdge)) {
-            continue;
-          }
-
-          CFANode s = e.getSuccessor();
-          if (!seen.contains(s)) {
-            toProcess.push(s);
-          }
-        }
-        if (n.getLeavingSummaryEdge() != null) {
-          CFANode s = n.getLeavingSummaryEdge().getSuccessor();
-          if (!seen.contains(s)) {
-            toProcess.push(s);
-          }
-        }
-      }
-    }
-    return maxNodeId;
-  }
-
-  /**
-   * Find all nodes below a startNode, but do not traverse a certain endNode.
-   */
-  public static Set<CFANode> exploreSubgraph(CFANode startNode, CFANode endNode) {
-    Set<CFANode> seen = new HashSet<CFANode>();
-    Deque<CFANode> stack = new ArrayDeque<CFANode>();
-
-    seen.add(startNode);
-    if(endNode != null) {
-      seen.add(endNode);
-    }
-
-    for(int i = 0; i < startNode.getNumLeavingEdges(); i++) {
-      CFANode nextNode = startNode.getLeavingEdge(i).getSuccessor();
-      if(startNode.getLeavingEdge(i) instanceof FunctionCallEdge) {
-        nextNode = startNode.getLeavingSummaryEdge().getSuccessor();
-      }
-      if(!seen.contains(nextNode)) {
-        stack.push(nextNode);
-        seen.add(nextNode);
-      }
-    }
-
-    while(!stack.isEmpty()) {
-      CFANode node = stack.pop();
-      if(node instanceof CFAFunctionExitNode) {
-        continue;
-      }
-      for(int i = 0; i < node.getNumLeavingEdges(); i++) {
-        CFANode nextNode = node.getLeavingEdge(i).getSuccessor();
-        if(node.getLeavingEdge(i) instanceof FunctionCallEdge) {
-          nextNode = node.getLeavingSummaryEdge().getSuccessor();
-        }
-        if(!seen.contains(nextNode)) {
-          stack.push(nextNode);
-          seen.add(nextNode);
-        }
-      }
-      if(node.getEnteringSummaryEdge() != null) {
-        CFANode prevNode = node.getEnteringSummaryEdge().getPredecessor();
-        if(!seen.contains(prevNode)) {
-          stack.add(prevNode);
-          seen.add(prevNode);
-        }
-        continue;
-      }
-      for(int i = 0; i < node.getNumEnteringEdges(); i++) {
-        CFANode prevNode = node.getEnteringEdge(i).getPredecessor();
-        if(!seen.contains(prevNode)) {
-          stack.add(prevNode);
-          seen.add(prevNode);
-        }
-      }
-    }
-
-    return seen;
+  public static FluentIterable<CFANode> allSuccessorsOf(final CFANode node) {
+    return allLeavingEdges(node).transform(TO_SUCCESSOR);
   }
 
   // wrapper class for Set<CFANode> because Java arrays don't like generics

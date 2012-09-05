@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,62 +23,62 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /**
- * An interface for a waitlist of AbstractElements.
+ * An interface for a waitlist of AbstractStates.
  * Implementations differ in the strategy they use for pop().
  *
  * Implementations do not need to guarantee the semantics of a set
- * (i.e., preventing duplicate elements).
+ * (i.e., preventing duplicate states).
  * This needs to be guaranteed by the caller (see
- * {@link org.sosy_lab.cpachecker.core.reachedset.ReachedSet#add(AbstractElement, org.sosy_lab.cpachecker.core.interfaces.Precision))}).
+ * {@link org.sosy_lab.cpachecker.core.reachedset.ReachedSet#add(AbstractState, org.sosy_lab.cpachecker.core.interfaces.Precision)}).
  *
  * All methods of this interface should be fast (O(1) or O(log n) preferably),
  * except contains() and remove().
  *
  * The iterators provided by implementations may be unmodifiable.
  */
-public interface Waitlist extends Iterable<AbstractElement> {
+public interface Waitlist extends Iterable<AbstractState> {
 
   /**
-   * Add an abstract element to the waitlist.
+   * Add an abstract state to the waitlist.
    */
-  void add(AbstractElement element);
+  void add(AbstractState state);
 
   /**
-   * Remove all abstract elements from the waitlist.
+   * Remove all abstract states from the waitlist.
    */
   void clear();
 
   /**
-   * Checks whether an abstract element is contained in the waitlist.
+   * Checks whether an abstract state is contained in the waitlist.
    * This method uses equals().
    */
-  boolean contains(AbstractElement element);
+  boolean contains(AbstractState state);
 
   /**
-   * Whether the waitlist contains no elements.
+   * Whether the waitlist contains no states.
    */
   boolean isEmpty();
 
   /**
-   * Returns and removes the next abstract element that should be handled.
+   * Returns and removes the next abstract state that should be handled.
    * This decision is made by an implementation-specific strategy.
    * If the waitlist is empty, implementations may either trow an exception or
    * return null.
    */
-  AbstractElement pop();
+  AbstractState pop();
 
   /**
-   * Removes an abstract element, if it is contained.
+   * Removes an abstract state, if it is contained.
    * This method uses equals() for containment checks.
    * Implementations need not to optimize their data structure for this method.
    */
-  boolean remove(AbstractElement element);
+  boolean remove(AbstractState state);
 
   /**
-   * Returns the number of elements in the waitlist.
+   * Returns the number of states in the waitlist.
    */
   int size();
 
@@ -104,8 +104,6 @@ public interface Waitlist extends Iterable<AbstractElement> {
   public enum TraversalMethod implements WaitlistFactory {
     DFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
     BFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
-    @Deprecated
-    TOPSORT { @Override public Waitlist createWaitlistInstance() { return new TopsortWaitlist();    } },
     RAND    { @Override public Waitlist createWaitlistInstance() { return new RandomWaitlist();     } },
     ;
   }

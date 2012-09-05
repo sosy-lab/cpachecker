@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -92,7 +92,7 @@ public class AutomaticCPAFactory implements CPAFactory {
       // TODO if necessary, provide method which constructor should be chosen
       // or choose automatically
       throw new UnsupportedOperationException("Cannot automatically create CPAs " +
-      		"with more than one constructor!");
+          "with more than one constructor!");
     }
     Constructor<?> cons = allConstructors[0];
     cons.setAccessible(true);

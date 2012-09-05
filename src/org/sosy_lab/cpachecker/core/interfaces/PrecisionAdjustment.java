@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,19 +44,19 @@ public interface PrecisionAdjustment {
   }
 
   /**
-   * This method may adjust the current element and precision using information
+   * This method may adjust the current state and precision using information
    * from the current set of reached states.
    *
    * If this method doesn't change anything, it is strongly recommended to return
-   * the identical objects for element and precision. This makes it easier for
+   * the identical objects for state and precision. This makes it easier for
    * wrapper CPAs.
    *
-   * @param element The current abstract element.
+   * @param state The current abstract state.
    * @param precision The current precision.
-   * @param elements The current reached set.
-   * @return The new element, new precision and the action flag.
+   * @param states The current reached set.
+   * @return The new state, new precision and the action flag.
    */
-  public Triple<AbstractElement,Precision, Action> prec(
-      AbstractElement element, Precision precision, UnmodifiableReachedSet elements)
+  public Triple<AbstractState,Precision, Action> prec(
+      AbstractState state, Precision precision, UnmodifiableReachedSet states)
       throws CPAException;
 }

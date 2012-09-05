@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
  * Interface for classes representing a Configurable Program Analysis.
@@ -39,6 +39,6 @@ public interface ConfigurableProgramAnalysis
   public MergeOperator getMergeOperator();
   public StopOperator getStopOperator();
   public PrecisionAdjustment getPrecisionAdjustment();
-  public AbstractElement getInitialElement(CFANode node);
+  public AbstractState getInitialState(CFANode node);
   public Precision getInitialPrecision(CFANode node);
 }

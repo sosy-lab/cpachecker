@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,9 +50,16 @@ public class TemplateFormulaManager implements FormulaManager {
 
   @Override
   public boolean isBoolean(Formula pF) {
-    // For TemplateFormulas, to be boolean is to be a subclass of
-    // TemplateConjunction.
-    return TemplateConjunction.isInstance(pF);
+    // OLD:
+    // //For TemplateFormulas, to be boolean is to be a subclass of
+    // //TemplateConjunction.
+    //return TemplateConjunction.isInstance(pF);
+    return (pF instanceof TemplateBoolean);
+  }
+
+  @Override
+  public boolean isPurelyConjunctive(Formula pF) {
+    throw new UnsupportedOperationException();
   }
 
   /**
@@ -78,14 +85,15 @@ public class TemplateFormulaManager implements FormulaManager {
    */
   @Override
   public Formula makeNot(Formula f) {
-    NonTemplate NT = null;
+    Formula F = null;
     try {
-      TemplateFormula TF = (TemplateFormula) f;
-      NT = new NonTemplate("Cannot use negations",TF);
+      TemplateBoolean b = (TemplateBoolean) f;
+      F = TemplateNegation.negate(b);
     } catch (ClassCastException e) {
-      NT = new NonTemplate(null);
+      System.err.println(e.getMessage());
+      F = new NonTemplate();
     }
-    return NT;
+    return F;
   }
 
   /**
@@ -97,32 +105,31 @@ public class TemplateFormulaManager implements FormulaManager {
   @Override
   public Formula makeAnd(Formula f1, Formula f2) {
     Formula F = null;
-    // Old method:
-    /*
     try {
-      TemplateConjunction c1 = (TemplateConjunction) f1;
-      TemplateConjunction c2 = (TemplateConjunction) f2;
-      F = new TemplateConjunction(c1, c2);
+      TemplateBoolean b1 = (TemplateBoolean) f1;
+      TemplateBoolean b2 = (TemplateBoolean) f2;
+      F = TemplateConjunction.conjoin(b1, b2);
     } catch (ClassCastException e) {
       System.err.println(e.getMessage());
       F = new NonTemplate();
     }
+    // Below is the old method, in which we make True of anything
+    // that won't case to a Boolean. It shouldn't be necessary, but
+    // might let us continue to work in some odd case.
+    /*
+    TemplateBoolean b1, b2;
+    try {
+      b1 = (TemplateBoolean) f1;
+    } catch (ClassCastException e) {
+      b1 = new TemplateTrue();
+    }
+    try {
+      b2 = (TemplateBoolean) f2;
+    } catch (ClassCastException e) {
+      b2 = new TemplateTrue();
+    }
+    F = TemplateConjunction.conjoin(b1, b2);
     */
-    // For now, we turn anything that won't cast to a TemplateConjunction
-    // into a TemplateTrue, in order to allow us to build path formulas
-    // including conjuncts that do not fit the form of templates.
-    TemplateConjunction c1, c2;
-    try {
-      c1 = (TemplateConjunction) f1;
-    } catch (ClassCastException e) {
-      c1 = new TemplateTrue();
-    }
-    try {
-      c2 = (TemplateConjunction) f2;
-    } catch (ClassCastException e) {
-      c2 = new TemplateTrue();
-    }
-    F = new TemplateConjunction(c1, c2);
     return F;
   }
 
@@ -134,8 +141,16 @@ public class TemplateFormulaManager implements FormulaManager {
    */
   @Override
   public Formula makeOr(Formula f1, Formula f2) {
-    // We do not allow disjunctions in templates.
-    return new NonTemplate();
+    Formula F = null;
+    try {
+      TemplateBoolean b1 = (TemplateBoolean) f1;
+      TemplateBoolean b2 = (TemplateBoolean) f2;
+      F = TemplateDisjunction.disjoin(b1, b2);
+    } catch (ClassCastException e) {
+      System.err.println(e.getMessage());
+      F = new NonTemplate();
+    }
+    return F;
   }
 
   /**
@@ -146,8 +161,20 @@ public class TemplateFormulaManager implements FormulaManager {
    */
   @Override
   public Formula makeEquivalence(Formula f1, Formula f2) {
-    // We do not allow equivalences in templates.
-    return new NonTemplate();
+    Formula F = null;
+    try {
+      TemplateBoolean b1 = (TemplateBoolean) f1;
+      TemplateBoolean b2 = (TemplateBoolean) f2;
+      TemplateBoolean nb1 = TemplateNegation.negate(b1);
+      TemplateBoolean nb2 = TemplateNegation.negate(b2);
+      TemplateBoolean both = TemplateConjunction.conjoin(b1, b2);
+      TemplateBoolean neither = TemplateConjunction.conjoin(nb1, nb2);
+      F = TemplateDisjunction.disjoin(both, neither);
+    } catch (ClassCastException e) {
+      System.err.println(e.getMessage());
+      F = new NonTemplate();
+    }
+    return F;
   }
 
   /**
@@ -275,8 +302,16 @@ public class TemplateFormulaManager implements FormulaManager {
 
   @Override
   public Formula makeGt(Formula pF1, Formula pF2) {
-    // For now, we do not allow strict inequalities.
-    return new NonTemplate();
+    Formula F = null;
+    try {
+      TemplateSum s1 = (TemplateSum) pF1;
+      TemplateSum s2 = (TemplateSum) pF2;
+      F = new TemplateConstraint(s2, InfixReln.LT, s1);
+    } catch (ClassCastException e) {
+      System.err.println(e.getMessage());
+      F = new NonTemplate();
+    }
+    return F;
   }
 
   @Override
@@ -295,8 +330,16 @@ public class TemplateFormulaManager implements FormulaManager {
 
   @Override
   public Formula makeLt(Formula pF1, Formula pF2) {
-    // For now, we do not allow strict inequalities.
-    return new NonTemplate();
+    Formula F = null;
+    try {
+      TemplateSum s1 = (TemplateSum) pF1;
+      TemplateSum s2 = (TemplateSum) pF2;
+      F = new TemplateConstraint(s1, InfixReln.LT, s2);
+    } catch (ClassCastException e) {
+      System.err.println(e.getMessage());
+      F = new NonTemplate();
+    }
+    return F;
   }
 
   @Override
@@ -591,4 +634,28 @@ public class TemplateFormulaManager implements FormulaManager {
 	  return null;
   }
 
+  @Override
+  public boolean checkSyntacticEntails(Formula pLeftFormula, Formula pRightFormula) {
+    return false;
+  }
+
+  @Override
+  public Formula[] getArguments(Formula pF) {
+    return null;
+  }
+
+  @Override
+  public Formula makeUIP(String pName, FormulaList pArgs) {
+    return null;
+  }
+
+  @Override
+  public void declareUIP(String pName, int pArgCount) {
+
+  }
+
+  @Override
+  public String getVersion() {
+    throw new UnsupportedOperationException();
+  }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.pointer;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public interface Memory {
 
@@ -94,7 +94,7 @@ public interface Memory {
      * Set the length of this memory region in bytes, if it was unknown before.
      * As objects of this type are considered constant, this method should be
      * called as soon as possible after the constructor.
-     * @throws InvalidPointerException If length is negative.
+     * @throws IllegalArgumentException If length is negative.
      */
     public void setLength(long length) {
       // allow setting this value only once

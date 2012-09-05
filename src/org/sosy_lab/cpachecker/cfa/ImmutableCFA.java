@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,9 +27,10 @@ import static com.google.common.base.Preconditions.*;
 
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableCollection;
@@ -45,20 +46,23 @@ import com.google.common.collect.SetMultimap;
  */
 class ImmutableCFA implements CFA {
 
-  private final ImmutableMap<String, CFAFunctionDefinitionNode> functions;
+  private final ImmutableMap<String, FunctionEntryNode> functions;
   private final ImmutableSortedSet<CFANode> allNodes;
-  private final CFAFunctionDefinitionNode mainFunction;
+  private final FunctionEntryNode mainFunction;
   private final Optional<ImmutableMultimap<String, Loop>> loopStructure;
+  private final Optional<VariableClassification> varClassification;
 
-  ImmutableCFA(Map<String, CFAFunctionDefinitionNode> pFunctions,
+  ImmutableCFA(Map<String, FunctionEntryNode> pFunctions,
       SetMultimap<String, CFANode> pAllNodes,
-      CFAFunctionDefinitionNode pMainFunction,
-      Optional<ImmutableMultimap<String, Loop>> pLoopStructure) {
+      FunctionEntryNode pMainFunction,
+      Optional<ImmutableMultimap<String, Loop>> pLoopStructure,
+      Optional<VariableClassification> pVarClassification) {
 
     functions = ImmutableMap.copyOf(pFunctions);
     allNodes = ImmutableSortedSet.copyOf(pAllNodes.values());
     mainFunction = checkNotNull(pMainFunction);
     loopStructure = pLoopStructure;
+    varClassification = pVarClassification;
 
     checkArgument(functions.get(mainFunction.getFunctionName()) == mainFunction);
   }
@@ -68,6 +72,7 @@ class ImmutableCFA implements CFA {
     allNodes = ImmutableSortedSet.of();
     mainFunction = null;
     loopStructure = Optional.absent();
+    varClassification = Optional.absent();
   }
 
   static ImmutableCFA empty() {
@@ -90,17 +95,17 @@ class ImmutableCFA implements CFA {
   }
 
   @Override
-  public ImmutableCollection<CFAFunctionDefinitionNode> getAllFunctionHeads() {
+  public ImmutableCollection<FunctionEntryNode> getAllFunctionHeads() {
     return functions.values();
   }
 
   @Override
-  public CFAFunctionDefinitionNode getFunctionHead(String name) {
+  public FunctionEntryNode getFunctionHead(String name) {
     return functions.get(name);
   }
 
   @Override
-  public ImmutableMap<String, CFAFunctionDefinitionNode> getAllFunctions() {
+  public ImmutableMap<String, FunctionEntryNode> getAllFunctions() {
     return functions;
   }
 
@@ -110,12 +115,17 @@ class ImmutableCFA implements CFA {
   }
 
   @Override
-  public CFAFunctionDefinitionNode getMainFunction() {
+  public FunctionEntryNode getMainFunction() {
     return mainFunction;
   }
 
   @Override
   public Optional<ImmutableMultimap<String, Loop>> getLoopStructure() {
     return loopStructure;
+  }
+
+  @Override
+  public Optional<VariableClassification> getVarClassification() {
+    return varClassification;
   }
 }

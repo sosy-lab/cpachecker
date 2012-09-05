@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,9 +26,10 @@ package org.sosy_lab.cpachecker.cfa;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 import com.google.common.collect.SortedSetMultimap;
 
@@ -45,15 +46,15 @@ import com.google.common.collect.SortedSetMultimap;
  */
 public class ParseResult {
 
-  private final Map<String, CFAFunctionDefinitionNode> functions;
+  private final Map<String, FunctionEntryNode> functions;
 
   private final SortedSetMultimap<String, CFANode> cfaNodes;
 
-  private final List<IASTDeclaration> globalDeclarations;
+  private final List<Pair<CDeclaration, String>> globalDeclarations;
 
-  public ParseResult(Map<String, CFAFunctionDefinitionNode> pFunctions,
+  public ParseResult(Map<String, FunctionEntryNode> pFunctions,
       SortedSetMultimap<String, CFANode> pCfaNodes,
-      List<IASTDeclaration> pGlobalDeclarations) {
+      List<Pair<CDeclaration, String>> pGlobalDeclarations) {
     functions = pFunctions;
     cfaNodes = pCfaNodes;
     globalDeclarations = pGlobalDeclarations;
@@ -63,7 +64,7 @@ public class ParseResult {
     return functions.isEmpty();
   }
 
-  public Map<String, CFAFunctionDefinitionNode> getFunctions() {
+  public Map<String, FunctionEntryNode> getFunctions() {
     return functions;
   }
 
@@ -71,7 +72,7 @@ public class ParseResult {
     return cfaNodes;
   }
 
-  public List<IASTDeclaration> getGlobalDeclarations() {
+  public List<Pair<CDeclaration, String>> getGlobalDeclarations() {
     return globalDeclarations;
   }
 }

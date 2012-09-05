@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
-import java.util.logging.Level;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -32,9 +30,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
-import org.sosy_lab.cpachecker.core.waitlist.TopologicallySortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 @Options(prefix="analysis")
@@ -45,8 +42,7 @@ public class ReachedSetFactory {
   }
 
   @Option(name="traversal.order",
-      description="which strategy to adopt for visiting states? "
-      		      + "TOPSORT is deprecated, use the option analysis.traversal.useTopsort instead")
+      description="which strategy to adopt for visiting states?")
   Waitlist.TraversalMethod traversalMethod = Waitlist.TraversalMethod.DFS;
 
   @Option(name = "traversal.useCallstack",
@@ -54,12 +50,16 @@ public class ReachedSetFactory {
       + "\nThis needs the CallstackCPA to have any effect.")
   boolean useCallstack = false;
 
+  @Option(name = "traversal.useReversePostorder",
+      description = "Use an implementation of reverse postorder strategy that allows to select "
+      + "a secondary strategy that is used if there are two states with the same reverse postorder id. "
+      + "The secondary strategy is selected with 'analysis.traversal.order'.")
+  boolean useReversePostorder = false;
+
   @Option(name = "traversal.useTopsort",
-      description = "Use an implementation of topsort strategy that allows to select "
-      + "a secondary strategy that is used if there are two elements with the same topsort id. "
-      + "The secondary strategy is selected with 'analysis.traversal.order'. "
-      + "The secondary strategy may not be TOPSORT.")
-  boolean useTopSort = false;
+      description="This option was renamed to analysis.traversal.useReversePostorder and will soon get removed.")
+  @Deprecated
+  boolean useTopsort = false;
 
   @Option(name = "traversal.useExplicitInformation",
       description = "handle more abstract states (with less information) first? (only for ExplicitCPA)")
@@ -69,27 +69,19 @@ public class ReachedSetFactory {
       description = "which reached set implementation to use?"
       + "\nNORMAL: just a simple set"
       + "\nLOCATIONMAPPED: a different set per location "
-      + "(faster, elements with different locations cannot be merged)"
+      + "(faster, states with different locations cannot be merged)"
       + "\nPARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)")
   ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
   @SuppressWarnings("deprecation")
   public ReachedSetFactory(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
-
-    if (traversalMethod == TraversalMethod.TOPSORT) {
-      logger.log(Level.WARNING, "Using the option 'analysis.traversal.order = TOPSORT' is deprecated, please switch to 'analysis.traversal.useTopSort = true'");
-
-      if (useTopSort) {
-        throw new InvalidConfigurationException("Cannot use both 'analysis.traversal.order = TOPSORT' and 'analysis.traversal.useTopSort = true'");
-      }
-    }
   }
 
   public ReachedSet create() {
     WaitlistFactory waitlistFactory = traversalMethod;
-    if (useTopSort) {
-      waitlistFactory = TopologicallySortedWaitlist.factory(waitlistFactory);
+    if (useReversePostorder || useTopsort) {
+      waitlistFactory = ReversePostorderSortedWaitlist.factory(waitlistFactory);
     }
     if (useCallstack) {
       waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);

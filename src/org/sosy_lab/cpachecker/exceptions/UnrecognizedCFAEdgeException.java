@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.exceptions;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 
 /**
  * Exception thrown if a CPA cannot handle a specific CFAEdge.
@@ -31,7 +32,14 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 public class UnrecognizedCFAEdgeException extends CPATransferException {
 
     public UnrecognizedCFAEdgeException(CFAEdge edge) {
-        super("Unknown CFA edge: " + edge.getEdgeType() + " (" + edge.getRawStatement() + ")");
+        super(createMessage(edge));
+    }
+
+    private static String createMessage(CFAEdge edge) {
+      if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
+        return "Some CPAs do not support MultiEdges. Please set the configuration option \"cfa.useMultiEdges\" to \"false\".";
+      }
+      return "Unknown CFA edge: " + edge.getEdgeType() + " (" + edge.getDescription() + ")";
     }
 
     /**

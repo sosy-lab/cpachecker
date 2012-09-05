@@ -39,7 +39,7 @@
 
         <!-- Clean subprojects -->
         <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" target="clean" inheritAll="false"/>
-        <ant antfile="src/org/sosy_lab/cpachecker/fshell/fql2/parser/build.xml" target="clean" inheritAll="false"/>
+        <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/smtInterpol/build.xml" target="clean" inheritAll="false"/>
     </target>
     <target depends="clean" name="cleanall"/>
 
@@ -63,6 +63,7 @@
             <fileset dir="${ivy.jar.dir}" includes="${ivy.jar.file}"/>
         </path>
         <taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
+        <ivy:settings file="lib/ivysettings.xml"/>
     </target>
 
     <!-- Ask Ivy to get all the dependencies for us -->
@@ -89,8 +90,8 @@
     <target name="build-subprojects">
             <echo message="Generate automaton parser if necessary" level="info"/>
             <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>
-            <echo message="Generate FQL parser if necessary" level="info"/>
-            <ant antfile="src/org/sosy_lab/cpachecker/fshell/fql2/parser/build.xml" inheritAll="false"/>
+            <echo message="Generate parser for SmtInterpol-Terms if necessary" level="info"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/smtInterpol/build.xml" inheritAll="false"/>
     </target>
 
 
@@ -100,7 +101,13 @@
 
     <target depends="build-dependencies" name="build-project">
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
-        <javac debug="true" debuglevel="${debuglevel}" destdir="${class.dir}" source="${source.format}" target="${class.format}" encoding="UTF-8">
+        <javac debug="true"
+               debuglevel="${debuglevel}"
+               includeAntRuntime="false"
+               destdir="${class.dir}"
+               source="${source.format}"
+               target="${class.format}"
+               encoding="UTF-8">
             <src path="${source.dir}"/>
             <classpath refid="CPAchecker.classpath"/>
         </javac>

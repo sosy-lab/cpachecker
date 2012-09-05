@@ -34,13 +34,13 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.collect.Iterables;
@@ -64,7 +64,7 @@ public class ContinueOnCounterexampleAlgorithm implements Algorithm, StatisticsP
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean sound = true;
 
-    while (reached.hasWaitingElement()) {
+    while (reached.hasWaitingState()) {
       sound &= algorithm.run(reached);
 
       numberOfCounterexamples++;
@@ -73,14 +73,14 @@ public class ContinueOnCounterexampleAlgorithm implements Algorithm, StatisticsP
         checkTime.start();
       }
 
-      AbstractElement lastElement = reached.getLastElement();
+      AbstractState lastElement = reached.getLastState();
 
-      if (!(lastElement instanceof ARTElement)) {
+      if (!(lastElement instanceof ARGState)) {
         // no analysis possible
         break;
       }
 
-      ARTElement errorElement = (ARTElement)lastElement;
+      ARGState errorElement = (ARGState)lastElement;
       if (!errorElement.isTarget()) {
         // no analysis necessary
         break;
@@ -98,13 +98,13 @@ public class ContinueOnCounterexampleAlgorithm implements Algorithm, StatisticsP
     return sound;
   }
 
-  private void removeErrorElement(ReachedSet reached, ARTElement errorElement) {
+  private void removeErrorElement(ReachedSet reached, ARGState errorElement) {
     // remove re-added parent of errorElement to prevent computing
     // the same error element over and over
-    Set<ARTElement> parents = errorElement.getParents();
+    Set<ARGState> parents = errorElement.getParents();
     assert parents.size() == 1 : "error element that was merged";
 
-    ARTElement parent = Iterables.getOnlyElement(parents);
+    ARGState parent = Iterables.getOnlyElement(parents);
 
     //TODO: siblings of error element?
     assert parent.getChildren().size() == 1;

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,11 +35,13 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
 import com.google.common.base.Function;
@@ -50,23 +52,24 @@ import com.google.common.collect.ImmutableSet;
 @Options(prefix="cpa.predicate.refinement")
 public class PredicateRefinementManager extends InterpolationManager<Collection<AbstractionPredicate>> {
 
-  private final PredicateAbstractionManager amgr;
+  private final AbstractionManager amgr;
 
-  @Option(description="only use the atoms from the interpolants as predicates, "
+  @Option(description="use only the atoms from the interpolants as predicates, "
     + "and not the whole interpolant")
   private boolean atomicPredicates = true;
 
-  @Option(description="split arithmetic equalities when extracting predicates from interpolants")
+  @Option(description="split each arithmetic equality into two inequalities when extracting predicates from interpolants")
   private boolean splitItpAtoms = false;
 
   public PredicateRefinementManager(
       ExtendedFormulaManager pFmgr,
       PathFormulaManager pPmgr,
-      TheoremProver pThmProver,
-      PredicateAbstractionManager pAmgr,
+      Solver pSolver,
+      AbstractionManager pAmgr,
+      FormulaManagerFactory pFmgrFactory,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
-    super(pFmgr, pPmgr, pThmProver, config, pLogger);
+    super(pFmgr, pPmgr, pSolver, pFmgrFactory, config, pLogger);
     config.inject(this, PredicateRefinementManager.class);
 
     amgr = pAmgr;
@@ -82,6 +85,7 @@ public class PredicateRefinementManager extends InterpolationManager<Collection<
   protected Collection<AbstractionPredicate> convertInterpolant(Formula interpolant, int index) {
 
     Collection<AbstractionPredicate> preds;
+
     if (interpolant.isFalse()) {
       preds = ImmutableSet.of(amgr.makeFalsePredicate());
     } else {
@@ -107,7 +111,6 @@ public class PredicateRefinementManager extends InterpolationManager<Collection<
   /**
    * Create predicates for all atoms in a formula.
    */
-  @SuppressWarnings("deprecation")
   private List<AbstractionPredicate> getAtomsAsPredicates(Formula f) {
     Collection<Formula> atoms;
     if (atomicPredicates) {

@@ -4,7 +4,7 @@
 CPAchecker is a tool for configurable software verification.
 This file is part of CPAchecker.
 
-Copyright (C) 2007-2011  Dirk Beyer
+Copyright (C) 2007-2012  Dirk Beyer
 All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,12 +24,17 @@ CPAchecker web page:
   http://cpachecker.sosy-lab.org
 """
 
+# prepare for Python 3
+from __future__ import absolute_import, print_function, unicode_literals
+
+import sys
+sys.dont_write_bytecode = True # prevent creation of .pyc files
+
 # import our own modules
 TableGenerator = __import__('table-generator') # for '-' in module-name
-FileUtil = TableGenerator # only for different names in programm
+Util = TableGenerator.Util # only for different names in programm
 
 import xml.etree.ElementTree as ET
-import sys
 import os
 import optparse
 
@@ -138,7 +143,7 @@ def getFilenameList(listOfSourcefileTags, listOfSourcefileDics, compare):
 
 def status(currentFile):
     fileName = currentFile.get('name').lower()
-    isSafeFile = not TableGenerator.containsAny(fileName, TableGenerator.BUG_SUBSTRING_LIST)
+    isSafeFile = not Util.containsAny(fileName, TableGenerator.BUG_SUBSTRING_LIST)
     status = [x for x in currentFile.findall("column") if x.get("title") == "status"][0].get("value").lower()
 
     if status not in ('safe', 'unsafe'):
@@ -149,7 +154,7 @@ def compareResults(xmlFiles, options):
     compare = options.compare
     print ('\ncomparing results ...')
 
-    resultFiles = FileUtil.extendFileList(xmlFiles)
+    resultFiles = Util.extendFileList(xmlFiles)
 
     if len(resultFiles) == 0:
         print ('Resultfile not found. Check your filenames!')
@@ -188,9 +193,10 @@ def compareResults(xmlFiles, options):
         (allEqual, oldStatus, newStatus) = allEqualResult(sourcefileTags)
         if not allEqual:
             isDifferent = True
-            print ('    difference found:  ' + \
-                    sourcefileTags[0].get('name').ljust(maxLen+2) + \
-                    oldStatus + ' --> ' + newStatus)
+# TODO replace with call to log.debug() when this script has logging
+#            print ('    difference found:  ' + \
+#                    sourcefileTags[0].get('name').ljust(maxLen+2) + \
+#                    oldStatus + ' --> ' + newStatus)
             for elem, tag in zip(diffXMLList, sourcefileTags):
                 elem.append(tag)
 
@@ -198,7 +204,7 @@ def compareResults(xmlFiles, options):
     if isDifferent:
         diffFiles = []
         for filename in resultFiles:
-            dir = os.path.dirname(filename) + '/diff/'
+            dir = os.path.join(os.path.dirname(filename), 'diff/')
             if not os.path.isdir(dir):
                 os.mkdir(dir)
             diffFiles.append(dir + os.path.basename(filename))
@@ -211,10 +217,10 @@ def compareResults(xmlFiles, options):
         print ("\n---> NO DIFFERENCE FOUND IN COLUMN 'STATUS'")
 
     if options.dump_counts:
-        print "STATS"
+        print ("STATS")
         for elem in statusList:
             correct, wrong, unknown = elem.count("correct"), elem.count("wrong"), elem.count("unknown")
-            print correct, wrong, unknown
+            print (str(correct) + " " + str(wrong) + " " + str(unknown))
 
 
 def copyXMLElem(elem):

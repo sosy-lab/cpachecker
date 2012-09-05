@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,26 +23,28 @@
  */
 package org.sosy_lab.cpachecker.cpa.featurevariables;
 
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -71,23 +73,66 @@ public class FeatureVarsTransferRelation implements TransferRelation {
    * a local variable with the same name)
    */
   @Override
-  public Collection<AbstractElement> getAbstractSuccessors(
-      AbstractElement element, Precision pPrecision, CFAEdge cfaEdge)
+  public Collection<FeatureVarsState> getAbstractSuccessors(
+      AbstractState element, Precision pPrecision, CFAEdge cfaEdge)
       throws CPATransferException {
     Preconditions.checkArgument(pPrecision instanceof FeatureVarsPrecision, "precision is no FeatureVarsPrecision");
     FeatureVarsPrecision precision = (FeatureVarsPrecision) pPrecision;
-    if (precision.isDisabled()) {
-      // this means that no variables should be tracked (whitelist is empty)
-      return Collections.singleton(element);
+    FeatureVarsState fvElement = (FeatureVarsState) element;
+    if (fvElement.getRegion().isFalse()) {
+      return Collections.emptyList();
     }
 
-    FeatureVarsElement fvElement = (FeatureVarsElement) element;
-    AbstractElement successor = fvElement;
+    //assert !fvElement.getRegion().isFalse();
+
+    if (precision.isDisabled()) {
+      // this means that no variables should be tracked (whitelist is empty)
+      return Collections.singleton(fvElement);
+    }
+
+    FeatureVarsState successor;
+    // check the type of the edge
+    switch (cfaEdge.getEdgeType()) {
+
+    // this is an assumption, e.g. if (a == b)
+    case AssumeEdge: {
+      CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
+      successor =
+          handleAssumption(fvElement, assumeEdge.getExpression(), cfaEdge,
+              assumeEdge.getTruthAssumption(), precision);
+      break;
+    }
+
+    case MultiEdge: {
+      successor = fvElement;
+      for (CFAEdge innerEdge : (MultiEdge)cfaEdge) {
+        successor = getAbstractSuccessor(successor, precision, innerEdge);
+      }
+      break;
+    }
+
+    default:
+     successor = getAbstractSuccessor(fvElement, precision, cfaEdge);
+    }
+
+    if (successor == null) {
+      return Collections.emptySet();
+    } else {
+      assert !successor.getRegion().isFalse();
+      return Collections.singleton(successor);
+    }
+  }
+
+  private FeatureVarsState getAbstractSuccessor(
+      FeatureVarsState fvElement, FeatureVarsPrecision precision, CFAEdge cfaEdge)
+      throws CPATransferException {
+
+    FeatureVarsState successor = fvElement;
     // check the type of the edge
     switch (cfaEdge.getEdgeType()) {
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge: {
-      StatementEdge st = (StatementEdge) cfaEdge;
+      CStatementEdge st = (CStatementEdge) cfaEdge;
       successor = handleStatementEdge(fvElement, st.getStatement(), st, precision);
       break;
     }
@@ -96,19 +141,6 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     }
       // edge is a declaration edge, e.g. int a;
     case DeclarationEdge: {
-      break;
-    }
-      // this is an assumption, e.g. if(a == b)
-    case AssumeEdge: {
-      AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
-      successor =
-          handleAssumption(fvElement, assumeEdge.getExpression(), cfaEdge,
-              assumeEdge.getTruthAssumption(), precision);
-      /*if (successor != null && successor != element) {
-        System.out.println("FV new state: " + successor.toString()
-            + " after edge " + cfaEdge.getRawStatement()
-            + " in line" + cfaEdge.getLineNumber());
-      }*/
       break;
     }
     case BlankEdge: {
@@ -125,31 +157,30 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     default:
       throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
-    if (successor == null) {
-      return Collections.emptySet();
-    } else {
-      return Collections.singleton(successor);
-    }
+    assert successor != null;
+    assert !successor.getRegion().isFalse();
+
+    return successor;
   }
 
-  private AbstractElement handleStatementEdge(FeatureVarsElement element,
-      IASTStatement pIastStatement, StatementEdge cfaEdge,
+  private FeatureVarsState handleStatementEdge(FeatureVarsState element,
+      CStatement pIastStatement, CStatementEdge cfaEdge,
       FeatureVarsPrecision pPrecision) {
 
-    if (!(pIastStatement instanceof IASTAssignment)) {
+    if (!(pIastStatement instanceof CAssignment)) {
       return element;
     }
-    IASTAssignment assignment = (IASTAssignment)pIastStatement;
+    CAssignment assignment = (CAssignment)pIastStatement;
 
-    IASTExpression lhs = assignment.getLeftHandSide();
-    FeatureVarsElement result = element;
-    if (lhs instanceof IASTIdExpression || lhs instanceof IASTFieldReference
-        || lhs instanceof IASTArraySubscriptExpression) {
-      String varName = lhs.getRawSignature();//this.getvarName(op.getRawSignature(), functionName);
+    CExpression lhs = assignment.getLeftHandSide();
+    FeatureVarsState result = element;
+    if (lhs instanceof CIdExpression || lhs instanceof CFieldReference
+        || lhs instanceof CArraySubscriptExpression) {
+      String varName = lhs.toASTString();//this.getvarName(op.getRawSignature(), functionName);
       if (pPrecision.isOnWhitelist(varName)) {
-        IASTRightHandSide rhs = assignment.getRightHandSide();
-        if (rhs instanceof IASTIntegerLiteralExpression) {
-          String value = rhs.getRawSignature();
+        CRightHandSide rhs = assignment.getRightHandSide();
+        if (rhs instanceof CIntegerLiteralExpression) {
+          String value = rhs.toASTString();
           /*
            * This will only work with the first assignment to the variable!
            * If the variable gets a second assignment we would have to delete the current value from the bdd first.
@@ -158,26 +189,23 @@ public class FeatureVarsTransferRelation implements TransferRelation {
 
           if (value.trim().equals("0")) {
             Region operand = rmgr.makeNot(rmgr.createPredicate(varName));
-            result = new FeatureVarsElement(rmgr.makeAnd(element.getRegion(), operand), rmgr);
+            result = new FeatureVarsState(rmgr.makeAnd(element.getRegion(), operand), rmgr);
           } else {
             Region operand = rmgr.createPredicate(varName);
-            result = new FeatureVarsElement(rmgr.makeAnd(element.getRegion(), operand), rmgr);
+            result = new FeatureVarsState(rmgr.makeAnd(element.getRegion(), operand), rmgr);
           }
         }
       }
     }
-    if (result.getRegion().isFalse()) {
-      return null; // assumption is not fulfilled / not possible
-    } else {
-      return result;
-    }
+    assert !result.getRegion().isFalse();
+    return result;
   }
 
-  private AbstractElement handleAssumption(FeatureVarsElement element,
-      IASTExpression expression, CFAEdge cfaEdge, boolean truthValue,
+  private FeatureVarsState handleAssumption(FeatureVarsState element,
+      CExpression expression, CFAEdge cfaEdge, boolean truthValue,
       FeatureVarsPrecision precision) throws UnrecognizedCCodeException {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
-    FeatureVarsElement result = handleBooleanExpression(element, expression, functionName, truthValue, precision, cfaEdge);
+    FeatureVarsState result = handleBooleanExpression(element, expression, functionName, truthValue, precision, cfaEdge);
     if (result.getRegion().isFalse()) {
       return null; // assumption is not fulfilled / not possible
     } else {
@@ -185,8 +213,8 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     }
   }
 
-  private FeatureVarsElement handleBooleanExpression(FeatureVarsElement element,
-      IASTExpression op, String functionName, boolean pTruthValue,
+  private FeatureVarsState handleBooleanExpression(FeatureVarsState element,
+      CExpression op, String functionName, boolean pTruthValue,
       FeatureVarsPrecision precision, CFAEdge edge) throws UnrecognizedCCodeException {
     Region operand = propagateBooleanExpression(element, op, functionName, precision, edge);
     if (operand == null) {
@@ -201,28 +229,28 @@ public class FeatureVarsTransferRelation implements TransferRelation {
           rmgr.makeAnd(element.getRegion(),
                 rmgr.makeNot(operand));
       }
-      return new FeatureVarsElement(newRegion, rmgr);
+      return new FeatureVarsState(newRegion, rmgr);
     }
   }
 
-  private Region propagateBooleanExpression(FeatureVarsElement element,
-      IASTExpression op, String functionName, FeatureVarsPrecision precision, CFAEdge edge)
+  private Region propagateBooleanExpression(FeatureVarsState element,
+      CExpression op, String functionName, FeatureVarsPrecision precision, CFAEdge edge)
     throws UnrecognizedCCodeException {
     Region operand = null;
-    if (op instanceof IASTIdExpression || op instanceof IASTFieldReference
-        || op instanceof IASTArraySubscriptExpression) {
-      String varName = op.getRawSignature();//this.getvarName(op.getRawSignature(), functionName);
+    if (op instanceof CIdExpression || op instanceof CFieldReference
+        || op instanceof CArraySubscriptExpression) {
+      String varName = op.toASTString();//this.getvarName(op.getRawSignature(), functionName);
       if (!precision.isOnWhitelist(varName)) {
         return null;
       }
       operand = rmgr.createPredicate(varName);
-    } else if (op instanceof IASTUnaryExpression) {
+    } else if (op instanceof CUnaryExpression) {
       operand =
-          propagateUnaryBooleanExpression(element, ((IASTUnaryExpression) op)
-              .getOperator(), ((IASTUnaryExpression) op).getOperand(),
+          propagateUnaryBooleanExpression(element, ((CUnaryExpression) op)
+              .getOperator(), ((CUnaryExpression) op).getOperand(),
               functionName, precision, edge);
-    } else if (op instanceof IASTBinaryExpression) {
-      IASTBinaryExpression binExp = ((IASTBinaryExpression) op);
+    } else if (op instanceof CBinaryExpression) {
+      CBinaryExpression binExp = ((CBinaryExpression) op);
       operand =
           propagateBinaryBooleanExpression(element, binExp.getOperator(),
               binExp.getOperand1(), binExp.getOperand2(), functionName,
@@ -231,25 +259,25 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     return operand;
   }
 
-  private Region propagateUnaryBooleanExpression(FeatureVarsElement element,
-      UnaryOperator opType, IASTExpression op, String functionName,
+  private Region propagateUnaryBooleanExpression(FeatureVarsState element,
+      UnaryOperator opType, CExpression op, String functionName,
       FeatureVarsPrecision precision, CFAEdge edge) throws UnrecognizedCCodeException {
     Region returnValue = null;
     Region operand = null;
-    if (op instanceof IASTIdExpression || op instanceof IASTFieldReference
-        || op instanceof IASTArraySubscriptExpression) {
-      String varName = op.getRawSignature();//this.getvarName(op.getRawSignature(), functionName);
+    if (op instanceof CIdExpression || op instanceof CFieldReference
+        || op instanceof CArraySubscriptExpression) {
+      String varName = op.toASTString();//this.getvarName(op.getRawSignature(), functionName);
       if (!precision.isOnWhitelist(varName)) {
         return null;
       }
       operand = rmgr.createPredicate(varName);
-    } else if (op instanceof IASTUnaryExpression) {
+    } else if (op instanceof CUnaryExpression) {
       operand =
-          propagateUnaryBooleanExpression(element, ((IASTUnaryExpression) op)
-              .getOperator(), ((IASTUnaryExpression) op).getOperand(),
+          propagateUnaryBooleanExpression(element, ((CUnaryExpression) op)
+              .getOperator(), ((CUnaryExpression) op).getOperand(),
               functionName, precision, edge);
-    } else if (op instanceof IASTBinaryExpression) {
-      IASTBinaryExpression binExp = ((IASTBinaryExpression) op);
+    } else if (op instanceof CBinaryExpression) {
+      CBinaryExpression binExp = ((CBinaryExpression) op);
       operand =
           propagateBinaryBooleanExpression(element, binExp.getOperator(),
               binExp.getOperand1(), binExp.getOperand2(), functionName,
@@ -268,31 +296,31 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       break;
     default:
       throw new UnrecognizedCCodeException("Unhandled case "
-          + op.getRawSignature(), edge);
+          + op.toASTString(), edge);
     }
     return returnValue;
   }
 
-  private Region propagateBinaryBooleanExpression(FeatureVarsElement element,
-      BinaryOperator opType, IASTExpression op1, IASTExpression op2,
+  private Region propagateBinaryBooleanExpression(FeatureVarsState element,
+      BinaryOperator opType, CExpression op1, CExpression op2,
       String functionName, FeatureVarsPrecision precision, CFAEdge edge)
       throws UnrecognizedCCodeException {
     // determine operand1:
     Region operand1 = null;
-    if (op1 instanceof IASTIdExpression || op1 instanceof IASTFieldReference
-        || op1 instanceof IASTArraySubscriptExpression) {
-      String varName = op1.getRawSignature();// this.getvarName(op1.getRawSignature(), functionName);
+    if (op1 instanceof CIdExpression || op1 instanceof CFieldReference
+        || op1 instanceof CArraySubscriptExpression) {
+      String varName = op1.toASTString();// this.getvarName(op1.getRawSignature(), functionName);
       if (!precision.isOnWhitelist(varName)) {
         return null;
       }
       operand1 = rmgr.createPredicate(varName);
-    } else if (op1 instanceof IASTUnaryExpression) {
+    } else if (op1 instanceof CUnaryExpression) {
       operand1 =
-          propagateUnaryBooleanExpression(element, ((IASTUnaryExpression) op1)
-              .getOperator(), ((IASTUnaryExpression) op1).getOperand(),
+          propagateUnaryBooleanExpression(element, ((CUnaryExpression) op1)
+              .getOperator(), ((CUnaryExpression) op1).getOperand(),
               functionName, precision, edge);
-    } else if (op1 instanceof IASTBinaryExpression) {
-      IASTBinaryExpression binExp = ((IASTBinaryExpression) op1);
+    } else if (op1 instanceof CBinaryExpression) {
+      CBinaryExpression binExp = ((CBinaryExpression) op1);
       operand1 =
           propagateBinaryBooleanExpression(element, binExp.getOperator(),
               binExp.getOperand1(), binExp.getOperand2(), functionName,
@@ -300,24 +328,31 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     }
     // determine operand2:
     Region operand2 = null;
-    if (op2 instanceof IASTIdExpression || op2 instanceof IASTFieldReference
-        || op2 instanceof IASTArraySubscriptExpression) {
-      String varName = op2.getRawSignature(); //this.getvarName(op2.getRawSignature(), functionName);
+    if (op2 instanceof CIdExpression || op2 instanceof CFieldReference
+        || op2 instanceof CArraySubscriptExpression) {
+      String varName = op2.toASTString(); //this.getvarName(op2.getRawSignature(), functionName);
       if (!precision.isOnWhitelist(varName)) {
         return null;
       }
       operand2 = rmgr.createPredicate(varName);
-    } else if (op2 instanceof IASTUnaryExpression) {
+    } else if (op2 instanceof CUnaryExpression) {
       operand2 =
-          propagateUnaryBooleanExpression(element, ((IASTUnaryExpression) op2)
-              .getOperator(), ((IASTUnaryExpression) op2).getOperand(),
+          propagateUnaryBooleanExpression(element, ((CUnaryExpression) op2)
+              .getOperator(), ((CUnaryExpression) op2).getOperand(),
               functionName, precision, edge);
-    } else if (op2 instanceof IASTBinaryExpression) {
-      IASTBinaryExpression binExp = ((IASTBinaryExpression) op2);
+    } else if (op2 instanceof CBinaryExpression) {
+      CBinaryExpression binExp = ((CBinaryExpression) op2);
       operand2 =
           propagateBinaryBooleanExpression(element, binExp.getOperator(),
               binExp.getOperand1(), binExp.getOperand2(), functionName,
               precision, edge);
+    } else if (op2 instanceof CIntegerLiteralExpression) {
+      CIntegerLiteralExpression number = (CIntegerLiteralExpression)op2;
+      if (number.getValue().equals(BigInteger.ZERO)) {
+        operand2 = rmgr.makeFalse();
+      } else {
+        operand2 = rmgr.makeTrue();
+      }
     }
     if (operand1 == null || operand2 == null) {
       return null;
@@ -332,7 +367,17 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       returnValue = rmgr.makeOr(operand1, operand2);
       break;
     case EQUALS:
+      returnValue = rmgr.makeOr(
+              rmgr.makeAnd(operand1, operand2),
+              rmgr.makeAnd(rmgr.makeNot(operand1), rmgr.makeNot(operand2))
+          );
+      break;
     case NOT_EQUALS:
+      returnValue = rmgr.makeOr(
+              rmgr.makeAnd(rmgr.makeNot(operand1), operand2),
+              rmgr.makeAnd(operand1, rmgr.makeNot(operand2))
+          );
+      break;
     default:
       throw new UnrecognizedCCodeException(
           "Cases ==, != and others are not implemented", edge);
@@ -341,15 +386,15 @@ public class FeatureVarsTransferRelation implements TransferRelation {
   }
 /*
   public String getvarName(String variableName, String functionName) {
-    if(globalVars.contains(variableName)){
+    if (globalVars.contains(variableName)){
       return "$global::" + variableName;
     }
     return functionName + "::" + variableName;
   }*/
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(
-      AbstractElement element, List<AbstractElement> elements, CFAEdge cfaEdge,
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState element, List<AbstractState> elements, CFAEdge cfaEdge,
       Precision precision) throws UnrecognizedCCodeException {
     // do nothing
     return null;

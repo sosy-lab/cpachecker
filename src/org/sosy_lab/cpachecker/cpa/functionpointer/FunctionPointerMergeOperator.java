@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -37,24 +37,24 @@ public class FunctionPointerMergeOperator implements MergeOperator {
   }
 
   @Override
-  public AbstractElement merge(AbstractElement pElement1,
-      AbstractElement pElement2, Precision pPrecision) throws CPAException {
+  public AbstractState merge(AbstractState pElement1,
+      AbstractState pElement2, Precision pPrecision) throws CPAException {
 
-    FunctionPointerElement fpElement1 = (FunctionPointerElement)pElement1;
-    FunctionPointerElement fpElement2 = (FunctionPointerElement)pElement2;
+    FunctionPointerState fpElement1 = (FunctionPointerState)pElement1;
+    FunctionPointerState fpElement2 = (FunctionPointerState)pElement2;
 
     if (!fpElement1.isLessOrEqualThan(fpElement2)) {
       // don't merge here
       return pElement2;
     }
 
-    AbstractElement wrappedElement1 = fpElement1.getWrappedElement();
-    AbstractElement wrappedElement2 = fpElement2.getWrappedElement();
-    AbstractElement retElement = wrappedMerge.merge(wrappedElement1, wrappedElement2, pPrecision);
-    if (retElement.equals(wrappedElement2)) {
+    AbstractState wrappedState1 = fpElement1.getWrappedState();
+    AbstractState wrappedState2 = fpElement2.getWrappedState();
+    AbstractState retElement = wrappedMerge.merge(wrappedState1, wrappedState2, pPrecision);
+    if (retElement.equals(wrappedState2)) {
       return pElement2;
     }
 
-    return fpElement2.createDuplicateWithNewWrappedElement(retElement);
+    return fpElement2.createDuplicateWithNewWrappedState(retElement);
   }
 }

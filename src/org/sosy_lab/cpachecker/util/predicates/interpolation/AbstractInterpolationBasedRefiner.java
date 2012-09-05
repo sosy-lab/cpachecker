@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -38,13 +39,15 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
-import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -63,7 +66,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
  * @param <P> The type of path elements used by the sub-class.
  */
 @Options(prefix="cpa.predicate.refinement")
-public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractARTBasedRefiner {
+public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractARGBasedRefiner {
 
   @Option(name="msatCexFile",
       description="where to dump the counterexample formula in case the error location is reached")
@@ -89,10 +92,10 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
   }
 
   @Override
-  protected CounterexampleInfo performRefinement(final ARTReachedSet pReached, final Path pPath) throws CPAException, InterruptedException {
+  protected CounterexampleInfo performRefinement(final ARGReachedSet pReached, final Path pPath) throws CPAException, InterruptedException {
     totalRefinement.start();
 
-    Set<ARTElement> elementsOnPath = ARTUtils.getAllElementsOnPathsTo(pPath.getLast().getFirst()); // TODO: make this lazy?
+    Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(pPath.getLast().getFirst()); // TODO: make this lazy?
 
     boolean branchingOccurred = true;
     if (elementsOnPath.size() == pPath.size()) {
@@ -171,13 +174,13 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
   /**
    * Get the block formulas from a path.
    * @param path A list of all abstraction elements
-   * @param initialElement The initial element of the analysis (= the root element of the ART)
+   * @param initialState The initial element of the analysis (= the root element of the ARG)
    * @return A list of block formulas for this path.
    * @throws CPATransferException
    */
-  protected abstract List<Formula> getFormulasForPath(List<P> path, ARTElement initialElement) throws CPATransferException;
+  protected abstract List<Formula> getFormulasForPath(List<P> path, ARGState initialState) throws CPATransferException;
 
-  protected abstract void performRefinement(ARTReachedSet pReached, List<P> path,
+  protected abstract void performRefinement(ARGReachedSet pReached, List<P> path,
       CounterexampleTraceInfo<I> counterexample, boolean pRepeatedCounterexample) throws CPAException;
 
   private Pair<Path, CounterexampleTraceInfo<I>> findPreciseErrorPath(Path pPath, CounterexampleTraceInfo<I> counterexample) {
@@ -186,18 +189,18 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
 
       Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
       if (preds.isEmpty()) {
-        logger.log(Level.WARNING, "No information about ART branches available!");
+        logger.log(Level.WARNING, "No information about ARG branches available!");
         return null;
       }
 
       // find correct path
       Path targetPath;
       try {
-        ARTElement root = pPath.getFirst().getFirst();
-        ARTElement target = pPath.getLast().getFirst();
-        Set<ARTElement> pathElements = ARTUtils.getAllElementsOnPathsTo(target);
+        ARGState root = pPath.getFirst().getFirst();
+        ARGState target = pPath.getLast().getFirst();
+        Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(target);
 
-        targetPath = ARTUtils.getPathFromBranchingInformation(root, target,
+        targetPath = ARGUtils.getPathFromBranchingInformation(root, target,
             pathElements, preds);
 
       } catch (IllegalArgumentException e) {
@@ -229,7 +232,13 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
     }
   }
 
-  public InterpolationManager.Stats getStats2() {
-    return formulaManager.refStats;
+  protected void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+
+    if (totalRefinement.getSumTime() > 0) {
+      out.println("Time for refinement:              " + totalRefinement);
+      formulaManager.stats.printStatistics(out, result, reached);
+      out.println("  Error path post-processing:     " + errorPathProcessing);
+    }
   }
+
 }

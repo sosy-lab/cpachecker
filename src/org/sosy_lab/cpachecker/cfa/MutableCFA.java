@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,9 +29,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMultimap;
@@ -39,14 +40,14 @@ import com.google.common.collect.SortedSetMultimap;
 
 public class MutableCFA implements CFA {
 
-  private final Map<String, CFAFunctionDefinitionNode> functions;
+  private final Map<String, FunctionEntryNode> functions;
   private final SortedSetMultimap<String, CFANode> allNodes;
-  private final CFAFunctionDefinitionNode mainFunction;
+  private final FunctionEntryNode mainFunction;
 
   public MutableCFA(
-      Map<String, CFAFunctionDefinitionNode> pFunctions,
+      Map<String, FunctionEntryNode> pFunctions,
       SortedSetMultimap<String, CFANode> pAllNodes,
-      CFAFunctionDefinitionNode pMainFunction) {
+      FunctionEntryNode pMainFunction) {
 
     functions = pFunctions;
     allNodes = pAllNodes;
@@ -92,17 +93,17 @@ public class MutableCFA implements CFA {
   }
 
   @Override
-  public Collection<CFAFunctionDefinitionNode> getAllFunctionHeads() {
+  public Collection<FunctionEntryNode> getAllFunctionHeads() {
     return Collections.unmodifiableCollection(functions.values());
   }
 
   @Override
-  public CFAFunctionDefinitionNode getFunctionHead(String pName) {
+  public FunctionEntryNode getFunctionHead(String pName) {
     return functions.get(pName);
   }
 
   @Override
-  public Map<String, CFAFunctionDefinitionNode> getAllFunctions() {
+  public Map<String, FunctionEntryNode> getAllFunctions() {
     return Collections.unmodifiableMap(functions);
   }
 
@@ -116,7 +117,7 @@ public class MutableCFA implements CFA {
   }
 
   @Override
-  public CFAFunctionDefinitionNode getMainFunction() {
+  public FunctionEntryNode getMainFunction() {
     return mainFunction;
   }
 
@@ -125,7 +126,13 @@ public class MutableCFA implements CFA {
     return Optional.absent();
   }
 
-  public ImmutableCFA makeImmutableCFA(Optional<ImmutableMultimap<String, Loop>> pLoopStructure) {
-    return new ImmutableCFA(functions, allNodes, mainFunction, pLoopStructure);
+  public ImmutableCFA makeImmutableCFA(Optional<ImmutableMultimap<String,
+      Loop>> pLoopStructure, Optional<VariableClassification> pVarClassification) {
+    return new ImmutableCFA(functions, allNodes, mainFunction, pLoopStructure, pVarClassification);
+  }
+
+  @Override
+  public Optional<VariableClassification> getVarClassification() {
+    return Optional.absent();
   }
 }

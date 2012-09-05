@@ -28,19 +28,19 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 
 public class PredicatePostProcessor implements PostProcessor {
 
   @Override
   public void postProcess(ReachedSet pReached) {
-    AbstractElement lastElement = pReached.getLastElement();
-    if (!AbstractElements.isTargetElement(lastElement)) {
+    AbstractState lastElement = pReached.getLastState();
+    if (!AbstractStates.isTargetState(lastElement)) {
       removeUnsatPaths(pReached);
     }
   }
@@ -48,26 +48,26 @@ public class PredicatePostProcessor implements PostProcessor {
   private void removeUnsatPaths(ReachedSet pReached) {
     //idea: non-abstraction elements from which a non-false abstraction element is not reachable can get removed
 
-    Deque<ARTElement> leaves = new ArrayDeque<ARTElement>();
-    for (AbstractElement e : pReached) {
-      ARTElement artEle = (ARTElement) e;
-      if (artEle.getChildren().size() == 0 && (!AbstractElements.extractElementByType(artEle, PredicateAbstractElement.class).isAbstractionElement() || AbstractElements.extractElementByType(artEle, PredicateAbstractElement.class).getAbstractionFormula().isFalse()) && !artEle.isTarget()) {
+    Deque<ARGState> leaves = new ArrayDeque<ARGState>();
+    for (AbstractState e : pReached) {
+      ARGState artEle = (ARGState) e;
+      if (artEle.getChildren().size() == 0 && (!AbstractStates.extractStateByType(artEle, PredicateAbstractState.class).isAbstractionState() || AbstractStates.extractStateByType(artEle, PredicateAbstractState.class).getAbstractionFormula().isFalse()) && !artEle.isTarget()) {
         leaves.push(artEle);
       }
     }
 
     while (!leaves.isEmpty()) {
-      ARTElement leaf = leaves.pop();
+      ARGState leaf = leaves.pop();
 
-      assert (!AbstractElements.extractElementByType(leaf, PredicateAbstractElement.class).isAbstractionElement() || AbstractElements.extractElementByType(leaf, PredicateAbstractElement.class).getAbstractionFormula().isFalse());
+      assert (!AbstractStates.extractStateByType(leaf, PredicateAbstractState.class).isAbstractionState() || AbstractStates.extractStateByType(leaf, PredicateAbstractState.class).getAbstractionFormula().isFalse());
 
-      Collection<ARTElement> parents = new ArrayList<ARTElement>();
+      Collection<ARGState> parents = new ArrayList<ARGState>();
       parents.addAll(leaf.getParents());
 
       pReached.remove(leaf);
-      leaf.removeFromART();
+      leaf.removeFromARG();
 
-      for (ARTElement parent : parents) {
+      for (ARGState parent : parents) {
         if (parent.getChildren().size() == 0) {
           leaves.push(parent);
         }

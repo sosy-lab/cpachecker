@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
+import static com.google.common.base.Preconditions.*;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +32,6 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -58,11 +59,8 @@ public class CounterexampleTraceInfo<I> {
     }
 
     public CounterexampleTraceInfo(List<Formula> pCounterexampleFormula, Model pModel, Map<Integer, Boolean> preds) {
-      Preconditions.checkNotNull(pCounterexampleFormula);
-      Preconditions.checkNotNull(pModel);
-
-      mCounterexampleFormula = pCounterexampleFormula;
-      mCounterexampleModel = pModel;
+      mCounterexampleFormula = checkNotNull(pCounterexampleFormula);
+      mCounterexampleModel = checkNotNull(pModel);
       spurious = false;
       pmap = ImmutableList.of();
       branchingPreds = preds;
@@ -76,22 +74,24 @@ public class CounterexampleTraceInfo<I> {
 
     /**
      * returns the list of Predicates that were discovered during
-     * counterexample analysis for the given AbstractElement. The invariant is
-     * that the union of all the predicates for all the AbstractElements in
+     * counterexample analysis for the given AbstractState. The invariant is
+     * that the union of all the predicates for all the AbstractStates in
      * the spurious counterexample is sufficient for refining the abstract
      * model such that this trace is no longer feasible in it
      *
      * @return a list of predicates
      */
     public List<I> getPredicatesForRefinement() {
-        return pmap;
+      checkState(spurious);
+      return pmap;
     }
 
     /**
      * Adds some predicates to the list of those corresponding to the given
-     * AbstractElement
+     * AbstractState
      */
     public void addPredicatesForRefinement(I preds) {
+      checkState(spurious);
       pmap.add(preds);
     }
 
@@ -101,21 +101,18 @@ public class CounterexampleTraceInfo<I> {
         (isSpurious() ? ", new predicates: " + pmap : "");
     }
 
-    public boolean hasCounterexample() {
-      return (mCounterexampleModel != null);
-    }
-
     public List<Formula> getCounterExampleFormulas() {
+      checkState(!spurious);
       return mCounterexampleFormula;
     }
 
     public Model getCounterexample() {
-      Preconditions.checkState(hasCounterexample());
-
+      checkState(!spurious);
       return mCounterexampleModel;
     }
 
     public Map<Integer, Boolean> getBranchingPredicates() {
+      checkState(!spurious);
       return branchingPreds;
     }
 }

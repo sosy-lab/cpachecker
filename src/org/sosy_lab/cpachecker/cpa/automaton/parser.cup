@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -88,8 +88,12 @@ parser code {:
       Symbol symbol = new AutomatonParser(new AutomatonScanner(input, pInputFile, config, pLogger, sf),sf, pLogger).parse();
       return ((List<Automaton>) symbol.value);
     } catch (Exception e) {
-      throw new InvalidConfigurationException("Could not load automaton from file " + pInputFile.getAbsolutePath()
-          + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()) + ")", e);
+      if (e instanceof IOException && e.getMessage() != null) {
+        throw new InvalidConfigurationException("Could not load automaton from file " + e.getMessage(), e);
+      } else {      
+        throw new InvalidConfigurationException("Could not load automaton from file " + pInputFile.getAbsolutePath()
+            + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()) + ")", e);
+      }
     } finally {
       if (input!= null) {
         try {
@@ -105,7 +109,7 @@ parser code {:
 
 
 
-terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, EXIT, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST, TARGET ;
+terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, EXIT, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST, TARGET, IS_TARGET_STATE ;
 non terminal List<Automaton> initial ;  
 non terminal Automaton Specification ;
 non terminal Automaton Automaton ;
@@ -147,7 +151,7 @@ initial ::= Specification:s initial:lst {: lst.add(0, s); RESULT = lst; :}
 Specification ::= Automaton:a
                   {: RESULT = a; :}
                 | Assertion:a SEMICOLON 
-              	  {: RESULT = parser.generateSkeletonForAssertion(a); :} 
+                  {: RESULT = parser.generateSkeletonForAssertion(a); :} 
                 ;
 
 Automaton ::= OBSERVER Body:b 
@@ -182,13 +186,13 @@ StateDef  ::= StateTypeDef:type STATE StateNonDetDef:nd IDENTIFIER:id COLON  Tra
             ;
             
 StateTypeDef ::= TARGET {: RESULT = true; :}
-	       | /* empty */ {: RESULT = false; :}
-	       ;
+               | /* empty */ {: RESULT = false; :}
+               ;
 
 StateNonDetDef ::= USEFIRST {: RESULT = false; :}
-	       | USEALL {: RESULT = true; :}
-	       | /* empty */ {: RESULT = true; :}
-	       ;
+               | USEALL {: RESULT = true; :}
+               | /* empty */ {: RESULT = true; :}
+               ;
 
 Transitions   ::= Transition:t Transitions:lst {: lst.add(0, t); RESULT = lst; :}
             | /* empty */ {: RESULT = new LinkedList<AutomatonTransition>(); :}
@@ -214,7 +218,7 @@ Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert a
             | /* empty */ {: RESULT = new LinkedList<AutomatonAction>(); :}
             ;
 Action    ::= DO  IDENTIFIER:var EQ InnerInt:i   {: RESULT = new AutomatonAction.Assignment(var.toString(), i); :}
-			// InnerInt in this position allows for x = EVAL(..) Statements
+                        // InnerInt in this position allows for x = EVAL(..) Statements
             | PRINT PrintArguments:args {: RESULT = new AutomatonAction.Print(args); :}
 /*next statement is deprecated*/            
             | MODIFY OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
@@ -228,7 +232,7 @@ PrintArguments ::= Expression:a PrintArguments:lst {: lst.add(0,a); RESULT = lst
              ;
             
 Int       ::= ConstantInt:c  {: RESULT = c; :}
-			| OPEN_BRACKETS Int:i CLOSE_BRACKETS {: RESULT = i; :}
+                        | OPEN_BRACKETS Int:i CLOSE_BRACKETS {: RESULT = i; :}
             | IDENTIFIER:x  {: RESULT = new AutomatonIntExpr.VarAccess(x.toString()); :}
             | InnerInt:a PLUS InnerInt:b  {: RESULT = new AutomatonIntExpr.Plus(a,b); :}
             | InnerInt:a MINUS InnerInt:b  {: RESULT = new AutomatonIntExpr.Minus(a,b); :}
@@ -238,14 +242,14 @@ Int       ::= ConstantInt:c  {: RESULT = c; :}
 
 InnerInt  ::= Int:i {: RESULT = i; :}
 /*next statement is deprecated*/
-			| EVAL OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
+                        | EVAL OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
              {: RESULT = new AutomatonIntExpr.CPAQuery(cpa.toString(), query.toString()); :}
             | EVAL OPEN_BRACKETS IDENTIFIER:cpa COMMA STRING_LITERAL:query CLOSE_BRACKETS
              {: RESULT = new AutomatonIntExpr.CPAQuery(cpa.toString(), query.toString()); :}
              ;
             
 ConstantInt ::= INTEGER_LITERAL:c  {: RESULT = new AutomatonIntExpr.Constant(c.toString()); :}
-			;
+                        ;
 
 Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
             | FALSE  {: RESULT = AutomatonBoolExpr.FALSE; :}
@@ -274,13 +278,15 @@ Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
               {: RESULT = new AutomatonBoolExpr.CPAQuery(cpa.toString(), query.toString()); :}
             | CHECK OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS
               {: RESULT = new AutomatonBoolExpr.ALLCPAQuery(query.toString()); :}
+            | CHECK OPEN_BRACKETS IS_TARGET_STATE CLOSE_BRACKETS
+              {: RESULT = AutomatonBoolExpr.CheckAllCpasForTargetState.INSTANCE; :}
             ;
             
-Expression	  ::= Int:i {: RESULT = i; :}
-			| Bool:b {: RESULT = b; :}
-			| STRING_LITERAL:lit {: RESULT = new AutomatonExpression.StringExpression(lit.toString()); :}
+Expression          ::= Int:i {: RESULT = i; :}
+                        | Bool:b {: RESULT = b; :}
+                        | STRING_LITERAL:lit {: RESULT = new AutomatonExpression.StringExpression(lit.toString()); :}
 /*next statement is deprecated*/
-			| EVAL OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
+                        | EVAL OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
              {: RESULT = new AutomatonExpression.CPAQuery(cpa.toString(), query.toString()); :}
             | EVAL OPEN_BRACKETS IDENTIFIER:cpa COMMA STRING_LITERAL:query CLOSE_BRACKETS
              {: RESULT = new AutomatonExpression.CPAQuery(cpa.toString(), query.toString()); :}

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,7 +40,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCExecutor;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
@@ -117,19 +117,19 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     // ERROR is REACHED
-    if(cbmc.getResult()){
+    if (cbmc.getResult()){
       // if this is unwinding assertions violation the analysis result is UNKNOWN
-      if(cbmc.didUnwindingAssertionFailed()){
+      if (cbmc.didUnwindingAssertionFailed()){
         logger.log(Level.INFO, "CBMC terminated with unwinding assertions violation");
         return false;
       }
       else{
-        pReachedSet.add(new DummyErrorElement(), SingletonPrecision.getInstance());
-        assert pReachedSet.size() == 1 && pReachedSet.hasWaitingElement();
+        pReachedSet.add(new DummyErrorState(), SingletonPrecision.getInstance());
+        assert pReachedSet.size() == 1 && pReachedSet.hasWaitingState();
 
-        // remove dummy element from waitlist
+        // remove dummy state from waitlist
         pReachedSet.popFromWaitlist();
-        assert !pReachedSet.hasWaitingElement();
+        assert !pReachedSet.hasWaitingState();
       }
     }
 
@@ -148,7 +148,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     paramsList.add("--error-label");
     paramsList.add(errorLabel);
 
-    if(noUnwindingAssertions){
+    if (noUnwindingAssertions){
       paramsList.add("--no-unwinding-assertions");
     }
 
@@ -178,7 +178,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private static class DummyErrorElement implements AbstractElement, Targetable {
+  private static class DummyErrorState implements AbstractState, Targetable {
 
     @Override
     public boolean isTarget() {

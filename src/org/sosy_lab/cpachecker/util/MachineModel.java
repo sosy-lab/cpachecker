@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 public enum MachineModel {
   /**
@@ -132,7 +132,7 @@ public enum MachineModel {
     return mSizeofChar;
   }
 
-  public int getSizeof(IASTSimpleDeclSpecifier type) {
+  public int getSizeof(CSimpleType type) {
     switch (type.getType()) {
     case UNSPECIFIED: return getSizeofInt(); // the default type in C is int
     case VOID:        return getSizeofVoid();
@@ -156,7 +156,7 @@ public enum MachineModel {
         return getSizeofDouble();
       }
     default:
-      throw new AssertionError("Unrecognized BasicType " + type.getType());
+      throw new AssertionError("Unrecognized CBasicType " + type.getType());
     }
   }
 }

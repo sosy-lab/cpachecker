@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
@@ -40,39 +40,39 @@ class OctDomain implements AbstractDomain{
   static long totaltime = 0;
 
   @Override
-  public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) {
+  public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
 
-    Map<OctElement, Set<OctElement>> covers = new HashMap<OctElement, Set<OctElement>>();
+    Map<OctState, Set<OctState>> covers = new HashMap<OctState, Set<OctState>>();
 
     long start = System.currentTimeMillis();
-    OctElement octElement1 = (OctElement) element1;
-    OctElement octElement2 = (OctElement) element2;
+    OctState octState1 = (OctState) element1;
+    OctState octState2 = (OctState) element2;
 
-    if(covers.containsKey(octElement2) && ((HashSet<OctElement>)(covers.get(octElement2))).contains(octElement1)){
+    if (covers.containsKey(octState2) && ((HashSet<OctState>)(covers.get(octState2))).contains(octState1)){
       return true;
     }
 
-    int result = OctagonManager.isIncludedInLazy(octElement1.getOctagon(), octElement2.getOctagon());
-    if(result == 1) {
+    int result = OctagonManager.isIncludedInLazy(octState1.getOctagon(), octState2.getOctagon());
+    if (result == 1) {
       totaltime = totaltime + (System.currentTimeMillis() - start);
       return true;
     }
-    else if(result == 2) {
+    else if (result == 2) {
       totaltime = totaltime + (System.currentTimeMillis() - start);
       return false;
     }
     else{
       assert(result == 3);
-      boolean included = OctagonManager.isIncludedIn(octElement1.getOctagon(), octElement2.getOctagon());
-      if(included){
-        Set<OctElement> s;
-        if (covers.containsKey(octElement2)) {
-          s = covers.get(octElement2);
+      boolean included = OctagonManager.isIncludedIn(octState1.getOctagon(), octState2.getOctagon());
+      if (included){
+        Set<OctState> s;
+        if (covers.containsKey(octState2)) {
+          s = covers.get(octState2);
         } else {
-          s = new HashSet<OctElement>();
+          s = new HashSet<OctState>();
         }
-        s.add(octElement1);
-        covers.put(octElement2, s);
+        s.add(octState1);
+        covers.put(octState2, s);
       }
       totaltime = totaltime + (System.currentTimeMillis() - start);
       return included;
@@ -80,15 +80,15 @@ class OctDomain implements AbstractDomain{
   }
 
   @Override
-  public AbstractElement join(AbstractElement element1, AbstractElement element2) {
-    OctElement octEl1 = (OctElement) element1;
-    OctElement octEl2 = (OctElement) element2;
+  public AbstractState join(AbstractState element1, AbstractState element2) {
+    OctState octEl1 = (OctState) element1;
+    OctState octEl2 = (OctState) element2;
     Octagon newOctagon = OctagonManager.union(octEl1.getOctagon(), octEl2.getOctagon());
     BiMap<String, Integer> newMap =
       octEl1.sizeOfVariables() > octEl2.sizeOfVariables()? octEl1.getVariableToIndexMap() : octEl2.getVariableToIndexMap();
 
       // TODO should it be null
-      return new OctElement(newOctagon, newMap, null);
+      return new OctState(newOctagon, newMap, null);
       // TODO add widening
       //    return LibraryAccess.widening(octEl1, octEl2);
   }

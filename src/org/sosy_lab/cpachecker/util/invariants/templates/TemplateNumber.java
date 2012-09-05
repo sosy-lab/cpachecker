@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,90 +23,92 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.templates;
 
+import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 public class TemplateNumber extends TemplateFormula {
 
-  private String S = null;
-  private Integer I = null;
+  private Rational rat;
 
   public TemplateNumber(int n) {
-    I = new Integer(n);
-    S = I.toString();
+    rat = new Rational(n,1);
   }
 
+  /*
+   * Here we enforce the rule that our numbers are rationals, not floats.
+   */
   public TemplateNumber(String s) {
-    S = s;
-    I = new Integer(s);
+    try {
+      Integer i = new Integer(s);
+      rat = new Rational(i,1);
+    } catch (Exception e) {
+      System.err.println("Attempted to use float "+s+".\nOnly rational coefficients are allowed.");
+      System.exit(1);
+    }
+  }
+
+  public Rational rationalValue() {
+    return rat;
+  }
+
+  public TemplateNumber(Rational r) {
+    rat = r;
   }
 
   @Override
   public TemplateNumber copy() {
-    TemplateNumber n = new TemplateNumber(new String(S));
+    TemplateNumber n = new TemplateNumber(rat.copy());
     return n;
+  }
+
+  public boolean isZero() {
+    return rat.isZero();
   }
 
   @Override
   public void negate() {
-    if (S!=null) {
-      if (S.startsWith("-")) {
-        S = S.substring(1);
-      } else {
-        S = "-"+S;
-      }
-    } else {
-      I = new Integer( -I.intValue() );
-    }
+    rat = rat.makeNegative();
   }
 
-  public static TemplateNumber multiply(TemplateNumber n1,
-                      TemplateNumber n2) {
-    int a1 = n1.intValue();
-    int a2 = n2.intValue();
-    return new TemplateNumber(a1*a2);
+  public static TemplateNumber multiply(TemplateNumber n1, TemplateNumber n2) {
+    Rational r = n1.rat.times(n2.rat);
+    return new TemplateNumber(r);
   }
 
-  public static TemplateNumber add(TemplateNumber n1,
-      TemplateNumber n2) {
-    int a1 = n1.intValue();
-    int a2 = n2.intValue();
-    return new TemplateNumber(a1+a2);
+  public static TemplateNumber add(TemplateNumber n1, TemplateNumber n2) {
+    Rational r = n1.rat.plus(n2.rat);
+    return new TemplateNumber(r);
+  }
+
+  public TemplateNumber divideBy(TemplateNumber n) {
+    return new TemplateNumber( rat.div(n.rat) );
+  }
+
+  public TemplateNumber makeReciprocal() {
+    return new TemplateNumber( rat.makeReciprocal() );
+  }
+
+  public static TemplateNumber makeUnity() {
+    return new TemplateNumber( Rational.makeUnity() );
+  }
+
+  public static TemplateNumber makeZero() {
+    return new TemplateNumber( Rational.makeZero() );
   }
 
   public boolean equals(TemplateNumber n) {
-    int a1 = this.intValue();
-    int a2 = n.intValue();
-    return (a1==a2);
-  }
-
-  public int intValue() {
-    if (I==null) {
-      I = new Integer(S);
-    }
-    return I.intValue();
+    return rat.equals(n.rat);
   }
 
   @Override
   public Formula translate(FormulaManager fmgr) {
-  	return fmgr.makeNumber(S);
+  	return fmgr.makeNumber(rat.toString());
   }
-
 
   @Override
   public String toString() {
-    return Integer.toString(intValue());
+    return rat.toString();
   }
-  /*
-  public String toString() {
-    String s = null;
-    if (S!=null) {
-      s = S;
-    } else {
-      s = I.toString();
-    }
-    return s;
-  }
-  */
 
 }

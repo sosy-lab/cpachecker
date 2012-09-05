@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.cpa.loopstack;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
@@ -49,11 +49,11 @@ public class LoopstackCPA extends AbstractCPA {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFANode pNode) {
-    if (pNode instanceof CFAFunctionDefinitionNode) {
+  public AbstractState getInitialState(CFANode pNode) {
+    if (pNode instanceof FunctionEntryNode) {
       // shortcut for the common case, a function start node can never be in a loop
       // (loops don't span across functions)
-      return new LoopstackElement();
+      return new LoopstackState();
     }
 
     Loop loop = null;
@@ -64,11 +64,11 @@ public class LoopstackCPA extends AbstractCPA {
       loop = l;
     }
 
-    LoopstackElement e = new LoopstackElement(); // the bottom element of the stack
+    LoopstackState e = new LoopstackState(); // the bottom element of the stack
 
     if (loop != null) {
       // if loop is present, push one element on the stack for it
-      e = new LoopstackElement(e, loop, 0, false);
+      e = new LoopstackState(e, loop, 0, false);
     }
     return e;
   }

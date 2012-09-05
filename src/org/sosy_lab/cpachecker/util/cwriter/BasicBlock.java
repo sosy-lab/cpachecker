@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,14 +26,14 @@ package org.sosy_lab.cpachecker.util.cwriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 
 class BasicBlock {
 
   private static final String SINGLE_INDENT = "  ";
 
-  // element id of the art element that has the conditional statement
-  private final int elementId;
+  // element id of the arg element that has the conditional statement
+  private final int stateId;
   // true for if, false for else
   private boolean condition;
   // was this condition closed by another merge node before?
@@ -44,21 +44,21 @@ class BasicBlock {
   private final List<Object> codeList;
 
   public BasicBlock(int pElementId, String pFunctionName) {
-    elementId = pElementId;
+    stateId = pElementId;
     codeList = new ArrayList<Object>();
     firstCodeLine = pFunctionName;
   }
 
-  public BasicBlock(int pElementId, AssumeEdge pEdge, String pConditionString) {
-    elementId = pElementId;
+  public BasicBlock(int pElementId, CAssumeEdge pEdge, String pConditionString) {
+    stateId = pElementId;
     codeList = new ArrayList<Object>();
     boolean truthAssumption = pEdge.getTruthAssumption();
     condition = truthAssumption;
     firstCodeLine = pConditionString;
   }
 
-  public int getElementId() {
-    return elementId;
+  public int getStateId() {
+    return stateId;
   }
 
   public boolean isCondition() {
@@ -114,6 +114,6 @@ class BasicBlock {
 
   @Override
   public String toString() {
-    return "Element id: " + elementId + " Condition: " + condition + " .. is closed " + isClosedBefore;
+    return "Element id: " + stateId + " Condition: " + condition + " .. is closed " + isClosedBefore;
   }
 }

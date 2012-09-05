@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -74,6 +74,11 @@ class NativeApi {
 
     // wrappers for some of the native methods with a different number
     // of arguments
+    public static long msat_declare_uif(long e, String name, int out_type,
+                                       int[] args_types) {
+      return msat_declare_uif(e, name, out_type, args_types.length, args_types);
+    }
+
     public static int msat_all_sat(long e, long[] important,
                                    AllSatModelCallback func) {
         return msat_all_sat(e, important, important.length, func, 0);
@@ -94,11 +99,6 @@ class NativeApi {
         return msat_get_theory_lemmas(e, 0);
     }
 
-    public static int msat_tcc_all_sat(long e, long[] important,
-                                       AllSatModelCallback func) {
-        return msat_tcc_all_sat(e, important, important.length, func, 0);
-    }
-
     public static long msat_get_interpolant(long e, int[] groups_of_a) {
         return msat_get_interpolant(e, groups_of_a, groups_of_a.length);
     }
@@ -110,7 +110,7 @@ class NativeApi {
     public static native void msat_destroy_env(long e);
     public static native int msat_set_option(long e, String option, String value);
     public static native long msat_declare_variable(long e, String name, int type);
-    public static native long msat_declare_uif(long e, String name, int out_type, int num_args, int[] args_types);
+    private static native long msat_declare_uif(long e, String name, int out_type, int num_args, int[] args_types);
     public static native long msat_make_true(long e);
     public static native long msat_make_false(long e);
     public static native long msat_make_iff(long e, long t1, long t2);
@@ -244,21 +244,6 @@ class NativeApi {
     public static native void msat_destroy_model_iterator(long i);
     private static native long[] msat_get_theory_lemmas(long e, int out);
     public static native long msat_get_unsat_core(long e);
-    public static native long msat_create_tcc_env(long e, int non_chrono_backtracking);
-    public static native void msat_destroy_tcc_env(long e);
-    public static native int msat_tcc_add_theory(long e, int t);
-    public static native int msat_tcc_add_constraint(long e, long atom);
-    public static native int msat_tcc_assert_formula(long e, long formula);
-    public static native void msat_tcc_assume(long e, long atom, int positive);
-    public static native void msat_tcc_undo(long e, long atom);
-    public static native void msat_tcc_undo_all(long e);
-    public static native int msat_tcc_check(long e, int approx, long[] to_undo);
-    public static native int msat_tcc_get_value(long e, long atom);
-    public static native int msat_tcc_get_reason(long e, long atom, long[] reason);
-    public static native int msat_tcc_has_implied(long e);
-    public static native int msat_tcc_get_implied(long e, long[] implied);
-    public static native int msat_tcc_solve(long e, long[] to_undo);
-    private static native int msat_tcc_all_sat(long e, long[] important, int num_important, AllSatModelCallback func, int user_data);
     public static native int msat_init_interpolation(long e);
     public static native int msat_create_itp_group(long e);
     public static native int msat_set_itp_group(long e, int group);

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,10 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.composite;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -37,43 +36,40 @@ import com.google.common.collect.ImmutableList;
 
 public class CompositePrecisionAdjustment implements PrecisionAdjustment {
 
-  private final ImmutableList<PrecisionAdjustment> precisionAdjustments;
-  private final ImmutableList<ElementProjectionFunction> elementProjectionFunctions;
-  private final ImmutableList<PrecisionProjectionFunction> precisionProjectionFunctions;
+  protected final ImmutableList<PrecisionAdjustment> precisionAdjustments;
+  protected final ImmutableList<StateProjectionFunction> stateProjectionFunctions;
+  protected final ImmutableList<PrecisionProjectionFunction> precisionProjectionFunctions;
 
-  private final StopOperator stopOperator;
-
-  public CompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments, StopOperator stopOperator) {
+  public CompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments) {
     this.precisionAdjustments = precisionAdjustments;
 
-    ImmutableList.Builder<ElementProjectionFunction> elementProjectionFunctions = ImmutableList.builder();
+    ImmutableList.Builder<StateProjectionFunction> stateProjectionFunctions = ImmutableList.builder();
     ImmutableList.Builder<PrecisionProjectionFunction> precisionProjectionFunctions = ImmutableList.builder();
 
     for (int i = 0; i < precisionAdjustments.size(); i++) {
-      elementProjectionFunctions.add(new ElementProjectionFunction(i));
+      stateProjectionFunctions.add(new StateProjectionFunction(i));
       precisionProjectionFunctions.add(new PrecisionProjectionFunction(i));
     }
-    this.elementProjectionFunctions = elementProjectionFunctions.build();
+    this.stateProjectionFunctions = stateProjectionFunctions.build();
     this.precisionProjectionFunctions = precisionProjectionFunctions.build();
-    this.stopOperator = stopOperator;
   }
 
-  private static class ElementProjectionFunction
-    implements Function<AbstractElement, AbstractElement>
+  protected static class StateProjectionFunction
+    implements Function<AbstractState, AbstractState>
   {
     private final int dimension;
 
-    public ElementProjectionFunction(int d) {
+    public StateProjectionFunction(int d) {
       dimension = d;
     }
 
     @Override
-    public AbstractElement apply(AbstractElement from) {
-      return ((CompositeElement)from).get(dimension);
+    public AbstractState apply(AbstractState from) {
+      return ((CompositeState)from).get(dimension);
     }
   }
 
-  private static class PrecisionProjectionFunction
+  protected static class PrecisionProjectionFunction
   implements Function<Precision, Precision>
   {
     private final int dimension;
@@ -89,18 +85,18 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment#prec(org.sosy_lab.cpachecker.core.interfaces.AbstractElement, org.sosy_lab.cpachecker.core.interfaces.Precision, java.util.Collection)
+   * @see org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment#prec(org.sosy_lab.cpachecker.core.interfaces.AbstractState, org.sosy_lab.cpachecker.core.interfaces.Precision, java.util.Collection)
    */
   @Override
-  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement,
+  public Triple<AbstractState, Precision, Action> prec(AbstractState pElement,
                                                Precision pPrecision,
                                                UnmodifiableReachedSet pElements) throws CPAException {
-    CompositeElement comp = (CompositeElement) pElement;
+    CompositeState comp = (CompositeState) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
-    assert (comp.getElements().size() == prec.getPrecisions().size());
-    int dim = comp.getElements().size();
+    assert (comp.getWrappedStates().size() == prec.getPrecisions().size());
+    int dim = comp.getWrappedStates().size();
 
-    ImmutableList.Builder<AbstractElement> outElements = ImmutableList.builder();
+    ImmutableList.Builder<AbstractState> outElements = ImmutableList.builder();
     ImmutableList.Builder<Precision> outPrecisions = ImmutableList.builder();
 
     boolean modified = false;
@@ -108,12 +104,12 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
 
     for (int i = 0; i < dim; ++i) {
       UnmodifiableReachedSet slice =
-        new UnmodifiableReachedSetView(pElements, elementProjectionFunctions.get(i), precisionProjectionFunctions.get(i));
+        new UnmodifiableReachedSetView(pElements, stateProjectionFunctions.get(i), precisionProjectionFunctions.get(i));
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
-      AbstractElement oldElement = comp.get(i);
+      AbstractState oldElement = comp.get(i);
       Precision oldPrecision = prec.get(i);
-      Triple<AbstractElement,Precision, Action> out = precisionAdjustment.prec(oldElement, oldPrecision, slice);
-      AbstractElement newElement = out.getFirst();
+      Triple<AbstractState,Precision, Action> out = precisionAdjustment.prec(oldElement, oldPrecision, slice);
+      AbstractState newElement = out.getFirst();
       Precision newPrecision = out.getSecond();
       if (out.getThird() == Action.BREAK) {
         action = Action.BREAK;
@@ -127,20 +123,10 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
       outPrecisions.add(newPrecision);
     }
 
-    AbstractElement outElement = modified ? new CompositeElement(outElements.build())     : pElement;
+    AbstractState outElement = modified ? new CompositeState(outElements.build())     : pElement;
     Precision outPrecision     = modified ? new CompositePrecision(outPrecisions.build()) : pPrecision;
 
-    if (action == Action.BREAK) {
-      // it would be nice if we could just check the elements with the same
-      // location and not need to check the whole reached set,
-      // but this is not possible due to the projected reached set
-      if (stopOperator.stop(outElement, pElements.getReached(), outPrecision)) {
-        // don't signal BREAK for covered elements
-        action = Action.CONTINUE;
-      }
-    }
-
-    return new Triple<AbstractElement, Precision, Action>(outElement, outPrecision, action);
+    return Triple.of(outElement, outPrecision, action);
   }
 
 }

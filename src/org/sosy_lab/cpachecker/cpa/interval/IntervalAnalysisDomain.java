@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,25 +24,25 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public class IntervalAnalysisDomain implements AbstractDomain
 {
     /* (non-Javadoc)
-     * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#isLessOrEqual(org.sosy_lab.cpachecker.core.interfaces.AbstractElement, org.sosy_lab.cpachecker.core.interfaces.AbstractElement)
+     * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#isLessOrEqual(org.sosy_lab.cpachecker.core.interfaces.AbstractState, org.sosy_lab.cpachecker.core.interfaces.AbstractState)
      */
     @Override
-    public boolean isLessOrEqual(AbstractElement currentAbstractElement, AbstractElement reachedAbstractElement)
+    public boolean isLessOrEqual(AbstractState currentAbstractState, AbstractState reachedAbstractState)
     {
-      return ((IntervalAnalysisElement)currentAbstractElement).isLessOrEqual((IntervalAnalysisElement)reachedAbstractElement);
+      return ((IntervalAnalysisState)currentAbstractState).isLessOrEqual((IntervalAnalysisState)reachedAbstractState);
     }
 
     /* (non-Javadoc)
-     * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#join(org.sosy_lab.cpachecker.core.interfaces.AbstractElement, org.sosy_lab.cpachecker.core.interfaces.AbstractElement)
+     * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#join(org.sosy_lab.cpachecker.core.interfaces.AbstractState, org.sosy_lab.cpachecker.core.interfaces.AbstractState)
      */
     @Override
-    public AbstractElement join(AbstractElement currentAbstractElement, AbstractElement reachedAbstractElement)
+    public AbstractState join(AbstractState currentAbstractState, AbstractState reachedAbstractState)
     {
-      return ((IntervalAnalysisElement)currentAbstractElement).join((IntervalAnalysisElement)reachedAbstractElement);
+      return ((IntervalAnalysisState)currentAbstractState).join((IntervalAnalysisState)reachedAbstractState);
     }
 }

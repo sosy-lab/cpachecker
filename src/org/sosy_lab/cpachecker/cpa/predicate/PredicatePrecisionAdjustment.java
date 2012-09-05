@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,12 +29,12 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.ComputeAbstractionElement;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -62,29 +62,28 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Triple<AbstractElement, Precision, Action> prec(
-      AbstractElement pElement, Precision pPrecision,
+  public Triple<AbstractState, Precision, Action> prec(
+      AbstractState pElement, Precision pPrecision,
       UnmodifiableReachedSet pElements) {
 
     totalPrecTime.start();
 
-    if (pElement instanceof ComputeAbstractionElement) {
-      ComputeAbstractionElement element = (ComputeAbstractionElement)pElement;
+    if (pElement instanceof ComputeAbstractionState) {
+      ComputeAbstractionState element = (ComputeAbstractionState)pElement;
       PredicatePrecision precision = (PredicatePrecision)pPrecision;
 
       pElement = computeAbstraction(element, precision);
     }
 
     totalPrecTime.stop();
-    return new Triple<AbstractElement, Precision, Action>(
-        pElement, pPrecision, Action.CONTINUE);
+    return Triple.of(pElement, pPrecision, Action.CONTINUE);
   }
 
   /**
    * Compute an abstraction.
    */
-  private AbstractElement computeAbstraction(
-      ComputeAbstractionElement element,
+  private AbstractState computeAbstraction(
+      ComputeAbstractionState element,
       PredicatePrecision precision) {
 
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
@@ -116,7 +115,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // create new empty path formula
     PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
-    return PredicateAbstractElement.abstractionElement(newPathFormula, newAbstractionFormula);
+    return PredicateAbstractState.abstractionState(newPathFormula, newAbstractionFormula);
   }
 
   protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -38,10 +38,10 @@ public class AssumptionStorageDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) {
+  public AbstractState join(AbstractState pElement1, AbstractState pElement2) {
 
-    AssumptionStorageElement storageElement1= (AssumptionStorageElement)pElement1;
-    AssumptionStorageElement storageElement2 = (AssumptionStorageElement)pElement2;
+    AssumptionStorageState storageElement1= (AssumptionStorageState)pElement1;
+    AssumptionStorageState storageElement2 = (AssumptionStorageState)pElement2;
 
     // create the disjunction of the stop formulas
     // however, if one of them is true, we would loose the information from the other
@@ -57,14 +57,14 @@ public class AssumptionStorageDomain implements AbstractDomain {
       newStopFormula = formulaManager.makeOr(stopFormula1, stopFormula2);
     }
 
-    return new AssumptionStorageElement(
+    return new AssumptionStorageState(
         formulaManager.makeAnd(storageElement1.getAssumption(),
                                storageElement2.getAssumption()),
         newStopFormula);
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractElement pElement1, AbstractElement pElement2) {
+  public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) {
     throw new UnsupportedOperationException();
   }
 }

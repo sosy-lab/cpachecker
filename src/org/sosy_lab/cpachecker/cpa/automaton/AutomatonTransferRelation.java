@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static com.google.common.base.Predicates.instanceOf;
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,8 +39,8 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
@@ -67,11 +70,11 @@ class AutomatonTransferRelation implements TransferRelation {
   }
 
   /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#getAbstractSuccessors(org.sosy_lab.cpachecker.core.interfaces.AbstractElement, org.sosy_lab.cpachecker.core.interfaces.Precision, org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge)
+   * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#getAbstractSuccessors(org.sosy_lab.cpachecker.core.interfaces.AbstractState, org.sosy_lab.cpachecker.core.interfaces.Precision, org.sosy_lab.cpachecker.cfa.model.CFAEdge)
    */
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors(
-                      AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+                      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
                       throws CPATransferException {
 
     Preconditions.checkArgument(pElement instanceof AutomatonState);
@@ -85,7 +88,7 @@ class AutomatonTransferRelation implements TransferRelation {
         return Collections.singleton(top);
       }
       if (! (pElement instanceof AutomatonState)) {
-        throw new IllegalArgumentException("Cannot getAbstractSuccessor for non-AutomatonState AbstractElements.");
+        throw new IllegalArgumentException("Cannot getAbstractSuccessor for non-AutomatonState AbstractStates.");
       }
 
       AutomatonState lCurrentAutomatonState = (AutomatonState)pElement;
@@ -104,8 +107,9 @@ class AutomatonTransferRelation implements TransferRelation {
    *
    * If the state is a NonDet-State multiple following states may be returned.
    * If the only following state is BOTTOM an empty set is returned.
+   * @throws CPATransferException
    */
-  private Collection<? extends AbstractElement> getFollowStates(AutomatonState state, List<AbstractElement> otherElements, CFAEdge edge, boolean strengthen) {
+  private Collection<? extends AbstractState> getFollowStates(AutomatonState state, List<AbstractState> otherElements, CFAEdge edge, boolean failOnUnknownMatch) throws CPATransferException {
     Preconditions.checkArgument(!(state instanceof AutomatonUnknownState));
     if (state == cpa.getBottomState()) {
       return Collections.emptySet();
@@ -116,7 +120,7 @@ class AutomatonTransferRelation implements TransferRelation {
       return Collections.singleton(state);
     }
 
-    Collection<AbstractElement> lSuccessors = new HashSet<AbstractElement>(2);
+    Collection<AbstractState> lSuccessors = new HashSet<AbstractState>(2);
     AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(state.getVars(), otherElements, edge, logger);
     boolean edgeMatched = false;
     boolean nonDetState = state.getInternalState().isNonDetState();
@@ -133,8 +137,8 @@ class AutomatonTransferRelation implements TransferRelation {
       ResultValue<Boolean> match = t.match(exprArgs);
       matchTime.stop();
       if (match.canNotEvaluate()) {
-        if (strengthen) {
-          logger.log(Level.INFO, match.getFailureMessage() +" IN " + match.getFailureOrigin());
+        if (failOnUnknownMatch) {
+          throw new CPATransferException("Automaton transition condition could not be evaluated: " + match.getFailureMessage());
         }
         // if one transition cannot be evaluated the evaluation must be postponed until enough information is available
         return Collections.singleton(new AutomatonUnknownState(state));
@@ -146,14 +150,17 @@ class AutomatonTransferRelation implements TransferRelation {
           assertionsTime.stop();
 
           if (assertionsHold.canNotEvaluate()) {
-            if (strengthen) {
-              logger.log(Level.INFO, match.getFailureMessage() +" IN " + match.getFailureOrigin());
+            if (failOnUnknownMatch) {
+              throw new CPATransferException("Automaton transition assertions could not be evaluated: " + assertionsHold.getFailureMessage());
             }
             // cannot yet be evaluated
             return Collections.singleton(new AutomatonUnknownState(state));
 
           } else if (assertionsHold.getValue()) {
             if (!t.canExecuteActionsOn(exprArgs)) {
+              if (failOnUnknownMatch) {
+                throw new CPATransferException("Automaton transition action could not be executed");
+              }
               // cannot yet execute, goto UnknownState
               return Collections.singleton(new AutomatonUnknownState(state));
             }
@@ -165,7 +172,7 @@ class AutomatonTransferRelation implements TransferRelation {
           } else {
             // matching transitions, but unfulfilled assertions: goto error state
             AutomatonState errorState = AutomatonState.automatonStateFactory(Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa);
-            logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + edge.getRawStatement() + "\"");
+            logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + edge.getDescription() + "\"");
             lSuccessors.add(errorState);
           }
 
@@ -211,11 +218,11 @@ class AutomatonTransferRelation implements TransferRelation {
   }
 
   /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#strengthen(org.sosy_lab.cpachecker.core.interfaces.AbstractElement, java.util.List, org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge, org.sosy_lab.cpachecker.core.interfaces.Precision)
+   * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#strengthen(org.sosy_lab.cpachecker.core.interfaces.AbstractState, java.util.List, org.sosy_lab.cpachecker.cfa.model.CFAEdge, org.sosy_lab.cpachecker.core.interfaces.Precision)
    */
   @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement pElement,
-                                    List<AbstractElement> pOtherElements,
+  public Collection<? extends AbstractState> strengthen(AbstractState pElement,
+                                    List<AbstractState> pOtherElements,
                                     CFAEdge pCfaEdge, Precision pPrecision)
                                     throws CPATransferException {
     if (! (pElement instanceof AutomatonUnknownState)) {
@@ -223,14 +230,9 @@ class AutomatonTransferRelation implements TransferRelation {
     } else {
       totalStrengthenTime.start();
       AutomatonUnknownState lUnknownState = (AutomatonUnknownState)pElement;
-      Collection<? extends AbstractElement> lSuccessors = getFollowStates(lUnknownState.getPreviousState(), pOtherElements, pCfaEdge, true);
+      Collection<? extends AbstractState> lSuccessors = getFollowStates(lUnknownState.getPreviousState(), pOtherElements, pCfaEdge, true);
       totalStrengthenTime.stop();
-      for (AbstractElement succ : lSuccessors) {
-        if (succ instanceof AutomatonUnknownState) {
-          // TODO this should give more details
-          throw new CPATransferException("Automaton transition could not be matched against CFA edge");
-        }
-      }
+      assert !from(lSuccessors).anyMatch(instanceOf(AutomatonUnknownState.class));
       return lSuccessors;
     }
   }

@@ -31,24 +31,26 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.Iterables;
 
@@ -137,23 +139,23 @@ public class ARTToCTranslator {
   }
 
   private static class ARTEdge {
-    private final ARTElement parent;
-    private final ARTElement child;
+    private final ARGState parent;
+    private final ARGState child;
     private final CFAEdge cfaEdge;
     private final CompoundStatement currentBlock;
 
-    public ARTEdge(ARTElement pParent, ARTElement pChild, CFAEdge pCfaEdge, CompoundStatement pCurrentBlock) {
+    public ARTEdge(ARGState pParent, ARGState pChild, CFAEdge pCfaEdge, CompoundStatement pCurrentBlock) {
       parent = pParent;
       child = pChild;
       cfaEdge = pCfaEdge;
       currentBlock = pCurrentBlock;
     }
 
-    public ARTElement getParentElement() {
+    public ARGState getParentElement() {
       return parent;
     }
 
-    public ARTElement getChildElement() {
+    public ARGState getChildElement() {
       return child;
     }
 
@@ -167,14 +169,14 @@ public class ARTToCTranslator {
   }
 
   private final List<String> globalDefinitionsList = new ArrayList<String>();
-  private final Set<ARTElement> discoveredElements = new HashSet<ARTElement>();
-  private final Set<ARTElement> mergeElements = new HashSet<ARTElement>();
+  private final Set<ARGState> discoveredElements = new HashSet<ARGState>();
+  private final Set<ARGState> mergeElements = new HashSet<ARGState>();
   private FunctionBody mainFunctionBody;
-  private static Collection<AbstractElement> reached;
+  private static Collection<AbstractState> reached;
 
   private ARTToCTranslator() { }
 
-  public static String translateART(ARTElement artRoot, ReachedSet pReached) {
+  public static String translateART(ARGState artRoot, ReachedSet pReached) {
     reached = pReached.getReached();
     ARTToCTranslator translator = new ARTToCTranslator();
 
@@ -196,7 +198,7 @@ public class ARTToCTranslator {
     return buffer.toString();
   }
 
-  private void translate(ARTElement rootElement) {
+  private void translate(ARGState rootElement) {
     // waitlist for the edges to be processed
     Deque<ARTEdge> waitlist = new ArrayDeque<ARTEdge>(); //TODO: used to be sorted list and I don't know why yet ;-)
 
@@ -209,31 +211,31 @@ public class ARTToCTranslator {
     }
   }
 
-  private void startMainFunction(ARTElement firstFunctionElement) {
-    FunctionDefinitionNode functionStartNode = (FunctionDefinitionNode) firstFunctionElement.retrieveLocationElement().getLocationNode();
-    String lFunctionHeader = functionStartNode.getFunctionDefinition().getRawSignature();
+  private void startMainFunction(ARGState firstFunctionElement) {
+    CFunctionEntryNode functionStartNode = (CFunctionEntryNode) AbstractStates.extractStateByType(firstFunctionElement, LocationState.class).getLocationNode();
+    String lFunctionHeader = functionStartNode.getFunctionDefinition().toASTString();
     mainFunctionBody = new FunctionBody(lFunctionHeader, new CompoundStatement());
   }
 
-  private void getRelevantChildrenOfElement(ARTElement currentElement, Deque<ARTEdge> waitlist, CompoundStatement currentBlock) {
+  private void getRelevantChildrenOfElement(ARGState currentElement, Deque<ARTEdge> waitlist, CompoundStatement currentBlock) {
     discoveredElements.add(currentElement);
     // generate label for element and add to current block if needed
     generateLabel(currentElement, currentBlock);
 
     // find the next elements to add to the waitlist
-    Set<ARTElement> childrenOfElement = currentElement.getChildren();
+    Set<ARGState> childrenOfElement = currentElement.getChildren();
 
     if (childrenOfElement.size() == 0) {
       // if there is no child of the element, maybe it was covered by other?
       if(currentElement.isCovered()) {
         //it was indeed covered; jump to element it was covered by
-        currentBlock.addStatement(new SimpleStatement("goto label_" + currentElement.getCoveringElement().getElementId() + ";"));
+        currentBlock.addStatement(new SimpleStatement("goto label_" + currentElement.getCoveringState().getStateId() + ";"));
       } else {
         currentBlock.addStatement(new SimpleStatement("return 1;"));
       }
     } else if (childrenOfElement.size() == 1) {
       // get the next ART element, create a new edge using the same stack and add it to the waitlist
-      ARTElement child = Iterables.getOnlyElement(childrenOfElement);
+      ARGState child = Iterables.getOnlyElement(childrenOfElement);
       CFAEdge edgeToChild = currentElement.getEdgeToChild(child);
       pushToWaitlist(waitlist, currentElement, child, edgeToChild, currentBlock);
     } else if (childrenOfElement.size() > 1) {
@@ -243,10 +245,10 @@ public class ARTToCTranslator {
       //collect edges of condition branch
       ArrayList<ARTEdge> result = new ArrayList<ARTEdge>(2);
       int ind = 0;
-      for (ARTElement child : childrenOfElement) {
+      for (ARGState child : childrenOfElement) {
         CFAEdge edgeToChild = currentElement.getEdgeToChild(child);
-        assert edgeToChild instanceof AssumeEdge : "something wrong: branch in ART without condition: " + edgeToChild;
-        AssumeEdge assumeEdge = (AssumeEdge)edgeToChild;
+        assert edgeToChild instanceof CAssumeEdge : "something wrong: branch in ART without condition: " + edgeToChild;
+        CAssumeEdge assumeEdge = (CAssumeEdge)edgeToChild;
         boolean truthAssumption = assumeEdge.getTruthAssumption();
 
         String cond = "";
@@ -261,9 +263,9 @@ public class ARTToCTranslator {
 
         if(ind == 0) {
           if (truthAssumption) {
-            cond += "(" + assumeEdge.getExpression().getRawSignature() + ")";
+            cond += "(" + assumeEdge.getExpression().toASTString() + ")";
           } else {
-            cond += "(!(" + assumeEdge.getExpression().getRawSignature() + "))";
+            cond += "(!(" + assumeEdge.getExpression().toASTString() + "))";
           }
         }
 
@@ -282,7 +284,7 @@ public class ARTToCTranslator {
     }
   }
 
-  private void pushToWaitlist(Deque<ARTEdge> pWaitlist, ARTElement pCurrentElement, ARTElement pChild, CFAEdge pEdgeToChild, CompoundStatement pCurrentBlock) {
+  private void pushToWaitlist(Deque<ARTEdge> pWaitlist, ARGState pCurrentElement, ARGState pChild, CFAEdge pEdgeToChild, CompoundStatement pCurrentBlock) {
     assert (!pChild.isDestroyed());
     pWaitlist.push(new ARTEdge(pCurrentElement, pChild, pEdgeToChild, pCurrentBlock));
   }
@@ -294,16 +296,16 @@ public class ARTToCTranslator {
     return newBlock;
   }
 
-  private void generateLabel(ARTElement currentElement, CompoundStatement block) {
+  private void generateLabel(ARGState currentElement, CompoundStatement block) {
     if(!currentElement.getCoveredByThis().isEmpty() || mergeElements.contains(currentElement)) {
       //this element covers others; they may want to jump to it
-      block.addStatement(new SimpleStatement("label_"+currentElement.getElementId()+":; "));
+      block.addStatement(new SimpleStatement("label_" + currentElement.getStateId() + ":; "));
     }
   }
 
   private void handleEdge(ARTEdge nextEdge, Deque<ARTEdge> waitlist) {
-    ARTElement parentElement = nextEdge.getParentElement();
-    ARTElement childElement = nextEdge.getChildElement();
+    ARGState parentElement = nextEdge.getParentElement();
+    ARGState childElement = nextEdge.getChildElement();
     CFAEdge edge = nextEdge.getCfaEdge();
     CompoundStatement currentBlock = nextEdge.getCurrentBlock();
 
@@ -318,31 +320,31 @@ public class ARTToCTranslator {
       getRelevantChildrenOfElement(childElement, waitlist, currentBlock);
     } else {
       //this element was already processed and code generated somewhere; jump to it
-      currentBlock.addStatement(new SimpleStatement("goto label_" + childElement.getElementId() + ";"));
+      currentBlock.addStatement(new SimpleStatement("goto label_" + childElement.getStateId() + ";"));
     }
   }
 
 
-  private CompoundStatement processEdge(ARTElement currentElement, ARTElement childElement, CFAEdge edge, CompoundStatement currentBlock) {
-    if (edge instanceof FunctionCallEdge) {
+  private CompoundStatement processEdge(ARGState currentElement, ARGState childElement, CFAEdge edge, CompoundStatement currentBlock) {
+    if (edge instanceof CFunctionCallEdge) {
       // if this is a function call edge we need to inline it
       currentBlock = processFunctionCall(edge, currentBlock);
     }
-    else if (edge instanceof ReturnStatementEdge) {
-      ReturnStatementEdge returnEdge = (ReturnStatementEdge)edge;
+    else if (edge instanceof CReturnStatementEdge) {
+      CReturnStatementEdge returnEdge = (CReturnStatementEdge)edge;
 
       if(returnEdge.getExpression() != null) {
-        addGlobalReturnValueDecl(returnEdge, childElement.getElementId());
+        addGlobalReturnValueDecl(returnEdge, childElement.getStateId());
 
-        String retval = returnEdge.getExpression().getRawSignature();
-        String returnVar = " __return_" + childElement.getElementId();
+        String retval = returnEdge.getExpression().toASTString();
+        String returnVar = " __return_" + childElement.getStateId();
         currentBlock.addStatement(new SimpleStatement(returnVar + " = " + retval + ";"));
       }
     }
-    else if (edge instanceof FunctionReturnEdge) {
+    else if (edge instanceof CFunctionReturnEdge) {
       // assumes that ReturnStateEdge is followed by FunctionReturnEdge
-      FunctionReturnEdge returnEdge = (FunctionReturnEdge)edge;
-      currentBlock = processReturnStatementCall(returnEdge.getSummaryEdge(), currentBlock, currentElement.getElementId());
+      CFunctionReturnEdge returnEdge = (CFunctionReturnEdge)edge;
+      currentBlock = processReturnStatementCall(returnEdge.getSummaryEdge(), currentBlock, currentElement.getStateId());
     } else {
       String statement = processSimpleEdge(edge);
       if(!statement.isEmpty()) {
@@ -352,30 +354,32 @@ public class ARTToCTranslator {
 
     if (childElement.isTarget()) {
       System.out.println("HALT for line no " + edge.getLineNumber());
-      currentBlock.addStatement(new SimpleStatement("HALT" + childElement.getElementId() + ": goto HALT" + childElement.getElementId() + ";"));
+      currentBlock.addStatement(new SimpleStatement("HALT" + childElement.getStateId() + ": goto HALT" + childElement.getStateId() + ";"));
     }
 
     return currentBlock;
   }
 
-  private void addGlobalReturnValueDecl(ReturnStatementEdge pReturnEdge, int pElementId) {
+  private void addGlobalReturnValueDecl(CReturnStatementEdge pReturnEdge, int pElementId) {
     //derive return type of function
     String returnType;
 
+    String varName = "__return_" + pElementId;
     if(pReturnEdge.getSuccessor().getNumLeavingEdges() == 0) {
       //default to int
-      returnType = "int ";
+      globalDefinitionsList.add("int " + varName + ";");
     } else {
-      FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge)pReturnEdge.getSuccessor().getLeavingEdge(0);
+      CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge)pReturnEdge.getSuccessor().getLeavingEdge(0);
       CFANode functionDefNode = functionReturnEdge.getSummaryEdge().getPredecessor();
       assert functionDefNode.getNumLeavingEdges() == 1;
-      assert functionDefNode.getLeavingEdge(0) instanceof FunctionCallEdge;
-      FunctionCallEdge callEdge = (FunctionCallEdge)functionDefNode.getLeavingEdge(0);
-      FunctionDefinitionNode fn = callEdge.getSuccessor();
-      returnType = fn.getFunctionDefinition().getDeclSpecifier().getReturnType().toASTString();
+      assert functionDefNode.getLeavingEdge(0) instanceof CFunctionCallEdge;
+      CFunctionCallEdge callEdge = (CFunctionCallEdge)functionDefNode.getLeavingEdge(0);
+      CFunctionEntryNode fn = callEdge.getSuccessor();
+      returnType = fn.getFunctionDefinition().getType().getReturnType().toASTString(varName);
+      globalDefinitionsList.add(returnType + ";");
     }
 
-    globalDefinitionsList.add(returnType + "__return_" + pElementId + ";");
+
   }
 
   private String processSimpleEdge(CFAEdge pCFAEdge) {
@@ -395,14 +399,14 @@ public class ARTToCTranslator {
     }
 
     case StatementEdge: {
-      StatementEdge lStatementEdge = (StatementEdge)pCFAEdge;
-      return lStatementEdge.getStatement().getRawSignature() + ";";
+      CStatementEdge lStatementEdge = (CStatementEdge)pCFAEdge;
+      return lStatementEdge.getStatement().toASTString() + ";";
     }
 
     case DeclarationEdge: {
-      DeclarationEdge lDeclarationEdge = (DeclarationEdge)pCFAEdge;
+      CDeclarationEdge lDeclarationEdge = (CDeclarationEdge)pCFAEdge;
 
-      if (lDeclarationEdge.isGlobal()) {
+      if (lDeclarationEdge.getDeclaration().isGlobal()) {
         globalDefinitionsList.add(lDeclarationEdge.getRawStatement());
       } else {
         return lDeclarationEdge.getRawStatement();
@@ -430,26 +434,26 @@ public class ARTToCTranslator {
     CompoundStatement newBlock = new CompoundStatement(currentBlock);
     currentBlock.addStatement(newBlock);
 
-    FunctionCallEdge lFunctionCallEdge = (FunctionCallEdge)pCFAEdge;
+    CFunctionCallEdge lFunctionCallEdge = (CFunctionCallEdge)pCFAEdge;
 
-    List<IASTExpression> actualParams = lFunctionCallEdge.getArguments();
-    FunctionDefinitionNode fn = lFunctionCallEdge.getSuccessor();
-    List<IASTParameterDeclaration> formalParams = fn.getFunctionParameters();
+    List<CExpression> actualParams = lFunctionCallEdge.getArguments();
+    CFunctionEntryNode fn = lFunctionCallEdge.getSuccessor();
+    List<CParameterDeclaration> formalParams = fn.getFunctionParameters();
 
     List<Statement> actualParamAssignStatements = new ArrayList<Statement>();
     List<Statement> formalParamAssignStatements = new ArrayList<Statement>();
 
     int i = 0;
-    for (IASTParameterDeclaration formalParam : formalParams) {
+    for (CParameterDeclaration formalParam : formalParams) {
       // get formal parameter name
-      String formalParamSignature = formalParam.getRawSignature();
-      String actualParamSignature = actualParams.get(i++).getRawSignature();
+      String formalParamSignature = formalParam.toASTString();
+      String actualParamSignature = actualParams.get(i++).toASTString();
 
       // create temp variable to avoid name clashes
       String tempVariableName = "__tmp_" + getFreshIndex();
-      String tempVariableType = formalParam.getDeclSpecifier().toASTString();
+      String tempVariableType = formalParam.getType().toASTString(tempVariableName);
 
-      actualParamAssignStatements.add(new SimpleStatement(tempVariableType + " " + tempVariableName + " = " + actualParamSignature + ";"));
+      actualParamAssignStatements.add(new SimpleStatement(tempVariableType + " = " + actualParamSignature + ";"));
       formalParamAssignStatements.add(new SimpleStatement(formalParamSignature + " = " + tempVariableName + ";"));
     }
 
@@ -463,16 +467,16 @@ public class ARTToCTranslator {
     return newBlock;
   }
 
-  private CompoundStatement processReturnStatementCall(CallToReturnEdge pEdge, CompoundStatement pCurrentBlock, int id) {
-    IASTFunctionCall retExp = pEdge.getExpression();
-    if(retExp instanceof IASTFunctionCallStatement) {
+  private CompoundStatement processReturnStatementCall(CFunctionSummaryEdge pEdge, CompoundStatement pCurrentBlock, int id) {
+    CFunctionCall retExp = pEdge.getExpression();
+    if (retExp instanceof CFunctionCallStatement) {
       //end of void function, just leave block (no assignment needed)
       return pCurrentBlock.getSurroundingBlock();
-    } else if (retExp instanceof IASTFunctionCallAssignmentStatement) {
-      IASTFunctionCallAssignmentStatement exp = (IASTFunctionCallAssignmentStatement)retExp;
+    } else if (retExp instanceof CFunctionCallAssignmentStatement) {
+      CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
 
       String returnVar = "__return_" + id;
-      String leftHandSide = exp.getLeftHandSide().getRawSignature();
+      String leftHandSide = exp.getLeftHandSide().toASTString();
 
       pCurrentBlock = pCurrentBlock.getSurroundingBlock();
       pCurrentBlock.addStatement(new SimpleStatement(leftHandSide + " = " + returnVar + ";"));

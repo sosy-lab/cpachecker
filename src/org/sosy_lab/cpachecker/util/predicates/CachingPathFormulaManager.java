@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,8 +29,8 @@ import java.util.Map;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -106,6 +106,9 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula pOldFormula) {
+    if (pOldFormula.getFormula() == null) {
+      return delegate.makeEmptyPathFormula(pOldFormula);
+    }
     PathFormula result = emptyFormulaCache.get(pOldFormula);
     if (result == null) {
       result = delegate.makeEmptyPathFormula(pOldFormula);
@@ -132,7 +135,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public Formula buildBranchingFormula(Iterable<ARTElement> pElementsOnPath)
+  public Formula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
       throws CPATransferException {
     return delegate.buildBranchingFormula(pElementsOnPath);
   }

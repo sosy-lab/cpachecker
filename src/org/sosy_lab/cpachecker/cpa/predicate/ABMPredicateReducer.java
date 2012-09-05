@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,8 +34,8 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
@@ -44,10 +44,8 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -60,14 +58,12 @@ public class ABMPredicateReducer implements Reducer {
   static final Timer expandTimer = new Timer();
   static final Timer extractTimer = new Timer();
 
-  private final RegionManager rmgr;
   private final PathFormulaManager pmgr;
   private final PredicateAbstractionManager pamgr;
   private final RelevantPredicatesComputer relevantComputer;
   private final LogManager logger;
 
   public ABMPredicateReducer(ABMPredicateCPA cpa, RelevantPredicatesComputer pRelevantPredicatesComputer) {
-    this.rmgr = cpa.getRegionManager();
     this.pmgr = cpa.getPathFormulaManager();
     this.pamgr = cpa.getPredicateManager();
     this.logger = cpa.getLogger();
@@ -75,13 +71,13 @@ public class ABMPredicateReducer implements Reducer {
   }
 
   @Override
-  public AbstractElement getVariableReducedElement(
-      AbstractElement pExpandedElement, Block pContext,
+  public AbstractState getVariableReducedState(
+      AbstractState pExpandedState, Block pContext,
       CFANode pLocation) {
 
-    PredicateAbstractElement predicateElement = (PredicateAbstractElement)pExpandedElement;
+    PredicateAbstractState predicateElement = (PredicateAbstractState)pExpandedState;
 
-    if (!predicateElement.isAbstractionElement()) {
+    if (!predicateElement.isAbstractionState()) {
       return predicateElement;
     }
 
@@ -95,62 +91,46 @@ public class ABMPredicateReducer implements Reducer {
       Collection<AbstractionPredicate> removePredicates =
           relevantComputer.getIrrelevantPredicates(pContext, predicates);
 
-      Region newRegion = oldRegion;
-      for (AbstractionPredicate predicate : removePredicates) {
-        newRegion = rmgr.makeExists(newRegion, predicate.getAbstractVariable());
-      }
-
       PathFormula pathFormula = predicateElement.getPathFormula();
       assert pathFormula.getFormula().isTrue();
 
-      Formula newFormula = pamgr.toConcrete(newRegion, pathFormula.getSsa());
+      AbstractionFormula newAbstraction = pamgr.reduce(oldAbstraction, removePredicates, pathFormula.getSsa());
 
-      AbstractionFormula newAbstraction =
-            new AbstractionFormula(newRegion, newFormula, oldAbstraction.getBlockFormula());
-
-      return PredicateAbstractElement.abstractionElement(pathFormula, newAbstraction);
+      return PredicateAbstractState.abstractionState(pathFormula, newAbstraction);
     } finally {
       reduceTimer.stop();
     }
   }
 
   @Override
-  public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, Block pReducedContext,
-      AbstractElement pReducedElement) {
+  public AbstractState getVariableExpandedState(
+      AbstractState pRootState, Block pReducedContext,
+      AbstractState pReducedState) {
 
-    PredicateAbstractElement rootElement = (PredicateAbstractElement)pRootElement;
-    PredicateAbstractElement reducedElement = (PredicateAbstractElement)pReducedElement;
+    PredicateAbstractState rootState = (PredicateAbstractState)pRootState;
+    PredicateAbstractState reducedState = (PredicateAbstractState)pReducedState;
 
-    if (!reducedElement.isAbstractionElement()) { return reducedElement; }
+    if (!reducedState.isAbstractionState()) { return reducedState; }
     //Note: ABM might introduce some additional abstraction if root region is not a cube
     expandTimer.start();
     try {
 
-      Region rootRegion = rootElement.getAbstractionFormula().asRegion();
-      Region reducedRegion = reducedElement.getAbstractionFormula().asRegion();
+      AbstractionFormula rootAbstraction = rootState.getAbstractionFormula();
+      AbstractionFormula reducedAbstraction = reducedState.getAbstractionFormula();
 
-      Collection<AbstractionPredicate> rootPredicates = extractPredicates(rootRegion);
+      Collection<AbstractionPredicate> rootPredicates = extractPredicates(rootAbstraction.asRegion());
       Collection<AbstractionPredicate> relevantRootPredicates =
           relevantComputer.getRelevantPredicates(pReducedContext, rootPredicates);
-      //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedElements region
+      //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
 
-      Region removedInformationRegion = rootRegion;
-      for (AbstractionPredicate predicate : relevantRootPredicates) {
-        removedInformationRegion = rmgr.makeExists(removedInformationRegion,
-                                                   predicate.getAbstractVariable());
-      }
-
-      Region expandedRegion = rmgr.makeAnd(reducedRegion, removedInformationRegion);
-
-      PathFormula oldPathFormula = reducedElement.getPathFormula();
+      PathFormula oldPathFormula = reducedState.getPathFormula();
       assert oldPathFormula.getFormula().isTrue();
       SSAMap oldSSA = oldPathFormula.getSsa();
 
       //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
       //there still should be at least _some_ index for each variable of the abstraction formula.
       SSAMapBuilder builder = oldSSA.builder();
-      SSAMap rootSSA = rootElement.getPathFormula().getSsa();
+      SSAMap rootSSA = rootState.getPathFormula().getSsa();
       for (String var : rootSSA.allVariables()) {
         //if we do not have the index in the reduced map..
         if (oldSSA.getIndex(var) == -1) {
@@ -161,13 +141,10 @@ public class ABMPredicateReducer implements Reducer {
       SSAMap newSSA = builder.build();
       PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA);
 
-      Formula newFormula = pamgr.toConcrete(expandedRegion, newSSA);
-      Formula blockFormula = reducedElement.getAbstractionFormula().getBlockFormula();
-
       AbstractionFormula newAbstractionFormula =
-          new AbstractionFormula(expandedRegion, newFormula, blockFormula);
+          pamgr.expand(reducedAbstraction, rootAbstraction, relevantRootPredicates, newSSA);
 
-      return PredicateAbstractElement.abstractionElement(newPathFormula,
+      return PredicateAbstractState.abstractionState(newPathFormula,
           newAbstractionFormula);
     } finally {
       expandTimer.stop();
@@ -185,9 +162,9 @@ public class ABMPredicateReducer implements Reducer {
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
+  public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
 
-    PredicateAbstractElement element = (PredicateAbstractElement)pElementKey;
+    PredicateAbstractState element = (PredicateAbstractState)pElementKey;
     PredicatePrecision precision = (PredicatePrecision)pPrecisionKey;
 
     return Pair.of(element.getAbstractionFormula().asRegion(), precision);
@@ -205,7 +182,7 @@ public class ABMPredicateReducer implements Reducer {
     PredicatePrecision precision = (PredicatePrecision)pPrecision;
     Pair<Integer, Block> key = Pair.of(precision.getId(), pContext);
     Precision result = reduceCache.get(key);
-    if(result != null) {
+    if (result != null) {
       return result;
     }
 
@@ -218,13 +195,13 @@ public class ABMPredicateReducer implements Reducer {
   public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext, Precision pReducedPrecision) {
     PredicatePrecision rootPrecision = (PredicatePrecision)pRootPrecision;
     PredicatePrecision toplevelPrecision = rootPrecision;
-    if(rootPrecision instanceof ReducedPredicatePrecision) {
+    if (rootPrecision instanceof ReducedPredicatePrecision) {
       toplevelPrecision = ((ReducedPredicatePrecision)rootPrecision).getRootPredicatePrecision();
     }
 
     PredicatePrecision derivedToplevelPrecision = ((ReducedPredicatePrecision)pReducedPrecision).getRootPredicatePrecision();
 
-    if(derivedToplevelPrecision == toplevelPrecision) {
+    if (derivedToplevelPrecision == toplevelPrecision) {
       return pRootPrecision;
     }
 
@@ -262,7 +239,7 @@ public class ABMPredicateReducer implements Reducer {
       this.expandedPredicatePrecision = expandedPredicatePrecision;
       this.context = context;
 
-      if(expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
+      if (expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
         this.rootPredicatePrecision = ((ReducedPredicatePrecision) expandedPredicatePrecision).getRootPredicatePrecision();
       }
       else {
@@ -279,9 +256,9 @@ public class ABMPredicateReducer implements Reducer {
     }
 
     private void computeView() {
-      if(evaluatedPredicateMap == null) {
+      if (evaluatedPredicateMap == null) {
         ReducedPredicatePrecision lExpandedPredicatePrecision = null;
-        if(expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
+        if (expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
           lExpandedPredicatePrecision = (ReducedPredicatePrecision)expandedPredicatePrecision;
         }
 
@@ -289,8 +266,8 @@ public class ABMPredicateReducer implements Reducer {
 
         ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
         Set<CFANode> keySet = lExpandedPredicatePrecision==null?rootPredicatePrecision.getPredicateMap().keySet():lExpandedPredicatePrecision.approximatePredicateMap().keySet();
-        for(CFANode node : keySet) {
-          if(context.getNodes().contains(node)) {
+        for (CFANode node : keySet) {
+          if (context.getNodes().contains(node)) {
             Collection<AbstractionPredicate> set = relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getPredicates(node));
             pmapBuilder.putAll(node, set);
           }
@@ -301,7 +278,7 @@ public class ABMPredicateReducer implements Reducer {
     }
 
     private SetMultimap<CFANode, AbstractionPredicate> approximatePredicateMap() {
-      if(evaluatedPredicateMap == null) {
+      if (evaluatedPredicateMap == null) {
         return rootPredicatePrecision.getPredicateMap();
       } else {
         return evaluatedPredicateMap;
@@ -316,7 +293,7 @@ public class ABMPredicateReducer implements Reducer {
 
     @Override
     public Set<AbstractionPredicate> getGlobalPredicates() {
-      if(evaluatedGlobalPredicates != null) {
+      if (evaluatedGlobalPredicates != null) {
         return evaluatedGlobalPredicates;
       } else {
         return relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getGlobalPredicates());
@@ -325,11 +302,11 @@ public class ABMPredicateReducer implements Reducer {
 
     @Override
     public Set<AbstractionPredicate> getPredicates(CFANode loc) {
-      if(!context.getNodes().contains(loc)) {
+      if (!context.getNodes().contains(loc)) {
         logger.log(Level.WARNING, context, "was left in an unexpected way. Analysis might be unsound.");
       }
 
-      if(evaluatedPredicateMap != null) {
+      if (evaluatedPredicateMap != null) {
         Set<AbstractionPredicate> result = evaluatedPredicateMap.get(loc);
         if (result.isEmpty()) {
           result = evaluatedGlobalPredicates;
@@ -365,7 +342,7 @@ public class ABMPredicateReducer implements Reducer {
 
     @Override
     public String toString() {
-      if(evaluatedPredicateMap != null) {
+      if (evaluatedPredicateMap != null) {
         return evaluatedPredicateMap.toString();
       } else {
         return "ReducedPredicatePrecision (view not computed yet)";
@@ -381,15 +358,15 @@ public class ABMPredicateReducer implements Reducer {
 
     int distance = 0;
 
-    for(AbstractionPredicate p : precision.getGlobalPredicates()) {
-      if(!otherPrecision.getGlobalPredicates().contains(p)) {
+    for (AbstractionPredicate p : precision.getGlobalPredicates()) {
+      if (!otherPrecision.getGlobalPredicates().contains(p)) {
         distance++;
       }
     }
 
-    for(CFANode node : precision.getPredicateMap().keySet()) {
-      for(AbstractionPredicate p : precision.getPredicateMap().get(node)) {
-        if(!otherPrecision.getPredicateMap().get(node).contains(p)) {
+    for (CFANode node : precision.getPredicateMap().keySet()) {
+      for (AbstractionPredicate p : precision.getPredicateMap().get(node)) {
+        if (!otherPrecision.getPredicateMap().get(node).contains(p)) {
           distance++;
         }
       }

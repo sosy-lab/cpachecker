@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,7 +42,7 @@ public class TemplateTrue extends TemplateConstraint {
   public boolean isFalse() {
     return false;
   }
-  
+
   public static boolean isInstance(Object obj) {
     TemplateTrue T = new TemplateTrue();
     return T.getClass().isInstance(obj);
@@ -52,12 +52,12 @@ public class TemplateTrue extends TemplateConstraint {
   public String toString(VariableWriteMode vwm) {
     return "true";
   }
-  
+
   @Override
   public Formula translate(FormulaManager fmgr) {
   	return fmgr.makeTrue();
   }
-  
+
   @Override
   public List<TemplateFormula> extractAtoms(boolean sAE, boolean cO) {
     List<TemplateFormula> atoms = new Vector<TemplateFormula>();

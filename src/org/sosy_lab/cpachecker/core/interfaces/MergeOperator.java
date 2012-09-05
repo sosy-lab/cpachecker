@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,5 +26,5 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface MergeOperator {
-  public AbstractElement merge (AbstractElement element1, AbstractElement element2, Precision precision) throws CPAException;
+  public AbstractState merge (AbstractState state1, AbstractState state2, Precision precision) throws CPAException;
 }

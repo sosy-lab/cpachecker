@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.exceptions;
 
 /**
- * Signals that the check method of a AbstractElement has
+ * Signals that the check method of a AbstractState has
  * been passed an Argument that could not be evaluated.
  */
 public class InvalidQueryException extends CPATransferException {

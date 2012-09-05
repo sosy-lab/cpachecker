@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -163,6 +163,18 @@ public class Purification {
     TemplateTerm T = new TemplateTerm();
     T.setVariable(V);
     return T;
+  }
+
+  @Override
+  public String toString() {
+    String s = "";
+    String t;
+    Set<String> signatures = defs.keySet();
+    for (String sig : signatures) {
+      t = defs.get(sig).toString();
+      s += t+" = "+sig+"\n";
+    }
+    return s;
   }
 
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
@@ -106,7 +106,7 @@ interface AutomatonIntExpr extends AutomatonExpression {
   }
 
   /**
-   * Sends a query-String to an <code>AbstractElement</code> of another analysis and returns the query-Result.
+   * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the query-Result.
    */
   static class CPAQuery implements AutomatonIntExpr {
     private final String cpaName;
@@ -124,9 +124,9 @@ interface AutomatonIntExpr extends AutomatonExpression {
         return new ResultValue<Integer>("Failed to modify queryString \"" + queryString + "\"", "AutomatonIntExpr.CPAQuery");
       }
 
-      for (AbstractElement ae : pArgs.getAbstractElements()) {
-        if (ae instanceof AbstractQueryableElement) {
-          AbstractQueryableElement aqe = (AbstractQueryableElement) ae;
+      for (AbstractState ae : pArgs.getAbstractStates()) {
+        if (ae instanceof AbstractQueryableState) {
+          AbstractQueryableState aqe = (AbstractQueryableState) ae;
           if (aqe.getCPAName().equals(cpaName)) {
             try {
               Object result = aqe.evaluateProperty(modifiedQueryString);
@@ -145,19 +145,19 @@ interface AutomatonIntExpr extends AutomatonExpression {
               } else {
                 pArgs.getLogger().log(Level.WARNING,
                     "Automaton got a non-Numeric value during Query of the "
-                    + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() +
+                    + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
                     ".");
                 return new ResultValue<Integer>("Automaton got a non-Numeric value during Query of the "
-                    + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() +
+                    + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
                     ".", "AutomatonIntExpr.CPAQuery");
               }
             } catch (InvalidQueryException e) {
               pArgs.getLogger().logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() +
+                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
                 ".");
               return new ResultValue<Integer>("Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() +
+                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
                   ".", "AutomatonIntExpr.CPAQuery");
             }
           }
@@ -165,10 +165,10 @@ interface AutomatonIntExpr extends AutomatonExpression {
       }
       pArgs.getLogger().log(Level.WARNING,
           "Did not find the CPA to be queried "
-          + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() +
+          + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
         ".");
       return new ResultValue<Integer>("Did not find the CPA to be queried "
-          + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() +
+          + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
           ".", "AutomatonIntExpr.CPAQuery");
     }
   }

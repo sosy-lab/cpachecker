@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,32 +29,30 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -66,11 +64,11 @@ enum InvariantsTransferRelation implements TransferRelation {
   INSTANCE;
 
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors(
-      AbstractElement pElement, Precision pPrecision, CFAEdge edge)
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState pElement, Precision pPrecision, CFAEdge edge)
       throws CPATransferException {
 
-    InvariantsElement element = (InvariantsElement)pElement;
+    InvariantsState element = (InvariantsState)pElement;
 
     switch (edge.getEdgeType()) {
     case BlankEdge:
@@ -79,19 +77,19 @@ enum InvariantsTransferRelation implements TransferRelation {
       break;
 
     case AssumeEdge:
-      element = handleAssume(element, (AssumeEdge)edge);
+      element = handleAssume(element, (CAssumeEdge)edge);
       break;
 
     case DeclarationEdge:
-      element = handleDeclaration(element, (DeclarationEdge)edge);
+      element = handleDeclaration(element, (CDeclarationEdge)edge);
       break;
 
     case FunctionCallEdge:
-      element = handleFunctionCall(element, (FunctionCallEdge)edge);
+      element = handleFunctionCall(element, (CFunctionCallEdge)edge);
       break;
 
     case StatementEdge:
-      element = handleStatement(element, (StatementEdge)edge);
+      element = handleStatement(element, (CStatementEdge)edge);
       break;
 
     default:
@@ -105,17 +103,17 @@ enum InvariantsTransferRelation implements TransferRelation {
     }
   }
 
-  private InvariantsElement handleAssume(InvariantsElement element, AssumeEdge edge) throws UnrecognizedCCodeException {
+  private InvariantsState handleAssume(InvariantsState element, CAssumeEdge edge) throws UnrecognizedCCodeException {
 
     // handle special case "a == i" where i is an integer literal
-    IASTExpression exp = edge.getExpression();
-    if (exp instanceof IASTBinaryExpression) {
-      IASTBinaryExpression binExp = (IASTBinaryExpression)exp;
+    CExpression exp = edge.getExpression();
+    if (exp instanceof CBinaryExpression) {
+      CBinaryExpression binExp = (CBinaryExpression)exp;
 
       if (binExp.getOperator() == BinaryOperator.EQUALS) {
-        IASTExpression operand1 = binExp.getOperand1();
-        if (operand1 instanceof IASTIdExpression) {
-          String var = getVarName((IASTIdExpression)operand1, edge);
+        CExpression operand1 = binExp.getOperand1();
+        if (operand1 instanceof CIdExpression) {
+          String var = getVarName((CIdExpression)operand1, edge);
           SimpleInterval varValue = element.get(var);
 
           SimpleInterval value = binExp.getOperand2().accept(SimpleRightHandSideValueVisitor.VISITOR_INSTANCE);
@@ -151,42 +149,40 @@ enum InvariantsTransferRelation implements TransferRelation {
     return element;
   }
 
-  private InvariantsElement handleDeclaration(InvariantsElement element, DeclarationEdge edge) throws UnrecognizedCCodeException {
-    if (edge.getName() == null
-        || edge.getDeclSpecifier() instanceof IASTFunctionTypeSpecifier
-        || edge.getDeclSpecifier() instanceof IASTCompositeTypeSpecifier
-        || edge.getStorageClass() == StorageClass.TYPEDEF) {
+  private InvariantsState handleDeclaration(InvariantsState element, CDeclarationEdge edge) throws UnrecognizedCCodeException {
+    if (!(edge.getDeclaration() instanceof CVariableDeclaration)) {
 
       return element;
     }
+    CVariableDeclaration decl = (CVariableDeclaration)edge.getDeclaration();
 
-    String varName = edge.getName();
-    if (!edge.isGlobal()) {
+    String varName = decl.getName();
+    if (!decl.isGlobal()) {
       varName = edge.getSuccessor().getFunctionName() + "::" + varName;
     }
 
     SimpleInterval value = SimpleInterval.infinite();
-    if (edge.getInitializer() != null && edge.getInitializer() instanceof IASTInitializerExpression) {
-      IASTRightHandSide init = ((IASTInitializerExpression)edge.getInitializer()).getExpression();
+    if (decl.getInitializer() != null && decl.getInitializer() instanceof CInitializerExpression) {
+      CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();
       value = init.accept(SimpleRightHandSideValueVisitor.VISITOR_INSTANCE);
     }
 
     return element.copyAndSet(varName, value);
   }
 
-  private InvariantsElement handleFunctionCall(InvariantsElement element, FunctionCallEdge edge) throws UnrecognizedCCodeException {
+  private InvariantsState handleFunctionCall(InvariantsState element, CFunctionCallEdge edge) throws UnrecognizedCCodeException {
 
-    InvariantsElement newElement = element;
+    InvariantsState newElement = element;
     List<String> formalParams = edge.getSuccessor().getFunctionParameterNames();
-    List<IASTExpression> actualParams = edge.getArguments();
+    List<CExpression> actualParams = edge.getArguments();
 
-    for (Pair<String, IASTExpression> param : Pair.zipList(formalParams, actualParams)) {
-      IASTExpression actualParam = param.getSecond();
+    for (Pair<String, CExpression> param : Pair.zipList(formalParams, actualParams)) {
+      CExpression actualParam = param.getSecond();
 
       SimpleInterval value = actualParam.accept(SimpleRightHandSideValueVisitor.VISITOR_INSTANCE);
 
-      if (actualParam instanceof IASTIdExpression) {
-        String var = getVarName((IASTIdExpression)actualParam, edge);
+      if (actualParam instanceof CIdExpression) {
+        String var = getVarName((CIdExpression)actualParam, edge);
         value = element.get(var);
       }
 
@@ -197,30 +193,30 @@ enum InvariantsTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private InvariantsElement handleStatement(InvariantsElement element, StatementEdge edge) throws UnrecognizedCCodeException {
+  private InvariantsState handleStatement(InvariantsState element, CStatementEdge edge) throws UnrecognizedCCodeException {
 
-    if (edge.getStatement() instanceof IASTAssignment) {
-      IASTAssignment assignment = (IASTAssignment)edge.getStatement();
+    if (edge.getStatement() instanceof CAssignment) {
+      CAssignment assignment = (CAssignment)edge.getStatement();
 
-      IASTExpression leftHandSide = assignment.getLeftHandSide();
-      if (leftHandSide instanceof IASTIdExpression) {
+      CExpression leftHandSide = assignment.getLeftHandSide();
+      if (leftHandSide instanceof CIdExpression) {
         // a = ...
 
-        String varName = getVarName((IASTIdExpression)leftHandSide, edge);
+        String varName = getVarName((CIdExpression)leftHandSide, edge);
 
-        IASTRightHandSide rightHandSide = assignment.getRightHandSide();
+        CRightHandSide rightHandSide = assignment.getRightHandSide();
         SimpleInterval rightHandValue = rightHandSide.accept(SimpleRightHandSideValueVisitor.VISITOR_INSTANCE);
 
         // the line above handles all "easy" assignments like a = 5
         // now handle the special case "a = a + i" where is a literal
 
-        if (rightHandSide instanceof IASTBinaryExpression) {
-          IASTBinaryExpression binExp = (IASTBinaryExpression)rightHandSide;
+        if (rightHandSide instanceof CBinaryExpression) {
+          CBinaryExpression binExp = (CBinaryExpression)rightHandSide;
 
           if (binExp.getOperator() == BinaryOperator.PLUS) {
-            IASTExpression operand1 = binExp.getOperand1();
-            if (operand1 instanceof IASTIdExpression) {
-              String rightHandVar = getVarName((IASTIdExpression)operand1, edge);
+            CExpression operand1 = binExp.getOperand1();
+            if (operand1 instanceof CIdExpression) {
+              String rightHandVar = getVarName((CIdExpression)operand1, edge);
 
               if (varName.equals(rightHandVar)) {
                 // now we are sure it's really "a = a + ..."
@@ -238,9 +234,9 @@ enum InvariantsTransferRelation implements TransferRelation {
             }
           }
 
-        } else if (rightHandSide instanceof IASTIdExpression) {
+        } else if (rightHandSide instanceof CIdExpression) {
           // special case "a = b"
-          String var = getVarName((IASTIdExpression)rightHandSide, edge);
+          String var = getVarName((CIdExpression)rightHandSide, edge);
           rightHandValue = element.get(var);
         }
 
@@ -255,16 +251,16 @@ enum InvariantsTransferRelation implements TransferRelation {
     return element;
   }
 
-  private static String getVarName(IASTIdExpression var, CFAEdge edge) throws UnrecognizedCCodeException {
+  private static String getVarName(CIdExpression var, CFAEdge edge) throws UnrecognizedCCodeException {
     String varName = var.getName();
     if (var.getDeclaration() != null) {
-      IASTSimpleDeclaration decl = var.getDeclaration();
+      CSimpleDeclaration decl = var.getDeclaration();
 
-      if (!(decl instanceof IASTDeclaration || decl instanceof IASTParameterDeclaration)) {
+      if (!(decl instanceof CDeclaration || decl instanceof CParameterDeclaration)) {
         throw new UnrecognizedCCodeException("unknown variable declaration", edge, var);
       }
 
-      if (decl instanceof IASTDeclaration && ((IASTDeclaration)decl).isGlobal()) {
+      if (decl instanceof CDeclaration && ((CDeclaration)decl).isGlobal()) {
 
       } else {
         varName = scope(varName, edge.getPredecessor().getFunctionName());
@@ -277,39 +273,39 @@ enum InvariantsTransferRelation implements TransferRelation {
     return function + "::" + var;
   }
 
-  private static class SimpleRightHandSideValueVisitor extends DefaultExpressionVisitor<SimpleInterval, UnrecognizedCCodeException>
-                                                       implements RightHandSideVisitor<SimpleInterval, UnrecognizedCCodeException> {
+  private static class SimpleRightHandSideValueVisitor extends DefaultCExpressionVisitor<SimpleInterval, UnrecognizedCCodeException>
+                                                       implements CRightHandSideVisitor<SimpleInterval, UnrecognizedCCodeException> {
 
     private static SimpleRightHandSideValueVisitor VISITOR_INSTANCE = new SimpleRightHandSideValueVisitor();
 
     @Override
-    protected SimpleInterval visitDefault(IASTExpression pExp) {
+    protected SimpleInterval visitDefault(CExpression pExp) {
       return SimpleInterval.infinite();
     }
 
     @Override
-    public SimpleInterval visit(IASTFunctionCallExpression pIastFunctionCallExpression) {
+    public SimpleInterval visit(CFunctionCallExpression pIastFunctionCallExpression) {
       return visitDefault(null);
     }
 
     @Override
-    public SimpleInterval visit(IASTIntegerLiteralExpression pE) {
+    public SimpleInterval visit(CIntegerLiteralExpression pE) {
       return SimpleInterval.singleton(pE.getValue());
     }
 
     @Override
-    public SimpleInterval visit(IASTCharLiteralExpression pE) {
+    public SimpleInterval visit(CCharLiteralExpression pE) {
       return SimpleInterval.singleton(BigInteger.valueOf(pE.getCharacter()));
     }
 
     @Override
-    public SimpleInterval visit(IASTCastExpression pE) throws UnrecognizedCCodeException {
+    public SimpleInterval visit(CCastExpression pE) throws UnrecognizedCCodeException {
       SimpleInterval operand = pE.getOperand().accept(this);
       return operand;
     }
 
     @Override
-    public SimpleInterval visit(IASTUnaryExpression pE) throws UnrecognizedCCodeException {
+    public SimpleInterval visit(CUnaryExpression pE) throws UnrecognizedCCodeException {
 
       switch (pE.getOperator()) {
       case MINUS:
@@ -323,8 +319,8 @@ enum InvariantsTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(
-      AbstractElement pElement, List<AbstractElement> pOtherElements,
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pElement, List<AbstractState> pOtherElements,
       CFAEdge pCfaEdge, Precision pPrecision) {
 
     return null;

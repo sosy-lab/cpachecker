@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,12 +25,13 @@ package org.sosy_lab.cpachecker.util.invariants.redlog;
 
 import java.util.HashSet;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.util.invariants.Rational;
 
 public class ParameterAssignment {
 
   private String parameter = null;
-  //private IASTExpression tree = null;
+  //private CExpression tree = null;
   private PAType patype = null;
   private Rational value = null;
   private HashSet<String> vars = null;
@@ -44,7 +45,7 @@ public class ParameterAssignment {
     } catch (Exception e) {}
   }
 
-  public ParameterAssignment(String p, IASTExpression RHS) {
+  public ParameterAssignment(String p, CExpression RHS) {
     // Parameter name p, and RHS for right-hand side of assignment.
     parameter = p;
     //tree = RHS;
@@ -61,7 +62,7 @@ public class ParameterAssignment {
   // TODO: Repair the TreeReader class, and then reactivate the
   // checking features of this constructor, which rely on it.
   /**
-  public ParameterAssignment(String p, IASTExpression RHS) {
+  public ParameterAssignment(String p, CExpression RHS) {
     // Parameter name p, and RHS for right-hand side of assignment.
     parameter = p;
     tree = RHS;

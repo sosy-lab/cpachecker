@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
@@ -36,19 +36,19 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 public class AssumptionStorageStop implements StopOperator {
 
   @Override
-  public boolean stop(AbstractElement pElement, Collection<AbstractElement> reached, Precision precision) {
-    AssumptionStorageElement element = (AssumptionStorageElement) pElement;
+  public boolean stop(AbstractState pElement, Collection<AbstractState> reached, Precision precision) {
+    AssumptionStorageState element = (AssumptionStorageState) pElement;
 
     if (element.isStop()) {
       // normally we want to keep this element so that the assumption is not lost
       // but we may return true if the new assumption is implied by the old ones
 
-      for (AbstractElement ae : reached) {
-        AssumptionStorageElement reachedElement = (AssumptionStorageElement)ae;
+      for (AbstractState ae : reached) {
+        AssumptionStorageState reachedState = (AssumptionStorageState)ae;
 
         // implication check is costly, so we do a fast syntactical approximation
-        if (   reachedElement.getStopFormula().isFalse()
-            || reachedElement.getStopFormula().equals(element.getStopFormula())) {
+        if (   reachedState.getStopFormula().isFalse()
+            || reachedState.getStopFormula().equals(element.getStopFormula())) {
           return true;
         }
       }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.exceptions;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
  * Exception thrown when a CPA cannot handle some C code attached to a CFAEdge
@@ -34,19 +34,11 @@ public class UnsupportedCCodeException extends UnrecognizedCCodeException {
 
   private static final long serialVersionUID = -8319167530363457020L;
 
-  public UnsupportedCCodeException(String msg, CFAEdge edge, IASTNode astNode) {
-    super("Unsupported C feature", msg, astNode.getFileLocation(), astNode.getRawSignature(), edge);
-  }
-
-  /**
-   * Deprecated because this exception should always contain the relevant edge.
-   */
-  @Deprecated
-  public UnsupportedCCodeException(String msg, IASTNode astNode) {
-    this(msg, null, astNode);
+  public UnsupportedCCodeException(String msg, CFAEdge edge, CAstNode astNode) {
+    super("Unsupported C feature", msg, edge, astNode);
   }
 
   public UnsupportedCCodeException(String msg, CFAEdge cfaEdge) {
-    this(msg, cfaEdge, cfaEdge.getRawAST());
+    this(msg, cfaEdge, null);
   }
 }

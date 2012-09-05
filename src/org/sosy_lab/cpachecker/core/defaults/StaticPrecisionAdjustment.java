@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,24 +24,23 @@
 package org.sosy_lab.cpachecker.core.defaults;
 
 
-import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * This class implements the PrecisionAdjustment operator for a CPA, where the
  * precision never changes. It does not make any assumptions about the precision,
  * even not that the precision is non-null.
  */
-public class StaticPrecisionAdjustment implements PrecisionAdjustment {
+public class StaticPrecisionAdjustment extends SimplePrecisionAdjustment {
+
+  private StaticPrecisionAdjustment() { }
 
   @Override
-  public Triple<AbstractElement, Precision, Action> prec(AbstractElement element,
-        Precision precision, UnmodifiableReachedSet elements) {
-
-    return new Triple<AbstractElement, Precision, Action>(element, precision, Action.CONTINUE);
+  public Action prec(AbstractState pState, Precision pPrecision) throws CPAException {
+    return Action.CONTINUE;
   }
 
   private static final PrecisionAdjustment instance = new StaticPrecisionAdjustment();

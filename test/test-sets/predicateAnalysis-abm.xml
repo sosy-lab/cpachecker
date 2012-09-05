@@ -13,6 +13,8 @@
       <includesfile>test/test-sets/ssh.set</includesfile>
       <includesfile>test/test-sets/systemc.set</includesfile>
       <includesfile>test/test-sets/nested.set</includesfile>
+      <includesfile>test/test-sets/VeriSec.set</includesfile>
+      <include>test/programs/linux-kernel/*.cil.c</include>
     </sourcefiles>
     <option name="-predicateAnalysis-abm"/>
   </test>
@@ -25,12 +27,14 @@
       <includesfile>test/test-sets/ssh.set</includesfile>
       <includesfile>test/test-sets/systemc.set</includesfile>
       <includesfile>test/test-sets/nested.set</includesfile>
+      <includesfile>test/test-sets/VeriSec.set</includesfile>
+      <include>test/programs/linux-kernel/*.cil.c</include>
     </sourcefiles>
     <option name="-predicateAnalysis-abm-auxiliaryPredicates"/>
   </test>
   <columns>
     <column title="total">time for CPAchecker</column>
-    <column title="reached">Total size of all ARTs</column>
+    <column title="reached">Total size of all ARGs</column>
     <column title="abstractions">Number of abstractions</column>
     <column title="refinements">Number of refinements</column>
     <column title="ref time">Time for refinements</column>

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
  * Implementation of MathsatFormulaManager for formulas with the theories of
  * real or integer linear arithmetic.
  */
-class ArithmeticMathsatFormulaManager extends MathsatFormulaManager {
+public class ArithmeticMathsatFormulaManager extends MathsatFormulaManager {
 
   private final boolean useIntegers;
 
@@ -54,7 +54,7 @@ class ArithmeticMathsatFormulaManager extends MathsatFormulaManager {
   private final long divUfDecl;
   private final long modUfDecl;
 
-  ArithmeticMathsatFormulaManager(Configuration config, LogManager logger, boolean pUseIntegers) throws InvalidConfigurationException {
+  public ArithmeticMathsatFormulaManager(Configuration config, LogManager logger, boolean pUseIntegers) throws InvalidConfigurationException {
     super(config, logger, pUseIntegers ? MSAT_INT : MSAT_REAL);
 
     useIntegers = pUseIntegers;
@@ -63,15 +63,15 @@ class ArithmeticMathsatFormulaManager extends MathsatFormulaManager {
     final int[] msatVarType1 = {msatVarType};
     final int[] msatVarType2 = {msatVarType, msatVarType};
 
-    bitwiseAndUfDecl = msat_declare_uif(msatEnv, "_&_", msatVarType, 2, msatVarType2);
-    bitwiseOrUfDecl = msat_declare_uif(msatEnv, "_|_", msatVarType, 2, msatVarType2);
-    bitwiseXorUfDecl = msat_declare_uif(msatEnv, "_^_", msatVarType, 2, msatVarType2);
-    bitwiseNotUfDecl = msat_declare_uif(msatEnv, "_~_", msatVarType, 1, msatVarType1);
-    leftShiftUfDecl = msat_declare_uif(msatEnv, "_<<_", msatVarType, 2, msatVarType2);
-    rightShiftUfDecl = msat_declare_uif(msatEnv, "_>>_", msatVarType, 2, msatVarType2);
-    multUfDecl = msat_declare_uif(msatEnv, "_*_", msatVarType, 2, msatVarType2);
-    divUfDecl = msat_declare_uif(msatEnv, "_/_", msatVarType, 2, msatVarType2);
-    modUfDecl = msat_declare_uif(msatEnv, "_%_", msatVarType, 2, msatVarType2);
+    bitwiseAndUfDecl = msat_declare_uif(msatEnv, "_&_", msatVarType, msatVarType2);
+    bitwiseOrUfDecl = msat_declare_uif(msatEnv, "_|_", msatVarType, msatVarType2);
+    bitwiseXorUfDecl = msat_declare_uif(msatEnv, "_^_", msatVarType, msatVarType2);
+    bitwiseNotUfDecl = msat_declare_uif(msatEnv, "_~_", msatVarType, msatVarType1);
+    leftShiftUfDecl = msat_declare_uif(msatEnv, "_<<_", msatVarType, msatVarType2);
+    rightShiftUfDecl = msat_declare_uif(msatEnv, "_>>_", msatVarType, msatVarType2);
+    multUfDecl = msat_declare_uif(msatEnv, "_*_", msatVarType, msatVarType2);
+    divUfDecl = msat_declare_uif(msatEnv, "_/_", msatVarType, msatVarType2);
+    modUfDecl = msat_declare_uif(msatEnv, "_%_", msatVarType, msatVarType2);
   }
 
   @Override

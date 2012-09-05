@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,12 +43,12 @@ public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collec
     Collection<String> relevantVars = new HashSet<String>();
     Collection<ReferencedVariable> unknownVars = new ArrayList<ReferencedVariable>();
 
-    for(ReferencedVariable var : pContext.getReferencedVariables()) {
-      if(var.occursInCondition()) {
+    for (ReferencedVariable var : pContext.getReferencedVariables()) {
+      if (var.occursInCondition()) {
         relevantVars.add(var.getName());
       }
-      else if(var.occursOnLhs()) {
-        if(occursInPredicate(var, pPredicates)) {
+      else if (var.occursOnLhs()) {
+        if (occursInPredicate(var, pPredicates)) {
           relevantVars.add(var.getName());
         }
       }
@@ -58,12 +58,12 @@ public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collec
     }
 
     boolean changed = true;
-    while(changed) {
+    while (changed) {
       changed = false;
       Collection<ReferencedVariable> yetUnknownVars = new ArrayList<ReferencedVariable>();
 
-      for(ReferencedVariable var : unknownVars) {
-        if(relevantVars.contains(var.getLhsVariable().getName())) {
+      for (ReferencedVariable var : unknownVars) {
+        if (relevantVars.contains(var.getLhsVariable().getName())) {
           relevantVars.add(var.getName());
           changed = true;
         }
@@ -78,8 +78,8 @@ public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collec
   }
 
   private boolean occursInPredicate(ReferencedVariable pVar, Collection<AbstractionPredicate> pPredicates) {
-    for(AbstractionPredicate predicate : pPredicates) {
-      if(predicate.getSymbolicAtom().toString().contains(pVar.getName())) {
+    for (AbstractionPredicate predicate : pPredicates) {
+      if (predicate.getSymbolicAtom().toString().contains(pVar.getName())) {
         return true;
       }
     }

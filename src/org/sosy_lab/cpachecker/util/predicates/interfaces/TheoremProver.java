@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,8 +25,10 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.Collection;
 
+import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 
 public interface TheoremProver {
@@ -35,12 +37,22 @@ public interface TheoremProver {
   void push(Formula f);
   void pop();
   boolean isUnsat();
-  boolean isUnsat(Formula f);
-  Model getModel();
+  Model getModel() throws SolverException;
   void reset();
 
+  /**
+   * Check a formula for satisfiability,
+   * and create a region representing all satisfying models of the formula.
+   *
+   * @param f The formula to check.
+   * @param important A set of variables appearing in f. Only these variables will appear in the region.
+   * @param mgr The object used for creating regions.
+   * @param solveTime A timer to use for time which the solver needs for finding out whether the formula is satisfiable (without enumerating all the models).
+   * @param regionTime A NestedTimer to use for timing model enumeration (outer: solver; inner: region creation).
+   * @return A region representing all satisfying models of the formula.
+   */
   AllSatResult allSat(Formula f, Collection<Formula> important,
-                      AbstractionManager mgr, Timer timer);
+                      RegionCreator mgr, Timer solveTime, NestedTimer enumTime);
 
   interface AllSatResult {
 

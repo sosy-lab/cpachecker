@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,29 +25,29 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Interface for components that can verify the feasibility of a counterexample.
  *
- * A counterexample is a finite set of loop-free paths in the ART that form a
- * DAG with a single source (the root element of the ART) and a single sink
- * (the target element).
+ * A counterexample is a finite set of loop-free paths in the ARG that form a
+ * DAG with a single source (the root state of the ARG) and a single sink
+ * (the target state).
  */
 public interface CounterexampleChecker {
 
   /**
    * Check feasibility of counterexample.
-   * @param rootElement The source of the counterexample paths.
-   * @param errorElement The sink of the counterexample paths.
-   * @param errorPathElements All elements that belong to the counterexample paths.
+   * @param rootState The source of the counterexample paths.
+   * @param errorState The sink of the counterexample paths.
+   * @param errorPathStates All state that belong to the counterexample paths.
    * @return True if the counterexample is feasible.
    * @throws CPAException If something goes wrong.
    * @throws InterruptedException If the thread was interrupted.
    */
-  boolean checkCounterexample(ARTElement rootElement, ARTElement errorElement,
-            Set<ARTElement> errorPathElements)
+  boolean checkCounterexample(ARGState rootState, ARGState errorState,
+            Set<ARGState> errorPathStates)
             throws CPAException, InterruptedException;
 
 }

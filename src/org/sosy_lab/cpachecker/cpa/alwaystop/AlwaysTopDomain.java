@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,25 +24,25 @@
 package org.sosy_lab.cpachecker.cpa.alwaystop;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 enum AlwaysTopDomain implements AbstractDomain {
 
   INSTANCE;
 
   @Override
-  public boolean isLessOrEqual(AbstractElement pElement1, AbstractElement pElement2) {
+  public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) {
 
-    assert pElement1 == AlwaysTopElement.INSTANCE;
-    assert pElement2 == AlwaysTopElement.INSTANCE;
+    assert pElement1 == AlwaysTopState.INSTANCE;
+    assert pElement2 == AlwaysTopState.INSTANCE;
     return true;
   }
 
   @Override
-  public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) {
+  public AbstractState join(AbstractState pElement1, AbstractState pElement2) {
 
-    assert pElement1 == AlwaysTopElement.INSTANCE;
-    assert pElement2 == AlwaysTopElement.INSTANCE;
-    return AlwaysTopElement.INSTANCE;
+    assert pElement1 == AlwaysTopState.INSTANCE;
+    assert pElement2 == AlwaysTopState.INSTANCE;
+    return AlwaysTopState.INSTANCE;
   }
 }

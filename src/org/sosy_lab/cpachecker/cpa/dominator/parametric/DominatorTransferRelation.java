@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,8 +27,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -36,39 +36,39 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class DominatorTransferRelation implements TransferRelation {
 
-	private final ConfigurableProgramAnalysis cpa;
+  private final ConfigurableProgramAnalysis cpa;
 
-	public DominatorTransferRelation(ConfigurableProgramAnalysis cpa) {
-		if (cpa == null) {
-			throw new IllegalArgumentException("cpa is null!");
-		}
+  public DominatorTransferRelation(ConfigurableProgramAnalysis cpa) {
+    if (cpa == null) {
+      throw new IllegalArgumentException("cpa is null!");
+    }
 
-		this.cpa = cpa;
-	}
+    this.cpa = cpa;
+  }
 
-	@Override
-	public Collection<DominatorElement> getAbstractSuccessors(
-	    AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
+  @Override
+  public Collection<DominatorState> getAbstractSuccessors(
+    AbstractState element, Precision prec, CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
 
-	  assert element instanceof DominatorElement;
+    assert element instanceof DominatorState;
 
-    DominatorElement dominatorElement = (DominatorElement)element;
+    DominatorState dominatorState = (DominatorState)element;
 
-    Collection<? extends AbstractElement> successorsOfDominatedElement = this.cpa.getTransferRelation().getAbstractSuccessors(dominatorElement.getDominatedElement(), prec, cfaEdge);
+    Collection<? extends AbstractState> successorsOfDominatedElement = this.cpa.getTransferRelation().getAbstractSuccessors(dominatorState.getDominatedState(), prec, cfaEdge);
 
-    Collection<DominatorElement> successors = new ArrayList<DominatorElement>(successorsOfDominatedElement.size());
-    for (AbstractElement successorOfDominatedElement : successorsOfDominatedElement) {
-      DominatorElement successor = new DominatorElement(successorOfDominatedElement, dominatorElement);
+    Collection<DominatorState> successors = new ArrayList<DominatorState>(successorsOfDominatedElement.size());
+    for (AbstractState successorOfDominatedElement : successorsOfDominatedElement) {
+      DominatorState successor = new DominatorState(successorOfDominatedElement, dominatorState);
       successor.update(successorOfDominatedElement);
       successors.add(successor);
     }
 
     return successors;
-	}
+  }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement element,
-                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
+  public Collection<? extends AbstractState> strengthen(AbstractState element,
+                         List<AbstractState> otherElements, CFAEdge cfaEdge,
                          Precision precision) {
     return null;
   }

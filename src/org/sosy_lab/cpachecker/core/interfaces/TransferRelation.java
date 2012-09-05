@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import java.util.Collection;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
@@ -36,28 +36,28 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public interface TransferRelation {
 
   /**
-   * Gets all successors of the current element. If cfaEdge is null, all edges
+   * Gets all successors of the current state. If cfaEdge is null, all edges
    * of the CFA may be checked if they lead to successors, otherwise only the
    * specified edge should be handled.
-   * @param element abstract element with current state
+   * @param state abstract state with current state
    * @param cfaEdge null or an edge of the CFA
    * @return list of all successors of the current state (may be empty)
    */
-  public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement element, Precision precision, CFAEdge cfaEdge)
+  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState state, Precision precision, CFAEdge cfaEdge)
     throws CPATransferException, InterruptedException;
 
   /**
-   * Updates an abstract element with information from the abstract elements of
+   * Updates an abstract state with information from the abstract states of
    * other CPAs. An implementation of this method should only modify the
-   * abstract element of the domain it belongs to.
-   * @param element abstract element of the current domain
-   * @param otherElements list of abstract elements of all domains
+   * abstract state of the domain it belongs to.
+   * @param state abstract state of the current domain
+   * @param otherStates list of abstract states of all domains
    * @param cfaEdge the current edge of the CFA
    * @param precision
-   * @return list of all abstract elements which should replace the old one, empty list for bottom or null for no change.
+   * @return list of all abstract states which should replace the old one, empty list for bottom or null for no change.
    */
-  public Collection<? extends AbstractElement> strengthen (AbstractElement element,
-                                     List<AbstractElement> otherElements,
+  public Collection<? extends AbstractState> strengthen (AbstractState state,
+                                     List<AbstractState> otherStates,
                                      CFAEdge cfaEdge,
                                      Precision precision)
                                      throws CPATransferException,

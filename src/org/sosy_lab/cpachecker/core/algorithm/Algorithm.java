@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public interface Algorithm {
 
   /**
-   * Run the algorithm on the given set of abstract elements and the given waitlist.
+   * Run the algorithm on the given set of abstract states and the given waitlist.
    *
    * @param reachedSet Input.
    * @return False if the analysis was unsound (this is not the analysis result!).

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,24 +34,22 @@ import org.sosy_lab.common.Pair;
 
 class MergeNode {
 
-  private final int elementId;
+  private final int stateId;
   private final Map<Integer, Pair<Boolean, Boolean>> branchesMap;
-  private final List<FunctionBody> incomingElements;
+  private final List<FunctionBody> incomingState;
 
   public MergeNode(int pElementId) {
-    elementId = pElementId;
+    stateId = pElementId;
     branchesMap = new HashMap<Integer,  Pair<Boolean, Boolean>>();
-    incomingElements = new ArrayList<FunctionBody>();
+    incomingState = new ArrayList<FunctionBody>();
   }
 
-  public int addBranch(Edge pNextCBMCEdge) {
-
-    FunctionBody addedStackElement = pNextCBMCEdge.getStack().peek();
-    incomingElements.add(addedStackElement);
+  public int addBranch(FunctionBody currentFunction) {
+    incomingState.add(currentFunction);
     Set<Integer> processedConditions = new HashSet<Integer>();
 
-    for (BasicBlock elementInStack: addedStackElement) {
-      int idOfElementInStack = elementInStack.getElementId();
+    for (BasicBlock elementInStack: currentFunction) {
+      int idOfElementInStack = elementInStack.getStateId();
       boolean nextConditionValue = elementInStack.isCondition();
       boolean isClosedBefore = elementInStack.isClosedBefore();
 
@@ -74,27 +72,27 @@ class MergeNode {
       }
     }
 
-    setProcessedElements(processedConditions);
+    setProcessedStates(processedConditions);
 
-    return incomingElements.size();
+    return incomingState.size();
   }
 
-  private void setProcessedElements(Set<Integer> pProcessedConditions) {
-    for (FunctionBody stack: incomingElements) {
+  private void setProcessedStates(Set<Integer> pProcessedConditions) {
+    for (FunctionBody stack: incomingState) {
       for (BasicBlock elem: stack) {
-        if (pProcessedConditions.contains(elem.getElementId())) {
+        if (pProcessedConditions.contains(elem.getStateId())) {
           elem.setClosedBefore(true);
         }
       }
     }
   }
 
-  public List<FunctionBody> getIncomingElements() {
-    return incomingElements;
+  public List<FunctionBody> getIncomingStates() {
+    return incomingState;
   }
 
   @Override
   public String toString() {
-    return "id: " + elementId + " >> " + branchesMap;
+    return "id: " + stateId + " >> " + branchesMap;
   }
 }

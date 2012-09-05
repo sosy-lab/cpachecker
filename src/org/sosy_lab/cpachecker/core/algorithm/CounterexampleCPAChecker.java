@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static com.google.common.collect.Iterables.isEmpty;
-import static org.sosy_lab.cpachecker.util.AbstractElements.*;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,18 +38,19 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 @Options(prefix="counterexample.checker")
 public class CounterexampleCPAChecker implements CounterexampleChecker {
@@ -71,21 +72,21 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   }
 
   @Override
-  public boolean checkCounterexample(ARTElement pRootElement,
-      ARTElement pErrorElement, Set<ARTElement> pErrorPathElements)
+  public boolean checkCounterexample(ARGState pRootState,
+      ARGState pErrorState, Set<ARGState> pErrorPathStates)
       throws CPAException, InterruptedException {
 
     String automaton =
-        produceGuidingAutomaton(pRootElement, pErrorPathElements);
+        produceGuidingAutomaton(pRootState, pErrorPathStates);
 
     File automatonFile;
     try {
       automatonFile = Files.createTempFile("automaton", ".txt", automaton);
     } catch (IOException e) {
-      throw new CPAException("Could not write automaton for explicit analysis check (" + e.getMessage() + ")");
+      throw new CounterexampleAnalysisFailed("Could not write path automaton to file " + e.getMessage(), e);
     }
 
-    CFAFunctionDefinitionNode entryNode = (CFAFunctionDefinitionNode)extractLocation(pRootElement);
+    FunctionEntryNode entryNode = (FunctionEntryNode)extractLocation(pRootState);
 
     try {
       Configuration lConfig = Configuration.builder()
@@ -93,46 +94,46 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
               .setOption("specification", automatonFile.getAbsolutePath())
               .build();
 
-      CPABuilder lBuilder = new CPABuilder(lConfig, logger, reachedSetFactory, cfa);
-      ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs();
-      Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger);
+      CPABuilder lBuilder = new CPABuilder(lConfig, logger, reachedSetFactory);
+      ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs(cfa);
+      Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger, lConfig);
       PartitionedReachedSet lReached = new PartitionedReachedSet(TraversalMethod.DFS);
-      lReached.add(lCpas.getInitialElement(entryNode), lCpas.getInitialPrecision(entryNode));
+      lReached.add(lCpas.getInitialState(entryNode), lCpas.getInitialPrecision(entryNode));
 
       lAlgorithm.run(lReached);
 
-      if (isEmpty(filterTargetElements(lReached))) {
-        return false; // target state is not reachable, counterexample is infeasible
-      } else {
-        return true;
-      }
+      // counterexample is feasible if a target state is reachable
+      return from(lReached).anyMatch(IS_TARGET_STATE);
 
     } catch (InvalidConfigurationException e) {
-      throw new CPAException("Invalid configuration for counterexample check: " + e.getMessage());
+      throw new CounterexampleAnalysisFailed("Invalid configuration in counterexample-check config: " + e.getMessage(), e);
     } catch (IOException e) {
-      throw new CPAException("Error during counterexample check: " + e.getMessage());
+      throw new CounterexampleAnalysisFailed(e.getMessage(), e);
+    } finally {
+      // delete temp file so it is gone even if JVM is killed
+      automatonFile.delete();
     }
   }
 
-  private String produceGuidingAutomaton(ARTElement pRootElement,
-      Set<ARTElement> pPathElements) {
+  private String produceGuidingAutomaton(ARGState pRootState,
+      Set<ARGState> pPathStates) {
     StringBuilder sb = new StringBuilder();
     sb.append("CONTROL AUTOMATON AssumptionAutomaton\n\n");
-    sb.append("INITIAL STATE ART" + pRootElement.getElementId() + ";\n\n");
+    sb.append("INITIAL STATE ARG" + pRootState.getStateId() + ";\n\n");
 
-    for (ARTElement e : pPathElements) {
+    for (ARGState s : pPathStates) {
 
-      CFANode loc = AbstractElements.extractLocation(e);
-      sb.append("STATE USEFIRST ART" + e.getElementId() + " :\n");
+      CFANode loc = AbstractStates.extractLocation(s);
+      sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
 
-      for (ARTElement child : e.getChildren()) {
+      for (ARGState child : s.getChildren()) {
         if (child.isCovered()) {
-          child = child.getCoveringElement();
+          child = child.getCoveringState();
           assert !child.isCovered();
         }
 
-        if (pPathElements.contains(child)) {
-          CFANode childLoc = AbstractElements.extractLocation(child);
+        if (pPathStates.contains(child)) {
+          CFANode childLoc = AbstractStates.extractLocation(child);
           CFAEdge edge = loc.getEdgeTo(childLoc);
           sb.append("    MATCH \"");
           escape(edge.getRawStatement(), sb);
@@ -141,7 +142,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
           if (child.isTarget()) {
             sb.append("ERROR");
           } else {
-            sb.append("GOTO ART" + child.getElementId());
+            sb.append("GOTO ARG" + child.getStateId());
           }
           sb.append(";\n");
         }

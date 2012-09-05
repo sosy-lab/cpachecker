@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,20 +34,22 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMultimap;
@@ -73,9 +75,13 @@ public class CFACreator {
       description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
 
-  @Option(name="cfa.removeIrrelevantForErrorLocations",
-      description="remove paths from CFA that cannot lead to a error location")
-  private boolean removeIrrelevantForErrorLocations = false;
+  @Option(name="cfa.useMultiEdges",
+      description="combine sequences of simple edges into a single edge")
+  private boolean useMultiEdges = false;
+
+  @Option(name="cfa.removeIrrelevantForSpecification",
+      description="remove paths from CFA that cannot lead to a specification violation")
+  private boolean removeIrrelevantForSpecification = false;
 
   @Option(name="cfa.export",
       description="export CFA as .dot file")
@@ -98,9 +104,6 @@ public class CFACreator {
   private final CParser parser;
   private final CFAReduction cfaReduction;
 
-  @Deprecated // use CFA#getLoopStructure() instead
-  public static ImmutableMultimap<String, Loop> loops = null;
-
   public final Timer parserInstantiationTime = new Timer();
   public final Timer totalTime = new Timer();
   public final Timer parsingTime;
@@ -121,7 +124,7 @@ public class CFACreator {
     parsingTime = parser.getParseTime();
     conversionTime = parser.getCFAConstructionTime();
 
-    if (removeIrrelevantForErrorLocations) {
+    if (removeIrrelevantForSpecification) {
       cfaReduction = new CFAReduction(config, logger);
     } else {
       cfaReduction = null;
@@ -154,7 +157,7 @@ public class CFACreator {
         throw new ParserException("No functions found in program");
       }
 
-      final CFAFunctionDefinitionNode mainFunction = getMainFunction(filename, c.getFunctions());
+      final FunctionEntryNode mainFunction = getMainFunction(filename, c.getFunctions());
 
       MutableCFA cfa = new MutableCFA(c.getFunctions(), c.getCFANodes(), mainFunction);
 
@@ -168,18 +171,21 @@ public class CFACreator {
 
       processingTime.start();
 
-      // annotate CFA nodes with topological information for later use
-      for(CFAFunctionDefinitionNode function : cfa.getAllFunctionHeads()){
-        CFATopologicalSort topSort = new CFATopologicalSort();
-        topSort.topologicalSort(function);
+      // annotate CFA nodes with reverse postorder information for later use
+      for (FunctionEntryNode function : cfa.getAllFunctionHeads()){
+        CFAReversePostorder sorter = new CFAReversePostorder();
+        sorter.assignSorting(function);
       }
 
       // get loop information
       Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
 
+      // get information about variables
+      Optional<VariableClassification> varClassification = Optional.of(new VariableClassification(cfa));
+
       // Insert call and return edges and build the supergraph
       if (interprocedural) {
-        logger.log(Level.FINE, "Analysis is interprocedural, adding super edges");
+        logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
 
         CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa.getAllFunctions());
         spbuilder.insertCallEdgesRecursively();
@@ -195,20 +201,23 @@ public class CFACreator {
       // remove irrelevant locations
       if (cfaReduction != null) {
         pruningTime.start();
-        cfaReduction.removeIrrelevantForErrorLocations(cfa);
+        cfaReduction.removeIrrelevantForSpecification(cfa);
         pruningTime.stop();
 
         if (cfa.isEmpty()) {
-          logger.log(Level.INFO, "No error locations reachable from " + mainFunction.getFunctionName()
+          logger.log(Level.INFO, "No states which violate the specification are syntactically reachable from the function " + mainFunction.getFunctionName()
                 + ", analysis not necessary. "
-                + "If the code contains no error location named ERROR, set the option cfa.removeIrrelevantForErrorLocations to false.");
+                + "If you want to run the analysis anyway, set the option cfa.removeIrrelevantForSpecification to false.");
 
           return ImmutableCFA.empty();
         }
       }
 
+      if (useMultiEdges) {
+        MultiEdgeCreator.createMultiEdges(cfa);
+      }
 
-      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure);
+      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
 
       // check the super CFA starting at the main function
       checkTime.start();
@@ -219,7 +228,7 @@ public class CFACreator {
         exportCFA(immutableCFA);
       }
 
-      logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created");
+      logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
 
       return immutableCFA;
 
@@ -228,12 +237,12 @@ public class CFACreator {
     }
   }
 
-  private CFAFunctionDefinitionNode getMainFunction(String filename,
-      final Map<String, CFAFunctionDefinitionNode> cfas)
+  private FunctionEntryNode getMainFunction(String filename,
+      final Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
 
     // try specified function
-    CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
+    FunctionEntryNode mainFunction = cfas.get(mainFunctionName);
 
     if (mainFunction != null) {
       return mainFunction;
@@ -241,7 +250,7 @@ public class CFACreator {
 
     if (!mainFunctionName.equals("main")) {
       // function explicitly given by user, but not found
-      throw new InvalidConfigurationException("Function " + mainFunctionName + " not found!");
+      throw new InvalidConfigurationException("Function " + mainFunctionName + " not found.");
     }
 
     if (cfas.size() == 1) {
@@ -259,14 +268,14 @@ public class CFACreator {
       mainFunction = cfas.get(baseFilename);
 
       if (mainFunction == null) {
-        throw new InvalidConfigurationException("No entry function found, please specify one!");
+        throw new InvalidConfigurationException("No entry function found, please specify one.");
       }
       return mainFunction;
     }
   }
 
   private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(MutableCFA cfa) {
-    if(!determineLoopStructure) {
+    if (!determineLoopStructure) {
       return Optional.absent();
     }
     Optional<ImmutableMultimap<String, Loop>> loopStructure;
@@ -276,29 +285,32 @@ public class CFACreator {
         SortedSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
         loops.putAll(functionName, findLoops(nodes));
       }
-      loopStructure = Optional.of(loops.build());
+      return Optional.of(loops.build());
+
     } catch (ParserException e) {
       // don't abort here, because if the analysis doesn't need the loop information, we can continue
-      logger.logUserException(Level.WARNING, e, "Could not analyze loop structure of program");
-      loopStructure = Optional.absent();
+      logger.logUserException(Level.WARNING, e, "Could not analyze loop structure of program.");
+
+    } catch (OutOfMemoryError e) {
+      logger.logUserException(Level.WARNING, e,
+          "Could not analyze loop structure of program due to memory problems");
     }
-    CFACreator.loops = loopStructure.orNull();
-    return loopStructure;
+    return Optional.absent();
   }
 
   /**
    * Insert nodes for global declarations after first node of CFA.
    */
-  public static void insertGlobalDeclarations(final MutableCFA cfa, List<IASTDeclaration> globalVars) {
+  public static void insertGlobalDeclarations(final MutableCFA cfa, List<Pair<CDeclaration, String>> globalVars) {
     if (globalVars.isEmpty()) {
       return;
     }
 
     // split off first node of CFA
-    CFAFunctionDefinitionNode firstNode = cfa.getMainFunction();
+    FunctionEntryNode firstNode = cfa.getMainFunction();
     assert firstNode.getNumLeavingEdges() == 1;
     CFAEdge firstEdge = firstNode.getLeavingEdge(0);
-    assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
+    assert firstEdge instanceof BlankEdge;
     CFANode secondNode = firstEdge.getSuccessor();
 
     CFACreationUtils.removeEdgeFromNodes(firstEdge);
@@ -306,23 +318,25 @@ public class CFACreator {
     // insert one node to start the series of declarations
     CFANode cur = new CFANode(0, firstNode.getFunctionName());
     cfa.addNode(cur);
-    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, firstNode, cur);
+    BlankEdge be = new BlankEdge("", 0, firstNode, cur, "INIT GLOBAL VARS");
     addToCFA(be);
 
     // create a series of GlobalDeclarationEdges, one for each declaration
-    for (IASTDeclaration d : globalVars) {
+    for (Pair<CDeclaration, String> p : globalVars) {
+      CDeclaration d = p.getFirst();
+      String rawSignature = p.getSecond();
       assert d.isGlobal();
 
       CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
       cfa.addNode(n);
-      GlobalDeclarationEdge e = new GlobalDeclarationEdge(d,
-          d.getFileLocation().getStartingLineNumber(), cur, n);
+      CDeclarationEdge e = new CDeclarationEdge(rawSignature,
+          d.getFileLocation().getStartingLineNumber(), cur, n, d);
       addToCFA(e);
       cur = n;
     }
 
     // and a blank edge connecting the declarations with the second node of CFA
-    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
+    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode, firstEdge.getDescription());
     addToCFA(be);
   }
 
@@ -340,7 +354,7 @@ public class CFACreator {
             DOTBuilder.generateDOT(cfa.getAllFunctionHeads(), cfa.getMainFunction()));
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
-          "Could not write CFA to dot file");
+          "Could not write CFA to dot file.");
         // continue with analysis
       }
     }
@@ -349,10 +363,10 @@ public class CFACreator {
     if (exportCfa && exportCfaPerFunction) {
       try {
         File outdir = exportCfaFile.getParentFile();
-        DOTBuilder2.writeReport(cfa.getMainFunction(), outdir);
+        DOTBuilder2.writeReport(cfa, outdir);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
-          "Could not write CFA to dot and json file");
+          "Could not write CFA to dot and json file.");
         // continue with analysis
       }
     }

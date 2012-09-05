@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.waitlist;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.base.Preconditions;
 
@@ -34,19 +34,19 @@ import com.google.common.base.Preconditions;
  * Waitlist implementation that supports either a breadth-first (BFS) or
  * depth-first (DFS) strategy for pop().
  */
-public class SimpleWaitlist extends AbstractWaitlist<Deque<AbstractElement>> {
+public class SimpleWaitlist extends AbstractWaitlist<Deque<AbstractState>> {
 
   private final TraversalMethod traversal;
 
   protected SimpleWaitlist(TraversalMethod pTraversal) {
-    super(new ArrayDeque<AbstractElement>());
+    super(new ArrayDeque<AbstractState>());
     Preconditions.checkArgument(pTraversal == TraversalMethod.BFS || pTraversal == TraversalMethod.DFS);
     traversal = pTraversal;
   }
 
   @Override
-  public AbstractElement pop() {
-    switch(traversal) {
+  public AbstractState pop() {
+    switch (traversal) {
     case BFS:
       return waitlist.removeFirst();
 

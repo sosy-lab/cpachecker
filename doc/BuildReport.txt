@@ -30,7 +30,7 @@ Quick Reference to use the report
   - Left Panel: Error Path (if a bug is found)
 
      - indentation reflects height of call stack.
-     - click nodes/edges to jump to the location in the CFA/ART/CIL (depending on the active tab).
+     - click nodes/edges to jump to the location in the CFA/ARG/CIL (depending on the active tab).
      - Function Start,Function Return, and unlabeled edges are not displayed.
      - Use Start (or click a node/edge) and Prev/Next to walk along the error path.
 
@@ -48,7 +48,7 @@ Quick Reference to use the report
       - The error path is highlighted in red.
       - Click an edge(or the edge label) to jump to the location in the CIL code.
 
-    - ART Tab
+    - ARG Tab
 
       - The error path is highlighted in red.
       - Click an edge to jump to the location in the CFA.
@@ -80,14 +80,14 @@ Known Problems
   - When an item is selected in the error path window on the left, only the active tab on the right is updated.
      Workaround: After changing the tab on the right, click the selected item in the error path window again.
 
-  - As the ART might be huge, it could take a couple of seconds when switching to the ART tab.
-     Also you might have to scroll to the right initially to find the root of the ART. Alternatively, click an item in
+  - As the ARG might be huge, it could take a couple of seconds when switching to the ARG tab.
+     Also you might have to scroll to the right initially to find the root of the ARG. Alternatively, click an item in
      the error path window on the left.
 
-  - The error path in the ART sometimes misses a few edges (they stay black). Also not all edges are clickable
+  - The error path in the ARG sometimes misses a few edges (they stay black). Also not all edges are clickable
      (but the red ones seem to be clickable always).
      This error is not deterministic. Reloading the page seems to fix the coloring issue. I suspect the error has to do with the huge
-     number of click events that are placed on the ART. I tried to use event delegation instead, but it seems SVG events
+     number of click events that are placed on the ARG. I tried to use event delegation instead, but it seems SVG events
      do not bubble up the way HTML events do. Stepping through the error path works perfectly though.
 
   - graphviz does not like to create the really big node in main(), that contains the global declarations (label to long?)

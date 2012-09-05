@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
+import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTProblemHolder;
+import org.eclipse.cdt.core.dom.ast.IASTStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+
+import com.google.common.base.CharMatcher;
+import com.google.common.base.Strings;
 
 /**
  * Handles problems during CFA generation
@@ -33,27 +39,69 @@ public class CFAGenerationRuntimeException extends RuntimeException {
 
   private static final long serialVersionUID = 6850681425709171716L;
 
+  private static final CharMatcher SEMICOLON = CharMatcher.is(';');
+
   public CFAGenerationRuntimeException(String msg) {
     super(msg);
   }
 
-
-  public CFAGenerationRuntimeException(String msg, IASTNode astNode) {
-    this(astNode == null ? msg :
-         (msg + " in line " + astNode.getFileLocation().getStartingLineNumber()
-             + ": " + astNode.getRawSignature()));
+  public CFAGenerationRuntimeException(Throwable cause) {
+    super(cause.getMessage(), cause);
   }
 
+  public CFAGenerationRuntimeException(String msg, IASTNode astNode) {
+    this(astNode == null ? msg : createMessage(msg, astNode));
+  }
 
-  public CFAGenerationRuntimeException(String msg, org.sosy_lab.cpachecker.cfa.ast.IASTNode astNode) {
+  public CFAGenerationRuntimeException(String msg, CAstNode astNode) {
     this(astNode == null ? msg :
       (msg + " in line " + astNode.getFileLocation().getStartingLineNumber()
-          + ": " + astNode.getRawSignature()));
+          + ": " + astNode.toASTString()));
   }
 
   public <P extends IASTProblemHolder & IASTNode> CFAGenerationRuntimeException(P problem) {
-    this(problem.getProblem().getMessage()
-         + " in line " + problem.getFileLocation().getStartingLineNumber()
-         + ": " + problem.getRawSignature());
+    this(createMessage(problem.getProblem().getMessage(), problem));
+  }
+
+  private static String createMessage(String msg, IASTNode node) {
+    // search the ast node for the whole statement / declaration / line
+    IASTNode fullLine = node;
+    while ((fullLine != null)
+        && !(fullLine instanceof IASTStatement)
+        && !(fullLine instanceof IASTDeclaration)) {
+
+      fullLine = fullLine.getParent();
+    }
+
+    String rawSignature = node.getRawSignature();
+    StringBuilder sb = new StringBuilder();
+    if (Strings.isNullOrEmpty(msg)) {
+      sb.append("Problem");
+    } else {
+      sb.append(msg);
+    }
+    sb.append(" in line ");
+    sb.append(node.getFileLocation().getStartingLineNumber());
+    sb.append(": ");
+    sb.append(rawSignature);
+
+    if (fullLine != null && fullLine != node) {
+      String lineRawSignature = fullLine.getRawSignature();
+
+      String codeWithoutWhitespace = CharMatcher.WHITESPACE.removeFrom(rawSignature);
+      String lineWithoutWhitespace = CharMatcher.WHITESPACE.removeFrom(lineRawSignature);
+
+      // remove all whitespaces and trailing semicolons for comparison
+      codeWithoutWhitespace = SEMICOLON.trimFrom(codeWithoutWhitespace);
+      lineWithoutWhitespace = SEMICOLON.trimFrom(lineWithoutWhitespace);
+
+      if (!codeWithoutWhitespace.equals(lineWithoutWhitespace)) {
+        sb.append(" (full line is ");
+        sb.append(lineRawSignature);
+        sb.append(")");
+      }
+    }
+
+    return sb.toString();
   }
 }

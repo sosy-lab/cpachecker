@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,8 +28,8 @@ import java.util.List;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
@@ -43,44 +43,44 @@ public class CompositeReducer implements Reducer {
   }
 
   @Override
-  public AbstractElement getVariableReducedElement(
-      AbstractElement pExpandedElement, Block pContext,
+  public AbstractState getVariableReducedState(
+      AbstractState pExpandedState, Block pContext,
       CFANode pLocation) {
 
-    List<AbstractElement> result = new ArrayList<AbstractElement>();
+    List<AbstractState> result = new ArrayList<AbstractState>();
     int i = 0;
-    for (AbstractElement expandedElement : ((CompositeElement)pExpandedElement).getWrappedElements()) {
-      result.add(wrappedReducers.get(i++).getVariableReducedElement(expandedElement, pContext, pLocation));
+    for (AbstractState expandedState : ((CompositeState)pExpandedState).getWrappedStates()) {
+      result.add(wrappedReducers.get(i++).getVariableReducedState(expandedState, pContext, pLocation));
     }
-    return new CompositeElement(result);
+    return new CompositeState(result);
   }
 
   @Override
-  public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, Block pReducedContext,
-      AbstractElement pReducedElement) {
+  public AbstractState getVariableExpandedState(
+      AbstractState pRootState, Block pReducedContext,
+      AbstractState pReducedState) {
 
-    List<AbstractElement> rootElements = ((CompositeElement)pRootElement).getWrappedElements();
-    List<AbstractElement> reducedElements = ((CompositeElement)pReducedElement).getWrappedElements();
+    List<AbstractState> rootStates = ((CompositeState)pRootState).getWrappedStates();
+    List<AbstractState> reducedStates = ((CompositeState)pReducedState).getWrappedStates();
 
-    List<AbstractElement> result = new ArrayList<AbstractElement>();
+    List<AbstractState> result = new ArrayList<AbstractState>();
     int i = 0;
-    for (Pair<AbstractElement, AbstractElement> p : Pair.zipList(rootElements, reducedElements)) {
-      result.add(wrappedReducers.get(i++).getVariableExpandedElement(p.getFirst(), pReducedContext, p.getSecond()));
+    for (Pair<AbstractState, AbstractState> p : Pair.zipList(rootStates, reducedStates)) {
+      result.add(wrappedReducers.get(i++).getVariableExpandedState(p.getFirst(), pReducedContext, p.getSecond()));
     }
-    return new CompositeElement(result);
+    return new CompositeState(result);
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
+  public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
 
-    List<AbstractElement> elements = ((CompositeElement)pElementKey).getWrappedElements();
+    List<AbstractState> elements = ((CompositeState)pElementKey).getWrappedStates();
     List<Precision> precisions = ((CompositePrecision)pPrecisionKey).getPrecisions();
 
     List<Object> result = new ArrayList<Object>(elements.size());
     int i = 0;
-    for (Pair<AbstractElement, Precision> p : Pair.zipList(elements, precisions)) {
-      result.add(wrappedReducers.get(i++).getHashCodeForElement(p.getFirst(), p.getSecond()));
+    for (Pair<AbstractState, Precision> p : Pair.zipList(elements, precisions)) {
+      result.add(wrappedReducers.get(i++).getHashCodeForState(p.getFirst(), p.getSecond()));
     }
     return result;
   }

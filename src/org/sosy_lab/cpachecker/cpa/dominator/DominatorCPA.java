@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,10 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.dominator;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -43,31 +43,31 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(DominatorCPA.class);
   }
 
-	private org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA parametricDominatorCPA;
+  private org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA parametricDominatorCPA;
 
-	private DominatorCPA(CFA pCfa) {
-		this.parametricDominatorCPA = new org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA(new LocationCPA(pCfa));
-	}
+  private DominatorCPA(CFA pCfa) {
+    this.parametricDominatorCPA = new org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA(new LocationCPA(pCfa));
+  }
 
-	@Override
+  @Override
   public AbstractDomain getAbstractDomain() {
-		return this.parametricDominatorCPA.getAbstractDomain();
-	}
+    return this.parametricDominatorCPA.getAbstractDomain();
+  }
 
   @Override
   public TransferRelation getTransferRelation() {
     return this.parametricDominatorCPA.getTransferRelation();
   }
 
-	@Override
+  @Override
   public MergeOperator getMergeOperator() {
-		return this.parametricDominatorCPA.getMergeOperator();
-	}
+    return this.parametricDominatorCPA.getMergeOperator();
+  }
 
-	@Override
+  @Override
   public StopOperator getStopOperator() {
-		return this.parametricDominatorCPA.getStopOperator();
-	}
+    return this.parametricDominatorCPA.getStopOperator();
+  }
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
@@ -75,8 +75,8 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFANode node) {
-    return this.parametricDominatorCPA.getInitialElement(node);
+  public AbstractState getInitialState(CFANode node) {
+    return this.parametricDominatorCPA.getInitialState(node);
   }
 
   @Override

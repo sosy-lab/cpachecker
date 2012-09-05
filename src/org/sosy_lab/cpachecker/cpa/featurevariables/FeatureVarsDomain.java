@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.featurevariables;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
@@ -37,12 +37,12 @@ public class FeatureVarsDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement) {
+  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedState) {
       // returns true if element1 < element2 on lattice
-      // true if newElement represents less states (and a subset of the states of) reachedElement
-    if (newElement instanceof FeatureVarsElement && reachedElement instanceof FeatureVarsElement){
-      FeatureVarsElement fvn = (FeatureVarsElement)newElement;
-      FeatureVarsElement fvr = (FeatureVarsElement)reachedElement;
+      // true if newElement represents less states (and a subset of the states of) reachedState
+    if (newElement instanceof FeatureVarsState && reachedState instanceof FeatureVarsState){
+      FeatureVarsState fvn = (FeatureVarsState)newElement;
+      FeatureVarsState fvr = (FeatureVarsState)reachedState;
       return rmgr.entails(fvn.getRegion(), fvr.getRegion());
     } else {
       throw new IllegalArgumentException("Called with non-FeatureVars-Elements");
@@ -50,9 +50,9 @@ public class FeatureVarsDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractElement join(AbstractElement element1, AbstractElement element2) {
-    FeatureVarsElement fv1 = (FeatureVarsElement)element1;
-    FeatureVarsElement fv2 = (FeatureVarsElement)element2;
+  public AbstractState join(AbstractState element1, AbstractState element2) {
+    FeatureVarsState fv1 = (FeatureVarsState)element1;
+    FeatureVarsState fv2 = (FeatureVarsState)element2;
 
     Region result = rmgr.makeOr(fv1.getRegion(), fv2.getRegion());
     if (result.equals(fv2.getRegion())) {
@@ -60,7 +60,7 @@ public class FeatureVarsDomain implements AbstractDomain {
     } else if (result.equals(fv1.getRegion())) {
       return fv1;
     } else {
-      return new FeatureVarsElement(result, rmgr);
+      return new FeatureVarsState(result, rmgr);
     }
   }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.waitlist;
 import java.util.Collection;
 import java.util.Iterator;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /**
  * Default implementation for a waitlist that uses any collection as the backing
@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
  * Sub-classes may choose their own collection implementation (e.g. a LinkedList
  * or an ArrayDeque) depending on their needs for pop().
  */
-public abstract class AbstractWaitlist<T extends Collection<AbstractElement>> implements Waitlist {
+public abstract class AbstractWaitlist<T extends Collection<AbstractState>> implements Waitlist {
 
   protected final T waitlist;
 
@@ -45,8 +45,8 @@ public abstract class AbstractWaitlist<T extends Collection<AbstractElement>> im
   }
 
   @Override
-  public void add(AbstractElement pElement) {
-    waitlist.add(pElement);
+  public void add(AbstractState pStat) {
+    waitlist.add(pStat);
   }
 
   @Override
@@ -55,8 +55,8 @@ public abstract class AbstractWaitlist<T extends Collection<AbstractElement>> im
   }
 
   @Override
-  public boolean contains(AbstractElement pElement) {
-    return waitlist.contains(pElement);
+  public boolean contains(AbstractState pState) {
+    return waitlist.contains(pState);
   }
 
   @Override
@@ -65,13 +65,13 @@ public abstract class AbstractWaitlist<T extends Collection<AbstractElement>> im
   }
 
   @Override
-  public Iterator<AbstractElement> iterator() {
+  public Iterator<AbstractState> iterator() {
     return waitlist.iterator();
   }
 
   @Override
-  public boolean remove(AbstractElement pElement) {
-    return waitlist.remove(pElement);
+  public boolean remove(AbstractState pState) {
+    return waitlist.remove(pState);
   }
 
   @Override

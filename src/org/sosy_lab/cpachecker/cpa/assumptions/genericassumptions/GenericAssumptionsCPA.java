@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,14 +26,15 @@ package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopAlwaysOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -41,8 +42,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionManager;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionManagerImpl;
 
 public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
 
@@ -50,15 +49,14 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(GenericAssumptionsCPA.class);
   }
 
-  private final AbstractElement topElement;
+  private final AbstractState topState;
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
 
   private GenericAssumptionsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    AssumptionManager manager = new AssumptionManagerImpl(config, logger);
-    transferRelation = new GenericAssumptionsTransferRelation(manager);
-    topElement = new GenericAssumptionsElement(manager.makeTrue());
-    abstractDomain = new GenericAssumptionsDomain(topElement);
+    transferRelation = new GenericAssumptionsTransferRelation();
+    topState = new GenericAssumptionsState(CNumericTypes.TRUE);
+    abstractDomain = new GenericAssumptionsDomain(topState);
   }
 
   @Override
@@ -67,8 +65,8 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFANode pNode) {
-    return topElement;
+  public AbstractState getInitialState(CFANode pNode) {
+    return topState;
   }
 
   @Override

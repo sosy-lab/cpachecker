@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,10 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.dominator;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -43,11 +43,11 @@ public class PostDominatorCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(PostDominatorCPA.class);
   }
 
-	private org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA parametricDominatorCPA;
+  private org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA parametricDominatorCPA;
 
-	public PostDominatorCPA(CFA pCfa) {
-		this.parametricDominatorCPA = new org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA(new InverseLocationCPA(pCfa));
-	}
+  public PostDominatorCPA(CFA pCfa) {
+    this.parametricDominatorCPA = new org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA(new InverseLocationCPA(pCfa));
+  }
 
   @Override
   public AbstractDomain getAbstractDomain() {
@@ -75,8 +75,8 @@ public class PostDominatorCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFANode node) {
-    return this.parametricDominatorCPA.getInitialElement(node);
+  public AbstractState getInitialState(CFANode node) {
+    return this.parametricDominatorCPA.getInitialState(node);
   }
 
   @Override

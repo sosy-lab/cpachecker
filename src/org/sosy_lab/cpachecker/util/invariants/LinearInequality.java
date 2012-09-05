@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,11 +32,13 @@ import org.sosy_lab.cpachecker.util.invariants.interfaces.VariableManager;
 
 public class LinearInequality {
 
-  // Represents a matrix inequality Ax <= b.
+  // Represents a matrix inequality Ax v b, where the relation v is a
+  // mixture of strict and lax inequalities, LT and LEQ.
 
   private Vector< List<Coeff> > rows = new Vector<List<Coeff>>();
+  private Vector<InfixReln> relns = new Vector<InfixReln>();
   private Vector<Coeff> rhs = new Vector<Coeff>();
-  private VariableManager vmgr;
+  private final VariableManager vmgr;
 
   public LinearInequality(VariableManager vmgr) {
     this.vmgr = vmgr;
@@ -50,6 +52,9 @@ public class LinearInequality {
     return vmgr.getNumVars();
   }
 
+  /**
+   * Get the jth coefficient in the ith row.
+   */
   public Coeff getCoeff(int i, int j) {
     Coeff a = null;
     try {
@@ -60,6 +65,22 @@ public class LinearInequality {
     return a;
   }
 
+  /**
+   * Get the ith infix relation.
+   */
+  public InfixReln getReln(int i) {
+    InfixReln a = null;
+    try {
+      a = relns.get(i);
+    } catch (ArrayIndexOutOfBoundsException e) {
+      System.err.println(e.getMessage());
+    }
+    return a;
+  }
+
+  /**
+   * Get the RHS coefficient for the ith row.
+   */
   public Coeff getRHSCoeff(int i) {
     Coeff a = null;
     try {
@@ -70,25 +91,71 @@ public class LinearInequality {
     return a;
   }
 
-  public void addRow(List<Coeff> coeffs, Coeff ub) {
+  /**
+   * Add a whole inequality, i.e. the row of coefficients in the
+   * coefficient matrix, the infix relation, and the RHS coefficient.
+   */
+  public void addIneq(List<Coeff> coeffs, InfixReln r, Coeff ub) {
     rows.add(coeffs);
+    relns.add(r);
     rhs.add(ub);
   }
 
+  /**
+   * Set just the rows of the coefficient matrix.
+   */
   public void setRows(Vector<List<Coeff>> rows) {
     this.rows = rows;
   }
 
+  /**
+   * Get the rows of the coefficient matrix.
+   */
   public Vector<List<Coeff>> getRows() {
     return this.rows;
   }
 
+  /**
+   * Set all infix relations.
+   */
+  public void setRelns(Vector<InfixReln> relns) {
+    this.relns = relns;
+  }
+
+  /**
+   * Get all infix relations.
+   */
+  public Vector<InfixReln> getRelns() {
+    return relns;
+  }
+
+  /**
+   * Set the entire RHS vector.
+   */
   public void setRHS(Vector<Coeff> rhs) {
     this.rhs = rhs;
   }
 
+  /**
+   * Get the RHS vector.
+   */
   public Vector<Coeff> getRHS() {
     return this.rhs;
+  }
+
+  /**
+   * @return the indices of those inequalities that are strict.
+   */
+  public Vector<Integer> findStrict() {
+    Vector<Integer> strict = new Vector<Integer>();
+    InfixReln R;
+    for (int i = 0; i < relns.size(); i++) {
+      R = relns.get(i);
+      if (R.equals(InfixReln.LT)) {
+        strict.add(i);
+      }
+    }
+    return strict;
   }
 
   /**
@@ -97,13 +164,14 @@ public class LinearInequality {
    * concatenation of these two; this one on top, B on bottom.
    * The new LinearInequality will have the same variable
    * manager as this one. This should be okay, since you should
-   * not be appending unless the two LI's have the same list of
+   * not be combining unless the two LI's have the same list of
    * variables.
    * @param B
    * @return
    */
   public LinearInequality combine(LinearInequality B) {
     Vector<List<Coeff>> rows = new Vector<List<Coeff>>();
+    Vector<InfixReln> relns = new Vector<InfixReln>();
     Vector<Coeff> rhs = new Vector<Coeff>();
 
     // Make the rows.
@@ -113,6 +181,15 @@ public class LinearInequality {
     Vector<List<Coeff>> rowsB = B.getRows();
     for (int i = 0; i < rowsB.size(); i++) {
       rows.add( rowsB.get(i) );
+    }
+
+    // Make the relns.
+    for (int i = 0; i < this.relns.size(); i++) {
+      relns.add( this.relns.get(i) );
+    }
+    Vector<InfixReln> relnsB = B.getRelns();
+    for (int i = 0; i < relnsB.size(); i++) {
+      relns.add( relnsB.get(i) );
     }
 
     // Make the rhs.
@@ -127,6 +204,7 @@ public class LinearInequality {
     // Build the new LI.
     LinearInequality AB = new LinearInequality(this.vmgr);
     AB.setRows(rows);
+    AB.setRelns(relns);
     AB.setRHS(rhs);
     return AB;
   }
@@ -137,6 +215,7 @@ public class LinearInequality {
    */
   public void append(LinearInequality B) {
     this.rows.addAll(B.rows);
+    this.relns.addAll(B.relns);
     this.rhs.addAll(B.rhs);
   }
 
@@ -146,6 +225,7 @@ public class LinearInequality {
     String s = "Matrix:\n";
     List<Coeff> row;
     Coeff C;
+    InfixReln R;
     for (int i = 0; i < rows.size(); i++) {
       row = rows.get(i);
       for (int j = 0; j < row.size(); j++) {
@@ -158,15 +238,16 @@ public class LinearInequality {
     s += "Variables:\n";
     Iterator<GeneralVariable> vars = vmgr.iterator();
     GeneralVariable V;
-    while(vars.hasNext()) {
+    while (vars.hasNext()) {
       V = vars.next();
       s += " "+V.toString();
     }
 
-    s += "\nRHS:\n";
+    s += "\nrelations and RHS:\n";
     for (int i = 0; i < rhs.size(); i++) {
+      R = relns.get(i);
       C = rhs.get(i);
-      s += " "+C.toString();
+      s += " "+R.toString()+" "+C.toString();
     }
     s += "\n";
     return s;

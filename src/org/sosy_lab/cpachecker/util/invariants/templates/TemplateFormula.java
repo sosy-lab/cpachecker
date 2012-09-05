@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,8 +31,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.Template;
-import org.sosy_lab.cpachecker.util.invariants.redlog.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -42,11 +42,11 @@ public class TemplateFormula implements Formula, Template {
 
   /**
    * Rename all variables in the formula.
-   * @param prefix: the letter you want to use in all the new names
-   * @param vars: list of all variables occurring in the formula prior to aliasing,
+   * @param prefix the letter you want to use in all the new names
+   * @param vars list of all variables occurring in the formula prior to aliasing,
    *              written in the PLAIN style.
    *              Probably best to get this using the getAllVariables method.
-   * @return: says whether every variable in the formula was replaced or not
+   * Return says whether every variable in the formula was replaced or not
    */
   public void alias(AliasingMap amap) {}
 
@@ -55,12 +55,12 @@ public class TemplateFormula implements Formula, Template {
   /**
    * Evaluate all the parameters occurring in this formula, according
    * to the given HashMap.
-   * @param map: map from parameter names, in the REDLOG
+   * @param map map from parameter names, in the REDLOG
    * style, to the rational values you want them replaced by.
-   * @return: true if every parameter in this formula was assigned a
+   * @return true if every parameter in this formula was assigned a
    * value by the passed map; false otherwise.
    */
-  public boolean evaluate(HashMap<String,Rational> map) { return true; }
+  public boolean evaluate(Map<String,Rational> map) { return true; }
 
   public void unevaluate() {}
 
@@ -98,7 +98,7 @@ public class TemplateFormula implements Formula, Template {
   /**
    * Introduce fresh variables for the UIFs in the formula. Record
    * definitions of these in pur.
-   * @param pur: Pass a new Purification object when starting a new
+   * @param pur Pass a new Purification object when starting a new
    * purification.
    * @return
    */
@@ -108,7 +108,7 @@ public class TemplateFormula implements Formula, Template {
 
   public void unpurify() {}
 
-  Set<TermForm> getTopLevelTermForms() { return null; }
+  public Set<TermForm> getTopLevelTermForms() { return null; }
 
   // FIXME: Should use TemplateVariable objects instead. See comments on next method.
   public Set<String> getAllVariables(VariableWriteMode vwm) {
@@ -136,6 +136,42 @@ public class TemplateFormula implements Formula, Template {
       V.add(T);
     }
     return V;
+  }
+
+  public Set<TemplateVariable> getTopLevelLHSParameters() {
+    List<TemplateConstraint> cons = getConstraints();
+    Set<TemplateVariable> params = new HashSet<TemplateVariable>();
+    for (TemplateConstraint c : cons) {
+      params.addAll( c.getTopLevelLHSParameters() );
+    }
+    return params;
+  }
+
+  public Set<TemplateUIF> getAllTopLevelUIFs() {
+    List<TemplateConstraint> cons = getConstraints();
+    Set<TemplateUIF> uifs = new HashSet<TemplateUIF>();
+    for (TemplateConstraint c : cons) {
+      uifs.addAll( c.getAllTopLevelUIFs() );
+    }
+    return uifs;
+  }
+
+  public Set<TemplateTerm> getTopLevelTerms() {
+    List<TemplateConstraint> cons = getConstraints();
+    Set<TemplateTerm> terms = new HashSet<TemplateTerm>();
+    for (TemplateConstraint c : cons) {
+      terms.addAll( c.getTopLevelTerms() );
+    }
+    return terms;
+  }
+
+  public Set<TemplateVariable> getAllPurificationVariables() {
+    List<TemplateConstraint> cons = getConstraints();
+    Set<TemplateVariable> pvs = new HashSet<TemplateVariable>();
+    for (TemplateConstraint c : cons) {
+      pvs.addAll( c.getAllPurificationVariables() );
+    }
+    return pvs;
   }
 
   public Set<TemplateVariable> getAllParameters() {

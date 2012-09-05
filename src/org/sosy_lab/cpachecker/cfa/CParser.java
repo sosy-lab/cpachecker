@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.AbstractEclipseCParser;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCDT6Parser;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCDT7Parser;
@@ -76,14 +76,14 @@ public interface CParser {
    * Example output:
    * AST for "bar();"
    *
-   * This method guarantees that the AST does not contain IASTProblem nodes.
+   * This method guarantees that the AST does not contain CProblem nodes.
    *
    * @param code The code snippet as described above.
    * @param dialect The parser dialect to use.
    * @return The AST for the statement.
    * @throws ParserException If parsing fails.
    */
-  IASTNode parseSingleStatement(String code) throws ParserException;
+  CAstNode parseSingleStatement(String code) throws ParserException;
 
   /**
    * Return a timer that measured the time needed for parsing.
@@ -113,9 +113,6 @@ public interface CParser {
     @Option(description="C dialect for parser")
     private Dialect dialect = Dialect.GNUC;
 
-    @Option(description="Ignore all casts that appear in the source code.")
-    private boolean ignoreCasts = false;
-
     private ParserOptions() { }
   }
 
@@ -144,7 +141,6 @@ public interface CParser {
       } else {
         result = new EclipseCDT6Parser(logger, options.dialect);
       }
-      result.setIgnoreCasts(options.ignoreCasts);
       return result;
     }
 

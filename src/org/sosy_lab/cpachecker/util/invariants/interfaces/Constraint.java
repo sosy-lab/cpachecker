@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -57,6 +57,12 @@ public interface Constraint {
    * the right-hand side.
    */
   public Coeff getNormalFormConstant(VariableWriteMode vwm);
+
+  /*
+   * This method is for use when we assume that the program variables
+   * are integers, and we transform strict inequalities into lax.
+   */
+  public Coeff getNormalFormConstantMinusOne(VariableWriteMode vwm);
 
   /**
    * @return the infix relation of this constraint.

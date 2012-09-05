@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,16 +23,16 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitElement;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
- * Waitlist implementation that sorts the abstract elements depending on the
- * content of the ExplicitElement (if there is any).
- * Elements where less variables have a value assigned are considered first.
- * This elements are expected to cover a bigger part of the state space,
- * so elements with more variables will probably be covered later.
+ * Waitlist implementation that sorts the abstract states depending on the
+ * content of the ExplicitState (if there is any).
+ * Stas where less variables have a value assigned are considered first.
+ * This states are expected to cover a bigger part of the state space,
+ * so states with more variables will probably be covered later.
  */
 public class ExplicitSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 
@@ -41,12 +41,12 @@ public class ExplicitSortedWaitlist extends AbstractSortedWaitlist<Integer> {
   }
 
   @Override
-  protected Integer getSortKey(AbstractElement pElement) {
-    ExplicitElement explicitElement =
-      AbstractElements.extractElementByType(pElement, ExplicitElement.class);
+  protected Integer getSortKey(AbstractState pState) {
+    ExplicitState explicitState =
+      AbstractStates.extractStateByType(pState, ExplicitState.class);
 
     // negate size so that the highest key corresponds to the smallest map
-    return (explicitElement != null) ? -explicitElement.getSize() : 0;
+    return (explicitState != null) ? -explicitState.getSize() : 0;
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {

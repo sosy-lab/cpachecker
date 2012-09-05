@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,9 +29,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -109,24 +110,27 @@ class AutomatonTransition {
 
   /** Determines if this Transition matches on the current State of the CPA.
    * This might return a <code>MaybeBoolean.MAYBE</code> value if the method cannot determine if the transition matches.
-   * In this case more information (e.g. more AbstractElements of other CPAs) are needed.
+   * In this case more information (e.g. more AbstractStates of other CPAs) are needed.
+   * @throws CPATransferException
    */
-  public ResultValue<Boolean> match(AutomatonExpressionArguments pArgs) {
+  public ResultValue<Boolean> match(AutomatonExpressionArguments pArgs) throws CPATransferException {
     return trigger.eval(pArgs);
   }
 
   /**
    * Checks if all assertions of this transition are fulfilled
    * in the current configuration of the automaton this method is called.
+   * @throws CPATransferException
    */
-  public ResultValue<Boolean> assertionsHold(AutomatonExpressionArguments pArgs) {
+  public ResultValue<Boolean> assertionsHold(AutomatonExpressionArguments pArgs) throws CPATransferException {
     return assertion.eval(pArgs);
   }
 
   /**
    * Executes all actions of this transition in the order which is defined in the automaton definition file.
+   * @throws CPATransferException
    */
-  public void executeActions(AutomatonExpressionArguments pArgs) {
+  public void executeActions(AutomatonExpressionArguments pArgs) throws CPATransferException {
     for (AutomatonAction action : actions) {
       ResultValue<? extends Object> res = action.eval(pArgs);
       if (res.canNotEvaluate()) {
@@ -140,11 +144,12 @@ class AutomatonTransition {
   }
 
   /** Returns if the actions of this transiton can be executed on these AutomatonExpressionArguments.
-   * If false is returned more Information is needed (probably more AbstractElements from other CPAs).
+   * If false is returned more Information is needed (probably more AbstractStates from other CPAs).
    * @param pArgs
    * @return
+   * @throws CPATransferException
    */
-  public boolean canExecuteActionsOn(AutomatonExpressionArguments pArgs) {
+  public boolean canExecuteActionsOn(AutomatonExpressionArguments pArgs) throws CPATransferException {
     for (AutomatonAction action : actions) {
       if (! action.canExecuteOn(pArgs)) {
         return false;

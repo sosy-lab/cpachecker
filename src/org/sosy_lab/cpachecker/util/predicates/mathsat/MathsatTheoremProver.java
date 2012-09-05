@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,12 +31,12 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 
+import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.base.Preconditions;
@@ -56,17 +56,6 @@ public class MathsatTheoremProver implements TheoremProver {
     int res = msat_solve(curEnv);
     assert(res != MSAT_UNKNOWN);
     return res == MSAT_UNSAT;
-  }
-
-  @Override
-  public boolean isUnsat(Formula f) {
-    push(f);
-    try {
-      return isUnsat();
-
-    } finally {
-      pop();
-    }
   }
 
   @Override
@@ -106,9 +95,10 @@ public class MathsatTheoremProver implements TheoremProver {
 
   @Override
   public AllSatResult allSat(Formula f, Collection<Formula> important,
-                             AbstractionManager amgr, Timer timer) {
-    checkNotNull(amgr);
-    checkNotNull(timer);
+                             RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) {
+    checkNotNull(rmgr);
+    checkNotNull(solveTime);
+    checkNotNull(enumTime);
     long formula = getTerm(f);
 
     long allsatEnv = mgr.createEnvironment(true, true);
@@ -118,9 +108,16 @@ public class MathsatTheoremProver implements TheoremProver {
     for (Formula impF : important) {
       imp[i++] = getTerm(impF);
     }
-    MathsatAllSatCallback callback = new MathsatAllSatCallback(amgr, timer);
+    MathsatAllSatCallback callback = new MathsatAllSatCallback(rmgr, solveTime, enumTime);
+    solveTime.start();
     msat_assert_formula(allsatEnv, formula);
     int numModels = msat_all_sat(allsatEnv, imp, callback);
+
+    if (solveTime.isRunning()) {
+      solveTime.stop();
+    } else {
+      enumTime.stopOuter();
+    }
 
     if (numModels == -1) {
       throw new RuntimeException("Error occurred during Mathsat allsat");
@@ -142,21 +139,22 @@ public class MathsatTheoremProver implements TheoremProver {
    * callback used to build the predicate abstraction of a formula
    */
   static class MathsatAllSatCallback implements NativeApi.AllSatModelCallback, TheoremProver.AllSatResult {
-    private final AbstractionManager amgr;
-    private final RegionManager rmgr;
+    private final RegionCreator rmgr;
 
-    private final Timer totalTime;
+    private final Timer solveTime;
+    private final NestedTimer enumTime;
+    private Timer regionTime = null;
 
     private int count = 0;
 
     private Region formula;
     private final Deque<Region> cubes = new ArrayDeque<Region>();
 
-    public MathsatAllSatCallback(AbstractionManager fmgr, Timer timer) {
-      this.amgr = fmgr;
-      this.rmgr = fmgr.getRegionManager();
+    public MathsatAllSatCallback(RegionCreator rmgr, Timer pSolveTime, NestedTimer pEnumTime) {
+      this.rmgr = rmgr;
       this.formula = rmgr.makeFalse();
-      this.totalTime = timer;
+      this.solveTime = pSolveTime;
+      this.enumTime = pEnumTime;
     }
 
     public void setInfiniteNumberOfModels() {
@@ -191,7 +189,13 @@ public class MathsatTheoremProver implements TheoremProver {
 
     @Override
     public void callback(long[] model) {
-      totalTime.start();
+      if (count == 0) {
+        solveTime.stop();
+        enumTime.startOuter();
+        regionTime = enumTime.getInnerTimer();
+      }
+
+      regionTime.start();
 
       // the abstraction is created simply by taking the disjunction
       // of all the models found by msat_all_sat, and storing them
@@ -203,10 +207,10 @@ public class MathsatTheoremProver implements TheoremProver {
         Region v;
         if (msat_term_is_not(t) != 0) {
           t = msat_term_get_arg(t, 0);
-          v = amgr.getPredicate(encapsulate(t)).getAbstractVariable();
+          v = rmgr.getPredicate(encapsulate(t));
           v = rmgr.makeNot(v);
         } else {
-          v = amgr.getPredicate(encapsulate(t)).getAbstractVariable();
+          v = rmgr.getPredicate(encapsulate(t));
         }
         curCube.add(v);
       }
@@ -223,7 +227,7 @@ public class MathsatTheoremProver implements TheoremProver {
 
       count++;
 
-      totalTime.stop();
+      regionTime.stop();
     }
   }
 }

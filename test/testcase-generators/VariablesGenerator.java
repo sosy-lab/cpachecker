@@ -7,7 +7,7 @@ import java.io.IOException;
  * Very simple C-Code generator: Generates C-Code that declares and 
  * accesses a set number of global and/or local variables. 
  * Useful for quickly generating test cases with many variables.
- * Output can be compiled with cil or directly used with CPAChecker.
+ * Output can be compiled with cil or directly used with CPAchecker.
  * 
  * Example code:
  * 

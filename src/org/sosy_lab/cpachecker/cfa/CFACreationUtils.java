@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,14 +26,12 @@ package org.sosy_lab.cpachecker.cfa;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 
 /**
  * Helper class that contains some complex operations that may be useful during
@@ -48,34 +46,22 @@ public class CFACreationUtils {
    */
   public static void addEdgeToCFA(CFAEdge edge, LogManager logger) {
     CFANode predecessor = edge.getPredecessor();
-    CFANode successor = edge.getSuccessor();
 
     // check control flow branching at predecessor
-    if (edge instanceof AssumeEdge) {
+    if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
       assert predecessor.getNumLeavingEdges() <= 1;
       if (predecessor.getNumLeavingEdges() > 0) {
-        assert predecessor.getLeavingEdge(0) instanceof AssumeEdge;
+        assert predecessor.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge;
       }
 
     } else {
       assert predecessor.getNumLeavingEdges() == 0;
     }
 
-    // check control flow merging at successor
-    if (   !(successor instanceof CFAFunctionExitNode)
-        && !(successor instanceof CFALabelNode)
-        && !(successor.isLoopStart())) {
-      // these two node types may have unlimited incoming edges,
-      // a loopStart can be reachable through 'continue' several times,
-      // all other may have at most two of them
-      assert successor.getNumEnteringEdges() <= 1;
-    }
+    // no check control flow merging at successor, we might have many incoming edges
 
     // check if predecessor is reachable
-    // or if the predecessor is a loopStart of a forLoop
-    // and the edge is the "counter++"-edge
-    if (isReachableNode(predecessor) ||
-        (edge instanceof StatementEdge && edge.getSuccessor().isLoopStart())) {
+    if (isReachableNode(predecessor)) {
 
       // all checks passed, add it to the CFA
       edge.getPredecessor().addLeavingEdge(edge);
@@ -84,10 +70,10 @@ public class CFACreationUtils {
     } else {
       // unreachable edge, don't add it to the CFA
 
-      if (!edge.getRawStatement().isEmpty()) {
+      if (!edge.getDescription().isEmpty()) {
         // warn user, but not if its due to dead code produced by CIL
         Level level = Level.INFO;
-        if (edge.getRawStatement().matches("^Goto: (switch|while)_\\d+_[a-z0-9]+$")) {
+        if (edge.getDescription().matches("^Goto: (switch|while)_\\d+_[a-z0-9]+$")) {
           // don't mention dead code produced by CIL on normal log levels
           level = Level.FINER;
         }
@@ -104,10 +90,10 @@ public class CFACreationUtils {
    */
   public static boolean isReachableNode(CFANode node) {
     return (node.getNumEnteringEdges() > 0)
-        || (node instanceof CFAFunctionDefinitionNode)
+        || (node instanceof FunctionEntryNode)
         || (node.isLoopStart())
-        || ((node instanceof CFALabelNode)
-            && !((CFALabelNode)node).getLabel().isEmpty());
+        || ((node instanceof CLabelNode)
+            && !((CLabelNode)node).getLabel().isEmpty());
   }
 
   /**
@@ -134,7 +120,7 @@ public class CFACreationUtils {
     e.getSuccessor().removeEnteringEdge(e);
   }
 
-  public static void removeSummaryEdgeFromNodes(CallToReturnEdge e) {
+  public static void removeSummaryEdgeFromNodes(FunctionSummaryEdge e) {
     e.getPredecessor().removeLeavingSummaryEdge(e);
     e.getSuccessor().removeEnteringSummaryEdge(e);
   }

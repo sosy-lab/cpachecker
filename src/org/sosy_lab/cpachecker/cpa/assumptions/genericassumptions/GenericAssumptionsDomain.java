@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,17 +25,17 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class GenericAssumptionsDomain extends FlatLatticeDomain {
 
-  public GenericAssumptionsDomain(AbstractElement top) {
+  public GenericAssumptionsDomain(AbstractState top) {
     super(top);
   }
 
   @Override
-  public AbstractElement join(AbstractElement el1, AbstractElement el2) throws CPAException {
+  public AbstractState join(AbstractState el1, AbstractState el2) throws CPAException {
     throw new UnsupportedOperationException();
   }
 }

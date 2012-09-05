@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,18 +29,24 @@ import java.util.Map;
 
 /** Represents a State in the automaton.
  */
-class AutomatonInternalState {
-
+public class AutomatonInternalState {
   // the StateId is used to identify States in GraphViz
   private static int stateIdCounter = 0;
   // stateIdCounter is incremented every time an instance of AutomatonState is created.
   private int stateId = stateIdCounter++;
 
-  /** Error State */
-  static final AutomatonInternalState ERROR = new AutomatonInternalState("_predefinedState_ERROR", Collections.<AutomatonTransition>emptyList(), true, false);
-
   /** State representing BOTTOM */
   static final AutomatonInternalState BOTTOM = new AutomatonInternalState("_predefinedState_BOTTOM", Collections.<AutomatonTransition>emptyList());
+
+  /** Error State */
+  static final AutomatonInternalState ERROR = new AutomatonInternalState(
+      "_predefinedState_ERROR",
+      Collections.singletonList(new AutomatonTransition(
+                                    AutomatonBoolExpr.TRUE,
+                                    Collections.<AutomatonBoolExpr>emptyList(),
+                                    Collections.<AutomatonAction>emptyList(),
+                                    BOTTOM)),
+      true, false);
 
   /** Name of this State.  */
   private final String name;

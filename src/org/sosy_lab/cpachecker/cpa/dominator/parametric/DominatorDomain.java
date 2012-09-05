@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,123 +27,121 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class DominatorDomain implements AbstractDomain {
 
-	private final ConfigurableProgramAnalysis cpa;
+  private final ConfigurableProgramAnalysis cpa;
 
-	public DominatorDomain(ConfigurableProgramAnalysis cpa) {
-		this.cpa = cpa;
-	}
+  public DominatorDomain(ConfigurableProgramAnalysis cpa) {
+    this.cpa = cpa;
+  }
 
-	private static class DominatorTopElement extends DominatorElement
-    {
-
-        @Override
-        public String toString() {
-        	return "\\bot";
-        }
-
-        @Override
-        public boolean equals(Object o) {
-        	return (o instanceof DominatorTopElement);
-        }
-
-        @Override
-        public int hashCode() {
-        	return Integer.MIN_VALUE;
-        }
-
-        @Override
-        public CFANode getLocationNode() {
-          // TODO Auto-generated method stub
-          return null;
-        }
-    }
-
-    private final static DominatorTopElement topElement = new DominatorTopElement();
+  private static class DominatorTopState extends DominatorState  {
 
     @Override
-    public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) throws CPAException
-    {
-        if (element1.equals(element2)) {
-          return true;
-        }
-
-        if (element2.equals(topElement)) {
-          return true;
-        }
-
-        if (element1 instanceof DominatorElement && element2 instanceof DominatorElement) {
-        	DominatorElement dominatorElement1 = (DominatorElement)element1;
-        	DominatorElement dominatorElement2 = (DominatorElement)element2;
-
-        	if (this.cpa.getAbstractDomain().isLessOrEqual(dominatorElement1.getDominatedElement(), dominatorElement2.getDominatedElement())) {
-        		Iterator<AbstractElement> dominatorIterator = dominatorElement2.getIterator();
-
-        		while (dominatorIterator.hasNext()) {
-        		  AbstractElement dominator = dominatorIterator.next();
-
-        			if (!dominatorElement1.isDominatedBy(dominator)) {
-        				return false;
-        			}
-        		}
-
-        		return true;
-        	}
-        }
-
-        return false;
+    public String toString() {
+      return "\\bot";
     }
 
     @Override
-    public AbstractElement join(AbstractElement element1, AbstractElement element2) {
-      if (!(element1 instanceof DominatorElement)) {
-        throw new IllegalArgumentException(
-            "element1 is not a DominatorElement!");
+    public boolean equals(Object o) {
+      return (o instanceof DominatorTopState);
+    }
+
+    @Override
+    public int hashCode() {
+      return Integer.MIN_VALUE;
+    }
+
+    @Override
+    public CFANode getLocationNode() {
+      // TODO Auto-generated method stub
+      return null;
+    }
+  }
+
+  private final static DominatorTopState topState = new DominatorTopState();
+
+  @Override
+  public boolean isLessOrEqual(AbstractState element1, AbstractState element2) throws CPAException {
+    if (element1.equals(element2)) {
+      return true;
+    }
+
+    if (element2.equals(topState)) {
+      return true;
+    }
+
+    if (element1 instanceof DominatorState && element2 instanceof DominatorState) {
+      DominatorState dominatorState1 = (DominatorState)element1;
+      DominatorState dominatorState2 = (DominatorState)element2;
+
+      if (this.cpa.getAbstractDomain().isLessOrEqual(dominatorState1.getDominatedState(), dominatorState2.getDominatedState())) {
+        Iterator<AbstractState> dominatorIterator = dominatorState2.getIterator();
+
+        while (dominatorIterator.hasNext()) {
+          AbstractState dominator = dominatorIterator.next();
+
+          if (!dominatorState1.isDominatedBy(dominator)) {
+            return false;
+          }
+        }
+
+        return true;
       }
+    }
 
-      if (!(element2 instanceof DominatorElement)) {
-        throw new IllegalArgumentException(
-            "element2 is not a DominatorElement!");
+    return false;
+  }
+
+  @Override
+  public AbstractState join(AbstractState element1, AbstractState element2) {
+    if (!(element1 instanceof DominatorState)) {
+      throw new IllegalArgumentException(
+          "element1 is not a DominatorState!");
+    }
+
+    if (!(element2 instanceof DominatorState)) {
+      throw new IllegalArgumentException(
+          "element2 is not a DominatorState!");
+    }
+
+    DominatorState dominatorState1 = (DominatorState) element1;
+    DominatorState dominatorState2 = (DominatorState) element2;
+
+    if (element1.equals(topState)) {
+      return dominatorState1;
+    }
+
+    if (element2.equals(topState)) {
+      return dominatorState2;
+    }
+
+    if (!dominatorState1.getDominatedState().equals(dominatorState2.getDominatedState())) {
+      return topState;
+    }
+
+    Set<AbstractState> intersectingDominators = new HashSet<AbstractState>();
+
+    Iterator<AbstractState> dominatorIterator = dominatorState1.getIterator();
+
+    while (dominatorIterator.hasNext()) {
+      AbstractState dominator = dominatorIterator.next();
+
+      if (dominatorState2.isDominatedBy(dominator)) {
+        intersectingDominators.add(dominator);
       }
+    }
 
-      DominatorElement dominatorElement1 = (DominatorElement) element1;
-      DominatorElement dominatorElement2 = (DominatorElement) element2;
+    DominatorState result = new DominatorState(dominatorState1.getDominatedState(), intersectingDominators);
 
-		if (element1.equals(topElement)) {
-			return dominatorElement1;
-		}
+    result.update(dominatorState1.getDominatedState());
 
-		if (element2.equals(topElement)) {
-			return dominatorElement2;
-		}
-
-		if (!dominatorElement1.getDominatedElement().equals(dominatorElement2.getDominatedElement())) {
-			return topElement;
-		}
-
-		Set<AbstractElement> intersectingDominators = new HashSet<AbstractElement>();
-
-		Iterator<AbstractElement> dominatorIterator = dominatorElement1.getIterator();
-
-		while (dominatorIterator.hasNext()) {
-		  AbstractElement dominator = dominatorIterator.next();
-
-			if (dominatorElement2.isDominatedBy(dominator)) {
-				intersectingDominators.add(dominator);
-			}
-		}
-
-		DominatorElement result = new DominatorElement(dominatorElement1.getDominatedElement(), intersectingDominators);
-
-		result.update(dominatorElement1.getDominatedElement());
-
-		return result;
-	}
+    return result;
+  }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,8 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -37,11 +37,11 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class CacheTransferRelation implements TransferRelation {
 
   private final TransferRelation mCachedTransferRelation;
-  //private Map<CFAEdge, Map<AbstractElement, Map<Precision, Collection<? extends AbstractElement>>>> mSuccessorsCache;
-  private Map<Precision, Map<CFAEdge, Map<AbstractElement, Collection<? extends AbstractElement>>>> mSuccessorsCache;
+  //private Map<CFAEdge, Map<AbstractState, Map<Precision, Collection<? extends AbstractState>>>> mSuccessorsCache;
+  private Map<Precision, Map<CFAEdge, Map<AbstractState, Collection<? extends AbstractState>>>> mSuccessorsCache;
 
-  private int lCacheMisses = 0;
-  private int lCacheHits = 0;
+  //private int lCacheMisses = 0;
+  //private int lCacheHits = 0;
 
 
   //private Set<CFAEdge> mHitEdges;
@@ -49,15 +49,15 @@ public class CacheTransferRelation implements TransferRelation {
 
   public CacheTransferRelation(TransferRelation pCachedTransferRelation) {
     mCachedTransferRelation = pCachedTransferRelation;
-    //mSuccessorsCache = new HashMap<CFAEdge, Map<AbstractElement, Map<Precision, Collection<? extends AbstractElement>>>>();
-    mSuccessorsCache = new HashMap<Precision, Map<CFAEdge, Map<AbstractElement, Collection<? extends AbstractElement>>>>();
+    //mSuccessorsCache = new HashMap<CFAEdge, Map<AbstractState, Map<Precision, Collection<? extends AbstractState>>>>();
+    mSuccessorsCache = new HashMap<Precision, Map<CFAEdge, Map<AbstractState, Collection<? extends AbstractState>>>>();
 
     //mHitEdges = new HashSet<CFAEdge>();
   }
 
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors(
-      AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
 
     /*if (pCfaEdge.getPredecessor().getNodeNumber() == 1) {
@@ -66,21 +66,21 @@ public class CacheTransferRelation implements TransferRelation {
       System.out.println(pPrecision);
     }*/
 
-    /*Map<AbstractElement, Map<Precision, Collection<? extends AbstractElement>>> lLevel1Cache = mSuccessorsCache.get(pCfaEdge);
+    /*Map<AbstractState, Map<Precision, Collection<? extends AbstractState>>> lLevel1Cache = mSuccessorsCache.get(pCfaEdge);
 
     if (lLevel1Cache == null) {
-      lLevel1Cache = new HashMap<AbstractElement, Map<Precision, Collection<? extends AbstractElement>>>();
+      lLevel1Cache = new HashMap<AbstractState, Map<Precision, Collection<? extends AbstractState>>>();
       mSuccessorsCache.put(pCfaEdge, lLevel1Cache);
     }
 
-    Map<Precision, Collection<? extends AbstractElement>> lLevel2Cache = lLevel1Cache.get(pElement);
+    Map<Precision, Collection<? extends AbstractState>> lLevel2Cache = lLevel1Cache.get(pElement);
 
     if (lLevel2Cache == null) {
-      lLevel2Cache = new HashMap<Precision, Collection<? extends AbstractElement>>();
+      lLevel2Cache = new HashMap<Precision, Collection<? extends AbstractState>>();
       lLevel1Cache.put(pElement, lLevel2Cache);
     }
 
-    Collection<? extends AbstractElement> lSuccessors = lLevel2Cache.get(pPrecision);
+    Collection<? extends AbstractState> lSuccessors = lLevel2Cache.get(pPrecision);
 
     if (lSuccessors == null) {
       lSuccessors = mCachedTransferRelation.getAbstractSuccessors(pElement, pPrecision, pCfaEdge);
@@ -98,42 +98,38 @@ public class CacheTransferRelation implements TransferRelation {
 
     return lSuccessors;*/
 
-    Map<CFAEdge, Map<AbstractElement, Collection<? extends AbstractElement>>> lLevel1Cache = mSuccessorsCache.get(pPrecision);
+    Map<CFAEdge, Map<AbstractState, Collection<? extends AbstractState>>> lLevel1Cache = mSuccessorsCache.get(pPrecision);
 
     if (lLevel1Cache == null) {
-      lLevel1Cache = new HashMap<CFAEdge, Map<AbstractElement, Collection<? extends AbstractElement>>>();
+      lLevel1Cache = new HashMap<CFAEdge, Map<AbstractState, Collection<? extends AbstractState>>>();
       mSuccessorsCache.put(pPrecision, lLevel1Cache);
     }
 
-    Map<AbstractElement, Collection<? extends AbstractElement>> lLevel2Cache = lLevel1Cache.get(pCfaEdge);
+    Map<AbstractState, Collection<? extends AbstractState>> lLevel2Cache = lLevel1Cache.get(pCfaEdge);
 
     if (lLevel2Cache == null) {
-      lLevel2Cache = new HashMap<AbstractElement, Collection<? extends AbstractElement>>();
+      lLevel2Cache = new HashMap<AbstractState, Collection<? extends AbstractState>>();
       lLevel1Cache.put(pCfaEdge, lLevel2Cache);
     }
 
-    Collection<? extends AbstractElement> lSuccessors = lLevel2Cache.get(pElement);
+    Collection<? extends AbstractState> lSuccessors = lLevel2Cache.get(pElement);
 
     if (lSuccessors == null) {
       lSuccessors = mCachedTransferRelation.getAbstractSuccessors(pElement, pPrecision, pCfaEdge);
       lLevel2Cache.put(pElement, lSuccessors);
 
-      lCacheMisses++;
+      //lCacheMisses++;
     }
     else {
-      lCacheHits++;
-    }
-
-    if ((lCacheMisses + lCacheHits) % 100 == 0 ) {
-      System.out.println("Misses: " + lCacheMisses + ", hits: " + lCacheHits + ", sum: " + (lCacheMisses + lCacheHits));
+      //lCacheHits++;
     }
 
     return lSuccessors;
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(
-      AbstractElement pElement, List<AbstractElement> pOtherElements,
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pElement, List<AbstractState> pOtherElements,
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
 
     // TODO implement caching

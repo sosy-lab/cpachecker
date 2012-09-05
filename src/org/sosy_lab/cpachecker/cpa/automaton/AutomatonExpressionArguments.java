@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,8 +32,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 class AutomatonExpressionArguments {
 
@@ -41,7 +41,7 @@ class AutomatonExpressionArguments {
   // Variables that are only valid for one transition ($1,$2,...)
   // these will be set in a MATCH statement, and are erased when the transitions actions are executed.
   private Map<Integer, String> transitionVariables = new HashMap<Integer, String>();
-  private List<AbstractElement> abstractElements;
+  private List<AbstractState> abstractStates;
   private CFAEdge cfaEdge;
   private LogManager logger;
   /**
@@ -57,17 +57,17 @@ class AutomatonExpressionArguments {
   static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
 
   AutomatonExpressionArguments(Map<String, AutomatonVariable> pAutomatonVariables,
-      List<AbstractElement> pAbstractElements, CFAEdge pCfaEdge, LogManager pLogger) {
+      List<AbstractState> pAbstractStates, CFAEdge pCfaEdge, LogManager pLogger) {
     super();
     if (pAutomatonVariables == null) {
       automatonVariables = Collections.emptyMap();
     } else {
       automatonVariables = pAutomatonVariables;
     }
-    if (pAbstractElements == null) {
-      abstractElements = Collections.emptyList();
+    if (pAbstractStates == null) {
+      abstractStates = Collections.emptyList();
     } else {
-      abstractElements = pAbstractElements;
+      abstractStates = pAbstractStates;
     }
     cfaEdge = pCfaEdge;
     logger = pLogger;
@@ -81,8 +81,8 @@ class AutomatonExpressionArguments {
     return automatonVariables;
   }
 
-  List<AbstractElement> getAbstractElements() {
-    return abstractElements;
+  List<AbstractState> getAbstractStates() {
+    return abstractStates;
   }
 
   CFAEdge getCfaEdge() {

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,71 +28,58 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.location.LocationElement.LocationElementFactory;
+import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class InverseLocationTransferRelation implements TransferRelation {
 
-  private final LocationElementFactory factory;
+  private final LocationStateFactory factory;
 
-  public InverseLocationTransferRelation(LocationElementFactory pFactory) {
+  public InverseLocationTransferRelation(LocationStateFactory pFactory) {
     factory = pFactory;
   }
 
-  private Collection<LocationElement> getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException
-  {
-    LocationElement inputElement = (LocationElement) element;
+  private Collection<LocationState> getAbstractSuccessor(AbstractState element,
+      CFAEdge cfaEdge, Precision prec) throws CPATransferException {
+
+    LocationState inputElement = (LocationState) element;
     CFANode node = inputElement.getLocationNode();
 
-    int numEnteringEdges = node.getNumEnteringEdges();
-
-    for (int edgeIdx = 0; edgeIdx < numEnteringEdges; edgeIdx++) {
-      CFAEdge testEdge = node.getEnteringEdge(edgeIdx);
-
-      if (testEdge == cfaEdge) {
-        return Collections.singleton(factory.getElement(testEdge.getPredecessor()));
-      }
-    }
-
-    if (node.getEnteringSummaryEdge() != null) {
-      CallToReturnEdge summaryEdge = node.getEnteringSummaryEdge();
-      return Collections.singleton(factory.getElement(summaryEdge.getPredecessor()));
+    if (CFAUtils.allEnteringEdges(node).contains(cfaEdge)) {
+      return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
     }
 
     return Collections.emptySet();
   }
 
   @Override
-  public Collection<LocationElement> getAbstractSuccessors (AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException
-  {
+  public Collection<LocationState> getAbstractSuccessors(AbstractState element,
+      Precision prec, CFAEdge cfaEdge) throws CPATransferException {
+
     if (cfaEdge != null) {
       return getAbstractSuccessor(element, cfaEdge, prec);
     }
 
-    CFANode node = ((LocationElement)element).getLocationNode();
+    CFANode node = ((LocationState)element).getLocationNode();
 
-    int numEnteringEdges = node.getNumEnteringEdges();
-    List<LocationElement> allSuccessors = new ArrayList<LocationElement>(numEnteringEdges);
+    List<LocationState> allSuccessors = new ArrayList<LocationState>(node.getNumEnteringEdges());
 
-    for (int edgeIdx = 0; edgeIdx < numEnteringEdges; edgeIdx++)
-    {
-      CFAEdge tempEdge = node.getEnteringEdge(edgeIdx);
-      allSuccessors.add(factory.getElement(tempEdge.getPredecessor()));
+    for (CFANode predecessor : CFAUtils.predecessorsOf(node)) {
+      allSuccessors.add(factory.getState(predecessor));
     }
 
     return allSuccessors;
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement element,
-                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
-                         Precision precision) {
+  public Collection<? extends AbstractState> strengthen(AbstractState element,
+      List<AbstractState> otherElements, CFAEdge cfaEdge, Precision precision) {
     return null;
   }
 }

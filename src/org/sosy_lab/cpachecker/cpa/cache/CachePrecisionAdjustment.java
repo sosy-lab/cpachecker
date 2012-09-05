@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -40,27 +40,27 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class CachePrecisionAdjustment implements PrecisionAdjustment {
 
   private final PrecisionAdjustment mCachedPrecisionAdjustment;
-  //private final Map<AbstractElement, Map<Precision, Triple<AbstractElement, Precision, Action>>> mCache;
-  private final Map<Precision, Map<AbstractElement, Triple<AbstractElement, Precision, Action>>> mCache;
+  //private final Map<AbstractState, Map<Precision, Triple<AbstractState, Precision, Action>>> mCache;
+  private final Map<Precision, Map<AbstractState, Triple<AbstractState, Precision, Action>>> mCache;
 
   public CachePrecisionAdjustment(PrecisionAdjustment pCachedPrecisionAdjustment) {
     mCachedPrecisionAdjustment = pCachedPrecisionAdjustment;
-    //mCache = new HashMap<AbstractElement, Map<Precision, Triple<AbstractElement, Precision, Action>>>();
-    mCache = new HashMap<Precision, Map<AbstractElement, Triple<AbstractElement, Precision, Action>>>();
+    //mCache = new HashMap<AbstractState, Map<Precision, Triple<AbstractState, Precision, Action>>>();
+    mCache = new HashMap<Precision, Map<AbstractState, Triple<AbstractState, Precision, Action>>>();
   }
 
   @Override
-  public Triple<AbstractElement, Precision, Action> prec(
-      AbstractElement pElement, Precision pPrecision,
+  public Triple<AbstractState, Precision, Action> prec(
+      AbstractState pElement, Precision pPrecision,
       UnmodifiableReachedSet pElements) throws CPAException {
-    /*Map<Precision, Triple<AbstractElement, Precision, Action>> lCache = mCache.get(pElement);
+    /*Map<Precision, Triple<AbstractState, Precision, Action>> lCache = mCache.get(pElement);
 
     if (lCache == null) {
-      lCache = new HashMap<Precision, Triple<AbstractElement, Precision, Action>>();
+      lCache = new HashMap<Precision, Triple<AbstractState, Precision, Action>>();
       mCache.put(pElement, lCache);
     }
 
-    Triple<AbstractElement, Precision, Action> lResult = lCache.get(pPrecision);
+    Triple<AbstractState, Precision, Action> lResult = lCache.get(pPrecision);
 
     if (lResult == null) {
       lResult = mCachedPrecisionAdjustment.prec(pElement, pPrecision, pElements);
@@ -69,14 +69,14 @@ public class CachePrecisionAdjustment implements PrecisionAdjustment {
 
     return lResult;*/
 
-    Map<AbstractElement, Triple<AbstractElement, Precision, Action>> lCache = mCache.get(pPrecision);
+    Map<AbstractState, Triple<AbstractState, Precision, Action>> lCache = mCache.get(pPrecision);
 
     if (lCache == null) {
-      lCache = new HashMap<AbstractElement, Triple<AbstractElement, Precision, Action>>();
+      lCache = new HashMap<AbstractState, Triple<AbstractState, Precision, Action>>();
       mCache.put(pPrecision, lCache);
     }
 
-    Triple<AbstractElement, Precision, Action> lResult = lCache.get(pElement);
+    Triple<AbstractState, Precision, Action> lResult = lCache.get(pElement);
 
     if (lResult == null) {
       lResult = mCachedPrecisionAdjustment.prec(pElement, pPrecision, pElements);

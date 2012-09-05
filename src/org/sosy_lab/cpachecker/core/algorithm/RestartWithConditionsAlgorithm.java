@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,136 +23,143 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
-import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ProgressObserverCPA;
-import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ProgressObserverPrecision;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
-import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
-import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 
+@Options(prefix="adjustableconditions")
 public class RestartWithConditionsAlgorithm implements Algorithm {
 
   private final Algorithm innerAlgorithm;
-  private final ARTCPA cpa;
   private final LogManager logger;
+
+  private final List<? extends AdjustableConditionCPA> conditionCPAs;
+
+  @Option(description="maximum number of condition adjustments (-1 for infinite)")
+  @IntegerOption(min=-1)
+  private int adjustmentLimit = -1;
 
   public RestartWithConditionsAlgorithm(Algorithm pAlgorithm,
         ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger)
         throws InvalidConfigurationException {
-
+    config.inject(this);
     logger = pLogger;
     innerAlgorithm = pAlgorithm;
 
-    if (!(pCpa instanceof ARTCPA)) {
-      throw new InvalidConfigurationException("ARTCPA needed for RestartWithConditionsAlgorithm");
+    if (!(pCpa instanceof ARGCPA)) {
+      throw new InvalidConfigurationException("ARGCPA needed for RestartWithConditionsAlgorithm");
     }
-    cpa = (ARTCPA)pCpa;
+    ARGCPA cpa = (ARGCPA)pCpa;
     if (cpa.retrieveWrappedCpa(AssumptionStorageCPA.class) == null) {
       throw new InvalidConfigurationException("AssumptionStorageCPA needed for RestartWithConditionsAlgorithm");
     }
-    if (cpa.retrieveWrappedCpa(ProgressObserverCPA.class) == null) {
-      throw new InvalidConfigurationException("ProgressObserverCPA needed for RestartWithConditionsAlgorithm");
-    }
+
+    conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toImmutableList();
   }
 
   @Override
   public boolean run(ReachedSet pReached) throws CPAException, InterruptedException {
     boolean sound = true;
 
-    boolean restartCPA;
+    int count = 0;
 
-    // loop if restartCPA is set to false
     do {
-      restartCPA = false;
       // run the inner algorithm to fill the reached set
       sound &= innerAlgorithm.run(pReached);
 
-      if (Iterables.any(pReached, AbstractElements.IS_TARGET_ELEMENT)) {
+      if (from(pReached).anyMatch(IS_TARGET_STATE)) {
         return sound;
       }
 
-      List<AbstractElement> elementsWithAssumptions = getElementsWithAssumptions(pReached);
+      count++;
+      if (adjustmentLimit >= 0 && count > adjustmentLimit) {
+        logger.log(Level.INFO, "Terminating because adjustment limit has been reached.");
+        return sound;
+      }
 
-      // if there are elements that an assumption is generated for
-      if (!elementsWithAssumptions.isEmpty()) {
+      List<AbstractState> statesWithAssumptions = getStatesWithAssumptions(pReached);
+
+      // if there are states that an assumption is generated for
+      if (!statesWithAssumptions.isEmpty()) {
         logger.log(Level.INFO, "Adjusting heuristics thresholds.");
-        // if any of the elements' threshold is adjusted
-        if (adjustThresholds(elementsWithAssumptions, pReached)){
-          restartCPA = true;
+        // if necessary, this will re-add state to the waitlist
+        adjustThresholds(statesWithAssumptions, pReached);
+      }
 
-        } else {
-          // no elements adjusted but there are elements with assumptions
-          // the analysis should report UNSOUND
-          sound = false;
+      // adjust precision of condition CPAs
+      for (AdjustableConditionCPA condCpa : conditionCPAs) {
+        if (!condCpa.adjustPrecision()) {
+          // this cpa said "do not continue"
+          logger.log(Level.INFO, "Terminating because of", condCpa.getClass().getSimpleName());
+          return sound;
         }
       }
 
-    } while (restartCPA);
+    } while (pReached.hasWaitingState());
 
     return sound;
   }
 
-  private List<AbstractElement> getElementsWithAssumptions(ReachedSet reached) {
+  private List<AbstractState> getStatesWithAssumptions(ReachedSet reached) {
 
-    List<AbstractElement> retList = new ArrayList<AbstractElement>();
+    List<AbstractState> retList = new ArrayList<AbstractState>();
 
-    for (AbstractElement element : reached) {
+    for (AbstractState state : reached) {
 
-      // TODO do we need target elements?
-//      if (AbstractElements.isTargetElement(element)) {
-//        // create assumptions for target element
-//        retList.add(element);
+      // TODO do we need target states?
+//      if (AbstractStates.isTargetState(state)) {
+//        // create assumptions for target state
+//        retList.add(state);
 //
 //      } else {
 
         // check if stored assumption is not "true"
-        AssumptionStorageElement e = AbstractElements.extractElementByType(element, AssumptionStorageElement.class);
+        AssumptionStorageState s = AbstractStates.extractStateByType(state, AssumptionStorageState.class);
 
-        if (!e.getAssumption().isTrue()
-            || !e.getStopFormula().isTrue()) {
+        if (!s.getAssumption().isTrue()
+            || !s.getStopFormula().isTrue()) {
 
-          retList.add(element);
+          retList.add(state);
         }
     }
 
     return retList;
   }
 
-  private boolean adjustThresholds(List<AbstractElement> pElementsWithAssumptions, ReachedSet pReached) {
-    boolean precisionAdjusted = false;
+  private void adjustThresholds(List<AbstractState> pStatesWithAssumptions, ReachedSet pReached) {
 
-    ARTReachedSet reached = new ARTReachedSet(pReached, cpa);
-    for (AbstractElement e: pElementsWithAssumptions) {
-      ARTElement artElement = (ARTElement)e;
+    ARGReachedSet reached = new ARGReachedSet(pReached);
+    for (AbstractState s: pStatesWithAssumptions) {
+      ARGState argState = (ARGState)s;
 
-      for (ARTElement parent : ImmutableSet.copyOf(artElement.getParents())){
-        precisionAdjusted |= adjustThreshold(parent, pReached);
+      for (ARGState parent : ImmutableSet.copyOf(argState.getParents())){
         reached.removeSubtree(parent);
       }
     }
-    return precisionAdjusted;
-  }
-
-  private boolean adjustThreshold(AbstractElement pParent, ReachedSet pReached) {
-    ProgressObserverPrecision observerPrecision = Precisions.extractPrecisionByType(pReached.getPrecision(pParent), ProgressObserverPrecision.class);
-    return observerPrecision.adjustPrecisions();
   }
 
   @Override

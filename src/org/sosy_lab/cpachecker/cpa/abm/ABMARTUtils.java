@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.abm;
 
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -30,10 +32,10 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -48,38 +50,38 @@ class ABMARTUtils {
   }
 
   private static void gatherReachedSets(ABMCPA cpa, Block block, ReachedSet reachedSet, Multimap<Block, ReachedSet> blockToReachedSet) {
-    if(blockToReachedSet.containsEntry(block, reachedSet)) {
+    if (blockToReachedSet.containsEntry(block, reachedSet)) {
       return; //avoid looping in recursive block calls
     }
 
     blockToReachedSet.put(block, reachedSet);
 
-    ARTElement firstElement = (ARTElement)reachedSet.getFirstElement();
+    ARGState firstElement = (ARGState)reachedSet.getFirstState();
 
-    Deque<ARTElement> worklist = new LinkedList<ARTElement>();
-    Set<ARTElement> processed = new HashSet<ARTElement>();
+    Deque<ARGState> worklist = new LinkedList<ARGState>();
+    Set<ARGState> processed = new HashSet<ARGState>();
 
     worklist.add(firstElement);
 
-    while(worklist.size() != 0){
-      ARTElement currentElement = worklist.removeLast();
+    while (worklist.size() != 0){
+      ARGState currentElement = worklist.removeLast();
 
       assert reachedSet.contains(currentElement);
 
-      if(processed.contains(currentElement)){
+      if (processed.contains(currentElement)){
         continue;
       }
       processed.add(currentElement);
 
-      for (ARTElement child : currentElement.getChildren()) {
+      for (ARGState child : currentElement.getChildren()) {
         CFAEdge edge = getEdgeToChild(currentElement, child);
-        if(edge == null) {
+        if (edge == null) {
           //this is a summary edge
           Pair<Block,ReachedSet> pair = cpa.getTransferRelation().getCachedReachedSet(currentElement, reachedSet.getPrecision(currentElement));
           gatherReachedSets(cpa, pair.getFirst(), pair.getSecond(), blockToReachedSet);
         }
-        if(!worklist.contains(child)){
-          if(reachedSet.contains(child)) {
+        if (!worklist.contains(child)){
+          if (reachedSet.contains(child)) {
             worklist.add(child);
           }
         }
@@ -87,17 +89,17 @@ class ABMARTUtils {
     }
   }
 
-  public static CFAEdge getEdgeToChild(ARTElement parent, ARTElement child) {
-    CFANode currentLoc = parent.retrieveLocationElement().getLocationNode();
-    CFANode childNode = child.retrieveLocationElement().getLocationNode();
+  public static CFAEdge getEdgeToChild(ARGState parent, ARGState child) {
+    CFANode currentLoc = extractLocation(parent);
+    CFANode childNode = extractLocation(child);
 
     return getEdgeTo(currentLoc, childNode);
   }
 
   public static CFAEdge getEdgeTo(CFANode node1, CFANode node2) {
-    for(int i = 0; i < node1.getNumLeavingEdges(); i++) {
+    for (int i = 0; i < node1.getNumLeavingEdges(); i++) {
       CFAEdge edge = node1.getLeavingEdge(i);
-      if(edge.getSuccessor() == node2) {
+      if (edge.getSuccessor() == node2) {
         return edge;
       }
     }

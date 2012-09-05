@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,11 +27,11 @@ import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 
 
 /**
@@ -40,21 +40,23 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  */
 public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartitioning {
 
+  private static final CFATraversal TRAVERSE_CFA_INSIDE_FUNCTION = CFATraversal.dfs().ignoreFunctionCalls();
+
   public DelayedFunctionAndLoopPartitioning(LogManager pLogger, CFA pCfa) {
     super(pLogger, pCfa);
   }
 
   @Override
   protected Set<CFANode> getBlockForNode(CFANode pNode) {
-    if(pNode instanceof CFAFunctionDefinitionNode) {
-      CFAFunctionDefinitionNode functionNode = (CFAFunctionDefinitionNode) pNode;
-      return removeInitialDeclarations(functionNode, CFAUtils.exploreSubgraph(functionNode, functionNode.getExitNode()));
+    if (pNode instanceof FunctionEntryNode) {
+      Set<CFANode> blockNodes = TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
+      return removeInitialDeclarations(pNode, blockNodes);
     }
 
     return super.getBlockForNode(pNode);
   }
 
-  private Set<CFANode> removeInitialDeclarations(CFAFunctionDefinitionNode functionNode, Set<CFANode> functionBody) {
+  private Set<CFANode> removeInitialDeclarations(CFANode functionNode, Set<CFANode> functionBody) {
     if (functionNode.getNumEnteringEdges() == 0) {
       // this is the main function
       return functionBody;
@@ -68,10 +70,10 @@ public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartition
 
     int skippedDeclarations = 0;
 
-    while(currentNode.getNumLeavingEdges() == 1 && currentNode.getLeavingEdge(0).getSuccessor().getNumLeavingEdges() == 1) {
+    while (currentNode.getNumLeavingEdges() == 1 && currentNode.getLeavingEdge(0).getSuccessor().getNumLeavingEdges() == 1) {
       assert currentNode.getNumEnteringEdges() == 1;
       CFAEdge edge = currentNode.getLeavingEdge(0);
-      if(edge.getEdgeType() != CFAEdgeType.DeclarationEdge) {
+      if (edge.getEdgeType() != CFAEdgeType.DeclarationEdge) {
         break;
       }
       //it is a declaration -> skip it
@@ -80,15 +82,14 @@ public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartition
       currentNode = edge.getSuccessor();
     }
 
-    while(currentNode.getNumLeavingEdges() == 1 && skippedDeclarations > 0  && currentNode.getLeavingEdge(0).getSuccessor().getNumLeavingEdges() == 1) {
+    while (currentNode.getNumLeavingEdges() == 1 && skippedDeclarations > 0  && currentNode.getLeavingEdge(0).getSuccessor().getNumLeavingEdges() == 1) {
       assert currentNode.getNumEnteringEdges() == 1;
       CFAEdge edge = currentNode.getLeavingEdge(0);
-      if(edge.getEdgeType() != CFAEdgeType.StatementEdge) {
+      if (edge.getEdgeType() != CFAEdgeType.StatementEdge) {
         break;
       }
       //skip as many (hopefully) definitions
       skippedDeclarations--;
-      System.out.println(edge);
       functionBody.remove(edge.getPredecessor());
       currentNode = edge.getSuccessor();
     }

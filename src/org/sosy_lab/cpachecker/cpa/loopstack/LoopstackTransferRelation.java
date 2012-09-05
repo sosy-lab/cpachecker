@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,11 +36,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -78,9 +78,9 @@ public class LoopstackTransferRelation implements TransferRelation {
     for (Loop l : loops.values()) {
       // function edges do not count as incoming/outgoing edges
       Iterable<CFAEdge> incomingEdges = filter(l.getIncomingEdges(),
-                                               not(instanceOf(FunctionReturnEdge.class)));
+                                               not(instanceOf(CFunctionReturnEdge.class)));
       Iterable<CFAEdge> outgoingEdges = filter(l.getOutgoingEdges(),
-                                               not(instanceOf(FunctionCallEdge.class)));
+                                               not(instanceOf(CFunctionCallEdge.class)));
 
       for (CFAEdge e : incomingEdges) {
         entryEdges.put(e, l);
@@ -99,11 +99,11 @@ public class LoopstackTransferRelation implements TransferRelation {
 
 
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors(
-      AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
 
-    if (pCfaEdge instanceof FunctionCallEdge) {
+    if (pCfaEdge instanceof CFunctionCallEdge) {
       // such edges do never change loop stack status
       // Return here because they might be mis-classified as exit edges
       // because our idea of a loop contains only those nodes within the same function
@@ -111,15 +111,15 @@ public class LoopstackTransferRelation implements TransferRelation {
     }
 
     CFANode loc = pCfaEdge.getSuccessor();
-    LoopstackElement e = (LoopstackElement)pElement;
+    LoopstackState e = (LoopstackState)pElement;
 
     Loop oldLoop = loopExitEdges.get(pCfaEdge);
     if (oldLoop != null) {
       assert oldLoop.equals(e.getLoop()) : e + " " + oldLoop + " " + pCfaEdge;
-      e = e.getPreviousElement();
+      e = e.getPreviousState();
     }
 
-    if (pCfaEdge instanceof FunctionReturnEdge) {
+    if (pCfaEdge instanceof CFunctionReturnEdge) {
       // such edges may be real loop-exit edges "while () { return; }",
       // but never loop-entry edges
       // Return here because they might be mis-classified as entry edges
@@ -128,22 +128,22 @@ public class LoopstackTransferRelation implements TransferRelation {
 
     Loop newLoop = loopEntryEdges.get(pCfaEdge);
     if (newLoop != null) {
-      e = new LoopstackElement(e, newLoop, 0, false);
+      e = new LoopstackState(e, newLoop, 0, false);
     }
 
     Collection<Loop> loops = loopHeads.get(loc);
     assert loops.size() <= 1;
     if (loops.contains(e.getLoop())) {
       boolean stop = (maxLoopIterations > 0) && (e.getIteration() >= maxLoopIterations);
-      e = new LoopstackElement(e.getPreviousElement(), e.getLoop(), e.getIteration()+1, stop);
+      e = new LoopstackState(e.getPreviousState(), e.getLoop(), e.getIteration()+1, stop);
     }
 
     return Collections.singleton(e);
   }
 
   @Override
-  public Collection<? extends AbstractElement> strengthen(
-      AbstractElement pElement, List<AbstractElement> pOtherElements,
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pElement, List<AbstractState> pOtherElements,
       CFAEdge pCfaEdge, Precision pPrecision) {
 
     return null;

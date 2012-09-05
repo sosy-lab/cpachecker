@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,6 +29,7 @@ import java.util.Map;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
+import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.gnu.c.GCCLanguage;
 import org.eclipse.cdt.core.dom.parser.c.ANSICParserExtensionConfiguration;
@@ -43,6 +44,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -51,8 +53,6 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
  * @param <T> The type that the CDT version uses to encapsulate the source code access.
  */
 public abstract class AbstractEclipseCParser<T> implements CParser {
-
-  private boolean ignoreCasts;
 
   protected final ILanguage language;
 
@@ -95,7 +95,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
   }
 
   @Override
-  public org.sosy_lab.cpachecker.cfa.ast.IASTNode parseSingleStatement(String pCode) throws ParserException {
+  public CAstNode parseSingleStatement(String pCode) throws ParserException {
 
     // parse
     IASTTranslationUnit ast = parse(wrapCode(pCode));
@@ -109,17 +109,17 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
     }
 
     IASTFunctionDefinition func = (IASTFunctionDefinition)declarations[0];
-    org.eclipse.cdt.core.dom.ast.IASTStatement body = func.getBody();
+    IASTStatement body = func.getBody();
     if (!(body instanceof IASTCompoundStatement)) {
       throw new ParserException("Function has an unexpected " + body.getClass().getSimpleName() + " as body: " + func.getRawSignature());
     }
 
-    org.eclipse.cdt.core.dom.ast.IASTStatement[] statements = ((IASTCompoundStatement)body).getStatements();
+    IASTStatement[] statements = ((IASTCompoundStatement)body).getStatements();
     if (!(statements.length == 2 && statements[1] == null || statements.length == 1)) {
       throw new ParserException("Not exactly one statement in function body: " + body);
     }
 
-    return new ASTConverter(new Scope(), ignoreCasts, logger).convert(statements[0]);
+    return new ASTConverter(new Scope(), logger).convert(statements[0]);
   }
 
   protected static final int PARSER_OPTIONS =
@@ -146,7 +146,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
   private ParseResult buildCFA(IASTTranslationUnit ast) throws ParserException {
     cfaTimer.start();
     try {
-      CFABuilder builder = new CFABuilder(logger, ignoreCasts);
+      CFABuilder builder = new CFABuilder(logger);
       try {
         ast.accept(builder);
       } catch (CFAGenerationRuntimeException e) {
@@ -208,9 +208,5 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
     public String[] getIncludePaths() {
       return new String[0];
     }
-  }
-
-  public void setIgnoreCasts(boolean pIgnoreCasts) {
-    ignoreCasts = pIgnoreCasts;
   }
 }

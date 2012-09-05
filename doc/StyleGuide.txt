@@ -45,5 +45,5 @@ File and Class Names:
 
 Coding:
 - Prefer iterators over List.get(int).
-- Before implementing equals() for an AbstractElement,
+- Before implementing equals() for an AbstractState,
   think if you can cache and reuse such objects.

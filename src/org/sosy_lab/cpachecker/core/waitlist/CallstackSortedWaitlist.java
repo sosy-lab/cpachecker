@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackElement;
-import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
- * Waitlist implementation that sorts the abstract elements by the depth of their
- * call stack. Elements with a bigger callstack are considered first.
- * A secondary strategy needs to be given that decides what to do with elements
+ * Waitlist implementation that sorts the abstract states by the depth of their
+ * call stack. States with a bigger callstack are considered first.
+ * A secondary strategy needs to be given that decides what to do with states
  * of the same callstack depth.
  */
 public class CallstackSortedWaitlist extends AbstractSortedWaitlist<Integer> {
@@ -40,11 +40,11 @@ public class CallstackSortedWaitlist extends AbstractSortedWaitlist<Integer> {
   }
 
   @Override
-  protected Integer getSortKey(AbstractElement pElement) {
-    CallstackElement callstackElement =
-      AbstractElements.extractElementByType(pElement, CallstackElement.class);
+  protected Integer getSortKey(AbstractState pState) {
+    CallstackState callstackState =
+      AbstractStates.extractStateByType(pState, CallstackState.class);
 
-    return (callstackElement != null) ? callstackElement.getDepth() : 0;
+    return (callstackState != null) ? callstackState.getDepth() : 0;
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {

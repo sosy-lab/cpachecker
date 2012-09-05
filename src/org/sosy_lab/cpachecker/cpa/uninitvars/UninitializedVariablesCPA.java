@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -80,17 +80,17 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
     UninitializedVariablesDomain domain = new UninitializedVariablesDomain();
 
     MergeOperator mergeOp = null;
-    if(mergeType.equals("sep")) {
+    if (mergeType.equals("sep")) {
       mergeOp = MergeSepOperator.getInstance();
-    } else if(mergeType.equals("join")) {
+    } else if (mergeType.equals("join")) {
       mergeOp = new MergeJoinOperator(domain);
     }
 
     StopOperator stopOp = null;
 
-    if(stopType.equals("sep")) {
+    if (stopType.equals("sep")) {
       stopOp = new StopSepOperator(domain);
-    } else if(stopType.equals("join")){
+    } else if (stopType.equals("join")){
       stopOp = new StopJoinOperator(domain);
     }
 
@@ -109,8 +109,8 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
   }
 
   @Override
-  public AbstractElement getInitialElement(CFANode pNode) {
-    return new UninitializedVariablesElement(pNode.getFunctionName());
+  public AbstractState getInitialState(CFANode pNode) {
+    return new UninitializedVariablesState(pNode.getFunctionName());
   }
 
   @Override
