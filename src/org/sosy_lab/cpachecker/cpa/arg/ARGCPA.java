@@ -208,7 +208,11 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
   @Override
   public void postProcess(ReachedSet pReached) {
-    // TODO Auto-generated method stub
-
+    if (innerPostProcessor != null) {
+      innerPostProcessor.postProcess(pReached);
+    }
+    for (PostProcessor postProcessor : postProcessors) {
+      postProcessor.postProcess(pReached);
+    }
   }
 }

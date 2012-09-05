@@ -213,7 +213,7 @@ public class ARTToCTranslator {
 
   private void startMainFunction(ARGState firstFunctionElement) {
     CFunctionEntryNode functionStartNode = (CFunctionEntryNode) AbstractStates.extractStateByType(firstFunctionElement, LocationState.class).getLocationNode();
-    String lFunctionHeader = functionStartNode.getFunctionDefinition().toASTString();
+    String lFunctionHeader = functionStartNode.getFunctionDefinition().toASTString().replace(";", "");
     mainFunctionBody = new FunctionBody(lFunctionHeader, new CompoundStatement());
   }
 
@@ -407,7 +407,7 @@ public class ARTToCTranslator {
       CDeclarationEdge lDeclarationEdge = (CDeclarationEdge)pCFAEdge;
 
       if (lDeclarationEdge.getDeclaration().isGlobal()) {
-        globalDefinitionsList.add(lDeclarationEdge.getRawStatement());
+        globalDefinitionsList.add(lDeclarationEdge.getRawStatement() + ";");
       } else {
         return lDeclarationEdge.getRawStatement();
       }
