@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 
+import static com.google.common.collect.Iterables.skip;
+
 import java.util.Collection;
 import java.util.Map;
 
@@ -62,53 +64,55 @@ public class ExplicitInterpolator {
     }
   }
 
+
+  private boolean isFeasible = false;
+
+  public Pair<ARGState, CFAEdge> blockingElement = null;
+
   /**
    * This method derives an interpolant for the given error path and interpolation state.
    *
    * @param errorPath the path to check
-   * @param iterpolationState the state at where to start the current interpolation
+   * @param offset offset of the state at where to start the current interpolation
    * @param currentVariable the variable on which the interpolation is performed on
    * @param currentInterpolant the current interpolant, which is build iteratively
    * @throws CPAException
    * @throws InterruptedException
    */
-  public static boolean isFeasible = true;
   public Map<String, Long> deriveInterpolant(
       Path errorPath,
-      Pair<ARGState, CFAEdge> iterpolationState,
+      int offset,
       String currentVariable,
       Map<String, Long> currentInterpolant) throws CPAException, InterruptedException {
     try {
-
-      ExplicitState next          = new ExplicitState(currentInterpolant);
+      ExplicitState successor     = new ExplicitState(currentInterpolant);
       ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
 
-      Long variableValue    = null;
-      boolean interpolated = false;
+      Long currentVariableValue     = null;
+      boolean performedAbstraction = false;
 
-      boolean startInterpolation = false;
-      for(Pair<ARGState, CFAEdge> pathElement : errorPath) {
-        if(iterpolationState == pathElement) {
-          startInterpolation = true;
-        }
+      Pair<ARGState, CFAEdge> interpolationState = errorPath.get(offset);
 
-        if(!startInterpolation) {
-          continue;
+      for(Pair<ARGState, CFAEdge> pathElement : skip(errorPath, offset)) {
+
+        if(interpolationState == blockingElement) {
+          return null;
         }
 
         Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
-            next,
+            successor,
             precision,
             pathElement.getSecond());
 
-        next = extractNextState(successors);
+        successor = extractSuccessorState(successors);
 
         // there is no successor, but current path element is not an error state => error path is spurious
-        if(next == null && !pathElement.getFirst().isTarget()) {
-//System.out.println("\t---> infeasible at " + pathElement.getSecond());
-
-          if(variableValue == null) {
+        if(successor == null && !pathElement.getFirst().isTarget()) {
+          // always discard the current variable in the interpolant, if the path is infeasible
             currentInterpolant.remove(currentVariable);
+
+          if(isFeasible) {
+            blockingElement = pathElement;
           }
 
           isFeasible = false;
@@ -116,29 +120,26 @@ public class ExplicitInterpolator {
           return currentInterpolant;
         }
 
-        if(!interpolated) {
-          if(next.contains(currentVariable)) {
-            variableValue = next.getValueFor(currentVariable);
-          }
-          else {
-            variableValue = null;
-          }
+        // remove the value of the current variable from the successor
+        if(!performedAbstraction) {
+          performedAbstraction = true;
 
-          next.forget(currentVariable);
-
-          interpolated = true;
+          if(successor.contains(currentVariable)) {
+            currentVariableValue = successor.getValueFor(currentVariable);
+          }
+          successor.forget(currentVariable);
         }
       }
 
-      if(variableValue != null) {
-        currentInterpolant.put(currentVariable, variableValue);
-      } else {
+      if(currentVariableValue == null) {
         currentInterpolant.remove(currentVariable);
+      } else {
+        currentInterpolant.put(currentVariable, currentVariableValue);
       }
 
       isFeasible = true;
 
-//System.out.println("\t---> feasible");
+//System.out.println("\t---> feasable");
 
       // path is feasible
       return currentInterpolant;
@@ -148,12 +149,21 @@ public class ExplicitInterpolator {
   }
 
   /**
+   * This method returns whether or not the last error path was feasible.
+   *
+   * @return whether or not the last error path was feasible
+   */
+  public boolean isFeasible() {
+    return isFeasible;
+  }
+
+  /**
    * This method extracts the single successor out of the (hopefully singleton) successor collection.
    *
    * @param successors the collection of successors
    * @return the successor, or null if none exists
    */
-  private ExplicitState extractNextState(Collection<ExplicitState> successors) {
+  private ExplicitState extractSuccessorState(Collection<ExplicitState> successors) {
     if(successors.isEmpty()) {
       return null;
     }

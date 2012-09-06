@@ -27,7 +27,6 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
@@ -46,7 +45,6 @@ import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssignedVariablesColle
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssumptionVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictPathChecker;
-import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.UsedVariablesCollector;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
@@ -113,18 +111,9 @@ public class ExplicitInterpolationBasedExplicitRefiner {
 
         Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge.getSuccessor());
 
-        // get variables used after current statement
-        UsedVariablesCollector coll = new UsedVariablesCollector();
-        Set<String> usedAfter = coll.collectVariables(errorPath, errorPath.get(i));
-
         // no potentially interesting variables referenced - skip
         if(referencedVariablesAtEdge.isEmpty()) {
-
-          for(String variableName : currentInterpolant.keySet()) {
-            if(usedAfter.contains(variableName)) {
-              increment.put(currentEdge.getSuccessor(), variableName);
-            }
-          }
+          continue;
         }
 
         Map<String, Long> inputInterpolant  = new HashMap<String, Long>();
@@ -138,26 +127,26 @@ public class ExplicitInterpolationBasedExplicitRefiner {
 
           try {
 //System.out.println("\tinput interpolant, when checking current variable '" + currentVariable + "' is: " + inputInterpolant);
-            currentInterpolant = interpolator.deriveInterpolant(errorPath, errorPath.get(i), currentVariable, inputInterpolant);
+//System.out.println("checking for " + currentVariable);
+            currentInterpolant = interpolator.deriveInterpolant(errorPath, i, currentVariable, inputInterpolant);
 
-            if(ExplicitInterpolator.isFeasible) {
+            if(currentInterpolant == null) {
+              return increment;
+            }
+
+            if(interpolator.isFeasible()) {
+//System.out.println("isFeasible for " + currentVariable);
               increment.put(currentEdge.getSuccessor(), currentVariable);
+
+              if(firstInterpolationPoint == null) {
+                firstInterpolationPoint = errorPath.get(i).getFirst();
+              }
             }
 
 //System.out.println("\toutput interpolant: " + currentInterpolant);
           }
           catch (InterruptedException e) {
             throw new CPAException("Explicit-Interpolation failed: ", e);
-          }
-        }
-
-        for(String variableName : currentInterpolant.keySet()) {
-          if(usedAfter.contains(variableName)) {
-            increment.put(currentEdge.getSuccessor(), variableName);
-
-            if(firstInterpolationPoint == null) {
-              firstInterpolationPoint = errorPath.get(i).getFirst();
-            }
           }
         }
       }

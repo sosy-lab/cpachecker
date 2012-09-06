@@ -354,7 +354,7 @@ cpa.composite.merge = "AGREE"
 # delegates to the component precision adjustment operators, the omniscient
 # strategy may operate on global knowledge.
 cpa.composite.precAdjust = "IGNORANT"
-  allowed values: [IGNORANT, OMNISCIENT]
+  allowed values: [IGNORANT, OMNISCIENT, EXPLICIT_CEGAR]
 
 # Limit for Java heap memory used by CPAchecker (in MiB; -1 for infinite)
 cpa.conditions.global.memory.heap = -1
@@ -432,6 +432,9 @@ cpa.explicit.precision.path.defaultThreshold = -1
 # within the reached set (-1 means infinitely)
 cpa.explicit.precision.reachedSet.defaultThreshold = -1
 
+# whether or not to use assumption-closure for explicit refinement
+cpa.explicit.refiner.useAssumptionClosure = true
+
 # whether or not to always use the inital node as starting point for the next
 # re-exploration of the ARG
 cpa.explicit.refiner.useInitialNodeAsRestartingPoint = true
@@ -442,14 +445,6 @@ cpa.explicit.stop = "SEP"
 
 # blacklist regex for variables that won't be tracked by ExplicitCPA
 cpa.explicit.variableBlacklist = ""
-
-# whether or not to use assumption-closure for explicit refinement
-cpa.explict.refiner.useAssumptionClosure = true
-
-# whether or not to always use the inital node as starting point for the next
-# re-exploration of the ARG
-cpa.explict.refiner.useInitialNodeAsRestartingPoint = no default value
-cpa.explict.refiner.useInitialNodeAsRestartingPoint = true
 
 # whitelist regex for variables that will be tracked by FeatureVarsCPA
 cpa.featurevars.variableWhitelist = ""
