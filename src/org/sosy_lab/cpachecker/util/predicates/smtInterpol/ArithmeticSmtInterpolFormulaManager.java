@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
@@ -298,11 +297,11 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
 
   @Override
   public FormulaList parseList(String pS) throws IllegalArgumentException {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public String dumpFormulaList(FormulaList pFlist) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 }
