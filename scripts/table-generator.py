@@ -448,7 +448,7 @@ class Test:
                         return line[startPosition: endPosition].strip()
             return None
 
-        status = Util.getColumnValue(sourcefileTag, 'status', 'unknown')
+        status = Util.getColumnValue(sourcefileTag, 'status', '')
         category = getResultCategory(status)
         score = calculateScore(category)
         logfileLines = None
