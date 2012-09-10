@@ -204,7 +204,7 @@ class PredicateCPAStatistics implements Statistics {
       if (prec.numAbstractions > 0) {
         out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
         out.println("    Solving time:                    " + as.abstractionSolveTime + " (Max: " + as.abstractionSolveTime.printMaxTime() + ")");
-        out.println("    Model enumeration time:          " + Timer.formatTime(as.abstractionEnumTime.getOuterSumTime()-as.abstractionSolveTime.getSumTime()));
+        out.println("    Model enumeration time:          " + as.abstractionEnumTime.printOuterSumTime());
         out.println("    Time for BDD construction:       " + as.abstractionEnumTime.printInnerSumTime()   + " (Max: " + as.abstractionEnumTime.printInnerMaxTime() + ")");
       }
 
