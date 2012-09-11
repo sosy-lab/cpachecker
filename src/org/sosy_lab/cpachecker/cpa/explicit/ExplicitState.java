@@ -82,6 +82,22 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   }
 
   /**
+   * This method returns the current delta of this state, i.e. the name of variables that were written to in the last post operation.
+   *
+   * @return the name of variables that were written to in the last post operation.
+   */
+  Set<String> getDelta() {
+    return delta;
+  }
+
+  /**
+   * This method resets the delta.
+   */
+  void resetDelta() {
+    delta = null;
+  }
+
+  /**
    * This method drops all entries belonging to the stack frame of a function. This method should be called right before leaving a function.
    *
    * @param functionName the name of the function that is about to be left
@@ -98,18 +114,6 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     for(String variableNameToDrop : toDropAll) {
       constantsMap.remove(variableNameToDrop);
     }
-  }
-
-  void resetDelta() {
-    delta = null;
-  }
-
-  boolean deltaContains(String variableName) {
-    if(delta == null) {
-      return false;
-    }
-
-    return delta.contains(variableName);
   }
 
   public Long getValueFor(String variableName) {

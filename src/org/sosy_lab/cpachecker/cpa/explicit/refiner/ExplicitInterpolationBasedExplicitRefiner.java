@@ -41,11 +41,13 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssignedVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssumptionVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictPathChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 import com.google.common.collect.HashMultimap;
@@ -88,8 +90,7 @@ public class ExplicitInterpolationBasedExplicitRefiner {
     firstInterpolationPoint = null;
 
     numberOfRefinements++;
-//System.out.println("--------------------------\n" + numberOfRefinements + ". determinePrecisionIncrement\n--------------------------");
-//System.out.println(errorPath);
+
     Multimap<CFANode, String> increment = HashMultimap.create();
     // only do a refinement if a full-precision check shows that the path is infeasible
     if(!isPathFeasable(errorPath, HashMultimap.<CFANode, String>create())) {
@@ -107,8 +108,6 @@ public class ExplicitInterpolationBasedExplicitRefiner {
           currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
         }
 
-//System.out.println("current edge: " + currentEdge);
-
         Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge.getSuccessor());
 
         // no potentially interesting variables referenced - skip
@@ -120,14 +119,12 @@ public class ExplicitInterpolationBasedExplicitRefiner {
         for(Map.Entry<String, Long> entry : currentInterpolant.entrySet()) {
           inputInterpolant.put(entry.getKey(), entry.getValue());
         }
-//System.out.println("\tcurrentInterpolant " + currentInterpolant);
+
         // check for each variable, if ignoring it makes the error path feasible
         for(String currentVariable : referencedVariablesAtEdge) {
           numberOfCounterExampleChecks++;
 
           try {
-//System.out.println("\tinput interpolant, when checking current variable '" + currentVariable + "' is: " + inputInterpolant);
-//System.out.println("checking for " + currentVariable);
             currentInterpolant = interpolator.deriveInterpolant(errorPath, i, currentVariable, inputInterpolant);
 
             if(currentInterpolant == null) {
@@ -135,15 +132,15 @@ public class ExplicitInterpolationBasedExplicitRefiner {
             }
 
             if(interpolator.isFeasible()) {
-//System.out.println("isFeasible for " + currentVariable);
-              increment.put(currentEdge.getSuccessor(), currentVariable);
+              // check for redundancy, which is needed when a widening (i.e. reached set/path assignment threshold) is performed
+              if(!isRedundant(extractPrecision(reachedSet, errorPath.get(i).getFirst()), currentEdge, currentVariable)) {
+                increment.put(currentEdge.getSuccessor(), currentVariable);
+              }
 
               if(firstInterpolationPoint == null) {
                 firstInterpolationPoint = errorPath.get(i).getFirst();
               }
             }
-
-//System.out.println("\toutput interpolant: " + currentInterpolant);
           }
           catch (InterruptedException e) {
             throw new CPAException("Explicit-Interpolation failed: ", e);
@@ -154,6 +151,14 @@ public class ExplicitInterpolationBasedExplicitRefiner {
 
     timerCounterExampleChecks.stop();
     return increment;
+  }
+
+  private ExplicitPrecision extractPrecision(UnmodifiableReachedSet reachedSet, ARGState currentArgState) {
+    return Precisions.extractPrecisionByType(reachedSet.getPrecision(currentArgState), ExplicitPrecision.class);
+  }
+
+  private boolean isRedundant(ExplicitPrecision precision, CFAEdge currentEdge, String currentVariable) {
+    return precision.getCegarPrecision().allowsTrackingAt(currentEdge.getSuccessor(), currentVariable);
   }
 
   /**

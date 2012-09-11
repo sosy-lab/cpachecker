@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
-import org.sosy_lab.cpachecker.cpa.explicit.CompositeExplicitPrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.explicit.OmniscientCompositePrecisionAdjustment;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -68,7 +67,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
           + "merging if all cpas agree on this. This is probably what you want.")
     private String merge = "AGREE";
 
-    @Option(toUppercase=true, values={"IGNORANT", "OMNISCIENT", "EXPLICIT_CEGAR"},
+    @Option(toUppercase=true, values={"IGNORANT", "OMNISCIENT"},
     description="which precision adjustment strategy to use (ignorant or omniscient)\n"
       + "While an ignorant strategy keeps the domain knowledge seperated, "
       + "and delegates to the component precision adjustment operators, "
@@ -140,8 +139,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       PrecisionAdjustment compositePrecisionAdjustment;
       if (options.precAdjust.equals("OMNISCIENT")) {
         compositePrecisionAdjustment = new OmniscientCompositePrecisionAdjustment(precisionAdjustments.build());
-      } else if (options.precAdjust.equals("EXPLICIT_CEGAR")) {
-        compositePrecisionAdjustment = new CompositeExplicitPrecisionAdjustment(precisionAdjustments.build());
       }
 
       else {
