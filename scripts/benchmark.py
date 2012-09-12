@@ -651,9 +651,17 @@ class OutputHandler:
                 + "ram:".ljust(columnWidth) + memory + "\n"\
                 + simpleLine
 
+        testname = None
+        if len(self.benchmark.tests) == 1:
+            # in case there is only a single test, we can use this name
+            testname = self.benchmark.tests[0].name
+        elif options.testRunOnly and len(options.testRunOnly) == 1:
+            # in case we run only a single test, we can use this name
+            testname = options.testRunOnly[0]
+
         # write to file
         self.TXTContent = header + systemInfo
-        self.TXTFile = FileWriter(self.getFileName(None, "txt"), self.TXTContent)
+        self.TXTFile = FileWriter(self.getFileName(testname, "txt"), self.TXTContent)
 
 
     def getToolnameForPrinting(self):
@@ -1732,7 +1740,8 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
             status = 'OUT OF JAVA MEMORY'
         elif isOutOfNativeMemory(line):
             status = 'OUT OF NATIVE MEMORY'
-        elif 'There is insufficient memory for the Java Runtime Environment to continue.' in line:
+        elif 'There is insufficient memory for the Java Runtime Environment to continue.' in line \
+                or 'cannot allocate memory for thread-local data: ABORT' in line:
             status = 'OUT OF MEMORY'
         elif 'SIGSEGV' in line:
             status = 'SEGMENTATION FAULT'
@@ -1921,7 +1930,9 @@ from the output of this script.""")
     parser.add_option("-o", "--outputpath",
                       dest="output_path", type="string",
                       default="./test/results/",
-                      help="Output folder for the generated results")
+                      help="Output prefix for the generated results. "
+                            + "If the path is a folder files are put into it,"
+                            + "otherwise the string is used as a prefix for the resulting files.")
 
     parser.add_option("-T", "--timelimit",
                       dest="timelimit", default=None,
@@ -1955,7 +1966,11 @@ from the output of this script.""")
 
     global options, OUTPUT_PATH
     (options, args) = parser.parse_args(argv)
-    OUTPUT_PATH = os.path.normpath(options.output_path) + os.sep
+    if os.path.isdir(options.output_path):
+        OUTPUT_PATH = os.path.normpath(options.output_path) + os.sep
+    else:
+        OUTPUT_PATH = options.output_path
+
     
     if len(args) < 2:
         parser.error("invalid number of arguments")
@@ -2013,6 +2028,6 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, signal_handler_ignore)
     try:
         sys.exit(main())
-    except KeyboardInterrupt: # this block is reched, when interrupt is thrown before or after a test
+    except KeyboardInterrupt: # this block is reached, when interrupt is thrown before or after a test
         killScript()
         print ("\n\nscript was interrupted by user, some tests may not be done")

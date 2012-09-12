@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
+import java.io.PrintStream;
+
 import org.sosy_lab.common.Triple;
 
 /**
@@ -116,7 +118,7 @@ public interface RegionManager {
       getIfThenElse(Region f);
 
   /**
-   * Returns some information about the RegionManager.
+   * Prints some information about the RegionManager.
    */
-  public String getStatistics();
+  public void printStatistics(PrintStream out);
 }

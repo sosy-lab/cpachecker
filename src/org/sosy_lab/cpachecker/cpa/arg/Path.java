@@ -23,11 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
+import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
@@ -50,11 +54,10 @@ public class Path extends LinkedList<Pair<ARGState, CFAEdge>> {
     return Joiner.on('\n').skipNulls().join(asEdgesList());
   }
 
-  @SuppressWarnings("unchecked")
-  public JSONArray toJSON() {
-    JSONArray path = new JSONArray();
+  public String toJSON() {
+    List<Map<?,?>> path = new ArrayList<Map<?,?>>(this.size());
     for (Pair<ARGState, CFAEdge> pair : this) {
-      JSONObject elem = new JSONObject();
+      Map<String, Object> elem = new HashMap<String, Object>();
       ARGState argelem = pair.getFirst();
       CFAEdge edge = pair.getSecond();
       if (edge == null) continue; // in this case we do not need the edge
@@ -65,7 +68,13 @@ public class Path extends LinkedList<Pair<ARGState, CFAEdge>> {
       elem.put("line", edge.getLineNumber());
       path.add(elem);
     }
-    return path;
+    StringBuilder sb = new StringBuilder();
+    try {
+      JSON.writeJSONString(path, sb);
+    } catch (IOException e) {
+      throw new UnexpectedCheckedException("Writing to a StringBuilder cannot fail", e);
+    }
+    return sb.toString();
   }
 
   public List<CFAEdge> asEdgesList() {

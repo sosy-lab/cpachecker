@@ -31,7 +31,9 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 
+import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -44,7 +46,6 @@ public class Mathsat5TheoremProver implements TheoremProver {
 
   private final Mathsat5FormulaManager mgr;
   private long curEnv;
-  private long cfg;
 
   public Mathsat5TheoremProver(Mathsat5FormulaManager pMgr) {
     mgr = pMgr;
@@ -59,7 +60,7 @@ public class Mathsat5TheoremProver implements TheoremProver {
   }
 
   @Override
-  public Model getModel() {
+  public Model getModel() throws SolverException {
     Preconditions.checkState(curEnv != 0);
 
     return Mathsat5Model.createMathsatModel(curEnv, mgr);
@@ -82,7 +83,7 @@ public class Mathsat5TheoremProver implements TheoremProver {
   public void init() {
     Preconditions.checkState(curEnv == 0);
 
-    cfg = msat_create_config();
+    long cfg = msat_create_config();
     msat_set_option(cfg, "model_generation", "true");
     curEnv = mgr.createEnvironment(cfg, true, true);
   }
@@ -96,15 +97,16 @@ public class Mathsat5TheoremProver implements TheoremProver {
 
   @Override
   public AllSatResult allSat(Formula f, Collection<Formula> important,
-      RegionCreator rmgr, Timer timer) {
+      RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) {
     checkNotNull(rmgr);
-    checkNotNull(timer);
+    checkNotNull(solveTime);
+    checkNotNull(enumTime);
 
     if (important.isEmpty()) {
       throw new RuntimeException("Error occurred during Mathsat allsat: all-sat should not be called with empty 'important'-Collection");
     }
 
-    long allsatEnv = mgr.createEnvironment(cfg, true, true);
+    long allsatEnv = mgr.createEnvironment(msat_create_config(), true, true);
     long formula = getTerm(f);
 
     long[] imp = new long[important.size()];
@@ -115,10 +117,17 @@ public class Mathsat5TheoremProver implements TheoremProver {
 
     }
 
-    MathsatAllSatCallback callback = new MathsatAllSatCallback(rmgr, timer, allsatEnv);
+    MathsatAllSatCallback callback = new MathsatAllSatCallback(rmgr, solveTime, enumTime, allsatEnv);
+    solveTime.start();
     msat_assert_formula(allsatEnv, formula);
 
     int numModels = msat_all_sat(allsatEnv, imp, callback);
+
+    if (solveTime.isRunning()) {
+      solveTime.stop();
+    } else {
+      enumTime.stopOuter();
+    }
 
     if (numModels == -1) {
       throw new RuntimeException("Error occurred during Mathsat allsat: " + msat_last_error_message(allsatEnv));
@@ -141,7 +150,9 @@ public class Mathsat5TheoremProver implements TheoremProver {
 
     private final RegionCreator rmgr;
 
-    private final Timer totalTime;
+    private final Timer solveTime;
+    private final NestedTimer enumTime;
+    private Timer regionTime = null;
 
     private int count = 0;
 
@@ -149,10 +160,11 @@ public class Mathsat5TheoremProver implements TheoremProver {
     private final Deque<Region> cubes = new ArrayDeque<Region>();
     private long env;
 
-    public MathsatAllSatCallback(RegionCreator rmgr, Timer timer, long env) {
+    public MathsatAllSatCallback(RegionCreator rmgr, Timer pSolveTime, NestedTimer pEnumTime, long env) {
       this.rmgr = rmgr;
       this.formula = rmgr.makeFalse();
-      this.totalTime = timer;
+      this.solveTime = pSolveTime;
+      this.enumTime = pEnumTime;
       this.env = env;
     }
 
@@ -188,7 +200,13 @@ public class Mathsat5TheoremProver implements TheoremProver {
 
     @Override
     public void callback(long[] model) {
-      totalTime.start();
+      if (count == 0) {
+        solveTime.stop();
+        enumTime.startOuter();
+        regionTime = enumTime.getInnerTimer();
+      }
+
+      regionTime.start();
 
       // the abstraction is created simply by taking the disjunction
       // of all the models found by msat_all_sat, and storing them
@@ -220,7 +238,7 @@ public class Mathsat5TheoremProver implements TheoremProver {
 
       count++;
 
-      totalTime.stop();
+      regionTime.stop();
     }
   }
 }

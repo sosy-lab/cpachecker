@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -71,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.LinkedHashMultimap;
@@ -93,18 +95,18 @@ public class VariableClassification {
   private Multimap<String, String> allVars = null;
 
   private Multimap<String, String> nonBooleanVars;
-  private Multimap<String, String> nonSimpleNumberVars;
-  private Multimap<String, String> nonIncVars;
+  private Multimap<String, String> nonDiscreteValueVars;
+  private Multimap<String, String> nonSimpleCalcVars;
 
   private Dependencies dependencies;
 
   private Multimap<String, String> booleanVars;
-  private Multimap<String, String> simpleNumberVars;
-  private Multimap<String, String> incVars;
+  private Multimap<String, String> discreteValueVars;
+  private Multimap<String, String> simpleCalcVars;
 
   private Set<Partition> booleanPartitions;
-  private Set<Partition> simpleNumberPartitions;
-  private Set<Partition> incPartitions;
+  private Set<Partition> discreteValuePartitions;
+  private Set<Partition> simpleCalcPartitions;
 
   private CFA cfa;
 
@@ -120,18 +122,18 @@ public class VariableClassification {
       // init maps
       allVars = LinkedHashMultimap.create();
       nonBooleanVars = LinkedHashMultimap.create();
-      nonSimpleNumberVars = LinkedHashMultimap.create();
-      nonIncVars = LinkedHashMultimap.create();
+      nonDiscreteValueVars = LinkedHashMultimap.create();
+      nonSimpleCalcVars = LinkedHashMultimap.create();
 
       dependencies = new Dependencies();
 
       booleanVars = LinkedHashMultimap.create();
-      simpleNumberVars = LinkedHashMultimap.create();
-      incVars = LinkedHashMultimap.create();
+      discreteValueVars = LinkedHashMultimap.create();
+      simpleCalcVars = LinkedHashMultimap.create();
 
       booleanPartitions = new HashSet<Partition>();
-      simpleNumberPartitions = new HashSet<Partition>();
-      incPartitions = new HashSet<Partition>();
+      discreteValuePartitions = new HashSet<Partition>();
+      simpleCalcPartitions = new HashSet<Partition>();
 
       // fill maps
       collectVars();
@@ -146,6 +148,11 @@ public class VariableClassification {
         dependencies.addVar(var.getKey(), var.getValue());
       }
 
+      //      System.out.println(dependencies);
+      //      System.out.println("BOOL\n" + booleanVars);
+      //      System.out.println("DISCRETE\n" + discreteValueVars);
+      //      System.out.println("SIMPLECALC\n" + simpleCalcVars);
+      //      System.out.println("ALL\n" + allVars);
       // TODO is there a need to change the Maps later? make Maps immutable?
     }
   }
@@ -173,29 +180,36 @@ public class VariableClassification {
   }
 
   /** This function returns a collection of (functionName, varNames).
-   * This collection contains all vars, that have only the values of simple numbers.
+   * This collection contains all vars, that have only discrete values.
    * The collection also includes some boolean vars,
-   * because they are simple numbers, too.
+   * because they are discrete, too.
    * There are NO mathematical calculations (add, sub, mult) with these vars. */
-  public Multimap<String, String> getSimpleNumberVars() {
+  public Multimap<String, String> getDiscreteValueVars() {
     build();
-    return simpleNumberVars;
+    return discreteValueVars;
   }
 
   /** This function returns a collection of partitions.
-   * Each partition contains only simple numeral vars. */
-  public Collection<Partition> getSimpleNumberPartitions() {
+   * Each partition contains only vars, that have only discrete values. */
+  public Collection<Partition> getDiscreteValuePartitions() {
     build();
-    return simpleNumberPartitions;
+    return discreteValuePartitions;
   }
 
   /** This function returns a collection of (functionName, varNames).
-   * This collection contains all vars, that can be incremented.
-   * The collection includes all boolean vars and simple numbers, too.
-   * The only allowed mathematical calculation with these vars is increment (add 1). */
-  public Multimap<String, String> getIncNumberVars() {
+   * This collection contains all vars, that are only used in simple calculations
+   * (+, -, <, >, <=, >=, ==, !=, &, &&, |, ||, ^).
+   * The collection includes all boolean vars and simple numbers, too. */
+  public Multimap<String, String> getSimpleCalcVars() {
     build();
-    return incVars;
+    return simpleCalcVars;
+  }
+
+  /** This function returns a collection of partitions.
+   * Each partition contains only vars, that are used in simple calculations. */
+  public Collection<Partition> getSimpleCalcPartitions() {
+    build();
+    return simpleCalcPartitions;
   }
 
   /** This function returns a collection of partitions.
@@ -238,14 +252,10 @@ public class VariableClassification {
       }
     }
 
-    // if a value is nonbool, all dependent vars are nonbool and viceversa
+    // if a value is not boolean, all dependent vars are not boolean and viceversa
     dependencies.solve(nonBooleanVars);
-
-    // if a value is no simple number, all dependent vars are no simple numbers and viceversa
-    dependencies.solve(nonSimpleNumberVars);
-
-    // if a value is not incremented, all dependent vars are not incremented and viceversa
-    dependencies.solve(nonIncVars);
+    dependencies.solve(nonDiscreteValueVars);
+    dependencies.solve(nonSimpleCalcVars);
   }
 
   /** This function builds the opposites of each non-x-vars-collection. */
@@ -258,14 +268,14 @@ public class VariableClassification {
           booleanPartitions.add(getPartitionForVar(function, s));
         }
 
-        if (!nonSimpleNumberVars.containsEntry(function, s)) {
-          simpleNumberVars.put(function, s);
-          simpleNumberPartitions.add(getPartitionForVar(function, s));
+        if (!nonDiscreteValueVars.containsEntry(function, s)) {
+          discreteValueVars.put(function, s);
+          discreteValuePartitions.add(getPartitionForVar(function, s));
         }
 
-        if (!nonIncVars.containsEntry(function, s)) {
-          incVars.put(function, s);
-          incPartitions.add(getPartitionForVar(function, s));
+        if (!nonSimpleCalcVars.containsEntry(function, s)) {
+          simpleCalcVars.put(function, s);
+          simpleCalcPartitions.add(getPartitionForVar(function, s));
         }
       }
     }
@@ -284,7 +294,7 @@ public class VariableClassification {
 
       exp.accept(new BoolCollectingVisitor(pre));
       exp.accept(new NumberCollectingVisitor(pre, false));
-      exp.accept(new IncCollectingVisitor(pre));
+      exp.accept(new SimpleCalcCollectingVisitor(pre));
 
       break;
     }
@@ -298,6 +308,18 @@ public class VariableClassification {
       String function = vdecl.isGlobal() ? null : edge.getPredecessor().getFunctionName();
 
       allVars.put(function, varName);
+
+      // "connect" the edge with its partition
+      HashMultimap<String, String> var = HashMultimap.create(1, 1);
+      var.put(function, varName);
+      dependencies.addAll(var, new HashSet<BigInteger>(), edge, 0);
+
+      // only simple types (int, long) are allowed for booleans, ...
+      if (!(vdecl.getType() instanceof CSimpleType)) {
+        nonBooleanVars.put(function, varName);
+        nonDiscreteValueVars.put(function, varName);
+        nonSimpleCalcVars.put(function, varName);
+      }
 
       CInitializer initializer = vdecl.getInitializer();
       if ((initializer == null) || !(initializer instanceof CInitializerExpression)) { return; }
@@ -321,6 +343,13 @@ public class VariableClassification {
       String varName = lhs.toASTString();
       String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
 
+      // only simple types (int, long) are allowed for booleans, ...
+      if (!(lhs instanceof CIdExpression && lhs.getExpressionType() instanceof CSimpleType)) {
+        nonBooleanVars.put(function, varName);
+        nonDiscreteValueVars.put(function, varName);
+        nonSimpleCalcVars.put(function, varName);
+      }
+
       allVars.put(function, varName);
 
       if (rhs instanceof CExpression) {
@@ -337,8 +366,9 @@ public class VariableClassification {
           dependencies.add(functionName, FUNCTION_RETURN_VARIABLE, function, varName);
 
         } else {
-          // external function --> we can ignore this case completely
-          // if var is used anywhere else, it should be handled.
+          // external function
+          Partition partition = getPartitionForVar(function, varName);
+          partition.addEdge(edge, 0);
         }
       }
       break;
@@ -357,10 +387,19 @@ public class VariableClassification {
       assert args.size() >= params.size();
 
       for (int i = 0; i < params.size(); i++) {
+        CParameterDeclaration param = params.get(i);
+        String varName = param.getName();
+
+        // only simple types (int, long) are allowed for booleans, ...
+        if (!(param.getType() instanceof CSimpleType)) {
+          nonBooleanVars.put(innerFunctionName, varName);
+          nonDiscreteValueVars.put(innerFunctionName, varName);
+          nonSimpleCalcVars.put(innerFunctionName, varName);
+        }
 
         // build name for param and evaluate it
         // this variable is not global (->false)
-        handleExpression(edge, args.get(i), params.get(i).getName(), innerFunctionName, i);
+        handleExpression(edge, args.get(i), varName, innerFunctionName, i);
       }
 
       // create dependency for functionreturn
@@ -378,9 +417,8 @@ public class VariableClassification {
 
         // f(); without assignment
       } else if (statement instanceof CFunctionCallStatement) {
+        // next line is not necessary, but we do it for completeness, TODO correct?
         dependencies.addVar(innerFunctionName, FUNCTION_RETURN_VARIABLE);
-        Partition partition = getPartitionForVar(innerFunctionName, FUNCTION_RETURN_VARIABLE);
-        partition.addEdge(edge, 0);
       }
       break;
     }
@@ -407,10 +445,19 @@ public class VariableClassification {
       break;
     }
 
+    case MultiEdge:
+      for (CFAEdge innerEdge : (MultiEdge) edge) {
+        handleEdge(innerEdge);
+      }
+      break;
+
     case BlankEdge:
     case CallToReturnEdge:
-    default:
       // other cases are not interesting
+      break;
+
+    default:
+      throw new AssertionError("Unknoewn edgeType: " + edge.getEdgeType());
     }
   }
 
@@ -440,16 +487,12 @@ public class VariableClassification {
     handleResult(varName, function, possibleBoolean, nonBooleanVars);
 
     NumberCollectingVisitor ncv = new NumberCollectingVisitor(pre, true);
-    Multimap<String, String> possibleNumbers = exp.accept(ncv);
-    handleResult(varName, function, possibleNumbers, nonSimpleNumberVars);
+    Multimap<String, String> possibleDiscreteVars = exp.accept(ncv);
+    handleResult(varName, function, possibleDiscreteVars, nonDiscreteValueVars);
 
-    IncCollectingVisitor icv = new IncCollectingVisitor(pre);
-    Multimap<String, String> possibleIncs = exp.accept(icv);
-
-    // assignment of number is allowed for incVars
-    if (!(exp instanceof CIntegerLiteralExpression)) {
-      handleResult(varName, function, possibleIncs, nonIncVars);
-    }
+    SimpleCalcCollectingVisitor icv = new SimpleCalcCollectingVisitor(pre);
+    Multimap<String, String> possibleSimpleCalcVars = exp.accept(icv);
+    handleResult(varName, function, possibleSimpleCalcVars, nonSimpleCalcVars);
   }
 
   /** adds the variable to notPossibleVars, if possibleVars is null.  */
@@ -468,9 +511,9 @@ public class VariableClassification {
     return false;
   }
 
-  /** returns the var of a (nested) IntegerLiteralExpression
-   * or null for anything else. */
-  private BigInteger getNumber(CExpression exp) {
+  /** returns the value of a (nested) IntegerLiteralExpression
+   * or null for everything else. */
+  public static BigInteger getNumber(CExpression exp) {
     if (exp instanceof CIntegerLiteralExpression) {
       return ((CIntegerLiteralExpression) exp).getValue();
 
@@ -518,8 +561,8 @@ public class VariableClassification {
     StringBuilder str = new StringBuilder();
     str.append("\nALL  " + allVars.size() + "\n    " + allVars);
     str.append("\nBOOL  " + booleanVars.size() + "\n    " + booleanVars);
-    str.append("\nSIMPLE NUMBER  " + simpleNumberVars.size() + "\n    " + simpleNumberVars);
-    str.append("\nINCREMENT  " + incVars.size() + "\n    " + incVars);
+    str.append("\nDISCRETE VALUES  " + discreteValueVars.size() + "\n    " + discreteValueVars);
+    str.append("\nSIMPLE CALCULATION  " + simpleCalcVars.size() + "\n    " + simpleCalcVars);
     return str.toString();
   }
 
@@ -529,7 +572,7 @@ public class VariableClassification {
    * other visits return null.
   * The Visitor collects all numbers used in the expression. */
   private class DependencyCollectingVisitor implements
-      CExpressionVisitor<Multimap<String, String>, NullPointerException> {
+      CExpressionVisitor<Multimap<String, String>, RuntimeException> {
 
     private CFANode predecessor;
     private Set<BigInteger> values = new TreeSet<BigInteger>();
@@ -548,7 +591,7 @@ public class VariableClassification {
     }
 
     @Override
-    public Multimap<String, String> visit(CBinaryExpression exp) throws NullPointerException {
+    public Multimap<String, String> visit(CBinaryExpression exp) {
 
       // for numeral values
       BigInteger val1 = getNumber(exp.getOperand1());
@@ -561,7 +604,7 @@ public class VariableClassification {
       }
 
       // for numeral values
-      BigInteger val2 = getNumber(exp.getOperand1());
+      BigInteger val2 = getNumber(exp.getOperand2());
       Multimap<String, String> operand2;
       if (val2 == null) {
         operand2 = exp.getOperand2().accept(this);
@@ -582,7 +625,7 @@ public class VariableClassification {
     }
 
     @Override
-    public Multimap<String, String> visit(CCastExpression exp) throws NullPointerException {
+    public Multimap<String, String> visit(CCastExpression exp) {
       BigInteger val = getNumber(exp.getOperand());
       if (val == null) {
         return exp.getOperand().accept(this);
@@ -594,7 +637,7 @@ public class VariableClassification {
 
     @Override
     public Multimap<String, String> visit(CFieldReference exp) {
-      String varName = exp.getFieldName();
+      String varName = exp.toASTString(); // TODO "(*p).x" vs "p->x"
       String function = isGlobal(exp) ? null : predecessor.getFunctionName();
       HashMultimap<String, String> ret = HashMultimap.create(1, 1);
       ret.put(function, varName);
@@ -661,7 +704,13 @@ public class VariableClassification {
     }
 
     @Override
-    public Multimap<String, String> visit(CBinaryExpression exp) throws NullPointerException {
+    public Multimap<String, String> visit(CFieldReference exp) {
+      nonBooleanVars.putAll(super.visit(exp));
+      return null;
+    }
+
+    @Override
+    public Multimap<String, String> visit(CBinaryExpression exp) {
       Multimap<String, String> operand1 = exp.getOperand1().accept(this);
       Multimap<String, String> operand2 = exp.getOperand2().accept(this);
 
@@ -703,7 +752,7 @@ public class VariableClassification {
     }
 
     @Override
-    public Multimap<String, String> visit(CUnaryExpression exp) throws NullPointerException {
+    public Multimap<String, String> visit(CUnaryExpression exp) {
       Multimap<String, String> inner = exp.getOperand().accept(this);
 
       if (inner == null) {
@@ -734,7 +783,7 @@ public class VariableClassification {
     }
 
     @Override
-    public Multimap<String, String> visit(CCastExpression exp) throws NullPointerException {
+    public Multimap<String, String> visit(CCastExpression exp) {
       BigInteger val = getNumber(exp.getOperand());
       if (val == null) {
         return exp.getOperand().accept(this);
@@ -744,7 +793,13 @@ public class VariableClassification {
     }
 
     @Override
-    public Multimap<String, String> visit(CBinaryExpression exp) throws NullPointerException {
+    public Multimap<String, String> visit(CFieldReference exp) {
+      nonDiscreteValueVars.putAll(super.visit(exp));
+      return null;
+    }
+
+    @Override
+    public Multimap<String, String> visit(CBinaryExpression exp) {
 
       // for numeral values
       BigInteger val1 = getNumber(exp.getOperand1());
@@ -752,25 +807,25 @@ public class VariableClassification {
       if (val1 == null) {
         operand1 = exp.getOperand1().accept(this);
       } else {
-        operand1 = null;
+        operand1 = HashMultimap.create(0, 0);
       }
 
       // for numeral values
-      BigInteger val2 = getNumber(exp.getOperand1());
+      BigInteger val2 = getNumber(exp.getOperand2());
       Multimap<String, String> operand2;
       if (val2 == null) {
         operand2 = exp.getOperand2().accept(this);
       } else {
-        operand2 = null;
+        operand2 = HashMultimap.create(0, 0);
       }
 
       // handle vars from operands
       if (onlyOneExp || operand1 == null || operand2 == null) { // a+0.2 --> no simple number
         if (operand1 != null) {
-          nonSimpleNumberVars.putAll(operand1);
+          nonDiscreteValueVars.putAll(operand1);
         }
         if (operand2 != null) {
-          nonSimpleNumberVars.putAll(operand2);
+          nonDiscreteValueVars.putAll(operand2);
         }
         return null;
       }
@@ -783,8 +838,8 @@ public class VariableClassification {
         return operand1;
 
       default: // +-*/ --> no simple operators
-        nonSimpleNumberVars.putAll(operand1);
-        nonSimpleNumberVars.putAll(operand2);
+        nonDiscreteValueVars.putAll(operand1);
+        nonDiscreteValueVars.putAll(operand2);
         return null;
       }
     }
@@ -795,7 +850,7 @@ public class VariableClassification {
     }
 
     @Override
-    public Multimap<String, String> visit(CUnaryExpression exp) throws NullPointerException {
+    public Multimap<String, String> visit(CUnaryExpression exp) {
 
       // if exp is numeral
       BigInteger val = getNumber(exp);
@@ -813,7 +868,7 @@ public class VariableClassification {
       case PLUS: // this is no calculation, no usage of another param
         return inner;
       default: // *, ~, etc --> not numeral
-        nonSimpleNumberVars.putAll(inner);
+        nonDiscreteValueVars.putAll(inner);
         return null;
       }
     }
@@ -822,61 +877,63 @@ public class VariableClassification {
 
   /** This Visitor evaluates an Expression.
    * Each visit-function returns
-   * - null, if the expression contains calculations
-   * - a collection, if the expression is a var or 1 */
-  private class IncCollectingVisitor extends DependencyCollectingVisitor {
+   * - a collection, if the expression is a var or a simple mathematical
+   *   calculation (add, sub, <, >, <=, >=, ==, !=, !),
+   * - else null */
+  private class SimpleCalcCollectingVisitor extends DependencyCollectingVisitor {
 
-    public IncCollectingVisitor(CFANode pre) {
+    public SimpleCalcCollectingVisitor(CFANode pre) {
       super(pre);
     }
 
     @Override
-    public Multimap<String, String> visit(CBinaryExpression exp) throws NullPointerException {
+    public Multimap<String, String> visit(CCastExpression exp) {
+      return exp.getOperand().accept(this);
+    }
+
+    @Override
+    public Multimap<String, String> visit(CFieldReference exp) {
+      nonSimpleCalcVars.putAll(super.visit(exp));
+      return null;
+    }
+
+    @Override
+    public Multimap<String, String> visit(CBinaryExpression exp) {
       Multimap<String, String> operand1 = exp.getOperand1().accept(this);
       Multimap<String, String> operand2 = exp.getOperand2().accept(this);
 
       if (operand1 == null || operand2 == null) { // a+0.2 --> no simple number
         if (operand1 != null) {
-          nonIncVars.putAll(operand1);
+          nonSimpleCalcVars.putAll(operand1);
         }
         if (operand2 != null) {
-          nonIncVars.putAll(operand2);
+          nonSimpleCalcVars.putAll(operand2);
         }
         return null;
       }
 
       switch (exp.getOperator()) {
 
+      case PLUS:
+      case MINUS:
+      case LESS_THAN:
+      case LESS_EQUAL:
+      case GREATER_THAN:
+      case GREATER_EQUAL:
       case EQUALS:
-      case NOT_EQUALS: // ==, != work with all numbers
+      case NOT_EQUALS:
+      case BINARY_AND:
+      case BINARY_XOR:
+      case BINARY_OR:
+      case LOGICAL_AND:
+      case LOGICAL_OR:
+        // this calculations work with all numbers
         operand1.putAll(operand2);
         return operand1;
 
-      case PLUS:
-        // 1+x
-        if (exp.getOperand1() instanceof CIntegerLiteralExpression
-            && BigInteger.ONE.equals(
-                ((CIntegerLiteralExpression) exp.getOperand1()).getValue())) {
-          assert operand1.isEmpty();
-          return operand2;
-
-          // x+1
-        } else if (exp.getOperand2() instanceof CIntegerLiteralExpression
-            && BigInteger.ONE.equals(
-                ((CIntegerLiteralExpression) exp.getOperand2()).getValue())) {
-          assert operand2.isEmpty();
-          return operand1;
-
-          // x+y, x+2
-        } else {
-          nonIncVars.putAll(operand1);
-          nonIncVars.putAll(operand2);
-          return null;
-        }
-
-      default: // +-*/ --> no simple operators
-        nonIncVars.putAll(operand1);
-        nonIncVars.putAll(operand2);
+      default: // *, /, %, shift --> no simple calculations
+        nonSimpleCalcVars.putAll(operand1);
+        nonSimpleCalcVars.putAll(operand2);
         return null;
       }
     }
@@ -887,12 +944,19 @@ public class VariableClassification {
     }
 
     @Override
-    public Multimap<String, String> visit(CUnaryExpression exp) throws NullPointerException {
+    public Multimap<String, String> visit(CUnaryExpression exp) {
       Multimap<String, String> inner = exp.getOperand().accept(this);
-      if (inner != null) { // increment is no unary operation, remove these vars
-        nonIncVars.putAll(inner);
+      if (inner == null) { return null; }
+
+      switch (exp.getOperator()) {
+      case PLUS:
+      case MINUS:
+      case NOT:
+        return inner;
+      default: // *, ~, etc --> not simple
+        nonSimpleCalcVars.putAll(inner);
+        return null;
       }
-      return null;
     }
   }
 
@@ -1118,10 +1182,10 @@ public class VariableClassification {
       }
       str.append("]\n\n");
 
-      for (Pair<CFAEdge, Integer> edge : edgeToPartition.keySet()) {
-        str.append(edge.getFirst().getRawStatement() + " :: "
-            + edge.getSecond() + " --> " + edgeToPartition.get(edge) + "\n");
-      }
+      //      for (Pair<CFAEdge, Integer> edge : edgeToPartition.keySet()) {
+      //        str.append(edge.getFirst().getRawStatement() + " :: "
+      //            + edge.getSecond() + " --> " + edgeToPartition.get(edge) + "\n");
+      //      }
       return str.toString();
     }
   }

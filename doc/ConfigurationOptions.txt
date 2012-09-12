@@ -146,13 +146,16 @@ assumptions.automatonFile = "AssumptionAutomaton.txt"
 assumptions.export = true
 assumptions.file = "assumptions.txt"
 
-# which bdd-package should be used? 
-# - cudd:  CUDD-library, reordering not supported
-# - java:  JFactory, fallback for all other packages
-# - micro: MicroFactory, maximum number of BDD variables is 1024,
-#          slow, but less memory-comsumption.
-bddregionmanager.package = "cudd"
-  allowed values: [cudd, java, micro]
+# Which BDD package should be used?
+# - java:  JavaBDD (default, no dependencies, many features)
+# - cudd:  CUDD (native library required, reordering not supported)
+# - micro: MicroFactory (maximum number of BDD variables is 1024, slow, but
+# less memory-comsumption)
+# - buddy: Buddy (native library required)
+# - cal:   CAL (native library required)
+# - jdd:   JDD
+bdd.package = "java"
+  allowed values: [java, cudd, micro, buddy, cal, jdd]
 
 # Allow reduction of function entries; calculate abstractions alwasy at
 # function entries?
@@ -303,45 +306,38 @@ cpa.automaton.dotExportFile = "%s.dot"
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
 
+# adding a new value to the state can be done from 0 to N or from N to 0
+cpa.bdd.addIncreasing = false
+
+# default bitsize for values and vars
+cpa.bdd.bitsize = 32
+
+# use a smaller bitsize for all vars, that have only discrete values
+cpa.bdd.compressDiscretes = false
+
 # initialize all variables to 0 when they are declared
 cpa.bdd.initAllVars = false
 
-# declare vars ordered in partitions. otherwise vars are declared when they
-# are needed.
-cpa.bdd.initPartitions = false
-
-# track boolean variables from cfa only, this option limits the whitelist
-cpa.bdd.trackBooleanFromCFA = true
-
-# adding a new value to the state can be done from 0 to N or from N to 0
-cpa.bdd.vector.addIncreasing = false
-
-# default bitsize for values and vars
-cpa.bdd.vector.bitsize = 32
-
-# initialize all variables to 0 when they are declared
-cpa.bdd.vector.initAllVars = false
-
 # declare the bits of a var from 0 to N or from N to 0
-cpa.bdd.vector.initBitsIncreasing = true
+cpa.bdd.initBitsIncreasing = true
 
 # declare first bit of all vars, then second bit,...
-cpa.bdd.vector.initBitwise = true
+cpa.bdd.initBitwise = true
 
-# declare vars ordered in partitions
-cpa.bdd.vector.initPartitions = true
+# declare vars partitionwise
+cpa.bdd.initPartitions = true
 
-# track boolean variables from cfa as bitvectors, this option limits the
-# whitelist
-cpa.bdd.vector.trackBooleanFromCFA = true
+# declare partitions ordered
+cpa.bdd.initPartitionsOrdered = true
 
-# track simple numeral variables from cfa as bitvectors, this option limits
-# the whitelist
-cpa.bdd.vector.trackSimpleNumbersFromCFA = true
+# track boolean variables from cfa
+cpa.bdd.trackBooleans = true
 
-# which vars should be tracked, default: track all. the regex is not used for
-# functionname, only for the variablename itself.
-cpa.bdd.whiteListRegex = ".*"
+# track simple numeral variables from cfa as bitvectors
+cpa.bdd.trackDiscretes = true
+
+# track variables, only used in simple calculations, from cfa as bitvectors
+cpa.bdd.trackSimpleCalcs = true
 
 # which composite merge operator to use (plain or agree)
 # Both delegate to the component cpas, but agree only allows merging if all
@@ -420,9 +416,15 @@ cpa.explicit.merge = "SEP"
 # should tracked with another CPA, i.e. with BDDCPA.
 cpa.explicit.precision.ignoreBooleans = false
 
-# ignore variables with only simple numbers. if this option is used, these
-# variables from the cfa should tracked with another CPA, i.e. with BDDCPA.
-cpa.explicit.precision.ignoreSimpleNumbers = false
+# ignore variables with only discrete values and no calculations except
+# checks for equality. if this option is used, these variables from the cfa
+# should tracked with another CPA, i.e. with BDDCPA.
+cpa.explicit.precision.ignoreDiscretes = false
+
+# ignore variables, that are only used in simple calculations. if this option
+# is used, these variables from the cfa should tracked with another CPA, i.e.
+# with BDDCPA.
+cpa.explicit.precision.ignoreSimpleCalcs = false
 
 # threshold for amount of different values that are tracked for one variable
 # per path (-1 means infinitely)
@@ -574,8 +576,16 @@ cpa.predicate.lvalsAsUIFs = false
 cpa.predicate.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
 
+# Export solver queries in Smtlib format into a file (for Mathsat5).
+cpa.predicate.mathsat.logAllQueries = false
+cpa.predicate.mathsat.logfile = "mathsat5.%d.smt2"
+
 # use a combination of theories (this is incomplete)
 cpa.predicate.mathsat.useDtc = false
+
+# Use theory of EUF in solver (recommended if UIFs are used, otherwise they
+# are useless)
+cpa.predicate.mathsat.useEUFtheory = true
 
 # Use UIFs (recommended because its more precise)
 cpa.predicate.mathsat.useUIFs = true
@@ -618,7 +628,7 @@ cpa.predicate.refinement.addPredicatesGlobally = false
 # THIS FEATURE IS CURRENTLY NOT AVAILABLE. 
 cpa.predicate.refinement.addWellScopedPredicates = false
 
-# only use the atoms from the interpolants as predicates, and not the whole
+# use only the atoms from the interpolants as predicates, and not the whole
 # interpolant
 cpa.predicate.refinement.atomicPredicates = true
 
@@ -656,6 +666,8 @@ cpa.predicate.refinement.shortestCexTraceUseSuffix = false
 # trace
 cpa.predicate.refinement.shortestCexTraceZigZag = false
 
+# split each arithmetic equality into two inequalities when extracting
+# predicates from interpolants
 # split arithmetic equalities when extracting predicates from interpolants
 cpa.predicate.refinement.splitItpAtoms = false
 
@@ -671,13 +683,13 @@ cpa.predicate.refinement.verifyInterpolants = false
 # blocksize)
 cpa.predicate.satCheck = 0
 
-# export solverqueries in smtlib-format
+# Export solver queries in Smtlib format into a file.
+cpa.predicate.smtinterpol.logAllQueries = false
 cpa.predicate.smtinterpol.logfile = "smtinterpol.smt2"
 
-# Whether to use MathSAT 4, MathSAT 5 or YICES (in combination with Mathsat
-# 4) as SMT solver
+# Whether to use MathSAT 4, MathSAT 5, or SmtInterpol as SMT solver
 cpa.predicate.solver = MATHSAT4
-  allowed values: [MATHSAT4, MATHSAT5, YICES, SMTINTERPOL]
+  allowed values: [MATHSAT4, MATHSAT5, SMTINTERPOL]
 
 # With of the bitvectors if useBitvectors is true.
 cpa.predicate.solver.bitWidth = 32

@@ -171,7 +171,7 @@ public class CtoFormulaConverter {
   public static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
 
   private static final String POINTER_VARIABLE = "__content_of__";
-  private static final Predicate<CharSequence> IS_POINTER_VARIABLE = Predicates.containsPattern("\\Q__content_of__\\E.*\\Q__end\\E");
+  private static final Predicate<CharSequence> IS_POINTER_VARIABLE = Predicates.containsPattern("\\Q" + POINTER_VARIABLE + "\\E.*\\Q__end\\E");
 
 
   /** The prefix used for variables representing memory locations. */
@@ -270,12 +270,20 @@ public class CtoFormulaConverter {
     }
   }
 
-  // prefixes function to variable name
-  // Call only if you are sure you have a local variable!
+  /** prefixes function to variable name
+  * Call only if you are sure you have a local variable!
+  */
   private static String scoped(String var, String function) {
     return function + "::" + var;
   }
 
+  /**
+   * This method eleminates all spaces from an expression's ASTString and returns
+   * the new String.
+   *
+   * @param e the expression which should be named
+   * @return the name of the expression
+   */
   private static String exprToVarName(CExpression e) {
     return e.toASTString().replaceAll("[ \n\t]", "");
   }
@@ -313,6 +321,12 @@ public class CtoFormulaConverter {
     return idx;
   }
 
+  /**
+   * This method returns the index of the given variable in the ssa map, if there
+   * is none, it creates one with the value 1.
+   *
+   * @return the index of the variable
+   */
   private int getIndex(String var, SSAMapBuilder ssa) {
     int idx = ssa.getIndex(var);
     if (idx <= 0) {
@@ -408,11 +422,19 @@ public class CtoFormulaConverter {
     return makePointerMask(scopedId, ssa);
   }
 
+  /**Returns the concatenation of MEMORY_ADDRESS_VARIABLE_PREFIX and varName */
   private String makeMemoryLocationVariableName(String varName) {
     return MEMORY_ADDRESS_VARIABLE_PREFIX + varName;
   }
 
   // name has to be scoped already
+  /**
+   * makes a fresh variable out of the varName and assigns the rightHandSide to it
+   * @param varName has to be scoped already
+   * @param rightHandSide
+   * @param ssa
+   * @return the new Formula (lhs = rhs)
+   */
   private Formula makeAssignment(String varName,
           Formula rightHandSide, SSAMapBuilder ssa) {
 
@@ -438,7 +460,7 @@ public class CtoFormulaConverter {
     SSAMapBuilder ssa = oldFormula.getSsa().builder();
     Constraints constraints = new Constraints();
 
-    Formula edgeFormula = createForumlaForEdge(edge, function, ssa, constraints);
+    Formula edgeFormula = createFormulaForEdge(edge, function, ssa, constraints);
 
     if (useNondetFlags) {
       int lNondetIndex = ssa.getIndex(NONDET_VARIABLE);
@@ -483,7 +505,7 @@ public class CtoFormulaConverter {
    * @return the formula for the edge
    * @throws CPATransferException
    */
-  private Formula createForumlaForEdge(CFAEdge edge, String function, SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
+  private Formula createFormulaForEdge(CFAEdge edge, String function, SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       CStatementEdge statementEdge = (CStatementEdge) edge;
@@ -533,7 +555,7 @@ public class CtoFormulaConverter {
         if (singleEdge instanceof BlankEdge) {
           continue;
         }
-        multiEdgeFormula = fmgr.makeAnd(multiEdgeFormula, createForumlaForEdge(singleEdge, function, ssa, constraints));
+        multiEdgeFormula = fmgr.makeAnd(multiEdgeFormula, createFormulaForEdge(singleEdge, function, ssa, constraints));
       }
 
       return multiEdgeFormula;

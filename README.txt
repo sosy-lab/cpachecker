@@ -10,11 +10,18 @@ More details can be found in doc/*.txt
 Prepare Programs for Verification by CPAchecker
 -----------------------------------------------
 
-   Sources have to be preprocessed by CIL
+   All programs need to pre-processed with the C pre-processor,
+   i.e., they may not contain #define and #include directives.
+   Currently, a program must consist of one single file.
+
+   CPAchecker is able to parse and analyze a large subset of (GNU)C.
+   If parsing fails for your program, please send a report to
+   cpachecker-users@sosy-lab.org.
+   In this case, you can pre-process and simplify the sources with CIL
    (http://hal.cs.berkeley.edu/cil/, mirror at http://www.cs.berkeley.edu/~necula/cil/).
-   Necessary flags:
+   The suggested command-line arguments for CIL are:
    --dosimplify --printCilAsIs --save-temps --domakeCFG
-   Possibly necessary flags:
+   Additionally usable argument:
    --dosimpleMem
    Comments:
    --save-temps saves files to the current directory, a different directory can
@@ -25,7 +32,7 @@ Verifying a Program with CPAchecker
 -----------------------------------
 
 1. Choose a source code file that you want to be checked.
-   If you use your own program, remember to pre-process it with CIL (see above).
+   If you use your own program, remember to pre-process it as mentioned above.
    Example: doc/examples/example.c
    A good source for more example programs is the benchmark set of the
    TACAS 2012 Competition on Software Verification (http://sv-comp.sosy-lab.org/),
@@ -38,9 +45,9 @@ Verifying a Program with CPAchecker
    The configuration options used in this file are explained in doc/Configuration.txt.
 
 3. Choose a specification file (you may not need this for some CPAs).
-   The standard configuration files use config/specification/ErrorLocation.spc
+   The standard configuration files use config/specification/default.spc
    as the default specification. With this one, CPAchecker will look for labels
-   named "ERROR" and assertions in the source code file.
+   named "ERROR" (case insensitive) and assertions in the source code file.
    Other examples for specifications can be found in config/specification/
 
 4. Execute "scripts/cpa.sh [ -config <CONFIG_FILE> ] [ -spec <SPEC_FILE> ] <SOURCE_FILE>"

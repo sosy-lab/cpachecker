@@ -25,13 +25,18 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Map;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
+import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.NamedTermsWrapper;
 
 
 /**
@@ -140,25 +145,15 @@ class Mathsat5Formula implements Formula, Serializable {
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
       out.defaultWriteObject();
 
-      //build overall formula using a uninterpreted predicate dummy
-      //storageFormula = dummy(formula_1, formula_2, ...)
       long[] terms = new long[formulaeStorage.size()];
-      for (int i = 0; i < formulaeStorage.size(); ++i) {
+      String[] names = new String[formulaeStorage.size()];
+      for (int i = 0; i < formulaeStorage.size(); i++) {
         terms[i] = ((Mathsat5Formula) formulaeStorage.get(i)).msatTerm;
+        names[i] = "a" + i;
       }
-      Formula storageFormula =
-          GlobalInfo.getInstance().getFormulaManager().makeUIP("dummy", new Mathsat5FormulaList(terms));
+      FormulaList flist = new NamedTermsWrapper(terms, names);
 
-      String storageFormulaRepresentation = GlobalInfo.getInstance().getFormulaManager().dumpFormula(storageFormula);
-
-      //avoid quotation marks in formulae
-      storageFormulaRepresentation = storageFormulaRepresentation.replaceAll("\"", "");
-
-      //work around for MathSat bug
-      int index = storageFormulaRepresentation.indexOf("VAR dummy :");
-      String pre = storageFormulaRepresentation.substring(0, index);
-      String post = storageFormulaRepresentation.substring(storageFormulaRepresentation.indexOf("\n", index) + 1);
-      storageFormulaRepresentation = pre + post;
+      String storageFormulaRepresentation = GlobalInfo.getInstance().getFormulaManager().dumpFormulaList(flist);
 
       //write everything
       out.writeInt(formulaeStorage.size());
@@ -168,16 +163,22 @@ class Mathsat5Formula implements Formula, Serializable {
     private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
       in.defaultReadObject();
 
-      //work around for MathSat bug
       int storageSize = in.readInt();
-      GlobalInfo.getInstance().getFormulaManager().declareUIP("dummy", storageSize);
+      String data = (String) in.readObject();
+      Files.writeFile(new File("/tmp/error"), data);
 
-      Formula storageFormula = GlobalInfo.getInstance().getFormulaManager().parse((String) in.readObject());
+      FormulaList storageFormula = GlobalInfo.getInstance().getFormulaManager().parseList(data);
 
-      //split storage formula
-      Formula[] formulae = GlobalInfo.getInstance().getFormulaManager().getArguments(storageFormula);
+      assert storageFormula instanceof NamedTermsWrapper;
+      NamedTermsWrapper ntw = (NamedTermsWrapper) storageFormula;
+
       formulaeStorage = new ArrayList<Formula>(storageSize);
-      for (Formula f : formulae) {
+      Map<String, Long> termsMap = ntw.getTermsMap();
+      for (int i = 0; i < storageSize; i++) {
+        Long term = termsMap.get("a" + i);
+        if (term == null)
+          throw new RuntimeException(i + " is not in there");
+        Formula f = new Mathsat5Formula(ntw.msatEnv, term);
         formulaeStorage.add(f);
       }
     }

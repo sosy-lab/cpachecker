@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 
 
@@ -38,5 +39,5 @@ public interface InterpolatingTheoremProver<T> {
     public T addFormula(Formula f);
     public boolean isUnsat() throws InterruptedException;
     public Formula getInterpolant(List<T> formulasOfA);
-    public Model getModel();
+    public Model getModel() throws SolverException;
 }

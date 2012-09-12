@@ -333,8 +333,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
     try {
       parser.parse();
     } catch (Exception e) {
-      e.printStackTrace();
-      throw new AssertionError("something went wrong while parsing a term:\n" + s);
+      throw new IllegalArgumentException("Could not parse term:" + e.getMessage(), e);
     }
 
     Term[] terms = parser.getTerms();

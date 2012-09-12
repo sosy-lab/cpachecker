@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,7 +50,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
@@ -64,16 +62,17 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   private final BDDPrecision precision;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
-  private final TransferRelation transferRelation;
+  private final BDDTransferRelation transferRelation;
 
   private BDDCPA(CFA cfa, Configuration config, LogManager logger)
       throws InvalidConfigurationException {
-    manager = new NamedRegionManager(BDDRegionManager.getInstance(config));
+    BDDRegionManager rmgr = BDDRegionManager.getInstance(config, logger);
+    manager = new NamedRegionManager(rmgr);
     abstractDomain = new BDDDomain();
+    precision = new BDDPrecision(config, cfa.getVarClassification());
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopSepOperator(abstractDomain);
-    precision = new BDDPrecision(config, cfa.getVarClassification());
-    transferRelation = new BDDTransferRelation(manager, config, cfa, precision);
+    transferRelation = new BDDTransferRelation(manager, config, rmgr, cfa, precision);
   }
 
   @Override
@@ -98,8 +97,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    return new BDDState(manager, null, manager.makeTrue(),
-        new LinkedHashSet<Region>(), node.getFunctionName());
+    return new BDDState(manager, manager.makeTrue(), node.getFunctionName());
   }
 
   @Override
@@ -118,7 +116,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
       @Override
       public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-        out.append(transferRelation.toString());
+        transferRelation.printStatistics(out);
       }
 
       @Override

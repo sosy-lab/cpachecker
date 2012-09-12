@@ -77,10 +77,16 @@ public class ExplicitPrecision implements Precision {
       + "i.e. with BDDCPA.")
   private boolean ignoreBooleans = false;
 
-  @Option(description = "ignore variables with only simple numbers. "
+  @Option(description = "ignore variables with only discrete values "
+  		+ "and no calculations except checks for equality. "
       + "if this option is used, these variables from the cfa should "
       + "tracked with another CPA, i.e. with BDDCPA.")
-  private boolean ignoreSimpleNumbers = false;
+  private boolean ignoreDiscretes = false;
+
+  @Option(description = "ignore variables, that are only used in simple calculations. "
+      + "if this option is used, these variables from the cfa should "
+      + "tracked with another CPA, i.e. with BDDCPA.")
+  private boolean ignoreSimpleCalcs = false;
 
   private Optional<VariableClassification> varClass;
 
@@ -151,20 +157,29 @@ public class ExplicitPrecision implements Precision {
         && cegarPrecision.allowsTrackingOf(variable)
         && ignore.allowsTrackingOf(variable)
         && !isOnBlacklist(variable)
-        && !(ignoreBooleans && isBoolean(variable))
-        && !(ignoreSimpleNumbers && isSimpleNumber(variable));
+        && !isInIgnoredVarClass(variable);
   }
 
-  private boolean isBoolean(String variable) {
-    Pair<String,String> var = splitVar(variable);
-    return varClass.isPresent()
-        && varClass.get().getBooleanVars().containsEntry(var.getFirst(), var.getSecond());
-  }
+  /** returns true, iff the variable is in an varClass, that should be ignored. */
+  private boolean isInIgnoredVarClass(String variable) {
+    if (varClass==null || !varClass.isPresent()) { return false; }
 
-  private boolean isSimpleNumber(String variable) {
-    Pair<String,String> var = splitVar(variable);
-    return varClass.isPresent()
-        && varClass.get().getSimpleNumberVars().containsEntry(var.getFirst(), var.getSecond());
+    Pair<String, String> var = splitVar(variable);
+
+    boolean isIgnoredBoolean = ignoreBooleans &&
+        varClass.get().getBooleanVars().containsEntry(var.getFirst(), var.getSecond());
+
+    // if a var is boolean and discrete, it is handled as boolean only.
+    boolean isIgnoredDiscrete = ignoreDiscretes &&
+        !varClass.get().getBooleanVars().containsEntry(var.getFirst(), var.getSecond()) &&
+            varClass.get().getDiscreteValueVars().containsEntry(var.getFirst(), var.getSecond());
+
+    boolean isIgnoredSimpleCalc = ignoreSimpleCalcs &&
+        !varClass.get().getBooleanVars().containsEntry(var.getFirst(), var.getSecond()) &&
+            !varClass.get().getDiscreteValueVars().containsEntry(var.getFirst(), var.getSecond()) &&
+            varClass.get().getSimpleCalcVars().containsEntry(var.getFirst(), var.getSecond());
+
+    return isIgnoredBoolean || isIgnoredDiscrete || isIgnoredSimpleCalc;
   }
 
   /** split var into function and varName */

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
+import static com.google.common.base.Preconditions.*;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +32,6 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -58,11 +59,8 @@ public class CounterexampleTraceInfo<I> {
     }
 
     public CounterexampleTraceInfo(List<Formula> pCounterexampleFormula, Model pModel, Map<Integer, Boolean> preds) {
-      Preconditions.checkNotNull(pCounterexampleFormula);
-      Preconditions.checkNotNull(pModel);
-
-      mCounterexampleFormula = pCounterexampleFormula;
-      mCounterexampleModel = pModel;
+      mCounterexampleFormula = checkNotNull(pCounterexampleFormula);
+      mCounterexampleModel = checkNotNull(pModel);
       spurious = false;
       pmap = ImmutableList.of();
       branchingPreds = preds;
@@ -84,7 +82,8 @@ public class CounterexampleTraceInfo<I> {
      * @return a list of predicates
      */
     public List<I> getPredicatesForRefinement() {
-        return pmap;
+      checkState(spurious);
+      return pmap;
     }
 
     /**
@@ -92,6 +91,7 @@ public class CounterexampleTraceInfo<I> {
      * AbstractState
      */
     public void addPredicatesForRefinement(I preds) {
+      checkState(spurious);
       pmap.add(preds);
     }
 
@@ -101,21 +101,18 @@ public class CounterexampleTraceInfo<I> {
         (isSpurious() ? ", new predicates: " + pmap : "");
     }
 
-    public boolean hasCounterexample() {
-      return (mCounterexampleModel != null);
-    }
-
     public List<Formula> getCounterExampleFormulas() {
+      checkState(!spurious);
       return mCounterexampleFormula;
     }
 
     public Model getCounterexample() {
-      Preconditions.checkState(hasCounterexample());
-
+      checkState(!spurious);
       return mCounterexampleModel;
     }
 
     public Map<Integer, Boolean> getBranchingPredicates() {
+      checkState(!spurious);
       return branchingPreds;
     }
 }

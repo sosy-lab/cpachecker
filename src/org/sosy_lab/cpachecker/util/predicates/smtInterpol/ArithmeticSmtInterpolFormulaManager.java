@@ -34,6 +34,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
@@ -292,5 +293,15 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
       formulas[i] = encapsulate(params[i]);
     }
     return formulas;
+  }
+
+  @Override
+  public FormulaList parseList(String pS) throws IllegalArgumentException {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public String dumpFormulaList(FormulaList pFlist) {
+    throw new UnsupportedOperationException();
   }
 }

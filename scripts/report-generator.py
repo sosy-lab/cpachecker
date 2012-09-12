@@ -94,43 +94,43 @@ def main():
         action="store",
         type="string",
         dest="outdir",
-        help="CPAChecker output.path"
+        help="CPAchecker output.path"
     )
     parser.add_option("-a", "--arg",
         action="store",
         type="string",
         dest="arg",
-        help="CPAChecker ARG.file"
+        help="CPAchecker ARG.file"
     )
     parser.add_option("-l", "--logfile",
         action="store",
         type="string",
         dest="logfile",
-        help="CPAChecker log.file"
+        help="CPAchecker log.file"
     )
     parser.add_option("-s", "--statistics",
         action="store",
         type="string",
         dest="statsfile",
-        help="CPAChecker statistics.file"
+        help="CPAchecker statistics.file"
     )
     parser.add_option("-e", "--errorpath",
         action="store",
         type="string",
         dest="errorpath",
-        help="CPAChecker cpa.arg.errorPath.json"
+        help="CPAchecker cpa.arg.errorPath.json"
     )
     parser.add_option("-g", "--errorpathgraph",
         action="store",
         type="string",
         dest="errorpathgraph",
-        help="CPAChecker cpa.arg.errorPath.graph"
+        help="CPAchecker cpa.arg.errorPath.graph"
     )
     parser.add_option("-c", "--config",
         action="store",
         type="string",
         dest="conffile",
-        help="path to CPAChecker config file"
+        help="path to CPAchecker config file"
     )
 
     options, args = parser.parse_args()

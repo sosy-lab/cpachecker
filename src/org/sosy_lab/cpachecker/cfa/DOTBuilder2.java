@@ -28,11 +28,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.nio.charset.Charset;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-import org.json.simple.JSONObject;
-import org.sosy_lab.common.Files;
+import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -81,7 +83,7 @@ public final class DOTBuilder2 {
       dotter.writeFunctionFile(entryNode.getFunctionName(), outdir);
     }
     dotter.writeGlobalFiles(outdir);
-    Files.writeFile(new File(outdir, "cfainfo.json"), jsoner.getJSON().toJSONString());
+    JSON.writeJSONString(jsoner.getJSON(), new File(outdir, "cfainfo.json"), Charset.defaultCharset());
   }
 
   private static String getEdgeText(CFAEdge edge) {
@@ -100,8 +102,8 @@ public final class DOTBuilder2 {
    */
   private static class DOTViewBuilder extends DefaultCFAVisitor {
     // global state for all functions
-    private final JSONObject node2combo = new JSONObject();
-    private final JSONObject virtFuncCallEdges = new JSONObject();
+    private final Map<Object, Object> node2combo = new HashMap<Object, Object>();
+    private final Map<Object, Object> virtFuncCallEdges = new HashMap<Object, Object>();
     private int virtFuncCallNodeIdCounter = 100000;
 
     // local state per function
@@ -192,8 +194,8 @@ public final class DOTBuilder2 {
     }
 
     void writeGlobalFiles(File outdir) throws IOException {
-      Files.writeFile(new File(outdir, "combinednodes.json"), node2combo.toJSONString());
-      Files.writeFile(new File(outdir, "fcalledges.json"),    virtFuncCallEdges.toJSONString());
+      JSON.writeJSONString(node2combo, new File(outdir, "combinednodes.json"), Charset.defaultCharset());
+      JSON.writeJSONString(virtFuncCallEdges, new File(outdir, "fcalledges.json"), Charset.defaultCharset());
     }
 
     private static String nodeToDot(CFANode node) {
@@ -209,7 +211,6 @@ public final class DOTBuilder2 {
       return node.getNodeNumber() + " [shape=\"" + shape + "\"]\n";
     }
 
-    @SuppressWarnings("unchecked")
     private String edgeToDot(CFAEdge edge) {
       if (edge.getEdgeType() == CFAEdgeType.CallToReturnEdge) {
        //create the function node
@@ -235,7 +236,6 @@ public final class DOTBuilder2 {
           getEdgeText(edge));
     }
 
-    @SuppressWarnings("unchecked")
     private String comboToDot(List<CFAEdge> combo) {
       CFAEdge first = combo.get(0);
       StringBuilder sb = new StringBuilder();
@@ -288,13 +288,12 @@ public final class DOTBuilder2 {
    * output information about CFA nodes and edges as JSON
    */
   private static class CFAJSONBuilder extends DefaultCFAVisitor {
-    private final JSONObject nodes = new JSONObject();
-    private final JSONObject edges = new JSONObject();
+    private final Map<Object, Object> nodes = new HashMap<Object, Object>();
+    private final Map<Object, Object> edges = new HashMap<Object, Object>();
 
     @Override
-    @SuppressWarnings("unchecked")
     public TraversalProcess visitNode(CFANode node) {
-      JSONObject jnode = new JSONObject();
+      Map<String, Object> jnode = new HashMap<String, Object>();
       jnode.put("no", node.getNodeNumber());
       jnode.put("line", node.getLineNumber());
       jnode.put("func", node.getFunctionName());
@@ -304,9 +303,8 @@ public final class DOTBuilder2 {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public TraversalProcess visitEdge(CFAEdge edge) {
-      JSONObject jedge = new JSONObject();
+      Map<String, Object> jedge = new HashMap<String, Object>();
       int src = edge.getPredecessor().getNodeNumber();
       int target = edge.getSuccessor().getNodeNumber();
       jedge.put("line", edge.getLineNumber());
@@ -320,9 +318,8 @@ public final class DOTBuilder2 {
       return TraversalProcess.CONTINUE;
     }
 
-    @SuppressWarnings("unchecked")
-    JSONObject getJSON() {
-      JSONObject obj = new JSONObject();
+    Map<String, Object> getJSON() {
+      Map<String, Object> obj = new HashMap<String, Object>();
       obj.put("nodes", nodes);
       obj.put("edges", edges);
       return obj;

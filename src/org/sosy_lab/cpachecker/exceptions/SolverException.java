@@ -33,4 +33,8 @@ public class SolverException extends CPAException {
   public SolverException(String msg) {
     super(msg);
   }
+
+  public SolverException(String msg, Throwable t) {
+    super(msg, t);
+  }
 }
