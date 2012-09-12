@@ -116,7 +116,7 @@ public class BDDTransferRelation implements TransferRelation {
   private int bitsize = 32;
 
   @Option(description = "use a smaller bitsize for all vars, that have only discrete values")
-  private boolean compressDiscretes = false;
+  private boolean compressDiscretes = true;
 
   private final VariableClassification varClass;
   private final Map<Multimap<String, String>, String> varsToTmpVar =
@@ -163,12 +163,12 @@ public class BDDTransferRelation implements TransferRelation {
    *  This function declares those vars in the beginning of the analysis,
    *  so that we can choose between some orders. */
   private void initVars(BDDPrecision precision, CFA cfa) {
-    Partition[] partitions;
+    List<Partition> partitions;
     if (initPartitionsOrdered) {
       BDDPartitionOrderer d = new BDDPartitionOrderer(cfa);
       partitions = d.getOrderedPartitions();
     } else {
-      partitions = varClass.getPartitions().toArray(new Partition[0]);
+      partitions = varClass.getPartitions();
     }
 
     Collection<Partition> booleanPartitions = varClass.getBooleanPartitions();
@@ -209,7 +209,7 @@ public class BDDTransferRelation implements TransferRelation {
         }
       }
       if (isTrackingSomething) {
-        rmgr.createPredicate(tmpVar);
+        createPredicate(tmpVar);
       }
 
     } else {
