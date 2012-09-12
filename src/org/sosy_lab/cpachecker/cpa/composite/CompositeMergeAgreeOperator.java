@@ -105,12 +105,6 @@ public class CompositeMergeAgreeOperator implements MergeOperator {
       return element2;
     } else {
       return new CompositeState(mergedElements.build());
-//      System.out.println("==== MERGE =============");
-//      System.out.println("State 1: " + element1 );
-//      System.out.println("State 2: " + element2 );
-//      System.out.println("Merged " + AbstractStates.extractLocation(element2).getNodeNumber() );
-//      System.out.println(result);
-//      return result;
     }
   }
 }
