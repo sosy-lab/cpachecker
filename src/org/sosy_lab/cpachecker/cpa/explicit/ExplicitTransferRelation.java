@@ -85,7 +85,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 @Options(prefix="cpa.explicit")
 public class ExplicitTransferRelation implements TransferRelation
 {
-
   @Option(description = "if there is an assumption like (x!=0), "
       + "this option sets unknown (uninitialized) variables to 1L, "
       + "when the true-branch is handled.")
@@ -98,21 +97,15 @@ public class ExplicitTransferRelation implements TransferRelation
 
   private CRightHandSide missingInformationRightExpression = null;
 
-  private ExplicitPrecision currentPrecision = null;
-
   public ExplicitTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
-
   @Override
   public Collection<ExplicitState> getAbstractSuccessors(AbstractState element, Precision pPrecision, CFAEdge cfaEdge)
     throws CPATransferException {
 
     ExplicitState explicitState     = (ExplicitState)element;
     ExplicitPrecision explicitPrecision = (ExplicitPrecision)pPrecision;
-
-    currentPrecision = explicitPrecision;
-    currentPrecision.setLocation(cfaEdge.getSuccessor());
 
     ExplicitState successor;
 
@@ -151,9 +144,6 @@ public class ExplicitTransferRelation implements TransferRelation
 
   private void handleSimpleEdge(ExplicitState element, ExplicitPrecision precision, CFAEdge cfaEdge)
         throws CPATransferException {
-
-    // let the precision know the current location
-    currentPrecision.setLocation(cfaEdge.getSuccessor());
 
     // check the type of the edge
     switch (cfaEdge.getEdgeType()) {
@@ -264,7 +254,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
         String assignedVarName = getScopedVariableName(op1.toASTString(), callerFunctionName);
 
-        if (currentPrecision.isTracking(assignedVarName) && element.contains(returnVarName)) {
+        if (element.contains(returnVarName)) {
           newElement.assignConstant(assignedVarName, element.getValueFor(returnVarName));
         } else {
           newElement.forget(assignedVarName);
@@ -349,7 +339,7 @@ public class ExplicitTransferRelation implements TransferRelation
     // assign initial value if necessary
     String scopedVarName = getScopedVariableName(varName, functionName);
 
-    if (initialValue != null && precision.isTracking(scopedVarName)) {
+    if (initialValue != null) {
       newElement.assignConstant(scopedVarName, initialValue);
     } else {
       newElement.forget(scopedVarName);
@@ -443,12 +433,7 @@ public class ExplicitTransferRelation implements TransferRelation
       newElement.forget(assignedVar);
     }
     else {
-      if (currentPrecision.isTracking(assignedVar) || assignedVar.endsWith("___cpa_temp_result_var_")) {
-        newElement.assignConstant(assignedVar, value);
-      }
-      else {
-        newElement.forget(assignedVar);
-      }
+      newElement.assignConstant(assignedVar, value);
     }
   }
 
@@ -743,16 +728,12 @@ public class ExplicitTransferRelation implements TransferRelation
       if ((binaryOperator == BinaryOperator.EQUALS && truthValue) || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue)) {
         if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
           String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
-          if (currentPrecision.isTracking(leftVariableName)) {
-            state.assignConstant(leftVariableName, rightValue);
-          }
+          state.assignConstant(leftVariableName, rightValue);
         }
 
         else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
           String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName);
-          if (currentPrecision.isTracking(rightVariableName)) {
-            state.assignConstant(rightVariableName, leftValue);
-          }
+          state.assignConstant(rightVariableName, leftValue);
         }
       }
 
@@ -763,16 +744,12 @@ public class ExplicitTransferRelation implements TransferRelation
             || (binaryOperator == BinaryOperator.EQUALS && !truthValue)) {
           if (leftValue == null && rightValue == 0L && isAssignable(lVarInBinaryExp)) {
             String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
-            if (currentPrecision.isTracking(leftVariableName)) {
-              state.assignConstant(leftVariableName, 1L);
-            }
+            state.assignConstant(leftVariableName, 1L);
           }
 
           else if (rightValue == null && leftValue == 0L && isAssignable(rVarInBinaryExp)) {
             String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName);
-            if (currentPrecision.isTracking(rightVariableName)) {
-              state.assignConstant(rightVariableName, 1L);
-            }
+            state.assignConstant(rightVariableName, 1L);
           }
         }
       }

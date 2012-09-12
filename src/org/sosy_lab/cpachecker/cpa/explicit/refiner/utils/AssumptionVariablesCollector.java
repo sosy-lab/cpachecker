@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -57,6 +57,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -68,12 +70,12 @@ import com.google.common.collect.Multimap;
   /**
    * the set of global variables declared in the given path
    */
-  Set<String> globalVariables           = new HashSet<String>();
+  private Set<String> globalVariables           = new HashSet<String>();
 
   /**
    * the set of variables for which to find the referencing ones
    */
-  Collection<String> dependingVariables = new HashSet<String>();
+  private Collection<String> dependingVariables = new HashSet<String>();
 
   /**
    * This method acts as the constructor of the class.
@@ -86,14 +88,14 @@ import com.google.common.collect.Multimap;
    * @param path the path to analyze
    * @return the mapping of location to referenced variables in the given path
    */
-  public Multimap<CFANode, String> collectVariables(List<CFAEdge> path) {
+  public Multimap<CFANode, String> collectVariables(Path currentErrorPath) {
 
-    determineGlobalVariables(path);
+    determineGlobalVariables(currentErrorPath);
 
     Multimap<CFANode, String> collectedVariables = HashMultimap.create();
-    for (int i = path.size() - 1; i >= 0; i--) {
-      CFAEdge edge = path.get(i);
-      CFAEdge succ = (i == path.size() - 1) ? null : path.get(i + 1);
+    for (int i = currentErrorPath.size() - 1; i >= 0; i--) {
+      CFAEdge edge = currentErrorPath.get(i).getSecond();
+      CFAEdge succ = (i == currentErrorPath.size() - 1) ? null : currentErrorPath.get(i + 1).getSecond();
       collectVariables(edge, collectedVariables, succ);
     }
 
@@ -105,8 +107,9 @@ import com.google.common.collect.Multimap;
    *
    * @param path the path to analyze
    */
-  private void determineGlobalVariables(List<CFAEdge> path) {
-    for (CFAEdge edge : path) {
+  private void determineGlobalVariables(Path currentErrorPath) {
+    for (Pair<ARGState, CFAEdge> state : currentErrorPath) {
+      CFAEdge edge = state.getSecond();
       if (edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
         CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
         if (isGlobalVariableDeclaration(declaration)) {
@@ -196,6 +199,10 @@ import com.google.common.collect.Multimap;
         if (dependingVariables.contains(assignedVariable)) {
           collectedVariables.put(cFunctionSummaryEdge2.getSuccessor(), assignedVariable);
           collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables, true);
+          collectVariables(returnStatementEdge, new CIdExpression(returnStatementEdge.getExpression().getFileLocation(),
+              null,
+              "___cpa_temp_result_var_",
+              null), collectedVariables, true);
         }
       }
 
@@ -242,7 +249,6 @@ import com.google.common.collect.Multimap;
         }
         i++;
       }
-
       break;
 
     case AssumeEdge:
@@ -384,6 +390,7 @@ import com.google.common.collect.Multimap;
       case AMPER:
       case STAR:
         collectVariables(pE.toASTString());
+        break;
       default:
         pE.getOperand().accept(this);
       }

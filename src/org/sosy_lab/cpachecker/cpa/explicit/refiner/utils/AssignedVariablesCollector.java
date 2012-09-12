@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -38,17 +37,23 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -59,16 +64,20 @@ import com.google.common.collect.Multimap;
  * that they either appear on the left hand side of an assignment or within an assume edge.
  */
 public class AssignedVariablesCollector {
-  Set<String> globalVariables = new HashSet<String>();
+  private Set<String> globalVariables = new HashSet<String>();
+
+  private CFAEdge successorEdge = null;
 
   public AssignedVariablesCollector() {
   }
 
-  public Multimap<CFANode, String> collectVars(Collection<CFAEdge> edges) {
+  public Multimap<CFANode, String> collectVars(Path currentErrorPath) {
     Multimap<CFANode, String> collectedVariables = HashMultimap.create();
 
-    for (CFAEdge edge : edges) {
-      collectVariables(edge, collectedVariables);
+    for (int i = 0; i < currentErrorPath.size() - 1; i++) {
+      successorEdge = (i == currentErrorPath.size() - 1) ? null : currentErrorPath.get(i + 1).getSecond();
+
+      collectVariables(currentErrorPath.get(i).getSecond(), collectedVariables);
     }
 
     return collectedVariables;
@@ -80,13 +89,36 @@ public class AssignedVariablesCollector {
     switch (edge.getEdgeType()) {
     case BlankEdge:
     case CallToReturnEdge:
-    case ReturnStatementEdge:
       //nothing to do
+      break;
+
+    case ReturnStatementEdge:
+      CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge)edge;
+
+      CFunctionReturnEdge returnEdge2 = (CFunctionReturnEdge)successorEdge;
+
+      CFunctionSummaryEdge cFunctionSummaryEdge2 = returnEdge2.getSummaryEdge();
+
+      CFunctionCall functionCall2 = cFunctionSummaryEdge2.getExpression();
+
+      if (functionCall2 instanceof CFunctionCallAssignmentStatement) {
+        CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCall2;
+        String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), successorEdge.getSuccessor().getFunctionName());
+
+
+        collectedVariables.put(cFunctionSummaryEdge2.getSuccessor(), assignedVariable);
+        collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables);
+        collectVariables(returnStatementEdge, new CIdExpression(returnStatementEdge.getExpression().getFileLocation(),
+            null,
+            "___cpa_temp_result_var_",
+            null), collectedVariables);
+      }
+
       break;
 
     case DeclarationEdge:
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
-      if (declaration.getName() != null && declaration.isGlobal()) {
+      if (declaration instanceof CVariableDeclaration && declaration.getName() != null && declaration.isGlobal()) {
         globalVariables.add(declaration.getName());
         collectedVariables.put(edge.getSuccessor(), declaration.getName());
       }
@@ -122,6 +154,15 @@ public class AssignedVariablesCollector {
         collectedVariables.put(edge.getSuccessor(), assignedVariable);
         collectVariables(functionCallEdge, funcAssign.getRightHandSide(), collectedVariables);
       }
+
+      String functionName = functionCallEdge.getSuccessor().getFunctionDefinition().getName();
+      for (CParameterDeclaration parameter : functionCallEdge.getSuccessor().getFunctionDefinition().getType().getParameters()) {
+        String parameterName = functionName + "::" + parameter.getName();
+
+        // collect the formal parameter, and make the argument a depending variable
+        collectedVariables.put(functionCallEdge.getSuccessor(), parameterName);
+      }
+
       break;
     }
   }
@@ -211,6 +252,7 @@ public class AssignedVariablesCollector {
       case AMPER:
       case STAR:
         collectVariable(pE.toASTString());
+        break;
       default:
         pE.getOperand().accept(this);
       }

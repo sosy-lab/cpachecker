@@ -29,6 +29,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,11 +50,16 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    */
   private final Map<String, Long> constantsMap;
 
+  /**
+   * the set of variables that were changed since the last precision adjustment
+   */
+  private Set<String> delta = null;
+
   public ExplicitState() {
     constantsMap = new HashMap<String, Long>();
   }
 
-  private ExplicitState(Map<String, Long> constantsMap) {
+  public ExplicitState(Map<String, Long> constantsMap) {
     this.constantsMap = constantsMap;
   }
 
@@ -64,10 +70,31 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    */
   void assignConstant(String variableName, Long value) {
     constantsMap.put(checkNotNull(variableName), checkNotNull(value));
+
+    if(delta == null) {
+      delta = new HashSet<String>();
+    }
+    delta.add(variableName);
   }
 
-  void forget(String variableName) {
+  public void forget(String variableName) {
     constantsMap.remove(variableName);
+  }
+
+  /**
+   * This method returns the current delta of this state, i.e. the name of variables that were written to in the last post operation.
+   *
+   * @return the name of variables that were written to in the last post operation.
+   */
+  Set<String> getDelta() {
+    return delta;
+  }
+
+  /**
+   * This method resets the delta.
+   */
+  void resetDelta() {
+    delta = null;
   }
 
   /**
