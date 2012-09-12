@@ -95,9 +95,9 @@ public class FsmTransferRelation implements TransferRelation {
     FsmState predecessor = (FsmState) pState;
     FsmState successor;
 
-    System.out.println("-----------------");
-    System.out.println(String.format("%10s : %s", "Predecessor", predecessor));
-    System.out.println(String.format("%10s : (l %d) %s (l %d)", "Edge", pCfaEdge.getPredecessor().getNodeNumber(), pCfaEdge.getRawStatement(), pCfaEdge.getSuccessor().getNodeNumber()));
+//    System.out.println("-----------------");
+//    System.out.println(String.format("%15s : %s", "Predecessor", predecessor));
+//    System.out.println(String.format("%15s : (l %d) %s (l %d)", "Edge", pCfaEdge.getPredecessor().getNodeNumber(), pCfaEdge.getRawStatement(), pCfaEdge.getSuccessor().getNodeNumber()));
 
     try {
       switch (pCfaEdge.getEdgeType()) {
@@ -133,7 +133,7 @@ public class FsmTransferRelation implements TransferRelation {
     }
 
 
-    System.out.println(String.format("%10s : %s", "Successor", successor));
+//    System.out.println(String.format("%15s : %s", "Successor", successor));
 
     if (successor.getStateBdd().isZero()) {
       return Collections.emptySet();
@@ -151,7 +151,14 @@ public class FsmTransferRelation implements TransferRelation {
     }
 
     String functionName = pReturnEdge.getPredecessor().getFunctionName();
-    result.doVariableAssignment(getScopedVariableName(functionName, RESULT_VARIABLE_NAME), rightOfReturn);
+    String scopedResultVariableName = getScopedVariableName(functionName, RESULT_VARIABLE_NAME);
+    if (rightOfReturn instanceof CIdExpression) {
+      CIdExpression idExpr = (CIdExpression) rightOfReturn;
+      String scopedValueVariableName = getScopedVariableName(functionName, idExpr.getName());
+      result.addConjunctionWith(getEqualVarsBdd(result, scopedResultVariableName, scopedValueVariableName));
+    } else {
+      result.doVariableAssignment(scopedResultVariableName, rightOfReturn);
+    }
 
     return result;
   }
