@@ -36,11 +36,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.eclipse.jdt.core.dom.ITypeBinding;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 import com.google.common.base.Joiner;
@@ -54,15 +53,15 @@ class Scope {
 
   private String fullyQualifiedName;
 
-  private final LinkedList<Map<String, IASimpleDeclaration>> varsStack = Lists.newLinkedList();
-  private final LinkedList<Map<String, IASimpleDeclaration>> varsList = Lists.newLinkedList();
+  private final LinkedList<Map<String, JSimpleDeclaration>> varsStack = Lists.newLinkedList();
+  private final LinkedList<Map<String, JSimpleDeclaration>> varsList = Lists.newLinkedList();
 
   //Track and deliver Classes To be Parsed
   private final Queue<String> classesToBeParsed = new ConcurrentLinkedQueue<String>();
   private final Set<String> registeredClasses = new HashSet<String>();
 
 
-  private final Map<String, IASimpleDeclaration> functions = new HashMap<String, IASimpleDeclaration>();
+  private final Map<String, JSimpleDeclaration> functions = new HashMap<String, JSimpleDeclaration>();
   private String currentFunctionName = null;
 
 
@@ -82,7 +81,7 @@ class Scope {
     return varsStack.size() == 1;
   }
 
-  public void enterFunction(AFunctionDeclaration pFuncDef) {
+  public void enterFunction(JMethodDeclaration pFuncDef) {
     currentFunctionName = pFuncDef.getOrigName();
     registerFunctionDeclaration(pFuncDef);
 
@@ -99,7 +98,7 @@ class Scope {
   }
 
   public void enterBlock() {
-    varsStack.addLast(new HashMap<String, IASimpleDeclaration>());
+    varsStack.addLast(new HashMap<String, JSimpleDeclaration>());
     varsList.addLast(varsStack.getLast());
   }
 
@@ -112,11 +111,11 @@ class Scope {
       checkNotNull(name);
       checkNotNull(origName);
 
-      Iterator<Map<String, IASimpleDeclaration>> it = varsList.descendingIterator();
+      Iterator<Map<String, JSimpleDeclaration>> it = varsList.descendingIterator();
       while (it.hasNext()) {
-        Map<String, IASimpleDeclaration> vars = it.next();
+        Map<String, JSimpleDeclaration> vars = it.next();
 
-        IASimpleDeclaration binding = vars.get(origName);
+        JSimpleDeclaration binding = vars.get(origName);
         if (binding != null && binding.getName().equals(name)) {
           return true;
         }
@@ -128,14 +127,14 @@ class Scope {
       return false;
     }
 
-  public IASimpleDeclaration lookupVariable(String name) {
+  public JSimpleDeclaration lookupVariable(String name) {
     checkNotNull(name);
 
-    Iterator<Map<String, IASimpleDeclaration>> it = varsStack.descendingIterator();
+    Iterator<Map<String, JSimpleDeclaration>> it = varsStack.descendingIterator();
     while (it.hasNext()) {
-      Map<String, IASimpleDeclaration> vars = it.next();
+      Map<String, JSimpleDeclaration> vars = it.next();
 
-      IASimpleDeclaration binding = vars.get(name);
+      JSimpleDeclaration binding = vars.get(name);
       if (binding != null) {
         return binding;
       }
@@ -143,21 +142,20 @@ class Scope {
     return null;
   }
 
-  public IASimpleDeclaration lookupFunction(String name) {
+  public JSimpleDeclaration lookupFunction(String name) {
     return functions.get(checkNotNull(name));
   }
 
-  public void registerDeclaration(IASimpleDeclaration declaration) {
-    assert declaration instanceof AVariableDeclaration
-        || declaration instanceof CEnumerator
-        || declaration instanceof AParameterDeclaration
+  public void registerDeclaration(JSimpleDeclaration declaration) {
+    assert declaration instanceof JVariableDeclaration
+        || declaration instanceof JParameterDeclaration
         : "Tried to register a declaration which does not define a name in the standard namespace: " + declaration;
     assert  !(declaration.getType() instanceof CFunctionType);
 
     String name = declaration.getOrigName();
     assert name != null;
 
-    Map<String, IASimpleDeclaration> vars = varsStack.getLast();
+    Map<String, JSimpleDeclaration> vars = varsStack.getLast();
 
     // multiple declarations of the same variable are disallowed, unless when being in global scope
     if (vars.containsKey(name) && !isGlobalScope()) {
@@ -167,17 +165,11 @@ class Scope {
     vars.put(name, declaration);
   }
 
-  public void registerFunctionDeclaration(AFunctionDeclaration declaration) {
+  public void registerFunctionDeclaration(JMethodDeclaration declaration) {
     checkState(isGlobalScope(), "nested functions not allowed");
 
     String name = declaration.getName();
     assert name != null;
-
-    if (functions.containsKey(name)) {
-      // TODO multiple function declarations are legal, as long as they are equal
-      // check this and throw exception if not
-      // throw new CFAGenerationRuntimeException("Function " + name + " already declared", declaration);
-    }
 
     functions.put(name, declaration);
   }

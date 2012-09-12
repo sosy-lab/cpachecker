@@ -38,7 +38,6 @@ public class JFloatLiteralExpression extends AFloatLiteralExpression implements 
 
   @Override
   public String toASTString() {
-    //TODO Protoype , when types finished
     return value.toString();
   }
 

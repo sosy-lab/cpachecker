@@ -21,28 +21,32 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-public class AStringLiteralExpression extends ALiteralExpression {
+public class JStringLiteralExpression extends AStringLiteralExpression implements JExpression {
 
-  protected final String value;
-
-  public AStringLiteralExpression(CFileLocation pFileLocation, Type pType, String pValue) {
-    super(pFileLocation, pType);
-     value = pValue;
+  public JStringLiteralExpression(CFileLocation pFileLocation, JType pType, String pValue) {
+    super(pFileLocation, pType, pValue);
   }
 
   @Override
-  public String toASTString() {
-    return value;
+  public JType getExpressionType() {
+    return (JType) super.getExpressionType();
   }
 
   @Override
-  public String getValue() {
-    return value;
+  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 
 }

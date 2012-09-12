@@ -23,20 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
-public class AUnaryExpression extends AExpression  implements JExpression {
+public class AUnaryExpression extends AExpression {
 
-  protected final IAExpression operand;
-  protected final UnaryOperator  operator;
+  private final IAExpression operand;
+  private final AUnaryOperator  operator;
 
   public AUnaryExpression(CFileLocation pFileLocation, Type pType, final IAExpression pOperand,
-      final UnaryOperator pOperator) {
+      final AUnaryOperator pOperator) {
     super(pFileLocation, pType);
     operand = pOperand;
     operator = pOperator;
@@ -46,26 +44,24 @@ public class AUnaryExpression extends AExpression  implements JExpression {
     return operand;
   }
 
-  public UnaryOperator getOperator() {
+  public AUnaryOperator getOperator() {
     return operator;
   }
 
   @Override
   public String toASTString() {
-    if (operator == UnaryOperator.SIZEOF) {
+    if (operator instanceof CUnaryExpression.UnaryOperator && (CUnaryExpression.UnaryOperator)operator == UnaryOperator.SIZEOF) {
       return operator.getOperator() + "(" + operand.toASTString() + ")";
     } else {
       return operator.getOperator() + operand.toParenthesizedASTString();
     }
   }
 
-  @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
+  public static  interface AUnaryOperator {
+    /**
+     * Returns the string representation of this operator (e.g. "*", "+").
+     */
+    public String getOperator();
   }
 
-  @Override
-  public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
 }

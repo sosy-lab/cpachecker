@@ -23,35 +23,41 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-public class JIdExpression extends AIdExpression implements JExpression {
+public class JMethodInvocationAssignmentStatement extends AFunctionCallAssignmentStatement implements JAssignment , JStatement , JMethodOrConstructorInvocation {
 
-  public JIdExpression(CFileLocation pFileLocation, JType pType, String pName, JSimpleDeclaration pDeclaration) {
-    super(pFileLocation, pType, pName, pDeclaration);
-    //assert pDeclaration != null;
+  public JMethodInvocationAssignmentStatement(CFileLocation pFileLocation, JExpression pLeftHandSide,
+      JMethodInvocationExpression pRightHandSide) {
+    super(pFileLocation, pLeftHandSide, pRightHandSide);
+
   }
 
   @Override
-  public JSimpleDeclaration getDeclaration() {
-    return (JSimpleDeclaration) super.getDeclaration();
+  public JMethodInvocationExpression getFunctionCallExpression() {
+    return (JMethodInvocationExpression) super.getFunctionCallExpression();
   }
 
   @Override
-  public JType getExpressionType() {
-    return (JType) super.getExpressionType();
+  public JExpression getLeftHandSide() {
+    return (JExpression) super.getLeftHandSide();
   }
 
   @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
+  public JMethodInvocationExpression getRightHandSide() {
+    return (JMethodInvocationExpression) super.getRightHandSide();
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(JStatementVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
   @Override
-  public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
-    return v.visit(this);
+  public JStatement asStatement() {
+    return (JStatement) super.asStatement();
   }
+
 }

@@ -23,42 +23,36 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.util.List;
-
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
 
 
-public class JClassInstanzeCreation extends JMethodInvocationExpression implements JRightHandSide {
+public class JExpressionAssignmentStatement extends AExpressionAssignmentStatement implements JAssignment , JStatement {
 
-  public JClassInstanzeCreation(CFileLocation pFileLocation, JConstructorType pType, JExpression pFunctionName,
-      List<? extends JExpression> pParameters, JConstructorDeclaration pDeclaration) {
-    super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
-
+  public JExpressionAssignmentStatement(CFileLocation pFileLocation, JExpression pLeftHandSide,
+      JExpression pRightHandSide) {
+    super(pFileLocation, pLeftHandSide, pRightHandSide);
   }
 
   @Override
-  public JConstructorDeclaration getDeclaration() {
-    return (JConstructorDeclaration) declaration;
+  public JExpression getLeftHandSide() {
+    return (JExpression) super.getLeftHandSide();
   }
 
   @Override
-  public JConstructorType getExpressionType() {
-    return (JConstructorType) type;
+  public JExpression getRightHandSide() {
+    return (JExpression) super.getRightHandSide();
   }
 
   @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(JStatementVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
-
   @Override
-  public String toASTString() {
-
-    StringBuilder astString = new StringBuilder("new ");
-    astString.append(getExpressionType().toASTString(functionName.toASTString()));
-
-    return astString.toString();
+  public JStatement asStatement() {
+    // TODO Auto-generated method stub
+    return (JStatement) super.asStatement();
   }
+
 }

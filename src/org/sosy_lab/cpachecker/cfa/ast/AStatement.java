@@ -31,5 +31,4 @@ public abstract class AStatement extends AstNode implements IAStatement{
     super(pFileLocation);
   }
 
-
 }

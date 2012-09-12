@@ -27,14 +27,13 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
 public class JMethodInvocationExpression extends AFunctionCallExpression implements JRightHandSide{
 
   public JMethodInvocationExpression(CFileLocation pFileLocation, JType pType, JExpression pFunctionName,
-      List<? extends JExpression> pParameters, IASimpleDeclaration pDeclaration) {
+      List<? extends JExpression> pParameters, JSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
 
   }

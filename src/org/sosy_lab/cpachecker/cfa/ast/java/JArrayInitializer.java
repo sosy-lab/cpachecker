@@ -27,11 +27,10 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 
 
-public class JArrayInitializer extends AExpression implements JAstNode , IAInitializer, JExpression {
+public class JArrayInitializer extends AExpression implements JAstNode , JInitializer, JExpression {
 
   private final List<JExpression> initializerExpressions;
 

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -42,6 +43,7 @@ import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -78,11 +80,11 @@ class CFABuilder extends ASTVisitor {
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
   // Data structure for storing static field declarations over this Ast
-  private final List<Pair<IADeclaration, String>> nonStaticFieldDeclarationsOfThisClass = Lists.newArrayList();
+  private final List<Pair<JDeclaration, String>> nonStaticFieldDeclarationsOfThisClass = Lists.newArrayList();
 
   // Data structure for storing static and nonStatic field declarations over several AST
-  private final List<Pair<IADeclaration, String>> staticFieldDeclarations = Lists.newArrayList();
-  private final List<Pair<IADeclaration, String>> nonStaticFieldDeclarations = Lists.newArrayList();
+  private final List<Pair<JDeclaration, String>> staticFieldDeclarations = Lists.newArrayList();
+  private final List<Pair<JDeclaration, String>> nonStaticFieldDeclarations = Lists.newArrayList();
 
   // Data Structure for tracking class Declaration in this Compilation Unit
   private final Set<ITypeBinding> classDeclaration = new HashSet<ITypeBinding>();
@@ -129,7 +131,14 @@ class CFABuilder extends ASTVisitor {
    * @return global declarations
    */
   public List<Pair<IADeclaration, String>> getGlobalDeclarations() {
-    return staticFieldDeclarations;
+
+    // TODO Change with PArse Result when Java unique Parse Result is introduced
+    List<Pair<IADeclaration, String>> result = new ArrayList<Pair<IADeclaration, String>>(staticFieldDeclarations.size());
+    for( Pair<JDeclaration, String> decl  : staticFieldDeclarations) {
+      IADeclaration declaration = decl.getFirst();
+      result.add(Pair.of(declaration, decl.getSecond()));
+    }
+    return result;
   }
 
   @Override
@@ -155,7 +164,7 @@ class CFABuilder extends ASTVisitor {
 
 
   /* (non-Javadoc)
-   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IADeclaration)
+   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.JDeclaration)
    */
   @Override
   public boolean visit(MethodDeclaration fd) {
@@ -164,7 +173,7 @@ class CFABuilder extends ASTVisitor {
       getMethodDeclarations().add(fd);
 
       // add forward declaration to list of global declarations
-      //IADeclaration functionDefinition = getAstCreator().convert(fd);
+      //JDeclaration functionDefinition = getAstCreator().convert(fd);
       if (getAstCreator().numberOfSideAssignments() > 0) {
         throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
       }
@@ -177,7 +186,7 @@ class CFABuilder extends ASTVisitor {
   public boolean visit(FieldDeclaration fd) {
 
 
-      final List<IADeclaration> newDs = getAstCreator().convert(fd);
+      final List<JDeclaration> newDs = getAstCreator().convert(fd);
       assert !newDs.isEmpty();
 
 
@@ -193,7 +202,7 @@ class CFABuilder extends ASTVisitor {
 
       // static field are declared when a class is loaded
       // non static fields are declared when an object is created
-      for (IADeclaration newD : newDs) {
+      for (JDeclaration newD : newDs) {
 
         scope.registerDeclaration(newD);
 

@@ -28,6 +28,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.BodyDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
+import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Strings;
@@ -51,7 +52,7 @@ public class CFAGenerationRuntimeException extends RuntimeException {
     this(astNode == null ? msg : createMessage(msg, astNode));
   }
 
-  public CFAGenerationRuntimeException(String msg, org.sosy_lab.cpachecker.cfa.ast.IAstNode astNode) {
+  public CFAGenerationRuntimeException(String msg, IAstNode astNode) {
     this(astNode == null ? msg :
       (msg + " in line " + astNode.getFileLocation().getStartingLineNumber()
           + ": " + astNode.toASTString()));

@@ -21,28 +21,26 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
+import java.util.List;
+
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
 
 
-public class AStringLiteralExpression extends ALiteralExpression {
+public class JSuperConstructorInvocation extends JClassInstanzeCreation {
 
-  protected final String value;
+  public JSuperConstructorInvocation(CFileLocation pFileLocation, JConstructorType pType, JExpression pFunctionName,
+      List<? extends JExpression> pParameters, JConstructorDeclaration pDeclaration) {
+    super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
 
-  public AStringLiteralExpression(CFileLocation pFileLocation, Type pType, String pValue) {
-    super(pFileLocation, pType);
-     value = pValue;
   }
 
   @Override
   public String toASTString() {
-    return value;
-  }
-
-  @Override
-  public String getValue() {
-    return value;
+    // TODO Auto-generated method stub
+    return getExpressionType().toASTString("super");
   }
 
 }

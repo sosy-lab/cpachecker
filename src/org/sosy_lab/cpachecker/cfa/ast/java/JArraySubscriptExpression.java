@@ -23,28 +23,31 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.util.List;
-
+import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-public class JClassInstanzeCreation extends JMethodInvocationExpression implements JRightHandSide {
+public class JArraySubscriptExpression extends AArraySubscriptExpression implements JExpression {
 
-  public JClassInstanzeCreation(CFileLocation pFileLocation, JConstructorType pType, JExpression pFunctionName,
-      List<? extends JExpression> pParameters, JConstructorDeclaration pDeclaration) {
-    super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
-
+  public JArraySubscriptExpression(CFileLocation pFileLocation, JType pType, JExpression pArrayExpression,
+      JExpression pSubscriptExpression) {
+    super(pFileLocation, pType, pArrayExpression, pSubscriptExpression);
   }
 
   @Override
-  public JConstructorDeclaration getDeclaration() {
-    return (JConstructorDeclaration) declaration;
+  public JType getExpressionType() {
+    return (JType) super.getExpressionType();
   }
 
   @Override
-  public JConstructorType getExpressionType() {
-    return (JConstructorType) type;
+  public JExpression getArrayExpression() {
+    return (JExpression) super.getArrayExpression();
+  }
+
+  @Override
+  public JExpression getSubscriptExpression() {
+    return (JExpression) super.getSubscriptExpression();
   }
 
   @Override
@@ -52,13 +55,9 @@ public class JClassInstanzeCreation extends JMethodInvocationExpression implemen
     return v.visit(this);
   }
 
-
   @Override
-  public String toASTString() {
-
-    StringBuilder astString = new StringBuilder("new ");
-    astString.append(getExpressionType().toASTString(functionName.toASTString()));
-
-    return astString.toString();
+  public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
+
 }

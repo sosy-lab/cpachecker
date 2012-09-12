@@ -31,7 +31,6 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
@@ -39,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
@@ -49,8 +47,10 @@ import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.java.DefaultJExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.java.JCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanzeCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -64,7 +64,10 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpressio
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
+import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JSuperConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisRunTimeType;
+import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -76,7 +79,9 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -198,7 +203,36 @@ public class JortTransferRelation implements TransferRelation {
       return;
     }
 
-    AVariableDeclaration decl = (AVariableDeclaration)declarationEdge.getDeclaration();
+
+
+    JVariableDeclaration decl = (JVariableDeclaration) declarationEdge.getDeclaration();
+
+    if(decl.getType() instanceof JSimpleType ) {
+
+      JBasicType simpleType = ((JSimpleType)decl.getType()).getType();
+
+          switch(simpleType){
+          case BOOLEAN:
+          case BYTE:
+          case CHAR:
+          case FLOAT:
+          case DOUBLE:
+          case INT:
+          case LONG:
+          case SHORT:
+            // TODO Change with inclusion of Boxing, Unboxing
+            // Unnecessary to track Primitive types.
+            return;
+      }
+
+
+
+
+    }
+
+
+
+
 
     // get the variable name in the declarator
     String varName = decl.getName();
@@ -413,14 +447,23 @@ public class JortTransferRelation implements TransferRelation {
     AFunctionCallExpression functionCall = callEdge.getSummaryEdge().getExpression().getFunctionCallExpression();
 
 
-    // There are four possibilities when assigning this and the new object Scope.
-    // First: A New Object is created, which is the new classObject scope
-    if(functionCall instanceof JClassInstanzeCreation) {
+    // There are five possibilities when assigning this and the new object Scope.
+
+    // A Object calls its super Constructor
+    if(functionCall instanceof JSuperConstructorInvocation) {
+
+      newElement.assignThisAndNewObjectScope(element.getUniqueObjectFor(JortState.KEYWORD_THIS));
+
+   // A New Object is created, which is the new classObject scope
+    } else if(functionCall instanceof JClassInstanzeCreation) {
+
+
+
       AReturnStatementEdge returnEdge =  (AReturnStatementEdge) functionEntryNode.getExitNode().getEnteringEdge(RETURN_EDGE);
       String uniqueObject = ((JExpression) returnEdge.getExpression()).accept(  new FunctionExitValueVisitor(returnEdge, newElement, calledFunctionName));
       newElement.assignThisAndNewObjectScope(uniqueObject);
 
-      // Second: A Referenced Method Invocation, the new scope is the unique Object
+      // A Referenced Method Invocation, the new scope is the unique Object
       // of its reference variable
     } else if(functionCall instanceof JReferencedMethodInvocationExpression) {
       JReferencedMethodInvocationExpression objectMethodInvocation = (JReferencedMethodInvocationExpression) functionCall;
@@ -432,7 +475,7 @@ public class JortTransferRelation implements TransferRelation {
         // When the object of the variable can't be found
         newElement.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);
       }
-      // Third, a unreferenced Method Invocation
+      //  a unreferenced Method Invocation
     } else if (functionCall instanceof JMethodInvocationExpression) {
 
       JMethodDeclaration decl = (JMethodDeclaration) ((JMethodInvocationExpression)functionCall).getDeclaration();
@@ -443,7 +486,7 @@ public class JortTransferRelation implements TransferRelation {
       }else {
        newElement.assignThisAndNewObjectScope(newElement.getUniqueObjectFor(JortState.KEYWORD_THIS));
       }
-     // Fourth, the method Invocation can't be handled
+     //  the method Invocation can't be handled
     } else {
       newElement.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);
     }
@@ -499,8 +542,7 @@ public class JortTransferRelation implements TransferRelation {
     }
 
     @Override
-    public String visit(AStringLiteralExpression functionTypeReturn) throws UnrecognizedCCodeException {
-
+    public String visit(JStringLiteralExpression functionTypeReturn) throws UnrecognizedCCodeException {
       return functionTypeReturn.getValue();
     }
 
@@ -523,18 +565,17 @@ public class JortTransferRelation implements TransferRelation {
     }
 
     @Override
-    protected String visitDefault(IAExpression pE) {
+    protected String visitDefault(JExpression pE) {
       return null;
     }
 
     @Override
-    public String visit(ACharLiteralExpression pPaCharLiteralExpression) throws UnrecognizedCCodeException {
-      // TODO Support Character Class
-      return null;
+    public String visit(JCharLiteralExpression pPaCharLiteralExpression) throws UnrecognizedCCodeException {
+      return "Charackter";
     }
 
     @Override
-    public String visit(AStringLiteralExpression pPaStringLiteralExpression) throws UnrecognizedCCodeException {
+    public String visit(JStringLiteralExpression pPaStringLiteralExpression) throws UnrecognizedCCodeException {
       return "String";
     }
 
@@ -551,6 +592,14 @@ public class JortTransferRelation implements TransferRelation {
 
       String value1 = operand1.accept(this);
       String value2 = operand2.accept(this);
+
+      if(state.getConstantsMap().containsValue(value1)) {
+        value1 = state.getRunTimeClassOfUniqueObject(value1);
+      }
+
+      if(state.getConstantsMap().containsValue(value2)) {
+        value2 = state.getRunTimeClassOfUniqueObject(value2);
+      }
 
       boolean result = value1.equals(value2);
 
@@ -569,7 +618,7 @@ public class JortTransferRelation implements TransferRelation {
     }
 
     @Override
-    public String visit(AArraySubscriptExpression pAArraySubscriptExpression) throws UnrecognizedCCodeException {
+    public String visit(JArraySubscriptExpression pAArraySubscriptExpression) throws UnrecognizedCCodeException {
       // TODO Support Arrays
       return null;
     }

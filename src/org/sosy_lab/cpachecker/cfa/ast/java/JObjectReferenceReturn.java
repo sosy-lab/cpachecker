@@ -23,25 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
 
-public class JObjectReferenceReturn extends AReturnStatement {
+public class JObjectReferenceReturn extends JReturnStatement {
 
 
   private final JClassType classReference;
 
-  public JObjectReferenceReturn(CFileLocation pFileLocation, AStringLiteralExpression pAbstractObjectIdentifier, JClassType pClassReference ) {
+  public JObjectReferenceReturn(CFileLocation pFileLocation, JStringLiteralExpression pAbstractObjectIdentifier, JClassType pClassReference ) {
     super(pFileLocation, pAbstractObjectIdentifier);
     classReference = pClassReference;
   }
 
   @Override
-  public AStringLiteralExpression getReturnValue() {
-    return (AStringLiteralExpression) super.getReturnValue();
+  public JStringLiteralExpression getReturnValue() {
+    return (JStringLiteralExpression) super.getReturnValue();
   }
 
   public JClassType getReturnClassType(){

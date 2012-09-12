@@ -28,9 +28,5 @@ package org.sosy_lab.cpachecker.cfa.ast;
 public interface IADeclaration extends IASimpleDeclaration {
 
 
-
-
-
-
   public boolean isGlobal();
 }

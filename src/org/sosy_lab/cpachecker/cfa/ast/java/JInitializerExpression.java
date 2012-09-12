@@ -21,28 +21,20 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 
 
-public class AStringLiteralExpression extends ALiteralExpression {
+public class JInitializerExpression extends AInitializerExpression implements JInitializer {
 
-  protected final String value;
-
-  public AStringLiteralExpression(CFileLocation pFileLocation, Type pType, String pValue) {
-    super(pFileLocation, pType);
-     value = pValue;
+  public JInitializerExpression(CFileLocation pFileLocation, JExpression pExpression) {
+    super(pFileLocation, pExpression);
   }
 
   @Override
-  public String toASTString() {
-    return value;
+  public JExpression getExpression() {
+    return (JExpression) super.getExpression();
   }
-
-  @Override
-  public String getValue() {
-    return value;
-  }
-
 }

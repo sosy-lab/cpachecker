@@ -21,28 +21,18 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
-
-import org.sosy_lab.cpachecker.cfa.types.Type;
+package org.sosy_lab.cpachecker.cfa.ast.java;
 
 
-public class AStringLiteralExpression extends ALiteralExpression {
 
-  protected final String value;
+public interface JStatementVisitor<R, X extends Exception> {
 
-  public AStringLiteralExpression(CFileLocation pFileLocation, Type pType, String pValue) {
-    super(pFileLocation, pType);
-     value = pValue;
-  }
+  public R visit(JExpressionAssignmentStatement pAExpressionAssignmentStatement) throws X;
 
-  @Override
-  public String toASTString() {
-    return value;
-  }
+  public R visit(JExpressionStatement pAExpressionStatement) throws X;
 
-  @Override
-  public String getValue() {
-    return value;
-  }
+  public R visit(JMethodInvocationAssignmentStatement pAFunctionCallAssignmentStatement)throws X;
+
+  public R visit(JMethodInvocationStatement pAFunctionCallStatement) throws X;
 
 }

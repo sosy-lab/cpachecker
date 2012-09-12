@@ -25,7 +25,7 @@ public class DynamicBindingCall  {
     if(n == n2){
      obj2 = new SubSubType1(3 , 3);
     }else {
-     obj2 = new SubType1(3 , 3); 
+     obj2 = new SubType1(3 , 3 , 4 , 4); 
     }
     
     boolean b11 = false;
@@ -41,11 +41,8 @@ public class DynamicBindingCall  {
     
     assert b1;
      
-    
     Interface1 obj3 = null; 
-    
-    
-    
+        
     obj2 = new SubSubType1(3 , 3);
     
     obj3 = obj2;

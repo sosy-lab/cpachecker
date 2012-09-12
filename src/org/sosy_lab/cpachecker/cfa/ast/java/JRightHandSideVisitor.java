@@ -24,16 +24,10 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 
-
-
-
-
 public interface  JRightHandSideVisitor<R, X extends Exception> extends  JExpressionVisitor<R, X> {
 
   R visit(JMethodInvocationExpression pAFunctionCallExpression) throws X;
 
   R visit(JClassInstanzeCreation pJClassInstanzeCreation) throws X;
-
-
 
 }

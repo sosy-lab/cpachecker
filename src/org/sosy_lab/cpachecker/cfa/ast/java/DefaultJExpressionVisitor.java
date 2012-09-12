@@ -23,19 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
-
-
-
-
-
 public abstract class DefaultJExpressionVisitor<R ,X extends Exception> implements JExpressionVisitor<R, X> {
 
-  protected abstract R visitDefault(IAExpression e);
+  protected abstract R visitDefault(JExpression e);
 
   @Override
   public R visit(JIntegerLiteralExpression e) throws X {
@@ -55,12 +45,12 @@ public abstract class DefaultJExpressionVisitor<R ,X extends Exception> implemen
   }
 
   @Override
-  public R visit(ACharLiteralExpression e) throws X {
+  public R visit(JCharLiteralExpression e) throws X {
     return visitDefault(e);
   }
 
   @Override
-  public R visit(AStringLiteralExpression e) throws X {
+  public R visit(JStringLiteralExpression e) throws X {
     return visitDefault(e);
   }
 
@@ -70,7 +60,7 @@ public abstract class DefaultJExpressionVisitor<R ,X extends Exception> implemen
   }
 
   @Override
-  public R visit(AUnaryExpression e) throws X {
+  public R visit(JUnaryExpression e) throws X {
     return visitDefault(e);
   }
 
@@ -85,7 +75,7 @@ public abstract class DefaultJExpressionVisitor<R ,X extends Exception> implemen
   }
 
   @Override
-  public R visit(AArraySubscriptExpression e) throws X {
+  public R visit(JArraySubscriptExpression e) throws X {
     return visitDefault(e);
   }
 

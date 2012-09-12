@@ -23,13 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
-public class AArraySubscriptExpression extends AExpression implements JExpression{
+public class AArraySubscriptExpression extends AExpression {
 
 
   protected final IAExpression arrayExpression;
@@ -62,16 +59,6 @@ public class AArraySubscriptExpression extends AExpression implements JExpressio
   public String toASTString() {
     String left = (arrayExpression instanceof AArraySubscriptExpression) ? arrayExpression.toASTString() : arrayExpression.toParenthesizedASTString();
     return left + "[" + subscriptExpression.toASTString() + "]";
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
-    return v.visit(this);
   }
 
 }

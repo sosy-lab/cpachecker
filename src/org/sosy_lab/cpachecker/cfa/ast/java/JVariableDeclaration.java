@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-public class JVariableDeclaration extends AVariableDeclaration {
+public class JVariableDeclaration extends AVariableDeclaration implements JDeclaration {
 
 
   private final boolean isFinal;
@@ -41,7 +41,10 @@ public class JVariableDeclaration extends AVariableDeclaration {
     isFinal = pIsFinal;
   }
 
-
+  @Override
+  public JType getType() {
+    return (JType) super.getType();
+  }
 
   @Override
   public String toASTString() {
@@ -65,4 +68,6 @@ public class JVariableDeclaration extends AVariableDeclaration {
   public boolean isFinal() {
     return isFinal;
   }
+
+
 }

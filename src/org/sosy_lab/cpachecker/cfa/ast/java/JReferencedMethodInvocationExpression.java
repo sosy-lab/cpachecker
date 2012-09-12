@@ -26,36 +26,32 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
 public class JReferencedMethodInvocationExpression extends JMethodInvocationExpression {
 
-  private final IASimpleDeclaration referencedVariable;
+  private final JSimpleDeclaration referencedVariable;
 
   private boolean hasKnownRunTimeBinding = false;
   private JClassType runTimeBinding = null;
 
   public JReferencedMethodInvocationExpression(CFileLocation pFileLocation, JType pType, JExpression pFunctionName,
-      List<? extends JExpression> pParameters, IASimpleDeclaration pDeclaration, IASimpleDeclaration pReferencedVariable) {
+      List<? extends JExpression> pParameters, JSimpleDeclaration pDeclaration, JSimpleDeclaration pReferencedVariable) {
     super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
       referencedVariable = pReferencedVariable;
 
   }
 
-  public IASimpleDeclaration getReferencedVariable() {
+  public JSimpleDeclaration getReferencedVariable() {
     return referencedVariable;
   }
 
   @Override
   public String toASTString() {
-    // TODO Auto-generated method stub
     return referencedVariable.getName() + "_" + super.toASTString();
   }
-
-
 
   public void setHasKnownRunTimeBinding(boolean hasKnownRunTimeBinding) {
     this.hasKnownRunTimeBinding = hasKnownRunTimeBinding;

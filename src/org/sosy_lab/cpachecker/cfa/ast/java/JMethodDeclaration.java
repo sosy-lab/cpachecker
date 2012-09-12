@@ -25,12 +25,12 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 
 import com.google.common.base.Strings;
 
 
-public  class JMethodDeclaration extends AFunctionDeclaration {
+public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclaration {
 
   private final boolean isFinal;
   private final boolean isAbstract;
@@ -41,7 +41,7 @@ public  class JMethodDeclaration extends AFunctionDeclaration {
   private final VisibilityModifier visibility;
 
 
-  public JMethodDeclaration(CFileLocation pFileLocation, IAFunctionType pType, String pName , VisibilityModifier pVisibility  ,final boolean pIsFinal
+  public JMethodDeclaration(CFileLocation pFileLocation, JMethodType pType, String pName , VisibilityModifier pVisibility  ,final boolean pIsFinal
       ,final boolean pIsAbstract, final boolean pIsStatic,final boolean pIsNative,final boolean pIsSynchronized,final boolean pIsStrictfp ) {
     super(pFileLocation, pType, pName);
     visibility = pVisibility;
@@ -57,6 +57,12 @@ public  class JMethodDeclaration extends AFunctionDeclaration {
     assert(isAbstract() && !isStatic() && !isNative() && !isFinal() && !isSynchronized() && !isStrictfp() || (!isAbstract()))
     : "Abstract Method may only have one Modifier , either public or protected";
 
+  }
+
+  @Override
+  public JMethodType getType() {
+    // TODO Auto-generated method stub
+    return (JMethodType) super.getType();
   }
 
 

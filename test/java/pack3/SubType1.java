@@ -23,6 +23,13 @@ public class SubType1 extends SuperType1 implements Interface1 {
     subNum2 = num2;
   }
   
+  public SubType1(int num1 , int num2, int superNum1 , int superNum2){
+    
+    super(superNum1, superNum2);
+    subNum1 = num1;
+    subNum2 = num2;
+  }
+  
 
   
   public int getNum1(){
@@ -35,7 +42,13 @@ public class SubType1 extends SuperType1 implements Interface1 {
   
   @Override
   public boolean  compare() {
-    return  (subNum1 == subNum2);
+    
+    boolean c;
+    
+    c = subNum1 == subNum2 && num == num2;
+    
+    
+    return   c;
   }
   
   public int add(){

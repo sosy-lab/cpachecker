@@ -25,14 +25,13 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 
 
 public class JThisRunTimeType extends AExpression implements JExpression {
 
-  private final IASimpleDeclaration referencedVariable;
+  private final JSimpleDeclaration referencedVariable;
 
-  public JThisRunTimeType(CFileLocation pFileLocation, IASimpleDeclaration pReferencedVariable) {
+  public JThisRunTimeType(CFileLocation pFileLocation, JSimpleDeclaration pReferencedVariable) {
     super(pFileLocation, pReferencedVariable.getType());
     referencedVariable = pReferencedVariable;
     assert getReferencedVariable() != null;
@@ -53,7 +52,7 @@ public class JThisRunTimeType extends AExpression implements JExpression {
     return getReferencedVariable().getName() + "_getClass()";
   }
 
-  public IASimpleDeclaration getReferencedVariable() {
+  public JSimpleDeclaration getReferencedVariable() {
     return referencedVariable;
   }
 }

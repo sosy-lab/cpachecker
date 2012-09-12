@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression.ABinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
@@ -46,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
@@ -73,8 +71,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanzeCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -89,7 +89,10 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
+import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisRunTimeType;
+import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -104,7 +107,10 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
+import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -381,8 +387,8 @@ public class ExplicitTransferRelation implements TransferRelation
       if(expression instanceof JExpression && ! (expression instanceof CExpression)){
         ((JExpression) expression).accept(avv);
 
-        if(avv.missingFieldAccessInformation) {
-          missingInformationRightJExpression = (JRightHandSide) expression;
+        if(avv.missingFieldAccessInformation || avv.missingEnumComparisonInformation) {
+          assert missingInformationRightJExpression != null;
           missingAssumeInformation = true;
         }
 
@@ -404,7 +410,7 @@ public class ExplicitTransferRelation implements TransferRelation
   private void handleDeclaration(ExplicitState newElement, ADeclarationEdge declarationEdge, ExplicitPrecision precision)
     throws UnrecognizedCCodeException {
 
-    if (!(declarationEdge.getDeclaration() instanceof AVariableDeclaration)) {
+    if (!(declarationEdge.getDeclaration() instanceof AVariableDeclaration) || (declarationEdge.getDeclaration().getType() instanceof JType && !(declarationEdge.getDeclaration().getType() instanceof JSimpleType))) {
       // nothing interesting to see here, please move along
       return;
     }
@@ -440,7 +446,6 @@ public class ExplicitTransferRelation implements TransferRelation
       IAExpression exp = ((AInitializerExpression)init).getExpression();
 
         initialValue = getExpressionValue(newElement, exp, functionName, declarationEdge);
-
     }
 
       String scopedVarName = getScopedVariableName(varName, functionName);
@@ -457,9 +462,32 @@ public class ExplicitTransferRelation implements TransferRelation
         missingInformationLeftJVariable = scopedVarName;
       }
     } else {
+
+      //TODO What do we do with not initialized local Java Variables?
+      if(decl instanceof JVariableDeclaration && decl.getType() instanceof JSimpleType && init == null) {
+        JBasicType simpleType = ((JSimpleType) decl.getType()).getType();
+
+        switch(simpleType){
+        case BOOLEAN:
+        case BYTE:
+        case CHAR:
+        case FLOAT:
+        case DOUBLE:
+        case INT:
+        case LONG:
+        case SHORT:
+          newElement.assignConstant(scopedVarName, 0L);
+          break;
+        default:
+          missingFieldVariableObject = false;
+          newElement.forget(scopedVarName);
+        }
+
+      }else {
       // If variable not tracked, its Object is irrelevant
       missingFieldVariableObject = false;
       newElement.forget(scopedVarName);
+      }
     }
   }
 
@@ -563,10 +591,12 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
 
+
+
     ExplicitState newElement = visitor.state;
     String assignedVar = getScopedVariableName(lParam, visitor.functionName);
 
-    if(visitor.missingFieldAccessInformation) {
+    if(visitor.missingFieldAccessInformation || visitor.missingEnumComparisonInformation) {
       // This may happen if an object of class is created which could not be parsed,
       // In  such a case, forget about it
       if(value != null) {
@@ -614,6 +644,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
     private boolean missingPointer = false;
     protected boolean missingFieldAccessInformation = false;
+    protected boolean missingEnumComparisonInformation = false;
 
     public ExpressionValueVisitor(CFAEdge pEdge, ExplicitState pElement, String pFunctionName) {
       edge = pEdge;
@@ -841,12 +872,12 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     @Override
-    public Long visit(ACharLiteralExpression pE) throws UnrecognizedCCodeException {
+    public Long visit(JCharLiteralExpression pE) throws UnrecognizedCCodeException {
       return (long)pE.getCharacter();
     }
 
     @Override
-    public Long visit(AStringLiteralExpression pPaStringLiteralExpression) throws UnrecognizedCCodeException {
+    public Long visit(JStringLiteralExpression pPaStringLiteralExpression) throws UnrecognizedCCodeException {
       return null;
     }
 
@@ -919,11 +950,8 @@ public class ExplicitTransferRelation implements TransferRelation
       case LESS_EQUAL: {
 
         Long lVal = ((JExpression)lVarInBinaryExp).accept(this);
-        if(lVal == null)
-          return null;
-
         Long rVal = ((JExpression)rVarInBinaryExp).accept(this);
-        if(rVal == null)
+        if(lVal == null || rVal == null)
           return null;
 
         long l = lVal;
@@ -976,16 +1004,6 @@ public class ExplicitTransferRelation implements TransferRelation
         missingFieldAccessInformation = true;
       }
 
-      if(idExp.getDeclaration() instanceof CEnumerator) {
-        CEnumerator enumerator = (CEnumerator)idExp.getDeclaration();
-        if(enumerator.hasValue()) {
-          return enumerator.getValue();
-        } else {
-          return null;
-        }
-      }
-
-
       String varName = getScopedVariableName(idExp.getName(), functionName);
 
       if(state.contains(varName)) {
@@ -996,11 +1014,9 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     @Override
-    public Long visit(AUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
+    public Long visit(JUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
 
-      //TODO Change with unary Expression
-
-      UnaryOperator unaryOperator = unaryExpression.getOperator();
+      JUnaryExpression.UnaryOperator unaryOperator = unaryExpression.getOperator();
       IAExpression unaryOperand = unaryExpression.getOperand();
 
       Long value = null;
@@ -1020,17 +1036,14 @@ public class ExplicitTransferRelation implements TransferRelation
         else
           return (value == 0L) ? 1L : 0L;
 
-      case AMPER:
-        return null; // valid expression, but it's a pointer value
+      case COMPLEMENT:
+        value = ((JExpression)unaryOperand).accept(this);
+        return (value != null) ? ~value : null;
 
-      case STAR:
-        missingPointer = true;
-        return null;
-
-      case SIZEOF:
-      case TILDE:
+      case PLUS:
+        value = ((JExpression)unaryOperand).accept(this);
+        return value;
       default:
-        // TODO handle unimplemented operators
         return null;
       }
     }
@@ -1066,8 +1079,8 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     @Override
-    public Long visit(AArraySubscriptExpression pAArraySubscriptExpression) throws UnrecognizedCCodeException {
-      return ((JExpression) pAArraySubscriptExpression.getSubscriptExpression()).accept(this);
+    public Long visit(JArraySubscriptExpression pAArraySubscriptExpression) throws UnrecognizedCCodeException {
+      return  pAArraySubscriptExpression.getSubscriptExpression().accept(this);
     }
 
     @Override
@@ -1092,6 +1105,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
     @Override
     public Long visit(JEnumConstantExpression pJEnumConstantExpression) throws UnrecognizedCCodeException {
+      missingEnumComparisonInformation = true;
       return null;
     }
   }
@@ -1282,33 +1296,9 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     @Override
-    public Long visit(AUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
-      if(unaryExpression.getOperator() != UnaryOperator.STAR) {
+    public Long visit(JUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
         return super.visit(unaryExpression);
-      }
 
-      // Cil produces code like
-      // __cil_tmp8 = *((int *)__cil_tmp7);
-      // so remove cast
-      IAExpression unaryOperand = unaryExpression.getOperand();
-      if (unaryOperand instanceof CCastExpression) {
-        unaryOperand = ((CCastExpression)unaryOperand).getOperand();
-      }
-
-      if(unaryOperand instanceof AIdExpression) {
-        String rightVar = derefPointerToVariable(pointerState, ((AIdExpression)unaryOperand).getName());
-        if (rightVar != null) {
-          rightVar = getScopedVariableName(rightVar, functionName);
-
-          if (state.contains(rightVar)) {
-            return state.getValueFor(rightVar);
-          }
-        }
-      } else {
-        throw new UnrecognizedCCodeException("Pointer dereference of something that is not a variable", edge, unaryExpression);
-      }
-
-      return null;
     }
 
   }
@@ -1323,18 +1313,164 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     @Override
+    public Long visit(JBinaryExpression binaryExpression) throws UnrecognizedCCodeException {
+
+      if((binaryExpression.getOperator() ==    JBinaryExpression.BinaryOperator.EQUALS || binaryExpression.getOperator() == JBinaryExpression.BinaryOperator.NOT_EQUALS) && (binaryExpression.getOperand1() instanceof JEnumConstantExpression ||  binaryExpression.getOperand2() instanceof JEnumConstantExpression)) {
+        return handleEnumComparison(binaryExpression.getOperand1() , binaryExpression.getOperand2() , binaryExpression.getOperator());
+      }
+
+
+
+      return super.visit(binaryExpression);
+    }
+
+
+    private Long handleEnumComparison(JExpression operand1, JExpression operand2, JBinaryExpression.BinaryOperator operator) throws UnrecognizedCCodeException {
+
+
+
+      String value1;
+      String value2;
+
+
+
+      if(operand1 instanceof JEnumConstantExpression) {
+        value1 = ((JEnumConstantExpression) operand1).getValue();
+      } else if(operand1 instanceof JIdExpression) {
+
+
+        JSimpleDeclaration decl = ((JIdExpression) operand1).getDeclaration();
+
+        String varName = null;
+
+        String reference;
+
+        if(operand1 instanceof JFieldAccess) {
+
+          JVariableDeclaration referenceDeclaration = ((JFieldAccess) operand1).getReferencedVariable();
+
+
+          if(referenceDeclaration instanceof JFieldDeclaration) {
+
+            if(((JFieldDeclaration) referenceDeclaration).isStatic()) {
+              // reference is static, it is stored in global scope
+              reference = referenceDeclaration.getName();
+            } else {
+              // reference is non static field, is stored in this object scope
+              reference = getJortScopedVariableName(referenceDeclaration.getName() ,jortState.getUniqueObjectFor(JortState.KEYWORD_THIS));
+            }
+
+          } else {
+            // Reference Variable is local, it is stored in function Scope
+            reference = getScopedVariableName(referenceDeclaration.getName(), functionName);
+          }
+        } else {
+          reference = JortState.KEYWORD_THIS;
+        }
+
+        if(decl instanceof JFieldDeclaration && !((JFieldDeclaration) decl).isStatic()){
+
+          if(jortState.contains(reference)) {
+            varName = getJortScopedVariableName(decl.getName(), jortState.getUniqueObjectFor(reference));
+          }else {
+            return null;
+          }
+        } else {
+          varName = getScopedVariableName(((JIdExpression) operand1).getName(), functionName);
+        }
+
+        if(jortState.contains(varName)){
+          value1 = jortState.getUniqueObjectFor(varName);
+        }else{
+          return null;
+        }
+
+
+      } else {
+        return null;
+      }
+
+
+      if(operand2 instanceof JEnumConstantExpression) {
+        value2 = ((JEnumConstantExpression) operand2).getValue();
+      } else if(operand2 instanceof JIdExpression) {
+
+
+        JSimpleDeclaration decl = ((JIdExpression) operand1).getDeclaration();
+
+        String varName = null;
+
+        String reference;
+
+        if(operand2 instanceof JFieldAccess) {
+
+          JVariableDeclaration referenceDeclaration = ((JFieldAccess) operand2).getReferencedVariable();
+
+
+          if(referenceDeclaration instanceof JFieldDeclaration) {
+
+            if(((JFieldDeclaration) referenceDeclaration).isStatic()) {
+              // reference is static, it is stored in global scope
+              reference = referenceDeclaration.getName();
+            } else {
+              // reference is non static field, is stored in this object scope
+              reference = getJortScopedVariableName(referenceDeclaration.getName() ,jortState.getUniqueObjectFor(JortState.KEYWORD_THIS));
+            }
+
+          } else {
+            // Reference Variable is local, it is stored in function Scope
+            reference = getScopedVariableName(referenceDeclaration.getName(), functionName);
+          }
+        } else {
+          reference = JortState.KEYWORD_THIS;
+        }
+
+        if(decl instanceof JFieldDeclaration && !((JFieldDeclaration) decl).isStatic()){
+
+          if(jortState.contains(reference)) {
+            varName = getJortScopedVariableName(decl.getName(), jortState.getUniqueObjectFor(reference));
+          }else {
+            return null;
+          }
+        } else {
+          varName = getScopedVariableName(((JIdExpression) operand2).getName(), functionName);
+        }
+
+        if(jortState.contains(varName)) {
+          value2 = jortState.getUniqueObjectFor(varName);
+        }else{
+          return null;
+        }
+      } else {
+        return null;
+      }
+
+      if(jortState.getConstantsMap().containsValue(value1)) {
+        value1 = jortState.getRunTimeClassOfUniqueObject(value1);
+      }
+
+      if(jortState.getConstantsMap().containsValue(value2)) {
+        value2 = jortState.getRunTimeClassOfUniqueObject(value2);
+      }
+
+
+
+      boolean result = value1.equals(value2);
+
+      switch(operator){
+      case EQUALS:   break;
+      case NOT_EQUALS: result = !result;
+      }
+
+
+
+      return  result ? 1L : 0L;
+    }
+
+    @Override
     public Long visit(JIdExpression idExp) throws UnrecognizedCCodeException {
 
       IASimpleDeclaration decl = idExp.getDeclaration();
-
-      if(idExp.getDeclaration() instanceof CEnumerator) {
-        CEnumerator enumerator = (CEnumerator)idExp.getDeclaration();
-        if(enumerator.hasValue()) {
-          return enumerator.getValue();
-        } else {
-          return null;
-        }
-      }
 
       String varName = null;
 
@@ -1383,14 +1519,13 @@ public class ExplicitTransferRelation implements TransferRelation
   }
 
 
-
   private Long getExpressionValue(ExplicitState element, IAExpression expression, String functionName, CFAEdge edge)
     throws UnrecognizedCCodeException {
     if(expression instanceof JRightHandSide && !(expression instanceof CRightHandSide)){
 
         ExpressionValueVisitor evv = new ExpressionValueVisitor(edge, element, functionName);
         Long value =  ((JRightHandSide) expression).accept(evv);
-        if(evv.missingFieldAccessInformation) {
+        if(evv.missingFieldAccessInformation || evv.missingEnumComparisonInformation) {
           missingInformationRightJExpression = (JRightHandSide) expression;
           return null;
         } else {
@@ -1466,7 +1601,7 @@ public class ExplicitTransferRelation implements TransferRelation
       } else if ((((AssumeEdge) cfaEdge).getTruthAssumption() && value == 1L) || (!((AssumeEdge) cfaEdge).getTruthAssumption() && value == 0L)) {
         return Collections.singleton(newElement);
       } else {
-        return Collections.singleton(newElement);
+        return new HashSet<AbstractState>();
       }
     } else if(missingInformationRightJExpression != null) {
 

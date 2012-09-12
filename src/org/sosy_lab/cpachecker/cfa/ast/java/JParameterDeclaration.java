@@ -21,28 +21,23 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-public class AStringLiteralExpression extends ALiteralExpression {
+public class JParameterDeclaration extends AParameterDeclaration implements JSimpleDeclaration {
 
-  protected final String value;
-
-  public AStringLiteralExpression(CFileLocation pFileLocation, Type pType, String pValue) {
-    super(pFileLocation, pType);
-     value = pValue;
+  public JParameterDeclaration(CFileLocation pFileLocation, JType pType, String pName) {
+    super(pFileLocation, pType, pName);
   }
 
   @Override
-  public String toASTString() {
-    return value;
-  }
-
-  @Override
-  public String getValue() {
-    return value;
+  public JType getType() {
+    // TODO Auto-generated method stub
+    return (JType) super.getType();
   }
 
 }

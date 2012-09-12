@@ -25,16 +25,13 @@ package org.sosy_lab.cpachecker.cfa.types.java;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
+import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 
 
-public class JConstructorType extends AFunctionType implements JType, IAFunctionType {
+public class JConstructorType extends JMethodType  {
 
-  public JConstructorType(JClassType pReturnType, List<AParameterDeclaration> pParameters, boolean pTakesVarArgs) {
+  public JConstructorType(JClassType pReturnType, List<JParameterDeclaration> pParameters, boolean pTakesVarArgs) {
     super(pReturnType, pParameters, pTakesVarArgs);
-
   }
 
   @Override

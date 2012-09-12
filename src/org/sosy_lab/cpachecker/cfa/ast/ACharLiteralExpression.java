@@ -23,18 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
-public  class ACharLiteralExpression extends ALiteralExpression implements JExpression{
+public  class ACharLiteralExpression extends ALiteralExpression {
 
 
   protected final char character;
-
-
 
   public ACharLiteralExpression(CFileLocation pFileLocation, Type pType , char pCharacter) {
     super(pFileLocation, pType);
@@ -57,16 +52,6 @@ public  class ACharLiteralExpression extends ALiteralExpression implements JExpr
     } else {
       return "'\\x" + Integer.toHexString(character) + "'";
     }
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
-    return v.visit(this);
   }
 
 }

@@ -40,16 +40,15 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -127,7 +126,7 @@ public class DynamicBindingCreator {
       for (CFAEdge edge : leavingEdges(node)) {
         if (edge instanceof AStatementEdge) {
           AStatementEdge statement = (AStatementEdge)edge;
-          IAStatement expr = statement.getStatement();
+          JStatement expr = (JStatement) statement.getStatement();
 
           // if statement is of the form x = call(a,b); or call(a,b);
           if (expr instanceof AFunctionCall) {
@@ -150,7 +149,7 @@ public class DynamicBindingCreator {
      // We need to add all newly created node to processed so that the algorithm works
 
 
-     AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
+     JMethodInvocationExpression functionCallExpression = (JMethodInvocationExpression) functionCall.getFunctionCallExpression();
      String functionName = functionCallExpression.getFunctionNameExpression().toASTString();
 
     if(subMethodsOfMethod.get(functionName) != null &&    !subMethodsOfMethod.get(functionName).isEmpty() && functionCallExpression instanceof JReferencedMethodInvocationExpression){
@@ -223,21 +222,21 @@ public class DynamicBindingCreator {
 
 
     CFileLocation fileloc = oldFunctionCallExpression.getFileLocation();
-    String callInFunction = prevNode.getFunctionName();
+    //String callInFunction = prevNode.getFunctionName();
 
 
     JReferencedMethodInvocationExpression newFunctionCallExpression = (JReferencedMethodInvocationExpression) astCreator.convert(onlyFunction, oldFunctionCallExpression);
 
 
-    IAStatement newFunctionCall;
+    JStatement newFunctionCall;
 
-    if(oldFunctionCall instanceof AFunctionCallAssignmentStatement){
-      AFunctionCallAssignmentStatement oldFunctionCallAssignmentStatement = (AFunctionCallAssignmentStatement) oldFunctionCall;
-      newFunctionCall = new AFunctionCallAssignmentStatement( fileloc, oldFunctionCallAssignmentStatement.getLeftHandSide(), newFunctionCallExpression);
+    if(oldFunctionCall instanceof JMethodInvocationAssignmentStatement){
+      JMethodInvocationAssignmentStatement oldFunctionCallAssignmentStatement =  (JMethodInvocationAssignmentStatement) oldFunctionCall;
+      newFunctionCall =  new JMethodInvocationAssignmentStatement( fileloc, oldFunctionCallAssignmentStatement.getLeftHandSide(), newFunctionCallExpression);
 
     }else {
-      assert edge.getStatement() instanceof AFunctionCallStatement : "Statement is no Function Call";
-      newFunctionCall =  new AFunctionCallStatement(fileloc, newFunctionCallExpression );
+      assert edge.getStatement() instanceof JMethodInvocationStatement : "Statement is no Function Call";
+      newFunctionCall =   new JMethodInvocationStatement(fileloc, newFunctionCallExpression );
     }
 
 
@@ -324,16 +323,16 @@ public class DynamicBindingCreator {
       createConditionEdges(prevNode, successfulNode, unsuccessfulNode, overridesThisMethod.getSecond(), newFunctionCallExpression.getReferencedVariable(), fileloc);
 
 
-      IAStatement newFunctionCall;
+      JStatement newFunctionCall;
 
-        if(functionCall instanceof AFunctionCallAssignmentStatement){
-          AFunctionCallAssignmentStatement oldFunctionCallAssignmentStatement = (AFunctionCallAssignmentStatement) functionCall;
+        if(functionCall instanceof JMethodInvocationAssignmentStatement){
+          JMethodInvocationAssignmentStatement oldFunctionCallAssignmentStatement =  (JMethodInvocationAssignmentStatement) functionCall;
           // TODO Clone leftHandSide
-          newFunctionCall = new AFunctionCallAssignmentStatement( fileloc, oldFunctionCallAssignmentStatement.getLeftHandSide(), newFunctionCallExpression);
+          newFunctionCall = new JMethodInvocationAssignmentStatement( fileloc, oldFunctionCallAssignmentStatement.getLeftHandSide(), newFunctionCallExpression);
 
         }else {
-          assert edge.getStatement() instanceof AFunctionCallStatement : "Statement is no Function Call";
-          newFunctionCall =  new AFunctionCallStatement(fileloc, newFunctionCallExpression );
+          assert edge.getStatement() instanceof JMethodInvocationStatement : "Statement is no Function Call";
+          newFunctionCall =  new JMethodInvocationStatement(fileloc, newFunctionCallExpression );
         }
 
         CFANode postFunctionCallNode = new CFANode(fileloc.getStartingLineNumber(),
@@ -359,7 +358,7 @@ public class DynamicBindingCreator {
 
 
   private void createConditionEdges(CFANode prevNode, CFANode successfulNode,
-      CFANode unsuccessfulNode , JClassOrInterfaceType classTypeOfNewMethodInvocation , IASimpleDeclaration referencedVariable , CFileLocation fileloc) {
+      CFANode unsuccessfulNode , JClassOrInterfaceType classTypeOfNewMethodInvocation , JSimpleDeclaration referencedVariable , CFileLocation fileloc) {
 
         final JExpression exp = astCreator.convertClassRunTimeCompileTimeAccord(fileloc ,referencedVariable, classTypeOfNewMethodInvocation);
 

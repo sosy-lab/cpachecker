@@ -351,7 +351,7 @@ public class JortState implements AbstractState {
     return constantsMap.keySet();
   }
 
-  Map<String, String> getConstantsMap() {
+  public Map<String, String> getConstantsMap() {
     return constantsMap;
   }
 
@@ -385,4 +385,8 @@ public class JortState implements AbstractState {
    public String getKeywordThisUniqueObject(){
      return getUniqueObjectFor(KEYWORD_THIS);
    }
+
+  public String getRunTimeClassOfUniqueObject(String uniqueObject) {
+    return classTypeMap.get(uniqueObject);
+  }
 }

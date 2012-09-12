@@ -40,12 +40,12 @@ public class AFunctionType  extends CType implements IAFunctionType {
 
   protected final Type returnType;
   private String name = null;
-  private final List<AParameterDeclaration> parameters;
+  private final List<? extends AParameterDeclaration> parameters;
   private final boolean takesVarArgs;
 
   public AFunctionType(
       Type pReturnType,
-      List<AParameterDeclaration> pParameters,
+      List<? extends AParameterDeclaration> pParameters,
       boolean pTakesVarArgs) {
 
     super(false , false);
@@ -72,7 +72,7 @@ public class AFunctionType  extends CType implements IAFunctionType {
   }
 
   @Override
-  public List<AParameterDeclaration> getParameters() {
+  public List<? extends AParameterDeclaration> getParameters() {
     return parameters;
   }
 

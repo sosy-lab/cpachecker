@@ -21,26 +21,28 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast.c;
+package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
-public class CUnaryExpression extends AUnaryExpression implements CExpression {
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
+public class JUnaryExpression extends AUnaryExpression implements JExpression {
 
-  public CUnaryExpression(final CFileLocation pFileLocation,
-                             final CType pType, final CExpression pOperand,
-                             final UnaryOperator pOperator) {
+  public JUnaryExpression(CFileLocation pFileLocation, JType pType, JExpression pOperand, UnaryOperator pOperator) {
     super(pFileLocation, pType, pOperand, pOperator);
 
   }
 
   @Override
-  public CExpression getOperand() {
-    return (CExpression) super.getOperand();
+  public JType getExpressionType() {
+    return (JType) super.getExpressionType();
+  }
+
+  @Override
+  public JExpression getOperand() {
+    return (JExpression) super.getOperand();
   }
 
   @Override
@@ -49,34 +51,28 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
   }
 
   @Override
-  public CType getExpressionType() {
-    return (CType) type;
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
   @Override
-  public <R, X extends Exception> R accept(CRightHandSideVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
-  public static enum UnaryOperator implements AUnaryExpression.AUnaryOperator{
-    PLUS   ("+"),
-    MINUS  ("-"),
-    STAR   ("*"),
-    AMPER  ("&"),
-    TILDE  ("~"),
-    NOT    ("!"),
-    SIZEOF ("sizeof"),
+  public static enum UnaryOperator implements AUnaryExpression.AUnaryOperator {
+
+
+    NOT      ("!"),
+    PLUS        ("+"),
+    COMPLEMENT        ("~"),
+    MINUS("+")
     ;
 
-    private final String mOp;
+    private final String op;
 
     private UnaryOperator(String pOp) {
-      mOp = pOp;
+      op = pOp;
     }
 
     /**
@@ -84,7 +80,7 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
      */
     @Override
     public String getOperator() {
-      return mOp;
+      return op;
     }
   }
 }

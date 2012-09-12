@@ -21,28 +21,31 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
 
 
-public class AStringLiteralExpression extends ALiteralExpression {
+public class JMethodInvocationStatement extends AFunctionCallStatement implements JStatement , JMethodOrConstructorInvocation {
 
-  protected final String value;
-
-  public AStringLiteralExpression(CFileLocation pFileLocation, Type pType, String pValue) {
-    super(pFileLocation, pType);
-     value = pValue;
+  public JMethodInvocationStatement(CFileLocation pFileLocation, JMethodInvocationExpression pFunctionCall) {
+    super(pFileLocation, pFunctionCall);
   }
 
   @Override
-  public String toASTString() {
-    return value;
+  public JMethodInvocationExpression getFunctionCallExpression() {
+    return (JMethodInvocationExpression) super.getFunctionCallExpression();
   }
 
   @Override
-  public String getValue() {
-    return value;
+  public <R, X extends Exception> R accept(JStatementVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
+  public JStatement asStatement() {
+    return (JStatement) super.asStatement();
   }
 
 }
