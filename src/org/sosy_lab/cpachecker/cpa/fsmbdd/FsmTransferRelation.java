@@ -77,10 +77,12 @@ public class FsmTransferRelation implements TransferRelation {
   private DomainIntervalProvider domainIntervalProvider;
   private final Map<CExpression, BDD> edgeBddCache;
   private final Set<String> globalVariables;
+  private static Map<String, Set<String>> variablesPerFunction = new HashMap<String, Set<String>>();
 
   public FsmTransferRelation() {
     this.edgeBddCache = new HashMap<CExpression, BDD>();
     this.globalVariables = new HashSet<String>();
+    FsmTransferRelation.variablesPerFunction = new HashMap<String, Set<String>>();
   }
 
   public void setDomainIntervalProvider(DomainIntervalProvider pDomainIntervalProvider) {
@@ -93,9 +95,9 @@ public class FsmTransferRelation implements TransferRelation {
     FsmState predecessor = (FsmState) pState;
     FsmState successor;
 
-//    System.out.println("-----------------");
-//    System.out.println(String.format("%10s : %s", "Predecessor", predecessor));
-//    System.out.println(String.format("%10s : (l %d) %s (l %d)", "Edge", pCfaEdge.getPredecessor().getNodeNumber(), pCfaEdge.getRawStatement(), pCfaEdge.getSuccessor().getNodeNumber()));
+    System.out.println("-----------------");
+    System.out.println(String.format("%10s : %s", "Predecessor", predecessor));
+    System.out.println(String.format("%10s : (l %d) %s (l %d)", "Edge", pCfaEdge.getPredecessor().getNodeNumber(), pCfaEdge.getRawStatement(), pCfaEdge.getSuccessor().getNodeNumber()));
 
     try {
       switch (pCfaEdge.getEdgeType()) {
@@ -131,7 +133,7 @@ public class FsmTransferRelation implements TransferRelation {
     }
 
 
-//    System.out.println(String.format("%10s : %s", "Successor", successor));
+    System.out.println(String.format("%10s : %s", "Successor", successor));
 
     if (successor.getStateBdd().isZero()) {
       return Collections.emptySet();
@@ -158,6 +160,13 @@ public class FsmTransferRelation implements TransferRelation {
     if (globalVariables.contains(pVariableName)) {
       return pVariableName;
     } else {
+      Set<String> variablesOfFunction = variablesPerFunction.get(pFunctionName);
+      if (variablesOfFunction == null) {
+        variablesOfFunction = new HashSet<String>();
+        variablesPerFunction.put(pFunctionName, variablesOfFunction);
+      }
+      variablesOfFunction.add(pVariableName);
+
       return pFunctionName + "." + pVariableName;
     }
   }
@@ -215,12 +224,19 @@ public class FsmTransferRelation implements TransferRelation {
         String scopedReturnVarName = getScopedVariableName(calledFunctionName, RESULT_VARIABLE_NAME);
         String scopedTargetVariableName = getScopedVariableName(callerFunctionName, idExpr.getName());
 
-        result.addConjunctionWith(getEqualVarsBdd(result, scopedReturnVarName, scopedTargetVariableName));
+        BDD equalsBdd = getEqualVarsBdd(result, scopedReturnVarName, scopedTargetVariableName);
+        result.undefineVariable(scopedTargetVariableName);
+        result.addConjunctionWith(equalsBdd);
       } else {
         throw new UnrecognizedCCodeException("On return from function.", summaryEdge, callerLeft);
       }
     } else {
       throw new UnrecognizedCCodeException("Unsupported assignement of function return value.", pFunctionReturnEdge);
+    }
+
+    // Existential quantify all local variables of the function.
+    for (String localVariable: variablesPerFunction.get(calledFunctionName)) {
+      result.undefineVariable(getScopedVariableName(calledFunctionName, localVariable));
     }
 
     return result;

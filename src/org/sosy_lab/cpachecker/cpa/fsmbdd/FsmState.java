@@ -93,6 +93,11 @@ public class FsmState implements AbstractState {
     return varDomain;
   }
 
+  public void undefineVariable(String pScopedVariableName) {
+    BDDDomain varDomain = declaredVariables.get(pScopedVariableName);
+    stateBdd = stateBdd.exist(varDomain.set());
+  }
+
   public BDDDomain getGlobalVariableDomain(String pVariableName) throws VariableDeclarationException {
     BDDDomain varDomain = declaredVariables.get(pVariableName);
     if (varDomain == null) {
@@ -134,7 +139,7 @@ public class FsmState implements AbstractState {
   @Override
   public String toString() {
     int bddNodes = stateBdd.nodeCount();
-    if (bddNodes > 100) {
+    if (bddNodes > 200) {
       return String.format("BDD with %d nodes.", bddNodes);
     } else {
       return stateBdd.toStringWithDomains();
