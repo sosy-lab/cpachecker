@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.fsmbdd;
 
 import java.io.PrintStream;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
@@ -186,7 +189,12 @@ public class FsmSyntaxAnalizer implements DomainIntervalProvider{
     };
 
     for (CFANode n: pCfa.getAllNodes()) {
-      for (CFAEdge e: CFAUtils.leavingEdges(n)) {
+      Deque<CFAEdge> leavingEdges = new ArrayDeque<CFAEdge>();
+      leavingEdges.addAll(CFAUtils.leavingEdges(n).toImmutableList());
+
+      while (!leavingEdges.isEmpty()) {
+        CFAEdge e = leavingEdges.pop();
+
         switch (e.getEdgeType()) {
         case AssumeEdge:
           CAssumeEdge assumeEdge = (CAssumeEdge) e;
@@ -211,6 +219,9 @@ public class FsmSyntaxAnalizer implements DomainIntervalProvider{
           CReturnStatementEdge retEdge = (CReturnStatementEdge) e;
           retEdge.getExpression().accept(exprVisitor);
           break;
+        case MultiEdge:
+          MultiEdge multiEdge = (MultiEdge) e;
+          leavingEdges.addAll(multiEdge.getEdges());
         }
       }
     }
