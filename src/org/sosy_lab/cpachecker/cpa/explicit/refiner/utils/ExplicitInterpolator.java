@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 import static com.google.common.collect.Iterables.skip;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
@@ -68,14 +69,14 @@ public class ExplicitInterpolator {
   private boolean isFeasible = false;
 
   public Pair<ARGState, CFAEdge> blockingElement = null;
-
+public boolean DEBUG = false;
   /**
    * This method derives an interpolant for the given error path and interpolation state.
    *
    * @param errorPath the path to check
    * @param offset offset of the state at where to start the current interpolation
    * @param currentVariable the variable on which the interpolation is performed on
-   * @param currentInterpolant the current interpolant, which is build iteratively
+   * @param inputInterpolant the input interpolant
    * @throws CPAException
    * @throws InterruptedException
    */
@@ -83,8 +84,11 @@ public class ExplicitInterpolator {
       Path errorPath,
       int offset,
       String currentVariable,
-      Map<String, Long> currentInterpolant) throws CPAException, InterruptedException {
+      Map<String, Long> inputInterpolant) throws CPAException, InterruptedException {
     try {
+      // clone the input interpolant and work on that
+      Map<String, Long> currentInterpolant = new HashMap<String, Long>(inputInterpolant);
+
       ExplicitState successor     = new ExplicitState(currentInterpolant);
       ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
 
@@ -108,15 +112,14 @@ public class ExplicitInterpolator {
 
         // there is no successor, but current path element is not an error state => error path is spurious
         if(successor == null && !pathElement.getFirst().isTarget()) {
-          // always discard the current variable in the interpolant, if the path is infeasible
-            currentInterpolant.remove(currentVariable);
+          currentInterpolant.remove(currentVariable);
 
           if(isFeasible) {
             blockingElement = pathElement;
           }
 
           isFeasible = false;
-
+if(DEBUG) System.out.println("\t\tinfeasible");
           return currentInterpolant;
         }
 
@@ -138,9 +141,7 @@ public class ExplicitInterpolator {
       }
 
       isFeasible = true;
-
-//System.out.println("\t---> feasable");
-
+if(DEBUG) System.out.println("\t\tFEASABLE");
       // path is feasible
       return currentInterpolant;
     } catch(InvalidConfigurationException e) {

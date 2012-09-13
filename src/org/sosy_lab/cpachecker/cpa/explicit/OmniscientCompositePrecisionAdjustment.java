@@ -28,10 +28,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -53,27 +58,33 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 
+@Options(prefix="cpa.explicit.precisionAdjustment")
 public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAdjustment implements StatisticsProvider {
+  @Option(description="whether or not to only abstract variables that where updated in the foregoing post operation")
+  private boolean useDeltaPrecision = false;
+
+  // statistics
+  final Timer totalEnforceAbstraction         = new Timer();
+  final Timer totalEnforcePathThreshold       = new Timer();
+  final Timer totalEnforceReachedSetThreshold = new Timer();
+  final Timer totalComposite                  = new Timer();
+  final Timer total                           = new Timer();
+
+  private Statistics stats  = null;
+  private boolean modified = false;
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
   }
 
-  // statistics
-  final Timer totalEnforceAbstraction         = new Timer();
-  final Timer totalEnforcePathThreshold       = new Timer();
-  final Timer totalEnforceReachedSetThreshold = new Timer();
-  final Timer totalComposite = new Timer();
-  final Timer total = new Timer();
-  private Statistics stats = null;
-  private boolean modified = false;
-
-  public OmniscientCompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments) {
+  public OmniscientCompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments, Configuration config)
+      throws InvalidConfigurationException {
     super(precisionAdjustments);
 
-    stats = new Statistics() {
+    config.inject(this);
 
+    stats = new Statistics() {
       @Override
       public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
         pOut.println("total time:                 " + OmniscientCompositePrecisionAdjustment.this.total.getSumTime());
@@ -189,23 +200,35 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
   private ExplicitState enforceAbstraction(ExplicitState explicitState, LocationState location, ExplicitPrecision explicitPrecision) {
     explicitPrecision.setLocation(location.getLocationNode());
 
-    // delete all elements from the state that are not in the precision but were written to in the foregoing  post operation
-    if(explicitState.getDelta() != null) {
-      List<String> toDrop = new ArrayList<String>();
+    for(String variableName : getVariablesToDrop(explicitState, explicitPrecision)) {
+      explicitState.forget(variableName);
+    }
 
-      for(String variableName : explicitState.getDelta()) {
+    explicitState.resetDelta();
+
+    return explicitState;
+  }
+
+  /**
+   * This method return the set of variables to be dropped according to the current precision.
+   *
+   * @param explicitState the current state
+   * @param explicitPrecision the current precision
+   * @return the variables to the dropped
+   */
+  private List<String> getVariablesToDrop(ExplicitState explicitState, ExplicitPrecision explicitPrecision) {
+    Set<String> candidates = useDeltaPrecision ? explicitState.getDelta() : explicitState.getConstantsMap().keySet();
+
+    List<String> toDrop = new ArrayList<String>();
+    if(candidates != null) {
+      for(String variableName : candidates) {
         if(!explicitPrecision.isTracking(variableName)) {
           toDrop.add(variableName);
         }
       }
-      for(String variableName : toDrop) {
-        explicitState.forget(variableName);
-      }
-
-      explicitState.resetDelta();
     }
 
-    return explicitState;
+    return toDrop;
   }
 
   private ExplicitState enforceReachedSetThreshold(ExplicitState element, ExplicitPrecision precision, Collection<AbstractState> reachedSetAtLocation) {

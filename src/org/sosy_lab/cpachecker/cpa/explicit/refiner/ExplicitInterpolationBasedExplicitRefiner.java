@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.Timer;
@@ -34,6 +36,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -82,14 +85,13 @@ public class ExplicitInterpolationBasedExplicitRefiner {
       throws InvalidConfigurationException {
     config.inject(this);
   }
-
+public boolean DEBUG = false;
   protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet,
       Path errorPath) throws CPAException {
     timerCounterExampleChecks.start();
+    numberOfRefinements++;
 
     firstInterpolationPoint = null;
-
-    numberOfRefinements++;
 
     Multimap<CFANode, String> increment = HashMultimap.create();
     // only do a refinement if a full-precision check shows that the path is infeasible
@@ -110,40 +112,45 @@ public class ExplicitInterpolationBasedExplicitRefiner {
 
         Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge.getSuccessor());
 
-        // no potentially interesting variables referenced - skip
-        if(referencedVariablesAtEdge.isEmpty()) {
-          continue;
-        }
+        // do interpolation
+        if(!referencedVariablesAtEdge.isEmpty()) {
+          Map<String, Long> inputInterpolant = new HashMap<String, Long>(currentInterpolant);
 
-        Map<String, Long> inputInterpolant  = new HashMap<String, Long>();
-        for(Map.Entry<String, Long> entry : currentInterpolant.entrySet()) {
-          inputInterpolant.put(entry.getKey(), entry.getValue());
-        }
+          // check for each variable, if ignoring it makes the error path feasible
+          for(String currentVariable : referencedVariablesAtEdge) {
+            numberOfCounterExampleChecks++;
 
-        // check for each variable, if ignoring it makes the error path feasible
-        for(String currentVariable : referencedVariablesAtEdge) {
-          numberOfCounterExampleChecks++;
+            try {
+              Map<String, Long> outputInterpolant = interpolator.deriveInterpolant(errorPath, i, currentVariable, inputInterpolant);
 
-          try {
-            currentInterpolant = interpolator.deriveInterpolant(errorPath, i, currentVariable, inputInterpolant);
+              if(outputInterpolant == null) {
+                return increment;
+              }
 
-            if(currentInterpolant == null) {
-              return increment;
+              // add everything from the output interpolant to the current interpolant
+              for(Map.Entry<String, Long> entry : outputInterpolant.entrySet()) {
+                currentInterpolant.put(entry.getKey(), entry.getValue());
+
+                if(firstInterpolationPoint == null) {
+                  firstInterpolationPoint = errorPath.get(i).getFirst();
+                }
+              }
             }
-
-            if(interpolator.isFeasible()) {
-              // check for redundancy, which is needed when a widening (i.e. reached set/path assignment threshold) is performed
-              if(!isRedundant(extractPrecision(reachedSet, errorPath.get(i).getFirst()), currentEdge, currentVariable)) {
-                increment.put(currentEdge.getSuccessor(), currentVariable);
-              }
-
-              if(firstInterpolationPoint == null) {
-                firstInterpolationPoint = errorPath.get(i).getFirst();
-              }
+            catch (InterruptedException e) {
+              throw new CPAException("Explicit-Interpolation failed: ", e);
             }
           }
-          catch (InterruptedException e) {
-            throw new CPAException("Explicit-Interpolation failed: ", e);
+        }
+
+        // remove variables from the interpolant that belong to the scope of the returning function
+        if(currentEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
+          currentInterpolant = clearInterpolant(currentInterpolant, currentEdge.getSuccessor().getFunctionName());
+        }
+
+        // add the current interpolant to the precision
+        for(String variableName : currentInterpolant.keySet()) {
+          if(!isRedundant(extractPrecision(reachedSet, errorPath.get(i).getFirst()), currentEdge, variableName)) {
+            increment.put(currentEdge.getSuccessor(), variableName);
           }
         }
       }
@@ -151,6 +158,28 @@ public class ExplicitInterpolationBasedExplicitRefiner {
 
     timerCounterExampleChecks.stop();
     return increment;
+  }
+
+  /**
+   *
+   * @param currentInterpolant
+   * @param functionName
+   * @return
+   */
+  private Map<String, Long> clearInterpolant(Map<String, Long> currentInterpolant, String functionName) {
+    List<String> toDrop = new ArrayList<String>();
+
+    for(String variableName : currentInterpolant.keySet()) {
+      if(variableName.startsWith(functionName + "::") && !variableName.contains("___cpa_temp_result_var_")) {
+        toDrop.add(variableName);
+      }
+    }
+
+    for(String variableName : toDrop) {
+      currentInterpolant.remove(variableName);
+    }
+
+    return currentInterpolant;
   }
 
   private ExplicitPrecision extractPrecision(UnmodifiableReachedSet reachedSet, ARGState currentArgState) {

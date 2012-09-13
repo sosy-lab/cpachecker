@@ -138,7 +138,9 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
       PrecisionAdjustment compositePrecisionAdjustment;
       if (options.precAdjust.equals("OMNISCIENT")) {
-        compositePrecisionAdjustment = new OmniscientCompositePrecisionAdjustment(precisionAdjustments.build());
+        compositePrecisionAdjustment = new OmniscientCompositePrecisionAdjustment(
+            precisionAdjustments.build(),
+            getConfiguration());
       }
 
       else {
