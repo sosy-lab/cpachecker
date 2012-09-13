@@ -27,11 +27,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-
+/**
+ * Definition of the abstract domain of the FsmBdd-CPA.
+ */
 public class FsmDomain implements AbstractDomain {
 
   /**
-   *
+   * The JOIN operator (of the semi-lattice) of the abstract domain.
+   * The BDDs of the states get disjunct (OR).
    */
   @Override
   public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException {
@@ -48,6 +51,10 @@ public class FsmDomain implements AbstractDomain {
     }
   }
 
+  /**
+   * The partial order (of the semi-lattice)  of the the abstract domain.
+   * This is done by checking the implication (==>) of the BDDs of the given states.
+   */
   @Override
   public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws CPAException {
     FsmState state1 = (FsmState) pState1;

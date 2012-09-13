@@ -60,10 +60,13 @@ public class FsmSyntaxAnalizer implements DomainIntervalProvider{
   private int literalSequence;
   private CFA cfa;
 
-  private void registerLiteral(CExpression literal) {
-    if (!literalIndexMap.containsKey(literal.toASTString())) {
-      literalIndexMap.put(literal.toASTString(), literalSequence++);
-    }
+  /**
+   * Constructor.
+   */
+  public FsmSyntaxAnalizer(CFA pCfa) {
+    this.cfa = pCfa;
+    this.literalIndexMap = new HashMap<String, Integer>();
+    this.literalSequence = 0;
   }
 
   @Override
@@ -73,7 +76,42 @@ public class FsmSyntaxAnalizer implements DomainIntervalProvider{
     }
   }
 
+  @Override
+  public int getIntervalMaximum() throws CPATransferException {
+    if (literalSequence == 0) {
+      extractLiterals(cfa);
+    }
 
+    return literalSequence + 1;
+  }
+
+  /**
+   * Map the given literal to an integer.
+   */
+  @Override
+  public int mapLiteralToIndex(CExpression pLiteral) throws CPATransferException {
+    Integer index = literalIndexMap.get(pLiteral.toASTString());
+    if (index == null) {
+      throw new CPATransferException("Cannot map literal to index: " + pLiteral.getClass().getSimpleName() + ": " + pLiteral.toASTString());
+    }
+
+    return index;
+  }
+
+  /**
+   * Assign an sequence number to a given literal.
+   * @param literal
+   */
+  private void registerLiteral(CExpression literal) {
+    if (!literalIndexMap.containsKey(literal.toASTString())) {
+      literalIndexMap.put(literal.toASTString(), literalSequence++);
+    }
+  }
+
+  /**
+   * Find all literals that are defined in the program
+   * and assign them an unique sequence number (without any gaps).
+   */
   private void extractLiterals(CFA pCfa) throws CPATransferException {
 
     final DefaultCExpressionVisitor<Void, UnsupportedCCodeException> exprVisitor = new DefaultCExpressionVisitor<Void, UnsupportedCCodeException>() {
@@ -179,28 +217,4 @@ public class FsmSyntaxAnalizer implements DomainIntervalProvider{
   }
 
 
-  public FsmSyntaxAnalizer(CFA pCfa) {
-    this.cfa = pCfa;
-    this.literalIndexMap = new HashMap<String, Integer>();
-    this.literalSequence = 0;
-  }
-
-  @Override
-  public int getIntervalMaximum() throws CPATransferException {
-    if (literalSequence == 0) {
-      extractLiterals(cfa);
-    }
-
-    return literalSequence + 1;
-  }
-
-  @Override
-  public int mapLiteralToIndex(CExpression pLiteral) throws CPATransferException {
-    Integer index = literalIndexMap.get(pLiteral.toASTString());
-    if (index == null) {
-      throw new CPATransferException("Cannot map literal to index: " + pLiteral.getClass().getSimpleName() + ": " + pLiteral.toASTString());
-    }
-
-    return index;
-  }
 }

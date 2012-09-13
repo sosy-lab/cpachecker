@@ -24,9 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 
-public class UnrecognizedSyntaxException extends Exception {
+public class UnrecognizedSyntaxException extends CPATransferException {
   private static final long serialVersionUID = 3770110073662525562L;
   private final CAstNode astNode;
 

@@ -45,7 +45,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
 
-@Options(prefix="cpa.ecabdd")
+/**
+ * CPA for the verification of finite state machines
+ * using binary decision diagrams.
+ */
+@Options(prefix="cpa.fsmbdd")
 public class FsmBddCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
@@ -61,7 +65,6 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis {
 
   private final Configuration config;
   private final LogManager logger;
-  private final CFA cfa;
 
   private final BDDFactory bddFactory;
   private final DomainIntervalProvider domainIntervalProvider;
@@ -69,16 +72,20 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis {
   private FsmBddCPA(Configuration pConfig, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
     this.config = pConfig;
     this.logger = pLogger;
-    this.cfa = pCfa;
 
     pConfig.inject(this);
 
+    //
+    // Initialization of the BDD library (JavaBdd)
+    //
     this.bddFactory = BDDFactory.init("java", 50000000, 2000000);
-    this.bddFactory.setIncreaseFactor(0.5);
+    this.bddFactory.setIncreaseFactor(1);
     this.bddFactory.setMaxIncrease(200000000);
 
+    //
+    // Initialization of the (remaining) components of the CPA.
+    //
     this.domainIntervalProvider = new FsmSyntaxAnalizer(pCfa);
-
     this.abstractDomain = new FsmDomain();
     this.transferRelation = new FsmTransferRelation();
     this.transferRelation.setDomainIntervalProvider(domainIntervalProvider);
@@ -86,23 +93,6 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis {
     this.stopOperator = initializeStopOperator();
     this.mergeOperator = initializeMergeOperator();
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-  }
-
-  private void setupInitialVariableOrdering(FsmState pInitialState) {
-    // Ordering is done in the order of declaration.
-
-//    try {
-//      for (FunctionEntryNode fnEntry: cfa.getAllFunctionHeads()) {
-//        CFunctionEntryNode cFnEntry = (CFunctionEntryNode) fnEntry;
-//        for (String parameterName: cFnEntry.getFunctionParameterNames()) {
-//          String scopedVariableName = cFnEntry.getFunctionName() + "." + parameterName;
-//          pInitialState.declareGlobal(scopedVariableName, domainIntervalProvider.getIntervalMaximum());
-//          System.out.println("Declared " + scopedVariableName);
-//        }
-//      }
-//    } catch (CPATransferException e) {
-//      throw new RuntimeException(e);
-//    }
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -139,11 +129,7 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    FsmState result = new FsmState(bddFactory, domainIntervalProvider);
-
-    setupInitialVariableOrdering(result);
-
-    return result;
+    return new FsmState(bddFactory);
   }
 
   @Override

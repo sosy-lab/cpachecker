@@ -34,10 +34,6 @@ public class FsmMergeOperator implements MergeOperator {
 
   private final AbstractDomain domain;
 
-  /**
-   * Creates a merge-join operator, based on the given join
-   * operator
-   */
   public FsmMergeOperator(AbstractDomain d)
   {
     this.domain = d;
@@ -45,16 +41,7 @@ public class FsmMergeOperator implements MergeOperator {
 
   @Override
   public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision) throws CPAException {
-    FsmState state1 = (FsmState) pState1;
-    FsmState state2 = (FsmState) pState2;
-//
-//
-//    if (state2.getUnencodedConditions() != null
-//     || state1.getUnencodedConditions() != null) {
-//      return state2;
-//    }
-
-    return domain.join(state1, state2);
+    return domain.join(pState1, pState2);
   }
 
 }

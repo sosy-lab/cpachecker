@@ -69,7 +69,9 @@ import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
-
+/**
+ * The transfer-relation of the FsmBdd CPA.
+ */
 public class FsmTransferRelation implements TransferRelation {
 
   private static final String RESULT_VARIABLE_NAME = "result";
@@ -89,11 +91,17 @@ public class FsmTransferRelation implements TransferRelation {
     this.domainIntervalProvider = pDomainIntervalProvider;
   }
 
+  /**
+   * Computation of the abstract successor states.
+   *
+   * Apply another operation to compute the successor state
+   * depending on the type of the CFA-edge.
+   */
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
     FsmState predecessor = (FsmState) pState;
-    FsmState successor;
+    FsmState successor = null;
 
 //    System.out.println("-----------------");
 //    System.out.println(String.format("%15s : %s", "Predecessor", predecessor));
@@ -132,7 +140,6 @@ public class FsmTransferRelation implements TransferRelation {
       throw new UnrecognizedCCodeException(e.getMessage(), pCfaEdge);
     }
 
-
 //    System.out.println(String.format("%15s : %s", "Successor", successor));
 
     if (successor.getStateBdd().isZero()) {
@@ -157,7 +164,7 @@ public class FsmTransferRelation implements TransferRelation {
       String scopedValueVariableName = getScopedVariableName(functionName, idExpr.getName());
       result.addConjunctionWith(getEqualVarsBdd(result, scopedResultVariableName, scopedValueVariableName));
     } else {
-      result.doVariableAssignment(scopedResultVariableName, rightOfReturn);
+      result.doVariableAssignment(scopedResultVariableName, domainIntervalProvider, rightOfReturn);
     }
 
     return result;
@@ -204,7 +211,7 @@ public class FsmTransferRelation implements TransferRelation {
         result.addConjunctionWith(getEqualVarsBdd(result, scopedParameterName, scopedArgumentName));
       } else if (argument instanceof CLiteralExpression) {
         CLiteralExpression litExpr = (CLiteralExpression) argument;
-        result.doVariableAssignment(scopedParameterName, litExpr);
+        result.doVariableAssignment(scopedParameterName, domainIntervalProvider, litExpr);
       } else {
         throw new UnrecognizedCCodeException("Unsupported function argument.", pCfaEdge);
       }
@@ -280,7 +287,7 @@ public class FsmTransferRelation implements TransferRelation {
         CLiteralExpression right = (CLiteralExpression) assign.getRightHandSide();
 
         String functionName = pStatementEdge.getPredecessor().getFunctionName();
-        result.doVariableAssignment(getScopedVariableName(functionName, left.getName()), right);
+        result.doVariableAssignment(getScopedVariableName(functionName, left.getName()), domainIntervalProvider, right);
       } else {
         throw new UnrecognizedCCodeException("Unsupported CExpressionAssignmentStatement", pStatementEdge);
       }
@@ -291,7 +298,6 @@ public class FsmTransferRelation implements TransferRelation {
 
   private FsmState handleDeclarationEdge (FsmState pPredecessor, CDeclarationEdge pDeclEdge) throws CPATransferException {
     FsmState result = pPredecessor.cloneState();
-
 
     CDeclaration decl = pDeclEdge.getDeclaration();
     if (decl instanceof CVariableDeclaration) {
@@ -309,7 +315,7 @@ public class FsmTransferRelation implements TransferRelation {
         if (vdecl.getInitializer() != null) {
           if (vdecl.getInitializer() instanceof CInitializerExpression) {
             CInitializerExpression init = (CInitializerExpression) vdecl.getInitializer();
-            result.doVariableAssignment(scopedVariableName, init.getExpression());
+            result.doVariableAssignment(scopedVariableName, domainIntervalProvider, init.getExpression());
           } else {
             throw new UnrecognizedCCodeException("Type of initializer not supported.", pDeclEdge);
           }
@@ -327,12 +333,18 @@ public class FsmTransferRelation implements TransferRelation {
     return result;
   }
 
+  /**
+   * Build a BDD that represents one valuation of a variable.
+   */
   private BDD getValuedVarBdd(FsmState pOnState, String variableName, CExpression literal) throws CPATransferException {
     BDDDomain varDomain = pOnState.getGlobalVariableDomain(variableName);
     int literalIndex = domainIntervalProvider.mapLiteralToIndex(literal);
     return varDomain.ithVar(literalIndex);
   }
 
+  /**
+   * Build a BDD that represents the equality of two variables.
+   */
   private BDD getEqualVarsBdd(FsmState pOnState, String var1, String var2) throws VariableDeclarationException {
     BDDDomain dom1 = pOnState.getGlobalVariableDomain(var1);
     BDDDomain dom2 = pOnState.getGlobalVariableDomain(var2);
@@ -340,6 +352,10 @@ public class FsmTransferRelation implements TransferRelation {
     return dom1.buildEquals(dom2);
   }
 
+  /**
+   * Transform a given assumption-expression
+   * to a binary decision diagram.
+   */
   private BDD getAssumptionAsBdd(final FsmState pOnState, final CFAEdge pEdge, CExpression pExpression)
       throws CPATransferException {
     DefaultCExpressionVisitor<BDD, CPATransferException> visitor = new DefaultCExpressionVisitor<BDD, CPATransferException>() {
@@ -373,7 +389,6 @@ public class FsmTransferRelation implements TransferRelation {
                 && pE.getOperand2() instanceof CUnaryExpression
                 && ((CUnaryExpression)pE.getOperand2()).getOperator() == UnaryOperator.MINUS
                 && ((CUnaryExpression) pE.getOperand2()).getOperand() instanceof CLiteralExpression) {
-              //CLiteralExpression litExpr = (CLiteralExpression)((CUnaryExpression) pE.getOperand2()).getOperand();
 
               String variableName = ((CIdExpression) pE.getOperand1()).getName();
               String scopedVariableName = getScopedVariableName(pEdge.getPredecessor().getFunctionName(), variableName);
@@ -438,6 +453,9 @@ public class FsmTransferRelation implements TransferRelation {
     return pExpression.accept(visitor);
   }
 
+  /**
+   * We do not use strengthening.
+   */
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {

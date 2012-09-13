@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.fsmbdd;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import net.sf.javabdd.BDD;
@@ -33,57 +31,61 @@ import net.sf.javabdd.BDDDomain;
 import net.sf.javabdd.BDDFactory;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.VariableDeclarationException;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
+/**
+ * Abstract state that gets represented by a binary decision diagram.
+ */
 public class FsmState implements AbstractState {
-
-  private final BDDFactory bddFactory;
-  private final DomainIntervalProvider domainIntervalProvider;
-
-  private BDD stateBdd;
-  private List<CAssumeEdge> unencodedConditionSequence;
 
   private static Map<String, BDDDomain> declaredVariables = new HashMap<String, BDDDomain>();
 
-  public FsmState(BDDFactory pBddFactory, DomainIntervalProvider pDomainIntervalProvider) {
-    this.domainIntervalProvider = pDomainIntervalProvider;
+  /**
+   * Reference to the instance of the BDD library.
+   */
+  private final BDDFactory bddFactory;
+
+  /**
+   * The BDD that represents the state.
+   */
+  private BDD stateBdd;
+
+
+  /**
+   * Constructor.
+   */
+  public FsmState(BDDFactory pBddFactory) {
     this.bddFactory = pBddFactory;
+
+    // Initially, the state is True.
     this.stateBdd = bddFactory.one();
-    this.unencodedConditionSequence = null;
   }
 
+  /**
+   * Setter for the BDD (that represents the state).
+   * @param bdd
+   */
   public void setStateBdd(BDD bdd) {
     this.stateBdd = bdd;
   }
 
+  /**
+   * Return the BDD that represents the state.
+   */
   public BDD getStateBdd() {
     return stateBdd;
   }
 
-  public List<CAssumeEdge> getUnencodedConditions() {
-    return unencodedConditionSequence;
-  }
-
-  public void addUnencodedCondition(CAssumeEdge assume) {
-    if (unencodedConditionSequence == null) {
-      unencodedConditionSequence = new ArrayList<CAssumeEdge>();
-    }
-    unencodedConditionSequence.add(assume);
-  }
-
-  public void clearUnencodedConditions() {
-    this.unencodedConditionSequence = null;
-  }
-
+  /**
+   *  Declare the given variable.
+   *  The domain of the variable gets initialized.
+   */
   public BDDDomain declareGlobal(String pVariableName, int pDomainSize) throws VariableDeclarationException {
-
     BDDDomain varDomain = declaredVariables.get(pVariableName);
     if (varDomain != null) {
-      // TODO: Check if there is optimization potential.
       stateBdd = stateBdd.exist(varDomain.set());
     } else {
       varDomain = bddFactory.extDomain(pDomainSize);
@@ -94,11 +96,20 @@ public class FsmState implements AbstractState {
     return varDomain;
   }
 
+  /**
+   * Undefine (but not undeclare) a given variable.
+   * The variable gets existential quantified in the BDD of the state.
+   */
   public void undefineVariable(String pScopedVariableName) {
     BDDDomain varDomain = declaredVariables.get(pScopedVariableName);
     stateBdd = stateBdd.exist(varDomain.set());
   }
 
+  /**
+   * Return the domain of a given variable.
+   * A domain represents the set of bits that are used to encode
+   * a possible value of one variable.
+   */
   public BDDDomain getGlobalVariableDomain(String pVariableName) throws VariableDeclarationException {
     BDDDomain varDomain = declaredVariables.get(pVariableName);
     if (varDomain == null) {
@@ -108,15 +119,23 @@ public class FsmState implements AbstractState {
     }
   }
 
+  /**
+   * Modify the state by conjuncting the
+   * state-bdd with the given BDD.
+   */
   public void addConjunctionWith(BDD bdd) {
     stateBdd = stateBdd.and(bdd);
   }
 
-  public void doVariableAssignment(String pVariableName, CExpression pValue) throws CPATransferException {
-    if (unencodedConditionSequence != null) {
-      throw new RuntimeException("UnencodedConditions must be encoded first!");
-    }
-
+  /**
+   * Modify the state: Assign a new value to the given variable.
+   * After an existential quantification of the old value, we conjunct
+   * the BDD of the state with the new value.
+   *
+   * "domainIntervalProvider" is given as argument to keep the state object small.
+   *
+   */
+  public void doVariableAssignment(String pVariableName, DomainIntervalProvider domainIntervalProvider, CExpression pValue) throws CPATransferException {
     BDDDomain variableDomain = getGlobalVariableDomain(pVariableName);
     int literalIndex = domainIntervalProvider.mapLiteralToIndex(pValue);
 
@@ -124,19 +143,19 @@ public class FsmState implements AbstractState {
         .and(variableDomain.ithVar(literalIndex));
   }
 
+  /**
+   * Create a copy (new instance) of the state.
+   */
   public FsmState cloneState() {
-    FsmState result = new FsmState(bddFactory, domainIntervalProvider);
-
+    FsmState result = new FsmState(bddFactory);
     result.stateBdd = this.stateBdd;
-
-    if (unencodedConditionSequence != null) {
-      result.unencodedConditionSequence = new ArrayList<CAssumeEdge>();
-      result.unencodedConditionSequence.addAll(this.unencodedConditionSequence);
-    }
 
     return result;
   }
 
+  /**
+   * Create a string-representation of the state.
+   */
   @Override
   public String toString() {
     int bddNodes = stateBdd.nodeCount();

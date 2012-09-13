@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.fsmbdd;
 
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-
 public class FsmPrecision implements Precision {
 
 }
