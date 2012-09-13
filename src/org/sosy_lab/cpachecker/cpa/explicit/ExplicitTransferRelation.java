@@ -113,7 +113,7 @@ public class ExplicitTransferRelation implements TransferRelation
     // this is an assumption, e.g. if (a == b)
     case AssumeEdge:
       CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
-      successor = handleAssumption(explicitState.clone(), assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption(), explicitPrecision);
+      successor = handleAssumption(explicitState.clone(), assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption());
       break;
 
     case FunctionCallEdge:
@@ -166,7 +166,7 @@ public class ExplicitTransferRelation implements TransferRelation
     // edge is a declaration edge, e.g. int a;
     case DeclarationEdge:
       CDeclarationEdge declarationEdge = (CDeclarationEdge) cfaEdge;
-      handleDeclaration(element, declarationEdge, precision);
+      handleDeclaration(element, declarationEdge);
       break;
 
     case BlankEdge:
@@ -279,7 +279,7 @@ public class ExplicitTransferRelation implements TransferRelation
     return newElement;
   }
 
-  private ExplicitState handleAssumption(ExplicitState element, CExpression expression, CFAEdge cfaEdge, boolean truthValue, ExplicitPrecision precision)
+  private ExplicitState handleAssumption(ExplicitState element, CExpression expression, CFAEdge cfaEdge, boolean truthValue)
     throws UnrecognizedCCodeException {
     // convert an expression like [a + 753 != 951] to [a != 951 - 753]
     expression = optimizeAssumeForEvaluation(expression);
@@ -303,7 +303,7 @@ public class ExplicitTransferRelation implements TransferRelation
     }
   }
 
-  private void handleDeclaration(ExplicitState newElement, CDeclarationEdge declarationEdge, ExplicitPrecision precision)
+  private void handleDeclaration(ExplicitState newElement, CDeclarationEdge declarationEdge)
     throws UnrecognizedCCodeException {
 
     if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
@@ -821,14 +821,14 @@ public class ExplicitTransferRelation implements TransferRelation
 
     for (AbstractState ae : elements) {
       if (ae instanceof PointerState) {
-        return strengthen(explicitState, (PointerState)ae, cfaEdge, precision);
+        return strengthen(explicitState, (PointerState)ae, cfaEdge);
       }
     }
 
     return null;
   }
 
-  private Collection<? extends AbstractState> strengthen(ExplicitState explicitState, PointerState pointerElement, CFAEdge cfaEdge, Precision precision)
+  private Collection<? extends AbstractState> strengthen(ExplicitState explicitState, PointerState pointerElement, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException {
     try {
       if (missingInformationRightExpression != null) {
