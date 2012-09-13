@@ -23,169 +23,182 @@
  */
 package org.sosy_lab.cpachecker.cpa.fsmbdd;
 
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 
 public class FsmSyntaxAnalizer implements DomainIntervalProvider{
 
-  private final Map<CExpression,Integer> literalIndexMap;
+  private final Map<String,Integer> literalIndexMap;
+  private int literalSequence;
+  private CFA cfa;
 
-//  public Multiset<String> extractIdExpressionFrquency(CFA pCfa) throws UnsupportedCCodeException {
-//    final Multiset<String> result = HashMultiset.create();
-//    final DefaultCExpressionVisitor<Void, UnsupportedCCodeException> visitor = new DefaultCExpressionVisitor<Void, UnsupportedCCodeException>() {
-//      @Override
-//      protected Void visitDefault(CExpression pExp) throws UnsupportedCCodeException {
-//        return null;
-//      }
-//
-//      @Override
-//      public Void visit(CIdExpression pE) throws UnsupportedCCodeException {
-//        result.add(pE.getName());
-//        return null;
-//      }
-//    };
-//
-//    CStatementVisitor<Void, UnsupportedCCodeException> stmtVisitor = new CStatementVisitor<Void, UnsupportedCCodeException>() {
-//
-//      @Override
-//      public Void visit(CFunctionCallStatement pIastFunctionCallStatement) throws UnsupportedCCodeException {
-//
-//        return null;
-//      }
-//
-//      @Override
-//      public Void visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) throws UnsupportedCCodeException {
-//        return null;
-//      }
-//
-//      @Override
-//      public Void visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) throws UnsupportedCCodeException {
-//        pIastExpressionAssignmentStatement.getLeftHandSide().accept(visitor);
-//        pIastExpressionAssignmentStatement.getRightHandSide().accept(visitor);
-//        return null;
-//      }
-//
-//      @Override
-//      public Void visit(CExpressionStatement pIastExpressionStatement) throws UnsupportedCCodeException {
-//        pIastExpressionStatement.getExpression().accept(visitor);
-//        return null;
-//      }
-//    };
-//
-//
-//    for (CFANode n: pCfa.getAllNodes()) {
-//      for (CFAEdge e: CFAUtils.leavingEdges(n)) {
-//        switch (e.getEdgeType()) {
-//        case AssumeEdge:
-//          CAssumeEdge assumeEdge = (CAssumeEdge) e;
-//          assumeEdge.getExpression().accept(visitor);
-//          break;
-//        case DeclarationEdge:
-//          CDeclarationEdge declEdge = (CDeclarationEdge) e;
-//          result.add(declEdge.getDeclaration().getName());
-//          break;
-//        case StatementEdge:
-//          CStatementEdge stmtEdge = (CStatementEdge) e;
-//          stmtEdge.getStatement().accept(stmtVisitor);
-//          break;
-//        case ReturnStatementEdge:
-//          CReturnStatementEdge retEdge = (CReturnStatementEdge) e;
-//          retEdge.getExpression().accept(visitor);
-//          break;
-//        default:
-//          throw new UnsupportedCCodeException("Edge not supported: " + e.getEdgeType(), e);
-//        }
-//      }
-//    }
-//
-//    return result;
-//  }
-//
-//  public Set<String> extractLiterals(CFA pCfa) {
-//    final Set<String> result = new HashSet<String>();
-//    final DefaultCExpressionVisitor<Void, UnsupportedCCodeException> visitor = new DefaultCExpressionVisitor<Void, UnsupportedCCodeException>() {
-//      @Override
-//      protected Void visitDefault(CExpression pExp) throws UnsupportedCCodeException {
-//        return null;
-//      }
-//
-//      @Override
-//      public Void visit(CCharLiteralExpression pE) throws UnsupportedCCodeException {
-//        return super.visit(pE);
-//      }
-//
-//      @Override
-//      public Void visit(CIntegerLiteralExpression pE) throws UnsupportedCCodeException {
-//        return super.visit(pE);
-//      }
-//
-//      @Override
-//      public Void visit(CStringLiteralExpression pE) throws UnsupportedCCodeException {
-//        return super.visit(pE);
-//      }
-//
-//    };
-//
-//    for (CFANode n: pCfa.getAllNodes()) {
-//      for (CFAEdge e: CFAUtils.leavingEdges(n)) {
-//        switch (e.getEdgeType()) {
-//        case AssumeEdge:
-//          CAssumeEdge assumeEdge = (CAssumeEdge) e;
-//          assumeEdge.getExpression().accept(visitor);
-//          break;
-//        case DeclarationEdge:
-//          CDeclarationEdge declEdge = (CDeclarationEdge) e;
-//          result.add(declEdge.getDeclaration().getName());
-//          break;
-//        case StatementEdge:
-//          CStatementEdge stmtEdge = (CStatementEdge) e;
-//          stmtEdge.getStatement().accept(stmtVisitor);
-//          break;
-//        case ReturnStatementEdge:
-//          CReturnStatementEdge retEdge = (CReturnStatementEdge) e;
-//          retEdge.getExpression().accept(visitor);
-//          break;
-//        default:
-//          throw new UnsupportedCCodeException("Edge not supported: " + e.getEdgeType(), e);
-//        }
-//      }
-//    }
-//  }
-
-
-  public FsmSyntaxAnalizer() {
-    this.literalIndexMap = new HashMap<CExpression, Integer>();
+  private void registerLiteral(CExpression literal) {
+    if (!literalIndexMap.containsKey(literal.toASTString())) {
+      literalIndexMap.put(literal.toASTString(), literalSequence++);
+    }
   }
 
   @Override
-  public int getIntervalMaximum() {
-    // TODO
-    return 30;
+  public void printLiteralIndexMap(PrintStream pOut) {
+    for (String lit : literalIndexMap.keySet()) {
+      pOut.println(String.format("%10s --> %d", lit, literalIndexMap.get(lit)));
+    }
   }
 
-  @Override
-  public int mapLiteralToIndex(CExpression pLiteral) {
-    Integer index = literalIndexMap.get(pLiteral);
-    if (index == null) {
-      if (pLiteral instanceof CIntegerLiteralExpression) {
-        index = (int) ((CIntegerLiteralExpression) pLiteral).asLong();
-      } else if ((pLiteral instanceof CUnaryExpression
-          && ((CUnaryExpression)pLiteral).getOperator() == UnaryOperator.MINUS
-          && ((CUnaryExpression)pLiteral).getOperand() instanceof CLiteralExpression)) {
-        index = (int) ((CIntegerLiteralExpression) ((CUnaryExpression)pLiteral).getOperand()).asLong();
-      } else {
-        throw new RuntimeException("Type of literal not (yet) supported: " + pLiteral.toASTString());
+
+  private void extractLiterals(CFA pCfa) throws CPATransferException {
+
+    final DefaultCExpressionVisitor<Void, UnsupportedCCodeException> exprVisitor = new DefaultCExpressionVisitor<Void, UnsupportedCCodeException>() {
+      @Override
+      protected Void visitDefault(CExpression pExp) throws UnsupportedCCodeException {
+        return null;
       }
 
-      literalIndexMap.put(pLiteral, index);
+      @Override
+      public Void visit(CCharLiteralExpression pE) throws UnsupportedCCodeException {
+        registerLiteral(pE);
+        return null;
+      }
+
+      @Override
+      public Void visit(CIntegerLiteralExpression pE) throws UnsupportedCCodeException {
+        registerLiteral(pE);
+        return null;
+      }
+
+      @Override
+      public Void visit(CStringLiteralExpression pE) throws UnsupportedCCodeException {
+        registerLiteral(pE);
+        return null;
+      }
+
+      @Override
+      public Void visit(CUnaryExpression pE) throws UnsupportedCCodeException {
+        if (pE.getOperand() instanceof CUnaryExpression
+            || pE.getOperand() instanceof CBinaryExpression) {
+          pE.getOperand().accept(this);
+        } else {
+          registerLiteral(pE);
+        }
+        return null;
+      }
+
+      @Override
+      public Void visit(CBinaryExpression pE) throws UnsupportedCCodeException {
+        pE.getOperand1().accept(this);
+        pE.getOperand2().accept(this);
+        return null;
+      }
+
+    };
+
+    final CStatementVisitor<Void, UnsupportedCCodeException> stmtVisitor = new CStatementVisitor<Void, UnsupportedCCodeException>() {
+      @Override
+      public Void visit(CFunctionCallStatement pS) throws UnsupportedCCodeException {
+        return null;
+      }
+
+      @Override
+      public Void visit(CFunctionCallAssignmentStatement pS)
+          throws UnsupportedCCodeException {
+        pS.getLeftHandSide().accept(exprVisitor);
+        return null;
+      }
+
+      @Override
+      public Void visit(CExpressionAssignmentStatement pS) throws UnsupportedCCodeException {
+        pS.getLeftHandSide().accept(exprVisitor);
+        pS.getRightHandSide().accept(exprVisitor);
+        return null;
+      }
+
+      @Override
+      public Void visit(CExpressionStatement pS) throws UnsupportedCCodeException {
+        pS.getExpression().accept(exprVisitor);
+        return null;
+      }
+    };
+
+    for (CFANode n: pCfa.getAllNodes()) {
+      for (CFAEdge e: CFAUtils.leavingEdges(n)) {
+        switch (e.getEdgeType()) {
+        case AssumeEdge:
+          CAssumeEdge assumeEdge = (CAssumeEdge) e;
+          assumeEdge.getExpression().accept(exprVisitor);
+          break;
+        case DeclarationEdge:
+          CDeclarationEdge declEdge = (CDeclarationEdge) e;
+          if (declEdge.getDeclaration() instanceof CVariableDeclaration) {
+            CVariableDeclaration varDecl = (CVariableDeclaration) declEdge.getDeclaration();
+            if (varDecl.getInitializer() != null) {
+              if (varDecl.getInitializer() instanceof CInitializerExpression) {
+                ((CInitializerExpression) varDecl.getInitializer()).getExpression().accept(exprVisitor);
+              }
+            }
+          }
+          break;
+        case StatementEdge:
+          CStatementEdge stmtEdge = (CStatementEdge) e;
+          stmtEdge.getStatement().accept(stmtVisitor);
+          break;
+        case ReturnStatementEdge:
+          CReturnStatementEdge retEdge = (CReturnStatementEdge) e;
+          retEdge.getExpression().accept(exprVisitor);
+          break;
+        }
+      }
+    }
+  }
+
+
+  public FsmSyntaxAnalizer(CFA pCfa) {
+    this.cfa = pCfa;
+    this.literalIndexMap = new HashMap<String, Integer>();
+    this.literalSequence = 0;
+  }
+
+  @Override
+  public int getIntervalMaximum() throws CPATransferException {
+    if (literalSequence == 0) {
+      extractLiterals(cfa);
+    }
+
+    return literalSequence + 1;
+  }
+
+  @Override
+  public int mapLiteralToIndex(CExpression pLiteral) throws CPATransferException {
+    Integer index = literalIndexMap.get(pLiteral.toASTString());
+    if (index == null) {
+      throw new CPATransferException("Cannot map literal to index: " + pLiteral.getClass().getSimpleName() + ": " + pLiteral.toASTString());
     }
 
     return index;
