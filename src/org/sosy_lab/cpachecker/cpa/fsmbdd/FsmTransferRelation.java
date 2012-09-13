@@ -97,7 +97,7 @@ public class FsmTransferRelation implements TransferRelation {
 
 //    System.out.println("-----------------");
 //    System.out.println(String.format("%15s : %s", "Predecessor", predecessor));
-//    System.out.println(String.format("%15s : (l %d) %s (l %d)", "Edge", pCfaEdge.getPredecessor().getNodeNumber(), pCfaEdge.getRawStatement(), pCfaEdge.getSuccessor().getNodeNumber()));
+//    System.out.println(String.format("%15s : (l %d) %s (l %d)", pCfaEdge.getEdgeType(), pCfaEdge.getPredecessor().getNodeNumber(), pCfaEdge.getRawStatement(), pCfaEdge.getSuccessor().getNodeNumber()));
 
     try {
       switch (pCfaEdge.getEdgeType()) {
@@ -142,7 +142,7 @@ public class FsmTransferRelation implements TransferRelation {
     }
   }
 
-  private FsmState handleReturnStatementEdge(FsmState pPredecessor, CReturnStatementEdge pReturnEdge) throws VariableDeclarationException {
+  private FsmState handleReturnStatementEdge(FsmState pPredecessor, CReturnStatementEdge pReturnEdge) throws CPATransferException {
     FsmState result = pPredecessor.cloneState();
 
     CExpression rightOfReturn = pReturnEdge.getExpression();
@@ -178,7 +178,7 @@ public class FsmTransferRelation implements TransferRelation {
     }
   }
 
-  private FsmState handleFunctionCallEdge(FsmState pPredecessor, CFunctionCallEdge pCfaEdge) throws VariableDeclarationException, UnrecognizedCCodeException {
+  private FsmState handleFunctionCallEdge(FsmState pPredecessor, CFunctionCallEdge pCfaEdge) throws CPATransferException {
     FsmState result = pPredecessor.cloneState();
 
     CFunctionEntryNode functionEntryNode = pCfaEdge.getSuccessor();
@@ -249,7 +249,7 @@ public class FsmTransferRelation implements TransferRelation {
     return result;
   }
 
-  private FsmState handleAssumeEdge (FsmState pPredecessor, CAssumeEdge pAssumeEdge) throws UnrecognizedCCodeException {
+  private FsmState handleAssumeEdge (FsmState pPredecessor, CAssumeEdge pAssumeEdge) throws CPATransferException {
     // this is an assumption, e.g. if (a == b)
 
     FsmState result = pPredecessor.cloneState();
@@ -268,7 +268,7 @@ public class FsmTransferRelation implements TransferRelation {
     return result;
   }
 
-  private FsmState handleStatementEdge (FsmState pPredecessor, CStatementEdge pStatementEdge) throws UnrecognizedCCodeException, VariableDeclarationException {
+  private FsmState handleStatementEdge (FsmState pPredecessor, CStatementEdge pStatementEdge) throws CPATransferException {
     FsmState result = pPredecessor.cloneState();
 
     CStatement stmt = pStatementEdge.getStatement();
@@ -289,7 +289,7 @@ public class FsmTransferRelation implements TransferRelation {
     return result;
   }
 
-  private FsmState handleDeclarationEdge (FsmState pPredecessor, CDeclarationEdge pDeclEdge) throws UnrecognizedCCodeException, VariableDeclarationException {
+  private FsmState handleDeclarationEdge (FsmState pPredecessor, CDeclarationEdge pDeclEdge) throws CPATransferException {
     FsmState result = pPredecessor.cloneState();
 
 
@@ -327,10 +327,9 @@ public class FsmTransferRelation implements TransferRelation {
     return result;
   }
 
-  private BDD getValuedVarBdd(FsmState pOnState, String variableName, CLiteralExpression literal) throws VariableDeclarationException {
+  private BDD getValuedVarBdd(FsmState pOnState, String variableName, CExpression literal) throws CPATransferException {
     BDDDomain varDomain = pOnState.getGlobalVariableDomain(variableName);
     int literalIndex = domainIntervalProvider.mapLiteralToIndex(literal);
-
     return varDomain.ithVar(literalIndex);
   }
 
@@ -342,10 +341,10 @@ public class FsmTransferRelation implements TransferRelation {
   }
 
   private BDD getAssumptionAsBdd(final FsmState pOnState, final CFAEdge pEdge, CExpression pExpression)
-      throws UnrecognizedCCodeException {
-    DefaultCExpressionVisitor<BDD, UnrecognizedCCodeException> visitor = new DefaultCExpressionVisitor<BDD, UnrecognizedCCodeException>() {
+      throws CPATransferException {
+    DefaultCExpressionVisitor<BDD, CPATransferException> visitor = new DefaultCExpressionVisitor<BDD, CPATransferException>() {
       @Override
-      public BDD visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
+      public BDD visit(CBinaryExpression pE) throws CPATransferException {
         switch (pE.getOperator()) {
         case EQUALS:
         case NOT_EQUALS: {
@@ -359,7 +358,7 @@ public class FsmTransferRelation implements TransferRelation {
               String variableName = ((CIdExpression) pE.getOperand1()).getName();
               String scopedVariableName = getScopedVariableName(pEdge.getPredecessor().getFunctionName(), variableName);
 
-              result = getValuedVarBdd(pOnState, scopedVariableName, (CLiteralExpression) pE.getOperand2());
+              result = getValuedVarBdd(pOnState, scopedVariableName, pE.getOperand2());
 
             // 123 == a
             } else if (pE.getOperand2() instanceof CIdExpression
@@ -367,20 +366,19 @@ public class FsmTransferRelation implements TransferRelation {
               String variableName = ((CIdExpression) pE.getOperand2()).getName();
               String scopedVariableName = getScopedVariableName(pEdge.getPredecessor().getFunctionName(), variableName);
 
-              result = getValuedVarBdd(pOnState, scopedVariableName, (CLiteralExpression) pE.getOperand1());
+              result = getValuedVarBdd(pOnState, scopedVariableName, pE.getOperand1());
 
             // a == -123
             } else if(pE.getOperand1() instanceof CIdExpression
                 && pE.getOperand2() instanceof CUnaryExpression
                 && ((CUnaryExpression)pE.getOperand2()).getOperator() == UnaryOperator.MINUS
                 && ((CUnaryExpression) pE.getOperand2()).getOperand() instanceof CLiteralExpression) {
-//TODO: Is a hack
-              CLiteralExpression litExpr = (CLiteralExpression)((CUnaryExpression) pE.getOperand2()).getOperand();
+              //CLiteralExpression litExpr = (CLiteralExpression)((CUnaryExpression) pE.getOperand2()).getOperand();
 
               String variableName = ((CIdExpression) pE.getOperand1()).getName();
               String scopedVariableName = getScopedVariableName(pEdge.getPredecessor().getFunctionName(), variableName);
 
-              result = getValuedVarBdd(pOnState, scopedVariableName, litExpr);
+              result = getValuedVarBdd(pOnState, scopedVariableName, pE.getOperand2());
 
             // a == b
             } else if (pE.getOperand1() instanceof CIdExpression
@@ -423,7 +421,7 @@ public class FsmTransferRelation implements TransferRelation {
       }
 
       @Override
-      public BDD visit(CUnaryExpression pE) throws UnrecognizedCCodeException {
+      public BDD visit(CUnaryExpression pE) throws CPATransferException {
         switch (pE.getOperator()) {
         case NOT: return pE.getOperand().accept(this).not();
         default:
@@ -432,7 +430,7 @@ public class FsmTransferRelation implements TransferRelation {
       }
 
       @Override
-      protected BDD visitDefault(CExpression pExp) throws UnrecognizedCCodeException {
+      protected BDD visitDefault(CExpression pExp) throws CPATransferException {
         return pExp.accept(this);
       }
     };

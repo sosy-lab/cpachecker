@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.VariableDeclarationException;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class FsmState implements AbstractState {
 
@@ -111,7 +112,7 @@ public class FsmState implements AbstractState {
     stateBdd = stateBdd.and(bdd);
   }
 
-  public void doVariableAssignment(String pVariableName, CExpression pValue) throws VariableDeclarationException {
+  public void doVariableAssignment(String pVariableName, CExpression pValue) throws CPATransferException {
     if (unencodedConditionSequence != null) {
       throw new RuntimeException("UnencodedConditions must be encoded first!");
     }

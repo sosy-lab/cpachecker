@@ -25,8 +25,10 @@ package org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions;
 
 import java.util.Formatter;
 
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class VariableDeclarationException extends Exception {
+
+public class VariableDeclarationException extends CPATransferException {
   private static final long serialVersionUID = 3473329437286691923L;
 
   public VariableDeclarationException(String message) {

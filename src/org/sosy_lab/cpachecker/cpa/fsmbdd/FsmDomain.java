@@ -42,16 +42,8 @@ public class FsmDomain implements AbstractDomain {
     joined.setStateBdd(joined.getStateBdd().or(state2.getStateBdd()));
 
     if (joined.getStateBdd().equals(state2.getStateBdd())) {
-//      System.out.println(String.format("Merge (equal) at loc %d: %s",
-//          AbstractStates.extractLocation(state2).getNodeNumber(),
-//          joined.getStateBdd().toStringWithDomains()));
-
       return state2;
     } else {
-//      System.out.println(String.format("Merge (new) at loc %d: %s",
-//          AbstractStates.extractLocation(joined).getNodeNumber(),
-//          joined.getStateBdd().toStringWithDomains()));
-
       return joined;
     }
   }

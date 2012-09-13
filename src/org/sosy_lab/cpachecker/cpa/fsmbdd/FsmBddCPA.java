@@ -72,7 +72,7 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis {
     config.inject(this);
 
     this.bddFactory = BDDFactory.init("java", 200000000, 2000000);
-    this.domainIntervalProvider = new FsmSyntaxAnalizer();
+    this.domainIntervalProvider = new FsmSyntaxAnalizer(cfa);
 
     this.abstractDomain = new FsmDomain();
     this.transferRelation = new FsmTransferRelation();
