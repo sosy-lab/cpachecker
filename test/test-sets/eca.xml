@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="1800" memlimit="15000">
+<benchmark tool="cpachecker" timelimit="300" memlimit="15000">
   <option name="-noout"/>
 
   <sourcefiles>
@@ -10,6 +10,21 @@
   <test name="FsmBddAnaylsis">
 	<option name="-fsmBddAnalysis"/>
 	<option name="-setprop">specification=config/specification/default.spc</option>
+	<option name="-heap">12000m</option>
+  </test>
+  
+  <test name="PredicateAnaylsis">
+	<option name="-predicateAnalysis"/>
+	<option name="-heap">12000m</option>
+  </test>
+  
+  <test name="ImpactAnaylsis">
+	<option name="-impact-refiner"/>
+	<option name="-heap">12000m</option>
+  </test>
+  
+  <test name="ExplicitAnaylsis">
+	<option name="-explicitAnalysis"/>
 	<option name="-heap">12000m</option>
   </test>
 
