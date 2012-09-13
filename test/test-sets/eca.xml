@@ -7,25 +7,25 @@
     <include>test/programs/eca/*.c</include>
   </sourcefiles>
 
-  <test name="FsmBddAnaylsis">
+  <test name="FsmBddAnalysis">
 	<option name="-fsmBddAnalysis"/>
 	<option name="-setprop">specification=config/specification/default.spc</option>
-	<option name="-heap">12000m</option>
+	<option name="-heap">13312m</option>
   </test>
   
-  <test name="PredicateAnaylsis">
+  <test name="PredicateAnalysis">
 	<option name="-predicateAnalysis"/>
-	<option name="-heap">12000m</option>
+	<option name="-heap">13312m</option>
   </test>
   
-  <test name="ImpactAnaylsis">
+  <test name="ImpactAnalysis">
 	<option name="-impact-refiner"/>
-	<option name="-heap">12000m</option>
+	<option name="-heap">13312m</option>
   </test>
   
-  <test name="ExplicitAnaylsis">
+  <test name="ExplicitAnalysis">
 	<option name="-explicitAnalysis"/>
-	<option name="-heap">12000m</option>
+	<option name="-heap">13312m</option>
   </test>
 
   <columns>
