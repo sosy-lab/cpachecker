@@ -61,26 +61,48 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis {
 
   private final Configuration config;
   private final LogManager logger;
+  private final CFA cfa;
 
   private final BDDFactory bddFactory;
   private final DomainIntervalProvider domainIntervalProvider;
 
-  private FsmBddCPA(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
-    this.config = config;
-    this.logger = logger;
+  private FsmBddCPA(Configuration pConfig, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
+    this.config = pConfig;
+    this.logger = pLogger;
+    this.cfa = pCfa;
 
-    config.inject(this);
+    pConfig.inject(this);
 
-    this.bddFactory = BDDFactory.init("java", 200000000, 2000000);
-    this.domainIntervalProvider = new FsmSyntaxAnalizer(cfa);
+    this.bddFactory = BDDFactory.init("java", 50000000, 2000000);
+    this.bddFactory.setIncreaseFactor(0.5);
+    this.bddFactory.setMaxIncrease(200000000);
+
+    this.domainIntervalProvider = new FsmSyntaxAnalizer(pCfa);
 
     this.abstractDomain = new FsmDomain();
     this.transferRelation = new FsmTransferRelation();
     this.transferRelation.setDomainIntervalProvider(domainIntervalProvider);
-    this.precision = initializePrecision(config, cfa);
+    this.precision = initializePrecision(pConfig, pCfa);
     this.stopOperator = initializeStopOperator();
     this.mergeOperator = initializeMergeOperator();
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+  }
+
+  private void setupInitialVariableOrdering(FsmState pInitialState) {
+    // Ordering is done in the order of declaration.
+
+//    try {
+//      for (FunctionEntryNode fnEntry: cfa.getAllFunctionHeads()) {
+//        CFunctionEntryNode cFnEntry = (CFunctionEntryNode) fnEntry;
+//        for (String parameterName: cFnEntry.getFunctionParameterNames()) {
+//          String scopedVariableName = cFnEntry.getFunctionName() + "." + parameterName;
+//          pInitialState.declareGlobal(scopedVariableName, domainIntervalProvider.getIntervalMaximum());
+//          System.out.println("Declared " + scopedVariableName);
+//        }
+//      }
+//    } catch (CPATransferException e) {
+//      throw new RuntimeException(e);
+//    }
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -118,6 +140,8 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis {
   @Override
   public AbstractState getInitialState(CFANode node) {
     FsmState result = new FsmState(bddFactory, domainIntervalProvider);
+
+    setupInitialVariableOrdering(result);
 
     return result;
   }
