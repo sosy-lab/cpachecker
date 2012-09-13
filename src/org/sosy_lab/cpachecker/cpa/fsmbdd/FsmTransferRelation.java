@@ -74,19 +74,47 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
  */
 public class FsmTransferRelation implements TransferRelation {
 
+  /**
+   * Name of the variable that is used to encode the result of a function.
+   * (gets scoped with the name of the function)
+   */
   private static final String RESULT_VARIABLE_NAME = "result";
 
-  private DomainIntervalProvider domainIntervalProvider;
-  private final Map<CExpression, BDD> edgeBddCache;
-  private final Set<String> globalVariables;
-  private static Map<String, Set<String>> variablesPerFunction = new HashMap<String, Set<String>>();
+  private static final String SCOPE_SEPARATOR = ".";
 
+  /**
+   * Reference to the DomainIntervalProvider.
+   */
+  private DomainIntervalProvider domainIntervalProvider;
+
+  /**
+   * Set of the global program variables.
+   */
+  private final Set<String> globalVariables;
+
+  /**
+   * Map of variables that are declared within one function.
+   */
+  private Map<String, Set<String>> variablesPerFunction = new HashMap<String, Set<String>>();
+
+  /**
+   * Cache to avoid rebuilding the BDD that represents
+   * one control-flow edge.
+   */
+  private final Map<CExpression, BDD> edgeBddCache;
+
+  /**
+   * Constructor.
+   */
   public FsmTransferRelation() {
     this.edgeBddCache = new HashMap<CExpression, BDD>();
     this.globalVariables = new HashSet<String>();
-    FsmTransferRelation.variablesPerFunction = new HashMap<String, Set<String>>();
+    this.variablesPerFunction = new HashMap<String, Set<String>>();
   }
 
+  /**
+   * Setter.
+   */
   public void setDomainIntervalProvider(DomainIntervalProvider pDomainIntervalProvider) {
     this.domainIntervalProvider = pDomainIntervalProvider;
   }
@@ -142,6 +170,7 @@ public class FsmTransferRelation implements TransferRelation {
 
 //    System.out.println(String.format("%15s : %s", "Successor", successor));
 
+    // Return an empty set if the BDD evaluates to "false".
     if (successor.getStateBdd().isZero()) {
       return Collections.emptySet();
     } else {
@@ -149,6 +178,9 @@ public class FsmTransferRelation implements TransferRelation {
     }
   }
 
+  /**
+   * Handle the statement that gets returned by a function.
+   */
   private FsmState handleReturnStatementEdge(FsmState pPredecessor, CReturnStatementEdge pReturnEdge) throws CPATransferException {
     FsmState result = pPredecessor.cloneState();
 
@@ -168,21 +200,6 @@ public class FsmTransferRelation implements TransferRelation {
     }
 
     return result;
-  }
-
-  private String getScopedVariableName(String pFunctionName, String pVariableName) {
-    if (globalVariables.contains(pVariableName)) {
-      return pVariableName;
-    } else {
-      Set<String> variablesOfFunction = variablesPerFunction.get(pFunctionName);
-      if (variablesOfFunction == null) {
-        variablesOfFunction = new HashSet<String>();
-        variablesPerFunction.put(pFunctionName, variablesOfFunction);
-      }
-      variablesOfFunction.add(pVariableName);
-
-      return pFunctionName + "." + pVariableName;
-    }
   }
 
   private FsmState handleFunctionCallEdge(FsmState pPredecessor, CFunctionCallEdge pCfaEdge) throws CPATransferException {
@@ -220,6 +237,26 @@ public class FsmTransferRelation implements TransferRelation {
     return result;
   }
 
+  /**
+   * Handle a function-return edge.
+   *
+   * Example:
+   *  We return from the function "bar()" that was called by a function foo():
+   *
+   *  int bar() {
+   *    return 3;
+   *  }
+   *
+   *  void foo() {
+   *    int v = bar();
+   *  }
+   *
+   *  First, the current value of "foo.v" gets existential quantified;
+   *  after that, the equality between "foo.v" and "bar.result"
+   *  (the variable "result" of bar encodes the return value of the function)
+   *  gets established and is conjuncted with the BDD of the successor state.
+   *
+   */
   private FsmState handleFunctionReturnEdge(FsmState pPredecessor, CFunctionReturnEdge pFunctionReturnEdge) throws UnrecognizedCCodeException, VariableDeclarationException {
     FsmState result = pPredecessor.cloneState();
 
@@ -256,9 +293,14 @@ public class FsmTransferRelation implements TransferRelation {
     return result;
   }
 
+  /**
+   * Handle a assume edge.
+   * E.g. (a == b)
+   *
+   * The BDD of the successor state gets constructed
+   * by doing a conjunction of the assumption with the the BDD of the predecessor state.
+   */
   private FsmState handleAssumeEdge (FsmState pPredecessor, CAssumeEdge pAssumeEdge) throws CPATransferException {
-    // this is an assumption, e.g. if (a == b)
-
     FsmState result = pPredecessor.cloneState();
 
     BDD assumptionBdd = edgeBddCache.get(pAssumeEdge.getExpression());
@@ -275,6 +317,10 @@ public class FsmTransferRelation implements TransferRelation {
     return result;
   }
 
+  /**
+   * Handle a statement edges.
+   * Currently, only statements of the form "IDExpression = LiteralExpression;" are supported.
+   */
   private FsmState handleStatementEdge (FsmState pPredecessor, CStatementEdge pStatementEdge) throws CPATransferException {
     FsmState result = pPredecessor.cloneState();
 
@@ -296,6 +342,11 @@ public class FsmTransferRelation implements TransferRelation {
     return result;
   }
 
+  /**
+   * Handle a declaration edge.
+   * For function declarations, the result variable gets introduced.
+   * Variables get declared and, if there is an initializer expression, initialized.
+   */
   private FsmState handleDeclarationEdge (FsmState pPredecessor, CDeclarationEdge pDeclEdge) throws CPATransferException {
     FsmState result = pPredecessor.cloneState();
 
@@ -304,16 +355,19 @@ public class FsmTransferRelation implements TransferRelation {
       CVariableDeclaration vdecl = (CVariableDeclaration) decl;
 
       if (vdecl.getType() instanceof CSimpleType) {
+        // Track global variables.
         if (decl.isGlobal()) {
           globalVariables.add(decl.getName());
         }
 
+        // Declare the variable.
         String functionName = pDeclEdge.getPredecessor().getFunctionName();
         String scopedVariableName = getScopedVariableName(functionName, decl.getName());
         result.declareGlobal(scopedVariableName, domainIntervalProvider.getIntervalMaximum());
 
         if (vdecl.getInitializer() != null) {
           if (vdecl.getInitializer() instanceof CInitializerExpression) {
+            // Initialize the variable.
             CInitializerExpression init = (CInitializerExpression) vdecl.getInitializer();
             result.doVariableAssignment(scopedVariableName, domainIntervalProvider, init.getExpression());
           } else {
@@ -324,6 +378,7 @@ public class FsmTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException("Unsupported variable declaration: " + vdecl.getType().getClass().getSimpleName(), pDeclEdge);
       }
     } else if (decl instanceof CFunctionDeclaration) {
+      // Introduce the result variable for the function.
       String functionName = decl.getName();
       result.declareGlobal(getScopedVariableName(functionName, RESULT_VARIABLE_NAME), domainIntervalProvider.getIntervalMaximum());
     } else {
@@ -451,6 +506,24 @@ public class FsmTransferRelation implements TransferRelation {
     };
 
     return pExpression.accept(visitor);
+  }
+
+  /**
+   * Return the scoped name of the variable.
+   */
+  private String getScopedVariableName(String pFunctionName, String pVariableName) {
+    if (globalVariables.contains(pVariableName)) {
+      return pVariableName;
+    } else {
+      Set<String> variablesOfFunction = variablesPerFunction.get(pFunctionName);
+      if (variablesOfFunction == null) {
+        variablesOfFunction = new HashSet<String>();
+        variablesPerFunction.put(pFunctionName, variablesOfFunction);
+      }
+      variablesOfFunction.add(pVariableName);
+
+      return pFunctionName + SCOPE_SEPARATOR + pVariableName;
+    }
   }
 
   /**
