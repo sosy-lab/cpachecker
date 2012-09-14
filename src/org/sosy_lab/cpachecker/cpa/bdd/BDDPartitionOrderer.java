@@ -114,14 +114,7 @@ public class BDDPartitionOrderer {
     Collection<Partition> partitions = Sets.newLinkedHashSet();
 
     for (Partition p : graph.keySet()) {
-      if (!partitions.contains(p)) {
-        partitions.add(p);
-      }
-      for (Partition child : graph.get(p)) {
-        if (!partitions.contains(child)) {
-          partitions.add(child);
-        }
-      }
+      addToPartitions(p, partitions);
     }
 
     List<Partition> orderedPartitions = Lists.newLinkedList(partitions);
@@ -133,6 +126,16 @@ public class BDDPartitionOrderer {
       }
     }
     return orderedPartitions;
+  }
+
+  /** adds the father and all his children to the partitions,if not done before */
+  private void addToPartitions(Partition father, Collection<Partition> partitions) {
+    if (!partitions.contains(father)) {
+      partitions.add(father);
+      for (Partition child : graph.get(father)) {
+        addToPartitions(child, partitions);
+      }
+    }
   }
 
   /** This Visitor collects all edges reachable from the a node
