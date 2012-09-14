@@ -69,7 +69,7 @@ public class ExplicitInterpolator {
   private boolean isFeasible = false;
 
   public Pair<ARGState, CFAEdge> blockingElement = null;
-public boolean DEBUG = false;
+
   /**
    * This method derives an interpolant for the given error path and interpolation state.
    *
@@ -80,27 +80,24 @@ public boolean DEBUG = false;
    * @throws CPAException
    * @throws InterruptedException
    */
-  public Map<String, Long> deriveInterpolant(
+  public Pair<String, Long> deriveInterpolant(
       Path errorPath,
       int offset,
       String currentVariable,
       Map<String, Long> inputInterpolant) throws CPAException, InterruptedException {
     try {
-      // clone the input interpolant and work on that
-      Map<String, Long> currentInterpolant = new HashMap<String, Long>(inputInterpolant);
-
-      ExplicitState successor     = new ExplicitState(currentInterpolant);
+      ExplicitState successor     = new ExplicitState(new HashMap<String, Long>(inputInterpolant));
       ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
 
-      Long currentVariableValue     = null;
-      boolean performedAbstraction = false;
+      Long currentVariableValue       = null;
+      Pair<String, Long> interpolant  = null;
 
       Pair<ARGState, CFAEdge> interpolationState = errorPath.get(offset);
 
       for(Pair<ARGState, CFAEdge> pathElement : skip(errorPath, offset)) {
 
         if(interpolationState == blockingElement) {
-          return null;
+          return interpolant;
         }
 
         Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
@@ -112,38 +109,31 @@ public boolean DEBUG = false;
 
         // there is no successor, but current path element is not an error state => error path is spurious
         if(successor == null && !pathElement.getFirst().isTarget()) {
-          currentInterpolant.remove(currentVariable);
-
           if(isFeasible) {
             blockingElement = pathElement;
           }
 
           isFeasible = false;
-if(DEBUG) System.out.println("\t\tinfeasible");
-          return currentInterpolant;
+          //return interpolant;
+          return Pair.of(currentVariable, null);
         }
 
         // remove the value of the current variable from the successor
-        if(!performedAbstraction) {
-          performedAbstraction = true;
-
+        if(interpolant == null) {
           if(successor.contains(currentVariable)) {
             currentVariableValue = successor.getValueFor(currentVariable);
           }
+
+          interpolant = Pair.of(currentVariable, currentVariableValue);
+
           successor.forget(currentVariable);
         }
       }
 
-      if(currentVariableValue == null) {
-        currentInterpolant.remove(currentVariable);
-      } else {
-        currentInterpolant.put(currentVariable, currentVariableValue);
-      }
-
       isFeasible = true;
-if(DEBUG) System.out.println("\t\tFEASABLE");
+
       // path is feasible
-      return currentInterpolant;
+      return interpolant;
     } catch(InvalidConfigurationException e) {
       throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);
     }

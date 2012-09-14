@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -121,19 +122,32 @@ public boolean DEBUG = false;
             numberOfCounterExampleChecks++;
 
             try {
-              Map<String, Long> outputInterpolant = interpolator.deriveInterpolant(errorPath, i, currentVariable, inputInterpolant);
+              Pair<String, Long> element = interpolator.deriveInterpolant(errorPath, i, currentVariable, inputInterpolant);
 
-              if(outputInterpolant == null) {
+              if(element == null) {
                 return increment;
               }
 
-              // add everything from the output interpolant to the current interpolant
-              for(Map.Entry<String, Long> entry : outputInterpolant.entrySet()) {
-                currentInterpolant.put(entry.getKey(), entry.getValue());
+              if(interpolator.isFeasible()) {
+
+                if(!isRedundant(extractPrecision(reachedSet, errorPath.get(i).getFirst()), currentEdge, currentVariable)) {
+                  increment.put(currentEdge.getSuccessor(), currentVariable);
+                }
 
                 if(firstInterpolationPoint == null) {
                   firstInterpolationPoint = errorPath.get(i).getFirst();
                 }
+              }
+
+              // if the interpolation returned an assignment, add it to the current interpolant
+              if(element.getSecond() != null) {
+                currentInterpolant.put(element.getFirst(), element.getSecond());
+              }
+
+              // when NOT removing memslave fails
+              // when DO removing here, cdaudio without delta-prec fails
+              if(element.getSecond() == null) {
+                //currentInterpolant.remove(element.getFirst());
               }
             }
             catch (InterruptedException e) {
