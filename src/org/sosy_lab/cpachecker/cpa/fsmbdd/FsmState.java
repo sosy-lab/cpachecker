@@ -53,23 +53,26 @@ public class FsmState implements AbstractState {
    */
   private BDD stateBdd;
 
-
   /**
    * Constructor.
    */
   public FsmState(BDDFactory pBddFactory) {
     this.bddFactory = pBddFactory;
 
-    // Initially, the state is True.
+    // Initially, the state is TRUE;
+    // this means that every possible error state would be reachable.
     this.stateBdd = bddFactory.one();
   }
 
   /**
-   * Setter for the BDD (that represents the state).
-   * @param bdd
+   * Disjunct the BDD of this state
+   * with the BDD of another state.
+   * (= JOIN)
+   *
+   * @param pOtherState
    */
-  public void setStateBdd(BDD bdd) {
-    this.stateBdd = bdd;
+  public void disjunctWithState(FsmState pOtherState) {
+    this.stateBdd = this.stateBdd.or(pOtherState.getStateBdd());
   }
 
   /**
@@ -83,14 +86,22 @@ public class FsmState implements AbstractState {
    *  Declare the given variable.
    *  The domain of the variable gets initialized.
    */
-  public BDDDomain declareGlobal(String pVariableName, int pDomainSize) throws VariableDeclarationException {
-    BDDDomain varDomain = declaredVariables.get(pVariableName);
+  public BDDDomain declareGlobal(String pScopedVariableName, int pDomainSize) throws VariableDeclarationException {
+    BDDDomain varDomain = declaredVariables.get(pScopedVariableName);
     if (varDomain != null) {
+      // A re-declaration of a variable means that
+      // we must forget its current value;
+      // this is done by existential quantification.
+      //
+      // This might happen because our input programs might
+      // use block-scope but we only support function scope.
+      //
       stateBdd = stateBdd.exist(varDomain.set());
     } else {
+      // Declare a new domain for the given variable.
       varDomain = bddFactory.extDomain(pDomainSize);
-      varDomain.setName(pVariableName);
-      declaredVariables.put(pVariableName, varDomain);
+      varDomain.setName(pScopedVariableName);
+      declaredVariables.put(pScopedVariableName, varDomain);
     }
 
     return varDomain;
@@ -98,6 +109,7 @@ public class FsmState implements AbstractState {
 
   /**
    * Undefine (but not undeclare) a given variable.
+   * (forget the current value of the variable)
    * The variable gets existential quantified in the BDD of the state.
    */
   public void undefineVariable(String pScopedVariableName) {
@@ -120,8 +132,8 @@ public class FsmState implements AbstractState {
   }
 
   /**
-   * Modify the state by conjuncting the
-   * state-bdd with the given BDD.
+   * Modify the state by conjuncting (AND) the
+   * BDD of the state with the given BDD.
    */
   public void addConjunctionWith(BDD bdd) {
     stateBdd = stateBdd.and(bdd);
@@ -136,11 +148,10 @@ public class FsmState implements AbstractState {
    *
    */
   public void doVariableAssignment(String pVariableName, DomainIntervalProvider domainIntervalProvider, CExpression pValue) throws CPATransferException {
-    BDDDomain variableDomain = getGlobalVariableDomain(pVariableName);
     int literalIndex = domainIntervalProvider.mapLiteralToIndex(pValue);
+    BDDDomain variableDomain = getGlobalVariableDomain(pVariableName);
 
-    stateBdd = stateBdd.exist(bddFactory.makeSet(new BDDDomain[]{variableDomain}))
-        .and(variableDomain.ithVar(literalIndex));
+    stateBdd = stateBdd.exist(variableDomain.set()).and(variableDomain.ithVar(literalIndex));
   }
 
   /**

@@ -54,7 +54,7 @@ public class FsmDomain implements AbstractDomain {
     // Create the joined state by
     // constructing a disjunction (OR) of the BDDs of the given states.
     FsmState joined = state1.cloneState();
-    joined.setStateBdd(joined.getStateBdd().or(state2.getStateBdd()));
+    joined.disjunctWithState(state2);
 
     // Check whether the BDDs of the
     if (joined.getStateBdd().equals(state2.getStateBdd())) {
