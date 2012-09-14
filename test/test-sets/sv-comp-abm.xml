@@ -19,7 +19,7 @@
       <option name="-setprop">cpa.predicate.machineModel=Linux64</option>
       <option name="-sv-comp12-abm"/>
     </sourcefiles>    
-    <option name="-heap">12500m</option>
+    <option name="-heap">12500M</option>
   </test>
 
   <columns>

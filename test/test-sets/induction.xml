@@ -11,7 +11,7 @@
     <option name="-bmc-induction"/>
     <option name="-setprop">cpa.loopstack.maxLoopIterations=1</option>
     <option name="-setprop">bmc.invariantGenerationConfigFile=config/explicitAnalysis-no-cbmc.properties</option>
-    <option name="-heap">1200m</option>
+    <option name="-heap">1200M</option>
   </test>
 
   <test name="k10">
@@ -24,7 +24,7 @@
     <option name="-bmc-induction"/>
     <option name="-setprop">cpa.loopstack.maxLoopIterations=10</option>
     <option name="-setprop">bmc.invariantGenerationConfigFile=config/explicitAnalysis-no-cbmc.properties</option>
-    <option name="-heap">1200m</option>
+    <option name="-heap">1200M</option>
   </test>
   
   <columns>

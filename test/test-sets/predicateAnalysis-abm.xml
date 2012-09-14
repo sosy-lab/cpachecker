@@ -2,7 +2,7 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="1800" memlimit="2000">
   <option name="-noout"/>
-  <option name="-heap">1200m</option>
+  <option name="-heap">1200M</option>
 
   <test name="abm">
     <sourcefiles>
