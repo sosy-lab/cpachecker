@@ -46,7 +46,12 @@ CMD="plot ";
 k=0;
 for i in `ls $DIR`; do
   echo "$k: $i";
-  rm tmp.data
+
+  if [ -f "tmp.data" ]
+  then
+      rm tmp.data
+  fi
+
   CMD="$CMD 'tab_$i.data' using 1:2 with linespoints linecolor rgb \"${COLORS[$k]}\" pointinterval -10 linewidth 3.5 title '$i',";
   for j in `ls $DIR/$i/*.csv`; do
 
