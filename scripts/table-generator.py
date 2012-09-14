@@ -289,7 +289,8 @@ def insertLogFileNames(resultFile, resultElem):
     parts = resultFile.split("#", 1)
 
     # get folder of logfiles
-    logFolder = '{benchmarkname}.{date}.logfiles/'.format(**resultElem.attrib)
+    date = resultElem.get('date').replace(':','').replace(' ','_') # from ISO-format to filename-format
+    logFolder = resultElem.get('benchmarkname') + '.' + date + '.logfiles/'
     if len(parts) > 1:
         logFolder = parts[0] + '#' + logFolder
 
