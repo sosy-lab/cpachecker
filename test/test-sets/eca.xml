@@ -10,22 +10,22 @@
   <test name="FsmBddAnalysis">
 	<option name="-fsmBddAnalysis"/>
 	<option name="-setprop">specification=config/specification/default.spc</option>
-	<option name="-heap">13312m</option>
+	<option name="-heap">13312M</option>
   </test>
   
   <test name="PredicateAnalysis">
 	<option name="-predicateAnalysis"/>
-	<option name="-heap">13312m</option>
+	<option name="-heap">13312M</option>
   </test>
   
   <test name="ImpactAnalysis">
 	<option name="-predicateAnalysis-ImpactRefiner-ABEl"/>
-	<option name="-heap">13312m</option>
+	<option name="-heap">13312M</option>
   </test>
   
   <test name="ExplicitAnalysis">
 	<option name="-explicitAnalysis"/>
-	<option name="-heap">13312m</option>
+	<option name="-heap">13312M</option>
   </test>
 
   <columns>
