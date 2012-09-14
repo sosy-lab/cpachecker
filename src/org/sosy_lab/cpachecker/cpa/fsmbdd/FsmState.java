@@ -147,11 +147,23 @@ public class FsmState implements AbstractState {
    * "domainIntervalProvider" is given as argument to keep the state object small.
    *
    */
-  public void doVariableAssignment(String pVariableName, DomainIntervalProvider domainIntervalProvider, CExpression pValue) throws CPATransferException {
+  public void assingConstantToVariable(String pVariableName, DomainIntervalProvider domainIntervalProvider, CExpression pValue) throws CPATransferException {
     int literalIndex = domainIntervalProvider.mapLiteralToIndex(pValue);
     BDDDomain variableDomain = getGlobalVariableDomain(pVariableName);
 
     stateBdd = stateBdd.exist(variableDomain.set()).and(variableDomain.ithVar(literalIndex));
+  }
+
+  /**
+   * Modify the state: Assign a new value to the given variable based on the value of another variable.
+   * After an existential quantification of the old value, we conjunct
+   * the BDD of the state with the equality between the variables.
+   */
+  public void assignVariableToVariable(String pSourceVariable, String pTargetVariable) throws VariableDeclarationException {
+    BDDDomain targetDomain = getGlobalVariableDomain(pTargetVariable);
+    BDDDomain sourceDomain = getGlobalVariableDomain(pSourceVariable);
+
+    stateBdd = stateBdd.exist(targetDomain.set()).and(sourceDomain.buildEquals(targetDomain));
   }
 
   /**

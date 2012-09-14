@@ -84,6 +84,10 @@ public class FsmTransferRelation implements TransferRelation {
    */
   private static final String RESULT_VARIABLE_NAME = "return";
 
+  /**
+   * String that is used to separate the different
+   * levels of a scoped variable name.
+   */
   private static final String SCOPE_SEPARATOR = ".";
 
   /**
@@ -132,8 +136,8 @@ public class FsmTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
-    FsmState predecessor = (FsmState) pState;
-    FsmState successor = null;
+    final FsmState predecessor = (FsmState) pState;
+    final FsmState successor = predecessor.cloneState();
 
 //    System.out.println("-----------------");
 //    System.out.println(String.format("%15s : %s", "Predecessor", predecessor));
@@ -142,35 +146,35 @@ public class FsmTransferRelation implements TransferRelation {
     try {
       switch (pCfaEdge.getEdgeType()) {
         case AssumeEdge:
-          successor = handleAssumeEdge(predecessor, (CAssumeEdge) pCfaEdge);
+          handleAssumeEdge(predecessor, (CAssumeEdge) pCfaEdge, successor);
           break;
 
         case StatementEdge:
-          successor = handleStatementEdge(predecessor, (CStatementEdge) pCfaEdge);
+          handleStatementEdge(predecessor, (CStatementEdge) pCfaEdge, successor);
           break;
 
         case DeclarationEdge:
-          successor = handleDeclarationEdge(predecessor, (CDeclarationEdge) pCfaEdge);
+          handleDeclarationEdge(predecessor, (CDeclarationEdge) pCfaEdge, successor);
           break;
 
         case ReturnStatementEdge:
-          successor = handleReturnStatementEdge(predecessor, (CReturnStatementEdge) pCfaEdge);
+          handleReturnStatementEdge(predecessor, (CReturnStatementEdge) pCfaEdge, successor);
           break;
 
         case FunctionReturnEdge:
-          successor = handleFunctionReturnEdge(predecessor, (CFunctionReturnEdge) pCfaEdge);
+          handleFunctionReturnEdge(predecessor, (CFunctionReturnEdge) pCfaEdge, successor);
           break;
 
         case FunctionCallEdge:
-          successor = handleFunctionCallEdge(predecessor, (CFunctionCallEdge) pCfaEdge);
+          handleFunctionCallEdge(predecessor, (CFunctionCallEdge) pCfaEdge, successor);
           break;
 
         case MultiEdge:
-          successor = handleMultiEdge(predecessor, (MultiEdge) pCfaEdge);
+          handleMultiEdge(predecessor, (MultiEdge) pCfaEdge, successor);
           break;
 
         default:
-          successor = predecessor.cloneState();
+
       }
     } catch (VariableDeclarationException e) {
       throw new UnrecognizedCCodeException(e.getMessage(), pCfaEdge);
@@ -186,58 +190,65 @@ public class FsmTransferRelation implements TransferRelation {
     }
   }
 
-  private FsmState handleMultiEdge(FsmState pPredecessor, MultiEdge pMultiEdge) throws CPATransferException {
-    FsmState result = pPredecessor.cloneState();
-
+  private void handleMultiEdge(FsmState pPredecessor, MultiEdge pMultiEdge, final FsmState pSuccessor) throws CPATransferException {
     for (CFAEdge edge: pMultiEdge.getEdges()) {
       switch (edge.getEdgeType()) {
       case BlankEdge:
         break;
       case DeclarationEdge:
-        handleDeclarationEdge(pPredecessor, (CDeclarationEdge) edge, result);
+        handleDeclarationEdge(pPredecessor, (CDeclarationEdge) edge, pSuccessor);
         break;
       case StatementEdge:
-        handleStatementEdge(pPredecessor, (CStatementEdge) edge, result);
+        handleStatementEdge(pPredecessor, (CStatementEdge) edge, pSuccessor);
         break;
       case ReturnStatementEdge:
-        handleReturnStatementEdge(pPredecessor, (CReturnStatementEdge) edge, result);
+        handleReturnStatementEdge(pPredecessor, (CReturnStatementEdge) edge, pSuccessor);
         break;
       default:
         throw new CPATransferException("Unsupported edge within multi-edge: " + edge.getEdgeType().toString());
       }
     }
-    return result;
   }
 
   /**
-   * Handle the statement that gets returned by a function.
+   * Handle the return statement of a function.
+   *
+   * Example with a literal:
+   *    return 17;
+   *
+   * Example with a ID-expression:
+   *    return b;
+   *
+   * Example without any expression on the return edge.
+   *    return;
+   *
    */
-  private FsmState handleReturnStatementEdge(FsmState pPredecessor, CReturnStatementEdge pReturnEdge) throws CPATransferException {
-    FsmState result = pPredecessor.cloneState();
-    handleReturnStatementEdge(pPredecessor, pReturnEdge, result);
-    return result;
-  }
-
-  private void handleReturnStatementEdge(FsmState pPredecessor, CReturnStatementEdge pReturnEdge, FsmState pSuccessor) throws CPATransferException {
+  private void handleReturnStatementEdge(FsmState pPredecessor, CReturnStatementEdge pReturnEdge, final FsmState pSuccessor) throws CPATransferException {
+    // Get the expression from the return edge.
     CExpression rightOfReturn = pReturnEdge.getExpression();
+
+    // No expression on the return edge?
     if (rightOfReturn == null) {
       rightOfReturn = CNumericTypes.ZERO;
     }
 
+    // The return-value of the function gets stored in the
+    // variable RESULT_VARIABLE_NAME of the called function.
     String functionName = pReturnEdge.getPredecessor().getFunctionName();
     String scopedResultVariableName = getScopedVariableName(functionName, RESULT_VARIABLE_NAME);
+
     if (rightOfReturn instanceof CIdExpression) {
+      // ID-expression on the return edge.
       CIdExpression idExpr = (CIdExpression) rightOfReturn;
       String scopedValueVariableName = getScopedVariableName(functionName, idExpr.getName());
-      pSuccessor.addConjunctionWith(getEqualVarsBdd(pSuccessor, scopedResultVariableName, scopedValueVariableName));
+      pSuccessor.assignVariableToVariable(scopedValueVariableName, scopedResultVariableName);
     } else {
-      pSuccessor.doVariableAssignment(scopedResultVariableName, domainIntervalProvider, rightOfReturn);
+      // Literal on the return edge.
+      pSuccessor.assingConstantToVariable(scopedResultVariableName, domainIntervalProvider, rightOfReturn);
     }
   }
 
-  private FsmState handleFunctionCallEdge(FsmState pPredecessor, CFunctionCallEdge pCfaEdge) throws CPATransferException {
-    FsmState result = pPredecessor.cloneState();
-
+  private void handleFunctionCallEdge(FsmState pPredecessor, CFunctionCallEdge pCfaEdge, final FsmState pSuccessor) throws CPATransferException {
     CFunctionEntryNode functionEntryNode = pCfaEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();
     String callerFunctionName = pCfaEdge.getPredecessor().getFunctionName();
@@ -253,21 +264,19 @@ public class FsmTransferRelation implements TransferRelation {
       CExpression argument = arguments.get(i);
       String scopedParameterName = getScopedVariableName(calledFunctionName, paramNames.get(i));
 
-      result.declareGlobal(scopedParameterName, domainIntervalProvider.getIntervalMaximum());
+      pSuccessor.declareGlobal(scopedParameterName, domainIntervalProvider.getIntervalMaximum());
 
       if (argument instanceof CIdExpression) {
         CIdExpression idExpr = (CIdExpression) argument;
         String scopedArgumentName = getScopedVariableName(callerFunctionName, idExpr.getName());
-        result.addConjunctionWith(getEqualVarsBdd(result, scopedParameterName, scopedArgumentName));
+        pSuccessor.assignVariableToVariable(scopedArgumentName, scopedParameterName);
       } else if (argument instanceof CLiteralExpression) {
         CLiteralExpression litExpr = (CLiteralExpression) argument;
-        result.doVariableAssignment(scopedParameterName, domainIntervalProvider, litExpr);
+        pSuccessor.assingConstantToVariable(scopedParameterName, domainIntervalProvider, litExpr);
       } else {
         throw new UnrecognizedCCodeException("Unsupported function argument.", pCfaEdge);
       }
     }
-
-    return result;
   }
 
   /**
@@ -290,9 +299,7 @@ public class FsmTransferRelation implements TransferRelation {
    *  gets established and is conjuncted with the BDD of the successor state.
    *
    */
-  private FsmState handleFunctionReturnEdge(FsmState pPredecessor, CFunctionReturnEdge pFunctionReturnEdge) throws UnrecognizedCCodeException, VariableDeclarationException {
-    FsmState result = pPredecessor.cloneState();
-
+  private void handleFunctionReturnEdge(FsmState pPredecessor, CFunctionReturnEdge pFunctionReturnEdge, FsmState pSuccessor) throws UnrecognizedCCodeException, VariableDeclarationException {
     CFunctionSummaryEdge summaryEdge = pFunctionReturnEdge.getSummaryEdge();
     CFunctionCall exprOnSummary = summaryEdge.getExpression();
 
@@ -308,9 +315,7 @@ public class FsmTransferRelation implements TransferRelation {
         String scopedReturnVarName = getScopedVariableName(calledFunctionName, RESULT_VARIABLE_NAME);
         String scopedTargetVariableName = getScopedVariableName(callerFunctionName, idExpr.getName());
 
-        BDD equalsBdd = getEqualVarsBdd(result, scopedReturnVarName, scopedTargetVariableName);
-        result.undefineVariable(scopedTargetVariableName);
-        result.addConjunctionWith(equalsBdd);
+        pSuccessor.assignVariableToVariable(scopedReturnVarName, scopedTargetVariableName);
       } else {
         throw new UnrecognizedCCodeException("On return from function.", summaryEdge, callerLeft);
       }
@@ -320,10 +325,8 @@ public class FsmTransferRelation implements TransferRelation {
 
     // Existential quantify all local variables of the function.
     for (String localVariable: variablesPerFunction.get(calledFunctionName)) {
-      result.undefineVariable(getScopedVariableName(calledFunctionName, localVariable));
+      pSuccessor.undefineVariable(getScopedVariableName(calledFunctionName, localVariable));
     }
-
-    return result;
   }
 
   /**
@@ -333,33 +336,23 @@ public class FsmTransferRelation implements TransferRelation {
    * The BDD of the successor state gets constructed
    * by doing a conjunction of the assumption with the the BDD of the predecessor state.
    */
-  private FsmState handleAssumeEdge (FsmState pPredecessor, CAssumeEdge pAssumeEdge) throws CPATransferException {
-    FsmState result = pPredecessor.cloneState();
-
+  private void handleAssumeEdge (FsmState pPredecessor, CAssumeEdge pAssumeEdge, FsmState pSuccessor) throws CPATransferException {
     BDD assumptionBdd = edgeBddCache.get(pAssumeEdge.getExpression());
     if (assumptionBdd == null) {
-      assumptionBdd = getAssumptionAsBdd(result, pAssumeEdge, pAssumeEdge.getExpression());
+      assumptionBdd = getAssumptionAsBdd(pSuccessor, pAssumeEdge, pAssumeEdge.getExpression());
       edgeBddCache.put(pAssumeEdge.getExpression(), assumptionBdd);
     }
     if (!pAssumeEdge.getTruthAssumption()) {
       assumptionBdd = assumptionBdd.not();
     }
 
-    result.addConjunctionWith(assumptionBdd);
-
-    return result;
+    pSuccessor.addConjunctionWith(assumptionBdd);
   }
 
   /**
    * Handle a statement edges.
    * Currently, only statements of the form "IDExpression = LiteralExpression;" are supported.
    */
-  private FsmState handleStatementEdge (FsmState pPredecessor, CStatementEdge pStatementEdge) throws CPATransferException {
-    FsmState result = pPredecessor.cloneState();
-    handleStatementEdge(pPredecessor, pStatementEdge, result);
-    return result;
-  }
-
   private void handleStatementEdge (FsmState pPredecessor, CStatementEdge pStatementEdge, FsmState pSuccessor) throws CPATransferException {
     CStatement stmt = pStatementEdge.getStatement();
     if (stmt instanceof CExpressionAssignmentStatement) {
@@ -370,7 +363,7 @@ public class FsmTransferRelation implements TransferRelation {
         CLiteralExpression right = (CLiteralExpression) assign.getRightHandSide();
 
         String functionName = pStatementEdge.getPredecessor().getFunctionName();
-        pSuccessor.doVariableAssignment(getScopedVariableName(functionName, left.getName()), domainIntervalProvider, right);
+        pSuccessor.assingConstantToVariable(getScopedVariableName(functionName, left.getName()), domainIntervalProvider, right);
       } else {
         throw new UnrecognizedCCodeException("Unsupported CExpressionAssignmentStatement", pStatementEdge);
       }
@@ -382,12 +375,6 @@ public class FsmTransferRelation implements TransferRelation {
    * For function declarations, the result variable gets introduced.
    * Variables get declared and, if there is an initializer expression, initialized.
    */
-  private FsmState handleDeclarationEdge (FsmState pPredecessor, CDeclarationEdge pDeclEdge) throws CPATransferException {
-    FsmState result = pPredecessor.cloneState();
-    handleDeclarationEdge(pPredecessor, pDeclEdge, result);
-    return result;
-  }
-
   private void handleDeclarationEdge (FsmState pPredecessor, CDeclarationEdge pDeclEdge, FsmState pSuccessor) throws CPATransferException {
     CDeclaration decl = pDeclEdge.getDeclaration();
     if (decl instanceof CVariableDeclaration) {
@@ -408,7 +395,7 @@ public class FsmTransferRelation implements TransferRelation {
           if (vdecl.getInitializer() instanceof CInitializerExpression) {
             // Initialize the variable.
             CInitializerExpression init = (CInitializerExpression) vdecl.getInitializer();
-            pSuccessor.doVariableAssignment(scopedVariableName, domainIntervalProvider, init.getExpression());
+            pSuccessor.assingConstantToVariable(scopedVariableName, domainIntervalProvider, init.getExpression());
           } else {
             throw new UnrecognizedCCodeException("Type of initializer not supported.", pDeclEdge);
           }
@@ -432,16 +419,6 @@ public class FsmTransferRelation implements TransferRelation {
     BDDDomain varDomain = pOnState.getGlobalVariableDomain(variableName);
     int literalIndex = domainIntervalProvider.mapLiteralToIndex(literal);
     return varDomain.ithVar(literalIndex);
-  }
-
-  /**
-   * Build a BDD that represents the equality of two variables.
-   */
-  private BDD getEqualVarsBdd(FsmState pOnState, String var1, String var2) throws VariableDeclarationException {
-    BDDDomain dom1 = pOnState.getGlobalVariableDomain(var1);
-    BDDDomain dom2 = pOnState.getGlobalVariableDomain(var2);
-
-    return dom1.buildEquals(dom2);
   }
 
   /**
@@ -496,8 +473,10 @@ public class FsmTransferRelation implements TransferRelation {
               String scopedVariableName1 = getScopedVariableName(pEdge.getPredecessor().getFunctionName(), variableName1);
               String scopedVariableName2 = getScopedVariableName(pEdge.getPredecessor().getFunctionName(), variableName2);
 
-              result = getEqualVarsBdd(pOnState, scopedVariableName1, scopedVariableName2);
+              BDDDomain dom1 = pOnState.getGlobalVariableDomain(scopedVariableName1);
+              BDDDomain dom2 = pOnState.getGlobalVariableDomain(scopedVariableName2);
 
+              result = dom1.buildEquals(dom2);
             } else {
                throw new UnrecognizedCCodeException("Combination of operands not (yet) supported.", pEdge, pE);
             }
