@@ -29,7 +29,11 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-
+/**
+ * Merge-Operator of the FsmBddCPA.
+ * Merge is done by joining the abstract states;
+ * this is done by constructing the disjunction (OR) of their BDDs.
+ */
 public class FsmMergeOperator implements MergeOperator {
 
   private final AbstractDomain domain;
