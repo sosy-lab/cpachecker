@@ -248,11 +248,29 @@ public class FsmTransferRelation implements TransferRelation {
     }
   }
 
+  /**
+   * Handle function calls including passing of arguments.
+   *
+   * Example:
+   *
+   *  int foo(int arg1) {
+   *    return arg1;
+   *  }
+   *
+   *  int main() {
+   *   int i = 10;
+   *   int r;
+   *   r = foo(i);
+   *   return 0;
+   *  }
+   *
+   */
   private void handleFunctionCallEdge(FsmState pPredecessor, CFunctionCallEdge pCfaEdge, final FsmState pSuccessor) throws CPATransferException {
     CFunctionEntryNode functionEntryNode = pCfaEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();
     String callerFunctionName = pCfaEdge.getPredecessor().getFunctionName();
 
+    // Parameters and arguments
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
     List<CExpression> arguments = pCfaEdge.getArguments();
 
@@ -264,13 +282,17 @@ public class FsmTransferRelation implements TransferRelation {
       CExpression argument = arguments.get(i);
       String scopedParameterName = getScopedVariableName(calledFunctionName, paramNames.get(i));
 
+      // Declare the parameter as an local variable within the (called) function.
       pSuccessor.declareGlobal(scopedParameterName, domainIntervalProvider.getIntervalMaximum());
 
+      // Depends on the type of argument.
       if (argument instanceof CIdExpression) {
+        // foo(a);
         CIdExpression idExpr = (CIdExpression) argument;
         String scopedArgumentName = getScopedVariableName(callerFunctionName, idExpr.getName());
         pSuccessor.assignVariableToVariable(scopedArgumentName, scopedParameterName);
       } else if (argument instanceof CLiteralExpression) {
+        // foo(17);
         CLiteralExpression litExpr = (CLiteralExpression) argument;
         pSuccessor.assingConstantToVariable(scopedParameterName, domainIntervalProvider, litExpr);
       } else {
@@ -357,13 +379,17 @@ public class FsmTransferRelation implements TransferRelation {
     CStatement stmt = pStatementEdge.getStatement();
     if (stmt instanceof CExpressionAssignmentStatement) {
       CExpressionAssignmentStatement assign = (CExpressionAssignmentStatement) stmt;
+
       if (assign.getLeftHandSide() instanceof CIdExpression
-          && assign.getRightHandSide() instanceof CLiteralExpression) {
+      && assign.getRightHandSide() instanceof CLiteralExpression) {
+
         CIdExpression left = (CIdExpression) assign.getLeftHandSide();
         CLiteralExpression right = (CLiteralExpression) assign.getRightHandSide();
 
         String functionName = pStatementEdge.getPredecessor().getFunctionName();
-        pSuccessor.assingConstantToVariable(getScopedVariableName(functionName, left.getName()), domainIntervalProvider, right);
+        String scopedTargetVariableName = getScopedVariableName(functionName, left.getName());
+
+        pSuccessor.assingConstantToVariable(scopedTargetVariableName, domainIntervalProvider, right);
       } else {
         throw new UnrecognizedCCodeException("Unsupported CExpressionAssignmentStatement", pStatementEdge);
       }
@@ -406,7 +432,8 @@ public class FsmTransferRelation implements TransferRelation {
     } else if (decl instanceof CFunctionDeclaration) {
       // Introduce the result variable for the function.
       String functionName = decl.getName();
-      pSuccessor.declareGlobal(getScopedVariableName(functionName, RESULT_VARIABLE_NAME), domainIntervalProvider.getIntervalMaximum());
+      String scopedResultVariableName = getScopedVariableName(functionName, RESULT_VARIABLE_NAME);
+      pSuccessor.declareGlobal(scopedResultVariableName, domainIntervalProvider.getIntervalMaximum());
     } else {
       throw new UnrecognizedCCodeException("Unsupported declaration: " + decl.getClass().getSimpleName(), pDeclEdge);
     }
