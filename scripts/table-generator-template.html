@@ -443,8 +443,7 @@ function getColumnIndicesForHeader(header) {
   var cells = document.getElementById('columnTitles').cells;
 
   for (i = 0; i < cells.length; i++) {
-    var currentHeader = cells[i].textContent;
-    if (currentHeader == header) {
+    if ($(cells[i]).is(":visible") && (header == cells[i].textContent)) {
       columnIndizes.push(i);
     }
   }
