@@ -573,7 +573,7 @@ def getTableHead(listOfTests, commonFileNamePrefix):
         if not any(values): return None # skip row without values completely
 
         valuesAndWidths = list(Util.collapseEqualValues(values, testWidths)) \
-                          if collapse else zip(values, testWidths)
+                          if collapse else list(zip(values, testWidths))
 
         return tempita.bunch(id=rowName.lower().split(' ')[0],
                              name=rowName,
@@ -583,7 +583,7 @@ def getTableHead(listOfTests, commonFileNamePrefix):
     titles      = [column.title for test in listOfTests for column in test.columns]
     testWidths1 = [1]*sum(testWidths)
     titleRow    = tempita.bunch(id='columnTitles', name=commonFileNamePrefix,
-                                content=zip(titles, testWidths1))
+                                content=list(zip(titles, testWidths1)))
 
     return {'tool':    getRow('Tool', '{tool} {version}', collapse=True),
             'limit':   getRow('Limits', 'timelimit: {timelimit}, memlimit: {memlimit}', collapse=True),
