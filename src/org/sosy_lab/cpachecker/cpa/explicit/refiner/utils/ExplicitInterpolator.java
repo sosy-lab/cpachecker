@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 import static com.google.common.collect.Iterables.skip;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
@@ -80,15 +79,12 @@ public boolean DEBUG = false;
    * @throws CPAException
    * @throws InterruptedException
    */
-  public Map<String, Long> deriveInterpolant(
+  public Pair<String, Long> deriveInterpolant(
       Path errorPath,
       int offset,
       String currentVariable,
-      Map<String, Long> inputInterpolant) throws CPAException, InterruptedException {
+      Map<String, Long> currentInterpolant) throws CPAException, InterruptedException {
     try {
-      // clone the input interpolant and work on that
-      Map<String, Long> currentInterpolant = new HashMap<String, Long>(inputInterpolant);
-
       ExplicitState successor     = new ExplicitState(currentInterpolant);
       ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
 
@@ -112,7 +108,7 @@ public boolean DEBUG = false;
 
         // there is no successor, but current path element is not an error state => error path is spurious
         if(successor == null && !pathElement.getFirst().isTarget()) {
-          currentInterpolant.remove(currentVariable);
+          //currentInterpolant.remove(currentVariable);
 
           if(isFeasible) {
             blockingElement = pathElement;
@@ -120,7 +116,7 @@ public boolean DEBUG = false;
 
           isFeasible = false;
 if(DEBUG) System.out.println("\t\tinfeasible");
-          return currentInterpolant;
+          return Pair.<String, Long>of(currentVariable, null);
         }
 
         // remove the value of the current variable from the successor
@@ -133,17 +129,17 @@ if(DEBUG) System.out.println("\t\tinfeasible");
           successor.forget(currentVariable);
         }
       }
-
+/*
       if(currentVariableValue == null) {
         currentInterpolant.remove(currentVariable);
       } else {
         currentInterpolant.put(currentVariable, currentVariableValue);
       }
-
+*/
       isFeasible = true;
 if(DEBUG) System.out.println("\t\tFEASABLE");
       // path is feasible
-      return currentInterpolant;
+      return Pair.<String, Long>of(currentVariable, currentVariableValue);
     } catch(InvalidConfigurationException e) {
       throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);
     }

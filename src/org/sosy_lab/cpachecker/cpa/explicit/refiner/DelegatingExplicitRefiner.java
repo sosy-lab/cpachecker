@@ -168,7 +168,7 @@ public class DelegatingExplicitRefiner
 
     precisionIncrement = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
     interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
-System.out.println("\n" + (new java.util.Date()) + ": final explicit-precisionIncrement: " + precisionIncrement);
+//System.out.println("\n" + (new java.util.Date()) + ": final explicit-precisionIncrement: " + precisionIncrement);
 
     if(precisionIncrement.size() > 0) {
       ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
