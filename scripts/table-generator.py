@@ -35,12 +35,10 @@ import collections
 import os.path
 import glob
 import json
-import shutil
 import optparse
 import time
 import tempita
 
-from datetime import date
 from decimal import *
 
 
@@ -860,7 +858,7 @@ def main(args=None):
         inputFiles = Util.extendFileList(inputFiles) # expand wildcards
         listOfTestFiles = [(file, None) for file in inputFiles]
 
-        name = NAME_START + "." + time.strftime("%y%m%d-%H%M", time.localtime())
+        name = NAME_START + "." + time.strftime("%y-%m-%d_%H%M", time.localtime())
 
 
     # parse test files

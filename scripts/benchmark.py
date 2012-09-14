@@ -122,7 +122,9 @@ class Benchmark:
         self.name = os.path.basename(benchmarkFile)[:-4] # remove ending ".xml"
 
         # get current date as String to avoid problems, if script runs over midnight
-        self.date = time.strftime("%y-%m-%d.%H%M", time.localtime())
+        currentTime = time.localtime()
+        self.date = time.strftime("%y-%m-%d_%H%M", currentTime)
+        self.dateISO = time.strftime("%y-%m-%d %H:%M", currentTime)
 
         # get tool
         self.tool = root.get("tool")
@@ -591,7 +593,7 @@ class OutputHandler:
 
         # store benchmarkInfo in XML
         self.XMLHeader = ET.Element("test",
-                    {"benchmarkname": self.benchmark.name, "date": self.benchmark.date,
+                    {"benchmarkname": self.benchmark.name, "date": self.benchmark.dateISO,
                      "tool": self.getToolnameForPrinting(), "version": version})
         if memlimit is not None:
             self.XMLHeader.set(MEMLIMIT, memlimit)
@@ -632,7 +634,7 @@ class OutputHandler:
 
         header = "   BENCHMARK INFORMATION\n"\
                 + "benchmark:".ljust(columnWidth) + self.benchmark.name + "\n"\
-                + "date:".ljust(columnWidth) + self.benchmark.date + "\n"\
+                + "date:".ljust(columnWidth) + self.benchmark.dateISO + "\n"\
                 + "tool:".ljust(columnWidth) + self.getToolnameForPrinting()\
                 + " " + version + "\n"
 
