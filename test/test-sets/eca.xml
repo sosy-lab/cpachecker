@@ -19,7 +19,7 @@
   </test>
   
   <test name="ImpactAnalysis">
-	<option name="-impact-refiner"/>
+	<option name="-predicateAnalysis-ImpactRefiner-ABEl"/>
 	<option name="-heap">13312m</option>
   </test>
   
