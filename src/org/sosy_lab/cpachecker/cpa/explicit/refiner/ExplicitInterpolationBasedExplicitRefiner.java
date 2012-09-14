@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -113,24 +112,28 @@ public boolean DEBUG = false;
 
         Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge.getSuccessor());
 
-        Collection<Pair<String, Long>> changeSet = new ArrayList<Pair<String, Long>>();
         // do interpolation
         if(!referencedVariablesAtEdge.isEmpty()) {
+          Map<String, Long> inputInterpolant = new HashMap<String, Long>(currentInterpolant);
+
           // check for each variable, if ignoring it makes the error path feasible
           for(String currentVariable : referencedVariablesAtEdge) {
             numberOfCounterExampleChecks++;
 
             try {
-              Pair<String, Long> element = interpolator.deriveInterpolant(errorPath, i, currentVariable, currentInterpolant);
+              Map<String, Long> outputInterpolant = interpolator.deriveInterpolant(errorPath, i, currentVariable, inputInterpolant);
 
-              if(element == null) {
+              if(outputInterpolant == null) {
                 return increment;
               }
 
-              changeSet.add(element);
+              // add everything from the output interpolant to the current interpolant
+              for(Map.Entry<String, Long> entry : outputInterpolant.entrySet()) {
+                currentInterpolant.put(entry.getKey(), entry.getValue());
 
-              if(firstInterpolationPoint == null) {
-                firstInterpolationPoint = errorPath.get(i).getFirst();
+                if(firstInterpolationPoint == null) {
+                  firstInterpolationPoint = errorPath.get(i).getFirst();
+                }
               }
             }
             catch (InterruptedException e) {
@@ -139,22 +142,12 @@ public boolean DEBUG = false;
           }
         }
 
-        // incorporate the change-set into the interpolant
-        for(Pair<String, Long> element : changeSet) {
-          if(element.getSecond() == null) {
-            currentInterpolant.remove(element.getFirst());
-          }
-          else {
-            currentInterpolant.put(element.getFirst(), element.getSecond());
-          }
-        }
-
         // remove variables from the interpolant that belong to the scope of the returning function
         if(currentEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
           currentInterpolant = clearInterpolant(currentInterpolant, currentEdge.getSuccessor().getFunctionName());
         }
 
-        // finally, add the current interpolant to the precision
+        // add the current interpolant to the precision
         for(String variableName : currentInterpolant.keySet()) {
           if(!isRedundant(extractPrecision(reachedSet, errorPath.get(i).getFirst()), currentEdge, variableName)) {
             increment.put(currentEdge.getSuccessor(), variableName);
