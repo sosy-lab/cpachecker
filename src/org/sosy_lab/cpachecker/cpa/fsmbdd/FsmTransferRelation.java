@@ -78,8 +78,11 @@ public class FsmTransferRelation implements TransferRelation {
   /**
    * Name of the variable that is used to encode the result of a function.
    * (gets scoped with the name of the function)
+   *
+   * Since "return" is a keyword, we should not get a
+   * conflict with a program variable with the same name.
    */
-  private static final String RESULT_VARIABLE_NAME = "result";
+  private static final String RESULT_VARIABLE_NAME = "return";
 
   private static final String SCOPE_SEPARATOR = ".";
 
