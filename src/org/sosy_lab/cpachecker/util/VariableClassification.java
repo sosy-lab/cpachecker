@@ -174,7 +174,7 @@ public class VariableClassification {
 
   /** This function returns a collection of partitions.
    * Each partition contains only boolean vars. */
-  public Collection<Partition> getBooleanPartitions() {
+  public Set<Partition> getBooleanPartitions() {
     build();
     return booleanPartitions;
   }
@@ -191,7 +191,7 @@ public class VariableClassification {
 
   /** This function returns a collection of partitions.
    * Each partition contains only vars, that have only discrete values. */
-  public Collection<Partition> getDiscreteValuePartitions() {
+  public Set<Partition> getDiscreteValuePartitions() {
     build();
     return discreteValuePartitions;
   }
@@ -207,7 +207,7 @@ public class VariableClassification {
 
   /** This function returns a collection of partitions.
    * Each partition contains only vars, that are used in simple calculations. */
-  public Collection<Partition> getSimpleCalcPartitions() {
+  public Set<Partition> getSimpleCalcPartitions() {
     build();
     return simpleCalcPartitions;
   }

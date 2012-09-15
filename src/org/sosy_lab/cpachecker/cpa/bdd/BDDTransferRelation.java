@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -87,6 +88,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 /** This Transfer Relation tracks variables and handles them as bitvectors. */
 @Options(prefix = "cpa.bdd")
@@ -130,10 +132,6 @@ public class BDDTransferRelation implements TransferRelation {
 
   /** This map contains tuples (int, region[]) for each discrete-value-partition. */
   private final Map<Partition, Map<BigInteger, Region[]>> intToRegionsMap = Maps.newHashMap();
-
-  /** for statistics */
-  private int createdPredicates = 0;
-  private int deletedPredicates = 0;
 
   /** The Constructor of BDDVectorTransferRelation sets the NamedRegionManager
    * and the BitVectorManager. Both are used to build and manipulate BDDs,
@@ -882,7 +880,6 @@ public class BDDTransferRelation implements TransferRelation {
 
   /** This function returns a region for a variable. */
   private Region createPredicate(String varName) {
-    createdPredicates++;
     return rmgr.createPredicate(varName);
   }
 
@@ -891,9 +888,8 @@ public class BDDTransferRelation implements TransferRelation {
   private Region[] createPredicates(String s, int size) {
     Region[] newRegions = new Region[size];
     for (int i = size - 1; i >= 0; i--) { // inverse order
-      newRegions[i] = rmgr.createPredicate(s + "@" + i);
+      newRegions[i] = createPredicate(s + "@" + i);
     }
-    createdPredicates += size;
     return newRegions;
   }
 
@@ -1370,9 +1366,29 @@ public class BDDTransferRelation implements TransferRelation {
     return null;
   }
 
-  void printStatistics(PrintStream out) {
-    out.println("Number of created predicates:        " + createdPredicates);
-    out.println("Number of deleted predicates:        " + deletedPredicates);
+  void printStatistics(final PrintStream out) {
+    final Set<Partition> booleans = varClass.getBooleanPartitions();
+    final Set<Partition> discretes = varClass.getDiscreteValuePartitions();
+    final Set<Partition> simpleCalcs = varClass.getSimpleCalcPartitions();
+
+    int numOfBooleans = 0;
+    for (Partition p : booleans) {
+      numOfBooleans += p.getVars().size();
+    }
+
+    int numOfDiscretes = 0;
+    for (Partition p : Sets.difference(discretes, booleans)) {
+      numOfDiscretes += p.getVars().size();
+    }
+
+    int numOfSimpleCalcVars = 0;
+    for (Partition p : Sets.difference(simpleCalcs, Sets.union(booleans, discretes))) {
+      numOfSimpleCalcVars += p.getVars().size();
+    }
+
+    out.println("Number of booleans:          " + numOfBooleans);
+    out.println("Number of discrete vars:     " + numOfDiscretes);
+    out.println("Number of simple calc vars:  " + numOfSimpleCalcVars);
     rmgr.printStatistics(out);
   }
 }
