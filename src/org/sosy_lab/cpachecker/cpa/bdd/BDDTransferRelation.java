@@ -177,7 +177,7 @@ public class BDDTransferRelation implements TransferRelation {
       int size = bitsize;
 
       if (booleanPartitions.contains(partition)) {
-        size = 1;
+        size = 0; // we use 0 instead of 1, special case for real boolean vars
       } else if (compressDiscretes && discreteValuePartitions.contains(partition)) {
         size = partitionToBitsize(partition);
       }
@@ -186,18 +186,21 @@ public class BDDTransferRelation implements TransferRelation {
   }
 
   /** This function declares variables for a given collection of vars.
-   * The value 'bitsize' chooses how much bits are used for each var. */
+   *
+   * The value 'bitsize' chooses how much bits are used for each var.
+   * Special case: If bitsize is 0, we declare one bit.
+   * This bit is used for real boolean vars.
+   * Otherwise we declare more bits, the varname is build as "varname@pos".*/
   private void createPredicates(Multimap<String, String> vars,
       BDDPrecision precision, int bitsize) {
 
-    assert bitsize > 0 : "you need at least one bit for a variable.";
 
     // add a temporary variable for each partition
     String tmpVar = TMP_VARIABLE + "_" + varsToTmpVar.size();
     varsToTmpVar.put(vars, tmpVar);
 
     // real boolean vars
-    if (bitsize == 1) {
+    if (bitsize == 0) {
 
       boolean isTrackingSomething = false;
       for (Entry<String, String> entry : vars.entries()) { // different loop order!
@@ -211,6 +214,8 @@ public class BDDTransferRelation implements TransferRelation {
       }
 
     } else {
+      assert bitsize > 0 : "you need at least one bit for a variable.";
+
       // bitvectors [a2, a1, a0]
       // 'initBitwise' chooses between initialing each var separately or bitwise overlapped.
       if (initBitwise) {
@@ -898,8 +903,11 @@ public class BDDTransferRelation implements TransferRelation {
     return rmgr.makeExists(region, existing);
   }
 
+  /** This function creates a mapping of discrete partitions to a mapping of number to bitvector.
+   * This allows to compress big numbers to a small number of bits in the BDD. */
   private void initMappingIntToRegions() {
-    for (Partition partition : varClass.getDiscreteValuePartitions()) {
+    for (Partition partition : Sets.difference(
+        varClass.getDiscreteValuePartitions(), varClass.getBooleanPartitions())) {
       int size = partitionToBitsize(partition);
       Map<BigInteger, Region[]> currentMapping = new HashMap<BigInteger, Region[]>();
       int i = 0;
