@@ -429,10 +429,11 @@ $(document).ready(function() {
            border-radius:8px; border-bottom-left-radius:0px;
            background-color:white; opacity:0.8; }
   .jqplot-table-legend { text-align: left; }
+  table.jqplot-table-legend[style] { position:absolute; left:auto !important; right:0px !important; } /* overrides inner css-style */
   #chart { height:100%; width:100% }
-  #button-trend { position:absolute; bottom:30px; }
-  #button-logScale { position:absolute; bottom:0px; }
-  #button-showCorrectOnly { position:absolute; bottom:0px; right:0px; }
+  #button-quantile { position:absolute; bottom:50px; }
+  #button-logScale { position:absolute; bottom:25px; }
+  #button-showCorrectOnly { position:absolute; bottom:0px; }
 </style>
 
 <script type="text/javascript">
@@ -497,7 +498,7 @@ function getTableData(header, sort) {
 };
 
 
-// this method returns sorted data for showTrend().
+// this method returns sorted data for showQuantile().
 function sortData(data) {
   var newData = [];
   for (i = 0; i < data.length; i++) {
@@ -621,7 +622,7 @@ function getFormatter(labels, header) {
       else if (str == 0)  str = "unknown";
       else                str = "wrong";
     }
-    if (filename.indexOf(" ") == 0) { // for showTrend(), all labels start with space.
+    if (filename.indexOf(" ") == 0) { // for showQuantile(), all labels start with space.
       filename = "";
     } else {
       filename = filename + "<br>";
@@ -633,13 +634,13 @@ function getFormatter(labels, header) {
 
 var graphData = {
   header : null,
-  isTrend : false,
+  isQuantile : true,
   isLogScale : false,
   showCorrectOnly : false,
 };
 
-function toggleTrend() {
-  graphData.isTrend = !graphData.isTrend;
+function toggleQuantile() {
+  graphData.isQuantile = !graphData.isQuantile;
   showPlot();
 }
 
@@ -658,22 +659,22 @@ function showPlot() {
 
   debug("show plot of: " + graphData.header);
   var yTicks = getYTicks(graphData.header);
-  var xTicks = getXTicks(graphData.isTrend);
+  var xTicks = getXTicks(graphData.isQuantile);
 
   $('#contentPane').append('<div id="chart"></div>',
-                 '<button id="button-trend"></button>',
+                 '<button id="button-quantile"></button>',
                  '<button id="button-logScale"></button>',
                  '<button id="button-showCorrectOnly"></button>');
 
-  var button = $('#button-trend')[1];
-  button.onclick = function() { toggleTrend(); };
-  button.textContent = graphData.isTrend ? 'Switch to Direct Plot' : 'Switch to Quantile Plot';
+  var button = $('#button-quantile')[0];
+  button.onclick = function() { toggleQuantile(); };
+  button.textContent = graphData.isQuantile ? 'Switch to Direct Plot' : 'Switch to Quantile Plot';
 
-  var button = $('#button-logScale')[1];
+  var button = $('#button-logScale')[0];
   button.onclick = function() { toggleLogScale(); };
   button.textContent = graphData.isLogScale ?  'Switch to Linear Scale' : 'Switch to Logarithmic Scale';
 
-  var button = $('#button-showCorrectOnly')[1];
+  var button = $('#button-showCorrectOnly')[0];
   button.onclick = function() { toggleShowCorrectOnly(); };
   button.textContent = graphData.showCorrectOnly ?  'Switch to All Results' : 'Switch to Correct Results Only';
 
@@ -694,7 +695,7 @@ function showPlot() {
       rowSpacing: "0px",
       showSwatches: true,
     },
-    dataRenderer: getTableData(graphData.header, graphData.isTrend),
+    dataRenderer: getTableData(graphData.header, graphData.isQuantile),
     highlighter:{
       show: true,
       sizeAdjust: 10,
