@@ -997,12 +997,11 @@ class OutputHandler:
         runsElem = Util.getCopyOfXMLElem(self.XMLHeader)
         testOptions = mergeOptions(test.benchmark.options, test.options)
         runsElem.set("options", " ".join(testOptions))
-        if test.name is not None:
-            name = test.name
         if blockname is not None:
-            name = ((test.name + ".") if test.name else "") + blockname
             runsElem.set("block", blockname)
-        runsElem.set("name", name)
+            runsElem.set("name", ((test.name + ".") if test.name else "") + blockname)
+        elif test.name is not None:
+            runsElem.set("name", test.name)
 
         # collect XMLelements from all runs
         for run in runs:
