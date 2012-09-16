@@ -297,6 +297,10 @@ def insertLogFileNames(resultFile, resultElem):
     # append begin of filename
     testname = resultElem.get('name')
     if testname is not None:
+        blockname = resultElem.get('block')
+        if blockname is not None:
+            assert testname.endswith("." + blockname)
+            testname = testname[:-(1 + len(blockname))] # remove last chars
         logFolder += testname + "."
 
     # for each file: append original filename and insert logFileName into sourcefileElement

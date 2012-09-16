@@ -952,14 +952,13 @@ class OutputHandler:
 
         # write testresults to files
         FileWriter(self.getFileName(self.test.name, "xml"),
-            Util.XMLtoString(self.runsToXML(self.test, self.test.runs, self.test.name)))
+            Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
         FileWriter(self.getFileName(self.test.name, "csv"), self.testToCSV(self.test))
 
         if len(self.test.blocks) > 1:
             for block in self.test.blocks:
-                name = ((self.test.name + ".") if self.test.name else "") + block.name
                 FileWriter(self.getFileName(self.test.name, block.name + ".xml"),
-                    Util.XMLtoString(self.runsToXML(self.test, block.runs, name)))
+                    Util.XMLtoString(self.runsToXML(self.test, block.runs, block.name)))
 
         self.TXTContent += self.testToTXT(self.test, True)
         self.TXTFile.replace(self.TXTContent)
@@ -990,7 +989,7 @@ class OutputHandler:
         return "\n".join(lines) + "\n"
 
 
-    def runsToXML(self, test, runs, name):
+    def runsToXML(self, test, runs, blockname=None):
         """
         This function dumps a list of runs of a test and their results to XML.
         """
@@ -998,8 +997,12 @@ class OutputHandler:
         runsElem = Util.getCopyOfXMLElem(self.XMLHeader)
         testOptions = mergeOptions(test.benchmark.options, test.options)
         runsElem.set("options", " ".join(testOptions))
-        if name is not None:
-            runsElem.set("name", name)
+        if test.name is not None:
+            name = test.name
+        if blockname is not None:
+            name = ((test.name + ".") if test.name else "") + blockname
+            runsElem.set("block", blockname)
+        runsElem.set("name", name)
 
         # collect XMLelements from all runs
         for run in runs:
