@@ -665,17 +665,17 @@ function showPlot() {
                  '<button id="button-logScale"></button>',
                  '<button id="button-showCorrectOnly"></button>');
 
-  var button = $('#button-trend')[0];
+  var button = $('#button-trend')[1];
   button.onclick = function() { toggleTrend(); };
-  button.textContent = graphData.isTrend ? 'Show Plot' : 'Show Trend';
+  button.textContent = graphData.isTrend ? 'Switch to Direct Plot' : 'Switch to Quantile Plot';
 
-  var button = $('#button-logScale')[0];
+  var button = $('#button-logScale')[1];
   button.onclick = function() { toggleLogScale(); };
-  button.textContent = graphData.isLogScale ?  'Use linear scale' : 'Use log scale';
+  button.textContent = graphData.isLogScale ?  'Switch to Linear Scale' : 'Switch to Logarithmic Scale';
 
-  var button = $('#button-showCorrectOnly')[0];
+  var button = $('#button-showCorrectOnly')[1];
   button.onclick = function() { toggleShowCorrectOnly(); };
-  button.textContent = graphData.showCorrectOnly ?  'Show all files' : 'Show correct only';
+  button.textContent = graphData.showCorrectOnly ?  'Switch to All Results' : 'Switch to Correct Results Only';
 
   showContentPane();
   $('#contentPaneBackground').click(function(event) {
