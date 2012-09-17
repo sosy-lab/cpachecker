@@ -28,6 +28,7 @@ import net.sf.javabdd.BDDFactory;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -48,6 +49,8 @@ import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
  * CPA for the verification of finite state machines
  * using binary decision diagrams.
  */
+
+@Options(prefix="cpa.fsmbdd")
 public class FsmBddCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
