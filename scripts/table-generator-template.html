@@ -535,7 +535,10 @@ function getXTicks(useNums) {
   var tableBody = $('#dataTable > tbody')[0];
 
   if (useNums) { // collect some numbers
-    var step = (tableBody.rows.length > 10) ? 5 : 1;
+    var step = 1;
+    if (tableBody.rows.length > 30) { step = 5; }
+    if (tableBody.rows.length > 200) { step = 20; }
+
     var counter = 0;
     for (i = 0; i < tableBody.rows.length; i++) {
       if ($(tableBody.rows[i]).is(":visible")) {
@@ -636,7 +639,7 @@ var graphData = {
   header : null,
   isQuantile : true,
   isLogScale : false,
-  showCorrectOnly : false,
+  showCorrectOnly : true,
 };
 
 function toggleQuantile() {
