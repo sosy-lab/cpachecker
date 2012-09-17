@@ -28,12 +28,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDDomain;
 
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -51,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -75,6 +78,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
  */
 public class FsmTransferRelation implements TransferRelation {
 
+  @Option(description="Encode contiguous sequences of conditions with one computation?")
+  private boolean conditionBlockEncoding = true;
+
   /**
    * Name of the variable that is used to encode the result of a function.
    * (gets scoped with the name of the function)
@@ -83,6 +89,7 @@ public class FsmTransferRelation implements TransferRelation {
    * conflict with a program variable with the same name.
    */
   private static final String RESULT_VARIABLE_NAME = "return";
+
 
   /**
    * String that is used to separate the different
@@ -144,6 +151,12 @@ public class FsmTransferRelation implements TransferRelation {
 //    System.out.println(String.format("%15s : (l %d) %s (l %d)", pCfaEdge.getEdgeType(), pCfaEdge.getPredecessor().getNodeNumber(), pCfaEdge.getRawStatement(), pCfaEdge.getSuccessor().getNodeNumber()));
 
     try {
+      if (conditionBlockEncoding) {
+        if (pCfaEdge.getEdgeType() != CFAEdgeType.AssumeEdge) {
+          encodeAssumptions(successor);
+        }
+      }
+
       switch (pCfaEdge.getEdgeType()) {
         case AssumeEdge:
           handleAssumeEdge(predecessor, (CAssumeEdge) pCfaEdge, successor);
@@ -208,6 +221,31 @@ public class FsmTransferRelation implements TransferRelation {
         throw new CPATransferException("Unsupported edge within multi-edge: " + edge.getEdgeType().toString());
       }
     }
+  }
+
+  public void encodeAssumptions(FsmState pSuccessor) throws CPATransferException {
+    List<CAssumeEdge> unencodedAssumptions = pSuccessor.getUnencodedAssumptions();
+    if (unencodedAssumptions == null) {
+      return;
+    }
+
+    ListIterator<CAssumeEdge> it = unencodedAssumptions.listIterator(unencodedAssumptions.size());
+    while (it.hasPrevious()) {
+      CAssumeEdge assume = it.previous();
+
+      BDD assumptionBdd = edgeBddCache.get(assume.getExpression());
+      if (assumptionBdd == null) {
+        assumptionBdd = getAssumptionAsBdd(pSuccessor, assume, assume.getExpression());
+        edgeBddCache.put(assume.getExpression(), assumptionBdd);
+      }
+      if (!assume.getTruthAssumption()) {
+        assumptionBdd = assumptionBdd.not();
+      }
+
+      pSuccessor.addConjunctionWith(assumptionBdd);
+    }
+
+    pSuccessor.resetUnencodedAssumptions();
   }
 
   /**
@@ -359,16 +397,20 @@ public class FsmTransferRelation implements TransferRelation {
    * by doing a conjunction of the assumption with the the BDD of the predecessor state.
    */
   private void handleAssumeEdge (FsmState pPredecessor, CAssumeEdge pAssumeEdge, FsmState pSuccessor) throws CPATransferException {
-    BDD assumptionBdd = edgeBddCache.get(pAssumeEdge.getExpression());
-    if (assumptionBdd == null) {
-      assumptionBdd = getAssumptionAsBdd(pSuccessor, pAssumeEdge, pAssumeEdge.getExpression());
-      edgeBddCache.put(pAssumeEdge.getExpression(), assumptionBdd);
-    }
-    if (!pAssumeEdge.getTruthAssumption()) {
-      assumptionBdd = assumptionBdd.not();
-    }
+    if (conditionBlockEncoding) {
+      pSuccessor.addUnencodedAssumption(pAssumeEdge);
+    } else {
+      BDD assumptionBdd = edgeBddCache.get(pAssumeEdge.getExpression());
+      if (assumptionBdd == null) {
+        assumptionBdd = getAssumptionAsBdd(pSuccessor, pAssumeEdge, pAssumeEdge.getExpression());
+        edgeBddCache.put(pAssumeEdge.getExpression(), assumptionBdd);
+      }
+      if (!pAssumeEdge.getTruthAssumption()) {
+        assumptionBdd = assumptionBdd.not();
+      }
 
-    pSuccessor.addConjunctionWith(assumptionBdd);
+      pSuccessor.addConjunctionWith(assumptionBdd);
+    }
   }
 
   /**

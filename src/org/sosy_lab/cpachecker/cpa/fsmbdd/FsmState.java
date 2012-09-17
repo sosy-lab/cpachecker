@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.fsmbdd;
 
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import net.sf.javabdd.BDD;
@@ -31,6 +33,7 @@ import net.sf.javabdd.BDDDomain;
 import net.sf.javabdd.BDDFactory;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.VariableDeclarationException;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
@@ -42,6 +45,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class FsmState implements AbstractState {
 
   private static Map<String, BDDDomain> declaredVariables = new HashMap<String, BDDDomain>();
+
+  private List<CAssumeEdge> unencodedAssumptions = null;
 
   /**
    * Reference to the instance of the BDD library.
@@ -164,6 +169,23 @@ public class FsmState implements AbstractState {
     BDDDomain sourceDomain = getGlobalVariableDomain(pSourceVariable);
 
     stateBdd = stateBdd.exist(targetDomain.set()).and(sourceDomain.buildEquals(targetDomain));
+  }
+
+  public void addUnencodedAssumption(CAssumeEdge pEdge) {
+    if (unencodedAssumptions == null) {
+      unencodedAssumptions = new LinkedList<CAssumeEdge>();
+    }
+
+    unencodedAssumptions.add(pEdge);
+  }
+
+  public List<CAssumeEdge> getUnencodedAssumptions() {
+    return unencodedAssumptions;
+  }
+
+  public void resetUnencodedAssumptions() {
+    unencodedAssumptions.clear();
+    unencodedAssumptions = null;
   }
 
   /**
