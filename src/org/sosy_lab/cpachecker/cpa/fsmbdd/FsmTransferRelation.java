@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -153,9 +154,9 @@ public class FsmTransferRelation implements TransferRelation {
     final FsmState predecessor = (FsmState) pState;
     final FsmState successor = predecessor.cloneState();
 
-//    System.out.println("-----------------");
-//    System.out.println(String.format("%15s : %s", "Predecessor", predecessor));
-//    System.out.println(String.format("%15s : (l %d) %s (l %d)", pCfaEdge.getEdgeType(), pCfaEdge.getPredecessor().getNodeNumber(), pCfaEdge.getRawStatement(), pCfaEdge.getSuccessor().getNodeNumber()));
+    System.out.println("-----------------");
+    System.out.println(String.format("%15s : %s", "Predecessor", predecessor));
+    System.out.println(String.format("%15s : (l %d) %s (l %d)", pCfaEdge.getEdgeType(), pCfaEdge.getPredecessor().getNodeNumber(), pCfaEdge.getRawStatement(), pCfaEdge.getSuccessor().getNodeNumber()));
 
     try {
       if (conditionBlockEncoding) {
@@ -200,7 +201,7 @@ public class FsmTransferRelation implements TransferRelation {
       throw new UnrecognizedCCodeException(e.getMessage(), pCfaEdge);
     }
 
-//    System.out.println(String.format("%15s : %s", "Successor", successor));
+    System.out.println(String.format("%15s : %s", "Successor", successor));
 
     // Return an empty set if the BDD evaluates to "false".
     if (successor.getStateBdd().isZero()) {
@@ -364,9 +365,10 @@ public class FsmTransferRelation implements TransferRelation {
    *  after that, the equality between "foo.v" and "bar.result"
    *  (the variable "result" of bar encodes the return value of the function)
    *  gets established and is conjuncted with the BDD of the successor state.
+   * @throws CPATransferException
    *
    */
-  private void handleFunctionReturnEdge(FsmState pPredecessor, CFunctionReturnEdge pFunctionReturnEdge, FsmState pSuccessor) throws UnrecognizedCCodeException, VariableDeclarationException {
+  private void handleFunctionReturnEdge(FsmState pPredecessor, CFunctionReturnEdge pFunctionReturnEdge, FsmState pSuccessor) throws CPATransferException {
     CFunctionSummaryEdge summaryEdge = pFunctionReturnEdge.getSummaryEdge();
     CFunctionCall exprOnSummary = summaryEdge.getExpression();
 
@@ -386,8 +388,10 @@ public class FsmTransferRelation implements TransferRelation {
       } else {
         throw new UnrecognizedCCodeException("On return from function.", summaryEdge, callerLeft);
       }
+    } else if (exprOnSummary instanceof CFunctionCallStatement) {
+      // Return value not handled by caller.
     } else {
-      throw new UnrecognizedCCodeException("Unsupported assignement of function return value.", pFunctionReturnEdge);
+      throw new CPATransferException(String.format("Unsupported assignement (line %d) of function return value: %s", summaryEdge.getLineNumber(), exprOnSummary.getClass().getSimpleName()));
     }
 
     // Existential quantify all local variables of the function.

@@ -97,7 +97,12 @@ public class FsmDomain implements AbstractDomain {
     FsmState state1 = (FsmState) pState1;
     FsmState state2 = (FsmState) pState2;
 
-    return state1.getStateBdd().imp(state2.getStateBdd()).isOne();
+    if (state1.getUnencodedAssumptions() != null
+      || state2.getUnencodedAssumptions() != null) {
+      return false;
+    } else {
+      return state1.getStateBdd().imp(state2.getStateBdd()).isOne();
+    }
   }
 
 }
