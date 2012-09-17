@@ -9,14 +9,14 @@
 
   <test name="FsmBddAnalysis">
     <option name="-fsmBddAnalysis"/>
-    <option name="-setprop"/>cpa.fsmbdd.conditionBlockEncoding=false</option>
+    <option name="-setprop">cpa.fsmbdd.conditionBlockEncoding=false</option>
     <option name="-setprop">specification=config/specification/default.spc</option>
     <option name="-heap">13000M</option>
   </test>
   
   <test name="FsmBdd-BlockEncoding">
     <option name="-fsmBddAnalysis"/>
-    <option name="-setprop"/>cpa.fsmbdd.conditionBlockEncoding=true</option>
+    <option name="-setprop">cpa.fsmbdd.conditionBlockEncoding=true</option>
     <option name="-setprop">specification=config/specification/default.spc</option>
     <option name="-heap">13000M</option>
   </test>
