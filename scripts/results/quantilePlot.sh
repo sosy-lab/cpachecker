@@ -29,7 +29,6 @@ set bmargin 0
 set lmargin 9
 set rmargin 3
 set yrange [1:1000]
-set xrange [0:215]
 unset xlabel
 unset xtics
 set ylabel 'Time in s'
@@ -44,6 +43,7 @@ set origin 0,0.14
 
 CMD="plot ";
 k=0;
+XRANGE=0;
 for i in `ls $DIR`; do
   echo "$k: $i";
 
@@ -71,8 +71,14 @@ for i in `ls $DIR`; do
   done;
   sort -g tmp.data | grep -n "" | sed "s/:/\t/" > tab_$i.data;
   k=$(($k + 1));
+  NRVALUES=`cat tab_$i.data | wc -l`;
+  if [ "$NRVALUES" -ge "$XRANGE" ]; then
+    XRANGE=$NRVALUES;
+  fi
 done;
 
+echo "set xrange [0:$XRANGE]
+" >> quantilePlotShow.gp;
 echo "$CMD%" | sed "s/,%/;/" >> quantilePlotShow.gp;
 
 echo "
