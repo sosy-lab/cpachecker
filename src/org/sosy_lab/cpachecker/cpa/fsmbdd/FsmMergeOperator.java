@@ -45,7 +45,15 @@ public class FsmMergeOperator implements MergeOperator {
 
   @Override
   public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision) throws CPAException {
-    return domain.join(pState1, pState2);
+    FsmState state1 = (FsmState) pState1;
+    FsmState state2 = (FsmState) pState2;
+
+    if (state1.getUnencodedAssumptions() != null
+      || state2.getUnencodedAssumptions() != null ) {
+      return pState2;
+    } else {
+      return domain.join(pState1, pState2);
+    }
   }
 
 }

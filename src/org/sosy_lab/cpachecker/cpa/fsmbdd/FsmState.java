@@ -194,6 +194,9 @@ public class FsmState implements AbstractState {
   public FsmState cloneState() {
     FsmState result = new FsmState(bddFactory);
     result.stateBdd = this.stateBdd;
+    if (this.unencodedAssumptions != null) {
+      result.unencodedAssumptions = new LinkedList<CAssumeEdge>(this.unencodedAssumptions);
+    }
 
     return result;
   }
