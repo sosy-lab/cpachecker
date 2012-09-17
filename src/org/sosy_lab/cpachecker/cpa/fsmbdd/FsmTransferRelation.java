@@ -35,7 +35,10 @@ import java.util.Set;
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDDomain;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -76,6 +79,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 /**
  * The transfer-relation of the FsmBdd CPA.
  */
+@Options(prefix="cpa.fsmbdd")
 public class FsmTransferRelation implements TransferRelation {
 
   @Option(description="Encode contiguous sequences of conditions with one computation?")
@@ -120,11 +124,14 @@ public class FsmTransferRelation implements TransferRelation {
 
   /**
    * Constructor.
+   * @throws InvalidConfigurationException
    */
-  public FsmTransferRelation() {
+  public FsmTransferRelation(Configuration pConfig) throws InvalidConfigurationException {
     this.edgeBddCache = new HashMap<CExpression, BDD>();
     this.globalVariables = new HashSet<String>();
     this.variablesPerFunction = new HashMap<String, Set<String>>();
+
+    pConfig.inject(this);
   }
 
   /**
