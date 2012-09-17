@@ -84,7 +84,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 public class FsmTransferRelation implements TransferRelation {
 
   @Option(description="Encode contiguous sequences of conditions with one computation?")
-  private boolean conditionBlockEncoding = true;
+  private boolean conditionBlockEncoding = false;
 
   /**
    * Name of the variable that is used to encode the result of a function.
@@ -154,9 +154,9 @@ public class FsmTransferRelation implements TransferRelation {
     final FsmState predecessor = (FsmState) pState;
     final FsmState successor = predecessor.cloneState();
 
-    System.out.println("-----------------");
-    System.out.println(String.format("%15s : %s", "Predecessor", predecessor));
-    System.out.println(String.format("%15s : (l %d) %s (l %d)", pCfaEdge.getEdgeType(), pCfaEdge.getPredecessor().getNodeNumber(), pCfaEdge.getRawStatement(), pCfaEdge.getSuccessor().getNodeNumber()));
+//    System.out.println("-----------------");
+//    System.out.println(String.format("%15s : %s", "Predecessor", predecessor));
+//    System.out.println(String.format("%15s : (l %d) %s (l %d)", pCfaEdge.getEdgeType(), pCfaEdge.getPredecessor().getNodeNumber(), pCfaEdge.getRawStatement(), pCfaEdge.getSuccessor().getNodeNumber()));
 
     try {
       if (conditionBlockEncoding) {
@@ -201,7 +201,7 @@ public class FsmTransferRelation implements TransferRelation {
       throw new UnrecognizedCCodeException(e.getMessage(), pCfaEdge);
     }
 
-    System.out.println(String.format("%15s : %s", "Successor", successor));
+//    System.out.println(String.format("%15s : %s", "Successor", successor));
 
     // Return an empty set if the BDD evaluates to "false".
     if (successor.getStateBdd().isZero()) {

@@ -98,11 +98,18 @@ public class FsmDomain implements AbstractDomain {
     FsmState state2 = (FsmState) pState2;
 
     if (state1.getUnencodedAssumptions() != null
-      || state2.getUnencodedAssumptions() != null) {
-      return false;
-    } else {
-      return state1.getStateBdd().imp(state2.getStateBdd()).isOne();
+    || state2.getUnencodedAssumptions() != null) {
+      if (state1.getUnencodedAssumptions() == null
+      || state2.getUnencodedAssumptions() == null) {
+        return false;
+      }
+
+      if (!state1.getUnencodedAssumptions().equals(state2.getUnencodedAssumptions())) {
+        return false;
+      }
     }
+
+    return state1.getStateBdd().imp(state2.getStateBdd()).isOne();
   }
 
 }
