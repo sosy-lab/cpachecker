@@ -52,7 +52,7 @@ TEMPLATE_FORMATS = ['html', 'csv']
 
 # string searched in filenames to determine correct or incorrect status.
 # use lower case!
-BUG_SUBSTRING_LIST = ['bug', 'unsafe']
+BUG_SUBSTRING_LIST = ['unsafe']
 
 # scoreValues taken from http://sv-comp.sosy-lab.org/
 SCORE_CORRECT_SAFE = 2
