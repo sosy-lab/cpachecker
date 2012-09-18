@@ -117,12 +117,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
-import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
@@ -130,10 +127,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedef;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
@@ -203,7 +198,7 @@ class ASTConverter {
 
     } else if(e instanceof IASTUnaryExpression && (((IASTUnaryExpression)e).getOperator() == IASTUnaryExpression.op_postFixDecr
                                                    || ((IASTUnaryExpression)e).getOperator() == IASTUnaryExpression.op_postFixIncr)) {
-      return addSideAssignmentsForUnaryExpressions(e, ((CAssignment)node).getLeftHandSide(), node.getFileLocation(), convert(e.getExpressionType()), ((CBinaryExpression)((CAssignment)node).getRightHandSide()).getOperator());
+      return addSideAssignmentsForUnaryExpressions(e, ((CAssignment)node).getLeftHandSide(), node.getFileLocation(), ASTTypeConverter.conv(e.getExpressionType()), ((CBinaryExpression)((CAssignment)node).getRightHandSide()).getOperator());
 
     } else if (node instanceof CAssignment) {
       preSideAssignments.add(node);
@@ -289,7 +284,7 @@ class ASTConverter {
   }
 
   private CArraySubscriptExpression convert(IASTArraySubscriptExpression e) {
-    return new CArraySubscriptExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getArrayExpression()), convertExpressionWithoutSideEffects(e.getSubscriptExpression()));
+    return new CArraySubscriptExpression(convert(e.getFileLocation()), ASTTypeConverter.conv(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getArrayExpression()), convertExpressionWithoutSideEffects(e.getSubscriptExpression()));
   }
 
   /**
@@ -305,7 +300,7 @@ class ASTConverter {
     CVariableDeclaration decl = new CVariableDeclaration(convert(e.getFileLocation()),
                                                false,
                                                CStorageClass.AUTO,
-                                               convert(e.getExpressionType()),
+                                               ASTTypeConverter.conv(e.getExpressionType()),
                                                name,
                                                name,
                                                null);
@@ -315,7 +310,7 @@ class ASTConverter {
     preSideAssignments.add(decl);
     }
     CIdExpression tmp = new CIdExpression(convert(e.getFileLocation()),
-                                                convert(e.getExpressionType()),
+                                                ASTTypeConverter.conv(e.getExpressionType()),
                                                 name,
                                                 decl);
     return tmp;
@@ -323,7 +318,7 @@ class ASTConverter {
 
   private CAstNode convert(IASTBinaryExpression e) {
     CFileLocation fileLoc = convert(e.getFileLocation());
-    CType type = convert(e.getExpressionType());
+    CType type = ASTTypeConverter.conv(e.getExpressionType());
     CExpression leftHandSide = convertExpressionWithoutSideEffects(e.getOperand1());
 
     Pair<BinaryOperator, Boolean> opPair = convertBinaryOperator(e);
@@ -480,11 +475,11 @@ class ASTConverter {
   }
 
   private CAstNode convert(IASTCastExpression e) {
-    return new CCastExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getOperand()), convert(e.getTypeId()));
+    return new CCastExpression(convert(e.getFileLocation()), ASTTypeConverter.conv(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getOperand()), convert(e.getTypeId()));
   }
 
   private CFieldReference convert(IASTFieldReference e) {
-    return new CFieldReference(convert(e.getFileLocation()), convert(e.getExpressionType()), convert(e.getFieldName()), convertExpressionWithoutSideEffects(e.getFieldOwner()), e.isPointerDereference());
+    return new CFieldReference(convert(e.getFileLocation()), ASTTypeConverter.conv(e.getExpressionType()), convert(e.getFieldName()), convertExpressionWithoutSideEffects(e.getFieldOwner()), e.isPointerDereference());
   }
 
   private CFunctionCallExpression convert(IASTFunctionCallExpression e) {
@@ -518,7 +513,7 @@ class ASTConverter {
       }
     }
 
-    return new CFunctionCallExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), functionName, params, declaration);
+    return new CFunctionCallExpression(convert(e.getFileLocation()), ASTTypeConverter.conv(e.getExpressionType()), functionName, params, declaration);
   }
 
   private List<CExpression> convert(IASTExpressionList es) {
@@ -535,12 +530,12 @@ class ASTConverter {
     if (declaration != null) {
       name = declaration.getName();
     }
-    return new CIdExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), name, declaration);
+    return new CIdExpression(convert(e.getFileLocation()), ASTTypeConverter.conv(e.getExpressionType()), name, declaration);
   }
 
   private CLiteralExpression convert(IASTLiteralExpression e) {
     CFileLocation fileLoc = convert(e.getFileLocation());
-    CType type = convert(e.getExpressionType());
+    CType type = ASTTypeConverter.conv(e.getExpressionType());
 
     String valueStr = String.valueOf(e.getValue());
     switch (e.getKind()) {
@@ -700,7 +695,7 @@ class ASTConverter {
     }
 
     CFileLocation fileLoc = convert(e.getFileLocation());
-    CType type = convert(e.getExpressionType());
+    CType type = ASTTypeConverter.conv(e.getExpressionType());
 
 
     switch (e.getOperator()) {
@@ -769,7 +764,7 @@ class ASTConverter {
   }
 
   private CTypeIdExpression convert(IASTTypeIdExpression e) {
-    return new CTypeIdExpression(convert(e.getFileLocation()), convert(e.getExpressionType()), convertTypeIdOperator(e), convert(e.getTypeId()));
+    return new CTypeIdExpression(convert(e.getFileLocation()), ASTTypeConverter.conv(e.getExpressionType()), convertTypeIdOperator(e), convert(e.getTypeId()));
   }
 
   private TypeIdOperator convertTypeIdOperator(IASTTypeIdExpression e) {
@@ -1170,7 +1165,7 @@ class ASTConverter {
       return Pair.of(sc, convert((IASTNamedTypeSpecifier)d));
 
     } else if (d instanceof IASTSimpleDeclSpecifier) {
-      return Pair.of(sc, convert((IASTSimpleDeclSpecifier)d));
+      return Pair.of(sc, ASTTypeConverter.conv((IASTSimpleDeclSpecifier)d));
 
     } else {
       throw new CFAGenerationRuntimeException("unknown declSpecifier", d);
@@ -1246,56 +1241,6 @@ class ASTConverter {
   private CNamedType convert(IASTNamedTypeSpecifier d) {
     return new CNamedType(d.isConst(), d.isVolatile(), convert(d.getName()));
   }
-
-  private CType convert(IASTSimpleDeclSpecifier d) {
-    if (!(d instanceof org.eclipse.cdt.core.dom.ast.c.ICASTSimpleDeclSpecifier)) {
-      throw new CFAGenerationRuntimeException("Unsupported type", d);
-    }
-    org.eclipse.cdt.core.dom.ast.c.ICASTSimpleDeclSpecifier dd = (org.eclipse.cdt.core.dom.ast.c.ICASTSimpleDeclSpecifier)d;
-
-    CBasicType type;
-    switch (dd.getType()) {
-    case org.eclipse.cdt.core.dom.ast.c.ICASTSimpleDeclSpecifier.t_Bool:
-      type = CBasicType.BOOL;
-      break;
-    case IASTSimpleDeclSpecifier.t_char:
-      type = CBasicType.CHAR;
-      break;
-    case IASTSimpleDeclSpecifier.t_double:
-      type = CBasicType.DOUBLE;
-      break;
-    case IASTSimpleDeclSpecifier.t_float:
-      type = CBasicType.FLOAT;
-      break;
-    case IASTSimpleDeclSpecifier.t_int:
-      type = CBasicType.INT;
-      break;
-    case IASTSimpleDeclSpecifier.t_unspecified:
-      type = CBasicType.UNSPECIFIED;
-      break;
-    case IASTSimpleDeclSpecifier.t_void:
-      type = CBasicType.VOID;
-      break;
-    case IASTSimpleDeclSpecifier.t_typeof:
-      // TODO This might loose some information of dd or dd.getDeclTypeExpression()
-      // (the latter should be of type IASTTypeIdExpression)
-      return convert(dd.getDeclTypeExpression().getExpressionType());
-    default:
-      throw new CFAGenerationRuntimeException("Unknown basic type " + dd.getType() + " " + dd.getClass().getSimpleName(), d);
-    }
-
-    if ((dd.isShort() && dd.isLong())
-        || (dd.isShort() && dd.isLongLong())
-        || (dd.isLong() && dd.isLongLong())
-        || (dd.isSigned() && dd.isUnsigned())) {
-      throw new CFAGenerationRuntimeException("Illegal combination of type identifiers", d);
-    }
-
-    return new CSimpleType(dd.isConst(), dd.isVolatile(), type,
-        dd.isLong(), dd.isShort(), dd.isSigned(), d.isUnsigned(),
-        dd.isComplex(), dd.isImaginary(), dd.isLongLong());
-  }
-
 
   private CEnumerator convert(IASTEnumerationSpecifier.IASTEnumerator e, Long lastValue) {
     Long value = null;
@@ -1466,112 +1411,5 @@ class ASTConverter {
     }
 
     return declarator.getFirst();
-  }
-
-  private CType convert(org.eclipse.cdt.core.dom.ast.IType t) {
-    if (t instanceof org.eclipse.cdt.core.dom.ast.IBasicType) {
-      return convert((org.eclipse.cdt.core.dom.ast.IBasicType)t);
-
-    } else if (t instanceof org.eclipse.cdt.core.dom.ast.IPointerType) {
-      return convert((org.eclipse.cdt.core.dom.ast.IPointerType)t);
-
-    } else if (t instanceof org.eclipse.cdt.core.dom.ast.ITypedef) {
-      return convert((org.eclipse.cdt.core.dom.ast.ITypedef)t);
-
-    } else if (t instanceof org.eclipse.cdt.core.dom.ast.IBinding) {
-      return new CComplexType(((org.eclipse.cdt.core.dom.ast.IBinding) t).getName());
-
-    } else {
-      return new CDummyType(t.toString());
-    }
-  }
-
-  private CSimpleType convert(final org.eclipse.cdt.core.dom.ast.IBasicType t) {
-    try {
-
-      // The IBasicType has to be an ICBasicType or
-      // an IBasicType of type "void" (then it is an ICPPBasicType)
-      if (t instanceof org.eclipse.cdt.core.dom.ast.c.ICBasicType) {
-        final org.eclipse.cdt.core.dom.ast.c.ICBasicType c =
-          (org.eclipse.cdt.core.dom.ast.c.ICBasicType) t;
-
-        CBasicType type;
-        switch (t.getType()) {
-        case org.eclipse.cdt.core.dom.ast.c.ICBasicType.t_Bool:
-          type = CBasicType.BOOL;
-          break;
-        case org.eclipse.cdt.core.dom.ast.IBasicType.t_char:
-          type = CBasicType.CHAR;
-          break;
-        case org.eclipse.cdt.core.dom.ast.IBasicType.t_double:
-          type = CBasicType.DOUBLE;
-          break;
-        case org.eclipse.cdt.core.dom.ast.IBasicType.t_float:
-          type = CBasicType.FLOAT;
-          break;
-        case org.eclipse.cdt.core.dom.ast.IBasicType.t_int:
-          type = CBasicType.INT;
-          break;
-        case org.eclipse.cdt.core.dom.ast.IBasicType.t_unspecified:
-          type = CBasicType.UNSPECIFIED;
-          break;
-        case org.eclipse.cdt.core.dom.ast.IBasicType.t_void:
-          type = CBasicType.VOID;
-          break;
-        default:
-          throw new CFAGenerationRuntimeException("Unknown basic type " + t.getType());
-        }
-
-        if ((c.isShort() && c.isLong())
-            || (c.isShort() && c.isLongLong())
-            || (c.isLong() && c.isLongLong())
-            || (c.isSigned() && c.isUnsigned())) {
-          throw new CFAGenerationRuntimeException("Illegal combination of type identifiers");
-        }
-
-        // TODO why is there no isConst() and isVolatile() here?
-        return new CSimpleType(false, false, type, c.isLong(), c.isShort(), c.isSigned(), c.isUnsigned(), c.isComplex(), c.isImaginary(), c.isLongLong());
-
-      } else if (t.getType() == org.eclipse.cdt.core.dom.ast.IBasicType.t_void) {
-
-        // the three values isComplex, isImaginary, isLongLong are initialized
-        // with FALSE, because we do not know about them
-        return new CSimpleType(false, false, CBasicType.VOID, t.isLong(), t.isShort(), t.isSigned(), t.isUnsigned(), false, false, false);
-
-      } else {
-        throw new CFAGenerationRuntimeException("Unknown type " + t.toString());
-      }
-
-    } catch (org.eclipse.cdt.core.dom.ast.DOMException e) {
-      throw new CFAGenerationRuntimeException(e);
-    }
-  }
-
-  private CPointerType convert(org.eclipse.cdt.core.dom.ast.IPointerType t) {
-    try {
-      return new CPointerType(t.isConst(), t.isVolatile(), convert(getType(t)));
-    } catch (org.eclipse.cdt.core.dom.ast.DOMException e) {
-      throw new CFAGenerationRuntimeException(e);
-    }
-  }
-
-  private org.eclipse.cdt.core.dom.ast.IType getType(org.eclipse.cdt.core.dom.ast.IPointerType t) throws org.eclipse.cdt.core.dom.ast.DOMException {
-    // This method needs to throw DOMException because t.getType() does so in Eclipse CDT 6.
-    // Don't inline it, because otherwise Eclipse will complain about an unreachable catch block with Eclipse CDT 7.
-    return t.getType();
-  }
-
-  private CTypedef convert(org.eclipse.cdt.core.dom.ast.ITypedef t) {
-    try {
-      return new CTypedef(t.getName(), convert(getType(t)));
-    } catch (org.eclipse.cdt.core.dom.ast.DOMException e) {
-      throw new CFAGenerationRuntimeException(e);
-    }
-  }
-
-  private org.eclipse.cdt.core.dom.ast.IType getType(org.eclipse.cdt.core.dom.ast.ITypedef t) throws org.eclipse.cdt.core.dom.ast.DOMException {
-    // This method needs to throw DOMException because t.getType() does so in Eclipse CDT 6.
-    // Don't inline it, because otherwise Eclipse will complain about an unreachable catch block with Eclipse CDT 7.
-    return t.getType();
   }
 }

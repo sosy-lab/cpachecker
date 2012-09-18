@@ -114,8 +114,11 @@ import com.google.common.collect.Multimap;
 /**
  * Builder to traverse AST.
  * Known Limitations:
- * <p> -- K&R style function definitions not implemented
- * <p> -- Pointer modifiers not tracked (i.e. const, volatile, etc. for *
+ * <p> -- K&R style function definitions not implemented </p>
+ * <p> -- Pointer modifiers not tracked (i.e. const, volatile, etc. for * </p>
+ *
+ * This Builder handles exactly one functionDefinition and
+ * creates the cfa for the function.
  */
 class CFAFunctionBuilder extends ASTVisitor {
 
@@ -214,7 +217,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
   }
 
-  private int handleFunctionDefinition(final IASTFunctionDefinition declaration,
+  private int handleFunctionDefinition(final IASTFunctionDefinition definition,
       final IASTFileLocation fileloc) {
 
     if (locStack.size() != 0) {
@@ -225,7 +228,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     assert gotoLabelNeeded.isEmpty();
     assert cfa == null;
 
-    final CFunctionDeclaration fdef = astCreator.convert(declaration);
+    final CFunctionDeclaration fdef = astCreator.convert(definition);
     final String nameOfFunction = fdef.getName();
     assert !nameOfFunction.isEmpty();
 

@@ -44,7 +44,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
@@ -55,13 +54,18 @@ import com.google.common.collect.TreeMultimap;
 /**
  * Builder to traverse AST.
  * Known Limitations:
- * <p> -- K&R style function definitions not implemented
- * <p> -- Pointer modifiers not tracked (i.e. const, volatile, etc. for *
+ * <p> -- K&R style function definitions not implemented </p>
+ * <p> -- Pointer modifiers not tracked (i.e. const, volatile, etc. for * </p>
+ *
+ * This Builder handles all global declarations and definitions.
+ * This Builder does not create any cfaNodes or cfaEdges.
+ * The last step is to call the CFAFunctionBuilder for each functionDefinition
+ * to build the cfas there.
  */
 class CFABuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
-  private Queue<IASTFunctionDefinition> functionDeclarations = new LinkedList<IASTFunctionDefinition>();
+  private Queue<IASTFunctionDefinition> functionDefinitions = new LinkedList<IASTFunctionDefinition>();
   private final Map<String, FunctionEntryNode> cfas = new HashMap<String, FunctionEntryNode>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
@@ -115,11 +119,16 @@ class CFABuilder extends ASTVisitor {
     IASTFileLocation fileloc = declaration.getFileLocation();
 
     if (declaration instanceof IASTSimpleDeclaration) {
+      System.out.println("IASTSimpleDeclaration  "
+          + ((IASTSimpleDeclaration) declaration).getRawSignature()
+          + "   " + ((IASTSimpleDeclaration)declaration).getDeclarators()[0].getClass());
       return handleSimpleDeclaration((IASTSimpleDeclaration)declaration, fileloc);
 
     } else if (declaration instanceof IASTFunctionDefinition) {
+      System.out.println("IASTFunctionDefinition  "
+          + ((IASTFunctionDefinition) declaration).getDeclarator().getRawSignature());
       IASTFunctionDefinition fd = (IASTFunctionDefinition) declaration;
-      functionDeclarations.add(fd);
+      functionDefinitions.add(fd);
 
       // add forward declaration to list of global declarations
       CDeclaration functionDefinition = astCreator.convert(fd);
@@ -153,8 +162,11 @@ class CFABuilder extends ASTVisitor {
     }
   }
 
-  private int handleSimpleDeclaration(final IASTSimpleDeclaration sd,
-      final IASTFileLocation fileloc) {
+  /** handles global declarations of variables and functions.
+   *
+   * Info: variable-declarations can have an initializer,
+   *       function-declarations have no body! */
+  private int handleSimpleDeclaration(final IASTSimpleDeclaration sd, final IASTFileLocation fileloc) {
 
     //these are unneccesary semicolons which would cause an abort of CPAchecker
     if(sd.getDeclarators().length == 0  && sd.getDeclSpecifier() instanceof IASTSimpleDeclSpecifier) {
@@ -171,10 +183,10 @@ class CFABuilder extends ASTVisitor {
     String rawSignature = sd.getRawSignature();
 
     for (CDeclaration newD : newDs) {
-      if (newD instanceof CVariableDeclaration) {
-        scope.registerDeclaration(newD);
-      } else if (newD instanceof CFunctionDeclaration) {
+      if (newD instanceof CFunctionDeclaration) {
         scope.registerFunctionDeclaration((CFunctionDeclaration) newD);
+      } else {
+        scope.registerDeclaration(newD);
       }
 
       globalDeclarations.add(Pair.of(newD, rawSignature));
@@ -194,11 +206,11 @@ class CFABuilder extends ASTVisitor {
 
   @Override
   public int leave(IASTTranslationUnit translationUnit) {
-    for (IASTFunctionDefinition declaration : functionDeclarations) {
-      CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger,
+    for (IASTFunctionDefinition definition : functionDefinitions) {
+      final CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger,
           scope, astCreator);
 
-      declaration.accept(functionBuilder);
+      definition.accept(functionBuilder);
 
       FunctionEntryNode startNode = functionBuilder.getStartNode();
       String functionName = startNode.getFunctionName();
