@@ -159,7 +159,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
     // create the new abstract state for non-abstraction location
     return Collections.singleton(
-        PredicateAbstractState.nonAbstractionState(pathFormula, abstractionFormula));
+        PredicateAbstractState.mkNonAbstractionState(pathFormula, abstractionFormula));
   }
 
   /**
@@ -262,7 +262,7 @@ public class PredicateTransferRelation implements TransferRelation {
       return new ComputeAbstractionState(newPathFormula, oldElement.getAbstractionFormula(), loc);
     } else {
       assert !oldElement.isAbstractionState();
-      return PredicateAbstractState.nonAbstractionState(newPathFormula, oldElement.getAbstractionFormula());
+      return PredicateAbstractState.mkNonAbstractionState(newPathFormula, oldElement.getAbstractionFormula());
     }
   }
 
@@ -288,7 +288,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
       PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
-      return PredicateAbstractState.abstractionState(newPathFormula, abs);
+      return PredicateAbstractState.mkAbstractionState(newPathFormula, abs);
     }
   }
 
