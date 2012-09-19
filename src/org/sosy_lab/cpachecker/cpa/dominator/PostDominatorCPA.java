@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.location.InverseLocationCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
 
 public class PostDominatorCPA implements ConfigurableProgramAnalysis {
 
@@ -46,7 +46,7 @@ public class PostDominatorCPA implements ConfigurableProgramAnalysis {
   private org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA parametricDominatorCPA;
 
   public PostDominatorCPA(CFA pCfa) {
-    this.parametricDominatorCPA = new org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA(new InverseLocationCPA(pCfa));
+    this.parametricDominatorCPA = new org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA(new LocationCPABackwards(pCfa));
   }
 
   @Override

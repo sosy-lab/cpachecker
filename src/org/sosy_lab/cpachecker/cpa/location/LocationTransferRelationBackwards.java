@@ -37,11 +37,11 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class InverseLocationTransferRelation implements TransferRelation {
+public class LocationTransferRelationBackwards implements TransferRelation {
 
   private final LocationStateFactory factory;
 
-  public InverseLocationTransferRelation(LocationStateFactory pFactory) {
+  public LocationTransferRelationBackwards(LocationStateFactory pFactory) {
     factory = pFactory;
   }
 
