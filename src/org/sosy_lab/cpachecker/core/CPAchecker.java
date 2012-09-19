@@ -196,9 +196,9 @@ public class CPAchecker {
       // run analysis
       result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
 
-      boolean sound = runAlgorithm(algorithm, reached, stats);
+      boolean isComplete = runAlgorithm(algorithm, reached, stats);
 
-      result = analyzeResult(reached, sound);
+      result = analyzeResult(reached, isComplete);
 
     } catch (IOException e) {
       logger.logUserException(Level.SEVERE, e, "Could not read file");
@@ -252,7 +252,7 @@ public class CPAchecker {
 
     logger.log(Level.INFO, "Starting analysis ...");
 
-    boolean sound = true;
+    boolean isComplete = true;
 
     // register management interface for CPAchecker
     CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
@@ -261,14 +261,14 @@ public class CPAchecker {
     try {
 
       do {
-        sound &= algorithm.run(reached);
+        isComplete &= algorithm.run(reached);
 
         // either run only once (if stopAfterError == true)
         // or until the waitlist is empty
       } while (!stopAfterError && reached.hasWaitingState());
 
       logger.log(Level.INFO, "Stopping analysis ...");
-      return sound;
+      return isComplete;
 
     } finally {
       stats.analysisTime.stop();
@@ -279,7 +279,7 @@ public class CPAchecker {
     }
   }
 
-  private Result analyzeResult(final ReachedSet reached, boolean sound) {
+  private Result analyzeResult(final ReachedSet reached, boolean isComplete) {
     if (from(reached).anyMatch(IS_TARGET_STATE)) {
       return Result.UNSAFE;
     }
@@ -289,7 +289,7 @@ public class CPAchecker {
       return Result.UNKNOWN;
     }
 
-    if (!sound) {
+    if (!isComplete) {
       logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not everything could be checked.");
       return Result.UNKNOWN;
     }
