@@ -5,6 +5,7 @@
 
   <sourcefiles>
     <include>test/programs/eca/*.c</include>
+    <include>test/programs/eca-simplified/*.c</include>
   </sourcefiles>
 
   <test name="FsmBddAnalysis">
@@ -18,7 +19,7 @@
     <option name="-fsmBddAnalysis"/>
     <option name="-setprop">cpa.fsmbdd.conditionBlockEncoding=true</option>
     <option name="-setprop">specification=config/specification/default.spc</option>
-    <option name="-heap">13000M</option>
+    <option name="-heap">10000M</option>
   </test>
 
   <test name="PredicateAnalysis">
