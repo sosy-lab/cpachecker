@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="ecav" timelimit="300" memlimit="15000">
+  <sourcefiles>
+    <include>test/programs/eca/*.c</include>
+    <include>test/programs/eca-simplified/*.c</include>
+  </sourcefiles>
+
+  <test name="ECAverifier-NoIfThenElseSemantics">
+    <option name="-noIfElseSemantics" />
+    <option name="-specToCheck">ERROR</option>
+  </test>
+  
+  <test name="ECAverifier">
+  </test>
+
+  <columns>
+    <column title="total">time for ECAverifier</column>
+  </columns>
+</benchmark>
