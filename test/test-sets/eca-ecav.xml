@@ -5,10 +5,11 @@
     <include>test/programs/eca/*.c</include>
     <include>test/programs/eca-simplified/*.c</include>
   </sourcefiles>
+  
+  <option name="-specToCheck">ERROR</option>
 
   <test name="ECAverifier-NoIfThenElseSemantics">
     <option name="-noIfElseSemantics" />
-    <option name="-specToCheck">ERROR</option>
   </test>
   
   <test name="ECAverifier">
