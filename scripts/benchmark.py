@@ -84,6 +84,7 @@ TOOLS = {"cbmc"      : ["cbmc",
          "feaver"    : ["feaver_cmd"],
          "cpachecker": ["cpa.sh", "scripts/cpa.sh"],
          "blast"     : ["pblast.opt"],
+         "ecav"      : ["ecaverifier"],
          "safe"      : [],
          "unsafe"    : [],
          "random"    : [],
@@ -672,6 +673,7 @@ class OutputHandler:
                  'cbmc'      : 'CBMC',
                  'satabs'    : 'SatAbs',
                  'blast'     : 'BLAST',
+                 'ecav'      : 'ECAverifier',
                  'wolverine' : 'WOLVERINE',
                  'ufo'       : 'UFO',
                  'acsar'     : 'Acsar',
@@ -1814,6 +1816,24 @@ def run_blast(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
             status = 'EXCEPTION'
         elif (returncode == 2) and line.startswith('Ack! The gremlins again!: Sys_error("Broken pipe")'):
             status = 'TIMEOUT'
+
+    return (status, cpuTimeDelta, wallTimeDelta, args)
+
+def run_ecav(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
+    args = [exe] + options + [sourcefile]
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
+
+    status = "UNKNOWN"
+    for line in output.splitlines():
+        if line.startswith('0 safe, 1 unsafe'):
+            status = 'UNSAFE'
+        elif line.startswith('1 safe, 0 unsafe'):
+            status = 'SAFE'
+    	elif returnsignal == 9:
+        	if isTimeout(cpuTimeDelta, rlimits):
+	            status = 'TIMEOUT'
+	        else:
+	            status = "KILLED BY SIGNAL 9"
 
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
