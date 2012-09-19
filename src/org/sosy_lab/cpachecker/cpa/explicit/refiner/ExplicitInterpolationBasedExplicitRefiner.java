@@ -78,9 +78,9 @@ public class ExplicitInterpolationBasedExplicitRefiner {
 
   // statistics
   private int numberOfRefinements           = 0;
-  private int numberOfCounterExampleChecks  = 0;
+  private int numberOfInterpolations        = 0;
   private int numberOfErrorPathElements     = 0;
-  private Timer timerCounterExampleChecks   = new Timer();
+  private Timer timerInterpolation          = new Timer();
 
   protected ExplicitInterpolationBasedExplicitRefiner(Configuration config, PathFormulaManager pathFormulaManager)
       throws InvalidConfigurationException {
@@ -89,11 +89,11 @@ public class ExplicitInterpolationBasedExplicitRefiner {
 public boolean DEBUG = false;
   protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet,
       Path errorPath) throws CPAException {
-    timerCounterExampleChecks.start();
+    timerInterpolation.start();
     numberOfRefinements++;
 
     firstInterpolationPoint = null;
-
+//System.out.println(errorPath.toString().hashCode() + ":\n" + errorPath);
     Multimap<CFANode, String> increment = HashMultimap.create();
     // only do a refinement if a full-precision check shows that the path is infeasible
     if(!isPathFeasable(errorPath, HashMultimap.<CFANode, String>create())) {
@@ -107,10 +107,12 @@ public boolean DEBUG = false;
         numberOfErrorPathElements++;
 
         CFAEdge currentEdge = errorPath.get(i).getSecond();
+        CFAEdge aliasEdge = null;
         if(currentEdge instanceof CFunctionReturnEdge) {
           currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
+          aliasEdge = currentEdge;
         }
-
+//System.out.println("current edge: " + currentEdge);
         Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge.getSuccessor());
 
         // do interpolation
@@ -119,13 +121,22 @@ public boolean DEBUG = false;
 
           // check for each variable, if ignoring it makes the error path feasible
           for(String currentVariable : referencedVariablesAtEdge) {
-            numberOfCounterExampleChecks++;
-
+            numberOfInterpolations++;
+//System.out.println("\tcurrent variable: " + currentVariable);
             try {
+//System.out.println("\tinput interpolant: " + inputInterpolant);
               Pair<String, Long> element = interpolator.deriveInterpolant(errorPath, i, currentVariable, inputInterpolant);
 
+              // early stop once we are past the first statement that made a path feasible for the first time
               if(element == null) {
+                timerInterpolation.stop();
                 return increment;
+              }
+
+              // skip here, as interpolation on assume edges messes things up
+              // basically, assume edges do assigning, too, however, in a different direction, as the current variable is the assignee
+              if(currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge && inputInterpolant.containsKey(currentVariable)) {
+                continue;
               }
 
               if(interpolator.isFeasible()) {
@@ -139,15 +150,11 @@ public boolean DEBUG = false;
                 }
               }
 
-              // if the interpolation returned an assignment, add it to the current interpolant
-              if(element.getSecond() != null) {
-                currentInterpolant.put(element.getFirst(), element.getSecond());
-              }
-
-              // when NOT removing memslave fails
-              // when DO removing here, cdaudio without delta-prec fails
               if(element.getSecond() == null) {
-                //currentInterpolant.remove(element.getFirst());
+                currentInterpolant.remove(element.getFirst());
+              }
+              else {
+                currentInterpolant.put(element.getFirst(), element.getSecond());
               }
             }
             catch (InterruptedException e) {
@@ -160,17 +167,21 @@ public boolean DEBUG = false;
         if(currentEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
           currentInterpolant = clearInterpolant(currentInterpolant, currentEdge.getSuccessor().getFunctionName());
         }
-
+//System.out.println("\tcurrent interpolant: " + currentInterpolant);
         // add the current interpolant to the precision
         for(String variableName : currentInterpolant.keySet()) {
           if(!isRedundant(extractPrecision(reachedSet, errorPath.get(i).getFirst()), currentEdge, variableName)) {
             increment.put(currentEdge.getSuccessor(), variableName);
+            if(aliasEdge != null)
+            {
+              increment.put(aliasEdge.getSuccessor(), variableName);
+            }
           }
         }
       }
     }
 
-    timerCounterExampleChecks.stop();
+    timerInterpolation.stop();
     return increment;
   }
 
@@ -263,10 +274,10 @@ public boolean DEBUG = false;
   protected void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     out.println(this.getClass().getSimpleName() + ":");
     out.println("  number of explicit-interpolation-based refinements:  " + numberOfRefinements);
-    out.println("  number of counter-example checks:                    " + numberOfCounterExampleChecks);
+    out.println("  number of explicit-interpolations:                   " + numberOfInterpolations);
     out.println("  total number of elements in error paths:             " + numberOfErrorPathElements);
-    out.println("  percentage of elements checked:                      " + (Math.round(((double)numberOfCounterExampleChecks / (double)numberOfErrorPathElements) * 10000) / 100.00) + "%");
-    out.println("  max. time for singe check:                           " + timerCounterExampleChecks.printMaxTime());
-    out.println("  total time for checks:                               " + timerCounterExampleChecks);
+    out.println("  percentage of elements checked:                      " + (Math.round(((double)numberOfInterpolations / (double)numberOfErrorPathElements) * 10000) / 100.00) + "%");
+    out.println("  max. time for singe interpolation:                   " + timerInterpolation.printMaxTime());
+    out.println("  total time for interpolation:                        " + timerInterpolation);
   }
 }

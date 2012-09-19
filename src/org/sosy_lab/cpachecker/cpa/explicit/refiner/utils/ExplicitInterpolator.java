@@ -70,6 +70,8 @@ public class ExplicitInterpolator {
 
   public Pair<ARGState, CFAEdge> blockingElement = null;
 
+  private boolean wasFeasible = false;
+
   /**
    * This method derives an interpolant for the given error path and interpolation state.
    *
@@ -96,7 +98,7 @@ public class ExplicitInterpolator {
 
       for(Pair<ARGState, CFAEdge> pathElement : skip(errorPath, offset)) {
 
-        if(interpolationState == blockingElement) {
+        if(wasFeasible && interpolationState == blockingElement) {
           return interpolant;
         }
 
@@ -109,12 +111,10 @@ public class ExplicitInterpolator {
 
         // there is no successor, but current path element is not an error state => error path is spurious
         if(successor == null && !pathElement.getFirst().isTarget()) {
-          if(isFeasible) {
-            blockingElement = pathElement;
-          }
-
+          blockingElement = pathElement;
+//System.out.println("\t\tinfeasible at " + pathElement.getSecond());
           isFeasible = false;
-          //return interpolant;
+
           return Pair.of(currentVariable, null);
         }
 
@@ -131,6 +131,8 @@ public class ExplicitInterpolator {
       }
 
       isFeasible = true;
+      wasFeasible = true;
+//System.out.println("\t\tFEASABLE");
 
       // path is feasible
       return interpolant;

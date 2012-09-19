@@ -79,6 +79,11 @@ public class DelegatingExplicitRefiner
    */
   private PredicatingExplicitRefiner predicatingRefiner;
 
+  /**
+   * a counter for debugging purpose
+   */
+  private static int counter = 1;
+
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(DelegatingExplicitRefiner.class.getSimpleName() + " could not find the ExplicitCPA");
@@ -168,7 +173,8 @@ public class DelegatingExplicitRefiner
 
     precisionIncrement = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
     interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
-System.out.println("\n" + (new java.util.Date()) + ": final explicit-precisionIncrement: " + precisionIncrement);
+
+//System.out.println("\n" + (counter++) + ". " + (new java.util.Date()) + ": final explicit-precisionIncrement: " + precisionIncrement);
 
     if(precisionIncrement.size() > 0) {
       ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);

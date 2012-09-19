@@ -142,6 +142,8 @@ public class ExplicitPrecision implements Precision {
     return this.blackListPattern.matcher(variable).matches();
   }
 
+  static Multimap<String, String> globalSet = HashMultimap.create();
+
   /**
    * This method tells if the precision demands the given variable to be tracked.
    *
@@ -152,12 +154,20 @@ public class ExplicitPrecision implements Precision {
    * @return true, if the variable has to be tracked, else false
    */
   public boolean isTracking(String variable) {
-    return reachedSetThresholds.allowsTrackingOf(variable)
-        && pathThresholds.allowsTrackingOf(variable)
-        && cegarPrecision.allowsTrackingOf(variable)
-        && ignore.allowsTrackingOf(variable)
-        && !isOnBlacklist(variable)
-        && !isInIgnoredVarClass(variable);
+    boolean result = globalSet.containsEntry(currentLocation.getFunctionName(), variable)
+        || (reachedSetThresholds.allowsTrackingOf(variable)
+            && pathThresholds.allowsTrackingOf(variable)
+            && cegarPrecision.allowsTrackingOf(variable)
+            && ignore.allowsTrackingOf(variable)
+            && !isOnBlacklist(variable)
+            && !isInIgnoredVarClass(variable));
+
+    if(result && !globalSet.containsEntry(currentLocation.getFunctionName(), variable)) {
+      //System.out.println("adding " + variable + " at " + currentLocation.getFunctionName());
+      //globalSet.put(currentLocation.getFunctionName(), variable);
+    }
+
+    return result;
   }
 
   /** returns true, iff the variable is in an varClass, that should be ignored. */
@@ -279,6 +289,7 @@ public class ExplicitPrecision implements Precision {
      */
     public void addToMapping(Multimap<CFANode, String> additionalMapping) {
       mapping.putAll(additionalMapping);
+      //System.out.println("current full precision:" + mapping + "\n\n\n");
     }
 
     public Collection<String> getVariablesInPrecision() {
