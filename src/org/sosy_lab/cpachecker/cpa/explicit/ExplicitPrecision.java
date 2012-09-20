@@ -70,8 +70,6 @@ public class ExplicitPrecision implements Precision {
    */
   private CegarPrecision cegarPrecision             = null;
 
-  private Ignore ignore = null;
-
   @Option(description = "ignore boolean variables. if this option is used, "
       + "booleans from the cfa should tracked with another CPA, "
       + "i.e. with BDDCPA.")
@@ -100,7 +98,6 @@ public class ExplicitPrecision implements Precision {
     cegarPrecision        = new CegarPrecision(config);
     reachedSetThresholds  = new ReachedSetThresholds(config);
     pathThresholds        = new PathThresholds(config);
-    ignore                = new Ignore(config);
   }
 
   /**
@@ -115,7 +112,6 @@ public class ExplicitPrecision implements Precision {
     cegarPrecision        = new CegarPrecision(original.cegarPrecision);
     reachedSetThresholds  = new ReachedSetThresholds(original.reachedSetThresholds);
     pathThresholds        = new PathThresholds(original.pathThresholds);
-    ignore                = new Ignore(original.ignore);
   }
 
   public CegarPrecision getCegarPrecision() {
@@ -130,10 +126,6 @@ public class ExplicitPrecision implements Precision {
     return pathThresholds;
   }
 
-  public Ignore getIgnore() {
-    return ignore;
-  }
-
   public void setLocation(CFANode node) {
     currentLocation = node;
   }
@@ -141,8 +133,6 @@ public class ExplicitPrecision implements Precision {
   boolean isOnBlacklist(String variable) {
     return this.blackListPattern.matcher(variable).matches();
   }
-
-  static Multimap<String, String> globalSet = HashMultimap.create();
 
   /**
    * This method tells if the precision demands the given variable to be tracked.
@@ -154,18 +144,11 @@ public class ExplicitPrecision implements Precision {
    * @return true, if the variable has to be tracked, else false
    */
   public boolean isTracking(String variable) {
-    boolean result = globalSet.containsEntry(currentLocation.getFunctionName(), variable)
-        || (reachedSetThresholds.allowsTrackingOf(variable)
+    boolean result = reachedSetThresholds.allowsTrackingOf(variable)
             && pathThresholds.allowsTrackingOf(variable)
             && cegarPrecision.allowsTrackingOf(variable)
-            && ignore.allowsTrackingOf(variable)
             && !isOnBlacklist(variable)
-            && !isInIgnoredVarClass(variable));
-
-    if(result && !globalSet.containsEntry(currentLocation.getFunctionName(), variable)) {
-      //System.out.println("adding " + variable + " at " + currentLocation.getFunctionName());
-      //globalSet.put(currentLocation.getFunctionName(), variable);
-    }
+            && !isInIgnoredVarClass(variable);
 
     return result;
   }
@@ -207,51 +190,20 @@ public class ExplicitPrecision implements Precision {
     return Pair.of(function, varName);
   }
 
-  @Options(prefix="cpa.explicit.precision.ignore")
-  public class Ignore {
-    private Multimap<CFANode, String> mapping = null;
-
-    private Ignore(Configuration config) throws InvalidConfigurationException {
-      config.inject(this);
-
-      mapping = HashMultimap.create();
-    }
-
-    private Ignore(Ignore original) {
-
-      if (original.mapping != null) {
-        mapping = HashMultimap.create(original.mapping);
-      }
-    }
-
-    public boolean allowsTrackingOf(String variable) {
-      return mapping == null || !mapping.containsEntry(currentLocation, variable);
-    }
-
-    /**
-     * This method sets the current mapping.
-     *
-     * @param mapping the mapping to be set
-     */
-    public void setMapping(Multimap<CFANode, String> mapping) {
-      this.mapping.putAll(mapping);
-    }
-  }
-
-  @Options(prefix="analysis")
+  @Options(prefix="cpa.explicit.precision.refinement")
   public class CegarPrecision {
     /**
      * the collection that determines which variables are tracked at a specific location - if it is null, all variables are tracked
      */
     private HashMultimap<CFANode, String> mapping = null;
 
-    @Option(description="whether or not to use refinement or not")
-    private boolean useRefinement = false;
+    @Option(description = "whether or not to add newly-found variables only to the exact program location or to the whole scope of the variable.")
+    private boolean useScopedInterpolation = false;
 
     private CegarPrecision(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
 
-      if (useRefinement) {
+      if(Boolean.parseBoolean(config.getProperty("analysis.useRefinement"))) {
         mapping = HashMultimap.create();
       }
     }
@@ -263,7 +215,8 @@ public class ExplicitPrecision implements Precision {
      */
     private CegarPrecision(CegarPrecision original) {
       if (original.mapping != null) {
-        mapping = HashMultimap.create(original.mapping);
+        mapping                = HashMultimap.create(original.mapping);
+        useScopedInterpolation = original.useScopedInterpolation;
       }
     }
 
@@ -274,12 +227,25 @@ public class ExplicitPrecision implements Precision {
      * @return true, when the variable is allowed to be tracked, else false
      */
     boolean allowsTrackingOf(String variable) {
-      return mapping == null
-             || mapping.containsEntry(currentLocation, variable);
+      boolean result = (mapping == null) || mapping.containsEntry(currentLocation, variable);
+
+       if(useScopedInterpolation && !result) {
+         result = mapping.containsValue(variable);
+       }
+
+       return result;
     }
 
+    /**
+     * This method determines if the given variable is being tracked at the given location.
+     *
+     * @param location the location to check at
+     * @param variable the variable to check for
+     * @return true, if the given variable is being tracked at the given location, else false
+     */
     public boolean allowsTrackingAt(CFANode location, String variable) {
-      return mapping != null && mapping.containsEntry(location, variable);
+      return ((mapping != null) && mapping.containsEntry(location, variable))
+          || (useScopedInterpolation && mapping.containsValue(variable));
     }
 
     /**
@@ -289,7 +255,6 @@ public class ExplicitPrecision implements Precision {
      */
     public void addToMapping(Multimap<CFANode, String> additionalMapping) {
       mapping.putAll(additionalMapping);
-      //System.out.println("current full precision:" + mapping + "\n\n\n");
     }
 
     public Collection<String> getVariablesInPrecision() {
@@ -299,23 +264,6 @@ public class ExplicitPrecision implements Precision {
     @Override
     public String toString() {
       return Joiner.on(",").join(mapping.entries());
-    }
-
-    @Override
-    public boolean equals(Object other) {
-      if (this == other) {
-        return true;
-      }
-
-      else if (other == null) {
-        return false;
-      }
-
-      else if (!getClass().equals(other.getClass())) {
-        return false;
-      }
-
-      return ((CegarPrecision)other).mapping.equals(mapping);
     }
   }
 

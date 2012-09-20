@@ -96,7 +96,7 @@ public boolean DEBUG = false;
 
     Multimap<CFANode, String> increment = HashMultimap.create();
     // only do a refinement if a full-precision check shows that the path is infeasible
-    if(!isPathFeasable(errorPath, HashMultimap.<CFANode, String>create())) {
+    if(!isPathFeasable(errorPath)) {
       Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(errorPath);
 
       ExplicitInterpolator interpolator     = new ExplicitInterpolator();
@@ -240,16 +240,15 @@ public boolean DEBUG = false;
    * This method checks if the given path is feasible, when not tracking the given set of variables.
    *
    * @param path the path to check
-   * @param variablesToBeIgnored the variables to ignore
    * @return true, if the path is feasible, else false
    * @throws CPAException if the path check gets interrupted
    */
-  private boolean isPathFeasable(Path path, Multimap<CFANode, String> variablesToBeIgnored) throws CPAException {
+  private boolean isPathFeasable(Path path) throws CPAException {
     try {
       // create a new ExplicitPathChecker, which does not track any of the given variables
       ExplictPathChecker checker = new ExplictPathChecker();
 
-      return checker.checkPath(path, variablesToBeIgnored);
+      return checker.checkPath(path);
     }
     catch (InterruptedException e) {
       throw new CPAException("counterexample-check failed: ", e);
