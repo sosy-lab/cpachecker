@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssignedVariablesCollector;
-import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssumptionVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictPathChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -66,12 +65,6 @@ public class ExplicitInterpolationBasedExplicitRefiner {
   private boolean useInitialNodeAsRestartingPoint = true;
 
   /**
-   * whether or not to use the assumption-closure for explicit refinement (defaults to true)
-   */
-  @Option(description="whether or not to use assumption-closure for explicit refinement")
-  private boolean useAssumptionClosure = true;
-
-  /**
    * the ART element, from where to cut-off the subtree, and restart the analysis
    */
   private ARGState firstInterpolationPoint = null;
@@ -86,7 +79,7 @@ public class ExplicitInterpolationBasedExplicitRefiner {
       throws InvalidConfigurationException {
     config.inject(this);
   }
-public boolean DEBUG = false;
+
   protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet,
       Path errorPath) throws CPAException {
     timerInterpolation.start();
@@ -225,15 +218,9 @@ public boolean DEBUG = false;
    * @return the mapping where to do an explicit interpolation for which variables
    */
   private Multimap<CFANode, String> determineReferencedVariableMapping(Path currentErrorPath) {
-    if(useAssumptionClosure) {
-      AssumptionVariablesCollector coll = new AssumptionVariablesCollector();
-      return coll.collectVariables(currentErrorPath);
-    }
+    AssignedVariablesCollector collector = new AssignedVariablesCollector();
 
-    else {
-      AssignedVariablesCollector collector = new AssignedVariablesCollector();
-      return collector.collectVars(currentErrorPath);
-    }
+    return collector.collectVars(currentErrorPath);
   }
 
   /**
