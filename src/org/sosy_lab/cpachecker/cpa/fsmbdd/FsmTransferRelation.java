@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -37,7 +36,6 @@ import net.sf.javabdd.BDDDomain;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -58,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -76,15 +75,13 @@ import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.VariableDeclarationExceptio
 import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * The transfer-relation of the FsmBdd CPA.
  */
 @Options(prefix="cpa.fsmbdd")
 public class FsmTransferRelation implements TransferRelation {
-
-  @Option(description="Encode contiguous sequences of conditions with one computation?")
-  private boolean conditionBlockEncoding = false;
 
   /**
    * Name of the variable that is used to encode the result of a function.
@@ -94,7 +91,6 @@ public class FsmTransferRelation implements TransferRelation {
    * conflict with a program variable with the same name.
    */
   private static final String RESULT_VARIABLE_NAME = "return";
-
 
   /**
    * String that is used to separate the different
@@ -142,6 +138,23 @@ public class FsmTransferRelation implements TransferRelation {
     this.domainIntervalProvider = pDomainIntervalProvider;
   }
 
+  public boolean isAbstractionState(FsmState pSuccessor, CFANode pSuccLocation) {
+//    return true;
+    for (CFAEdge e: CFAUtils.enteringEdges(pSuccLocation)) {
+      if (e.getEdgeType() != CFAEdgeType.AssumeEdge) {
+        return true;
+      }
+    }
+
+    for (CFAEdge e: CFAUtils.leavingEdges(pSuccLocation)) {
+      if (e.getEdgeType() != CFAEdgeType.AssumeEdge) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   /**
    * Computation of the abstract successor states.
    *
@@ -154,17 +167,11 @@ public class FsmTransferRelation implements TransferRelation {
     final FsmState predecessor = (FsmState) pState;
     final FsmState successor = predecessor.cloneState();
 
-//    System.out.println("-----------------");
-//    System.out.println(String.format("%15s : %s", "Predecessor", predecessor));
+//    System.out.println("================================================================================");
+//    System.out.println(String.format("%15s :  %s ", "Predecessor", predecessor));
 //    System.out.println(String.format("%15s : (l %d) %s (l %d)", pCfaEdge.getEdgeType(), pCfaEdge.getPredecessor().getNodeNumber(), pCfaEdge.getRawStatement(), pCfaEdge.getSuccessor().getNodeNumber()));
 
     try {
-      if (conditionBlockEncoding) {
-        if (pCfaEdge.getEdgeType() != CFAEdgeType.AssumeEdge) {
-          encodeAssumptions(successor);
-        }
-      }
-
       switch (pCfaEdge.getEdgeType()) {
         case AssumeEdge:
           handleAssumeEdge(predecessor, (CAssumeEdge) pCfaEdge, successor);
@@ -194,11 +201,14 @@ public class FsmTransferRelation implements TransferRelation {
           handleMultiEdge(predecessor, (MultiEdge) pCfaEdge, successor);
           break;
 
-        default:
+        case BlankEdge:
+          break;
 
+        default:
+          assert(false);
       }
     } catch (VariableDeclarationException e) {
-      throw new UnrecognizedCCodeException(e.getMessage(), pCfaEdge);
+      throw new CPATransferException(e.getMessage());
     }
 
 //    System.out.println(String.format("%15s : %s", "Successor", successor));
@@ -229,31 +239,6 @@ public class FsmTransferRelation implements TransferRelation {
         throw new CPATransferException("Unsupported edge within multi-edge: " + edge.getEdgeType().toString());
       }
     }
-  }
-
-  public void encodeAssumptions(FsmState pSuccessor) throws CPATransferException {
-    List<CAssumeEdge> unencodedAssumptions = pSuccessor.getUnencodedAssumptions();
-    if (unencodedAssumptions == null) {
-      return;
-    }
-
-    ListIterator<CAssumeEdge> it = unencodedAssumptions.listIterator(unencodedAssumptions.size());
-    while (it.hasPrevious()) {
-      CAssumeEdge assume = it.previous();
-
-      BDD assumptionBdd = edgeBddCache.get(assume.getExpression());
-      if (assumptionBdd == null) {
-        assumptionBdd = getAssumptionAsBdd(pSuccessor, assume, assume.getExpression());
-        edgeBddCache.put(assume.getExpression(), assumptionBdd);
-      }
-      if (!assume.getTruthAssumption()) {
-        assumptionBdd = assumptionBdd.not();
-      }
-
-      pSuccessor.addConjunctionWith(assumptionBdd);
-    }
-
-    pSuccessor.resetUnencodedAssumptions();
   }
 
   /**
@@ -408,20 +393,17 @@ public class FsmTransferRelation implements TransferRelation {
    * by doing a conjunction of the assumption with the the BDD of the predecessor state.
    */
   private void handleAssumeEdge (FsmState pPredecessor, CAssumeEdge pAssumeEdge, FsmState pSuccessor) throws CPATransferException {
-    if (conditionBlockEncoding) {
-      pSuccessor.addUnencodedAssumption(pAssumeEdge);
-    } else {
-      BDD assumptionBdd = edgeBddCache.get(pAssumeEdge.getExpression());
-      if (assumptionBdd == null) {
-        assumptionBdd = getAssumptionAsBdd(pSuccessor, pAssumeEdge, pAssumeEdge.getExpression());
-        edgeBddCache.put(pAssumeEdge.getExpression(), assumptionBdd);
-      }
-      if (!pAssumeEdge.getTruthAssumption()) {
-        assumptionBdd = assumptionBdd.not();
-      }
-
-      pSuccessor.addConjunctionWith(assumptionBdd);
+    BDD assumptionBdd = edgeBddCache.get(pAssumeEdge.getExpression());
+    if (assumptionBdd == null) {
+      assumptionBdd = getAssumptionAsBdd(pSuccessor, pAssumeEdge.getPredecessor().getFunctionName(), pAssumeEdge.getExpression());
+      edgeBddCache.put(pAssumeEdge.getExpression(), assumptionBdd);
     }
+
+    if (!pAssumeEdge.getTruthAssumption()) {
+      assumptionBdd = assumptionBdd.not();
+    }
+
+    pSuccessor.conjunctStateWith(assumptionBdd);
   }
 
   /**
@@ -505,7 +487,7 @@ public class FsmTransferRelation implements TransferRelation {
    * Transform a given assumption-expression
    * to a binary decision diagram.
    */
-  private BDD getAssumptionAsBdd(final FsmState pOnState, final CFAEdge pEdge, CExpression pExpression)
+  private BDD getAssumptionAsBdd(final FsmState pOnState, final String pFunctionName, CExpression pExpression)
       throws CPATransferException {
     DefaultCExpressionVisitor<BDD, CPATransferException> visitor = new DefaultCExpressionVisitor<BDD, CPATransferException>() {
       @Override
@@ -521,7 +503,7 @@ public class FsmTransferRelation implements TransferRelation {
             && pE.getOperand2() instanceof CLiteralExpression) {
 
               String variableName = ((CIdExpression) pE.getOperand1()).getName();
-              String scopedVariableName = getScopedVariableName(pEdge.getPredecessor().getFunctionName(), variableName);
+              String scopedVariableName = getScopedVariableName(pFunctionName, variableName);
 
               result = getValuedVarBdd(pOnState, scopedVariableName, pE.getOperand2());
 
@@ -529,7 +511,7 @@ public class FsmTransferRelation implements TransferRelation {
             } else if (pE.getOperand2() instanceof CIdExpression
                 && pE.getOperand1() instanceof CLiteralExpression) {
               String variableName = ((CIdExpression) pE.getOperand2()).getName();
-              String scopedVariableName = getScopedVariableName(pEdge.getPredecessor().getFunctionName(), variableName);
+              String scopedVariableName = getScopedVariableName(pFunctionName, variableName);
 
               result = getValuedVarBdd(pOnState, scopedVariableName, pE.getOperand1());
 
@@ -540,7 +522,7 @@ public class FsmTransferRelation implements TransferRelation {
                 && ((CUnaryExpression) pE.getOperand2()).getOperand() instanceof CLiteralExpression) {
 
               String variableName = ((CIdExpression) pE.getOperand1()).getName();
-              String scopedVariableName = getScopedVariableName(pEdge.getPredecessor().getFunctionName(), variableName);
+              String scopedVariableName = getScopedVariableName(pFunctionName, variableName);
 
               result = getValuedVarBdd(pOnState, scopedVariableName, pE.getOperand2());
 
@@ -550,15 +532,15 @@ public class FsmTransferRelation implements TransferRelation {
               String variableName1 = ((CIdExpression) pE.getOperand1()).getName();
               String variableName2 = ((CIdExpression) pE.getOperand2()).getName();
 
-              String scopedVariableName1 = getScopedVariableName(pEdge.getPredecessor().getFunctionName(), variableName1);
-              String scopedVariableName2 = getScopedVariableName(pEdge.getPredecessor().getFunctionName(), variableName2);
+              String scopedVariableName1 = getScopedVariableName(pFunctionName, variableName1);
+              String scopedVariableName2 = getScopedVariableName(pFunctionName, variableName2);
 
               BDDDomain dom1 = pOnState.getGlobalVariableDomain(scopedVariableName1);
               BDDDomain dom2 = pOnState.getGlobalVariableDomain(scopedVariableName2);
 
               result = dom1.buildEquals(dom2);
             } else {
-               throw new UnrecognizedCCodeException("Combination of operands not (yet) supported.", pEdge, pE);
+               throw new CPATransferException("Combination of operands not (yet) supported: "  + pE.getClass().getSimpleName().toString());
             }
 
             // Maybe the operation must be negated.
@@ -568,21 +550,21 @@ public class FsmTransferRelation implements TransferRelation {
 
             return result;
           } catch (VariableDeclarationException ex) {
-            throw new UnrecognizedCCodeException(ex.getMessage(), pEdge, pE);
+            throw new CPATransferException(ex.getMessage());
           }
         }
         case LOGICAL_AND: {
           BDD left = pE.getOperand1().accept(this);
-          BDD right = pE.getOperand1().accept(this);
+          BDD right = pE.getOperand2().accept(this);
           return left.and(right);
         }
         case LOGICAL_OR: {
           BDD left = pE.getOperand1().accept(this);
-          BDD right = pE.getOperand1().accept(this);
+          BDD right = pE.getOperand2().accept(this);
           return left.or(right);
         }
         default:
-          throw new UnrecognizedCCodeException(String.format("Operator %s not (yet) supported!", pE.getOperator()), pEdge, pE);
+          throw new CPATransferException(String.format("Operator %s not (yet) supported!", pE.getOperator()));
         }
       }
 
@@ -591,7 +573,7 @@ public class FsmTransferRelation implements TransferRelation {
         switch (pE.getOperator()) {
         case NOT: return pE.getOperand().accept(this).not();
         default:
-          throw new UnrecognizedCCodeException(String.format("Operator %s not (yet) supported!", pE.getOperator()), pEdge, pE);
+          throw new CPATransferException(String.format("Operator %s not (yet) supported!", pE.getOperator()));
         }
       }
 

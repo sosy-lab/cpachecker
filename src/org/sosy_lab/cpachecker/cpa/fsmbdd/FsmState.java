@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.fsmbdd;
 
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 import net.sf.javabdd.BDD;
@@ -33,7 +31,6 @@ import net.sf.javabdd.BDDDomain;
 import net.sf.javabdd.BDDFactory;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.VariableDeclarationException;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
@@ -46,15 +43,13 @@ public class FsmState implements AbstractState {
 
   private static Map<String, BDDDomain> declaredVariables = new HashMap<String, BDDDomain>();
 
-  private List<CAssumeEdge> unencodedAssumptions = null;
-
   /**
    * Reference to the instance of the BDD library.
    */
   private final BDDFactory bddFactory;
 
   /**
-   * The BDD that represents the state.
+   * The BDDs that represent the state.
    */
   private BDD stateBdd;
 
@@ -140,7 +135,7 @@ public class FsmState implements AbstractState {
    * Modify the state by conjuncting (AND) the
    * BDD of the state with the given BDD.
    */
-  public void addConjunctionWith(BDD bdd) {
+  public void conjunctStateWith(BDD bdd) {
     stateBdd = stateBdd.and(bdd);
   }
 
@@ -171,47 +166,34 @@ public class FsmState implements AbstractState {
     stateBdd = stateBdd.exist(targetDomain.set()).and(sourceDomain.buildEquals(targetDomain));
   }
 
-  public void addUnencodedAssumption(CAssumeEdge pEdge) {
-    if (unencodedAssumptions == null) {
-      unencodedAssumptions = new LinkedList<CAssumeEdge>();
-    }
-
-    unencodedAssumptions.add(pEdge);
-  }
-
-  public List<CAssumeEdge> getUnencodedAssumptions() {
-    return unencodedAssumptions;
-  }
-
-  public void resetUnencodedAssumptions() {
-    unencodedAssumptions.clear();
-    unencodedAssumptions = null;
-  }
-
-  /**
+   /**
    * Create a copy (new instance) of the state.
    */
   public FsmState cloneState() {
     FsmState result = new FsmState(bddFactory);
     result.stateBdd = this.stateBdd;
-    if (this.unencodedAssumptions != null) {
-      result.unencodedAssumptions = new LinkedList<CAssumeEdge>(this.unencodedAssumptions);
-    }
 
     return result;
   }
+
 
   /**
    * Create a string-representation of the state.
    */
   @Override
   public String toString() {
+    StringBuilder result = new StringBuilder();
+
+    String stateBddText;
     int bddNodes = stateBdd.nodeCount();
-    if (bddNodes > 200) {
-      return String.format("BDD with %d nodes.", bddNodes);
+    if (bddNodes > 25) {
+      stateBddText = String.format("BDD with %d nodes.", bddNodes);
     } else {
-      return stateBdd.toStringWithDomains();
+      stateBddText = stateBdd.toStringWithDomains();
     }
+    result.append(String.format(" | %15s : %s\n", "State", stateBddText));
+
+    return result.toString();
   }
 
 

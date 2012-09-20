@@ -56,7 +56,6 @@ public class FsmDomain implements AbstractDomain {
     FsmState joined = state1.cloneState();
     joined.disjunctWithState(state2);
 
-    // Check whether the BDDs of the
     if (joined.getStateBdd().equals(state2.getStateBdd())) {
       // Return the existing (second) state if the new (first) state makes
       // no additional states reachable.
@@ -94,22 +93,11 @@ public class FsmDomain implements AbstractDomain {
    */
   @Override
   public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws CPAException {
-    FsmState state1 = (FsmState) pState1;
-    FsmState state2 = (FsmState) pState2;
+    FsmState s1 = (FsmState) pState1;
+    FsmState s2 = (FsmState) pState2;
 
-    if (state1.getUnencodedAssumptions() != null
-    || state2.getUnencodedAssumptions() != null) {
-      if (state1.getUnencodedAssumptions() == null
-      || state2.getUnencodedAssumptions() == null) {
-        return false;
-      }
+    return s1.getStateBdd().imp(s2.getStateBdd()).isOne();
 
-      if (!state1.getUnencodedAssumptions().equals(state2.getUnencodedAssumptions())) {
-        return false;
-      }
-    }
-
-    return state1.getStateBdd().imp(state2.getStateBdd()).isOne();
   }
 
 }
