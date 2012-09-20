@@ -93,11 +93,10 @@ public boolean DEBUG = false;
     numberOfRefinements++;
 
     firstInterpolationPoint = null;
-//System.out.println(errorPath.toString().hashCode() + ":\n" + errorPath);
+
     Multimap<CFANode, String> increment = HashMultimap.create();
     // only do a refinement if a full-precision check shows that the path is infeasible
     if(!isPathFeasable(errorPath, HashMultimap.<CFANode, String>create())) {
-
       Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(errorPath);
 
       ExplicitInterpolator interpolator     = new ExplicitInterpolator();
@@ -107,12 +106,10 @@ public boolean DEBUG = false;
         numberOfErrorPathElements++;
 
         CFAEdge currentEdge = errorPath.get(i).getSecond();
-        CFAEdge aliasEdge = null;
         if(currentEdge instanceof CFunctionReturnEdge) {
           currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
-          aliasEdge = currentEdge;
         }
-//System.out.println("current edge: " + currentEdge);
+
         Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge.getSuccessor());
 
         // do interpolation
@@ -122,9 +119,8 @@ public boolean DEBUG = false;
           // check for each variable, if ignoring it makes the error path feasible
           for(String currentVariable : referencedVariablesAtEdge) {
             numberOfInterpolations++;
-//System.out.println("\tcurrent variable: " + currentVariable);
+
             try {
-//System.out.println("\tinput interpolant: " + inputInterpolant);
               Pair<String, Long> element = interpolator.deriveInterpolant(errorPath, i, currentVariable, inputInterpolant);
 
               // early stop once we are past the first statement that made a path feasible for the first time
@@ -137,17 +133,6 @@ public boolean DEBUG = false;
               // basically, assume edges do assigning, too, however, in a different direction, as the current variable is the assignee
               if(currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge && inputInterpolant.containsKey(currentVariable)) {
                 continue;
-              }
-
-              if(interpolator.isFeasible()) {
-
-                if(!isRedundant(extractPrecision(reachedSet, errorPath.get(i).getFirst()), currentEdge, currentVariable)) {
-                  increment.put(currentEdge.getSuccessor(), currentVariable);
-                }
-
-                if(firstInterpolationPoint == null) {
-                  firstInterpolationPoint = errorPath.get(i).getFirst();
-                }
               }
 
               if(element.getSecond() == null) {
@@ -167,14 +152,14 @@ public boolean DEBUG = false;
         if(currentEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
           currentInterpolant = clearInterpolant(currentInterpolant, currentEdge.getSuccessor().getFunctionName());
         }
-//System.out.println("\tcurrent interpolant: " + currentInterpolant);
+
         // add the current interpolant to the precision
         for(String variableName : currentInterpolant.keySet()) {
           if(!isRedundant(extractPrecision(reachedSet, errorPath.get(i).getFirst()), currentEdge, variableName)) {
             increment.put(currentEdge.getSuccessor(), variableName);
-            if(aliasEdge != null)
-            {
-              increment.put(aliasEdge.getSuccessor(), variableName);
+
+            if(firstInterpolationPoint == null) {
+              firstInterpolationPoint = errorPath.get(i).getFirst();
             }
           }
         }

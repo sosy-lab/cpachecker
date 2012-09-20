@@ -47,9 +47,30 @@ import com.google.common.collect.Lists;
 
 public class ExplicitInterpolator {
 
+  /**
+   * the configuration of the interpolator
+   */
   private Configuration config = null;
 
+  /**
+   * the transfer relation in use
+   */
   private ExplicitTransferRelation transfer = null;
+
+  /**
+   * the path element where no successor could be found anymore
+   */
+  public Pair<ARGState, CFAEdge> blockingElement = null;
+
+  /**
+   * boolean flag telling whether the current path is feasible
+   */
+  private boolean isFeasible = false;
+
+  /**
+   * boolean flag telling whether the any previous path was feasible
+   */
+  private boolean wasFeasible = false;
 
   /**
    * This method acts as the constructor of the class.
@@ -64,13 +85,6 @@ public class ExplicitInterpolator {
       throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);
     }
   }
-
-
-  private boolean isFeasible = false;
-
-  public Pair<ARGState, CFAEdge> blockingElement = null;
-
-  private boolean wasFeasible = false;
 
   /**
    * This method derives an interpolant for the given error path and interpolation state.
@@ -109,11 +123,10 @@ public class ExplicitInterpolator {
 
         successor = extractSuccessorState(successors);
 
-        // there is no successor, but current path element is not an error state => error path is spurious
+        // there is no successor, and current path element is not an error state => error path is spurious
         if(successor == null && !pathElement.getFirst().isTarget()) {
           blockingElement = pathElement;
-//System.out.println("\t\tinfeasible at " + pathElement.getSecond());
-          isFeasible = false;
+          isFeasible      = false;
 
           return Pair.of(currentVariable, null);
         }
@@ -130,9 +143,8 @@ public class ExplicitInterpolator {
         }
       }
 
-      isFeasible = true;
+      isFeasible  = true;
       wasFeasible = true;
-//System.out.println("\t\tFEASABLE");
 
       // path is feasible
       return interpolant;
