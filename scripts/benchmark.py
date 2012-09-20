@@ -1829,11 +1829,11 @@ def run_ecav(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
             status = 'UNSAFE'
         elif line.startswith('1 safe, 0 unsafe'):
             status = 'SAFE'
-    	elif returnsignal == 9:
-        	if isTimeout(cpuTimeDelta, rlimits):
-	            status = 'TIMEOUT'
-	        else:
-	            status = "KILLED BY SIGNAL 9"
+        elif returnsignal == 9:
+            if isTimeout(cpuTimeDelta, rlimits):
+                status = 'TIMEOUT'
+            else:
+                status = "KILLED BY SIGNAL 9"
 
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
