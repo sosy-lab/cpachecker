@@ -81,6 +81,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -397,7 +398,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else if (statement instanceof IASTSwitchStatement) {
       return handleSwitchStatement((IASTSwitchStatement)statement, fileloc);
     } else if (statement instanceof IASTCaseStatement) {
-      handleCaseStatement((IASTCaseStatement)statement, fileloc);
+      handleCaseStatement((IASTCaseStatement)statement, ASTConverter.getLocation(statement));
     } else if (statement instanceof IASTDefaultStatement) {
       handleDefaultStatement((IASTDefaultStatement)statement, fileloc);
     } else if (statement instanceof IASTNullStatement) {
@@ -519,14 +520,14 @@ class CFAFunctionBuilder extends ASTVisitor {
       CStatementEdge edge;
       if (exp instanceof CExpression) {
         edge  = new CStatementEdge(condExp.getRawSignature(),
-                                  new CExpressionAssignmentStatement(astCreator.convert(condExp.getFileLocation()),
+                                  new CExpressionAssignmentStatement(ASTConverter.getLocation(condExp),
                                                                         tempVar,
                                                                         (CExpression) exp),
                                   filelocStart, prevNode, lastNode);
         addToCFA(edge);
       } else if (exp instanceof CFunctionCallExpression) {
         edge  = new CStatementEdge(condExp.getRawSignature(),
-                                  new CFunctionCallAssignmentStatement(astCreator.convert(condExp.getFileLocation()),
+                                  new CFunctionCallAssignmentStatement(ASTConverter.getLocation(condExp),
                                                                           tempVar,
                                                                           (CFunctionCallExpression) exp),
                                   filelocStart, prevNode, lastNode);
@@ -537,7 +538,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         edge  = new CStatementEdge(condExp.getRawSignature(), (CStatement) exp, filelocStart, prevNode, middle);
         addToCFA(edge);
         edge  = new CStatementEdge(condExp.getRawSignature(),
-                                  new CExpressionAssignmentStatement(astCreator.convert(condExp.getFileLocation()),
+                                  new CExpressionAssignmentStatement(ASTConverter.getLocation(condExp),
                                                                         tempVar,
                                                                         ((CAssignment) exp).getLeftHandSide()),
                                   filelocStart, middle, lastNode);
@@ -569,13 +570,13 @@ class CFAFunctionBuilder extends ASTVisitor {
       CStatementEdge edge;
       if (exp instanceof CExpression) {
         edge  = new CStatementEdge(condExp.getRawSignature(),
-                                  new CExpressionStatement(astCreator.convert(condExp.getFileLocation()),
+                                  new CExpressionStatement(ASTConverter.getLocation(condExp),
                                                                         (CExpression) exp),
                                   filelocStart, prevNode, lastNode);
         addToCFA(edge);
       } else if (exp instanceof CFunctionCallExpression) {
         edge  = new CStatementEdge(condExp.getRawSignature(),
-                                  new CFunctionCallStatement(astCreator.convert(condExp.getFileLocation()),
+                                  new CFunctionCallStatement(ASTConverter.getLocation(condExp),
                                                                           (CFunctionCallExpression) exp),
                                   filelocStart, prevNode, lastNode);
         addToCFA(edge);
@@ -585,7 +586,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         edge  = new CStatementEdge(condExp.getRawSignature(), (CStatement) exp, filelocStart, prevNode, middle);
         addToCFA(edge);
         edge  = new CStatementEdge(condExp.getRawSignature(),
-                                  new CExpressionStatement(astCreator.convert(condExp.getFileLocation()),
+                                  new CExpressionStatement(ASTConverter.getLocation(condExp),
                                                                         ((CExpressionAssignmentStatement) exp).getLeftHandSide()),
                                   filelocStart, middle, lastNode);
         addToCFA(edge);
@@ -1484,7 +1485,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   }
 
   private void handleCaseStatement(final IASTCaseStatement statement,
-      IASTFileLocation fileloc) {
+      CFileLocation fileloc) {
 
     final int filelocStart = fileloc.getStartingLineNumber();
 
@@ -1499,7 +1500,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // build condition, "a==2", TODO correct type?
     final CBinaryExpression binExp =
-        new CBinaryExpression(astCreator.convert(fileloc),
+        new CBinaryExpression(fileloc,
             switchExpr.getExpressionType(), switchExpr, caseExpr,
             CBinaryExpression.BinaryOperator.EQUALS);
 

@@ -24,7 +24,11 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
 import org.eclipse.cdt.core.dom.ast.DOMException;
+import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IBasicType;
 import org.eclipse.cdt.core.dom.ast.IBinding;
 import org.eclipse.cdt.core.dom.ast.IPointerType;
@@ -32,11 +36,16 @@ import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.ITypedef;
 import org.eclipse.cdt.core.dom.ast.c.ICASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.c.ICBasicType;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedef;
 
@@ -45,7 +54,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedef;
 class ASTTypeConverter {
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
-  public static CType conv(IType t) {
+  static CType conv(IType t) {
     if (t instanceof org.eclipse.cdt.core.dom.ast.IBasicType) {
       try {
         return conv((org.eclipse.cdt.core.dom.ast.IBasicType) t);
@@ -156,7 +165,7 @@ class ASTTypeConverter {
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
   @SuppressWarnings("deprecation")
-  public static CType conv(final IASTSimpleDeclSpecifier d) {
+  static CType conv(final IASTSimpleDeclSpecifier d) {
     if (!(d instanceof ICASTSimpleDeclSpecifier)) { throw new CFAGenerationRuntimeException("Unsupported type", d); }
 
     final ICASTSimpleDeclSpecifier dd = (ICASTSimpleDeclSpecifier) d;
@@ -202,4 +211,65 @@ class ASTTypeConverter {
         dd.isLong(), dd.isShort(), dd.isSigned(), d.isUnsigned(),
         dd.isComplex(), dd.isImaginary(), dd.isLongLong());
   }
+
+  /** converts the operator of an idExpression: alignOf, sizeOf, typeId, typeOf */
+  static TypeIdOperator convTypeIdOperator(final IASTTypeIdExpression e) {
+    switch (e.getOperator()) {
+    case IASTTypeIdExpression.op_alignof:
+      return TypeIdOperator.ALIGNOF;
+    case IASTTypeIdExpression.op_sizeof:
+      return TypeIdOperator.SIZEOF;
+    case IASTTypeIdExpression.op_typeid:
+      return TypeIdOperator.TYPEID;
+    case IASTTypeIdExpression.op_typeof:
+      return TypeIdOperator.TYPEOF;
+    default:
+      throw new CFAGenerationRuntimeException("Unknown type id operator", e);
+    }
+  }
+
+  static CNamedType conv(final IASTNamedTypeSpecifier d) {
+    return new CNamedType(d.isConst(), d.isVolatile(), ASTConverter.convert(d.getName()));
+  }
+
+  static CElaboratedType conv(final IASTElaboratedTypeSpecifier d) {
+    ElaboratedType type;
+    switch (d.getKind()) {
+    case IASTElaboratedTypeSpecifier.k_enum:
+      type = ElaboratedType.ENUM;
+      break;
+    case IASTElaboratedTypeSpecifier.k_struct:
+      type = ElaboratedType.STRUCT;
+      break;
+    case IASTElaboratedTypeSpecifier.k_union:
+      type = ElaboratedType.UNION;
+      break;
+    default:
+      throw new CFAGenerationRuntimeException("Unknown elaborated type", d);
+    }
+
+    return new CElaboratedType(d.isConst(), d.isVolatile(), type, ASTConverter.convert(d.getName()));
+  }
+
+  static CStorageClass convCStorageClass(final IASTDeclSpecifier d) {
+    switch (d.getStorageClass()) {
+    case IASTDeclSpecifier.sc_unspecified:
+    case IASTDeclSpecifier.sc_auto:
+    case IASTDeclSpecifier.sc_register:
+      return CStorageClass.AUTO;
+
+    case IASTDeclSpecifier.sc_static:
+      return CStorageClass.STATIC;
+
+    case IASTDeclSpecifier.sc_extern:
+      return CStorageClass.EXTERN;
+
+    case IASTDeclSpecifier.sc_typedef:
+      return CStorageClass.TYPEDEF;
+
+    default:
+      throw new CFAGenerationRuntimeException("Unsupported storage class", d);
+    }
+  }
+
 }
