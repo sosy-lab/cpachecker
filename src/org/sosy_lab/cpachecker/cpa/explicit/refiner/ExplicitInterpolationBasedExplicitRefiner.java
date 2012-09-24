@@ -83,13 +83,14 @@ public class ExplicitInterpolationBasedExplicitRefiner {
   protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet,
       Path errorPath) throws CPAException {
     timerInterpolation.start();
-    numberOfRefinements++;
 
     firstInterpolationPoint = null;
 
     Multimap<CFANode, String> increment = HashMultimap.create();
     // only do a refinement if a full-precision check shows that the path is infeasible
     if(!isPathFeasable(errorPath)) {
+      numberOfRefinements++;
+
       Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(errorPath);
 
       ExplicitInterpolator interpolator     = new ExplicitInterpolator();

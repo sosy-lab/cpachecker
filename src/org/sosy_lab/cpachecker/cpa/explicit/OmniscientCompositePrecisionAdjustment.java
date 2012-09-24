@@ -268,7 +268,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
             modified = true;
           }
 
-          precision.getReachedSetThresholds().setExceeded(entry.getKey());
+          precision.getPathThresholds().setExceeded(entry.getKey());
           element.forget(entry.getKey());
         }
       }
