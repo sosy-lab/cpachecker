@@ -129,7 +129,6 @@ analysis.useImpactAlgorithm = false
 # use a proof check algorithm to validate a previously generated proof
 analysis.useProofCheckAlgorithm = false
 
-# whether or not to use refinement or not
 # use CEGAR algorithm for lazy counter-example guided analysis
 # You need to specify a refiner with the cegar.refiner option.
 # Currently all refiner require the use of the ARGCPA.
@@ -313,7 +312,7 @@ cpa.bdd.addIncreasing = false
 cpa.bdd.bitsize = 32
 
 # use a smaller bitsize for all vars, that have only discrete values
-cpa.bdd.compressDiscretes = false
+cpa.bdd.compressDiscretes = true
 
 # initialize all variables to 0 when they are declared
 cpa.bdd.initAllVars = false
@@ -434,9 +433,13 @@ cpa.explicit.precision.path.defaultThreshold = -1
 # within the reached set (-1 means infinitely)
 cpa.explicit.precision.reachedSet.defaultThreshold = -1
 
-# whether to use refinement based on Explicit-Interpolation - with this
-# option set to false, refinement will be done using SMT-based interpolation
-cpa.explicit.refiner.useExplicitInterpolation = true
+# whether or not to add newly-found variables only to the exact program
+# location or to the whole scope of the variable.
+cpa.explicit.precision.refinement.useScopedInterpolation = false
+
+# whether or not to only abstract variables that where updated in the
+# foregoing post operation
+cpa.explicit.precisionAdjustment.useDeltaPrecision = false
 
 # whether or not to always use the inital node as starting point for the next
 # re-exploration of the ARG
@@ -449,12 +452,9 @@ cpa.explicit.stop = "SEP"
 # blacklist regex for variables that won't be tracked by ExplicitCPA
 cpa.explicit.variableBlacklist = ""
 
-# whether or not to use assumption-closure for explicit refinement
-cpa.explict.refiner.useAssumptionClosure = true
-
 # whether or not to always use the inital node as starting point for the next
 # re-exploration of the ARG
-cpa.explict.refiner.useInitialNodeAsRestartingPoint = true
+cpa.explict.refiner.useInitialNodeAsRestartingPoint = no default value
 
 # whitelist regex for variables that will be tracked by FeatureVarsCPA
 cpa.featurevars.variableWhitelist = ""
