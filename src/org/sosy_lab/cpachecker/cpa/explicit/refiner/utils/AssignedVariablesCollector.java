@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -110,7 +111,7 @@ public class AssignedVariablesCollector {
         collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables);
         collectVariables(returnStatementEdge, new CIdExpression(returnStatementEdge.getExpression().getFileLocation(),
             null,
-            "___cpa_temp_result_var_",
+            ExplicitTransferRelation.FUNCTION_RETURN_VAR,
             null), collectedVariables);
       }
 

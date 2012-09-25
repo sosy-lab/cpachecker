@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 @Options(prefix="cpa.explicit")
 public class ExplicitTransferRelation implements TransferRelation
 {
+
   @Option(description = "if there is an assumption like (x!=0), "
       + "this option sets unknown (uninitialized) variables to 1L, "
       + "when the true-branch is handled.")
@@ -96,6 +97,11 @@ public class ExplicitTransferRelation implements TransferRelation
   private String missingInformationLeftPointer  = null;
 
   private CRightHandSide missingInformationRightExpression = null;
+
+  /**
+   * name for the special variable used as container for return values of functions
+   */
+  public static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
 
   public ExplicitTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
@@ -225,7 +231,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
     String functionName = returnEdge.getPredecessor().getFunctionName();
 
-    handleAssignmentToVariable("___cpa_temp_result_var_", expression, new ExpressionValueVisitor(returnEdge, newElement, functionName));
+    handleAssignmentToVariable(FUNCTION_RETURN_VAR, expression, new ExpressionValueVisitor(returnEdge, newElement, functionName));
   }
 
   /**
@@ -250,7 +256,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
       // we expect left hand side of the expression to be a variable
       if ((op1 instanceof CIdExpression) || (op1 instanceof CFieldReference)) {
-        String returnVarName = getScopedVariableName("___cpa_temp_result_var_", calledFunctionName);
+        String returnVarName = getScopedVariableName(FUNCTION_RETURN_VAR, calledFunctionName);
 
         String assignedVarName = getScopedVariableName(op1.toASTString(), callerFunctionName);
 

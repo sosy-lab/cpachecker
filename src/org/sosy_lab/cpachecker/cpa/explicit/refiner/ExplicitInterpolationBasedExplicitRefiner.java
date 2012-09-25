@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssignedVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictPathChecker;
@@ -174,7 +175,7 @@ public class ExplicitInterpolationBasedExplicitRefiner {
     List<String> toDrop = new ArrayList<String>();
 
     for(String variableName : currentInterpolant.keySet()) {
-      if(variableName.startsWith(functionName + "::") && !variableName.contains("___cpa_temp_result_var_")) {
+      if(variableName.startsWith(functionName + "::") && !variableName.contains(ExplicitTransferRelation.FUNCTION_RETURN_VAR)) {
         toDrop.add(variableName);
       }
     }
