@@ -40,39 +40,47 @@ import com.google.common.base.Joiner;
 
 /**
  * This class combines a AutomatonInternal State with a variable Configuration.
- * Instaces of this class are passed to the CPAchecker as AbstractState.
+ * Instances of this class are passed to the CPAchecker as AbstractState.
  */
 public class AutomatonState implements AbstractQueryableState, Targetable, Serializable, Partitionable {
+
   private static final long serialVersionUID = -4665039439114057346L;
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
 
   static class TOP extends AutomatonState {
     private static final long serialVersionUID = -7848577870312049023L;
+
     public TOP(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable>emptyMap(),
             new AutomatonInternalState("_predefinedState_TOP", Collections.<AutomatonTransition>emptyList()),
             pAutomatonCPA);
     }
+
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
       return pProperty.toLowerCase().equals("state == top");
     }
+
     @Override
     public String toString() {
       return "AutomatonState.TOP";
     }
   }
+
   static class BOTTOM extends AutomatonState {
     private static final long serialVersionUID = -401794748742705212L;
+
     public BOTTOM(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable>emptyMap(),
             AutomatonInternalState.BOTTOM,
             pAutomatonCPA);
     }
+
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
       return pProperty.toLowerCase().equals("state == bottom");
     }
+
     @Override
     public String toString() {
       return "AutomatonState.BOTTOM";
