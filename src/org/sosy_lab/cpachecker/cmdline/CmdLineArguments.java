@@ -49,7 +49,7 @@ import com.google.common.collect.Lists;
  */
 class CmdLineArguments {
 
-  private static final Splitter SETPROP_OPTION_SPLITTER = Splitter.on('=').trimResults();
+  private static final Splitter SETPROP_OPTION_SPLITTER = Splitter.on('=').trimResults().limit(2);
 
   /**
    * Exception thrown when something invalid is specified on the command line.
