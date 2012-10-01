@@ -84,8 +84,8 @@ public class CompositeMergeAgreeOperator implements MergeOperator {
 
       AbstractState merged = mergeOp.merge(absElem1, absElem2, prec);
 
-      // check whether merged covers absElem1
-      // by definition of MergeOperator, we know it covers absElem2
+      // Check if 'merged' covers 'absElem1', i.e., if the merge performed a join.
+      // By definition of MergeOperator, we know it covers 'absElem2'.
       if (!stopOp.stop(absElem1, Collections.singleton(merged), prec)) {
         // the result of merge doesn't cover absElem1
         // (which is the successor element currently considered by the CPAAlgorithm
