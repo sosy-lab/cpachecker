@@ -33,6 +33,8 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.LogManager.StringHandler;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 
@@ -352,19 +354,10 @@ public class FeatureVarsTest {
       Assert.assertTrue(results.isSafe());
   }
   private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
-    Configuration config = Configuration.builder().setOptions(pProperties).build();
-    StringHandler stringLogHandler = new LogManager.StringHandler();
-    LogManager logger = new LogManager(config, stringLogHandler);
-    CPAchecker cpaChecker = new CPAchecker(config, logger);
-    CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
-    return new TestResults(stringLogHandler.getLog(), results);
-  }
-  @SuppressWarnings("unused")
-  private TestResults run(File configFile, Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
     Configuration config = Configuration.builder()
-      .loadFromFile(configFile.getAbsolutePath())
-      .setOptions(pProperties).build();
-
+                                        .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
+                                        .setOptions(pProperties)
+                                        .build();
     StringHandler stringLogHandler = new LogManager.StringHandler();
     LogManager logger = new LogManager(config, stringLogHandler);
     CPAchecker cpaChecker = new CPAchecker(config, logger);
