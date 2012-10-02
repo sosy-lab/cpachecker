@@ -25,7 +25,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, unicode_literals
 
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
@@ -448,6 +448,15 @@ class Util:
     """
 
     @staticmethod
+    def printOut(value, end='\n'):
+        """
+        This function prints the given String immediately and flushes the output.
+        """
+        sys.stdout.write(value)
+        sys.stdout.write(end)
+        sys.stdout.flush()
+
+    @staticmethod
     def isCode(filename):
         """
         This function returns True, if  a line of the file contains bracket '{'.
@@ -800,7 +809,7 @@ class OutputHandler:
 
         # write testname to terminal
         numberOfFiles = len(self.test.runs)
-        print("\nrunning test" + \
+        Util.printOut("\nrunning test" + \
             (" '" + test.name + "'" if test.name is not None else "") + \
             ("     (1 file)" if numberOfFiles == 1
                         else "     ({0} files)".format(numberOfFiles)))
@@ -817,7 +826,7 @@ class OutputHandler:
         '''
 
         # print to terminal
-        print ("\nskipping test" +
+        Util.printOut("\nskipping test" +
                (" '" + test.name + "'" if test.name else "") +
                (" " + reason if reason else "")
               )
@@ -873,10 +882,9 @@ class OutputHandler:
 
             timeStr = time.strftime("%H:%M:%S", time.localtime()) + "   "
             if run.benchmark.numOfThreads == 1:
-                sys.stdout.write(timeStr + self.formatSourceFileName(run.sourcefile))
-                sys.stdout.flush()
+                Util.printOut(timeStr + self.formatSourceFileName(run.sourcefile), '')
             else:
-                print(timeStr + "starting   " + self.formatSourceFileName(run.sourcefile))
+                Util.printOut(timeStr + "starting   " + self.formatSourceFileName(run.sourcefile))
         finally:
             OutputHandler.printLock.release()
 
@@ -926,10 +934,10 @@ class OutputHandler:
             if not STOPPED_BY_INTERRUPT:
                 valueStr = statusStr + run.cpuTimeStr.rjust(8) + run.wallTimeStr.rjust(8)
                 if run.benchmark.numOfThreads == 1:
-                    print(valueStr)
+                    Util.printOut(valueStr)
                 else:
                     timeStr = time.strftime("%H:%M:%S", time.localtime()) + " "*14
-                    print(timeStr + self.formatSourceFileName(run.sourcefile) + valueStr)
+                    Util.printOut(timeStr + self.formatSourceFileName(run.sourcefile) + valueStr)
 
             # write resultline in TXTFile
             run.resultline = self.createOutputLine(run.sourcefile, run.status,
@@ -1109,7 +1117,7 @@ class OutputHandler:
         self.statistics.printToTerminal()
 
         if STOPPED_BY_INTERRUPT:
-            print ("\nscript was interrupted by user, some tests may not be done\n")
+            Util.printOut("\nscript was interrupted by user, some tests may not be done\n")
 
 
     def getFileName(self, testname, fileExtension):
@@ -1155,7 +1163,7 @@ class Statistics:
 
 
     def printToTerminal(self):
-        print ('\n'.join(['\nStatistics:' + str(self.dic["counter"]).rjust(13) + ' Files',
+        Util.printOut('\n'.join(['\nStatistics:' + str(self.dic["counter"]).rjust(13) + ' Files',
                  '    correct:        ' + str(self.dic["correctSafe"] + \
                                               self.dic["correctUnsafe"]).rjust(4),
                  '    unknown:        ' + str(self.dic["unknown"]).rjust(4),
@@ -2031,7 +2039,7 @@ def killScript():
         STOPPED_BY_INTERRUPT = True
 
         # kill running jobs
-        print ("killing subprocesses...")
+        Util.printOut("killing subprocesses...")
         try:
             SUB_PROCESSES_LOCK.acquire()
             for process in SUB_PROCESSES:
@@ -2054,4 +2062,4 @@ if __name__ == "__main__":
         sys.exit(main())
     except KeyboardInterrupt: # this block is reached, when interrupt is thrown before or after a test
         killScript()
-        print ("\n\nscript was interrupted by user, some tests may not be done")
+        Util.printOut("\n\nscript was interrupted by user, some tests may not be done")
