@@ -3,7 +3,7 @@
 <benchmark tool="cpachecker" timelimit="10" memlimit="3000">
   <option name="-noout"/>
 
-  <test name="AlwaysTopCPA">
+  <test>
     <sourcefiles>
       <include>test/programs/simple/functionCall.c</include>
       <include>test/programs/simple/loop1.c</include>
