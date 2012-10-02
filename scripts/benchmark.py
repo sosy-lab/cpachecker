@@ -817,6 +817,27 @@ class OutputHandler:
         # write information about the test into TXTFile
         self.writeTestInfoToLog()
 
+        # build dummy-entries for output, later replaced by the results,
+        # the dummy-xml-elems are shared over all runs of a test,
+        # xml-structure is equal to self.runToXML(run)
+        dummyElems = [ET.Element("column", {"title": "status", "value": ""}),
+                      ET.Element("column", {"title": "cputime", "value": ""}),
+                      ET.Element("column", {"title": "walltime", "value": ""})]
+        for column in self.benchmark.columns:
+            dummyElems.append(ET.Element("column", 
+                        {"title": column.title, "value": ""}))
+            
+        for run in self.test.runs:
+            run.resultline = self.formatSourceFileName(run.sourcefile)
+            run.xml = ET.Element("sourcefile", {"name": run.sourcefile})
+            for dummyElem in dummyElems: run.xml.append(dummyElem)
+
+        # write (empty) results to TXTFile and XML
+        self.TXTFile.replace(self.TXTContent + self.testToTXT(self.test))
+        self.XMLTestFile = FileWriter(self.getFileName(self.test.name, "xml"),
+                       Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
+        self.XMLTestFile.lastModifiedTime = time.time()
+
 
     def outputForSkippingTest(self, test, reason=None):
         '''
@@ -939,12 +960,21 @@ class OutputHandler:
                     timeStr = time.strftime("%H:%M:%S", time.localtime()) + " "*14
                     Util.printOut(timeStr + self.formatSourceFileName(run.sourcefile) + valueStr)
 
-            # write resultline in TXTFile
+            # store information in run
             run.resultline = self.createOutputLine(run.sourcefile, run.status,
                     run.cpuTimeStr, run.wallTimeStr, run.columns)
-            self.TXTFile.replace(self.TXTContent + self.testToTXT(self.test))
+            run.xml = self.runToXML(run)
 
+            # write result in TXTFile and XML
+            self.TXTFile.replace(self.TXTContent + self.testToTXT(self.test))
             self.statistics.addResult(statusRelation)
+
+            # we don't want to write this file to often, it can slow down the whole script,
+            # so we wait at least 10 seconds between two write-actions
+            currentTime = time.time()
+            if currentTime - self.XMLTestFile.lastModifiedTime > 10:
+                self.XMLTestFile.replace(Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
+                self.XMLTestFile.lastModifiedTime = currentTime
 
         finally:
             OutputHandler.printLock.release()
@@ -961,8 +991,7 @@ class OutputHandler:
         self.test.wallTimeStr = Util.formatNumber(wallTimeTest, TIME_PRECISION)
 
         # write testresults to files
-        FileWriter(self.getFileName(self.test.name, "xml"),
-            Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
+        self.XMLTestFile.replace(Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
         FileWriter(self.getFileName(self.test.name, "csv"), self.testToCSV(self.test))
 
         if len(self.test.blocks) > 1:
@@ -978,8 +1007,7 @@ class OutputHandler:
         lines = [test.titleLine, test.simpleLine]
 
         # store values of each run
-        for run in test.runs:
-            lines.append(run.resultline or self.formatSourceFileName(run.sourcefile))
+        for run in test.runs: lines.append(run.resultline)
 
         lines.append(test.simpleLine)
 
@@ -1014,8 +1042,7 @@ class OutputHandler:
             runsElem.set("name", test.name)
 
         # collect XMLelements from all runs
-        for run in runs:
-            runsElem.append(self.runToXML(run))
+        for run in runs: runsElem.append(run.xml)
 
         return runsElem
 
@@ -1226,9 +1253,17 @@ class FileWriter:
          file.close()
 
      def replace(self, content):
-         file = open(self.__filename, "w")
+         """
+         replaces the content of a file.
+         a tmp-file is used to avoid loss of data through an interrupt
+         """
+         tmpFilename = self.__filename + ".tmp"
+         
+         file = open(tmpFilename, "w")
          file.write(content)
          file.close()
+         
+         os.rename(tmpFilename, self.__filename)
 
 
 def substituteVars(oldList, test, sourcefile=None, logFolder=None):
