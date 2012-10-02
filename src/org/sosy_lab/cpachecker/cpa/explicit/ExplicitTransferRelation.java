@@ -119,7 +119,7 @@ public class ExplicitTransferRelation implements TransferRelation
     // this is an assumption, e.g. if (a == b)
     case AssumeEdge:
       CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
-      successor = handleAssumption(explicitState.clone(), assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption());
+      successor = handleAssumption(explicitState.clone(), assumeEdge.getExpression(), cfaEdge, explicitPrecision, assumeEdge.getTruthAssumption());
       break;
 
     case FunctionCallEdge:
@@ -172,7 +172,7 @@ public class ExplicitTransferRelation implements TransferRelation
     // edge is a declaration edge, e.g. int a;
     case DeclarationEdge:
       CDeclarationEdge declarationEdge = (CDeclarationEdge) cfaEdge;
-      handleDeclaration(element, declarationEdge);
+      handleDeclaration(element, declarationEdge, precision);
       break;
 
     case BlankEdge:
@@ -285,7 +285,7 @@ public class ExplicitTransferRelation implements TransferRelation
     return newElement;
   }
 
-  private ExplicitState handleAssumption(ExplicitState element, CExpression expression, CFAEdge cfaEdge, boolean truthValue)
+  private ExplicitState handleAssumption(ExplicitState element, CExpression expression, CFAEdge cfaEdge, ExplicitPrecision precision, boolean truthValue)
     throws UnrecognizedCCodeException {
     // convert an expression like [a + 753 != 951] to [a != 951 - 753]
     expression = optimizeAssumeForEvaluation(expression);
@@ -297,7 +297,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
     // value is null, try to derive further information
     if (value == null) {
-      AssigningValueVisitor avv = new AssigningValueVisitor(cfaEdge, element, functionName, truthValue);
+      AssigningValueVisitor avv = new AssigningValueVisitor(cfaEdge, element, functionName, precision, truthValue);
 
       expression.accept(avv);
 
@@ -309,7 +309,7 @@ public class ExplicitTransferRelation implements TransferRelation
     }
   }
 
-  private void handleDeclaration(ExplicitState newElement, CDeclarationEdge declarationEdge)
+  private void handleDeclaration(ExplicitState newElement, CDeclarationEdge declarationEdge, ExplicitPrecision precision)
     throws UnrecognizedCCodeException {
 
     if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
@@ -345,7 +345,7 @@ public class ExplicitTransferRelation implements TransferRelation
     // assign initial value if necessary
     String scopedVarName = getScopedVariableName(varName, functionName);
 
-    if (initialValue != null) {
+    if (initialValue != null && !precision.isOnBlacklist(scopedVarName)) {
       newElement.assignConstant(scopedVarName, initialValue);
     } else {
       newElement.forget(scopedVarName);
@@ -690,10 +690,13 @@ public class ExplicitTransferRelation implements TransferRelation
   private class AssigningValueVisitor extends ExpressionValueVisitor {
     protected boolean truthValue = false;
 
-    public AssigningValueVisitor(CFAEdge pEdge, ExplicitState pElement, String pFunctionName, boolean truthValue) {
+    private final ExplicitPrecision precision;
+
+    public AssigningValueVisitor(CFAEdge pEdge, ExplicitState pElement, String pFunctionName, ExplicitPrecision pPrecision, boolean truthValue) {
       super(pEdge, pElement, pFunctionName);
 
       this.truthValue = truthValue;
+      this.precision = pPrecision;
     }
 
     private CExpression unwrap(CExpression expression) {
@@ -734,12 +737,16 @@ public class ExplicitTransferRelation implements TransferRelation
       if ((binaryOperator == BinaryOperator.EQUALS && truthValue) || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue)) {
         if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
           String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
-          state.assignConstant(leftVariableName, rightValue);
+          if (!precision.isOnBlacklist(leftVariableName)) {
+            state.assignConstant(leftVariableName, rightValue);
+          }
         }
 
         else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
           String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName);
-          state.assignConstant(rightVariableName, leftValue);
+          if (!precision.isOnBlacklist(rightVariableName)) {
+            state.assignConstant(rightVariableName, leftValue);
+          }
         }
       }
 
@@ -750,12 +757,16 @@ public class ExplicitTransferRelation implements TransferRelation
             || (binaryOperator == BinaryOperator.EQUALS && !truthValue)) {
           if (leftValue == null && rightValue == 0L && isAssignable(lVarInBinaryExp)) {
             String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
-            state.assignConstant(leftVariableName, 1L);
+            if (!precision.isOnBlacklist(leftVariableName)) {
+              state.assignConstant(leftVariableName, 1L);
+            }
           }
 
           else if (rightValue == null && leftValue == 0L && isAssignable(rVarInBinaryExp)) {
             String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName);
-            state.assignConstant(rightVariableName, 1L);
+            if (!precision.isOnBlacklist(rightVariableName)) {
+              state.assignConstant(rightVariableName, 1L);
+            }
           }
         }
       }
