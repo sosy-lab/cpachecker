@@ -191,12 +191,12 @@
                  classpath="${ivy.jar.dir}/ant-junit.jar"/>
     </target>
 
-    <target description="Run all JUnit tests" depends="build, load-junit" name="tests">
+    <target description="Run all JUnit tests" depends="build, load-junit" name="unit-tests">
         <property name="test.report.dir" value="output"/>
         <mkdir dir="${test.report.dir}"/>
-        <junit fork="true" printSummary="true" showOutput="false">
+        <junit fork="true" printSummary="true" showOutput="false" haltonfailure="true">
             <assertions>
-            <enable /> <!-- some assertions fail currently (March 11 2010) -->
+            <enable />
             </assertions>
             <formatter type="plain"/>
             <classpath refid="CPAchecker.classpath"/>
@@ -209,5 +209,11 @@
             </batchtest>
         </junit>
     </target>
+
+    <target description="Run CPAchecker on some simple test cases in various configurations" depends="build" name="benchmark-tests">
+        <!-- TODO run benchmark.py with some benchmark definitions and check results like in BuildBot -->
+    </target>
+
+    <target description="Run all tests" depends="unit-tests, benchmark-tests" name="tests"/>
 
 </project>
