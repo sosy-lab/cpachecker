@@ -46,7 +46,7 @@ public class ExplicitTest {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA",
         "specification",     "test/config/automata/tmpSpecification.spc",
-        "cpa.explicit.variableBlacklist", "main::__SELECTED_FEATURE_(\\w)*",
+        "cpa.explicit.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
         "cpa.explicit.threshold", "200000"
       );
 
@@ -73,7 +73,7 @@ public class ExplicitTest {
       //System.out.println(results.getLog());
       //System.out.println(results.getCheckerResult().getResult());
       Assert.assertTrue(results.isUnsafe());
-      Assert.assertTrue(results.logContains("Automaton going to ErrorState on edge \"int __SELECTED_FEATURE_base;\""));
+      Assert.assertTrue(results.logContains("Automaton going to ErrorState on edge \"int __SELECTED_FEATURE_base"));
       tmpFile.deleteOnExit();
   }
   private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
