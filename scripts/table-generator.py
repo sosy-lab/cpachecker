@@ -276,6 +276,9 @@ def parseTestFile(resultFile, columnsToShow=None):
     if columnsToShow: # not None
         columns = [Column(c.get("title"), c.text, c.get("numberOfDigits"))
                    for c in columnsToShow]
+    elif resultElem.find('sourcefile') is None:
+        print("Empty resultfile found: " + resultFile)
+        columns = []
     else: # show all available columns
         columns = [Column(c.get("title"), None, None)
                    for c in resultElem.find('sourcefile').findall('column')]
@@ -298,10 +301,14 @@ def insertLogFileNames(resultFile, resultElem):
     testname = resultElem.get('name')
     if testname is not None:
         blockname = resultElem.get('block')
-        if blockname is not None:
+        if blockname is None:
+            logFolder += testname + "."
+        elif blockname == testname:
+            pass # real testname is empty
+        else:
             assert testname.endswith("." + blockname)
             testname = testname[:-(1 + len(blockname))] # remove last chars
-        logFolder += testname + "."
+            logFolder += testname + "."
 
     # for each file: append original filename and insert logFileName into sourcefileElement
     for sourcefile in resultElem.findall('sourcefile'):
