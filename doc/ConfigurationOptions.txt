@@ -580,6 +580,10 @@ cpa.predicate.lvalsAsUIFs = false
 cpa.predicate.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
 
+# List of further options which will be passed to Mathsat. Format is
+# 'key1=value1,key2=value2'
+cpa.predicate.mathsat.furtherOptions = ImmutableList.of()
+
 # Export solver queries in Smtlib format into a file (for Mathsat5).
 cpa.predicate.mathsat.logAllQueries = false
 cpa.predicate.mathsat.logfile = "mathsat5.%d.smt2"
