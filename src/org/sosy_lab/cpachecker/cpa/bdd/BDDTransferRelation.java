@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -63,6 +64,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -330,142 +332,201 @@ public class BDDTransferRelation implements TransferRelation {
     }
   }
 
+  /** This function handles statements like "a = 0;" and "b = !a;" and
+   * calls of external functions. */
+  private BDDState handleStatementEdge(final BDDState state, final CStatementEdge cfaEdge,
+      final BDDPrecision precision) {
+    final CStatement statement = cfaEdge.getStatement();
+    BDDState result = state;
+
+    // normal assignment, "a = ..."
+    if (statement instanceof CAssignment) {
+      result = handleAssignment(cfaEdge, state, (CAssignment) statement, precision);
+
+      // call of external function, "scanf(...)" without assignment
+      // internal functioncalls are handled as FunctionCallEdges
+    } else if (statement instanceof CFunctionCallStatement) {
+      result = handleExternalFunctionCall(cfaEdge, result, state.getRegion(),
+          ((CFunctionCallStatement) statement).getFunctionCallExpression().getParameterExpressions(),
+          precision);
+    }
+
+    assert !result.getRegion().isFalse();
+    return result;
+  }
+
   /** This function handles statements like "a = 0;" and "b = !a;".
    * A region is build for the right side of the statement.
    * Then this region is assigned to the variable at the left side.
    * This equality is added to the BDDstate to get the next state. */
-  private BDDState handleStatementEdge(BDDState state, CStatementEdge cfaEdge,
-      BDDPrecision precision) {
-    CStatement statement = cfaEdge.getStatement();
-    if (!(statement instanceof CAssignment)) { return state; }
-    CAssignment assignment = (CAssignment) statement;
-
+  private BDDState handleAssignment(CFAEdge cfaEdge, BDDState state, CAssignment assignment, BDDPrecision precision) {
+    Region newRegion = state.getRegion();
     CExpression lhs = assignment.getLeftHandSide();
     if (!(lhs instanceof CIdExpression)) { return state; }
-
-    BDDState result = state;
 
     String function = isGlobal(lhs) ? null : state.getFunctionName();
     String varName = lhs.toASTString();
     final String scopedVarName = buildVarName(function, varName);
-    if (precision.isTracking(function, varName)) {
+    if (!precision.isTracking(function, varName)) { return state; }
 
-      Region newRegion = state.getRegion();
-      CRightHandSide rhs = assignment.getRightHandSide();
+    CRightHandSide rhs = assignment.getRightHandSide();
 
-      if (rhs instanceof CExpression) {
-        CExpression exp = (CExpression) rhs;
-        if (isUsedInExpression(function, varName, exp)) {
-          // make tmp for assignment,
-          // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
-          String tmpVarName;
-          if (initPartitions) {
-            tmpVarName = varsToTmpVar.get(varClass.getPartitionForVar(function, varName).getVars());
-          } else {
-            tmpVarName = TMP_VARIABLE;
-          }
-
-          Partition partition = varClass.getPartitionForEdge(cfaEdge);
-          if (varClass.getBooleanPartitions().contains(partition)) {
-            assert tmpVarName != null;
-            Region tmp = createPredicate(tmpVarName);
-
-            // make region for RIGHT SIDE and build equality of var and region
-            BDDBooleanCExpressionVisitor ev = new BDDBooleanCExpressionVisitor(state, precision);
-            Region regRHS = exp.accept(ev);
-            newRegion = addEquality(tmp, regRHS, newRegion);
-
-            // delete var, make tmp equal to (new) var, then delete tmp
-            final Region var = createPredicate(scopedVarName);
-            newRegion = removePredicate(newRegion, var);
-            newRegion = addEquality(var, tmp, newRegion);
-            newRegion = removePredicate(newRegion, tmp);
-
-          } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
-            assert tmpVarName != null;
-            Region[] tmp = createPredicates(tmpVarName, partitionToBitsize(partition));
-
-            // make region for RIGHT SIDE and build equality of var and region
-            final Region[] regRHS = evaluateVectorExpression(state, precision, partition, (CExpression) rhs);
-            newRegion = addEquality(tmp, regRHS, newRegion);
-
-            // delete var, make tmp equal to (new) var, then delete tmp
-            final Region[] var = createPredicates(scopedVarName, partitionToBitsize(partition));
-            newRegion = removePredicate(newRegion, var);
-            newRegion = addEquality(var, tmp, newRegion);
-            newRegion = removePredicate(newRegion, tmp);
-
-          } else if (varClass.getSimpleCalcPartitions().contains(partition)) {
-            assert tmpVarName != null;
-            Region[] tmp = createPredicates(tmpVarName, bitsize);
-
-            // make region for RIGHT SIDE and build equality of var and region
-            final Region[] regRHS = evaluateVectorExpression(state, precision, (CExpression) rhs);
-            newRegion = addEquality(tmp, regRHS, newRegion);
-
-            // delete var, make tmp equal to (new) var, then delete tmp
-            final Region[] var = createPredicates(scopedVarName, bitsize);
-            newRegion = removePredicate(newRegion, var);
-            newRegion = addEquality(var, tmp, newRegion);
-            newRegion = removePredicate(newRegion, tmp);
-          }
-
+    if (rhs instanceof CExpression) {
+      CExpression exp = (CExpression) rhs;
+      if (isUsedInExpression(function, varName, exp)) {
+        // make tmp for assignment,
+        // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
+        String tmpVarName;
+        if (initPartitions) {
+          tmpVarName = varsToTmpVar.get(varClass.getPartitionForVar(function, varName).getVars());
         } else {
+          tmpVarName = TMP_VARIABLE;
+        }
 
-          Partition partition = varClass.getPartitionForEdge(cfaEdge);
-          if (varClass.getBooleanPartitions().contains(partition)) {
-            final Region var = createPredicate(scopedVarName);
-            newRegion = removePredicate(newRegion, var);
+        Partition partition = varClass.getPartitionForEdge(cfaEdge);
+        if (varClass.getBooleanPartitions().contains(partition)) {
+          assert tmpVarName != null;
+          Region tmp = createPredicate(tmpVarName);
 
-            // make region for RIGHT SIDE and build equality of var and region
-            BDDBooleanCExpressionVisitor ev = new BDDBooleanCExpressionVisitor(state, precision);
-            Region regRHS = ((CExpression) rhs).accept(ev);
-            newRegion = addEquality(var, regRHS, newRegion);
+          // make region for RIGHT SIDE and build equality of var and region
+          BDDBooleanCExpressionVisitor ev = new BDDBooleanCExpressionVisitor(state, precision);
+          Region regRHS = exp.accept(ev);
+          newRegion = addEquality(tmp, regRHS, newRegion);
 
-          } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
-            final Region[] var = createPredicates(scopedVarName, partitionToBitsize(partition));
-            newRegion = removePredicate(newRegion, var);
+          // delete var, make tmp equal to (new) var, then delete tmp
+          final Region var = createPredicate(scopedVarName);
+          newRegion = removePredicate(newRegion, var);
+          newRegion = addEquality(var, tmp, newRegion);
+          newRegion = removePredicate(newRegion, tmp);
 
-            // make region for RIGHT SIDE and build equality of var and region
-            final Region[] regRHS = evaluateVectorExpression(state, precision, partition, (CExpression) rhs);
-            newRegion = addEquality(var, regRHS, newRegion);
+        } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
+          assert tmpVarName != null;
+          Region[] tmp = createPredicates(tmpVarName, partitionToBitsize(partition));
 
-          } else if (varClass.getSimpleCalcPartitions().contains(partition)) {
-            final Region[] var = createPredicates(scopedVarName, bitsize);
-            newRegion = removePredicate(newRegion, var);
+          // make region for RIGHT SIDE and build equality of var and region
+          final Region[] regRHS = evaluateVectorExpression(state, precision, partition, (CExpression) rhs);
+          newRegion = addEquality(tmp, regRHS, newRegion);
 
-            // make region for RIGHT SIDE and build equality of var and region
-            final Region[] regRHS = evaluateVectorExpression(state, precision, (CExpression) rhs);
-            newRegion = addEquality(var, regRHS, newRegion);
-          }
+          // delete var, make tmp equal to (new) var, then delete tmp
+          final Region[] var = createPredicates(scopedVarName, partitionToBitsize(partition));
+          newRegion = removePredicate(newRegion, var);
+          newRegion = addEquality(var, tmp, newRegion);
+          newRegion = removePredicate(newRegion, tmp);
+
+        } else if (varClass.getSimpleCalcPartitions().contains(partition)) {
+          assert tmpVarName != null;
+          Region[] tmp = createPredicates(tmpVarName, bitsize);
+
+          // make region for RIGHT SIDE and build equality of var and region
+          final Region[] regRHS = evaluateVectorExpression(state, precision, (CExpression) rhs);
+          newRegion = addEquality(tmp, regRHS, newRegion);
+
+          // delete var, make tmp equal to (new) var, then delete tmp
+          final Region[] var = createPredicates(scopedVarName, bitsize);
+          newRegion = removePredicate(newRegion, var);
+          newRegion = addEquality(var, tmp, newRegion);
+          newRegion = removePredicate(newRegion, tmp);
         }
 
       } else {
-        // else if (rhs instanceof CFunctionCallExpression) {
-        // call of external function: we know nothing, so we do nothing
-        // TODO can we assume, that malloc returns something !=0?
-        // are there some "save functions"?
-
         Partition partition = varClass.getPartitionForEdge(cfaEdge);
         if (varClass.getBooleanPartitions().contains(partition)) {
           final Region var = createPredicate(scopedVarName);
           newRegion = removePredicate(newRegion, var);
 
+          // make region for RIGHT SIDE and build equality of var and region
+          BDDBooleanCExpressionVisitor ev = new BDDBooleanCExpressionVisitor(state, precision);
+          Region regRHS = ((CExpression) rhs).accept(ev);
+          newRegion = addEquality(var, regRHS, newRegion);
+
         } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
           final Region[] var = createPredicates(scopedVarName, partitionToBitsize(partition));
           newRegion = removePredicate(newRegion, var);
 
+          // make region for RIGHT SIDE and build equality of var and region
+          final Region[] regRHS = evaluateVectorExpression(state, precision, partition, (CExpression) rhs);
+          newRegion = addEquality(var, regRHS, newRegion);
+
         } else if (varClass.getSimpleCalcPartitions().contains(partition)) {
           final Region[] var = createPredicates(scopedVarName, bitsize);
           newRegion = removePredicate(newRegion, var);
+
+          // make region for RIGHT SIDE and build equality of var and region
+          final Region[] regRHS = evaluateVectorExpression(state, precision, (CExpression) rhs);
+          newRegion = addEquality(var, regRHS, newRegion);
         }
       }
+      return new BDDState(rmgr, newRegion, cfaEdge.getPredecessor().getFunctionName());
 
-      result = new BDDState(rmgr, newRegion, cfaEdge.getPredecessor().getFunctionName());
+    } else if (rhs instanceof CFunctionCallExpression) {
+      // call of external function: we know nothing, so we delete the value of the var
+      // TODO can we assume, that malloc returns something !=0?
+      // are there some "save functions"?
+
+      Partition partition = varClass.getPartitionForEdge(cfaEdge, -1); // -1 is the var of the assignmnt
+      if (varClass.getBooleanPartitions().contains(partition)) {
+        final Region var = createPredicate(scopedVarName);
+        newRegion = removePredicate(newRegion, var);
+
+      } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
+        final Region[] var = createPredicates(scopedVarName, partitionToBitsize(partition));
+        newRegion = removePredicate(newRegion, var);
+
+      } else if (varClass.getSimpleCalcPartitions().contains(partition)) {
+        final Region[] var = createPredicates(scopedVarName, bitsize);
+        newRegion = removePredicate(newRegion, var);
+      }
+
+      // handle params of functionCall, maybe there is a sideeffect
+      return handleExternalFunctionCall(cfaEdge, state, newRegion,
+          ((CFunctionCallExpression)rhs).getParameterExpressions(), precision);
+
+    } else {
+      throw new AssertionError("unhandled assignment: " + cfaEdge.getRawStatement());
     }
+  }
 
-    assert !result.getRegion().isFalse();
-    return result;
+  private BDDState handleExternalFunctionCall(final CFAEdge cfaEdge,
+      final BDDState state, Region newRegion,
+      final List<CExpression> params, final BDDPrecision precision) {
+
+    for (int i = 0; i < params.size(); i++) {
+      final CExpression param = params.get(i);
+
+      /* special case: external functioncall with possible side-effect!
+       * this is the only statement, where a pointer-operation is allowed
+       * and the var can be boolean, discrete or simple calc,
+       * because we know, the variable can have a random (unknown) value after the functioncall.
+       * example: "scanf("%d", &input);" */
+      if (param instanceof CUnaryExpression &&
+          UnaryOperator.AMPER == ((CUnaryExpression) param).getOperator() &&
+          ((CUnaryExpression) param).getOperand() instanceof CIdExpression) {
+        final CIdExpression id = (CIdExpression) ((CUnaryExpression) param).getOperand();
+        final String function = isGlobal(id) ? null : state.getFunctionName();
+        final String varName = id.getName();
+        final String scopedVarName = buildVarName(function, varName);
+        if (precision.isTracking(function, varName)) {
+
+          Partition partition = varClass.getPartitionForEdge(cfaEdge, i);
+          if (varClass.getBooleanPartitions().contains(partition)) {
+            final Region var = createPredicate(scopedVarName);
+            newRegion = removePredicate(newRegion, var);
+
+          } else if (varClass.getDiscreteValuePartitions().contains(partition)) {
+            final Region[] var = createPredicates(scopedVarName, partitionToBitsize(partition));
+            newRegion = removePredicate(newRegion, var);
+
+          } else if (varClass.getSimpleCalcPartitions().contains(partition)) {
+            final Region[] var = createPredicates(scopedVarName, bitsize);
+            newRegion = removePredicate(newRegion, var);
+          }
+        }
+      } else {
+        // "printf("%d", output);" or "assert(exp);"
+        // TODO: can we do something here?
+      }
+    }
+    return new BDDState(rmgr, newRegion, cfaEdge.getPredecessor().getFunctionName());
   }
 
   /** This function handles declarations like "int a = 0;" and "int b = !a;".
@@ -636,6 +697,7 @@ public class BDDTransferRelation implements TransferRelation {
     // set result of function equal to variable on left side
     CFunctionSummaryEdge fnkCall = cfaEdge.getSummaryEdge();
     CStatement call = fnkCall.getExpression().asStatement();
+    final Partition partition = varClass.getPartitionForEdge(cfaEdge);
 
     // handle assignments like "y = f(x);"
     if (call instanceof CFunctionCallAssignmentStatement) {
@@ -647,7 +709,6 @@ public class BDDTransferRelation implements TransferRelation {
       String function = isGlobal(lhs) ? null : outerFunctionName;
       String varName = lhs.toASTString();
 
-      Partition partition = varClass.getPartitionForEdge(cfaEdge);
       if (varClass.getBooleanPartitions().contains(partition)) {
         // make region (predicate) for RIGHT SIDE
         Region retVar = createPredicate(buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE));
@@ -689,7 +750,6 @@ public class BDDTransferRelation implements TransferRelation {
       }
 
     } else if (call instanceof CFunctionCallStatement) {
-      Partition partition = varClass.getPartitionForEdge(cfaEdge);
       if (varClass.getBooleanPartitions().contains(partition)) {
         Region retVar = createPredicate(buildVarName(state.getFunctionName(), FUNCTION_RETURN_VARIABLE));
         newRegion = removePredicate(newRegion, retVar);

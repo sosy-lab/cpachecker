@@ -68,7 +68,8 @@ public class BDDPrecision implements Precision {
   /**
    * This method tells if the precision demands the given variable to be tracked.
    *
-   * @param variable the scoped name of the variable to check
+   * @param variable the name of the variable to check
+   * @param variable function of current scope or null, if variable is global
    * @return true, if the variable has to be tracked, else false
    */
   public boolean isTracking(String function, String var) {
