@@ -346,9 +346,11 @@ public class BDDTransferRelation implements TransferRelation {
       // call of external function, "scanf(...)" without assignment
       // internal functioncalls are handled as FunctionCallEdges
     } else if (statement instanceof CFunctionCallStatement) {
-      result = handleExternalFunctionCall(cfaEdge, result, state.getRegion(),
+      final Region newRegion = handleExternalFunctionCall(cfaEdge, result, state.getRegion(),
           ((CFunctionCallStatement) statement).getFunctionCallExpression().getParameterExpressions(),
           precision);
+      result = new BDDState(rmgr, newRegion, cfaEdge.getPredecessor().getFunctionName());
+
     }
 
     assert !result.getRegion().isFalse();
@@ -459,11 +461,15 @@ public class BDDTransferRelation implements TransferRelation {
       return new BDDState(rmgr, newRegion, cfaEdge.getPredecessor().getFunctionName());
 
     } else if (rhs instanceof CFunctionCallExpression) {
+      // handle params of functionCall, maybe there is a sideeffect
+      newRegion = handleExternalFunctionCall(cfaEdge, state, newRegion,
+          ((CFunctionCallExpression)rhs).getParameterExpressions(), precision);
+
       // call of external function: we know nothing, so we delete the value of the var
       // TODO can we assume, that malloc returns something !=0?
       // are there some "save functions"?
 
-      Partition partition = varClass.getPartitionForEdge(cfaEdge, -1); // -1 is the var of the assignmnt
+      final Partition partition = varClass.getPartitionForEdge(cfaEdge, -1); // -1 is the var of the assignmnt
       if (varClass.getBooleanPartitions().contains(partition)) {
         final Region var = createPredicate(scopedVarName);
         newRegion = removePredicate(newRegion, var);
@@ -477,16 +483,16 @@ public class BDDTransferRelation implements TransferRelation {
         newRegion = removePredicate(newRegion, var);
       }
 
-      // handle params of functionCall, maybe there is a sideeffect
-      return handleExternalFunctionCall(cfaEdge, state, newRegion,
-          ((CFunctionCallExpression)rhs).getParameterExpressions(), precision);
+      return new BDDState(rmgr, newRegion, cfaEdge.getPredecessor().getFunctionName());
 
     } else {
       throw new AssertionError("unhandled assignment: " + cfaEdge.getRawStatement());
     }
   }
 
-  private BDDState handleExternalFunctionCall(final CFAEdge cfaEdge,
+  /** This function deletes all vars, that could be modified
+   * through a side-effect of the (external) functionCall. */
+  private Region handleExternalFunctionCall(final CFAEdge cfaEdge,
       final BDDState state, Region newRegion,
       final List<CExpression> params, final BDDPrecision precision) {
 
@@ -507,7 +513,7 @@ public class BDDTransferRelation implements TransferRelation {
         final String scopedVarName = buildVarName(function, varName);
         if (precision.isTracking(function, varName)) {
 
-          Partition partition = varClass.getPartitionForEdge(cfaEdge, i);
+          final Partition partition = varClass.getPartitionForEdge(cfaEdge, i);
           if (varClass.getBooleanPartitions().contains(partition)) {
             final Region var = createPredicate(scopedVarName);
             newRegion = removePredicate(newRegion, var);
@@ -526,7 +532,7 @@ public class BDDTransferRelation implements TransferRelation {
         // TODO: can we do something here?
       }
     }
-    return new BDDState(rmgr, newRegion, cfaEdge.getPredecessor().getFunctionName());
+    return newRegion;
   }
 
   /** This function handles declarations like "int a = 0;" and "int b = !a;".
