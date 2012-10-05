@@ -11,7 +11,7 @@ STATE USEFIRST Init :
 
 
    MATCH {assert($?)} && !CHECK(location, "functionName==assert")
-   -> PRINT "WARNING: Function assert() without body detected. You need to run the C preprocessor on this file if you want to check the assertions!"
+   -> PRINT "WARNING: Function assert() without body detected. Please run the C preprocessor on this file to enable assertion checking."
       GOTO Init;
 
 
