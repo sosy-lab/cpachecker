@@ -9,4 +9,10 @@ STATE USEFIRST Init :
    MATCH {__assert_fail($?)}
    -> ERROR;
 
+
+   MATCH {assert($?)} && !CHECK(location, "functionName==assert")
+   -> PRINT "WARNING: Function assert() without body detected. You need to run the C preprocessor on this file if you want to check the assertions!"
+      GOTO Init;
+
+
 END AUTOMATON
