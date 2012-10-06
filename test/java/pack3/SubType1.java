@@ -6,8 +6,6 @@ public class SubType1 extends SuperType1 implements Interface1 {
   int subNum1;
   int subNum2;
 
-  
-  
   public SubType1(){
     
     super();

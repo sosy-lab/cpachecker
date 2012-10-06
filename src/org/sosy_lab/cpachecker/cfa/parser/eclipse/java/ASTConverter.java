@@ -28,7 +28,9 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
 import org.eclipse.jdt.core.dom.ASTNode;
@@ -57,6 +59,7 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.Modifier.ModifierKeyword;
+import org.eclipse.jdt.core.dom.Name;
 import org.eclipse.jdt.core.dom.NullLiteral;
 import org.eclipse.jdt.core.dom.NumberLiteral;
 import org.eclipse.jdt.core.dom.ParenthesizedExpression;
@@ -139,10 +142,6 @@ import com.google.common.collect.ImmutableSet;
 
 
 public class ASTConverter {
-
-  private static final boolean NOT_GLOBAL = false;
-
-  private static final boolean GLOBAL = true;
 
   private static final boolean NOT_FINAL = false;
 
@@ -446,7 +445,9 @@ public class ASTConverter {
 
     JType type = convert(p.getType());
 
-    return new JParameterDeclaration(getFileLocation(p), type, p.getName().getFullyQualifiedName().replace('.', '_'));
+    ModifierBean mb = ModifierBean.getModifiers(p.getModifiers());
+
+    return new JParameterDeclaration(getFileLocation(p), type, p.getName().getFullyQualifiedName().replace('.', '_'), mb.isFinal);
   }
 
 
@@ -484,7 +485,7 @@ public class ASTConverter {
         preSideAssignments.clear();
       }
 
-      result.add( new JFieldDeclaration(fileLoc, GLOBAL,
+      result.add( new JFieldDeclaration(fileLoc,
           convert(type) ,    nameAndInitializer.getFirst() ,nameAndInitializer.getSecond().replace('.', '.'),
             initializer,  mB.isFinal, mB.isStatic, mB.isTransient, mB.isVolatile , mB.getVisibility()));
 
@@ -785,7 +786,7 @@ public class ASTConverter {
 
       Triple<String , String , JInitializerExpression> nameAndInitializer = getNamesAndInitializer(vdf);
 
-        variableDeclarations.add( new JVariableDeclaration(fileLoc, NOT_GLOBAL,
+        variableDeclarations.add( new JVariableDeclaration(fileLoc,
             convert(type) ,    nameAndInitializer.getFirst() ,nameAndInitializer.getSecond()   , nameAndInitializer.getThird() ,  mB.isFinal));
     }
 
@@ -822,7 +823,7 @@ public class ASTConverter {
                (JExpression) convertExpressionWithSideEffects(d.getInitializer()));
     }
 
-    return new JVariableDeclaration(getFileLocation(d), NOT_GLOBAL,
+    return new JVariableDeclaration(getFileLocation(d),
         convert(type), d.getName().getFullyQualifiedName().replace('.', '_'), d.getName().getFullyQualifiedName().replace('.', '_'), initializerExpression,
         mB.isFinal);
   }
@@ -880,7 +881,6 @@ public class ASTConverter {
     name += i;
 
     JVariableDeclaration decl = new JVariableDeclaration(getFileLocation(e),
-                                               NOT_GLOBAL,
                                                convert(e.resolveTypeBinding()),
                                                name,
                                                name,
@@ -1074,7 +1074,7 @@ public class ASTConverter {
 
       Triple<String , String , JInitializerExpression> nameAndInitializer = getNamesAndInitializer(vdf);
 
-        variableDeclarations.add( new JVariableDeclaration(fileLoc, NOT_GLOBAL,
+        variableDeclarations.add( new JVariableDeclaration(fileLoc,
             convert(type) ,    nameAndInitializer.getFirst() ,nameAndInitializer.getSecond()   , nameAndInitializer.getThird() ,  mB.isFinal));
     }
 
@@ -1163,12 +1163,18 @@ public class ASTConverter {
 
   private JAstNode convert(FieldAccess e) {
 
+    // JFieldAccess is no FieldAccess, but a qualified FieldAccess
+    // Distinction between Fields and Variables are made through
+    // Declarations JVariableDeclaration and JFieldDeclarations
+    // JField Access makes the distinction between non-static
+    // fields with qualifier, and the rest
+
     boolean canBeResolved = e.resolveFieldBinding() != null;
 
     if(canBeResolved){
     scope.registerClasses(e.resolveFieldBinding().getDeclaringClass());
     }
-    // This Expression can be ignored, is solved through resolve Binding
+    // 'This Expression' can be ignored, is solved through resolve Binding
     // and does'nt need to be included in the cfa
     if(e.getExpression().getNodeType() == ASTNode.THIS_EXPRESSION){
       return convertExpressionWithoutSideEffects(e.getName());
@@ -1338,32 +1344,17 @@ public class ASTConverter {
     JSimpleDeclaration declaration = null;
 
     boolean canBeResolved = e.resolveBinding() != null;
-      if(canBeResolved && ((IVariableBinding)e.resolveBinding()).isEnumConstant()) {
+
+    if(canBeResolved && ((IVariableBinding)e.resolveBinding()).isEnumConstant()) {
         //TODO Prototype for enum constant expression, investigate
-        return new JEnumConstantExpression(getFileLocation(e), (JClassType) convert(e.resolveTypeBinding()) , getFullyQualifiedName((IVariableBinding) e.resolveBinding()));
-      }
+      return new JEnumConstantExpression(getFileLocation(e), (JClassType) convert(e.resolveTypeBinding()) , getFullyQualifiedName((IVariableBinding) e.resolveBinding()));
+    }
 
     if(e.resolveBinding() instanceof IMethodBinding ){
       name = getFullyQualifiedMethodName((IMethodBinding) e.resolveBinding());
     } else if(e.resolveBinding() instanceof IVariableBinding){
-      // TODO Resolve a chain of qualifier
 
-      name = e.getFullyQualifiedName();
-      IVariableBinding vb = (IVariableBinding) e.resolveBinding();
-      declaration = scope.lookupVariable(name);
-
-      if(declaration == null) {
-        // TODO If can't be Found, create declaration (ugly , needs to be changed so that only one Declaration is ever created
-        ModifierBean mb = ModifierBean.getModifiers(vb.getModifiers());
-        declaration = new JFieldDeclaration(getFileLocation(e), vb.isField(), convert(e.resolveTypeBinding()), getFullyQualifiedName(vb), getFullyQualifiedName(vb), null, mb.isFinal(), mb.isStatic(), mb.isTransient(), mb.isVolatile, mb.visibility);
-      }
-
-      JExpression idExp = convertExpressionWithoutSideEffects( e.getQualifier());
-
-      if(idExp instanceof JIdExpression) {
-        JVariableDeclaration refDeclaration = (JVariableDeclaration) ((JIdExpression) idExp).getDeclaration();
-        return new JFieldAccess(getFileLocation(e), convert(e.resolveTypeBinding()), name, (JFieldDeclaration) declaration, refDeclaration);
-      }
+      return convertQualifiedVariableIdentificationExpression(e);
 
     } else {
       name = e.getFullyQualifiedName();
@@ -1376,11 +1367,100 @@ public class ASTConverter {
 
 
 
+  private JAstNode convertQualifiedVariableIdentificationExpression(QualifiedName e) {
+
+    String name = e.getFullyQualifiedName();
+    IVariableBinding vb = (IVariableBinding) e.resolveBinding();
+    JSimpleDeclaration declaration = scope.lookupVariable(name);
+
+    if(declaration == null && vb.isField()) {
+      // TODO If can't be Found, create declaration (ugly , needs to be changed so that only one Declaration is ever created
+      ModifierBean mb = ModifierBean.getModifiers(vb.getModifiers());
+      declaration = new JFieldDeclaration(getFileLocation(e), convert(e.resolveTypeBinding()), getFullyQualifiedName(vb), getFullyQualifiedName(vb), null, mb.isFinal(), mb.isStatic(), mb.isTransient(), mb.isVolatile, mb.visibility);
+    } else if(declaration == null && !vb.isField()) {
+      ModifierBean mb = ModifierBean.getModifiers(vb.getModifiers());
+      declaration = new JVariableDeclaration(getFileLocation(e),  convert(e.resolveTypeBinding()), getFullyQualifiedName(vb), getFullyQualifiedName(vb), null, mb.isFinal());
+    }
+
+
+
+    Queue<JIdExpression> qualifier = convertQualifier(e.getQualifier());
+
+    if(!qualifier.isEmpty()) {
+
+      return new JFieldAccess(getFileLocation(e), convert(e.resolveTypeBinding()), name, (JFieldDeclaration) declaration, qualifier);
+    }
+
+
+    return new JIdExpression(getFileLocation(e), convert(e.resolveTypeBinding()), name, declaration);
+  }
+
+  private Queue<JIdExpression> convertQualifier(Name pQualifier) {
+
+    Name qualifier = pQualifier;
+
+    Queue<JIdExpression> result = new ConcurrentLinkedQueue<JIdExpression>();
+
+    while(qualifier != null){
+      JIdExpression idExp = convertQualifierToJIdExpression(qualifier);
+      result.add(idExp);
+      if(qualifier instanceof QualifiedName) {
+        qualifier = ((QualifiedName) qualifier).getQualifier();
+      } else {
+        qualifier = null;
+      }
+    }
+
+    return result;
+  }
+
+  private JIdExpression convertQualifierToJIdExpression(Name e) {
+
+    String name = null;
+    JSimpleDeclaration declaration = null;
+    boolean canBeResolved = e.resolveBinding() != null;
+
+    if (canBeResolved) {
+
+      IBinding binding = e.resolveBinding();
+
+      if (binding instanceof IVariableBinding) {
+        IVariableBinding vb = (IVariableBinding) binding;
+
+        name = getFullyQualifiedName(vb);
+
+        declaration = scope.lookupVariable(name);
+
+        if(declaration == null && vb.isField()) {
+          // TODO If can't be Found, create declaration (ugly , needs to be changed so that only one Declaration is ever created
+          ModifierBean mb = ModifierBean.getModifiers(vb.getModifiers());
+          declaration = new JFieldDeclaration(getFileLocation(e), convert(e.resolveTypeBinding()), name, name, null, mb.isFinal(), mb.isStatic(), mb.isTransient(), mb.isVolatile, mb.visibility);
+        } else if(declaration == null && !vb.isField()) {
+          ModifierBean mb = ModifierBean.getModifiers(vb.getModifiers());
+          declaration = new JVariableDeclaration(getFileLocation(e),  convert(e.resolveTypeBinding()), name, name, null, mb.isFinal());
+        }
+
+      } else if (binding instanceof IMethodBinding) {
+        name = getFullyQualifiedMethodName((IMethodBinding) binding);
+        declaration = scope.lookupFunction(name);
+      }
+    } else {
+      // Can be an unresolvable Method
+      name = e.getFullyQualifiedName();
+    }
+
+    assert name != null;
+
+    return new JIdExpression(getFileLocation(e), convert(e.resolveTypeBinding()), name, declaration);
+  }
+
   public JMethodInvocationExpression convert(FunctionEntryNode  newFunctionEntryNode, JMethodInvocationExpression oldFunctionCall) {
 
     JSimpleDeclaration declaration = (JSimpleDeclaration) newFunctionEntryNode.getFunctionDefinition();
 
     String name = newFunctionEntryNode.getFunctionName();
+
+    //TODO When String Type is ready, convert to String
     JIdExpression functionName = new JIdExpression(oldFunctionCall.getFileLocation(), new JSimpleType(JBasicType.UNSPECIFIED), name, declaration);
 
     if(oldFunctionCall instanceof JReferencedMethodInvocationExpression ){
@@ -1389,10 +1469,6 @@ public class ASTConverter {
     return new JMethodInvocationExpression(oldFunctionCall.getFileLocation(), oldFunctionCall.getExpressionType(), functionName, oldFunctionCall.getParameterExpressions(), declaration);
     }
   }
-
-
-
-
 
   @SuppressWarnings({ "unchecked", "cast" })
   private JAstNode convert(MethodInvocation mi) {
@@ -1472,8 +1548,6 @@ public class ASTConverter {
     JSimpleDeclaration declaration = null;
     boolean canBeResolved = e.resolveBinding() != null;
 
-
-
     //TODO Complete declaration by finding all Bindings
     if (canBeResolved) {
 
@@ -1482,22 +1556,27 @@ public class ASTConverter {
 
 
       if (binding instanceof IVariableBinding) {
+        IVariableBinding vb = (IVariableBinding) binding;
 
         if(((IVariableBinding)e.resolveBinding()).isEnumConstant()) {
           //TODO Prototype for enum constant expression, investigate
           return new JEnumConstantExpression(getFileLocation(e), (JClassType) convert(e.resolveTypeBinding()) , getFullyQualifiedName((IVariableBinding) e.resolveBinding()));
         }
 
-        name = getFullyQualifiedName((IVariableBinding) binding);
+        name = getFullyQualifiedName(vb);
 
 
         declaration = scope.lookupVariable(name);
 
-        if(declaration == null) {
-          // TODO If can't be Found, create declaration (ugly , needs to be changed so that only one Declaration is ever created)
-          IVariableBinding vb = (IVariableBinding) binding;
-          declaration = new JVariableDeclaration(getFileLocation(e), vb.isField(), convert(e.resolveTypeBinding()), getFullyQualifiedName(vb), getFullyQualifiedName(vb), null, false);
+        if(declaration == null && vb.isField()) {
+          // TODO If can't be Found, create declaration (ugly , needs to be changed so that only one Declaration is ever created
+          ModifierBean mb = ModifierBean.getModifiers(vb.getModifiers());
+          declaration = new JFieldDeclaration(getFileLocation(e), convert(e.resolveTypeBinding()), name, name, null, mb.isFinal(), mb.isStatic(), mb.isTransient(), mb.isVolatile, mb.visibility);
+        } else if(declaration == null && !vb.isField()) {
+          ModifierBean mb = ModifierBean.getModifiers(vb.getModifiers());
+          declaration = new JVariableDeclaration(getFileLocation(e),  convert(e.resolveTypeBinding()), name, name, null, mb.isFinal());
         }
+
 
       } else if (binding instanceof IMethodBinding) {
         name = getFullyQualifiedMethodName((IMethodBinding) binding);

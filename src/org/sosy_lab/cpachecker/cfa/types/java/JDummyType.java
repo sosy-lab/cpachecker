@@ -35,7 +35,6 @@ public class JDummyType implements JType {
 
   @Override
   public String toASTString(String pDeclarator) {
-    // TODO Auto-generated method stub
     return  typeName + pDeclarator;
   }
 

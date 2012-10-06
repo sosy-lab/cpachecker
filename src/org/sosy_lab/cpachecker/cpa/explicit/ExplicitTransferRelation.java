@@ -1347,7 +1347,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
         if(operand1 instanceof JFieldAccess) {
 
-          JVariableDeclaration referenceDeclaration = ((JFieldAccess) operand1).getReferencedVariable();
+          JVariableDeclaration referenceDeclaration = (JVariableDeclaration) ((JFieldAccess) operand1).getReferencedVariable().peek().getDeclaration();
 
 
           if(referenceDeclaration instanceof JFieldDeclaration) {
@@ -1404,7 +1404,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
         if(operand2 instanceof JFieldAccess) {
 
-          JVariableDeclaration referenceDeclaration = ((JFieldAccess) operand2).getReferencedVariable();
+          JVariableDeclaration referenceDeclaration = (JVariableDeclaration) ((JFieldAccess) operand2).getReferencedVariable().peek().getDeclaration();
 
 
           if(referenceDeclaration instanceof JFieldDeclaration) {
@@ -1478,7 +1478,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
       if(idExp instanceof JFieldAccess) {
 
-        JVariableDeclaration referenceDeclaration = ((JFieldAccess) idExp).getReferencedVariable();
+        JVariableDeclaration referenceDeclaration = (JVariableDeclaration) ((JFieldAccess) idExp).getReferencedVariable().peek().getDeclaration();
 
 
         if(referenceDeclaration instanceof JFieldDeclaration) {
@@ -1634,7 +1634,7 @@ public class ExplicitTransferRelation implements TransferRelation
     String reference = null;
 
     if(notScopedField instanceof JFieldAccess) {
-      reference = ((JFieldAccess) notScopedField).getReferencedVariable().getName();
+      reference = ((JFieldAccess) notScopedField).getReferencedVariable().peek().getDeclaration().getName();
     } else {
       reference = JortState.KEYWORD_THIS;
     }

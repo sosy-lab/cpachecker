@@ -25,23 +25,10 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public abstract class CType implements Type {
+public interface CType extends Type {
 
-  private boolean   isConst;
-  private boolean   isVolatile;
+  public boolean isConst();
 
-  public CType(final boolean pConst, final boolean pVolatile) {
-    isConst = pConst;
-    isVolatile = pVolatile;
-  }
-
-  public boolean isConst() {
-    return isConst;
-  }
-
-  public boolean isVolatile() {
-    return isVolatile;
-  }
-
+  public boolean isVolatile();
 
 }

@@ -26,22 +26,19 @@ package org.sosy_lab.cpachecker.cfa.types.java;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
 
 
 
-public class JSimpleType extends CType implements JType {
+public class JSimpleType implements JType {
 
   private final JBasicType type;
   private final boolean isPrimitive;
 
 
   public JSimpleType(JBasicType pType) {
-    super(false, false);
     type = pType;
 
     switch (type) {

@@ -27,6 +27,7 @@ public final class CTypedef extends CComplexType {
 
   private final CType type;
 
+
   public CTypedef(final String pName, final CType pType) {
     super(pName);
     type = pType;

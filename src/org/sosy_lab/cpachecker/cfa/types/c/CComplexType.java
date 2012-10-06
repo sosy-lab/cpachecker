@@ -26,12 +26,11 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 /**
  * Fake class, should not be used by CPAs.
  */
-public class CComplexType extends CType {
+public class CComplexType implements CType {
 
   private final String name;
 
   public CComplexType(final String pName) {
-    super(false, false);
     name = pName.intern();
   }
 

@@ -26,21 +26,20 @@ package org.sosy_lab.cpachecker.cfa.types.java;
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
 
-public class JArrayType implements AArrayType, JReferenceType {
+public class JArrayType extends AArrayType implements JReferenceType {
 
 
-  private final JType elementType;
+
   private final int dimension;
 
   public JArrayType(final JType pElementType , final int pDimension) {
 
-    elementType = pElementType;
+    super(pElementType);
     dimension = pDimension;
   }
 
   @Override
   public String toASTString(String pDeclarator) {
-    // TODO Auto-generated method stub
     StringBuilder astString = new StringBuilder(elementType.toASTString(""));
 
     for(int dim = 0; dim < dimension ; dim++){
@@ -53,7 +52,7 @@ public class JArrayType implements AArrayType, JReferenceType {
   }
 
   public JType getElementType() {
-    return elementType;
+    return (JType) elementType;
   }
 
   public int getDimensions(){

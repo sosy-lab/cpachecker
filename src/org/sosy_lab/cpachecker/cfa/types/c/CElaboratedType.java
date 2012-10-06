@@ -23,14 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-public final class CElaboratedType extends CType {
+public final class CElaboratedType implements CType {
 
   private final ElaboratedType kind;
   private final String   name;
+  private boolean   isConst;
+  private boolean   isVolatile;
 
   public CElaboratedType(boolean pConst, final boolean pVolatile,
       final ElaboratedType pKind, final String pName) {
-    super(pConst, pVolatile);
+    isConst = pConst;
+    isVolatile = pVolatile;
     kind = pKind;
     name = pName.intern();
   }
@@ -70,5 +73,15 @@ public final class CElaboratedType extends CType {
     public String toASTString() {
       return name().toLowerCase() + " ";
     }
+  }
+
+  @Override
+  public boolean isConst() {
+    return isConst;
+  }
+
+  @Override
+  public boolean isVolatile() {
+    return isVolatile;
   }
 }

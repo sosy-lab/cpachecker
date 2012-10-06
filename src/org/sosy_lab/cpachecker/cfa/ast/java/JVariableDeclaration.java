@@ -32,11 +32,19 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 public class JVariableDeclaration extends AVariableDeclaration implements JDeclaration {
 
 
+  private static final boolean IS_LOCAL = false;
   private final boolean isFinal;
 
-  public JVariableDeclaration(CFileLocation pFileLocation, boolean pIsGlobal, JType pType, String pName,
+  protected JVariableDeclaration(CFileLocation pFileLocation, boolean pIsGlobal, JType pType, String pName,
       String pOrigName, CInitializer pInitializer, boolean pIsFinal) {
     super(pFileLocation, pIsGlobal, pType, pName, pOrigName, pInitializer);
+
+    isFinal = pIsFinal;
+  }
+
+  public JVariableDeclaration(CFileLocation pFileLocation,  JType pType, String pName,
+      String pOrigName, CInitializer pInitializer, boolean pIsFinal) {
+    super(pFileLocation, IS_LOCAL, pType, pName, pOrigName, pInitializer);
 
     isFinal = pIsFinal;
   }

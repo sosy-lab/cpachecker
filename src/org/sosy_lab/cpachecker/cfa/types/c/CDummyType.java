@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-public class CDummyType extends CType {
+public class CDummyType implements CType {
 
   private final String typeName;
 
   public CDummyType(String pTypeName) {
-    super(false, false);
     typeName = pTypeName;
   }
 
@@ -51,4 +50,6 @@ public class CDummyType extends CType {
   public String toASTString(String pDeclarator) {
     return typeName + " " + pDeclarator;
   }
+
+
 }

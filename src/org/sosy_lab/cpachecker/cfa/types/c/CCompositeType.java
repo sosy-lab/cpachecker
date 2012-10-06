@@ -31,15 +31,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 
 import com.google.common.collect.ImmutableList;
 
-public final class CCompositeType extends CType {
+public final class CCompositeType implements CType {
 
   private final int                   key;
   private final List<CCompositeTypeMemberDeclaration> members;
   private final String                name;
+  private boolean   isConst;
+  private boolean   isVolatile;
 
   public CCompositeType(final boolean pConst, final boolean pVolatile,
       final int pKey, final List<CCompositeTypeMemberDeclaration> pMembers, final String pName) {
-    super(pConst, pVolatile);
+
+    isConst= pConst;
+    isVolatile=pVolatile;
     key = pKey;
     members = ImmutableList.copyOf(pMembers);
     name = pName.intern();
@@ -111,5 +115,15 @@ public final class CCompositeType extends CType {
       return (CType ) type;
     }
 
+  }
+
+  @Override
+  public boolean isConst() {
+    return isConst;
+  }
+
+  @Override
+  public boolean isVolatile() {
+    return isVolatile;
   }
 }

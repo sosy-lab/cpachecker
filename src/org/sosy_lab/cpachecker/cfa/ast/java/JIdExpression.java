@@ -54,4 +54,5 @@ public class JIdExpression extends AIdExpression implements JExpression {
   public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }
+
 }

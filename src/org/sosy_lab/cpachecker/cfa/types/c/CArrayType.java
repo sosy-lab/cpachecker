@@ -27,20 +27,24 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
 
-public class CArrayType extends CType implements AArrayType {
+public class CArrayType extends AArrayType implements CType {
 
-  private final CType type;
+
   private final CExpression    length;
+  private boolean   isConst;
+  private boolean   isVolatile;
 
   public CArrayType(boolean pConst, boolean pVolatile,
       CType pType, CExpression pLength) {
-    super(pConst, pVolatile);
-    type = pType;
+    super(pType);
+    isConst = pConst;
+    isVolatile = pVolatile;
     length = pLength;
   }
 
+  @Override
   public CType getType() {
-    return type;
+    return (CType) elementType;
   }
 
   public CExpression getLength() {
@@ -51,7 +55,17 @@ public class CArrayType extends CType implements AArrayType {
   public String toASTString(String pDeclarator) {
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
-        +  type.toASTString(pDeclarator+ ("[" + (length != null ? length.toASTString() : "") + "]"))
+        +  elementType.toASTString(pDeclarator+ ("[" + (length != null ? length.toASTString() : "") + "]"))
         ;
+  }
+
+  @Override
+  public boolean isConst() {
+    return isConst;
+  }
+
+  @Override
+  public boolean isVolatile() {
+    return isVolatile;
   }
 }

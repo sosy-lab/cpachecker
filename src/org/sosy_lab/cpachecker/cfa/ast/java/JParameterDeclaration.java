@@ -30,13 +30,15 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 public class JParameterDeclaration extends AParameterDeclaration implements JSimpleDeclaration {
 
-  public JParameterDeclaration(CFileLocation pFileLocation, JType pType, String pName) {
+  final boolean isFinal;
+
+  public JParameterDeclaration(CFileLocation pFileLocation, JType pType, String pName, boolean pIsFinal) {
     super(pFileLocation, pType, pName);
+    isFinal = pIsFinal;
   }
 
   @Override
   public JType getType() {
-    // TODO Auto-generated method stub
     return (JType) super.getType();
   }
 

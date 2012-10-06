@@ -152,9 +152,6 @@ public class JortTransferRelation implements TransferRelation {
 
   private void handleSimpleEdge(JortState element, CFAEdge cfaEdge) throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException {
 
-
-
-
     // check the type of the edge
     switch (cfaEdge.getEdgeType()) {
     // if edge is a statement edge, e.g. a = b + c
@@ -203,8 +200,6 @@ public class JortTransferRelation implements TransferRelation {
       return;
     }
 
-
-
     JVariableDeclaration decl = (JVariableDeclaration) declarationEdge.getDeclaration();
 
     if(decl.getType() instanceof JSimpleType ) {
@@ -225,14 +220,7 @@ public class JortTransferRelation implements TransferRelation {
             return;
       }
 
-
-
-
     }
-
-
-
-
 
     // get the variable name in the declarator
     String varName = decl.getName();
@@ -251,7 +239,6 @@ public class JortTransferRelation implements TransferRelation {
       } else {
         nonStaticFieldVariables.add(varName);
       }
-
 
       // field variables without initializer are set to null
       initialValue = JortState.NULL_REFERENCE;
@@ -551,6 +538,8 @@ public class JortTransferRelation implements TransferRelation {
 
   private class ExpressionValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> implements JRightHandSideVisitor<String, UnrecognizedCCodeException>{
 
+
+    //TODO FieldAccess needs  to be read
 
     @SuppressWarnings("unused")
     protected final CFAEdge edge;

@@ -30,16 +30,18 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 public class JFieldDeclaration extends JVariableDeclaration {
 
+  private static final boolean IS_FIELD = true;
+
   private final VisibilityModifier visibility;
   private final boolean isStatic;
   private final boolean isTransient;
   private final boolean isVolatile;
 
 
-  public JFieldDeclaration(CFileLocation pFileLocation, boolean pIsGlobal, JType pType, String pName, String pOrigName,
+  public JFieldDeclaration(CFileLocation pFileLocation, JType pType, String pName, String pOrigName,
       CInitializer pInitializer, boolean pIsFinal, boolean pIsStatic, boolean pIsTransient, boolean pIsVolatile,
       VisibilityModifier pVisibility) {
-    super(pFileLocation, pIsGlobal, pType, pName, pOrigName, pInitializer, pIsFinal);
+    super(pFileLocation, IS_FIELD, pType, pName, pOrigName, pInitializer, pIsFinal);
 
     isTransient = pIsTransient;
     isVolatile =  pIsVolatile;

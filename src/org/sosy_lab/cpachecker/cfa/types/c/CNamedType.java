@@ -23,14 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-public final class CNamedType extends CType {
+public final class CNamedType implements CType {
 
   private final String name;
+  private boolean   isConst;
+  private boolean   isVolatile;
 
   public CNamedType(final boolean pConst, final boolean pVolatile,
       final String pName) {
-    super(pConst, pVolatile);
+    isConst = pConst;
+    isVolatile = pVolatile;
     name = pName.intern();
+  }
+
+  @Override
+  public boolean isConst() {
+    return isConst;
+  }
+
+  @Override
+  public boolean isVolatile() {
+    return isVolatile;
   }
 
   public String getName() {

@@ -444,7 +444,6 @@ private void handleEndVisitMethodDeclaration(){
    * @return the node after the last of the new declarations
    */
 
-
   private CFANode addDeclarationsToCFA(final List<JDeclaration> declList, int filelocStart ,String rawSignature , CFANode prevNode) {
 
     CFANode middleNode = new CFANode(filelocStart, cfa.getFunctionName());

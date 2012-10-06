@@ -30,25 +30,22 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AstNode;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 
-public class AFunctionType  extends CType implements IAFunctionType {
+public class AFunctionType implements IAFunctionType {
 
   protected final Type returnType;
-  private String name = null;
-  private final List<? extends AParameterDeclaration> parameters;
-  private final boolean takesVarArgs;
+  protected String name = null;
+  protected final List<? extends AParameterDeclaration> parameters;
+  protected final boolean takesVarArgs;
 
   public AFunctionType(
       Type pReturnType,
       List<? extends AParameterDeclaration> pParameters,
       boolean pTakesVarArgs) {
-
-    super(false , false);
 
     returnType = pReturnType;
     parameters = ImmutableList.copyOf(pParameters);

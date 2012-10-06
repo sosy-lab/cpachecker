@@ -36,16 +36,29 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public final class CEnumType extends CType {
+public final class CEnumType implements CType {
 
   private final ImmutableList<CEnumerator> enumerators;
   private final String                     name;
+  private boolean   isConst;
+  private boolean   isVolatile;
 
   public CEnumType(final boolean pConst, final boolean pVolatile,
       final List<CEnumerator> pEnumerators, final String pName) {
-    super(pConst, pVolatile);
+    isConst = pConst;
+    isVolatile = pVolatile;
     enumerators = ImmutableList.copyOf(pEnumerators);
     name = pName;
+  }
+
+  @Override
+  public boolean isConst() {
+    return isConst;
+  }
+
+  @Override
+  public boolean isVolatile() {
+    return isVolatile;
   }
 
   public ImmutableList<CEnumerator> getEnumerators() {
