@@ -147,6 +147,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "USEFIRST"          { return symbol("USEFIRST", AutomatonSym.USEFIRST); }
 <YYINITIAL> "USEALL"            { return symbol("USEALL", AutomatonSym.USEALL); }
 <YYINITIAL> "TARGET"            { return symbol("TARGET", AutomatonSym.TARGET); }
+<YYINITIAL> "IS_TARGET_STATE"   { return symbol("IS_TARGET_STATE", AutomatonSym.IS_TARGET_STATE); }
 <YYINITIAL> ","                 { return symbol("COMMA", AutomatonSym.COMMA); }
 
 <YYINITIAL> {

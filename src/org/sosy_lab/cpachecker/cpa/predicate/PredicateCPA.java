@@ -152,7 +152,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       regionManager = new SymbolicRegionManager(formulaManager, solver);
     } else {
       assert abstractionType.equals("BDD");
-      regionManager = BDDRegionManager.getInstance(config);
+      regionManager = BDDRegionManager.getInstance(config, logger);
       libraries += " and " + ((BDDRegionManager)regionManager).getVersion();
     }
     logger.log(Level.INFO, "Using predicate analysis with", libraries + ".");
@@ -162,7 +162,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     predicateManager = new PredicateAbstractionManager(abstractionManager, formulaManager, solver, config, logger);
     transfer = new PredicateTransferRelation(this, blk);
 
-    topState = PredicateAbstractState.abstractionState(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
+    topState = PredicateAbstractState.mkAbstractionState(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
     domain = new PredicateAbstractDomain(this);
 
     if (mergeType.equals("SEP")) {
@@ -188,7 +188,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     initialPrecision = new PredicatePrecision(predicates);
 
-    stats = new PredicateCPAStatistics(this, blk);
+    stats = new PredicateCPAStatistics(this, blk, regionManager);
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
   }

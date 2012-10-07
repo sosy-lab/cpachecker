@@ -941,7 +941,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         filelocStart, cfa.getFunctionName());
     cfaNodes.add(firstLoopNode);
 
-    // firstLoopNode is Node after "!(counter < 5)"
+    // postLoopNode is Node after "!(counter < 5)"
     final CFANode postLoopNode = new CLabelNode(
         fileloc.getEndingLineNumber(), cfa.getFunctionName(), "");
     cfaNodes.add(postLoopNode);
@@ -952,7 +952,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     locStack.push(firstLoopNode);
 
     createConditionEdgesForForLoop(forStatement.getConditionExpression(),
-        filelocStart, loopStart, postLoopNode, firstLoopNode);
+          filelocStart, loopStart, postLoopNode, firstLoopNode);
 
     // visit only loopbody, not children, loop.getBody() != loop.getChildren()
     forStatement.getBody().accept(this);
@@ -1164,7 +1164,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    * created.
    */
   private void createConditionEdgesForForLoop(final IASTExpression condition,
-      final int filelocStart, final CFANode loopStart,
+      final int filelocStart, CFANode loopStart,
       final CFANode postLoopNode, final CFANode firstLoopNode) {
 
     if (condition == null) {
@@ -1173,6 +1173,33 @@ class CFAFunctionBuilder extends ASTVisitor {
           firstLoopNode, "");
       addToCFA(blankEdge);
 
+    } else if (condition instanceof IASTExpressionList) {
+      IASTExpression[] expl = ((IASTExpressionList) condition).getExpressions();
+      CFANode between = null;
+      for (int i = 0; i < expl.length - 1; i++) {
+        between = new CFANode(filelocStart, cfa.getFunctionName());
+        cfaNodes.add(between);
+
+        CAstNode node = astCreator.convertExpressionWithoutSideEffects(expl[i]);
+
+        if (astCreator.numberOfPreSideAssignments() > 0) {
+          loopStart = handleSideassignments(loopStart, expl[i].getRawSignature(), filelocStart);
+        }
+
+        createSideAssignmentEdges(loopStart, between, expl[i].getRawSignature(), filelocStart, node);
+
+        if (astCreator.numberOfPostSideAssignments() > 0) {
+          CFANode nextNode = new CFANode(filelocStart, cfa.getFunctionName());
+          cfaNodes.add(nextNode);
+
+          CAstNode sideeffect = astCreator.getNextPostSideAssignment();
+
+          createSideAssignmentEdges(between, nextNode, expl[i].getRawSignature(), filelocStart, sideeffect);
+          between = nextNode;
+        }
+        loopStart = between;
+      }
+      createConditionEdgesForForLoop(expl[expl.length - 1], filelocStart, between, postLoopNode, firstLoopNode);
     } else {
       createConditionEdges(condition, filelocStart, loopStart, firstLoopNode,
           postLoopNode);

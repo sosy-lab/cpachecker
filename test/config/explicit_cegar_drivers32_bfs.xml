@@ -4,7 +4,7 @@
 <benchmark tool="cpachecker" timelimit="300" memlimit="10240">
 	
 	<option name="-setprop">output.disable=true</option>
-	<option name="-heap">8000m</option>
+	<option name="-heap">8000M</option>
 	<option name="-entryfunction">main</option>
 
 	<sourcefiles>

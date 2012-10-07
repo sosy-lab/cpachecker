@@ -121,9 +121,13 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     }
 
     @Override
-    public Boolean evaluateProperty(String pProperty)
+    public Object evaluateProperty(String pProperty)
         throws InvalidQueryException {
-      return Boolean.valueOf(checkProperty(pProperty));
+      if (pProperty.equalsIgnoreCase("lineno")) {
+        return new Integer (locationNode.getLineNumber());
+      } else {
+        return Boolean.valueOf(checkProperty(pProperty));
+      }
     }
 
     @Override

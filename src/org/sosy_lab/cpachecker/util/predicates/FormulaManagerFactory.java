@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.BitwiseMathsatFormulaMana
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.YicesTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.ArithmeticMathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.BitwiseMathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
@@ -54,7 +53,6 @@ public class FormulaManagerFactory {
   private static final String MATHSAT4 = "MATHSAT4";
   private static final String MATHSAT5 = "MATHSAT5";
   private static final String SMTINTERPOL = "SMTINTERPOL";
-  private static final String YICES = "YICES";
 
   @Option(name="solver.useIntegers",
       description="Encode program variables as INTEGER variables, instead of "
@@ -75,8 +73,8 @@ public class FormulaManagerFactory {
       description="Whether to use signed or unsigned variables if useBitvectors is true.")
   private boolean signed = true;
 
-  @Option(values={MATHSAT4, MATHSAT5, YICES, SMTINTERPOL}, toUppercase=true,
-      description="Whether to use MathSAT 4, MathSAT 5 or YICES (in combination with Mathsat 4) as SMT solver")
+  @Option(values={MATHSAT4, MATHSAT5, SMTINTERPOL}, toUppercase=true,
+      description="Whether to use MathSAT 4, MathSAT 5, or SmtInterpol as SMT solver")
   private String solver = MATHSAT4;
 
   private final FormulaManager fmgr;
@@ -114,7 +112,7 @@ public class FormulaManagerFactory {
           lProver = new Mathsat5TheoremProver((Mathsat5FormulaManager) lFmgr);
 
         } else {
-          assert solver.equals(MATHSAT4) || solver.equals(YICES);
+          assert solver.equals(MATHSAT4);
 
           if (useBitvectors) {
             lFmgr = new BitwiseMathsatFormulaManager(config, logger, bitWidth, signed);
@@ -123,13 +121,7 @@ public class FormulaManagerFactory {
             lFmgr = new ArithmeticMathsatFormulaManager(config, logger, useIntegers);
           }
 
-          if (solver.equals(YICES)) {
-            lProver = new YicesTheoremProver((MathsatFormulaManager) lFmgr, logger);
-
-          } else {
-            assert solver.equals(MATHSAT4);
-            lProver = new MathsatTheoremProver((MathsatFormulaManager) lFmgr);
-          }
+          lProver = new MathsatTheoremProver((MathsatFormulaManager) lFmgr);
         }
       } catch (UnsatisfiedLinkError e) {
         throw new InvalidConfigurationException("The SMT solver " + solver
@@ -157,7 +149,7 @@ public class FormulaManagerFactory {
     } else if (solver.equals(SMTINTERPOL)) {
       return new SmtInterpolInterpolatingProver((SmtInterpolFormulaManager) fmgr);
     } else {
-      assert solver.equals(MATHSAT4) || solver.equals(YICES);
+      assert solver.equals(MATHSAT4);
       return new MathsatInterpolatingProver((MathsatFormulaManager) fmgr, shared);
     }
   }

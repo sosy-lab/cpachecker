@@ -1,5 +1,5 @@
 The files in this directory are examples as small as possible that make errors
-in CPAChecker visible. Once the errors are fixed, they serve as regression
+in CPAchecker visible. Once the errors are fixed, they serve as regression
 checks.
 
 - modulo.cil.c: MathsatSymbolicFormulaManager did not handle op_modulo up to

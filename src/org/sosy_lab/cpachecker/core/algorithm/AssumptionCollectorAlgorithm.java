@@ -156,7 +156,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   @Override
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
-    boolean sound = true;
+    boolean isComplete = true;
 
     boolean restartCPA = false;
 
@@ -165,7 +165,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       restartCPA = false;
       try {
         // run the inner algorithm to fill the reached set
-        sound &= innerAlgorithm.run(reached);
+        isComplete &= innerAlgorithm.run(reached);
       } catch (RefinementFailedException failedRefinement) {
         logger.log(Level.FINER, "Dumping assumptions due to:", failedRefinement);
 
@@ -201,7 +201,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
         restartCPA = true;
 
-        sound = false;
+        isComplete = false;
 
       } catch (CPAException e) {
         // TODO is it really wise to swallow exceptions here?
@@ -209,7 +209,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
     } while (restartCPA);
 
-    return sound;
+    return isComplete;
   }
 
   private AssumptionWithLocation collectLocationAssumptions(ReachedSet reached, AssumptionWithLocation exceptionAssumptions) {

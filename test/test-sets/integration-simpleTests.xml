@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="10" memlimit="3000">
+  <option name="-noout"/>
+
+  <test>
+    <sourcefiles>
+      <include>test/programs/simple/functionCall.c</include>
+      <include>test/programs/simple/loop1.c</include>
+      <include>test/programs/simple/uninitVars.cil.c</include>
+    </sourcefiles>
+    <option name="-config">test/config/alwaysTopAnalysis.properties</option>
+  </test>
+
+</benchmark>

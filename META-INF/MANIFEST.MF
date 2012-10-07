@@ -8,7 +8,6 @@ Bundle-ClassPath: bin/,
  lib/java/runtime/java-cup-runtime.jar,
  lib/java/runtime/javabdd.jar,
  lib/java/runtime/guava.jar,
- lib/yicesapijava.jar,
  lib/eclipse-cdt6-parser.jar,
  .
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6

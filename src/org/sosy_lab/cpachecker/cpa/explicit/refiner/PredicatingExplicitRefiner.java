@@ -65,7 +65,7 @@ public class PredicatingExplicitRefiner {
   private int numberOfPredicateRefinements                    = 0;
   private int numberOfPredicateRefinementsDone                = 0;
 
-  public final List<Pair<ARGState, CFANode>> transformPath(Path errorPath) {
+  protected final List<Pair<ARGState, CFANode>> transformPath(Path errorPath) {
     numberOfPredicateRefinements++;
 
     List<Pair<ARGState, CFANode>> result = Lists.newArrayList();
@@ -82,7 +82,7 @@ public class PredicatingExplicitRefiner {
     return result;
   }
 
-  public List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> errorPath, ARGState initialElement) throws CPATransferException {
+  protected List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> errorPath, ARGState initialElement) throws CPATransferException {
     return from(errorPath)
             .transform(Pair.<ARGState>getProjectionToFirst())
             .transform(toState(PredicateAbstractState.class))
@@ -90,7 +90,7 @@ public class PredicatingExplicitRefiner {
             .toImmutableList();
   }
 
-  public Pair<ARGState, Precision> performRefinement(
+  protected Pair<ARGState, Precision> performRefinement(
       UnmodifiableReachedSet reachedSet,
       Precision oldPrecision,
       List<Pair<ARGState, CFANode>> errorPath,
@@ -153,7 +153,7 @@ public class PredicatingExplicitRefiner {
     return new PredicatePrecision(pmapBuilder.build(), globalPredicates);
   }
 
-  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+  protected void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     out.println(this.getClass().getSimpleName() + ":");
     out.println("  number of predicate refinements:           " + numberOfPredicateRefinements);
     out.println("  number of predicate refinements done:      " + numberOfPredicateRefinementsDone);

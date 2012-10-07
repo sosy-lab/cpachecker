@@ -17,7 +17,7 @@
     </sourcefiles>
     <option name="-noout"/>
     <option name="-predicateAnalysis"/>
-    <option name="-heap">1200m</option>
+    <option name="-heap">1200M</option>
   </test>
   <columns>
     <column title="total">time for CPAchecker</column>

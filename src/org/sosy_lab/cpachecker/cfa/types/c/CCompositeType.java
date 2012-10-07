@@ -23,18 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclarations;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
 public final class CCompositeType implements CType {
 
   private final int                   key;
-  private final List<CCompositeTypeMemberDeclaration> members;
+  private List<CCompositeTypeMemberDeclaration> members;
   private final String                name;
   private boolean   isConst;
   private boolean   isVolatile;
@@ -55,6 +54,10 @@ public final class CCompositeType implements CType {
 
   public List<CCompositeTypeMemberDeclaration> getMembers() {
     return members;
+  }
+
+  public void setMembers(List<CCompositeTypeMemberDeclaration> list) {
+    members = ImmutableList.copyOf(list);
   }
 
   public String getName() {
@@ -102,17 +105,36 @@ public final class CCompositeType implements CType {
    * This is the declaration of a member of a composite type.
    * It contains a type and an optional name.
    */
-  public static final class CCompositeTypeMemberDeclaration extends ASimpleDeclarations implements CSimpleDeclaration {
+  public static final class CCompositeTypeMemberDeclaration {
 
-    public CCompositeTypeMemberDeclaration(CFileLocation pFileLocation,
-                                              CType pType,
-                                              String pName) {
-      super(pFileLocation, pType, pName);
+
+
+    private final CType    type;
+    private final String   name;
+
+    public CCompositeTypeMemberDeclaration(CType pType,
+                                           String pName) {
+
+      type = checkNotNull(pType);
+      name = pName;
+
     }
 
-    @Override
+
+
     public CType getType(){
-      return (CType ) type;
+      return type;
+  }
+
+
+    public String getName() {
+      return name;
+    }
+
+
+    public String toASTString() {
+      String name = Strings.nullToEmpty(getName());
+      return getType().toASTString(name) + ";";
     }
 
   }

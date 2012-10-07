@@ -68,7 +68,7 @@ public class FeatureVarsCPA implements ConfigurableProgramAnalysis {
   private FeatureVarsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
 
-    NamedRegionManager manager = new NamedRegionManager(BDDRegionManager.getInstance(config));
+    NamedRegionManager manager = new NamedRegionManager(BDDRegionManager.getInstance(config, logger));
 
     initialState = new FeatureVarsState(manager.makeTrue(), manager);
     initialPrecision = new FeatureVarsPrecision(variableWhitelist);

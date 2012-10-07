@@ -30,6 +30,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -78,6 +79,8 @@ import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTypeId;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.eclipse.cdt.core.dom.ast.ICompositeType;
+import org.eclipse.cdt.core.dom.ast.IField;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -151,6 +154,9 @@ class ASTConverter {
   private LinkedList<CAstNode> postSideAssignments = new LinkedList<CAstNode>();
   private IASTConditionalExpression conditionalExpression = null;
   private CIdExpression conditionalTemporaryVariable = null;
+
+  // list for all complextypes which are known, so that they don't have to be parsed again and again
+  private ArrayList<Pair<org.eclipse.cdt.core.dom.ast.ICompositeType, CCompositeType>> iCompTypeList = Lists.newArrayList();
 
 
   public ASTConverter(Scope pScope, LogManager pLogger) {
@@ -1019,7 +1025,6 @@ class ASTConverter {
     }
     IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
 
-    CFileLocation fileLoc = convert(d.getFileLocation());
     Pair<CStorageClass, ? extends CType> specifier = convert(sd.getDeclSpecifier());
     if (specifier.getFirst() != CStorageClass.AUTO) {
       throw new CFAGenerationRuntimeException("Unsupported storage class inside composite type", d);
@@ -1030,25 +1035,25 @@ class ASTConverter {
     IASTDeclarator[] declarators = sd.getDeclarators();
     if (declarators == null || declarators.length == 0) {
       // declaration without declarator, anonymous struct field?
-      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(fileLoc, type, null);
+      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(type, null);
       result = Collections.singletonList(newD);
 
     } else if (declarators.length == 1) {
-      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(fileLoc, type, declarators[0]);
+      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(type, declarators[0]);
       result = Collections.singletonList(newD);
 
     } else {
       result = new ArrayList<CCompositeTypeMemberDeclaration>(declarators.length);
       for (IASTDeclarator c : declarators) {
 
-        result.add(createDeclarationForCompositeType(fileLoc, type, c));
+        result.add(createDeclarationForCompositeType(type, c));
       }
     }
 
     return result;
   }
 
-  private CCompositeTypeMemberDeclaration createDeclarationForCompositeType(CFileLocation fileLoc, CType type, IASTDeclarator d) {
+  private CCompositeTypeMemberDeclaration createDeclarationForCompositeType(CType type, IASTDeclarator d) {
     String name = null;
 
     if (d != null) {
@@ -1062,7 +1067,7 @@ class ASTConverter {
       name = declarator.getThird();
     }
 
-    return new CCompositeTypeMemberDeclaration(fileLoc, type, name);
+    return new CCompositeTypeMemberDeclaration(type, name);
   }
 
   private Triple<CType, CInitializer, String> convert(IASTDeclarator d, CType specifier) {
@@ -1522,12 +1527,44 @@ class ASTConverter {
     } else if (t instanceof org.eclipse.cdt.core.dom.ast.ITypedef) {
       return convert((org.eclipse.cdt.core.dom.ast.ITypedef)t);
 
+    } else if(t instanceof org.eclipse.cdt.core.dom.ast.ICompositeType) {
+      org.eclipse.cdt.core.dom.ast.ICompositeType ct = (org.eclipse.cdt.core.dom.ast.ICompositeType) t;
+
+      Iterator<Pair<ICompositeType, CCompositeType>> it = iCompTypeList.iterator();
+      while(it.hasNext()) {
+        Pair<org.eclipse.cdt.core.dom.ast.ICompositeType, CCompositeType> iType = it.next();
+        if(ct.isSameType(iType.getFirst())) {
+          return iType.getSecond();
+        }
+      }
+
+      // empty linkedList for the Fields of the struct, they are created afterwards
+      // with the right references in case of pointers to a struct of the same type
+      // otherwise they would not point to the correct struct
+      // TODO: volatile and const cannot be checked here until no, so both is set
+      //       to false
+      CCompositeType compType = new CCompositeType(false, false, ct.getKey(), new LinkedList<CCompositeTypeMemberDeclaration>(), ct.getName());
+      Pair<ICompositeType, CCompositeType> prototype = Pair.of(ct, compType);
+      iCompTypeList.add(prototype);
+      compType.setMembers(convert(ct.getFields()));
+
+      return compType;
+
     } else if (t instanceof org.eclipse.cdt.core.dom.ast.IBinding) {
       return new CComplexType(((org.eclipse.cdt.core.dom.ast.IBinding) t).getName());
 
     } else {
       return new CDummyType(t.toString());
     }
+  }
+
+  private List<CCompositeTypeMemberDeclaration> convert(IField[] pFields) {
+    List<CCompositeTypeMemberDeclaration> list = new LinkedList<CCompositeTypeMemberDeclaration>();
+
+    for(int i = 0; i < pFields.length; i++) {
+          list.add(new CCompositeTypeMemberDeclaration(convert(pFields[i].getType()), pFields[i].getName()));
+    }
+    return list;
   }
 
   private CSimpleType convert(final org.eclipse.cdt.core.dom.ast.IBasicType t) {

@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.configuration.OptionCollector;
@@ -38,6 +39,8 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
 
 /**
  * This classes parses the CPAchecker command line arguments.
@@ -45,6 +48,8 @@ import com.google.common.base.Joiner;
  * and list it in {@link #printHelp()}.
  */
 class CmdLineArguments {
+
+  private static final Splitter SETPROP_OPTION_SPLITTER = Splitter.on('=').trimResults().limit(2);
 
   /**
    * Exception thrown when something invalid is specified on the command line.
@@ -60,6 +65,8 @@ class CmdLineArguments {
 
   private CmdLineArguments() { } // prevent instantiation, this is a static helper class
 
+  private static final Pattern DEFAULT_CONFIG_FILES_PATTERN = Pattern.compile("^[a-zA-Z0-9-]+$");
+
   /**
    * The directory where to look for configuration files for options like
    * "-predicateAbstraction" that get translated into a config file name.
@@ -67,6 +74,8 @@ class CmdLineArguments {
   private static final String DEFAULT_CONFIG_FILES_DIR = "config/%s.properties";
 
   static final String CONFIGURATION_FILE_OPTION = "configuration.file";
+
+  private static final String CMC_CONFIGURATION_FILES_OPTION = "restartAlgorithm.configFiles";
 
   /**
    * Reads the arguments and process them.
@@ -101,6 +110,9 @@ class CmdLineArguments {
       ) {
         // nothing left to do
 
+      } else if (arg.equals("-cmc")) {
+        handleCmc(argsIt, properties);
+
       } else if (arg.equals("-cpas")) {
         if (argsIt.hasNext()) {
           properties.put("cpa", CompositeCPA.class.getName());
@@ -116,11 +128,11 @@ class CmdLineArguments {
       } else if (arg.equals("-setprop")) {
         if (argsIt.hasNext()) {
           String s = argsIt.next();
-          String[] bits = s.split("=");
-          if (bits.length != 2) {
+          List<String> bits = Lists.newArrayList(SETPROP_OPTION_SPLITTER.split(s));
+          if (bits.size() != 2) {
             throw new InvalidCmdlineArgumentException("-setprop argument must be a key=value pair, but \"" + s + "\" is not.");
           }
-          putIfNotExistent(properties, bits[0], bits[1]);
+          putIfNotExistent(properties, bits.get(0), bits.get(1));
         } else {
           throw new InvalidCmdlineArgumentException("-setprop argument missing.");
         }
@@ -148,7 +160,7 @@ class CmdLineArguments {
         String argName = arg.substring(1); // remove "-"
         File f = new File(String.format(DEFAULT_CONFIG_FILES_DIR, argName));
 
-        if (argName.matches("^[a-zA-Z0-9-]+$") && f.exists()) {
+        if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches() && f.exists()) {
           try {
             Files.checkReadableFile(f);
             putIfNotExistent(properties, CONFIGURATION_FILE_OPTION, f.getPath());
@@ -173,6 +185,35 @@ class CmdLineArguments {
       putIfNotExistent(properties, "analysis.programNames", Joiner.on(", ").join(programs));
     }
     return properties;
+  }
+
+  private static void handleCmc(Iterator<String> argsIt, Map<String, String> properties)
+      throws InvalidCmdlineArgumentException {
+    properties.put("analysis.restartAfterUnknown", "true");
+
+    if (argsIt.hasNext()) {
+      String newValue = argsIt.next();
+
+      // replace "predicateAnalysis" with config/predicateAnalysis.properties etc.
+      if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches() && !(new File(newValue).exists())) {
+        File f = new File(String.format(DEFAULT_CONFIG_FILES_DIR, newValue));
+
+        if (f.exists()) {
+          newValue = f.getPath();
+        }
+      }
+
+      String value = properties.get(CMC_CONFIGURATION_FILES_OPTION);
+      if (value != null) {
+        value += "," + newValue;
+      } else {
+        value = newValue;
+      }
+      properties.put(CMC_CONFIGURATION_FILES_OPTION, value);
+
+    } else {
+      throw new InvalidCmdlineArgumentException("-cmc argument missing.");
+    }
   }
 
   private static void printHelp() {

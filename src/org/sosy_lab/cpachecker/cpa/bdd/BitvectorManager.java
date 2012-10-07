@@ -34,9 +34,9 @@ public class BitvectorManager {
 
   private BDDRegionManager rmgr;
 
-  public BitvectorManager(Configuration config)
+  public BitvectorManager(Configuration config, BDDRegionManager pRmgr)
       throws InvalidConfigurationException {
-    this.rmgr = BDDRegionManager.getInstance(config);
+    this.rmgr = pRmgr;
   }
 
   private int getBitSize(Region[] r1, Region[] r2) {
@@ -200,7 +200,7 @@ public class BitvectorManager {
     int bitsize = getBitSize(A, B);
 
     Region[] diff = makeSub(A, B);
-    return wrapLast(diff[0], bitsize);
+    return wrapLast(diff[bitsize-1], bitsize);
   }
 
   /** returns an Array filled with FALSE at positions 1 to bitsize-1

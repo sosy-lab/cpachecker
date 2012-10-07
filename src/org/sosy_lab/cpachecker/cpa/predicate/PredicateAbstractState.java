@@ -159,11 +159,11 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
-  static PredicateAbstractState abstractionState(PathFormula pF, AbstractionFormula pA) {
+  static PredicateAbstractState mkAbstractionState(PathFormula pF, AbstractionFormula pA) {
     return new AbstractionState(pF, pA);
   }
 
-  static PredicateAbstractState nonAbstractionState(PathFormula pF, AbstractionFormula pA) {
+  static PredicateAbstractState mkNonAbstractionState(PathFormula pF, AbstractionFormula pA) {
     return new NonAbstractionState(pF, pA);
   }
 

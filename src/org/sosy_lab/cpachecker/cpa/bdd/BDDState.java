@@ -23,39 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 public class BDDState implements AbstractState {
 
-  private Region currentState;
+  private final Region currentState;
   private final NamedRegionManager manager;
-  private Set<Region> currentVars;
-  private BDDState functionCallState;
-  private String functionName;
+  private final String functionName;
 
-  public BDDState(NamedRegionManager mgr, BDDState functionCallElement,
-      Region state, Set<Region> vars, String functionName) {
+  public BDDState(NamedRegionManager mgr, Region state, String functionName) {
     this.currentState = state;
-    this.currentVars = vars;
-    this.functionCallState = functionCallElement;
     this.functionName = functionName;
     this.manager = mgr;
   }
 
   public Region getRegion() {
     return currentState;
-  }
-
-  public Set<Region> getVars() {
-    return currentVars;
-  }
-
-  public BDDState getFunctionCallState() {
-    return functionCallState;
   }
 
   public String getFunctionName() {
@@ -72,7 +57,6 @@ public class BDDState implements AbstractState {
   public BDDState join(BDDState other) {
     assert this.functionName.equals(other.functionName) : "same function needed: "
         + this.functionName + " vs " + other.functionName;
-    this.currentVars.addAll(other.currentVars); // some vars more make no difference
 
     Region result = manager.makeOr(this.currentState, other.currentState);
 
@@ -85,8 +69,7 @@ public class BDDState implements AbstractState {
       return this;
 
     } else {
-      return new BDDState(this.manager, this.functionCallState, result,
-          this.currentVars, this.functionName);
+      return new BDDState(this.manager, result, this.functionName);
     }
   }
 
@@ -94,6 +77,10 @@ public class BDDState implements AbstractState {
   public String toString() {
     return manager.dumpRegion(currentState) + "\n"
         + manager.regionToDot(currentState);
+  }
+
+  public String toCompactString() {
+    return manager.dumpRegion(currentState);
   }
 
   @Override

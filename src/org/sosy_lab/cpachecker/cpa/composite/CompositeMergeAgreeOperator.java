@@ -71,21 +71,21 @@ public class CompositeMergeAgreeOperator implements MergeOperator {
 
     ImmutableList.Builder<AbstractState> mergedElements = ImmutableList.builder();
     Iterator<StopOperator> stopIter = stopOperators.iterator();
-    Iterator<AbstractState> iter1 = comp1.getWrappedStates().iterator();
-    Iterator<AbstractState> iter2 = comp2.getWrappedStates().iterator();
+    Iterator<AbstractState> comp1Iter = comp1.getWrappedStates().iterator();
+    Iterator<AbstractState> comp2Iter = comp2.getWrappedStates().iterator();
     Iterator<Precision> precIter = compositePrec.getPrecisions().iterator();
 
     boolean identicElements = true;
     for (MergeOperator mergeOp : mergeOperators) {
-      AbstractState absElem1 = iter1.next();
-      AbstractState absElem2 = iter2.next();
+      AbstractState absElem1 = comp1Iter.next();
+      AbstractState absElem2 = comp2Iter.next();
       Precision prec = precIter.next();
       StopOperator stopOp = stopIter.next();
 
       AbstractState merged = mergeOp.merge(absElem1, absElem2, prec);
 
-      // check whether merged covers absElem1
-      // by definition of MergeOperator, we know it covers absElem2
+      // Check if 'merged' covers 'absElem1', i.e., if the merge performed a join.
+      // By definition of MergeOperator, we know it covers 'absElem2'.
       if (!stopOp.stop(absElem1, Collections.singleton(merged), prec)) {
         // the result of merge doesn't cover absElem1
         // (which is the successor element currently considered by the CPAAlgorithm

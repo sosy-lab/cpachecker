@@ -34,6 +34,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -60,7 +61,8 @@ public class PredicateAbstractionManager {
     public int numSymbolicAbstractions = 0;
     public int numSatCheckAbstractions = 0;
     public int numCallsAbstractionCached = 0;
-    public final NestedTimer abstractionTime = new NestedTimer(); // outer: solve time, inner: bdd time
+    public final NestedTimer abstractionEnumTime = new NestedTimer(); // outer: solver time, inner: bdd time
+    public final Timer abstractionSolveTime = new Timer(); // only the time for solving, not for model enumeration
 
     public long allSatCount = 0;
     public int maxAllSatCount = 0;
@@ -189,7 +191,7 @@ public class PredicateAbstractionManager {
       Collection<AbstractionPredicate> predicates) {
     final RegionCreator rmgr = amgr.getRegionCreator();
 
-    stats.abstractionTime.startOuter();
+    stats.abstractionEnumTime.startOuter();
 
     TheoremProver thmProver = solver.getTheoremProver();
     thmProver.init();
@@ -227,7 +229,7 @@ public class PredicateAbstractionManager {
           if (useCache && cartesianAbstractionCache.containsKey(cacheKey)) {
             byte predVal = cartesianAbstractionCache.get(cacheKey);
 
-            stats.abstractionTime.getInnerTimer().start();
+            stats.abstractionEnumTime.getInnerTimer().start();
             Region v = p.getAbstractVariable();
             if (predVal == -1) { // pred is false
               v = rmgr.makeNot(v);
@@ -237,7 +239,7 @@ public class PredicateAbstractionManager {
             } else {
               assert predVal == 0 : "predicate value is neither false, true, nor unknown";
             }
-            stats.abstractionTime.getInnerTimer().stop();
+            stats.abstractionEnumTime.getInnerTimer().stop();
 
           } else {
             logger.log(Level.ALL, "DEBUG_1",
@@ -256,10 +258,10 @@ public class PredicateAbstractionManager {
             thmProver.pop();
 
             if (isTrue) {
-              stats.abstractionTime.getInnerTimer().start();
+              stats.abstractionEnumTime.getInnerTimer().start();
               Region v = p.getAbstractVariable();
               absbdd = rmgr.makeAnd(absbdd, v);
-              stats.abstractionTime.getInnerTimer().stop();
+              stats.abstractionEnumTime.getInnerTimer().stop();
 
               predVal = 1;
             } else {
@@ -269,11 +271,11 @@ public class PredicateAbstractionManager {
               thmProver.pop();
 
               if (isFalse) {
-                stats.abstractionTime.getInnerTimer().start();
+                stats.abstractionEnumTime.getInnerTimer().start();
                 Region v = p.getAbstractVariable();
                 v = rmgr.makeNot(v);
                 absbdd = rmgr.makeAnd(absbdd, v);
-                stats.abstractionTime.getInnerTimer().stop();
+                stats.abstractionEnumTime.getInnerTimer().stop();
 
                 predVal = -1;
               }
@@ -294,7 +296,7 @@ public class PredicateAbstractionManager {
     } finally {
       thmProver.reset();
 
-      stats.abstractionTime.stopOuter();
+      stats.abstractionEnumTime.stopOuter();
     }
   }
 
@@ -347,12 +349,13 @@ public class PredicateAbstractionManager {
     // the formula is (abstractionFormula & pathFormula & predDef)
     Formula fm = fmgr.makeAnd(f, predDef);
     Region result;
-    stats.abstractionTime.startOuter();
 
     if (predVars.isEmpty()) {
       stats.numSatCheckAbstractions++;
 
+      stats.abstractionSolveTime.start();
       boolean satResult = !solver.isUnsat(fm);
+      stats.abstractionSolveTime.stop();
 
       RegionCreator rmgr = amgr.getRegionCreator();
 
@@ -361,7 +364,8 @@ public class PredicateAbstractionManager {
     } else {
       logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
       TheoremProver thmProver = solver.getTheoremProver();
-      AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr.getRegionCreator(), stats.abstractionTime.getInnerTimer());
+      AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr.getRegionCreator(),
+          stats.abstractionSolveTime, stats.abstractionEnumTime);
       result = allSatResult.getResult();
 
       // update statistics
@@ -371,21 +375,24 @@ public class PredicateAbstractionManager {
         stats.allSatCount += numModels;
       }
     }
-    long solveTime = stats.abstractionTime.stopOuter();
 
-    // TODO dump hard abst
-    if (solveTime > 10000 && dumpHardAbstractions) {
+    if (dumpHardAbstractions) {
       // we want to dump "hard" problems...
-      File dumpFile;
+      long abstractionTime = stats.abstractionSolveTime.getLengthOfLastInterval()
+                            + stats.abstractionEnumTime.getLengthOfLastOuterInterval();
 
-      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "input", 0);
-      fmgr.dumpFormulaToFile(f, dumpFile);
+      if (abstractionTime > 10000) {
+        File dumpFile;
 
-      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predDef", 0);
-      fmgr.dumpFormulaToFile(predDef, dumpFile);
+        dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "input", 0);
+        fmgr.dumpFormulaToFile(f, dumpFile);
 
-      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predVars", 0);
-      fmgr.printFormulasToFile(predVars, dumpFile);
+        dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predDef", 0);
+        fmgr.dumpFormulaToFile(predDef, dumpFile);
+
+        dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predVars", 0);
+        fmgr.printFormulasToFile(predVars, dumpFile);
+      }
     }
 
     logger.log(Level.ALL, "Abstraction computed, result is", result);

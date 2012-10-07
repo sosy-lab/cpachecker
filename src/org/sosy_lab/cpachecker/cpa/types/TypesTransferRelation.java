@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
@@ -253,7 +254,7 @@ public class TypesTransferRelation implements TransferRelation {
         element.addTypedef(name, compType); // add type "struct a"
       }
 
-      for (CSimpleDeclaration subDeclaration : compositeSpecifier.getMembers()) {
+      for (CCompositeTypeMemberDeclaration subDeclaration : compositeSpecifier.getMembers()) {
 
         Type subType = getType(element, cfaEdge, subDeclaration.getType());
 
@@ -266,7 +267,7 @@ public class TypesTransferRelation implements TransferRelation {
             compType.addMember(thisSubName, subType);
           }
         } else {
-          throw new UnrecognizedCCodeException(cfaEdge, subDeclaration);
+          throw new UnrecognizedCCodeException(subDeclaration.getName(), cfaEdge);
         }
       }
 

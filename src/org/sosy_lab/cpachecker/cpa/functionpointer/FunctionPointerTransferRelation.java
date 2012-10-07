@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -322,6 +323,13 @@ class FunctionPointerTransferRelation implements TransferRelation {
       // nothing to do.
       case BlankEdge:
       case CallToReturnEdge: {
+        break;
+      }
+
+      case MultiEdge: {
+        for(CFAEdge currentEdge : ((MultiEdge)pCfaEdge).getEdges()) {
+          newState = handleEdge(newState, currentEdge);
+        }
         break;
       }
 

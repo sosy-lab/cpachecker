@@ -197,6 +197,13 @@ public interface FormulaManager {
     public Formula parse(String s) throws IllegalArgumentException;
 
     /**
+     * Parse a formula list given as a String in a solver-specific file format.
+     * @return The same formula list in the internal representation.
+     * @throws IllegalArgumentException If the string cannot be parsed.
+     */
+    public FormulaList parseList(String s) throws IllegalArgumentException;
+
+    /**
      * Given a formula that uses "generic" variables, returns the corresponding
      * one that "instantiates" such variables according to the given SSA map.
      *
@@ -241,6 +248,13 @@ public interface FormulaManager {
      * to a file.
      */
     public String dumpFormula(Formula pT);
+
+    /**
+     * Create string representation of a list of formulae as a string.
+     * @param pFlist list of formulae
+     * @return String that describes pFlist
+     */
+    public String dumpFormulaList(FormulaList pFlist);
 
     /**
      * Looks for uninterpreted functions in the formula and adds bitwise

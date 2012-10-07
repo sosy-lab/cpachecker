@@ -3,7 +3,7 @@
 <benchmark tool="cpachecker" timelimit="120" memlimit="3000">
 
   <option name="-noout"/>
-  <option name="-heap">2000m</option>
+  <option name="-heap">2000M</option>
   <option name="-explicitAnalysis"/>
   <option name="-setprop">cpa.conditions.global.time.wall=1min</option>
 

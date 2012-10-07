@@ -28,10 +28,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -69,6 +72,7 @@ class MultiEdgeCreator extends DefaultCFAVisitor {
         }
 
         edges.add(edge);
+
         nodes.add(edge.getPredecessor());
         nodes.add(edge.getSuccessor());
 
@@ -118,9 +122,35 @@ class MultiEdgeCreator extends DefaultCFAVisitor {
   }
 
   private boolean edgeQualifies(CFAEdge edge) {
-    return edge.getEdgeType() == CFAEdgeType.BlankEdge
+    boolean result = edge.getEdgeType() == CFAEdgeType.BlankEdge
         || edge.getEdgeType() == CFAEdgeType.DeclarationEdge
         || edge.getEdgeType() == CFAEdgeType.StatementEdge
         || edge.getEdgeType() == CFAEdgeType.ReturnStatementEdge;
+
+    return result && !containsFunctionPointerCall(edge);
+  }
+
+  /**
+   * This method checks, if the given (statement) edge contains a function call via a function pointer.
+   *
+   * @param edge the edge to inspect
+   * @return whether or not this edge contains a function call or not.
+   */
+  private boolean containsFunctionPointerCall(CFAEdge edge) {
+    if(edge.getEdgeType() == CFAEdgeType.StatementEdge) {
+      CStatementEdge statementEdge = (CStatementEdge)edge;
+
+      if((statementEdge.getStatement() instanceof CFunctionCall)) {
+        CFunctionCall call = ((CFunctionCall)statementEdge.getStatement());
+        CSimpleDeclaration declaration = call.getFunctionCallExpression().getDeclaration();
+
+        if(declaration == null) {
+          return true;
+        }
+      }
+      // simplest (close-to-optimal) solution, that would split at any function call
+      //return (statementEdge.getStatement() instanceof CFunctionCall);
+    }
+    return false;
   }
 }

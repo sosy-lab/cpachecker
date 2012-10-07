@@ -16,7 +16,7 @@
     </sourcefiles>
     <option name="-noout"/>
     <option name="-predicateAnalysis"/>
-    <option name="-heap">2000m</option>
+    <option name="-heap">2000M</option>
     <option name="-setprop">cpa.conditions.global.time.wall=1min</option>
   </test>
 

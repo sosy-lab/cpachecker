@@ -13,6 +13,7 @@ following arguments (see below to learn what the options mean):
 
 -help			print list of command-line argumments and exit
 -config <FILE>		sets configuration file name
+-cmc <FILE>		enables conditional model checking and adds one configuration
 -cpas <CPAS>		sets "cpa = cpa.composite.CompositeCPA" and "CompositeCPA.cpas = <CPAS>"
 -spec <FILE>		sets "specification = <FILE>"
 -outputpath <DIR>	sets "output.path = <DIR>"
@@ -26,12 +27,20 @@ following arguments (see below to learn what the options mean):
 -setprop <KEY>=<VALUE>	sets any option: "KEY = VALUE"
 
 The arguments "-config config/CONFIGFILE.properties" can be
-abbreviated to "-CONFIG". In other words, if CPAchecker finds an
+abbreviated to "-CONFIGFILE". In other words, if CPAchecker finds an
 unknown command-line option, it checks if a file with this name
 and the ending ".properties" exists in the directory "config"
 and uses it as the configuration file.
 
-Either "-help", "-config" or "-cpas" has to be specified.
+For conditional model checking, use "-cmc" several times
+with the configurations to use (they will be executed in the given order).
+The "-config" flag is not needed in this case
+(but may be given to define options for the global analysis).
+A similar form of abbreviation can be used for "-cmc"
+as described above for "-config":
+"-cmc CONFIGFILE" is equivalent to "-cmc config/CONFIGFILE.properties".
+
+Either "-help", "-config", "-cmc", or "-cpas" has to be specified.
 
 If an option appears on the command line as well as in the configuration file,
 the value from the command line overrides the one from the file.

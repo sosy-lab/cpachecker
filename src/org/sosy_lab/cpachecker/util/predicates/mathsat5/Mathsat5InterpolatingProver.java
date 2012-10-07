@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
@@ -37,7 +38,6 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
 
     private final Mathsat5FormulaManager mgr;
     private long interpolEnv;
-    private long cfg;
 
     private final boolean useSharedEnv;
 
@@ -51,7 +51,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
     public void init() {
         Preconditions.checkState(interpolEnv == 0);
 
-        cfg = msat_create_config();
+        long cfg = msat_create_config();
         msat_set_option(cfg, "interpolation", "true");
         msat_set_option( cfg, "model_generation", "true");
         interpolEnv = mgr.createEnvironment(cfg, useSharedEnv, false);
@@ -107,7 +107,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
     }
 
     @Override
-    public Model getModel() {
+    public Model getModel() throws SolverException {
       Preconditions.checkState(interpolEnv != 0);
 
       return Mathsat5Model.createMathsatModel(interpolEnv, mgr);

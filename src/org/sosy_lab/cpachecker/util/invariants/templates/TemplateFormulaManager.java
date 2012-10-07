@@ -538,6 +538,11 @@ public class TemplateFormulaManager implements FormulaManager {
     return null;
   }
 
+  @Override
+  public FormulaList parseList(String pS) throws IllegalArgumentException {
+    throw new UnsupportedOperationException();
+  }
+
   /**
    * Given a formula that uses "generic" variables, returns the corresponding
    * one that "instantiates" such variables according to the given SSA map.
@@ -597,6 +602,11 @@ public class TemplateFormulaManager implements FormulaManager {
    */
   @Override
   public String dumpFormula(Formula pT) { return null; }
+
+  @Override
+  public String dumpFormulaList(FormulaList pFlist) {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Looks for uninterpreted functions in the formula and adds bitwise
