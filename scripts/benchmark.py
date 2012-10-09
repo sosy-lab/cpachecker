@@ -559,6 +559,62 @@ class Util:
         return "%.{0}f".format(numberOfDigits) % number
 
 
+    @staticmethod
+    def addFilesToGitRepository(files, description):
+        """
+        Add and commit all files given in a list into a git repository in the
+        OUTPUT_PATH directory. Nothing is done if the git repository has
+        local changes.
+
+        @param files: the files to commit
+        @param description: the commit message
+        """
+        if not os.path.isdir(OUTPUT_PATH):
+            Util.printOut('Output path is not a directory, cannot add files to git repository.')
+            return
+
+        # find out root directory of repository
+        gitRoot = subprocess.Popen(['git', 'rev-parse', '--show-toplevel'],
+                                   cwd=OUTPUT_PATH,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout = gitRoot.communicate()[0]
+        if gitRoot.returncode != 0:
+            Util.printOut('Cannot commit results to repository: git rev-parse failed, perhaps output path is not a git directory?')
+            return
+        gitRootDir = Util.decodeToString(stdout).splitlines()[0]
+
+        # check whether repository is clean
+        gitStatus = subprocess.Popen(['git','status','--porcelain', '--untracked-files=no'],
+                                     cwd=gitRootDir,
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stdout, stderr) = gitStatus.communicate()
+        if gitStatus.returncode != 0:
+            Util.printOut('Git status failed! Output was:\n' + Util.decodeToString(stderr))
+            return
+
+        if stdout:
+            Util.printOut('Git repository has local changes, not commiting results.')
+            return
+
+        # add files to staging area
+        files = [os.path.realpath(file) for file in files]
+        gitAdd = subprocess.Popen(['git', 'add', '--'] + files,
+                                   cwd=gitRootDir)
+        if gitAdd.wait() != 0:
+            Util.printOut('Git add failed, will not commit results!')
+            return
+
+        # commit files
+        Util.printOut('Committing results files to git repository in ' + gitRootDir)
+        gitCommit = subprocess.Popen(['git', 'commit', '--file=-', '--quiet'],
+                                     cwd=gitRootDir,
+                                     stdin=subprocess.PIPE)
+        gitCommit.communicate(description.encode('UTF-8'))
+        if gitCommit.returncode != 0:
+            Util.printOut('Git commit failed!')
+            return
+
+
 class OutputHandler:
     """
     The class OutputHandler manages all outputs to the terminal and to files.
@@ -572,6 +628,7 @@ class OutputHandler:
         and collects information about the benchmark and the computer.
         """
 
+        self.allCreatedFiles = []
         self.benchmark = benchmark
         self.statistics = Statistics()
 
@@ -663,6 +720,8 @@ class OutputHandler:
                 + "ram:".ljust(columnWidth) + memory + "\n"\
                 + simpleLine
 
+        self.description = header + systemInfo
+
         testname = None
         if len(self.benchmark.tests) == 1:
             # in case there is only a single test, we can use this name
@@ -672,9 +731,10 @@ class OutputHandler:
             testname = options.testRunOnly[0]
 
         # write to file
-        self.TXTContent = header + systemInfo
-        self.TXTFile = FileWriter(self.getFileName(testname, "txt"), self.TXTContent)
-
+        self.TXTContent = self.description
+        TXTFileName = self.getFileName(testname, "txt")
+        self.TXTFile = FileWriter(TXTFileName, self.TXTContent)
+        self.allCreatedFiles.append(TXTFileName)
 
     def getToolnameForPrinting(self):
         tool = self.benchmark.tool.lower()
@@ -834,9 +894,11 @@ class OutputHandler:
 
         # write (empty) results to TXTFile and XML
         self.TXTFile.replace(self.TXTContent + self.testToTXT(self.test))
-        self.XMLTestFile = FileWriter(self.getFileName(self.test.name, "xml"),
+        XMLTestFileName = self.getFileName(self.test.name, "xml")
+        self.XMLTestFile = FileWriter(XMLTestFileName,
                        Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
         self.XMLTestFile.lastModifiedTime = time.time()
+        self.allCreatedFiles.append(XMLTestFileName)
 
 
     def outputForSkippingTest(self, test, reason=None):
@@ -914,6 +976,7 @@ class OutputHandler:
         if run.test.name is not None:
             logfileName += run.test.name + "."
         logfileName += os.path.basename(run.sourcefile) + ".log"
+        self.allCreatedFiles.append(logfileName)
         return logfileName
 
 
@@ -992,7 +1055,9 @@ class OutputHandler:
 
         # write testresults to files
         self.XMLTestFile.replace(Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
-        FileWriter(self.getFileName(self.test.name, "csv"), self.testToCSV(self.test))
+        CSVFileName = self.getFileName(self.test.name, "csv")
+        FileWriter(CSVFileName, self.testToCSV(self.test))
+        self.allCreatedFiles.append(CSVFileName)
 
         if len(self.test.blocks) > 1:
             for block in self.test.blocks:
@@ -1168,7 +1233,6 @@ class OutputHandler:
         '''
         fileName = fileName.replace(self.commonPrefix, '', 1)
         return fileName.ljust(self.maxLengthOfFileName + 4)
-
 
 class Statistics:
 
@@ -1970,6 +2034,9 @@ def runBenchmark(benchmarkFile):
             outputHandler.outputAfterTest(cpuTimeTest, wallTimeTest)
 
     outputHandler.outputAfterBenchmark()
+    if options.commit:
+        Util.addFilesToGitRepository(outputHandler.allCreatedFiles,
+                                     options.commitMessage+'\n\n'+outputHandler.description)
 
 
 def main(argv=None):
@@ -2030,6 +2097,16 @@ from the output of this script.""")
     parser.add_option("-c", "--limitCores", dest="limitCores",
                       action="store_true",
                       help="When limiting core usage, every run in the benchmark is only allowed to use one core of the cpu.")
+
+    parser.add_option("--commit", dest="commit",
+                      action="store_true",
+                      help="If the output path is a git repository without local changes,"
+                            + "add and commit the result files.")
+
+    parser.add_option("--message",
+                      dest="commitMessage", type="string",
+                      default="Results for benchmark run",
+                      help="Commit message if --commit is used.")
 
     global options, OUTPUT_PATH
     (options, args) = parser.parse_args(argv)
