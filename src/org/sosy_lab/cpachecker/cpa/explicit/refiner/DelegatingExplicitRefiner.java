@@ -82,7 +82,7 @@ public class DelegatingExplicitRefiner
   /**
    * a counter for debugging purpose
    */
-  private static int counter = 1;
+//  private static int counter = 1;
 
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
