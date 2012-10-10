@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -62,9 +62,9 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManage
 import org.sosy_lab.cpachecker.util.predicates.interpolation.UninstantiatingInterpolationManager;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 
-public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, ARGState> implements StatisticsProvider {
+public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> implements StatisticsProvider {
 
   private class Stats implements Statistics {
 
@@ -142,12 +142,8 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, AR
     List<ARGState> result = from(pPath)
                                .skip(1)
                                .transform(Pair.<ARGState>getProjectionToFirst())
-                               .filter(new Predicate<ARGState>() {
-                                   @Override
-                                   public boolean apply(ARGState pInput) {
-                                     return extractStateByType(pInput, PredicateAbstractState.class).isAbstractionState();
-                                   }
-                                 })
+                               .filter(Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES,
+                                                          toState(PredicateAbstractState.class)))
                                .toImmutableList();
 
     assert pPath.getLast().getFirst() == result.get(result.size()-1);

@@ -63,10 +63,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
  * It does, however, produce a nice error path in case of a feasible counterexample.
  *
  * @param <I> The type of the result of the interpolation query.
- * @param <P> The type of path elements used by the sub-class.
  */
 @Options(prefix="cpa.predicate.refinement")
-public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractARGBasedRefiner {
+public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBasedRefiner {
 
   @Option(name="msatCexFile",
       description="where to dump the counterexample formula in case the error location is reached")
@@ -109,7 +108,7 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
 
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
-    final List<P> path = transformPath(pPath);
+    final List<ARGState> path = transformPath(pPath);
 
     logger.log(Level.ALL, "Abstraction trace is", path);
 
@@ -169,7 +168,7 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
     }
   }
 
-  protected abstract List<P> transformPath(Path pPath);
+  protected abstract List<ARGState> transformPath(Path pPath);
 
   /**
    * Get the block formulas from a path.
@@ -178,9 +177,9 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
    * @return A list of block formulas for this path.
    * @throws CPATransferException
    */
-  protected abstract List<Formula> getFormulasForPath(List<P> path, ARGState initialState) throws CPATransferException;
+  protected abstract List<Formula> getFormulasForPath(List<ARGState> path, ARGState initialState) throws CPATransferException;
 
-  protected abstract void performRefinement(ARGReachedSet pReached, List<P> path,
+  protected abstract void performRefinement(ARGReachedSet pReached, List<ARGState> path,
       CounterexampleTraceInfo<I> counterexample, boolean pRepeatedCounterexample) throws CPAException;
 
   private Pair<Path, CounterexampleTraceInfo<I>> findPreciseErrorPath(Path pPath, CounterexampleTraceInfo<I> counterexample) {

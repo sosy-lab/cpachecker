@@ -67,7 +67,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import com.google.common.collect.Multimap;
 
 public class DelegatingExplicitRefiner
-  extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARGState, CFANode>> {
+  extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>> {
 
   /**
    * refiner used for explicit interpolation refinement
@@ -196,12 +196,12 @@ public class DelegatingExplicitRefiner
   }
 
   @Override
-  protected final List<Pair<ARGState, CFANode>> transformPath(Path errorPath) {
+  protected final List<ARGState> transformPath(Path errorPath) {
     return predicatingRefiner.transformPath(errorPath);
   }
 
   @Override
-  protected List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> errorPath, ARGState initialElement)
+  protected List<Formula> getFormulasForPath(List<ARGState> errorPath, ARGState initialElement)
       throws CPATransferException {
     return predicatingRefiner.getFormulasForPath(errorPath, initialElement);
   }
@@ -209,7 +209,7 @@ public class DelegatingExplicitRefiner
   @Override
   protected void performRefinement(
       ARGReachedSet pReached,
-      List<Pair<ARGState, CFANode>> errorPath,
+      List<ARGState> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> counterexampleTraceInfo,
       boolean pRepeatedCounterexample)
       throws CPAException {
