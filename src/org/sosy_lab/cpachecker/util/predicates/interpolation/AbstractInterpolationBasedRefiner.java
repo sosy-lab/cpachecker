@@ -80,8 +80,8 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
 
   private final InterpolationManager<I> formulaManager;
 
-  // TODO: this should be private
-  protected List<Formula> lastErrorPath = null;
+  // the previously analyzed counterexample to detect repeated counterexamples
+  private List<Formula> lastErrorPath = null;
 
   protected AbstractInterpolationBasedRefiner(final Configuration config, LogManager pLogger, final ConfigurableProgramAnalysis pCpa, InterpolationManager<I> pInterpolationManager) throws CPAException, InvalidConfigurationException {
     super(pCpa);
@@ -95,7 +95,7 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
   protected CounterexampleInfo performRefinement(final ARGReachedSet pReached, final Path pPath) throws CPAException, InterruptedException {
     totalRefinement.start();
 
-    Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(pPath.getLast().getFirst()); // TODO: make this lazy?
+    Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(pPath.getLast().getFirst());
 
     boolean branchingOccurred = true;
     if (elementsOnPath.size() == pPath.size()) {
