@@ -15,7 +15,7 @@
       <includesfile>test/test-sets/integration-ControlFlowInteger.set</includesfile>
       <includesfile>test/programs/benchmarks/HeapManipulation.set</includesfile>
       <includesfile>test/test-sets/integration-SystemC.set</includesfile>
-      <includesfile>test/programs/benchmarks/DeviceDrivers.set</includesfile>
+      <includesfile>test/programs/benchmarks/FeatureChecks.set</includesfile>
     </sourcefiles>
     <sourcefiles>
       <includesfile>test/test-sets/integration-DeviceDrivers64.set</includesfile>
