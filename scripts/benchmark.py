@@ -260,12 +260,12 @@ class Test:
 
         # get included sourcefiles
         for includedFiles in sourcefilesTag.findall("include"):
-            sourcefiles += self.getFileList(includedFiles.text)
+            sourcefiles += self.getFileList(includedFiles.text, os.path.dirname(self.benchmark.benchmarkFile))
 
         # get sourcefiles from list in file
         for includesFilesFile in sourcefilesTag.findall("includesfile"):
 
-            for file in self.getFileList(includesFilesFile.text):
+            for file in self.getFileList(includesFilesFile.text, os.path.dirname(includesFilesFile)):
                 fileDir = os.path.dirname(file)
 
                 # check for code (if somebody changes 'include' and 'includesfile')
