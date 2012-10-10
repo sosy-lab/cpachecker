@@ -4,11 +4,11 @@
 
   <test>
     <sourcefiles>
-      <includesfile>test/programs/benchmarks/Concurrency.set</includesfile>
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <includesfile>integration-ControlFlowInteger.set</includesfile>
-      <includesfile>test/programs/benchmarks/HeapManipulation.set</includesfile>
+      <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
       <includesfile>integration-SystemC.set</includesfile>
-      <includesfile>test/programs/benchmarks/FeatureChecks.set</includesfile>
+      <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>

@@ -4,8 +4,8 @@
   
   <test name="k1">
     <sourcefiles>
-      <include>test/programs/induction/*.c</include>
-      <include>test/programs/benchmarks/ssh-simplified/s3_srvr*.cil.c</include>
+      <include>../programs/induction/*.c</include>
+      <include>../programs/benchmarks/ssh-simplified/s3_srvr*.cil.c</include>
     </sourcefiles>
     <option name="-noout"/>
     <option name="-bmc-induction"/>
@@ -16,9 +16,9 @@
 
   <test name="k10">
     <sourcefiles>
-      <include>test/programs/induction/*.c</include>
-      <include>test/programs/benchmarks/ssh-simplified/s3_srvr*.cil.c</include>
-      <include>test/programs/benchmarks/ssh/s3_srvr*.cil.c</include>
+      <include>../programs/induction/*.c</include>
+      <include>../programs/benchmarks/ssh-simplified/s3_srvr*.cil.c</include>
+      <include>../programs/benchmarks/ssh/s3_srvr*.cil.c</include>
     </sourcefiles>
     <option name="-noout"/>
     <option name="-bmc-induction"/>

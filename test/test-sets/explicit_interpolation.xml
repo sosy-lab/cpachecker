@@ -2,14 +2,14 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="1020" memlimit="15000">
   <sourcefiles>
-    <includesfile>test/programs/benchmarks/ControlFlowInteger.set</includesfile>
-    <includesfile>test/programs/benchmarks/HeapManipulation.set</includesfile>
-    <includesfile>test/programs/benchmarks/SystemC.set</includesfile>
-    <includesfile>test/programs/benchmarks/FeatureChecks.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+    <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+    <includesfile>../programs/benchmarks/SystemC.set</includesfile>
+    <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
   </sourcefiles>
 
   <sourcefiles>
-    <includesfile>test/programs/benchmarks/DeviceDrivers64.set</includesfile>
+    <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
     <option name="-setprop">cpa.predicate.machineModel=Linux64</option>
   </sourcefiles>
 

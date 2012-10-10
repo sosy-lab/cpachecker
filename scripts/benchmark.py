@@ -257,16 +257,16 @@ class Test:
 
     def getSourcefiles(self, sourcefilesTag):
         sourcefiles = []
+        baseDir = os.path.dirname(self.benchmark.benchmarkFile)
 
         # get included sourcefiles
         for includedFiles in sourcefilesTag.findall("include"):
-            sourcefiles += self.getFileList(includedFiles.text, os.path.dirname(self.benchmark.benchmarkFile))
+            sourcefiles += self.getFileList(includedFiles.text, baseDir)
 
         # get sourcefiles from list in file
         for includesFilesFile in sourcefilesTag.findall("includesfile"):
 
-            for file in self.getFileList(includesFilesFile.text, os.path.dirname(includesFilesFile)):
-                fileDir = os.path.dirname(file)
+            for file in self.getFileList(includesFilesFile.text, baseDir):
 
                 # check for code (if somebody changes 'include' and 'includesfile')
                 if Util.isCode(file):
@@ -283,25 +283,26 @@ class Test:
 
                     # ignore comments and empty lines
                     if not Util.isComment(line):
-                        sourcefiles += self.getFileList(line, fileDir)
+                        sourcefiles += self.getFileList(line, os.path.dirname(file))
 
                 fileWithList.close()
 
         # remove excluded sourcefiles
         for excludedFiles in sourcefilesTag.findall("exclude"):
-            excludedFilesList = self.getFileList(excludedFiles.text)
+            excludedFilesList = self.getFileList(excludedFiles.text, baseDir)
             for excludedFile in excludedFilesList:
                 sourcefiles = Util.removeAll(sourcefiles, excludedFile)
 
         return sourcefiles
 
 
-    def getFileList(self, shortFile, root=""):
+    def getFileList(self, shortFile, root):
         """
         The function getFileList expands a short filename to a sorted list
         of filenames. The short filename can contain variables and wildcards.
         If root is given and shortFile is not absolute, root and shortFile are joined.
         """
+
         # store shortFile for fallback
         shortFileFallback = shortFile
 
@@ -330,19 +331,17 @@ class Test:
             logging.debug("Expanded tilde and/or shell variables in expression {0} to {1}."
                 .format(repr(shortFile), repr(expandedFile)))
 
-        if len(fileList) == 0:
+        if len(fileList) == 0 and root != "":
 
-            if root == "":
-                logging.warning("No files found matching {0}."
-                                .format(repr(shortFile)))
-
-            else: # Fallback for older test-sets
-                logging.warning("Perpaps old or invalid test-set. Trying fallback for {0}."
-                                .format(repr(shortFileFallback)))
-                fileList = self.getFileList(shortFileFallback)
+            if root != "":
+                # try fallback for older test-sets
+                fileList = self.getFileList(shortFileFallback, "")
                 if len(fileList) != 0:
-                    logging.warning("Fallback has found some files for {0}."
-                                .format(repr(shortFileFallback)))
+                    logging.warning("Test definition uses old-style paths. Please change the path {0} to be relative to {1}."
+                                .format(repr(shortFileFallback), repr(root)))
+                else:
+                    logging.warning("No files found matching {0}."
+                                .format(repr(shortFile)))
 
         return fileList
 
