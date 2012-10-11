@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
  */
 public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
 
-  public Collection<AbstractState> getReached();
+  public Collection<AbstractState> asCollection();
 
   @Override
   public Iterator<AbstractState> iterator();
