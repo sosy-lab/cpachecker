@@ -220,10 +220,10 @@ public class Mathsat5TheoremProver implements TheoremProver {
         Region v;
         if (msat_term_is_not(env, t)) {
           t = msat_term_get_arg(t, 0);
-          v = rmgr.getPredicate(new Mathsat5Formula(env, t));
+          v = rmgr.getPredicate(new Mathsat5Formula(t));
           v = rmgr.makeNot(v);
         } else {
-          v = rmgr.getPredicate(new Mathsat5Formula(env, t));
+          v = rmgr.getPredicate(new Mathsat5Formula(t));
         }
         curCube.add(v);
       }

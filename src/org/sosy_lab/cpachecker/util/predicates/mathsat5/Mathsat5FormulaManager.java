@@ -138,8 +138,8 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
 
     msatVarType = pVarType.getVariableType(msatEnv);
 
-    trueFormula = encapsulate(msat_make_true(msatEnv));
-    falseFormula = encapsulate(msat_make_false(msatEnv));
+    trueFormula = new Mathsat5Formula.TrueFormula(msat_make_true(msatEnv));
+    falseFormula = new Mathsat5Formula.FalseFormula(msat_make_false(msatEnv));
 
     long integer_type = msat_get_integer_type(msatEnv);
 
@@ -192,7 +192,15 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
   }
 
   protected Formula encapsulate(long t) {
-    return new Mathsat5Formula(msatEnv, t);
+    if (msat_term_is_true(msatEnv, t)) {
+      assert t == getTerm(trueFormula);
+      return trueFormula;
+    } else if (msat_term_is_false(msatEnv, t)) {
+      assert t == getTerm(falseFormula);
+      return falseFormula;
+    } else {
+      return new Mathsat5Formula(t);
+    }
   }
 
   private static FormulaList encapsulate(long[] t) {

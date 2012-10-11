@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static com.google.common.base.Preconditions.*;
-import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
+import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.msat_term_repr;
 
 import java.io.IOException;
 import java.io.ObjectStreamException;
@@ -45,29 +45,21 @@ class Mathsat5Formula implements Formula, Serializable {
 
   private static final long serialVersionUID = 7662624283533815801L;
   private final long msatTerm;
-  private final long msatEnv;
 
-  public Mathsat5Formula(long e, long t) {
-    assert e != 0;
+  Mathsat5Formula(long t) {
     assert t != 0;
 
     msatTerm = t;
-    msatEnv = e;
-  }
-
-
-  public long getTermEnv() {
-    return msatEnv;
   }
 
   @Override
   public boolean isFalse() {
-    return msat_term_is_false(msatEnv, msatTerm);
+    return false;
   }
 
   @Override
   public boolean isTrue() {
-    return msat_term_is_true(msatEnv, msatTerm);
+    return false;
   }
 
   @Override
@@ -90,8 +82,32 @@ class Mathsat5Formula implements Formula, Serializable {
     return (int) msatTerm;
   }
 
-  private Object writeReplace() throws ObjectStreamException {
+  Object writeReplace() throws ObjectStreamException {
     return new SerialProxy(this);
+  }
+
+  static final class FalseFormula extends Mathsat5Formula {
+
+    FalseFormula(long pT) {
+      super(pT);
+    }
+
+    @Override
+    public boolean isFalse() {
+      return true;
+    }
+  }
+
+  static final class TrueFormula extends Mathsat5Formula {
+
+    TrueFormula(long pT) {
+      super(pT);
+    }
+
+    @Override
+    public boolean isTrue() {
+      return true;
+    }
   }
 
   private static class SerialProxy implements Serializable {
