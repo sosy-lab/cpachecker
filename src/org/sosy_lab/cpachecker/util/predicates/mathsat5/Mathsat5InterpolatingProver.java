@@ -95,7 +95,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
         if (!useSharedEnv) {
             itp = msat_make_copy_from(mgr.getMsatEnv(), itp, interpolEnv);
         }
-        return new Mathsat5Formula(mgr.getMsatEnv(), itp);
+        return mgr.encapsulate(itp);
     }
 
     @Override
@@ -110,7 +110,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
     public Model getModel() throws SolverException {
       Preconditions.checkState(interpolEnv != 0);
 
-      return Mathsat5Model.createMathsatModel(interpolEnv, mgr);
+      return Mathsat5Model.createMathsatModel(interpolEnv, mgr, useSharedEnv);
     }
 
 }
