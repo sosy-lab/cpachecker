@@ -27,11 +27,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.NoSuchElementException;
-
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 
 import com.google.common.collect.UnmodifiableIterator;
 
@@ -70,23 +66,13 @@ class Mathsat5NativeApi {
     return new ModelIterator(msat_create_model_iterator(e));
   }
 
-  public static class NamedTermsWrapper implements FormulaList {
-    protected long[] terms;
-    protected String[] names;
-    protected long msatEnv = 0;
+  static class NamedTermsWrapper {
+    final long[] terms;
+    final String[] names;
 
-    public NamedTermsWrapper(long[] pTerms, String[] pNames) {
+    NamedTermsWrapper(long[] pTerms, String[] pNames) {
       terms = pTerms;
       names = pNames;
-    }
-
-    public Map<String, Long> getTermsMap() {
-      Map<String, Long> map = new HashMap<String, Long>();
-      assert terms.length == names.length;
-      for (int i = 0; i < terms.length; i++) {
-        map.put(names[i], terms[i]);
-      }
-      return map;
     }
   }
 

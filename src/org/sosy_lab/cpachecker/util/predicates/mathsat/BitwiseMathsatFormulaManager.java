@@ -33,7 +33,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 
 /**
  * Implementation of MathsatFormulaManager for formulas with bitvectors.
@@ -220,17 +219,5 @@ public class BitwiseMathsatFormulaManager extends MathsatFormulaManager {
   @Override
   public Formula getBitwiseAxioms(Formula pF) {
     return makeTrue();
-  }
-
-  @Override
-  public FormulaList parseList(String pS) throws IllegalArgumentException {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public String dumpFormulaList(FormulaList pFlist) {
-    // TODO Auto-generated method stub
-    return null;
   }
 }

@@ -469,9 +469,18 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
   */
 
   @Override
-  public String dumpFormulaList(FormulaList pFlist) {
-    assert pFlist instanceof NamedTermsWrapper;
-    NamedTermsWrapper ntw = (NamedTermsWrapper) pFlist;
+  public String dumpFormulas(Map<String, Formula> pFormulas) {
+    String[] names = new String[pFormulas.size()];
+    long[] terms = new long[pFormulas.size()];
+
+    int i = 0;
+    for (Map.Entry<String, Formula> entry : pFormulas.entrySet()) {
+      names[i] = entry.getKey();
+      terms[i] = getTerm(entry.getValue());
+      i++;
+    }
+
+    NamedTermsWrapper ntw = new NamedTermsWrapper(terms, names);
     return msat_named_list_to_smtlib2(msatEnv, ntw);
   }
 
@@ -488,10 +497,18 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
   }
 
   @Override
-  public FormulaList parseList(String pS) throws IllegalArgumentException {
+  public Map<String, Formula> parseFormulas(String pS) throws IllegalArgumentException {
     NamedTermsWrapper ntw = msat_named_list_from_smtlib2(msatEnv, pS);
-    ntw.msatEnv = msatEnv;
-    return ntw;
+
+    Map<String, Formula> result = new HashMap<String, Formula>(ntw.terms.length);
+    for (int i = 0; i < ntw.terms.length; i++) {
+      String name = ntw.names[i];
+      long term = ntw.terms[i];
+      assert !result.containsKey(name);
+      result.put(name, encapsulate(term));
+    }
+
+    return result;
   }
 
   @Override

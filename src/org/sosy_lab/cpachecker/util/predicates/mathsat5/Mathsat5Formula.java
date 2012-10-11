@@ -23,20 +23,19 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
+import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Map;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.NamedTermsWrapper;
+
+import com.google.common.collect.Maps;
 
 
 /**
@@ -99,6 +98,7 @@ class Mathsat5Formula implements Formula, Serializable {
 
     private static final long serialVersionUID = 6889568471468710163L;
     private transient static int storageIndex = -1;
+    private transient int id = -1;
 
     public SerialProxy(Formula pFormula) {
       if (storageIndex == -1) {
@@ -110,77 +110,54 @@ class Mathsat5Formula implements Formula, Serializable {
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
       out.defaultWriteObject();
       out.writeInt(storageIndex);
+      out.writeInt(id);
     }
 
     private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
       in.defaultReadObject();
       storageIndex = in.readInt();
+      id = in.readInt();
     }
 
     private Object readResolve() throws ObjectStreamException {
-      return ((MathsatFormulaStorage) GlobalInfo.getInstance().getHelperStorage(storageIndex)).restoreFormula();
+      return ((MathsatFormulaStorage) GlobalInfo.getInstance().getHelperStorage(storageIndex)).restoreFormula(id);
     }
   }
 
   private static class MathsatFormulaStorage implements Serializable {
 
     private static final long serialVersionUID = -3773448463181606622L;
-    private transient ArrayList<Formula> formulaeStorage;
+    private transient Map<String, Formula> formulaeStorage = Maps.newHashMap();
 
-    public MathsatFormulaStorage() {
-      formulaeStorage = new ArrayList<Formula>();
+    private int nextId = 0;
+
+    public int storeFormula(Formula f) {
+      int id = nextId++;
+      formulaeStorage.put("a" + id, f);
+      return id;
     }
 
-    public void storeFormula(Formula f) {
-      formulaeStorage.add(f);
-    }
-
-    public Formula restoreFormula() {
-      Formula result = formulaeStorage.get(0);
-      formulaeStorage.remove(0);
-
-      return result;
+    public Formula restoreFormula(int id) {
+      checkArgument(id > 0);
+      return checkNotNull(formulaeStorage.get("a" + id));
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
       out.defaultWriteObject();
 
-      long[] terms = new long[formulaeStorage.size()];
-      String[] names = new String[formulaeStorage.size()];
-      for (int i = 0; i < formulaeStorage.size(); i++) {
-        terms[i] = ((Mathsat5Formula) formulaeStorage.get(i)).msatTerm;
-        names[i] = "a" + i;
-      }
-      FormulaList flist = new NamedTermsWrapper(terms, names);
+      ExtendedFormulaManager fmgr = GlobalInfo.getInstance().getFormulaManager();
+      String storageFormulaRepresentation = fmgr.dumpFormulas(formulaeStorage);
 
-      String storageFormulaRepresentation = GlobalInfo.getInstance().getFormulaManager().dumpFormulaList(flist);
-
-      //write everything
-      out.writeInt(formulaeStorage.size());
       out.writeObject(storageFormulaRepresentation);
     }
 
     private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
       in.defaultReadObject();
 
-      int storageSize = in.readInt();
       String data = (String) in.readObject();
-      Files.writeFile(new File("/tmp/error"), data);
 
-      FormulaList storageFormula = GlobalInfo.getInstance().getFormulaManager().parseList(data);
-
-      assert storageFormula instanceof NamedTermsWrapper;
-      NamedTermsWrapper ntw = (NamedTermsWrapper) storageFormula;
-
-      formulaeStorage = new ArrayList<Formula>(storageSize);
-      Map<String, Long> termsMap = ntw.getTermsMap();
-      for (int i = 0; i < storageSize; i++) {
-        Long term = termsMap.get("a" + i);
-        if (term == null)
-          throw new RuntimeException(i + " is not in there");
-        Formula f = new Mathsat5Formula(ntw.msatEnv, term);
-        formulaeStorage.add(f);
-      }
+      ExtendedFormulaManager fmgr = GlobalInfo.getInstance().getFormulaManager();
+      formulaeStorage = fmgr.parseFormulas(data);
     }
   }
 }

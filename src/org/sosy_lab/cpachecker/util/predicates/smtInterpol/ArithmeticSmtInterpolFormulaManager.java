@@ -28,13 +28,13 @@ import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUti
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
@@ -296,12 +296,12 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
   }
 
   @Override
-  public FormulaList parseList(String pS) throws IllegalArgumentException {
+  public Map<String, Formula> parseFormulas(String pS) throws IllegalArgumentException {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public String dumpFormulaList(FormulaList pFlist) {
+  public String dumpFormulas(Map<String, Formula> pFormulas) {
     throw new UnsupportedOperationException();
   }
 }

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.invariants.templates;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -539,7 +540,7 @@ public class TemplateFormulaManager implements FormulaManager {
   }
 
   @Override
-  public FormulaList parseList(String pS) throws IllegalArgumentException {
+  public Map<String, Formula> parseFormulas(String pS) throws IllegalArgumentException {
     throw new UnsupportedOperationException();
   }
 
@@ -604,7 +605,7 @@ public class TemplateFormulaManager implements FormulaManager {
   public String dumpFormula(Formula pT) { return null; }
 
   @Override
-  public String dumpFormulaList(FormulaList pFlist) {
+  public String dumpFormulas(Map<String, Formula> pFormulas) {
     throw new UnsupportedOperationException();
   }
 

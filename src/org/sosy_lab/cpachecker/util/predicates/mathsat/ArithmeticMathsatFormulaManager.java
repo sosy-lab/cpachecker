@@ -34,7 +34,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 
 /**
  * Implementation of MathsatFormulaManager for formulas with the theories of
@@ -296,17 +295,4 @@ public class ArithmeticMathsatFormulaManager extends MathsatFormulaManager {
     }
     return encapsulate(result);
   }
-
-  @Override
-  public FormulaList parseList(String pS) throws IllegalArgumentException {
-      // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public String dumpFormulaList(FormulaList pFlist) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
 }
