@@ -104,10 +104,13 @@ class Mathsat5Formula implements Formula, Serializable {
       if (storageIndex == -1) {
         storageIndex = GlobalInfo.getInstance().addHelperStorage(new MathsatFormulaStorage());
       }
-      ((MathsatFormulaStorage) GlobalInfo.getInstance().getHelperStorage(storageIndex)).storeFormula(pFormula);
+      MathsatFormulaStorage formulaStorage = (MathsatFormulaStorage) GlobalInfo.getInstance().getHelperStorage(storageIndex);
+      id = formulaStorage.storeFormula(pFormula);
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+      checkState(storageIndex >= 0);
+      checkState(id >= 0);
       out.defaultWriteObject();
       out.writeInt(storageIndex);
       out.writeInt(id);
@@ -117,6 +120,7 @@ class Mathsat5Formula implements Formula, Serializable {
       in.defaultReadObject();
       storageIndex = in.readInt();
       id = in.readInt();
+      checkState(id >= 0);
     }
 
     private Object readResolve() throws ObjectStreamException {
@@ -129,7 +133,7 @@ class Mathsat5Formula implements Formula, Serializable {
     private static final long serialVersionUID = -3773448463181606622L;
     private transient Map<String, Formula> formulaeStorage = Maps.newHashMap();
 
-    private int nextId = 0;
+    private transient int nextId = 0;
 
     public int storeFormula(Formula f) {
       int id = nextId++;
@@ -138,7 +142,7 @@ class Mathsat5Formula implements Formula, Serializable {
     }
 
     public Formula restoreFormula(int id) {
-      checkArgument(id > 0);
+      checkArgument(id >= 0);
       return checkNotNull(formulaeStorage.get("a" + id));
     }
 
