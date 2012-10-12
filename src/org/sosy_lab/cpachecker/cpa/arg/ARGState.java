@@ -165,6 +165,11 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   }
 
   @Override
+  public boolean isTarget() {
+    return !hasCoveredParent && !isCovered() && super.isTarget();
+  }
+
+  @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     if (destroyed) {
