@@ -1177,6 +1177,16 @@ class ASTConverter {
 
     // handle return type
     returnType = convertPointerOperators(d.getPointerOperators(), returnType);
+    if (returnType instanceof CSimpleType) {
+      CSimpleType t = (CSimpleType)returnType;
+      if (t.getType() == CBasicType.UNSPECIFIED) {
+        // type of functions is implicitly int it not specified
+        returnType = new CSimpleType(t.isConst(), t.isVolatile(), CBasicType.INT,
+            t.isLong(), t.isShort(), t.isSigned(), t.isUnsigned(), t.isComplex(),
+            t.isImaginary(), t.isLongLong());
+      }
+    }
+
 
     // handle parameters
     List<CParameterDeclaration> paramsList = convert(sd.getParameters());
