@@ -120,6 +120,11 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
   }
 
   @Override
+  public void popFormula() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public Formula getInterpolant(List<Integer> pFormulasOfA) {
     Preconditions.checkState(!interpolants.isEmpty(), "isUnsat needs to be called first!");
 

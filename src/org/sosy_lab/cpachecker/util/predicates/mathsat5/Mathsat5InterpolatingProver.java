@@ -66,9 +66,15 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
             t = msat_make_copy_from(interpolEnv, t, mgr.getMsatEnv());
         }
         int group = msat_create_itp_group(interpolEnv);
+        msat_push_backtrack_point(interpolEnv);
         msat_set_itp_group(interpolEnv, group);
         msat_assert_formula(interpolEnv, t);
         return group;
+    }
+
+    @Override
+    public void popFormula() {
+        msat_pop_backtrack_point(interpolEnv);
     }
 
     @Override
