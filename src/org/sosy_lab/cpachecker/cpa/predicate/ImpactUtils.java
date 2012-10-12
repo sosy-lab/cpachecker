@@ -100,7 +100,7 @@ class ImpactUtils {
 
         reached.removeOnlyFromWaitlist(childOfV);
 
-        childOfV.setNotCovering();
+        childOfV.setHasCoveredParent(true);
       }
 
       for (ARGState childOfV : subtree) {
