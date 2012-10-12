@@ -219,7 +219,7 @@ public class ARGUtils {
         edges.append(covered.getStateId());
         edges.append(" -> ");
         edges.append(currentElement.getStateId());
-        edges.append(" [style=\"dashed\" label=\"covered by\"]\n");
+        edges.append(" [style=\"dashed\" weight=\"0\" label=\"covered by\"]\n");
       }
 
       for (ARGState child : currentElement.getChildren()) {
