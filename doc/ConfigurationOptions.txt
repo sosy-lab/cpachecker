@@ -618,9 +618,11 @@ cpa.predicate.merge = "ABE"
 cpa.predicate.nondetFunctions = {
       "malloc", "__kmalloc", "kzalloc",
       "sscanf",
-      "int_nondet", "nondet_int", "random", "__VERIFIER_nondet_int", "__VERIFIER_nondet_pointer",
-      "__VERIFIER_nondet_short", "__VERIFIER_nondet_char", "__VERIFIER_nondet_float"
-      }
+      "int_nondet", "nondet_int", "random"}
+
+# Regexp pattern for functions that should be considered as giving a
+# non-deterministic return value (c.f. cpa.predicate.nondedFunctions)
+cpa.predicate.nondetFunctionsRegexp = "^__VERIFIER_nondet_[a-z]*"
 
 # export final predicate map, if the error location is not reached
 cpa.predicate.predmap.export = true

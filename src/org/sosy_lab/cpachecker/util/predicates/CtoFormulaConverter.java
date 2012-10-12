@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -133,9 +134,12 @@ public class CtoFormulaConverter {
   private Set<String> nondetFunctions = ImmutableSet.of(
       "malloc", "__kmalloc", "kzalloc",
       "sscanf",
-      "int_nondet", "nondet_int", "random", "__VERIFIER_nondet_int", "__VERIFIER_nondet_pointer",
-      "__VERIFIER_nondet_short", "__VERIFIER_nondet_char", "__VERIFIER_nondet_float"
-      );
+      "int_nondet", "nondet_int", "random");
+
+  @Option(description="Regexp pattern for functions that should be considered as giving "
+    + "a non-deterministic return value (c.f. cpa.predicate.nondedFunctions)")
+  private String nondetFunctionsRegexp = "^__VERIFIER_nondet_[a-z]*";
+  private final Pattern nondetFunctionsPattern;
 
   @Option(description = "the machine model used for functions sizeof and alignof")
   private MachineModel machineModel = MachineModel.LINUX32;
@@ -213,6 +217,8 @@ public class CtoFormulaConverter {
 
     this.fmgr = fmgr;
     this.logger = logger;
+
+    nondetFunctionsPattern = Pattern.compile(nondetFunctionsRegexp);
   }
 
   private void warnUnsafeVar(CExpression exp) {
@@ -1487,7 +1493,8 @@ public class CtoFormulaConverter {
       String func;
       if (fn instanceof CIdExpression) {
         func = ((CIdExpression)fn).getName();
-        if (nondetFunctions.contains(func)) {
+        if (nondetFunctions.contains(func)
+            || nondetFunctionsPattern.matcher(func).matches()) {
           // function call like "random()"
           // ignore parameters and just create a fresh variable for it
           return makeFreshVariable(func, ssa);
