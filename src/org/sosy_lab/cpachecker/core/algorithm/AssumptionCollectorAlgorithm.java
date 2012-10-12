@@ -203,9 +203,12 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
         isComplete = false;
 
-      } catch (CPAException e) {
-        // TODO is it really wise to swallow exceptions here?
-        logger.log(Level.FINER, "Dumping assumptions due to: " + e.toString());
+        // TODO: handle CounterexampleAnalysisFailed similar to RefinementFailedException
+        // TODO: handle other kinds of CPAException?
+
+//      } catch (CPAException e) {
+//        // TODO is it really wise to swallow exceptions here?
+//        logger.log(Level.FINER, "Dumping assumptions due to: " + e.toString());
       }
     } while (restartCPA);
 
