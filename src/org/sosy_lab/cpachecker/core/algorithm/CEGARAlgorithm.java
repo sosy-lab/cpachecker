@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -49,7 +52,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
@@ -224,10 +226,15 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         // run algorithm
         isComplete &= algorithm.run(reached);
 
-        // if the last state is a target state do refinement
-        if (AbstractStates.isTargetState(reached.getLastState())) {
+        // if there is any target state do refinement
+        if (isTargetState(reached.getLastState())
+            || from(reached).anyMatch(IS_TARGET_STATE)) {
 
           refinementSuccessful = refine(reached);
+
+          if (refinementSuccessful) {
+            assert !from(reached).anyMatch(IS_TARGET_STATE);
+          }
         }
 
       } while (refinementSuccessful);
