@@ -131,6 +131,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -1559,6 +1560,19 @@ class ASTConverter {
       compType.setMembers(convert(ct.getFields()));
 
       return compType;
+
+    } else if (t instanceof org.eclipse.cdt.core.dom.ast.IFunctionType) {
+      org.eclipse.cdt.core.dom.ast.IFunctionType ft = (org.eclipse.cdt.core.dom.ast.IFunctionType) t;
+
+      org.eclipse.cdt.core.dom.ast.IType[] parameters = ft.getParameterTypes();
+      List<CType> newParameters = Lists.newArrayListWithExpectedSize(parameters.length);
+      for (org.eclipse.cdt.core.dom.ast.IType p : parameters) {
+        newParameters.add(convert(p));
+      }
+
+      // TODO varargs
+      return new CFunctionPointerType(false, false, convert(ft.getReturnType()), newParameters, false);
+
 
     } else if (t instanceof org.eclipse.cdt.core.dom.ast.IBinding) {
       return new CComplexType(((org.eclipse.cdt.core.dom.ast.IBinding) t).getName());
