@@ -1267,6 +1267,9 @@ public class CtoFormulaConverter {
       UnaryOperator op = exp.getOperator();
 
       switch (op) {
+      case PLUS:
+        return toNumericFormula(operand.accept(this));
+
       case MINUS: {
         Formula term = toNumericFormula(operand.accept(this));
         return fmgr.makeNegate(term);
