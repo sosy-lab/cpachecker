@@ -1973,6 +1973,7 @@ def runBenchmark(benchmarkFile):
                 repr(benchmarkFile), len(benchmark.tests)))
 
     outputHandler = benchmark.outputHandler
+    testsRun = 0
 
     logging.debug("I will use {0} threads.".format(benchmark.numOfThreads))
 
@@ -1992,6 +1993,7 @@ def runBenchmark(benchmarkFile):
             outputHandler.outputForSkippingTest(test, "because it has no files")
 
         else:
+            testsRun += 1
             # get times before test
             ruBefore = resource.getrusage(resource.RUSAGE_CHILDREN)
             wallTimeBefore = time.time()
@@ -2033,7 +2035,7 @@ def runBenchmark(benchmarkFile):
             outputHandler.outputAfterTest(cpuTimeTest, wallTimeTest)
 
     outputHandler.outputAfterBenchmark()
-    if options.commit:
+    if options.commit and not STOPPED_BY_INTERRUPT and testsRun > 0:
         Util.addFilesToGitRepository(outputHandler.allCreatedFiles,
                                      options.commitMessage+'\n\n'+outputHandler.description)
 
