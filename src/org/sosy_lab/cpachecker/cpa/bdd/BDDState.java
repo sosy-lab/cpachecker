@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
-public class BDDState implements AbstractState {
+public class BDDState implements AbstractQueryableState {
 
-  private final Region currentState;
+  private Region currentState;
   private final NamedRegionManager manager;
   private final String functionName;
 
@@ -96,5 +97,42 @@ public class BDDState implements AbstractState {
   @Override
   public int hashCode() {
     return currentState.hashCode();
+  }
+
+  @Override
+  public String getCPAName() {
+    return "BDDCPA";
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    throw new InvalidQueryException("BDDCPA Element cannot check anything");
+  }
+
+  @Override
+  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
+    if (pProperty.equals("VALUES")) {
+      return manager.dumpRegion(this.currentState);
+    } else {
+      throw new InvalidQueryException("BDDCPA Element can only return the current values (\"VALUES\")");
+    }
+  }
+
+  @Override
+  public void modifyProperty(String pModification) throws InvalidQueryException {
+    throw new InvalidQueryException("BDDCPA Element cannot be modified");
+  }
+
+  /** this.state = this.state.and(pConstraint);
+   */
+  public void addConstraintToState(Region pConstraint) {
+    currentState = manager.makeAnd(currentState, pConstraint);
+  }
+
+  /**
+   * Returns the NamedRegionManager used by this state for storing the variables values. Do not modify!
+   */
+  public NamedRegionManager getManager() {
+    return this.manager;
   }
 }
