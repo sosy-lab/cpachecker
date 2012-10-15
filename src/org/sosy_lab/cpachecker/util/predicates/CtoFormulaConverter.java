@@ -106,6 +106,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.math.IntMath;
 
 /**
  * Class containing all the code that converts C code into a formula.
@@ -1162,10 +1163,30 @@ public class CtoFormulaConverter {
           return fmgr.makeBitwiseOr(me1, me2);
         case BINARY_XOR:
           return fmgr.makeBitwiseXor(me1, me2);
+
         case SHIFT_LEFT:
-          return fmgr.makeShiftLeft(me1, me2);
+          // SAT-solver cannot handle bitshifts,
+          // so we try to convert a bitshift into a multiplication:
+          // x << 2 is equal to x*4
+          // TODO perhaps bitshifts are possible in future
+          if (e2 instanceof CIntegerLiteralExpression) {
+            final int factor = IntMath.pow(2, ((CIntegerLiteralExpression) e2).getValue().intValue());
+            return fmgr.makeMultiply(me1, fmgr.makeNumber(factor));
+          } else {
+            return fmgr.makeShiftLeft(me1, me2);
+          }
+
         case SHIFT_RIGHT:
-          return fmgr.makeShiftRight(me1, me2);
+          // SAT-solver cannot handle bitshifts,
+          // so we try to evaluate a bitshift: 4 >> 2 is equal to 1
+          // TODO perhaps bitshifts are possible in future
+          if (e1 instanceof CIntegerLiteralExpression
+              && e2 instanceof CIntegerLiteralExpression) {
+            return fmgr.makeNumber(((CIntegerLiteralExpression) e1).getValue().
+                shiftRight(((CIntegerLiteralExpression) e2).getValue().intValue()).intValue());
+          } else {
+            return fmgr.makeShiftRight(me1, me2);
+          }
 
         case GREATER_THAN:
           return fmgr.makeGt(me1, me2);
