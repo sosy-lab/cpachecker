@@ -463,6 +463,10 @@ class Test:
         score = calculateScore(category)
         logfileLines = None
 
+        if status == '':
+            values = [''] * len(listOfColumns)
+            return Test(status, category, sourcefileTag.logfile, listOfColumns, values)
+
         values = []
 
         for column in listOfColumns: # for all columns that should be shown
