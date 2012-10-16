@@ -125,7 +125,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
@@ -972,15 +971,6 @@ class ASTConverter {
 
       if (cStorageClass == CStorageClass.EXTERN && initializer != null) {
         throw new CFAGenerationRuntimeException("Extern declarations cannot have initializers", d);
-      }
-
-      if (initializer == null && scope.isGlobalScope() && cStorageClass != CStorageClass.EXTERN) {
-        // global variables are initialized to zero by default in C
-        CExpression init = CDefaults.forType(type, fileLoc);
-        // may still be null, because we currently don't handle initializers for complex types
-        if (init != null) {
-          initializer = new CInitializerExpression(fileLoc, init);
-        }
       }
 
       String origName = name;
