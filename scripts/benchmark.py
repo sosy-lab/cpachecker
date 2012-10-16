@@ -1872,7 +1872,7 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
                 newStatus = 'UNSAFE'
             else:
                 newStatus = 'UNKNOWN'
-            status = newStatus if status is None else "%s (%s)".format(status, newStatus) 
+            status = newStatus if status is None else "{0} ({1})".format(status, newStatus)
             
         elif (status is None) and line.startswith('#Test cases computed:'):
             status = 'OK'
