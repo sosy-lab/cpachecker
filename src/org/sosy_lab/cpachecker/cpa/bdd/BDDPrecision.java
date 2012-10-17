@@ -47,7 +47,8 @@ public class BDDPrecision implements Precision {
   private boolean trackSimpleCalcs = true;
 
   @Option(name="forceTrackingPattern",
-      description="Pattern for variablenames that will always be tracked with BDDs")
+      description="Pattern for variablenames that will always be tracked with BDDs." +
+      		"This pattern should only be used for known variables, i.e. for boolean vars.")
   private String forceTrackingPatternStr = "";
 
   private final Pattern forceTrackingPattern;
@@ -88,7 +89,9 @@ public class BDDPrecision implements Precision {
    * @return true, if the variable has to be tracked, else false
    */
   public boolean isTracking(String function, String var) {
-    if (this.forceTrackingPattern.matcher(var).matches()) {
+
+    // this pattern should only be used, if we know the class of the matching variables
+    if (this.forceTrackingPattern!= null && this.forceTrackingPattern.matcher(var).matches()) {
       return true;
     }
 
