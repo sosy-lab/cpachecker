@@ -268,7 +268,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   private String produceAssumptionAutomaton(ReachedSet reached) {
-    AbstractState firstState = reached.getFirstState();
+    final AbstractState firstState = reached.getFirstState();
     if (!(firstState instanceof ARGState)) {
       return "Cannot dump assumption as automaton if ARGCPA is not used.";
     }
@@ -278,7 +278,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     // scan reached set for all relevant states with an assumption
     // Invariant: relevantStates does not contain any covered state.
     // A covered state is always replaced by its covering state.
-    Set<ARGState> relevantStates = new HashSet<ARGState>();
+    Set<ARGState> relevantStates = new TreeSet<ARGState>();
     for (AbstractState state : reached) {
       ARGState e = (ARGState)state;
       AssumptionStorageState asmptState = AbstractStates.extractStateByType(e, AssumptionStorageState.class);
@@ -311,29 +311,16 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
     }
 
-    ARGState rootState = (ARGState)reached.getFirstState();
-
-    Set<ARGState> childrenOfRelevantStates = new TreeSet<ARGState>(relevantStates);
-    childrenOfRelevantStates.add(rootState);
-    for (ARGState e : relevantStates) {
-      assert !e.isCovered();
-
-      childrenOfRelevantStates.addAll(getUncoveredChildrenView(e));
-    }
-
-    childrenOfRelevantStates.removeAll(falseAssumptionStates);
-
-    return writeAutomaton(rootState, childrenOfRelevantStates, relevantStates, falseAssumptionStates);
+    return writeAutomaton((ARGState)firstState, relevantStates, falseAssumptionStates);
   }
 
   /**
    * Create a String containing the assumption automaton.
    * @param initialState The initial state of the automaton.
-   * @param allStates A set with all states which should appear as states in the automaton.
-   * @param relevantStates A set with all states with non-trivial assumptions (all others and their children will have assumption TRUE).
+   * @param relevantStates A set with all states with non-trivial assumptions (all others will have assumption TRUE).
    * @param falseAssumptionStates A set with all states with the assumption FALSE
    */
-  private String writeAutomaton(ARGState initialState, Set<ARGState> allStates,
+  private String writeAutomaton(ARGState initialState,
       Set<ARGState> relevantStates, Set<AbstractState> falseAssumptionStates) {
     StringBuilder sb = new StringBuilder();
     sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
@@ -357,53 +344,54 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       sb.append("    TRUE -> ASSUME \"false\" GOTO __FALSE;\n\n");
     }
 
-    for (ARGState s : allStates) {
+    for (final ARGState s : relevantStates) {
       assert !s.isCovered();
-      assert !falseAssumptionStates.contains(s);
+
+      if (falseAssumptionStates.contains(s)) {
+        continue;
+      }
 
       sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
       automatonStates++;
 
-      if (!relevantStates.contains(s)) {
-        sb.append("   TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
+      boolean branching = false;
+      if ((automatonBranchingThreshold > 0) && (s.getChildren().size() > 1)) {
+        branching = true;
+        sb.append("    branchingCount == branchingThreshold -> " + actionOnFinalEdges + "GOTO __FALSE;\n");
+      }
 
-      } else {
-        boolean branching = false;
-        if ((automatonBranchingThreshold > 0) && (s.getChildren().size() > 1)) {
-          branching = true;
-          sb.append("    branchingCount == branchingThreshold -> " + actionOnFinalEdges + "GOTO __FALSE;\n");
-        }
+      final CFANode loc = AbstractStates.extractLocation(s);
+      for (final ARGState child : getUncoveredChildrenView(s)) {
+        assert !child.isCovered();
 
-        CFANode loc = AbstractStates.extractLocation(s);
-        for (ARGState child : getUncoveredChildrenView(s)) {
-          assert !child.isCovered();
+        CFAEdge edge = loc.getEdgeTo(extractLocation(child));
+        sb.append("    MATCH \"");
+        escape(edge.getRawStatement(), sb);
+        sb.append("\" -> ");
 
-          CFANode childLoc = AbstractStates.extractLocation(child);
-          CFAEdge edge = loc.getEdgeTo(childLoc);
-          sb.append("    MATCH \"");
-          escape(edge.getRawStatement(), sb);
-          sb.append("\" -> ");
+        AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child, AssumptionStorageState.class);
+        Formula assumption = formulaManager.makeAnd(assumptionChild.getAssumption(), assumptionChild.getStopFormula());
+        sb.append("ASSUME \"");
+        escape(assumption.toString(), sb);
+        sb.append("\" ");
 
-          AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child, AssumptionStorageState.class);
-          Formula assumption = formulaManager.makeAnd(assumptionChild.getAssumption(), assumptionChild.getStopFormula());
-          sb.append("ASSUME \"");
-          escape(assumption.toString(), sb);
-          sb.append("\" ");
+        if (falseAssumptionStates.contains(child)) {
+          sb.append(actionOnFinalEdges + "GOTO __FALSE");
 
+        } else if (relevantStates.contains(child)) {
           if (branching) {
             sb.append("DO branchingCount = branchingCount+1 ");
           }
+          sb.append("GOTO ARG" + child.getStateId());
 
-          if (falseAssumptionStates.contains(child)) {
-            sb.append(actionOnFinalEdges + "GOTO __FALSE");
-          } else {
-            assert allStates.contains(child);
-            sb.append("GOTO ARG" + child.getStateId());
-          }
-          sb.append(";\n");
+        } else {
+          sb.append(actionOnFinalEdges + "GOTO __TRUE");
         }
-        sb.append("    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
+
+        sb.append(";\n");
       }
+      sb.append("    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
+
     }
     sb.append("END AUTOMATON\n");
     return sb.toString();
