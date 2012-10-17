@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getUncoveredChildrenView;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.io.File;
@@ -275,14 +276,27 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     Set<AbstractState> falseAssumptionStates = Sets.newHashSet(reached.getWaitlist());
 
     // scan reached set for all relevant states with an assumption
+    // Invariant: relevantStates does not contain any covered state.
+    // A covered state is always replaced by its covering state.
     Set<ARGState> relevantStates = new HashSet<ARGState>();
     for (AbstractState state : reached) {
       ARGState e = (ARGState)state;
       AssumptionStorageState asmptState = AbstractStates.extractStateByType(e, AssumptionStorageState.class);
 
-      if (e.isTarget()
+      boolean hasFalseAssumption =
+             e.isTarget()
           || asmptState.isStop()
-          || exceptionStates.contains(e.getStateId())) {
+          || exceptionStates.contains(e.getStateId());
+
+      boolean isRelevant = !asmptState.getAssumption().isTrue();
+
+      if (e.isCovered()) {
+        e = e.getCoveringState(); // replace with covering state
+        assert !e.isCovered();
+        asmptState = null; // just to prevent accidental misuse
+      }
+
+      if (hasFalseAssumption) {
         falseAssumptionStates.add(e);
       }
 
@@ -290,8 +304,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         continue;
       }
 
-      if (!asmptState.getAssumption().isTrue()
-          || falseAssumptionStates.contains(e)) {
+      if (isRelevant || falseAssumptionStates.contains(e)) {
 
         // now add e and all its transitive parents to the relevantStates set
         findAllParents(e, relevantStates);
@@ -303,11 +316,12 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     Set<ARGState> childrenOfRelevantStates = new TreeSet<ARGState>(relevantStates);
     childrenOfRelevantStates.add(rootState);
     for (ARGState e : relevantStates) {
-      childrenOfRelevantStates.addAll(e.getChildren());
-      if (e.isCovered()) {
-        childrenOfRelevantStates.add(e.getCoveringState());
-      }
+      assert !e.isCovered();
+
+      childrenOfRelevantStates.addAll(getUncoveredChildrenView(e));
     }
+
+    childrenOfRelevantStates.removeAll(falseAssumptionStates);
 
     return writeAutomaton(rootState, childrenOfRelevantStates, relevantStates, falseAssumptionStates);
   }
@@ -344,9 +358,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
 
     for (ARGState s : allStates) {
-      if (s.isCovered() || falseAssumptionStates.contains(s)) {
-        continue;
-      }
+      assert !s.isCovered();
+      assert !falseAssumptionStates.contains(s);
 
       sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
       automatonStates++;
@@ -362,11 +375,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         }
 
         CFANode loc = AbstractStates.extractLocation(s);
-        for (ARGState child : s.getChildren()) {
-          if (child.isCovered()) {
-            child = child.getCoveringState();
-            assert !child.isCovered();
-          }
+        for (ARGState child : getUncoveredChildrenView(s)) {
+          assert !child.isCovered();
 
           CFANode childLoc = AbstractStates.extractLocation(child);
           CFAEdge edge = loc.getEdgeTo(childLoc);
@@ -387,6 +397,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           if (falseAssumptionStates.contains(child)) {
             sb.append(actionOnFinalEdges + "GOTO __FALSE");
           } else {
+            assert allStates.contains(child);
             sb.append("GOTO ARG" + child.getStateId());
           }
           sb.append(";\n");
@@ -410,13 +421,17 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     toAdd.add(s);
     while (!toAdd.isEmpty()) {
       ARGState current = toAdd.pop();
+      assert !current.isCovered();
 
       if (parentSet.add(current)) {
         // current was not yet contained in parentSet,
         // so we need to handle its parents
 
         toAdd.addAll(current.getParents());
-        toAdd.addAll(current.getCoveredByThis());
+
+        for (ARGState coveredByCurrent : current.getCoveredByThis()) {
+          toAdd.addAll(coveredByCurrent.getParents());
+        }
       }
     }
   }
