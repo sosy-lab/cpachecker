@@ -186,7 +186,8 @@ class FunctionPointerTransferRelation implements TransferRelation {
           // now substitute the real edge with the fake edge
           cfaEdge = callEdge;
         } else {
-          throw new UnrecognizedCCodeException("function pointer points to unknown function " + functionName, pCfaEdge);
+          logger.log(Level.WARNING, "Ignoring function pointer call to external function", functionName);
+          cfaEdge = pCfaEdge;
         }
 
       } else if (target instanceof UnknownTarget) {
