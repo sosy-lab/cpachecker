@@ -155,6 +155,8 @@ public class CtoFormulaConverter {
       "malloc", "__kmalloc", "kzalloc"
       );
 
+  private static final String ASSUME_FUNCTION_NAME = "__VERIFIER_assume";
+
   // list of functions that are pure (no side-effects)
   private static final Set<String> PURE_EXTERNAL_FUNCTIONS
       = ImmutableSet.of("__assert_fail", "free", "kfree",
@@ -1517,7 +1519,14 @@ public class CtoFormulaConverter {
       String func;
       if (fn instanceof CIdExpression) {
         func = ((CIdExpression)fn).getName();
-        if (nondetFunctions.contains(func)
+        if (func.equals(ASSUME_FUNCTION_NAME) && pexps.size() == 1) {
+
+          Formula condition = toBooleanFormula(pexps.get(0).accept(this));
+          constraints.addConstraint(condition);
+
+          return makeFreshVariable(func, ssa);
+
+        } else if (nondetFunctions.contains(func)
             || nondetFunctionsPattern.matcher(func).matches()) {
           // function call like "random()"
           // ignore parameters and just create a fresh variable for it
