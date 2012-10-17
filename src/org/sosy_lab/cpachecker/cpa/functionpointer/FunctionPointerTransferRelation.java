@@ -266,6 +266,10 @@ class FunctionPointerTransferRelation implements TransferRelation {
       }
     }
 
+    if (nameExp instanceof CCastExpression) {
+      nameExp = ((CCastExpression) nameExp).getOperand();
+    }
+
     if (nameExp instanceof CIdExpression) {
       // a = f(b) or a = (*f)(b)
       return scopedIfNecessary((CIdExpression)nameExp, currentFunction);
