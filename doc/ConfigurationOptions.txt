@@ -110,6 +110,9 @@ analysis.useAdjustableConditions = false
 # use assumption collecting algorithm
 analysis.useAssumptionCollector = false
 
+# use CBMC and the BDDCPA Restriction option
+analysis.useBDDCPARestriction = false
+
 # use a BMC like algorithm that checks for satisfiability after the analysis
 # has finished, works only with PredicateCPA
 analysis.useBMC = false
@@ -313,6 +316,9 @@ cpa.bdd.bitsize = 32
 
 # use a smaller bitsize for all vars, that have only discrete values
 cpa.bdd.compressDiscretes = true
+
+# Pattern for variablenames that will always be tracked with BDDs
+cpa.bdd.forceTrackingPattern = ""
 
 # initialize all variables to 0 when they are declared
 cpa.bdd.initAllVars = false
