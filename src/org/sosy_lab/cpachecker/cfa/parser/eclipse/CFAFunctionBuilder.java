@@ -919,6 +919,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     final int filelocStart = fileloc.getStartingLineNumber();
     final CFANode prevNode = locStack.pop();
+    scope.enterBlock();
 
     // loopInit is Node before "counter = 0;"
     final CFANode loopInit = new CFANode(filelocStart, cfa.getFunctionName());
@@ -974,6 +975,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // this edge connects loopEnd with loopStart and contains the statement "counter++;"
     createLastEdgeForForLoop(forStatement.getIterationExpression(),
                              filelocStart, loopEnd, loopStart);
+    scope.leaveBlock();
 
     // skip visiting children of loop, because loopbody was handled before
     return PROCESS_SKIP;

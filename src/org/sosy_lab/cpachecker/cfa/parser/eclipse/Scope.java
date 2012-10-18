@@ -132,7 +132,7 @@ class Scope {
         : "Tried to register a declaration which does not define a name in the standard namespace: " + declaration;
     assert  !(declaration.getType() instanceof CFunctionType);
 
-    String name = declaration.getName();
+    String name = declaration.getOrigName();
     assert name != null;
 
     Map<String, CSimpleDeclaration> vars = varsStack.getLast();
