@@ -412,6 +412,7 @@ public class VariableClassification {
     }
 
     allVars.put(function, varName);
+    dependencies.addVar(function, varName);
 
     if (rhs instanceof CExpression) {
       handleExpression(edge, ((CExpression) rhs), varName, function);
@@ -459,6 +460,7 @@ public class VariableClassification {
         final String varName = id.getName();
 
         allVars.put(function, varName);
+        dependencies.addVar(function, varName);
         Partition partition = getPartitionForVar(function, varName);
         partition.addEdge(edge, i);
 
@@ -585,11 +587,13 @@ public class VariableClassification {
 
     } else if (exp instanceof CUnaryExpression) {
       CUnaryExpression unExp = (CUnaryExpression) exp;
+      BigInteger value = getNumber(unExp.getOperand());
+      if (value == null) { return null; }
       switch (unExp.getOperator()) {
       case PLUS:
-        return getNumber(unExp.getOperand());
+        return value;
       case MINUS:
-        return BigInteger.ZERO.subtract(getNumber(unExp.getOperand()));
+        return value.negate();
       default:
         return null;
       }
