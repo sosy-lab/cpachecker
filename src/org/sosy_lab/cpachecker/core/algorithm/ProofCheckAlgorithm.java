@@ -200,6 +200,10 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
         logger.log(Level.FINE, "Looking at state", state);
 
+        if(state.isTarget()){
+          return false;
+        }
+
         if (state.isCovered()) {
 
           logger.log(Level.FINER, "State is covered by another abstract state; checking coverage");
