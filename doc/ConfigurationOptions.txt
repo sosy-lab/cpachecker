@@ -317,7 +317,8 @@ cpa.bdd.bitsize = 32
 # use a smaller bitsize for all vars, that have only discrete values
 cpa.bdd.compressDiscretes = true
 
-# Pattern for variablenames that will always be tracked with BDDs
+# Pattern for variablenames that will always be tracked with BDDs.This
+# pattern should only be used for known variables, i.e. for boolean vars.
 cpa.bdd.forceTrackingPattern = ""
 
 # initialize all variables to 0 when they are declared
