@@ -135,11 +135,11 @@ public class CtoFormulaConverter {
   private Set<String> nondetFunctions = ImmutableSet.of(
       "malloc", "__kmalloc", "kzalloc",
       "sscanf",
-      "int_nondet", "nondet_int", "random");
+      "random");
 
   @Option(description="Regexp pattern for functions that should be considered as giving "
     + "a non-deterministic return value (c.f. cpa.predicate.nondedFunctions)")
-  private String nondetFunctionsRegexp = "^__VERIFIER_nondet_[a-z]*";
+  private String nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-z]*";
   private final Pattern nondetFunctionsPattern;
 
   @Option(description = "the machine model used for functions sizeof and alignof")
