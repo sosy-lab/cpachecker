@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -81,10 +82,18 @@ import org.sosy_lab.cpachecker.cpa.pointer.PointerState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+
+import com.google.common.collect.ImmutableMap;
 
 @Options(prefix="cpa.explicit")
 public class ExplicitTransferRelation implements TransferRelation
 {
+
+  // set of functions that may not appear in the source code
+  // the value of the map entry is the explanation for the user
+  private static final Map<String, String> UNSUPPORTED_FUNCTIONS
+      = ImmutableMap.of("pthread_create", "threads");
 
   @Option(description = "if there is an assumption like (x!=0), "
       + "this option sets unknown (uninitialized) variables to 1L, "
@@ -353,6 +362,16 @@ public class ExplicitTransferRelation implements TransferRelation
 
   private void handleStatement(ExplicitState newElement, CStatement expression, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException {
+    if (expression instanceof CFunctionCall) {
+      CExpression fn = ((CFunctionCall)expression).getFunctionCallExpression().getFunctionNameExpression();
+      if (fn instanceof CIdExpression) {
+        String func = ((CIdExpression)fn).getName();
+        if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
+          throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
+        }
+      }
+    }
+
     // expression is a binary operation, e.g. a = b;
     if (expression instanceof CAssignment) {
       handleAssignment(newElement, (CAssignment)expression, cfaEdge);
