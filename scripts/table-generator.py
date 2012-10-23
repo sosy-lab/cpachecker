@@ -237,6 +237,7 @@ class Result():
                 'timelimit': None,
                 'memlimit':  None,
                 'options':   ' ',
+                'benchmarkname': resultXML.get('benchmarkname'),
                 'name':      resultXML.get('name', resultXML.get('benchmarkname')),
                 'branch':    os.path.basename(filename).split('#')[0] if '#' in filename else '',
                 'os':        systemTag.find('os').get('name'),
@@ -593,6 +594,8 @@ def getTableHead(listOfTests, commonFileNamePrefix):
                              name=rowName,
                              content=valuesAndWidths)
 
+    benchmarkNames = [test.attributes['benchmarkname'] for test in listOfTests]
+    allBenchmarkNamesEqual = benchmarkNames.count(benchmarkNames[0]) == len(benchmarkNames)
 
     titles      = [column.title for test in listOfTests for column in test.columns]
     testWidths1 = [1]*sum(testWidths)
@@ -605,7 +608,7 @@ def getTableHead(listOfTests, commonFileNamePrefix):
             'os':      getRow('OS', '{os}', collapse=True),
             'system':  getRow('System', 'CPU: {cpu} with {cores} cores, frequency: {freq}; RAM: {ram}', collapse=True),
             'date':    getRow('Date of run', '{date}', collapse=True),
-            'test':    getRow('Test', '{name}'),
+            'test':    getRow('Test', '{name}' if allBenchmarkNamesEqual else '{benchmarkname}.{name}'),
             'branch':  getRow('Branch', '{branch}'),
             'options': getRow('Options', '{options}'),
             'title':   titleRow}
