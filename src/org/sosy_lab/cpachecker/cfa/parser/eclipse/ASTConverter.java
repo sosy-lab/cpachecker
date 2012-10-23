@@ -198,7 +198,6 @@ class ASTConverter {
   public CIdExpression getConditionalTemporaryVariable() {
     return conditionalTemporaryVariable;
   }
-
   private static final Set<BinaryOperator> BOOLEAN_BINARY_OPERATORS = ImmutableSet.of(
       BinaryOperator.EQUALS,
       BinaryOperator.NOT_EQUALS,
@@ -209,7 +208,7 @@ class ASTConverter {
       BinaryOperator.LOGICAL_AND,
       BinaryOperator.LOGICAL_OR);
 
-  private boolean isBooleanExpression(CExpression e) {
+  public static boolean isBooleanExpression(CExpression e) {
     if (e instanceof CBinaryExpression) {
       return BOOLEAN_BINARY_OPERATORS.contains(((CBinaryExpression)e).getOperator());
 
@@ -219,19 +218,6 @@ class ASTConverter {
     } else {
       return false;
     }
-  }
-
-  public CExpression convertBooleanExpression(IASTExpression e){
-
-    CExpression exp = convertExpressionWithoutSideEffects(e);
-    if (!isBooleanExpression(exp)) {
-
-      // TODO: probably the type of the zero is not always correct
-      CExpression zero = new CIntegerLiteralExpression(exp.getFileLocation(), exp.getExpressionType(), BigInteger.ZERO);
-      return new CBinaryExpression(exp.getFileLocation(), exp.getExpressionType(), exp, zero, BinaryOperator.NOT_EQUALS);
-    }
-
-    return exp;
   }
 
   public CExpression convertExpressionWithoutSideEffects(
