@@ -3,21 +3,21 @@
 <benchmark tool="cpachecker" timelimit="1800" memlimit="2000">
   <test>
     <sourcefiles>
-      <includesfile>test/test-sets/VeriSec.set</includesfile>
-      <include>test/programs/linux-kernel/*.cil.c</include>
-      <includesfile>test/programs/benchmarks/Concurrency.set</includesfile>
-      <includesfile>test/programs/benchmarks/ControlFlowInteger.set</includesfile>
-      <includesfile>test/programs/benchmarks/HeapManipulation.set</includesfile>
-      <includesfile>test/programs/benchmarks/SystemC.set</includesfile>
-      <includesfile>test/programs/benchmarks/DeviceDrivers.set</includesfile>
+      <includesfile>VeriSec.set</includesfile>
+      <include>../programs/linux-kernel/*.cil.c</include>
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+      <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+      <includesfile>../programs/benchmarks/SystemC.set</includesfile>
+      <includesfile>../programs/benchmarks/DeviceDrivers.set</includesfile>
     </sourcefiles>
     <sourcefiles>
-      <includesfile>test/programs/benchmarks/DeviceDrivers64.set</includesfile>
+      <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
       <option name="-setprop">cpa.predicate.machineModel=Linux64</option>
     </sourcefiles>
     <option name="-noout"/>
     <option name="-predicateAnalysis-lbe"/>
-    <option name="-heap">1200m</option>
+    <option name="-heap">1200M</option>
   </test>
   <columns>
     <column title="total">time for CPAchecker</column>

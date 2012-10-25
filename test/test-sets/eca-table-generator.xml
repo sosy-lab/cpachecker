@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<table>
+
+  <test filename="test/results/*.eca.*.results.FsmBddAnalysis.xml">
+    <column title="status"/>
+    <column title="cputime"/>
+  </test>
+
+  <test filename="test/results/*.eca.*.results.ExplicitAnalysis.xml">
+    <column title="status"/>
+    <column title="cputime"/>
+  </test>
+
+  <test filename="test/results/*.eca.*.results.PredicateAnalysis.xml">
+    <column title="status"/>
+    <column title="cputime"/>
+  </test>
+
+  <test filename="test/results/*.eca.*.results.ImpactAnalysis.xml">
+    <column title="status"/>
+    <column title="cputime"/>
+  </test>
+
+</table>
+

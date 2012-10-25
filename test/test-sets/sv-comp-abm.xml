@@ -4,22 +4,22 @@
 
   <test name="predicateAnalysis-abm">
     <sourcefiles>
-      <includesfile>test/programs/benchmarks/Concurrency.set</includesfile>
-      <includesfile>test/programs/benchmarks/ControlFlowInteger.set</includesfile>
-      <includesfile>test/programs/benchmarks/HeapManipulation.set</includesfile>
-      <includesfile>test/programs/benchmarks/SystemC.set</includesfile>
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+      <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+      <includesfile>../programs/benchmarks/SystemC.set</includesfile>
       <option name="-sv-comp12-abm"/>
     </sourcefiles>
     <sourcefiles>
-      <includesfile>test/programs/benchmarks/DeviceDrivers.set</includesfile>
+      <includesfile>../programs/benchmarks/DeviceDrivers.set</includesfile>
       <option name="-sv-comp12-abm-funpoint"/>
     </sourcefiles>
     <sourcefiles>
-      <includesfile>test/programs/benchmarks/DeviceDrivers64.set</includesfile>
+      <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
       <option name="-setprop">cpa.predicate.machineModel=Linux64</option>
       <option name="-sv-comp12-abm"/>
     </sourcefiles>    
-    <option name="-heap">12500m</option>
+    <option name="-heap">12500M</option>
   </test>
 
   <columns>
