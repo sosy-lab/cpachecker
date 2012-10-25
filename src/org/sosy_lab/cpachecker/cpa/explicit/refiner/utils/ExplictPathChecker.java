@@ -29,7 +29,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -43,7 +42,6 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 
 public class ExplictPathChecker {
 
@@ -56,12 +54,11 @@ public class ExplictPathChecker {
    * This method checks if the given path is feasible, when not tracking the given set of variables.
    *
    * @param path the path to check
-   * @param variablesToBeIgnored the variables to ignore; may be empty for a full-precision check
    * @return true, if the path is feasible, else false
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean checkPath(Path path, Multimap<CFANode, String> variablesToBeIgnored)
+  public boolean checkPath(Path path)
       throws CPAException, InterruptedException {
     try {
       Configuration config = Configuration.builder().build();
@@ -69,8 +66,6 @@ public class ExplictPathChecker {
       TransferRelation transfer   = new ExplicitTransferRelation(config);
       AbstractState next          = new ExplicitState();
       ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
-
-      precision.getIgnore().setMapping(variablesToBeIgnored);
 
       for (Pair<ARGState, CFAEdge> pathElement : path) {
         Collection<? extends AbstractState> successors = transfer.getAbstractSuccessors(
@@ -81,7 +76,7 @@ public class ExplictPathChecker {
         next = extractNextState(successors);
 
         // path is not feasible
-        if (next == null && pathElement.getSecond() != path.get(path.size() - 1)) {
+        if(next == null && !pathElement.getFirst().isTarget()) {
           return false;
         }
       }

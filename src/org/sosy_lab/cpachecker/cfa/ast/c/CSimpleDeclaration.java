@@ -63,6 +63,8 @@ public abstract class CSimpleDeclaration extends CAstNode {
     return type;
   }
 
+  /** returns a name for this declaration. The name can have an index,
+   * if the declaration hides another one from higher scope. */
   public String getName() {
     return name;
   }

@@ -25,7 +25,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, unicode_literals
 
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
@@ -84,6 +84,7 @@ TOOLS = {"cbmc"      : ["cbmc",
          "feaver"    : ["feaver_cmd"],
          "cpachecker": ["cpa.sh", "scripts/cpa.sh"],
          "blast"     : ["pblast.opt"],
+         "ecav"      : ["ecaverifier"],
          "safe"      : [],
          "unsafe"    : [],
          "random"    : [],
@@ -122,7 +123,9 @@ class Benchmark:
         self.name = os.path.basename(benchmarkFile)[:-4] # remove ending ".xml"
 
         # get current date as String to avoid problems, if script runs over midnight
-        self.date = time.strftime("%y-%m-%d.%H%M", time.localtime())
+        currentTime = time.localtime()
+        self.date = time.strftime("%y-%m-%d_%H%M", currentTime)
+        self.dateISO = time.strftime("%y-%m-%d %H:%M", currentTime)
 
         # get tool
         self.tool = root.get("tool")
@@ -254,16 +257,16 @@ class Test:
 
     def getSourcefiles(self, sourcefilesTag):
         sourcefiles = []
+        baseDir = os.path.dirname(self.benchmark.benchmarkFile)
 
         # get included sourcefiles
         for includedFiles in sourcefilesTag.findall("include"):
-            sourcefiles += self.getFileList(includedFiles.text)
+            sourcefiles += self.getFileList(includedFiles.text, baseDir)
 
         # get sourcefiles from list in file
         for includesFilesFile in sourcefilesTag.findall("includesfile"):
 
-            for file in self.getFileList(includesFilesFile.text):
-                fileDir = os.path.dirname(file)
+            for file in self.getFileList(includesFilesFile.text, baseDir):
 
                 # check for code (if somebody changes 'include' and 'includesfile')
                 if Util.isCode(file):
@@ -280,25 +283,26 @@ class Test:
 
                     # ignore comments and empty lines
                     if not Util.isComment(line):
-                        sourcefiles += self.getFileList(line, fileDir)
+                        sourcefiles += self.getFileList(line, os.path.dirname(file))
 
                 fileWithList.close()
 
         # remove excluded sourcefiles
         for excludedFiles in sourcefilesTag.findall("exclude"):
-            excludedFilesList = self.getFileList(excludedFiles.text)
+            excludedFilesList = self.getFileList(excludedFiles.text, baseDir)
             for excludedFile in excludedFilesList:
                 sourcefiles = Util.removeAll(sourcefiles, excludedFile)
 
         return sourcefiles
 
 
-    def getFileList(self, shortFile, root=""):
+    def getFileList(self, shortFile, root):
         """
         The function getFileList expands a short filename to a sorted list
         of filenames. The short filename can contain variables and wildcards.
         If root is given and shortFile is not absolute, root and shortFile are joined.
         """
+
         # store shortFile for fallback
         shortFileFallback = shortFile
 
@@ -327,19 +331,17 @@ class Test:
             logging.debug("Expanded tilde and/or shell variables in expression {0} to {1}."
                 .format(repr(shortFile), repr(expandedFile)))
 
-        if len(fileList) == 0:
+        if len(fileList) == 0 and root != "":
 
-            if root == "":
-                logging.warning("No files found matching {0}."
-                                .format(repr(shortFile)))
-
-            else: # Fallback for older test-sets
-                logging.warning("Perpaps old or invalid test-set. Trying fallback for {0}."
-                                .format(repr(shortFileFallback)))
-                fileList = self.getFileList(shortFileFallback)
+            if root != "":
+                # try fallback for older test-sets
+                fileList = self.getFileList(shortFileFallback, "")
                 if len(fileList) != 0:
-                    logging.warning("Fallback has found some files for {0}."
-                                .format(repr(shortFileFallback)))
+                    logging.warning("Test definition uses old-style paths. Please change the path {0} to be relative to {1}."
+                                .format(repr(shortFileFallback), repr(root)))
+                else:
+                    logging.warning("No files found matching {0}."
+                                .format(repr(shortFile)))
 
         return fileList
 
@@ -445,6 +447,15 @@ class Util:
     """
 
     @staticmethod
+    def printOut(value, end='\n'):
+        """
+        This function prints the given String immediately and flushes the output.
+        """
+        sys.stdout.write(value)
+        sys.stdout.write(end)
+        sys.stdout.flush()
+
+    @staticmethod
     def isCode(filename):
         """
         This function returns True, if  a line of the file contains bracket '{'.
@@ -547,6 +558,62 @@ class Util:
         return "%.{0}f".format(numberOfDigits) % number
 
 
+    @staticmethod
+    def addFilesToGitRepository(files, description):
+        """
+        Add and commit all files given in a list into a git repository in the
+        OUTPUT_PATH directory. Nothing is done if the git repository has
+        local changes.
+
+        @param files: the files to commit
+        @param description: the commit message
+        """
+        if not os.path.isdir(OUTPUT_PATH):
+            Util.printOut('Output path is not a directory, cannot add files to git repository.')
+            return
+
+        # find out root directory of repository
+        gitRoot = subprocess.Popen(['git', 'rev-parse', '--show-toplevel'],
+                                   cwd=OUTPUT_PATH,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout = gitRoot.communicate()[0]
+        if gitRoot.returncode != 0:
+            Util.printOut('Cannot commit results to repository: git rev-parse failed, perhaps output path is not a git directory?')
+            return
+        gitRootDir = Util.decodeToString(stdout).splitlines()[0]
+
+        # check whether repository is clean
+        gitStatus = subprocess.Popen(['git','status','--porcelain', '--untracked-files=no'],
+                                     cwd=gitRootDir,
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stdout, stderr) = gitStatus.communicate()
+        if gitStatus.returncode != 0:
+            Util.printOut('Git status failed! Output was:\n' + Util.decodeToString(stderr))
+            return
+
+        if stdout:
+            Util.printOut('Git repository has local changes, not commiting results.')
+            return
+
+        # add files to staging area
+        files = [os.path.realpath(file) for file in files]
+        gitAdd = subprocess.Popen(['git', 'add', '--'] + files,
+                                   cwd=gitRootDir)
+        if gitAdd.wait() != 0:
+            Util.printOut('Git add failed, will not commit results!')
+            return
+
+        # commit files
+        Util.printOut('Committing results files to git repository in ' + gitRootDir)
+        gitCommit = subprocess.Popen(['git', 'commit', '--file=-', '--quiet'],
+                                     cwd=gitRootDir,
+                                     stdin=subprocess.PIPE)
+        gitCommit.communicate(description.encode('UTF-8'))
+        if gitCommit.returncode != 0:
+            Util.printOut('Git commit failed!')
+            return
+
+
 class OutputHandler:
     """
     The class OutputHandler manages all outputs to the terminal and to files.
@@ -560,6 +627,7 @@ class OutputHandler:
         and collects information about the benchmark and the computer.
         """
 
+        self.allCreatedFiles = []
         self.benchmark = benchmark
         self.statistics = Statistics()
 
@@ -591,7 +659,7 @@ class OutputHandler:
 
         # store benchmarkInfo in XML
         self.XMLHeader = ET.Element("test",
-                    {"benchmarkname": self.benchmark.name, "date": self.benchmark.date,
+                    {"benchmarkname": self.benchmark.name, "date": self.benchmark.dateISO,
                      "tool": self.getToolnameForPrinting(), "version": version})
         if memlimit is not None:
             self.XMLHeader.set(MEMLIMIT, memlimit)
@@ -632,7 +700,7 @@ class OutputHandler:
 
         header = "   BENCHMARK INFORMATION\n"\
                 + "benchmark:".ljust(columnWidth) + self.benchmark.name + "\n"\
-                + "date:".ljust(columnWidth) + self.benchmark.date + "\n"\
+                + "date:".ljust(columnWidth) + self.benchmark.dateISO + "\n"\
                 + "tool:".ljust(columnWidth) + self.getToolnameForPrinting()\
                 + " " + version + "\n"
 
@@ -651,6 +719,8 @@ class OutputHandler:
                 + "ram:".ljust(columnWidth) + memory + "\n"\
                 + simpleLine
 
+        self.description = header + systemInfo
+
         testname = None
         if len(self.benchmark.tests) == 1:
             # in case there is only a single test, we can use this name
@@ -660,9 +730,10 @@ class OutputHandler:
             testname = options.testRunOnly[0]
 
         # write to file
-        self.TXTContent = header + systemInfo
-        self.TXTFile = FileWriter(self.getFileName(testname, "txt"), self.TXTContent)
-
+        self.TXTContent = self.description
+        TXTFileName = self.getFileName(testname, "txt")
+        self.TXTFile = FileWriter(TXTFileName, self.TXTContent)
+        self.allCreatedFiles.append(TXTFileName)
 
     def getToolnameForPrinting(self):
         tool = self.benchmark.tool.lower()
@@ -670,6 +741,7 @@ class OutputHandler:
                  'cbmc'      : 'CBMC',
                  'satabs'    : 'SatAbs',
                  'blast'     : 'BLAST',
+                 'ecav'      : 'ECAverifier',
                  'wolverine' : 'WOLVERINE',
                  'ufo'       : 'UFO',
                  'acsar'     : 'Acsar',
@@ -796,13 +868,36 @@ class OutputHandler:
 
         # write testname to terminal
         numberOfFiles = len(self.test.runs)
-        print("\nrunning test" + \
+        Util.printOut("\nrunning test" + \
             (" '" + test.name + "'" if test.name is not None else "") + \
             ("     (1 file)" if numberOfFiles == 1
                         else "     ({0} files)".format(numberOfFiles)))
 
         # write information about the test into TXTFile
         self.writeTestInfoToLog()
+
+        # build dummy-entries for output, later replaced by the results,
+        # the dummy-xml-elems are shared over all runs of a test,
+        # xml-structure is equal to self.runToXML(run)
+        dummyElems = [ET.Element("column", {"title": "status", "value": ""}),
+                      ET.Element("column", {"title": "cputime", "value": ""}),
+                      ET.Element("column", {"title": "walltime", "value": ""})]
+        for column in self.benchmark.columns:
+            dummyElems.append(ET.Element("column", 
+                        {"title": column.title, "value": ""}))
+            
+        for run in self.test.runs:
+            run.resultline = self.formatSourceFileName(run.sourcefile)
+            run.xml = ET.Element("sourcefile", {"name": run.sourcefile})
+            for dummyElem in dummyElems: run.xml.append(dummyElem)
+
+        # write (empty) results to TXTFile and XML
+        self.TXTFile.replace(self.TXTContent + self.testToTXT(self.test))
+        XMLTestFileName = self.getFileName(self.test.name, "xml")
+        self.XMLTestFile = FileWriter(XMLTestFileName,
+                       Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
+        self.XMLTestFile.lastModifiedTime = time.time()
+        self.allCreatedFiles.append(XMLTestFileName)
 
 
     def outputForSkippingTest(self, test, reason=None):
@@ -813,7 +908,7 @@ class OutputHandler:
         '''
 
         # print to terminal
-        print ("\nskipping test" +
+        Util.printOut("\nskipping test" +
                (" '" + test.name + "'" if test.name else "") +
                (" " + reason if reason else "")
               )
@@ -869,10 +964,9 @@ class OutputHandler:
 
             timeStr = time.strftime("%H:%M:%S", time.localtime()) + "   "
             if run.benchmark.numOfThreads == 1:
-                sys.stdout.write(timeStr + self.formatSourceFileName(run.sourcefile))
-                sys.stdout.flush()
+                Util.printOut(timeStr + self.formatSourceFileName(run.sourcefile), '')
             else:
-                print(timeStr + "starting   " + self.formatSourceFileName(run.sourcefile))
+                Util.printOut(timeStr + "starting   " + self.formatSourceFileName(run.sourcefile))
         finally:
             OutputHandler.printLock.release()
 
@@ -881,6 +975,7 @@ class OutputHandler:
         if run.test.name is not None:
             logfileName += run.test.name + "."
         logfileName += os.path.basename(run.sourcefile) + ".log"
+        self.allCreatedFiles.append(logfileName)
         return logfileName
 
 
@@ -922,17 +1017,26 @@ class OutputHandler:
             if not STOPPED_BY_INTERRUPT:
                 valueStr = statusStr + run.cpuTimeStr.rjust(8) + run.wallTimeStr.rjust(8)
                 if run.benchmark.numOfThreads == 1:
-                    print(valueStr)
+                    Util.printOut(valueStr)
                 else:
                     timeStr = time.strftime("%H:%M:%S", time.localtime()) + " "*14
-                    print(timeStr + self.formatSourceFileName(run.sourcefile) + valueStr)
+                    Util.printOut(timeStr + self.formatSourceFileName(run.sourcefile) + valueStr)
 
-            # write resultline in TXTFile
+            # store information in run
             run.resultline = self.createOutputLine(run.sourcefile, run.status,
                     run.cpuTimeStr, run.wallTimeStr, run.columns)
-            self.TXTFile.replace(self.TXTContent + self.testToTXT(self.test))
+            run.xml = self.runToXML(run)
 
+            # write result in TXTFile and XML
+            self.TXTFile.replace(self.TXTContent + self.testToTXT(self.test))
             self.statistics.addResult(statusRelation)
+
+            # we don't want to write this file to often, it can slow down the whole script,
+            # so we wait at least 10 seconds between two write-actions
+            currentTime = time.time()
+            if currentTime - self.XMLTestFile.lastModifiedTime > 10:
+                self.XMLTestFile.replace(Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
+                self.XMLTestFile.lastModifiedTime = currentTime
 
         finally:
             OutputHandler.printLock.release()
@@ -949,15 +1053,15 @@ class OutputHandler:
         self.test.wallTimeStr = Util.formatNumber(wallTimeTest, TIME_PRECISION)
 
         # write testresults to files
-        FileWriter(self.getFileName(self.test.name, "xml"),
-            Util.XMLtoString(self.runsToXML(self.test, self.test.runs, self.test.name)))
-        FileWriter(self.getFileName(self.test.name, "csv"), self.testToCSV(self.test))
+        self.XMLTestFile.replace(Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
+        CSVFileName = self.getFileName(self.test.name, "csv")
+        FileWriter(CSVFileName, self.testToCSV(self.test))
+        self.allCreatedFiles.append(CSVFileName)
 
         if len(self.test.blocks) > 1:
             for block in self.test.blocks:
-                name = ((self.test.name + ".") if self.test.name else "") + block.name
                 FileWriter(self.getFileName(self.test.name, block.name + ".xml"),
-                    Util.XMLtoString(self.runsToXML(self.test, block.runs, name)))
+                    Util.XMLtoString(self.runsToXML(self.test, block.runs, block.name)))
 
         self.TXTContent += self.testToTXT(self.test, True)
         self.TXTFile.replace(self.TXTContent)
@@ -967,8 +1071,7 @@ class OutputHandler:
         lines = [test.titleLine, test.simpleLine]
 
         # store values of each run
-        for run in test.runs:
-            lines.append(run.resultline or self.formatSourceFileName(run.sourcefile))
+        for run in test.runs: lines.append(run.resultline)
 
         lines.append(test.simpleLine)
 
@@ -988,7 +1091,7 @@ class OutputHandler:
         return "\n".join(lines) + "\n"
 
 
-    def runsToXML(self, test, runs, name):
+    def runsToXML(self, test, runs, blockname=None):
         """
         This function dumps a list of runs of a test and their results to XML.
         """
@@ -996,12 +1099,14 @@ class OutputHandler:
         runsElem = Util.getCopyOfXMLElem(self.XMLHeader)
         testOptions = mergeOptions(test.benchmark.options, test.options)
         runsElem.set("options", " ".join(testOptions))
-        if name is not None:
-            runsElem.set("name", name)
+        if blockname is not None:
+            runsElem.set("block", blockname)
+            runsElem.set("name", ((test.name + ".") if test.name else "") + blockname)
+        elif test.name is not None:
+            runsElem.set("name", test.name)
 
         # collect XMLelements from all runs
-        for run in runs:
-            runsElem.append(self.runToXML(run))
+        for run in runs: runsElem.append(run.xml)
 
         return runsElem
 
@@ -1103,7 +1208,7 @@ class OutputHandler:
         self.statistics.printToTerminal()
 
         if STOPPED_BY_INTERRUPT:
-            print ("\nscript was interrupted by user, some tests may not be done\n")
+            Util.printOut("\nscript was interrupted by user, some tests may not be done\n")
 
 
     def getFileName(self, testname, fileExtension):
@@ -1128,7 +1233,6 @@ class OutputHandler:
         fileName = fileName.replace(self.commonPrefix, '', 1)
         return fileName.ljust(self.maxLengthOfFileName + 4)
 
-
 class Statistics:
 
     def __init__(self):
@@ -1149,7 +1253,7 @@ class Statistics:
 
 
     def printToTerminal(self):
-        print ('\n'.join(['\nStatistics:' + str(self.dic["counter"]).rjust(13) + ' Files',
+        Util.printOut('\n'.join(['\nStatistics:' + str(self.dic["counter"]).rjust(13) + ' Files',
                  '    correct:        ' + str(self.dic["correctSafe"] + \
                                               self.dic["correctUnsafe"]).rjust(4),
                  '    unknown:        ' + str(self.dic["unknown"]).rjust(4),
@@ -1212,9 +1316,17 @@ class FileWriter:
          file.close()
 
      def replace(self, content):
-         file = open(self.__filename, "w")
+         """
+         replaces the content of a file.
+         a tmp-file is used to avoid loss of data through an interrupt
+         """
+         tmpFilename = self.__filename + ".tmp"
+         
+         file = open(tmpFilename, "w")
          file.write(content)
          file.close()
+         
+         os.rename(tmpFilename, self.__filename)
 
 
 def substituteVars(oldList, test, sourcefile=None, logFolder=None):
@@ -1760,7 +1872,7 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
                 newStatus = 'UNSAFE'
             else:
                 newStatus = 'UNKNOWN'
-            status = newStatus if status is None else "%s (%s)".format(status, newStatus) 
+            status = newStatus if status is None else "{0} ({1})".format(status, newStatus)
             
         elif (status is None) and line.startswith('#Test cases computed:'):
             status = 'OK'
@@ -1813,6 +1925,24 @@ def run_blast(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
 
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
+def run_ecav(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
+    args = [exe] + options + [sourcefile]
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
+
+    status = "UNKNOWN"
+    for line in output.splitlines():
+        if line.startswith('0 safe, 1 unsafe'):
+            status = 'UNSAFE'
+        elif line.startswith('1 safe, 0 unsafe'):
+            status = 'SAFE'
+        elif returnsignal == 9:
+            if isTimeout(cpuTimeDelta, rlimits):
+                status = 'TIMEOUT'
+            else:
+                status = "KILLED BY SIGNAL 9"
+
+    return (status, cpuTimeDelta, wallTimeDelta, args)
+
 
 class Worker(threading.Thread):
     """
@@ -1843,6 +1973,7 @@ def runBenchmark(benchmarkFile):
                 repr(benchmarkFile), len(benchmark.tests)))
 
     outputHandler = benchmark.outputHandler
+    testsRun = 0
 
     logging.debug("I will use {0} threads.".format(benchmark.numOfThreads))
 
@@ -1862,6 +1993,7 @@ def runBenchmark(benchmarkFile):
             outputHandler.outputForSkippingTest(test, "because it has no files")
 
         else:
+            testsRun += 1
             # get times before test
             ruBefore = resource.getrusage(resource.RUSAGE_CHILDREN)
             wallTimeBefore = time.time()
@@ -1903,6 +2035,9 @@ def runBenchmark(benchmarkFile):
             outputHandler.outputAfterTest(cpuTimeTest, wallTimeTest)
 
     outputHandler.outputAfterBenchmark()
+    if options.commit and not STOPPED_BY_INTERRUPT and testsRun > 0:
+        Util.addFilesToGitRepository(outputHandler.allCreatedFiles,
+                                     options.commitMessage+'\n\n'+outputHandler.description)
 
 
 def main(argv=None):
@@ -1964,6 +2099,16 @@ from the output of this script.""")
                       action="store_true",
                       help="When limiting core usage, every run in the benchmark is only allowed to use one core of the cpu.")
 
+    parser.add_option("--commit", dest="commit",
+                      action="store_true",
+                      help="If the output path is a git repository without local changes,"
+                            + "add and commit the result files.")
+
+    parser.add_option("--message",
+                      dest="commitMessage", type="string",
+                      default="Results for benchmark run",
+                      help="Commit message if --commit is used.")
+
     global options, OUTPUT_PATH
     (options, args) = parser.parse_args(argv)
     if os.path.isdir(options.output_path):
@@ -2007,7 +2152,7 @@ def killScript():
         STOPPED_BY_INTERRUPT = True
 
         # kill running jobs
-        print ("killing subprocesses...")
+        Util.printOut("killing subprocesses...")
         try:
             SUB_PROCESSES_LOCK.acquire()
             for process in SUB_PROCESSES:
@@ -2030,4 +2175,4 @@ if __name__ == "__main__":
         sys.exit(main())
     except KeyboardInterrupt: # this block is reached, when interrupt is thrown before or after a test
         killScript()
-        print ("\n\nscript was interrupted by user, some tests may not be done")
+        Util.printOut("\n\nscript was interrupted by user, some tests may not be done")

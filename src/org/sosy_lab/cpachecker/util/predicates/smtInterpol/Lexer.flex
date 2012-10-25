@@ -13,7 +13,7 @@ import java_cup.runtime.ComplexSymbolFactory.Location;
  */
 
 @javax.annotation.Generated("JFlex")
-@SuppressWarnings(value = { "all" })
+@SuppressWarnings(value = { "all", "unchecked", "fallthrough" })
 %%
 
 %class Lexer

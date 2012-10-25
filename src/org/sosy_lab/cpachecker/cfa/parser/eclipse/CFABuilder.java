@@ -119,14 +119,20 @@ class CFABuilder extends ASTVisitor {
     IASTFileLocation fileloc = declaration.getFileLocation();
 
     if (declaration instanceof IASTSimpleDeclaration) {
+
+      if (((IASTSimpleDeclaration)declaration).getDeclarators().length>0)
       System.out.println("IASTSimpleDeclaration  "
           + ((IASTSimpleDeclaration) declaration).getRawSignature()
           + "   " + ((IASTSimpleDeclaration)declaration).getDeclarators()[0].getClass());
-      return handleSimpleDeclaration((IASTSimpleDeclaration)declaration, fileloc);
+      else System.out.println("CBC");
+
+      return handleSimpleDeclaration((IASTSimpleDeclaration)declaration);
 
     } else if (declaration instanceof IASTFunctionDefinition) {
+
       System.out.println("IASTFunctionDefinition  "
           + ((IASTFunctionDefinition) declaration).getDeclarator().getRawSignature());
+
       IASTFunctionDefinition fd = (IASTFunctionDefinition) declaration;
       functionDefinitions.add(fd);
 
@@ -166,7 +172,7 @@ class CFABuilder extends ASTVisitor {
    *
    * Info: variable-declarations can have an initializer,
    *       function-declarations have no body! */
-  private int handleSimpleDeclaration(final IASTSimpleDeclaration sd, final IASTFileLocation fileloc) {
+  private int handleSimpleDeclaration(final IASTSimpleDeclaration sd) {
 
     //these are unneccesary semicolons which would cause an abort of CPAchecker
     if(sd.getDeclarators().length == 0  && sd.getDeclSpecifier() instanceof IASTSimpleDeclSpecifier) {
@@ -210,7 +216,7 @@ class CFABuilder extends ASTVisitor {
       final CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger,
           scope, astCreator);
 
-      definition.accept(functionBuilder);
+      definition.accept(functionBuilder); // this build the CFA of the function
 
       FunctionEntryNode startNode = functionBuilder.getStartNode();
       String functionName = startNode.getFunctionName();

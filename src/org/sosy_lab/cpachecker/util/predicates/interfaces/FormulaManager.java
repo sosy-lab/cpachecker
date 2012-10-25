@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
@@ -198,10 +199,10 @@ public interface FormulaManager {
 
     /**
      * Parse a formula list given as a String in a solver-specific file format.
-     * @return The same formula list in the internal representation.
+     * @return The list of formulas contained in the string, keyed by their name.
      * @throws IllegalArgumentException If the string cannot be parsed.
      */
-    public FormulaList parseList(String s) throws IllegalArgumentException;
+    public Map<String, Formula> parseFormulas(String s) throws IllegalArgumentException;
 
     /**
      * Given a formula that uses "generic" variables, returns the corresponding
@@ -250,11 +251,11 @@ public interface FormulaManager {
     public String dumpFormula(Formula pT);
 
     /**
-     * Create string representation of a list of formulae as a string.
-     * @param pFlist list of formulae
-     * @return String that describes pFlist
+     * Create string representation of some formulas as a string.
+     * @param pFormulas list of formulae
+     * @return String that describes pFormulas
      */
-    public String dumpFormulaList(FormulaList pFlist);
+    public String dumpFormulas(Map<String, Formula> pFormulas);
 
     /**
      * Looks for uninterpreted functions in the formula and adds bitwise

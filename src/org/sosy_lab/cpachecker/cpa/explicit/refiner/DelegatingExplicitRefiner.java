@@ -32,8 +32,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -68,21 +66,23 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.explicit.refiner")
 public class DelegatingExplicitRefiner
-  extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARGState, CFANode>> {
+  extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>> {
 
-  @Option(description="whether to use refinement based on Explicit-Interpolation - with this option set to false, refinement will be done using SMT-based interpolation")
-  boolean useExplicitInterpolation = true;
+  /**
+   * refiner used for explicit interpolation refinement
+   */
+  private ExplicitInterpolationBasedExplicitRefiner explicitInterpolatingRefiner;
 
-  @Option(description="whether or not to always use the inital node as starting point for the next re-exploration of the ARG")
-  boolean useInitialNodeAsRestartingPoint = true;
-
-  private ExplicitRefiner explicitInterpolatingRefiner;
-
-  private ExplicitRefiner smtInterpolatingRefiner;
-
+  /**
+   * backup-refiner used for predicate refinement, when explicit refinement fails (due to lack of expressiveness)
+   */
   private PredicatingExplicitRefiner predicatingRefiner;
+
+  /**
+   * a counter for debugging purpose
+   */
+//  private static int counter = 1;
 
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -153,14 +153,7 @@ public class DelegatingExplicitRefiner
 
     super(config, logger, cpa, interpolationManager);
 
-    config.inject(this, DelegatingExplicitRefiner.class);
-
-    if(useExplicitInterpolation) {
-      explicitInterpolatingRefiner  = new ExplicitInterpolationBasedExplicitRefiner(config, pathFormulaManager);
-    }
-    else {
-      smtInterpolatingRefiner       = new SmtBasedExplicitRefiner(config, pathFormulaManager, formulaManager, interpolationManager);
-    }
+    explicitInterpolatingRefiner  = new ExplicitInterpolationBasedExplicitRefiner(config, pathFormulaManager);
 
     if(((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class) != null) {
       predicatingRefiner = new PredicatingExplicitRefiner();
@@ -178,14 +171,10 @@ public class DelegatingExplicitRefiner
 
     ARGState interpolationPoint = null;
 
-    if(explicitInterpolatingRefiner != null) {
-      precisionIncrement = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
-      interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
-    }
-    else {
-      precisionIncrement = smtInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
-      interpolationPoint = smtInterpolatingRefiner.determineInterpolationPoint(errorPath);
-    }
+    precisionIncrement = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
+    interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
+
+//System.out.println("\n" + (counter++) + ". " + (new java.util.Date()) + ": final explicit-precisionIncrement: " + precisionIncrement);
 
     if(precisionIncrement.size() > 0) {
       ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
@@ -207,12 +196,12 @@ public class DelegatingExplicitRefiner
   }
 
   @Override
-  protected final List<Pair<ARGState, CFANode>> transformPath(Path errorPath) {
+  protected final List<ARGState> transformPath(Path errorPath) {
     return predicatingRefiner.transformPath(errorPath);
   }
 
   @Override
-  protected List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> errorPath, ARGState initialElement)
+  protected List<Formula> getFormulasForPath(List<ARGState> errorPath, ARGState initialElement)
       throws CPATransferException {
     return predicatingRefiner.getFormulasForPath(errorPath, initialElement);
   }
@@ -220,7 +209,7 @@ public class DelegatingExplicitRefiner
   @Override
   protected void performRefinement(
       ARGReachedSet pReached,
-      List<Pair<ARGState, CFANode>> errorPath,
+      List<ARGState> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> counterexampleTraceInfo,
       boolean pRepeatedCounterexample)
       throws CPAException {
@@ -242,13 +231,7 @@ public class DelegatingExplicitRefiner
 
     out.println("Explicit Refinement:");
 
-    if(explicitInterpolatingRefiner != null) {
-      explicitInterpolatingRefiner.printStatistics(out, result, reached);
-    }
-
-    if(smtInterpolatingRefiner != null) {
-      smtInterpolatingRefiner.printStatistics(out, result, reached);
-    }
+    explicitInterpolatingRefiner.printStatistics(out, result, reached);
 
     if(predicatingRefiner != null) {
       predicatingRefiner.printStatistics(out, result, reached);

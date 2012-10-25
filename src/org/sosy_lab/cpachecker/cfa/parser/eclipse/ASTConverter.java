@@ -62,7 +62,6 @@ import org.eclipse.cdt.core.dom.ast.IASTName;
 import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTPointer;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTProblemStatement;
@@ -109,6 +108,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -117,6 +117,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -134,6 +135,9 @@ class ASTConverter {
   private LinkedList<CAstNode> postSideAssignments = new LinkedList<CAstNode>();
   private IASTConditionalExpression conditionalExpression = null;
   private CIdExpression conditionalTemporaryVariable = null;
+
+  // list for all complextypes which are known, so that they don't have to be parsed again and again
+  private ArrayList<Pair<org.eclipse.cdt.core.dom.ast.ICompositeType, CCompositeType>> iCompTypeList = Lists.newArrayList();
 
 
   public ASTConverter(Scope pScope, LogManager pLogger) {
@@ -219,6 +223,10 @@ class ASTConverter {
     return tmp;
 }
 
+  /** This function returns a converted expression.
+   * It forwards to a lot of different methods for each type of expression.
+   * If the expression contains sideassignments,
+   * they are handled in the forwarded methods. */
   protected CAstNode convertExpressionWithSideEffects(IASTExpression e) {
     assert !(e instanceof CExpression);
 
@@ -272,7 +280,11 @@ class ASTConverter {
   }
 
   /**
-   * creates temporary variables with increasing numbers
+   * This function creates temporary variables with increasing numbers.
+   * The declaration of a tmpVar is added to the preSideAssigments.
+   *
+   * @param exp used to get type and location
+   * @param initializer initial value of tmpVar
    */
   private CIdExpression createTemporaryVariable(IASTExpression e, String name) {
     boolean nameWasInUse = true;
@@ -357,19 +369,7 @@ class ASTConverter {
   }
 
   private CFunctionCallExpression convert(IASTFunctionCallExpression e) {
-    IASTExpression p = e.getParameterExpression();
-
-    List<CExpression> params;
-    if (p instanceof IASTExpressionList) {
-      params = convert((IASTExpressionList)p);
-
-    } else {
-      params = new ArrayList<CExpression>();
-      if (p != null) {
-        params.add(convertExpressionWithoutSideEffects(p));
-      }
-    }
-
+    final List<CExpression> params = convertParams(e);
     CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
     CSimpleDeclaration declaration = null;
 
@@ -390,12 +390,31 @@ class ASTConverter {
     return new CFunctionCallExpression(getLocation(e), ASTTypeConverter.conv(e.getExpressionType()), functionName, params, declaration);
   }
 
-  private List<CExpression> convert(IASTExpressionList es) {
-    List<CExpression> result = new ArrayList<CExpression>(es.getExpressions().length);
-    for (IASTExpression expression : es.getExpressions()) {
-      result.add(convertExpressionWithoutSideEffects(expression));
+  /** returns a list of params, never null,
+   * that contains the converted params of a functioncall. */
+  private List<CExpression> convertParams(IASTFunctionCallExpression f) {
+    final IASTExpression p = f.getParameterExpression();
+    final List<CExpression> params = new ArrayList<CExpression>();
+
+    if (p == null) { // functioncall without params
+      return params;
+
+    } else if (p instanceof IASTExpressionList) { // more than one param in function
+      for (IASTExpression expression : ((IASTExpressionList) p).getExpressions()) {
+        CExpression exp = convertExpressionWithoutSideEffects(expression);
+        System.out.println("XXXX" + exp.toASTString());
+        params.add(exp);
+      }
+
+    } else { // exactly one param in function
+      CExpression exp = convertExpressionWithoutSideEffects(p);
+      System.out.println("XX" + exp.toASTString() + "   " + exp.getClass());
+//      if (exp instanceof CIdExpression){
+//        System.out.println("MOIN: " + ((CIdExpression)exp).getExpressionType().getClass());
+//      }
+      params.add(exp);
     }
-    return result;
+    return params;
   }
 
   private CIdExpression convert(IASTIdExpression e) {
@@ -403,6 +422,8 @@ class ASTConverter {
     CSimpleDeclaration declaration = scope.lookupVariable(name);
     if (declaration != null) {
       name = declaration.getName();
+    } else {
+      System.out.println("UNDECLARED IDEXPRESSION: " + e.getRawSignature());
     }
     return new CIdExpression(getLocation(e), ASTTypeConverter.conv(e.getExpressionType()), name, declaration);
   }
@@ -652,7 +673,6 @@ class ASTConverter {
     }
     IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
 
-    CFileLocation fileLoc = getLocation(d);
     Pair<CStorageClass, ? extends CType> specifier = convert(sd.getDeclSpecifier());
     if (specifier.getFirst() != CStorageClass.AUTO) {
       throw new CFAGenerationRuntimeException("Unsupported storage class inside composite type", d);
@@ -663,25 +683,25 @@ class ASTConverter {
     IASTDeclarator[] declarators = sd.getDeclarators();
     if (declarators == null || declarators.length == 0) {
       // declaration without declarator, anonymous struct field?
-      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(fileLoc, type, null);
+      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(type, null);
       result = Collections.singletonList(newD);
 
     } else if (declarators.length == 1) {
-      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(fileLoc, type, declarators[0]);
+      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(type, declarators[0]);
       result = Collections.singletonList(newD);
 
     } else {
       result = new ArrayList<CCompositeTypeMemberDeclaration>(declarators.length);
       for (IASTDeclarator c : declarators) {
 
-        result.add(createDeclarationForCompositeType(fileLoc, type, c));
+        result.add(createDeclarationForCompositeType(type, c));
       }
     }
 
     return result;
   }
 
-  private CCompositeTypeMemberDeclaration createDeclarationForCompositeType(CFileLocation fileLoc, CType type, IASTDeclarator d) {
+  private CCompositeTypeMemberDeclaration createDeclarationForCompositeType(CType type, IASTDeclarator d) {
     String name = null;
 
     if (d != null) {
@@ -695,7 +715,7 @@ class ASTConverter {
       name = declarator.getThird();
     }
 
-    return new CCompositeTypeMemberDeclaration(fileLoc, type, name);
+    return new CCompositeTypeMemberDeclaration(type, name);
   }
 
   private Triple<CType, CInitializer, String> convert(IASTDeclarator d, CType specifier) {
@@ -759,7 +779,7 @@ class ASTConverter {
           type = convert((IASTArrayModifier)modifier, type);
 
         } else if (modifier instanceof IASTPointerOperator) {
-          type = convert((IASTPointerOperator)modifier, type);
+          type = ASTTypeConverter.conv((IASTPointerOperator)modifier, type);
 
         } else {
           assert false;
@@ -767,23 +787,6 @@ class ASTConverter {
       }
 
       return Triple.of(type, initializer, name);
-    }
-  }
-
-  private CType convertPointerOperators(IASTPointerOperator[] ps, CType type) {
-    for (IASTPointerOperator p : ps) {
-      type = convert(p, type);
-    }
-    return type;
-  }
-
-  private CPointerType convert(IASTPointerOperator po, CType type) {
-    if (po instanceof IASTPointer) {
-      IASTPointer p = (IASTPointer)po;
-      return new CPointerType(p.isConst(), p.isVolatile(), type);
-
-    } else {
-      throw new CFAGenerationRuntimeException("Unknown pointer operator", po);
     }
   }
 
@@ -804,7 +807,17 @@ class ASTConverter {
     IASTStandardFunctionDeclarator sd = (IASTStandardFunctionDeclarator)d;
 
     // handle return type
-    returnType = convertPointerOperators(d.getPointerOperators(), returnType);
+    returnType = ASTTypeConverter.convPointerOperators(d.getPointerOperators(), returnType);
+    if (returnType instanceof CSimpleType) {
+      CSimpleType t = (CSimpleType)returnType;
+      if (t.getType() == CBasicType.UNSPECIFIED) {
+        // type of functions is implicitly int it not specified
+        returnType = new CSimpleType(t.isConst(), t.isVolatile(), CBasicType.INT,
+            t.isLong(), t.isShort(), t.isSigned(), t.isUnsigned(), t.isComplex(),
+            t.isImaginary(), t.isLongLong());
+      }
+    }
+
 
     // handle parameters
     List<CParameterDeclaration> paramsList = convert(sd.getParameters());

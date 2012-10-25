@@ -218,6 +218,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
   }
 
+  /** A functionDefinition has a body.
+   * This function is called as first, when the CFA for a function is build. */
   private int handleFunctionDefinition(final IASTFunctionDefinition definition,
       final IASTFileLocation fileloc) {
 
@@ -877,7 +879,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           && ((IASTUnaryExpression)condition).getOperator() == IASTUnaryExpression.op_bracketedPrimary){
       buildConditionTree(((IASTUnaryExpression)condition).getOperand(), filelocStart, rootNode, thenNode, elseNode, thenNode, elseNode, true, true);
 
-      // switch branches for !a
+      // !a --> switch branches
     } else if (condition instanceof IASTUnaryExpression
         && ((IASTUnaryExpression) condition).getOperator() == IASTUnaryExpression.op_not) {
       buildConditionTree(((IASTUnaryExpression) condition).getOperand(), filelocStart, rootNode, elseNode, thenNode, elseNode, thenNode, true, true);
@@ -967,6 +969,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     final int filelocStart = fileloc.getStartingLineNumber();
     final CFANode prevNode = locStack.pop();
+    scope.enterBlock();
 
     // loopInit is Node before "counter = 0;"
     final CFANode loopInit = new CFANode(filelocStart, cfa.getFunctionName());
@@ -1022,6 +1025,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // this edge connects loopEnd with loopStart and contains the statement "counter++;"
     createLastEdgeForForLoop(forStatement.getIterationExpression(),
                              filelocStart, loopEnd, loopStart);
+    scope.leaveBlock();
 
     // skip visiting children of loop, because loopbody was handled before
     return PROCESS_SKIP;

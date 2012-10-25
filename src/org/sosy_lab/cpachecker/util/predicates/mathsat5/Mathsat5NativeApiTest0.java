@@ -21,9 +21,32 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit.refiner;
+package org.sosy_lab.cpachecker.util.predicates.mathsat5;
+
+import static org.junit.Assert.assertEquals;
+import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
+
+import org.junit.Test;
 
 
+/**
+ * This class is not part of the normal CPAchecker test suite because
+ * the java.library.path needs to be defined in order to execute the tests.
+ */
+public class Mathsat5NativeApiTest0 {
 
-public interface IExplicitRefiner {
+  @Test
+  public void bvSize() {
+    long cfg = msat_create_config();
+    long env = msat_create_env(cfg);
+    msat_destroy_config(cfg);
+
+    long number = msat_make_bv_number(env, "42", 32, 10);
+    long type = msat_term_get_type(number);
+
+    assertEquals(true, msat_is_bv_type(env, type));
+    assertEquals(32, msat_get_bv_type_size(env, type));
+
+    msat_destroy_env(env);
+  }
 }

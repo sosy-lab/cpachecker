@@ -35,12 +35,10 @@ import collections
 import os.path
 import glob
 import json
-import shutil
 import optparse
 import time
 import tempita
 
-from datetime import date
 from decimal import *
 
 
@@ -54,14 +52,14 @@ TEMPLATE_FORMATS = ['html', 'csv']
 
 # string searched in filenames to determine correct or incorrect status.
 # use lower case!
-BUG_SUBSTRING_LIST = ['bad', 'bug', 'unsafe']
+BUG_SUBSTRING_LIST = ['_unsafe']
 
 # scoreValues taken from http://sv-comp.sosy-lab.org/
 SCORE_CORRECT_SAFE = 2
 SCORE_CORRECT_UNSAFE = 1
 SCORE_UNKNOWN = 0
-SCORE_WRONG_UNSAFE = -2
-SCORE_WRONG_SAFE = -4
+SCORE_WRONG_UNSAFE = -4
+SCORE_WRONG_SAFE = -8
 
 
 class Util:
@@ -239,6 +237,7 @@ class Result():
                 'timelimit': None,
                 'memlimit':  None,
                 'options':   ' ',
+                'benchmarkname': resultXML.get('benchmarkname'),
                 'name':      resultXML.get('name', resultXML.get('benchmarkname')),
                 'branch':    os.path.basename(filename).split('#')[0] if '#' in filename else '',
                 'os':        systemTag.find('os').get('name'),
@@ -278,6 +277,9 @@ def parseTestFile(resultFile, columnsToShow=None):
     if columnsToShow: # not None
         columns = [Column(c.get("title"), c.text, c.get("numberOfDigits"))
                    for c in columnsToShow]
+    elif resultElem.find('sourcefile') is None:
+        print("Empty resultfile found: " + resultFile)
+        columns = []
     else: # show all available columns
         columns = [Column(c.get("title"), None, None)
                    for c in resultElem.find('sourcefile').findall('column')]
@@ -291,14 +293,23 @@ def insertLogFileNames(resultFile, resultElem):
     parts = resultFile.split("#", 1)
 
     # get folder of logfiles
-    logFolder = '{benchmarkname}.{date}.logfiles/'.format(**resultElem.attrib)
+    date = resultElem.get('date').replace(':','').replace(' ','_') # from ISO-format to filename-format
+    logFolder = resultElem.get('benchmarkname') + '.' + date + '.logfiles/'
     if len(parts) > 1:
         logFolder = parts[0] + '#' + logFolder
 
     # append begin of filename
     testname = resultElem.get('name')
     if testname is not None:
-        logFolder += testname + "."
+        blockname = resultElem.get('block')
+        if blockname is None:
+            logFolder += testname + "."
+        elif blockname == testname:
+            pass # real testname is empty
+        else:
+            assert testname.endswith("." + blockname)
+            testname = testname[:-(1 + len(blockname))] # remove last chars
+            logFolder += testname + "."
 
     # for each file: append original filename and insert logFileName into sourcefileElement
     for sourcefile in resultElem.findall('sourcefile'):
@@ -448,10 +459,14 @@ class Test:
                         return line[startPosition: endPosition].strip()
             return None
 
-        status = Util.getColumnValue(sourcefileTag, 'status', 'unknown')
+        status = Util.getColumnValue(sourcefileTag, 'status', '')
         category = getResultCategory(status)
         score = calculateScore(category)
         logfileLines = None
+
+        if status == '':
+            values = [''] * len(listOfColumns)
+            return Test(status, category, sourcefileTag.logfile, listOfColumns, values)
 
         values = []
 
@@ -573,17 +588,19 @@ def getTableHead(listOfTests, commonFileNamePrefix):
         if not any(values): return None # skip row without values completely
 
         valuesAndWidths = list(Util.collapseEqualValues(values, testWidths)) \
-                          if collapse else zip(values, testWidths)
+                          if collapse else list(zip(values, testWidths))
 
         return tempita.bunch(id=rowName.lower().split(' ')[0],
                              name=rowName,
                              content=valuesAndWidths)
 
+    benchmarkNames = [test.attributes['benchmarkname'] for test in listOfTests]
+    allBenchmarkNamesEqual = benchmarkNames.count(benchmarkNames[0]) == len(benchmarkNames)
 
     titles      = [column.title for test in listOfTests for column in test.columns]
     testWidths1 = [1]*sum(testWidths)
     titleRow    = tempita.bunch(id='columnTitles', name=commonFileNamePrefix,
-                                content=zip(titles, testWidths1))
+                                content=list(zip(titles, testWidths1)))
 
     return {'tool':    getRow('Tool', '{tool} {version}', collapse=True),
             'limit':   getRow('Limits', 'timelimit: {timelimit}, memlimit: {memlimit}', collapse=True),
@@ -591,7 +608,7 @@ def getTableHead(listOfTests, commonFileNamePrefix):
             'os':      getRow('OS', '{os}', collapse=True),
             'system':  getRow('System', 'CPU: {cpu} with {cores} cores, frequency: {freq}; RAM: {ram}', collapse=True),
             'date':    getRow('Date of run', '{date}', collapse=True),
-            'test':    getRow('Test', '{name}'),
+            'test':    getRow('Test', '{name}' if allBenchmarkNamesEqual else '{benchmarkname}.{name}'),
             'branch':  getRow('Branch', '{branch}'),
             'options': getRow('Options', '{options}'),
             'title':   titleRow}
@@ -860,7 +877,7 @@ def main(args=None):
         inputFiles = Util.extendFileList(inputFiles) # expand wildcards
         listOfTestFiles = [(file, None) for file in inputFiles]
 
-        name = NAME_START + "." + time.strftime("%y%m%d-%H%M", time.localtime())
+        name = NAME_START + "." + time.strftime("%y-%m-%d_%H%M", time.localtime())
 
 
     # parse test files

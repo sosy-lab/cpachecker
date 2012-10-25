@@ -296,14 +296,11 @@ public class ArithmeticMathsatFormulaManager extends MathsatFormulaManager {
     }
     return encapsulate(result);
   }
-
-  @Override
   public FormulaList parseList(String pS) throws IllegalArgumentException {
     // TODO Auto-generated method stub
     return null;
   }
 
-  @Override
   public String dumpFormulaList(FormulaList pFlist) {
     // TODO Auto-generated method stub
     return null;

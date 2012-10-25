@@ -121,13 +121,15 @@ public class Mathsat5Model {
     }
   }
 
-  static Model createMathsatModel(long lMathsatEnvironmentID, Mathsat5FormulaManager fmgr) throws SolverException {
+  static Model createMathsatModel(final long sourceEnvironment,
+      final Mathsat5FormulaManager fmgr, final boolean sharedEnvironment) throws SolverException {
+    final long targetEnvironment = fmgr.msatEnv;
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
-    long modelFormula = msat_make_true(lMathsatEnvironmentID);
+    long modelFormula = msat_make_true(targetEnvironment);
 
     ModelIterator lModelIterator;
     try {
-      lModelIterator = msat_create_ModelIterator(lMathsatEnvironmentID);
+      lModelIterator = msat_create_ModelIterator(sourceEnvironment);
     } catch (IllegalArgumentException e) {
       // creating the iterator may fail,
       // for example if some theories were disabled in the solver but are needed
@@ -140,23 +142,27 @@ public class Mathsat5Model {
       long lKeyTerm = lModelElement[0];
       long lValueTerm = lModelElement[1];
 
+      if (!sharedEnvironment) {
+        lKeyTerm = msat_make_copy_from(targetEnvironment, lKeyTerm, sourceEnvironment);
+        lValueTerm = msat_make_copy_from(targetEnvironment, lValueTerm, sourceEnvironment);
+      }
 
       long equivalence;
 
-      if (msat_is_bool_type(lMathsatEnvironmentID, msat_term_get_type(lKeyTerm)) && msat_is_bool_type(lMathsatEnvironmentID, msat_term_get_type(lValueTerm))) {
-        equivalence = msat_make_iff(lMathsatEnvironmentID, lKeyTerm, lValueTerm);
+      if (msat_is_bool_type(targetEnvironment, msat_term_get_type(lKeyTerm)) && msat_is_bool_type(targetEnvironment, msat_term_get_type(lValueTerm))) {
+        equivalence = msat_make_iff(targetEnvironment, lKeyTerm, lValueTerm);
       } else {
-        equivalence = msat_make_equal(lMathsatEnvironmentID, lKeyTerm, lValueTerm);
+        equivalence = msat_make_equal(targetEnvironment, lKeyTerm, lValueTerm);
       }
 
-      modelFormula = msat_make_and(lMathsatEnvironmentID, modelFormula, equivalence);
+      modelFormula = msat_make_and(targetEnvironment, modelFormula, equivalence);
 
-      AssignableTerm lAssignable = toAssignable(lMathsatEnvironmentID, lKeyTerm);
+      AssignableTerm lAssignable = toAssignable(targetEnvironment, lKeyTerm);
 
       // TODO maybe we have to convert to SMTLIB format and then read in values in a controlled way, e.g., size of bitvector
       // TODO we are assuming numbers as values
-      if (!(msat_term_is_number(lMathsatEnvironmentID, lValueTerm)
-            || msat_term_is_boolean_constant(lMathsatEnvironmentID, lValueTerm) || msat_term_is_false(lMathsatEnvironmentID, lValueTerm) || msat_term_is_true(lMathsatEnvironmentID, lValueTerm))) {
+      if (!(msat_term_is_number(targetEnvironment, lValueTerm)
+            || msat_term_is_boolean_constant(targetEnvironment, lValueTerm) || msat_term_is_false(targetEnvironment, lValueTerm) || msat_term_is_true(targetEnvironment, lValueTerm))) {
         throw new IllegalArgumentException("Mathsat term is not a number!");
       }
 
@@ -210,7 +216,7 @@ public class Mathsat5Model {
     }
 
     lModelIterator.free();
-    return new Model(model.build(), new Mathsat5Formula(lMathsatEnvironmentID, modelFormula));
+    return new Model(model.build(), fmgr.encapsulate(modelFormula));
   }
 
 }

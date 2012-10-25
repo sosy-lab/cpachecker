@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 /**
@@ -49,7 +51,7 @@ import com.google.common.collect.Lists;
  */
 class CmdLineArguments {
 
-  private static final Splitter SETPROP_OPTION_SPLITTER = Splitter.on('=').trimResults();
+  private static final Splitter SETPROP_OPTION_SPLITTER = Splitter.on('=').trimResults().limit(2);
 
   /**
    * Exception thrown when something invalid is specified on the command line.
@@ -76,6 +78,10 @@ class CmdLineArguments {
   static final String CONFIGURATION_FILE_OPTION = "configuration.file";
 
   private static final String CMC_CONFIGURATION_FILES_OPTION = "restartAlgorithm.configFiles";
+
+  private static final Set<String> UNSUPPORTED_SPECIFICATIONS = ImmutableSet.of(
+      "valid-free", "valid-deref", "valid-memtrack"
+      );
 
   /**
    * Reads the arguments and process them.
@@ -290,11 +296,18 @@ class CmdLineArguments {
     if (currentArg.equals(arg)) {
       if (args.hasNext()) {
 
+        String newValue = args.next();
+        if (arg.equals("-spec")
+            && UNSUPPORTED_SPECIFICATIONS.contains(newValue)) {
+          System.err.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
+          System.exit(0);
+        }
+
         String value = properties.get(option);
         if (value != null) {
-          value = value + "," + args.next();
+          value = value + "," + newValue;
         } else {
-          value = args.next();
+          value = newValue;
         }
         properties.put(option, value);
 

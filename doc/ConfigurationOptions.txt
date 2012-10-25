@@ -463,6 +463,10 @@ cpa.explicit.stop = "SEP"
 # blacklist regex for variables that won't be tracked by ExplicitCPA
 cpa.explicit.variableBlacklist = ""
 
+# whether or not to always use the inital node as starting point for the next
+# re-exploration of the ARG
+cpa.explict.refiner.useInitialNodeAsRestartingPoint = no default value
+
 # whitelist regex for variables that will be tracked by FeatureVarsCPA
 cpa.featurevars.variableWhitelist = ""
 

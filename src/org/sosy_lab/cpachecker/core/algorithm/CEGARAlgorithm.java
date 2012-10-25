@@ -213,7 +213,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
-    boolean sound = true;
+    boolean isComplete = true;
 
     stats.totalTimer.start();
     try {
@@ -222,7 +222,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         refinementSuccessful = false;
 
         // run algorithm
-        sound &= algorithm.run(reached);
+        isComplete &= algorithm.run(reached);
 
         // if the last state is a target state do refinement
         if (AbstractStates.isTargetState(reached.getLastState())) {
@@ -235,7 +235,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     } finally {
       stats.totalTimer.stop();
     }
-    return sound;
+    return isComplete;
   }
 
   private boolean refine(ReachedSet reached) throws CPAException, InterruptedException {

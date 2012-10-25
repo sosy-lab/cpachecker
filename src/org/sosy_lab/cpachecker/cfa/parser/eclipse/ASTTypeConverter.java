@@ -23,10 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTPointer;
+import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IBasicType;
@@ -36,12 +41,14 @@ import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.ITypedef;
 import org.eclipse.cdt.core.dom.ast.c.ICASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.c.ICBasicType;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -70,6 +77,9 @@ class ASTTypeConverter {
 
     } else if (t instanceof IBinding) {
       return new CComplexType(((IBinding) t).getName());
+
+    } else if (t instanceof org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType) {
+      return conv((org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType)t);
 
     } else {
       return new CDummyType(t.toString());
@@ -161,6 +171,17 @@ class ASTTypeConverter {
     // This method needs to throw DOMException because t.getType() does so in Eclipse CDT 6.
     // Don't inline it, because otherwise Eclipse will complain about an unreachable catch block with Eclipse CDT 7.
     return t.getType();
+  }
+
+  private static CFunctionType conv(final org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType t) {
+    final CType returnType = conv(t.getReturnType());
+
+    final List<CParameterDeclaration> paramsList = new ArrayList<CParameterDeclaration>();
+    for (IType p : t.getParameterTypes()) {
+      paramsList.add(new CParameterDeclaration(null, conv(p), "")); // TODO add filelocation and name?
+    }
+
+    return new CFunctionType(false, false, returnType, paramsList, false);
   }
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
@@ -272,4 +293,22 @@ class ASTTypeConverter {
     }
   }
 
+  /** returns a pointerType, that wraps the type. */
+  static CPointerType conv(final IASTPointerOperator po, final CType type) {
+    if (po instanceof IASTPointer) {
+      IASTPointer p = (IASTPointer)po;
+      return new CPointerType(p.isConst(), p.isVolatile(), type);
+
+    } else {
+      throw new CFAGenerationRuntimeException("Unknown pointer operator", po);
+    }
+  }
+
+  /** returns a pointerType, that wraps all the converted types. */
+  static CType convPointerOperators(final IASTPointerOperator[] ps, CType type) {
+    for (IASTPointerOperator p : ps) {
+      type = conv(p, type);
+    }
+    return type;
+  }
 }

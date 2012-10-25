@@ -27,8 +27,11 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.findLoops;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.logging.Level;
 
@@ -42,11 +45,17 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -78,6 +87,11 @@ public class CFACreator {
   @Option(name="cfa.useMultiEdges",
       description="combine sequences of simple edges into a single edge")
   private boolean useMultiEdges = false;
+
+  @Option(name="cfa.useConditionTrees",
+      description="split composite conditions (assumptions) into basic conditions. " +
+      		"For each condition a condition-tree is created.")
+  private boolean useConditionTrees = false;
 
   @Option(name="cfa.removeIrrelevantForSpecification",
       description="remove paths from CFA that cannot lead to a specification violation")
@@ -213,6 +227,10 @@ public class CFACreator {
         MultiEdgeCreator.createMultiEdges(cfa);
       }
 
+      if (useConditionTrees) {
+        ConditionTreeCreator.createConditionTrees(cfa);
+      }
+
       final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
 
       // check the super CFA starting at the main function
@@ -298,6 +316,8 @@ public class CFACreator {
       return;
     }
 
+    addDefaultInitializers(globalVars);
+
     // split off first node of CFA
     FunctionEntryNode firstNode = cfa.getMainFunction();
     assert firstNode.getNumLeavingEdges() == 1;
@@ -330,6 +350,72 @@ public class CFACreator {
     // and a blank edge connecting the declarations with the second node of CFA
     be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode, firstEdge.getDescription());
     addToCFA(be);
+  }
+
+  /**
+   * This method adds an initializer to all global variables which do not have
+   * an explicit initial value (global variables are initialized to zero by default in C).
+   * @param globalVars a list with all global declarations
+   */
+  private static void addDefaultInitializers(List<Pair<CDeclaration, String>> globalVars) {
+    // first, collect all variables which do have an explicit initializer
+    Set<String> initializedVariables = new HashSet<String>();
+    for (Pair<CDeclaration, String> p : globalVars) {
+      if (p.getFirst() instanceof CVariableDeclaration) {
+        CVariableDeclaration v = (CVariableDeclaration)p.getFirst();
+        if (v.getInitializer() != null) {
+          initializedVariables.add(v.getName());
+        }
+      }
+    }
+
+    // Now iterate through all declarations,
+    // adding a default initializer to the first  of a variable.
+    // All subsequent declarations of a variable after the one with the initializer
+    // will be removed.
+    Set<String> previouslyInitializedVariables = new HashSet<String>();
+    ListIterator<Pair<CDeclaration, String>> iterator = globalVars.listIterator();
+    while (iterator.hasNext()) {
+      Pair<CDeclaration, String> p = iterator.next();
+
+      if (p.getFirst() instanceof CVariableDeclaration) {
+        CVariableDeclaration v = (CVariableDeclaration)p.getFirst();
+        assert v.isGlobal();
+        String name = v.getName();
+
+        if (previouslyInitializedVariables.contains(name)) {
+          // there was a full declaration before this one, we can just omit this one
+          // TODO check for equality of initializers and give error message
+          // if there are conflicting initializers.
+          iterator.remove();
+
+        } else if (v.getInitializer() != null) {
+          previouslyInitializedVariables.add(name);
+
+        } else if (!initializedVariables.contains(name)
+            && v.getCStorageClass() == CStorageClass.AUTO) {
+
+          // Add default variable initializer, because the storage class is AUTO
+          // and there is no initializer later in the file.
+          CExpression init = CDefaults.forType(v.getType(), v.getFileLocation());
+          // may still be null, because we currently don't handle initializers for complex types
+          if (init != null) {
+            CInitializer initializer = new CInitializerExpression(v.getFileLocation(), init);
+            v = new CVariableDeclaration(v.getFileLocation(),
+                                         v.isGlobal(),
+                                         v.getCStorageClass(),
+                                         v.getType(),
+                                         v.getName(),
+                                         v.getOrigName(),
+                                         initializer);
+
+            previouslyInitializedVariables.add(name);
+            p = Pair.<CDeclaration, String>of(v, p.getSecond());
+            iterator.set(p); // replace declaration
+          }
+        }
+      }
+    }
   }
 
   private void exportCFA(final CFA cfa) {

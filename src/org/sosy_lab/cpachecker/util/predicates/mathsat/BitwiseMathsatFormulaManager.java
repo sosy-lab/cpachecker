@@ -221,14 +221,11 @@ public class BitwiseMathsatFormulaManager extends MathsatFormulaManager {
   public Formula getBitwiseAxioms(Formula pF) {
     return makeTrue();
   }
-
-  @Override
   public FormulaList parseList(String pS) throws IllegalArgumentException {
     // TODO Auto-generated method stub
     return null;
   }
 
-  @Override
   public String dumpFormulaList(FormulaList pFlist) {
     // TODO Auto-generated method stub
     return null;

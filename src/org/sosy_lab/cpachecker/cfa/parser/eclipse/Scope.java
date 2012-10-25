@@ -108,7 +108,7 @@ class Scope {
       uniqueName = origName + "__" + (i++);
     } while (usedNames.contains(uniqueName));
 
-    assert usedNames.add(uniqueName);
+    usedNames.add(uniqueName);
     return uniqueName;
   }
 

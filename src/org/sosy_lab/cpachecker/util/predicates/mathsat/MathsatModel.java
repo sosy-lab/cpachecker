@@ -128,11 +128,13 @@ public class MathsatModel {
     }
   }
 
-  static Model createMathsatModel(long lMathsatEnvironmentID, MathsatFormulaManager fmgr) {
+  static Model createMathsatModel(final long sourceEnvironment,
+      final MathsatFormulaManager fmgr, final boolean sharedEnvironments) {
+    final long targetEnvironment = fmgr.msatEnv;
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
-    long modelFormula = NativeApi.msat_make_true(lMathsatEnvironmentID);
+    long modelFormula = NativeApi.msat_make_true(targetEnvironment);
 
-    long lModelIterator = NativeApi.msat_create_model_iterator(lMathsatEnvironmentID);
+    long lModelIterator = NativeApi.msat_create_model_iterator(sourceEnvironment);
 
     if (NativeApi.MSAT_ERROR_MODEL_ITERATOR(lModelIterator)) {
       throw new RuntimeException("Erroneous model iterator! (" + lModelIterator + ")");
@@ -144,8 +146,13 @@ public class MathsatModel {
       long lKeyTerm = lModelElement[0];
       long lValueTerm = lModelElement[1];
 
-      long equivalence = NativeApi.msat_make_equal(lMathsatEnvironmentID, lKeyTerm, lValueTerm);
-      modelFormula = NativeApi.msat_make_and(lMathsatEnvironmentID, modelFormula, equivalence);
+      if (!sharedEnvironments) {
+        lKeyTerm = NativeApi.msat_make_copy_from(targetEnvironment, lKeyTerm, sourceEnvironment);
+        lValueTerm = NativeApi.msat_make_copy_from(targetEnvironment, lValueTerm, sourceEnvironment);
+      }
+
+      long equivalence = NativeApi.msat_make_equal(targetEnvironment, lKeyTerm, lValueTerm);
+      modelFormula = NativeApi.msat_make_and(targetEnvironment, modelFormula, equivalence);
 
       AssignableTerm lAssignable = toAssignable(lKeyTerm);
 

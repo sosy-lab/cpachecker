@@ -67,8 +67,11 @@ public class CBMCExecutor extends ProcessExecutor<RuntimeException> {
 
   @Override
   protected void handleErrorOutput(String pLine) throws RuntimeException {
-    if (!(pLine.startsWith("Verified ") && pLine.endsWith("original clauses."))) {
-      // exclude the normal status output of CBMC
+    // CBMC does not seem to print this anymore to stderr
+    //if (!(pLine.startsWith("Verified ") && pLine.endsWith("original clauses.")))
+
+    if (!pLine.startsWith("**** WARNING: no body for function ")) {
+      // ignore warning which is not interesting for us
 
       gaveErrorOutput = true;
       super.handleErrorOutput(pLine);

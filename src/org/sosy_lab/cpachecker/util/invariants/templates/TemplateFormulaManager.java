@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.invariants.templates;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -33,8 +34,6 @@ import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public class TemplateFormulaManager implements FormulaManager {
 
@@ -541,8 +540,8 @@ public class TemplateFormulaManager implements FormulaManager {
   }
 
   @Override
-  public FormulaList parseList(String pS) throws IllegalArgumentException {
-    throw new NotImplementedException();
+  public Map<String, Formula> parseFormulas(String pS) throws IllegalArgumentException {
+    throw new UnsupportedOperationException();
   }
 
   /**
@@ -606,8 +605,8 @@ public class TemplateFormulaManager implements FormulaManager {
   public String dumpFormula(Formula pT) { return null; }
 
   @Override
-  public String dumpFormulaList(FormulaList pFlist) {
-    throw new NotImplementedException();
+  public String dumpFormulas(Map<String, Formula> pFormulas) {
+    throw new UnsupportedOperationException();
   }
 
   /**
