@@ -250,7 +250,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
             unexploredParent = false;
             for(ARGState p:e.getParents()){
               if(!reachedSet.contains(p) || inWaitlist.contains(p)){
-                waitingForUnexploredParents.add(p);
+                waitingForUnexploredParents.add(e);
                 unexploredParent = true;
                 break;
               }
@@ -273,6 +273,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       }
     } while (!postponedStates.isEmpty());
     stats.totalTimer.stop();
+
     return waitingForUnexploredParents.isEmpty();
   }
 
