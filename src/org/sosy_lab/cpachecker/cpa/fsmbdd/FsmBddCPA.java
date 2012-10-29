@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.fsmbdd;
 
+import java.util.Collection;
+
 import net.sf.javabdd.BDDFactory;
 
 import org.sosy_lab.common.LogManager;
@@ -41,6 +43,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
@@ -51,7 +55,7 @@ import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
  */
 
 @Options(prefix="cpa.fsmbdd")
-public class FsmBddCPA implements ConfigurableProgramAnalysis {
+public class FsmBddCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(FsmBddCPA.class);
@@ -63,6 +67,7 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis {
   private FsmTransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
   private FsmPrecision precision;
+  private FsmBddStatistics stats;
 
   private final Configuration config;
   private final LogManager logger;
@@ -94,6 +99,7 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis {
     this.stopOperator = initializeStopOperator();
     this.mergeOperator = new FsmMergeOperator(abstractDomain);
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    this.stats = new FsmBddStatistics(bddFactory);
   }
 
   private StopOperator initializeStopOperator() {
@@ -146,6 +152,11 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis {
 
   public LogManager getLogger() {
     return logger;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 
 }
